@@ -64,6 +64,24 @@ model RefreshToken {
   @@map("refresh_tokens")
 }
 
+/// Append-only audit trail (Module 18). Denormalized (keeps username/role
+/// snapshots) so entries survive user deletion. Tenant-scoped via RLS.
+model AuditLog {
+  id        String    @id @default(cuid())
+  schoolId  String
+  userId    String?
+  username  String?
+  role      UserRole?
+  module    String
+  action    String
+  ip        String?
+  metadata  Json?
+  createdAt DateTime  @default(now())
+
+  @@index([schoolId, createdAt])
+  @@map("audit_logs")
+}
+
 enum SchoolStatus {
   ACTIVE
   SUSPENDED

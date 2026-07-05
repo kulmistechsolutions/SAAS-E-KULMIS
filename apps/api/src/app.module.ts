@@ -8,6 +8,7 @@ import { ConfigModule } from "@nestjs/config";
 import { LoggerModule } from "nestjs-pino";
 import { validateEnv } from "./config/env.validation";
 import { AuthModule } from "./auth/auth.module";
+import { AuditModule } from "./audit/audit.module";
 import { HealthModule } from "./health/health.module";
 import { PrismaModule } from "./prisma/prisma.module";
 import { UsersModule } from "./users/users.module";
@@ -34,6 +35,7 @@ import { TenantModule } from "./tenant/tenant.module";
       },
     }),
     PrismaModule,
+    AuditModule,
     StorageModule,
     SearchModule,
     AuthModule,
