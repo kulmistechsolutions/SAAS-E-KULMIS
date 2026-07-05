@@ -15,6 +15,7 @@ import { UsersModule } from "./users/users.module";
 import { SettingsModule } from "./settings/settings.module";
 import { AcademicsModule } from "./academics/academics.module";
 import { StudentsModule } from "./students/students.module";
+import { TeachersModule } from "./teachers/teachers.module";
 import { StorageModule } from "./storage/storage.module";
 import { SearchModule } from "./search/search.module";
 import { TenantMiddleware } from "./tenant/tenant.middleware";
@@ -46,6 +47,7 @@ import { TenantModule } from "./tenant/tenant.module";
     SettingsModule,
     AcademicsModule,
     StudentsModule,
+    TeachersModule,
     TenantModule,
     HealthModule,
   ],
