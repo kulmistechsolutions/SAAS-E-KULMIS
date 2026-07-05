@@ -1,0 +1,87 @@
+// eKulmis — Prisma schema.
+// Multi-tenant SaaS: EVERY domain model carries `schoolId` (tenant key).
+// PostgreSQL Row-Level Security (added in Phase 0.5 migration SQL) enforces
+// isolation; all uniqueness is scoped per school.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+/// The tenant. One row per school. Root of all tenant-scoped data.
+model School {
+  id        String   @id @default(cuid())
+  /// Subdomain used for tenant resolution, e.g. "iskuul1" -> iskuul1.app.com
+  subdomain String   @unique
+  name      String
+  status    SchoolStatus @default(ACTIVE)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users User[]
+
+  @@map("schools")
+}
+
+/// System user. Unique per school (not globally) — hence composite constraints.
+model User {
+  id           String     @id @default(cuid())
+  schoolId     String
+  username     String
+  passwordHash String
+  role         UserRole
+  status       UserStatus @default(ACTIVE)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  school        School         @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  refreshTokens RefreshToken[]
+
+  @@unique([schoolId, username])
+  @@index([schoolId])
+  @@map("users")
+}
+
+/// Hashed refresh tokens for JWT session rotation. System-level (no RLS):
+/// looked up by the (globally unique, random) token hash during refresh.
+model RefreshToken {
+  id        String    @id @default(cuid())
+  schoolId  String
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+enum SchoolStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+enum UserRole {
+  ADMINISTRATOR
+  TEACHER
+  PARENT
+  STUDENT
+  ATTENDANCE_OFFICER
+  FINANCE_OFFICER
+  EXAM_MANAGER
+  RECEPTION
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  LOCKED
+}

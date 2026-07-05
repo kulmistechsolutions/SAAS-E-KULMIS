@@ -1,0 +1,81 @@
+# Local development infrastructure for eKulmis (multi-tenant School ERP).
+# Usage: docker compose up -d
+# Services: PostgreSQL, PgBouncer (connection pooling from day 1),
+#           Redis (cache + BullMQ + Socket.IO), MinIO (object storage).
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: ekulmis-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-ekulmis}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ekulmis_dev_password}
+      POSTGRES_DB: ${POSTGRES_DB:-ekulmis}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ekulmis}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  pgbouncer:
+    image: edoburu/pgbouncer:latest
+    container_name: ekulmis-pgbouncer
+    restart: unless-stopped
+    environment:
+      DB_HOST: postgres
+      DB_USER: ${POSTGRES_USER:-ekulmis}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-ekulmis_dev_password}
+      DB_NAME: ${POSTGRES_DB:-ekulmis}
+      POOL_MODE: transaction
+      MAX_CLIENT_CONN: "1000"
+      DEFAULT_POOL_SIZE: "25"
+      AUTH_TYPE: scram-sha-256
+    ports:
+      - "6432:5432"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  redis:
+    image: redis:7-alpine
+    container_name: ekulmis-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  minio:
+    image: minio/minio:latest
+    container_name: ekulmis-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-ekulmis}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-ekulmis_dev_password}
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio-data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres-data:
+  redis-data:
+  minio-data:
