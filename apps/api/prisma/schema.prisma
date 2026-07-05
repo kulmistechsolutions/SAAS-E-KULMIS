@@ -86,6 +86,7 @@ model Class {
 
   academicYear AcademicYear @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
   sections     Section[]
+  students     Student[]
 
   @@unique([schoolId, academicYearId, name])
   @@index([schoolId])
@@ -102,7 +103,8 @@ model Section {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  class Class @relation(fields: [classId], references: [id], onDelete: Cascade)
+  class    Class     @relation(fields: [classId], references: [id], onDelete: Cascade)
+  students Student[]
 
   @@unique([schoolId, classId, name])
   @@index([schoolId])
@@ -139,6 +141,7 @@ model User {
 
   school        School         @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   refreshTokens RefreshToken[]
+  parent        Parent?
 
   @@unique([schoolId, username])
   @@index([schoolId])
@@ -178,6 +181,79 @@ model AuditLog {
 
   @@index([schoolId, createdAt])
   @@map("audit_logs")
+}
+
+/// Per-school, per-entity sequence for generating human IDs (e.g. SHMM0001).
+/// System table (no RLS); written on the privileged connection with explicit
+/// schoolId. Values are never reused, so gaps on failure are acceptable.
+model Counter {
+  id       String @id @default(cuid())
+  schoolId String
+  name     String
+  value    Int    @default(0)
+
+  @@unique([schoolId, name])
+  @@map("counters")
+}
+
+/// Parent/guardian. Auto-created from student registration; reused by phone.
+/// Logs in via the linked User (username = parent code).
+model Parent {
+  id        String   @id @default(cuid())
+  schoolId  String
+  code      String
+  name      String
+  phone     String
+  userId    String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  students Student[]
+
+  @@unique([schoolId, code])
+  @@unique([schoolId, phone])
+  @@index([schoolId])
+  @@map("parents")
+}
+
+/// Student — foundation of the ERP. Belongs to one Class + (optional) Section.
+model Student {
+  id               String        @id @default(cuid())
+  schoolId         String
+  code             String
+  fullName         String
+  gender           Gender
+  phone            String?
+  parentId         String
+  classId          String
+  sectionId        String?
+  monthlyFee       Int           @default(0)
+  status           StudentStatus @default(ACTIVE)
+  registrationDate DateTime      @default(now())
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  parent  Parent   @relation(fields: [parentId], references: [id], onDelete: Cascade)
+  class   Class    @relation(fields: [classId], references: [id], onDelete: Restrict)
+  section Section? @relation(fields: [sectionId], references: [id], onDelete: Restrict)
+
+  @@unique([schoolId, code])
+  @@index([schoolId])
+  @@index([parentId])
+  @@index([classId])
+  @@map("students")
+}
+
+enum Gender {
+  MALE
+  FEMALE
+}
+
+enum StudentStatus {
+  ACTIVE
+  INACTIVE
+  GRADUATED
 }
 
 enum SchoolStatus {

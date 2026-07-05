@@ -7,6 +7,7 @@ export * from "./schemas/auth";
 export * from "./schemas/user";
 export * from "./schemas/settings";
 export * from "./schemas/academics";
+export * from "./schemas/student";
 
 /** Multi-tenant primitives (MASTER_PRD scope decision: multi-tenant SaaS). */
 export interface TenantContext {
