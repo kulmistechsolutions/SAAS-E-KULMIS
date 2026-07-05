@@ -20,6 +20,31 @@ model School {
   subdomain String   @unique
   name      String
   status    SchoolStatus @default(ACTIVE)
+
+  // ── Settings & branding (Module 16 / §7) ──
+  motto         String?
+  address       String?
+  phone         String?
+  email         String?
+  website       String?
+  principalName String?
+  logoKey       String? // MinIO object key (uploaded separately)
+  stampKey      String?
+  currency      String  @default("USD")
+  timezone      String  @default("UTC")
+  language      String  @default("en")
+  receiptFooter String?
+  reportFooter  String?
+  resultFooter  String?
+
+  // ── ID prefixes (auto-generated IDs derive from these) ──
+  studentPrefix     String @default("STD")
+  teacherPrefix     String @default("TCH")
+  parentPrefix      String @default("PAR")
+  receiptPrefix     String @default("RCP")
+  invoicePrefix     String @default("INV")
+  certificatePrefix String @default("CRT")
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

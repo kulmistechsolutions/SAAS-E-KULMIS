@@ -12,6 +12,7 @@ import { AuditModule } from "./audit/audit.module";
 import { HealthModule } from "./health/health.module";
 import { PrismaModule } from "./prisma/prisma.module";
 import { UsersModule } from "./users/users.module";
+import { SettingsModule } from "./settings/settings.module";
 import { StorageModule } from "./storage/storage.module";
 import { SearchModule } from "./search/search.module";
 import { TenantMiddleware } from "./tenant/tenant.middleware";
@@ -40,6 +41,7 @@ import { TenantModule } from "./tenant/tenant.module";
     SearchModule,
     AuthModule,
     UsersModule,
+    SettingsModule,
     TenantModule,
     HealthModule,
   ],
