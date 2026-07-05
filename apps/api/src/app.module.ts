@@ -13,6 +13,7 @@ import { HealthModule } from "./health/health.module";
 import { PrismaModule } from "./prisma/prisma.module";
 import { UsersModule } from "./users/users.module";
 import { SettingsModule } from "./settings/settings.module";
+import { AcademicsModule } from "./academics/academics.module";
 import { StorageModule } from "./storage/storage.module";
 import { SearchModule } from "./search/search.module";
 import { TenantMiddleware } from "./tenant/tenant.middleware";
@@ -42,6 +43,7 @@ import { TenantModule } from "./tenant/tenant.module";
     AuthModule,
     UsersModule,
     SettingsModule,
+    AcademicsModule,
     TenantModule,
     HealthModule,
   ],
