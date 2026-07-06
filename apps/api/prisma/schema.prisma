@@ -243,6 +243,8 @@ model Student {
   class      Class               @relation(fields: [classId], references: [id], onDelete: Restrict)
   section    Section?            @relation(fields: [sectionId], references: [id], onDelete: Restrict)
   attendance StudentAttendance[]
+  feeCharges FeeCharge[]
+  payments   Payment[]
 
   @@unique([schoolId, code])
   @@index([schoolId])
@@ -340,6 +342,121 @@ model TeacherAttendance {
   @@unique([schoolId, teacherId, date])
   @@index([schoolId, date])
   @@map("teacher_attendance")
+}
+
+/// Monthly fee charge per student (Module 7). One per student per year+month.
+model FeeCharge {
+  id         String    @id @default(cuid())
+  schoolId   String
+  studentId  String
+  year       Int
+  month      Int
+  amount     Int
+  paidAmount Int       @default(0)
+  status     FeeStatus @default(UNPAID)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([schoolId, studentId, year, month])
+  @@index([schoolId])
+  @@index([studentId])
+  @@map("fee_charges")
+}
+
+/// A fee payment with a receipt (Module 7).
+model Payment {
+  id                String      @id @default(cuid())
+  schoolId          String
+  studentId         String
+  receiptNumber     String
+  type              PaymentType
+  amount            Int
+  method            String?
+  collectedByUserId String?
+  note              String?
+  paidAt            DateTime    @default(now())
+  createdAt         DateTime    @default(now())
+
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([schoolId, receiptNumber])
+  @@index([schoolId])
+  @@index([studentId])
+  @@map("payments")
+}
+
+/// Salary record for an employee (Module 8).
+model Salary {
+  id           String       @id @default(cuid())
+  schoolId     String
+  teacherId    String?
+  employeeName String
+  position     String?
+  amount       Int
+  year         Int
+  month        Int
+  status       SalaryStatus @default(PENDING)
+  paidAt       DateTime?
+  note         String?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  @@index([schoolId])
+  @@map("salaries")
+}
+
+/// Expense category (Module 9).
+model ExpenseCategory {
+  id        String    @id @default(cuid())
+  schoolId  String
+  name      String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  expenses  Expense[]
+
+  @@unique([schoolId, name])
+  @@index([schoolId])
+  @@map("expense_categories")
+}
+
+/// Operational expense (Module 9).
+model Expense {
+  id               String   @id @default(cuid())
+  schoolId         String
+  categoryId       String?
+  title            String
+  amount           Int
+  method           String?
+  note             String?
+  recordedByUserId String?
+  spentAt          DateTime @default(now())
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  category ExpenseCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  @@index([schoolId])
+  @@map("expenses")
+}
+
+enum FeeStatus {
+  UNPAID
+  PARTIAL
+  PAID
+}
+
+enum PaymentType {
+  THIS_MONTH
+  PARTIAL
+  ADVANCE
+}
+
+enum SalaryStatus {
+  PENDING
+  PAID
+  PARTIAL
 }
 
 enum AttendanceStatus {

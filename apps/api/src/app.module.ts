@@ -17,6 +17,7 @@ import { AcademicsModule } from "./academics/academics.module";
 import { StudentsModule } from "./students/students.module";
 import { TeachersModule } from "./teachers/teachers.module";
 import { AttendanceModule } from "./attendance/attendance.module";
+import { FinanceModule } from "./finance/finance.module";
 import { StorageModule } from "./storage/storage.module";
 import { SearchModule } from "./search/search.module";
 import { TenantMiddleware } from "./tenant/tenant.middleware";
@@ -50,6 +51,7 @@ import { TenantModule } from "./tenant/tenant.module";
     StudentsModule,
     TeachersModule,
     AttendanceModule,
+    FinanceModule,
     TenantModule,
     HealthModule,
   ],
