@@ -1,12 +1,33 @@
 "use client";
 
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import type { UserRole } from "@ekulmis/shared";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { cn } from "@/lib/utils";
+
+function Clock() {
+  const [now, setNow] = useState<Date | null>(null);
+  useEffect(() => {
+    setNow(new Date());
+    const id = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(id);
+  }, []);
+  if (!now) return null;
+  return (
+    <span className="hidden text-sm text-muted-foreground sm:inline">
+      {now.toLocaleDateString(undefined, {
+        weekday: "short",
+        month: "short",
+        day: "numeric",
+      })}{" "}
+      · {now.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}
+    </span>
+  );
+}
 
 const NAV: { href: string; label: string; roles?: UserRole[] }[] = [
   { href: "/dashboard", label: "Dashboard" },
@@ -41,7 +62,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex min-h-screen">
-      <aside className="w-60 shrink-0 border-r bg-card p-4">
+      <aside className="hidden w-60 shrink-0 border-r bg-card p-4 md:block">
         <div className="mb-6 px-2">
           <span className="text-xl font-bold text-primary">eKulmis</span>
         </div>
@@ -64,17 +85,22 @@ export default function AppLayout({ children }: { children: ReactNode }) {
       </aside>
 
       <div className="flex flex-1 flex-col">
-        <header className="flex items-center justify-between border-b bg-background px-6 py-3">
-          <div className="text-sm text-muted-foreground">
-            Signed in as{" "}
-            <span className="font-medium text-foreground">{user.username}</span>{" "}
-            <span className="rounded bg-secondary px-2 py-0.5 text-xs">
-              {user.role}
-            </span>
+        <header className="sticky top-0 z-10 flex items-center justify-between border-b bg-background/80 px-6 py-3 backdrop-blur">
+          <Clock />
+          <div className="flex items-center gap-3">
+            <div className="text-sm text-muted-foreground">
+              <span className="font-medium text-foreground">
+                {user.username}
+              </span>{" "}
+              <span className="rounded bg-secondary px-2 py-0.5 text-xs">
+                {user.role}
+              </span>
+            </div>
+            <ThemeToggle />
+            <Button variant="outline" onClick={logout}>
+              Log out
+            </Button>
           </div>
-          <Button variant="outline" onClick={logout}>
-            Log out
-          </Button>
         </header>
         <main className="flex-1 p-6">{children}</main>
       </div>
