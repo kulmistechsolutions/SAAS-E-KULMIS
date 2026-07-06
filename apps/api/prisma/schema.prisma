@@ -239,9 +239,10 @@ model Student {
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
 
-  parent  Parent   @relation(fields: [parentId], references: [id], onDelete: Cascade)
-  class   Class    @relation(fields: [classId], references: [id], onDelete: Restrict)
-  section Section? @relation(fields: [sectionId], references: [id], onDelete: Restrict)
+  parent     Parent              @relation(fields: [parentId], references: [id], onDelete: Cascade)
+  class      Class               @relation(fields: [classId], references: [id], onDelete: Restrict)
+  section    Section?            @relation(fields: [sectionId], references: [id], onDelete: Restrict)
+  attendance StudentAttendance[]
 
   @@unique([schoolId, code])
   @@index([schoolId])
@@ -268,6 +269,7 @@ model Teacher {
 
   user        User                @relation(fields: [userId], references: [id], onDelete: Cascade)
   assignments TeacherAssignment[]
+  attendance  TeacherAttendance[]
 
   @@unique([schoolId, code])
   @@index([schoolId])
@@ -297,6 +299,54 @@ model TeacherAssignment {
   @@index([schoolId])
   @@index([teacherId])
   @@map("teacher_assignments")
+}
+
+/// Daily student attendance (Module 5). One record per student per day.
+model StudentAttendance {
+  id             String           @id @default(cuid())
+  schoolId       String
+  studentId      String
+  classId        String
+  sectionId      String?
+  academicYearId String
+  date           DateTime         @db.Date
+  status         AttendanceStatus
+  markedByUserId String?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([schoolId, studentId, date])
+  @@index([schoolId, date])
+  @@index([classId, sectionId, date])
+  @@map("student_attendance")
+}
+
+/// Daily teacher attendance (Module 6). Shift-scoped. One record per day.
+model TeacherAttendance {
+  id             String           @id @default(cuid())
+  schoolId       String
+  teacherId      String
+  shift          Shift
+  date           DateTime         @db.Date
+  status         AttendanceStatus
+  markedByUserId String?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  teacher Teacher @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+
+  @@unique([schoolId, teacherId, date])
+  @@index([schoolId, date])
+  @@map("teacher_attendance")
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+  EXCUSED
 }
 
 enum Shift {
