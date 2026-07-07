@@ -3,6 +3,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
 import { AuthProvider } from "@/lib/auth";
+import { SettingsBrandingEffect } from "@/components/settings/branding-effect";
 
 /** Global client-side providers (TanStack Query + auth session). */
 export function Providers({ children }: { children: ReactNode }) {
@@ -17,7 +18,10 @@ export function Providers({ children }: { children: ReactNode }) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>{children}</AuthProvider>
+      <AuthProvider>
+        <SettingsBrandingEffect />
+        {children}
+      </AuthProvider>
     </QueryClientProvider>
   );
 }

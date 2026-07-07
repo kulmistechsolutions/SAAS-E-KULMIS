@@ -487,6 +487,36 @@ enum StudentStatus {
   GRADUATED
 }
 
+/// Platform-level Super Admin — operates ABOVE all schools (multi-tenant SaaS
+/// operator). Not tied to any school; manages/creates/suspends tenants.
+model PlatformAdmin {
+  id           String   @id @default(cuid())
+  username     String   @unique
+  name         String
+  passwordHash String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  refreshTokens PlatformRefreshToken[]
+
+  @@map("platform_admins")
+}
+
+/// Rotating refresh tokens for platform Super Admin sessions.
+model PlatformRefreshToken {
+  id        String    @id @default(cuid())
+  adminId   String
+  tokenHash String    @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  admin PlatformAdmin @relation(fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@index([adminId])
+  @@map("platform_refresh_tokens")
+}
+
 enum SchoolStatus {
   ACTIVE
   SUSPENDED

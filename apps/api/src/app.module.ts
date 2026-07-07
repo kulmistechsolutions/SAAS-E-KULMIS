@@ -19,6 +19,7 @@ import { TeachersModule } from "./teachers/teachers.module";
 import { AttendanceModule } from "./attendance/attendance.module";
 import { FinanceModule } from "./finance/finance.module";
 import { DashboardModule } from "./dashboard/dashboard.module";
+import { PlatformModule } from "./platform/platform.module";
 import { StorageModule } from "./storage/storage.module";
 import { SearchModule } from "./search/search.module";
 import { TenantMiddleware } from "./tenant/tenant.middleware";
@@ -54,6 +55,7 @@ import { TenantModule } from "./tenant/tenant.module";
     AttendanceModule,
     FinanceModule,
     DashboardModule,
+    PlatformModule,
     TenantModule,
     HealthModule,
   ],

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { loginSchema, type LoginInput } from "@ekulmis/shared";
+import { useSchoolBranding } from "@/lib/settings/use-school-branding";
 import { useAuth } from "@/lib/auth";
 import { ApiError } from "@/lib/api";
 import { Button } from "@/components/ui/button";
@@ -14,6 +15,7 @@ import { Card, CardContent } from "@/components/ui/card";
 export default function LoginPage() {
   const router = useRouter();
   const { login } = useAuth();
+  const branding = useSchoolBranding();
   const [error, setError] = useState<string | null>(null);
   const {
     register,
@@ -34,12 +36,25 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-secondary/40 p-4">
-      <Card className="w-full max-w-sm">
+    <main
+      className="flex min-h-screen items-center justify-center p-4"
+      style={{
+        background: branding.loginBackgroundUrl
+          ? `url(${branding.loginBackgroundUrl}) center/cover`
+          : undefined,
+      }}
+    >
+      <div className={branding.loginBackgroundUrl ? "w-full max-w-sm rounded-2xl bg-background/95 p-1 shadow-xl backdrop-blur" : "w-full max-w-sm"}>
+      <Card className="w-full border-0 shadow-lg">
         <CardContent className="pt-8">
           <div className="mb-6 text-center">
-            <h1 className="text-2xl font-bold text-primary">eKulmis</h1>
-            <p className="text-sm text-muted-foreground">Sign in to continue</p>
+            {branding.logoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={branding.logoUrl} alt="" className="mx-auto mb-3 h-16 w-16 rounded-full object-cover" />
+            ) : null}
+            <h1 className="text-2xl font-bold text-primary">{branding.loginTitle}</h1>
+            <p className="mt-0.5 text-sm font-medium text-muted-foreground">{branding.tagline}</p>
+            <p className="mt-2 text-sm text-muted-foreground">Sign in to continue</p>
           </div>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div>
@@ -76,8 +91,10 @@ export default function LoginPage() {
               {isSubmitting ? "Signing in…" : "Sign in"}
             </Button>
           </form>
+          <p className="mt-6 text-center text-xs text-muted-foreground">{branding.footerText}</p>
         </CardContent>
       </Card>
+      </div>
     </main>
   );
 }

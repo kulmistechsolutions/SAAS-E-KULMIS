@@ -1,0 +1,200 @@
+import type {
+  BuiltInRole,
+  PermissionAction,
+  PermissionMap,
+  PermissionModule,
+  SystemRole,
+} from "./types";
+
+export function shortDate(iso: string | null | undefined): string {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "2-digit",
+  });
+}
+
+export function dateTime(iso: string | null | undefined): string {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+export function userIdCode(seq: number): string {
+  return `USR-${String(seq).padStart(6, "0")}`;
+}
+
+const ROLE_LABELS: Record<string, string> = {
+  SUPER_ADMINISTRATOR: "Super Administrator",
+  ADMINISTRATOR: "Administrator",
+  ACADEMIC_MANAGER: "Academic Manager",
+  TEACHER: "Teacher",
+  PARENT: "Parent",
+  STUDENT: "Student",
+  FINANCE_OFFICER: "Finance Officer",
+  ATTENDANCE_OFFICER: "Attendance Officer",
+  EXAM_MANAGER: "Exam Manager",
+  RECEPTION_OFFICER: "Reception Officer",
+};
+
+export function roleLabel(role: SystemRole): string {
+  return ROLE_LABELS[role] ?? role.replace(/_/g, " ");
+}
+
+export const BUILT_IN_ROLES: BuiltInRole[] = [
+  "SUPER_ADMINISTRATOR",
+  "ADMINISTRATOR",
+  "ACADEMIC_MANAGER",
+  "TEACHER",
+  "PARENT",
+  "STUDENT",
+  "FINANCE_OFFICER",
+  "ATTENDANCE_OFFICER",
+  "EXAM_MANAGER",
+  "RECEPTION_OFFICER",
+];
+
+export const MODULES: { id: PermissionModule; label: string }[] = [
+  { id: "students", label: "Students" },
+  { id: "teachers", label: "Teachers" },
+  { id: "parents", label: "Parents" },
+  { id: "attendance", label: "Attendance" },
+  { id: "fees", label: "Fee Management" },
+  { id: "examinations", label: "Examinations" },
+  { id: "quiz", label: "Online Quiz" },
+  { id: "reports", label: "Reports" },
+  { id: "finance", label: "Finance" },
+  { id: "expenses", label: "Expenses" },
+  { id: "salaries", label: "Salaries" },
+  { id: "promotions", label: "Promotions" },
+  { id: "academics", label: "Academics" },
+  { id: "settings", label: "Settings" },
+  { id: "users", label: "User Management" },
+  { id: "audit", label: "Audit Logs" },
+];
+
+export const ACTIONS: { id: PermissionAction; label: string }[] = [
+  { id: "view", label: "View" },
+  { id: "create", label: "Create" },
+  { id: "update", label: "Update" },
+  { id: "delete", label: "Delete" },
+  { id: "import", label: "Import" },
+  { id: "export", label: "Export" },
+  { id: "print", label: "Print" },
+  { id: "approve", label: "Approve" },
+];
+
+export function emptyPermissions(): PermissionMap {
+  const map = {} as PermissionMap;
+  for (const m of MODULES) {
+    map[m.id] = {
+      view: false,
+      create: false,
+      update: false,
+      delete: false,
+      import: false,
+      export: false,
+      print: false,
+      approve: false,
+    };
+  }
+  return map;
+}
+
+function grant(
+  map: PermissionMap,
+  module: PermissionModule,
+  actions: PermissionAction[],
+): PermissionMap {
+  const next = { ...map, [module]: { ...map[module] } };
+  for (const a of actions) next[module][a] = true;
+  return next;
+}
+
+function grantAll(map: PermissionMap, modules: PermissionModule[]): PermissionMap {
+  let next = map;
+  for (const mod of modules) {
+    next = grant(next, mod, ACTIONS.map((a) => a.id));
+  }
+  return next;
+}
+
+export function builtInRolePermissions(role: BuiltInRole): PermissionMap {
+  const allMods = MODULES.map((m) => m.id);
+  let p = emptyPermissions();
+
+  switch (role) {
+    case "SUPER_ADMINISTRATOR":
+      return grantAll(p, allMods);
+    case "ADMINISTRATOR":
+      p = grantAll(
+        p,
+        allMods.filter((m) => m !== "users" && m !== "audit"),
+      );
+      p = grant(p, "users", ["view", "create", "update", "export", "print"]);
+      p = grant(p, "audit", ["view", "export"]);
+      return p;
+    case "ACADEMIC_MANAGER":
+      return grantAll(p, ["academics", "teachers", "promotions", "reports", "examinations"]);
+    case "TEACHER":
+      p = grant(p, "attendance", ["view"]);
+      p = grant(p, "examinations", ["view", "create", "update"]);
+      p = grant(p, "quiz", ["view", "create", "update"]);
+      p = grant(p, "reports", ["view"]);
+      return p;
+    case "PARENT":
+      p = grant(p, "attendance", ["view"]);
+      p = grant(p, "fees", ["view", "print"]);
+      p = grant(p, "examinations", ["view"]);
+      p = grant(p, "quiz", ["view"]);
+      return p;
+    case "STUDENT":
+      p = grant(p, "attendance", ["view"]);
+      p = grant(p, "fees", ["view"]);
+      p = grant(p, "examinations", ["view"]);
+      p = grant(p, "quiz", ["view"]);
+      return p;
+    case "FINANCE_OFFICER":
+      p = grantAll(p, ["fees", "salaries", "expenses", "finance", "reports"]);
+      return p;
+    case "ATTENDANCE_OFFICER":
+      p = grantAll(p, ["attendance", "reports"]);
+      return p;
+    case "EXAM_MANAGER":
+      p = grantAll(p, ["examinations", "reports"]);
+      return p;
+    case "RECEPTION_OFFICER":
+      p = grant(p, "students", ["view", "create", "update"]);
+      p = grant(p, "parents", ["view", "create", "update"]);
+      p = grant(p, "teachers", ["view", "create", "update"]);
+      p = grant(p, "reports", ["view"]);
+      return p;
+    default:
+      return p;
+  }
+}
+
+export function hashPassword(password: string): string {
+  if (typeof btoa !== "undefined") {
+    return btoa(`ekulmis:${password}`);
+  }
+  return `ekulmis:${password}`;
+}
+
+export function verifyPassword(password: string, hash: string): boolean {
+  return hashPassword(password) === hash;
+}
+
+export function statusLabel(status: string): string {
+  return status.charAt(0) + status.slice(1).toLowerCase();
+}

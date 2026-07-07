@@ -1,54 +1,47 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from "react";
-import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import type { UserRole } from "@ekulmis/shared";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth";
-import { Button } from "@/components/ui/button";
-import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { Sidebar } from "@/components/layout/sidebar";
+import { Topbar } from "@/components/layout/topbar";
+import { Toaster } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 
-function Clock() {
-  const [now, setNow] = useState<Date | null>(null);
-  useEffect(() => {
-    setNow(new Date());
-    const id = setInterval(() => setNow(new Date()), 1000);
-    return () => clearInterval(id);
-  }, []);
-  if (!now) return null;
-  return (
-    <span className="hidden text-sm text-muted-foreground sm:inline">
-      {now.toLocaleDateString(undefined, {
-        weekday: "short",
-        month: "short",
-        day: "numeric",
-      })}{" "}
-      · {now.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}
-    </span>
-  );
-}
-
-const NAV: { href: string; label: string; roles?: UserRole[] }[] = [
-  { href: "/dashboard", label: "Dashboard" },
-  { href: "/students", label: "Students", roles: ["ADMINISTRATOR"] },
-  { href: "/teachers", label: "Teachers", roles: ["ADMINISTRATOR"] },
-  {
-    href: "/finance",
-    label: "Finance",
-    roles: ["ADMINISTRATOR", "FINANCE_OFFICER"],
-  },
-  { href: "/users", label: "Users", roles: ["ADMINISTRATOR"] },
-];
+const ROLE_LABEL: Record<string, string> = {
+  SUPER_ADMINISTRATOR: "Super Administrator",
+  ADMINISTRATOR: "Administrator",
+  ACADEMIC_MANAGER: "Academic Manager",
+  FINANCE_OFFICER: "Finance Officer",
+  ATTENDANCE_OFFICER: "Attendance Officer",
+  EXAM_MANAGER: "Exam Manager",
+  RECEPTION_OFFICER: "Reception Officer",
+  TEACHER: "Teacher",
+  PARENT: "Parent",
+  STUDENT: "Student",
+};
 
 export default function AppLayout({ children }: { children: ReactNode }) {
-  const { user, loading, logout } = useAuth();
+  const { user, loading } = useAuth();
   const router = useRouter();
-  const pathname = usePathname();
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
+
+  useEffect(() => {
+    setCollapsed(localStorage.getItem("sidebar-collapsed") === "true");
+  }, []);
 
   useEffect(() => {
     if (!loading && !user) router.replace("/login");
   }, [loading, user, router]);
+
+  function toggleCollapsed() {
+    setCollapsed((prev) => {
+      const next = !prev;
+      localStorage.setItem("sidebar-collapsed", String(next));
+      return next;
+    });
+  }
 
   if (loading)
     return (
@@ -58,52 +51,62 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     );
   if (!user) return null;
 
-  const items = NAV.filter((n) => !n.roles || n.roles.includes(user.role));
+  const roleLabel = ROLE_LABEL[user.role] ?? user.role;
+  const sidebarWidth = collapsed ? "w-20" : "w-64";
 
   return (
-    <div className="flex min-h-screen">
-      <aside className="hidden w-60 shrink-0 border-r bg-card p-4 md:block">
-        <div className="mb-6 px-2">
-          <span className="text-xl font-bold text-primary">eKulmis</span>
+    <div className="flex min-h-screen bg-muted/40">
+      {/* Desktop sidebar */}
+      <aside
+        className={cn(
+          "hidden shrink-0 transition-[width] duration-300 ease-in-out lg:block",
+          sidebarWidth,
+        )}
+      >
+        <div
+          className={cn(
+            "fixed inset-y-0 left-0 z-40 transition-[width] duration-300 ease-in-out",
+            sidebarWidth,
+          )}
+        >
+          <Sidebar collapsed={collapsed} onToggleCollapse={toggleCollapsed} />
         </div>
-        <nav className="space-y-1">
-          {items.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                "block rounded-md px-3 py-2 text-sm font-medium transition-colors",
-                pathname === item.href
-                  ? "bg-primary text-primary-foreground"
-                  : "text-foreground hover:bg-secondary",
-              )}
-            >
-              {item.label}
-            </Link>
-          ))}
-        </nav>
       </aside>
 
-      <div className="flex flex-1 flex-col">
-        <header className="sticky top-0 z-10 flex items-center justify-between border-b bg-background/80 px-6 py-3 backdrop-blur">
-          <Clock />
-          <div className="flex items-center gap-3">
-            <div className="text-sm text-muted-foreground">
-              <span className="font-medium text-foreground">
-                {user.username}
-              </span>{" "}
-              <span className="rounded bg-secondary px-2 py-0.5 text-xs">
-                {user.role}
-              </span>
-            </div>
-            <ThemeToggle />
-            <Button variant="outline" onClick={logout}>
-              Log out
-            </Button>
-          </div>
-        </header>
-        <main className="flex-1 p-6">{children}</main>
+      {/* Mobile drawer */}
+      <div
+        className={cn(
+          "fixed inset-0 z-50 lg:hidden",
+          mobileOpen ? "pointer-events-auto" : "pointer-events-none",
+        )}
+      >
+        <div
+          onClick={() => setMobileOpen(false)}
+          className={cn(
+            "absolute inset-0 bg-black/50 transition-opacity",
+            mobileOpen ? "opacity-100" : "opacity-0",
+          )}
+        />
+        <div
+          className={cn(
+            "absolute inset-y-0 left-0 w-64 shadow-xl transition-transform duration-300",
+            mobileOpen ? "translate-x-0" : "-translate-x-full",
+          )}
+        >
+          <Sidebar onNavigate={() => setMobileOpen(false)} />
+        </div>
       </div>
+
+      {/* Main column */}
+      <div className="flex min-w-0 flex-1 flex-col">
+        <Topbar
+          onMenuClick={() => setMobileOpen(true)}
+          userName={user.username}
+          userRole={roleLabel}
+        />
+        <main className="flex-1 p-4 sm:p-6">{children}</main>
+      </div>
+      <Toaster />
     </div>
   );
 }
