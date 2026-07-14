@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { DEFAULT_SALARY } from "@/lib/teachers/constants";
+import { DEFAULT_SALARY, DEFAULT_TEACHER_PASSWORD } from "@/lib/teachers/constants";
 import { registerTeacher, updateTeacher, type Teacher } from "@/lib/teachers/store";
 import type { EmploymentStatus, Gender, Shift } from "@/lib/teachers/types";
 
@@ -28,6 +28,8 @@ interface FormState {
   salary: string;
   shift: Shift;
   status: EmploymentStatus;
+  canViewStudents: boolean;
+  password: string;
 }
 
 const empty: FormState = {
@@ -40,6 +42,8 @@ const empty: FormState = {
   salary: String(DEFAULT_SALARY),
   shift: "MORNING",
   status: "ACTIVE",
+  canViewStudents: false,
+  password: DEFAULT_TEACHER_PASSWORD,
 };
 
 export function TeacherFormDialog({ open, onClose, teacher, onSaved }: Props) {
@@ -61,6 +65,8 @@ export function TeacherFormDialog({ open, onClose, teacher, onSaved }: Props) {
         salary: String(teacher.salary),
         shift: teacher.shift,
         status: teacher.status,
+        canViewStudents: teacher.canViewStudents ?? false,
+        password: teacher.password || DEFAULT_TEACHER_PASSWORD,
       });
     } else {
       setForm(empty);
@@ -71,15 +77,20 @@ export function TeacherFormDialog({ open, onClose, teacher, onSaved }: Props) {
     setForm((f) => ({ ...f, [key]: value }));
   }
 
-  function handleSubmit() {
+  async function handleSubmit() {
     setError(null);
     if (!form.fullName.trim()) return setError("Full name is required.");
     if (!form.phone.trim()) return setError("Phone number is required.");
     const salary = Number(form.salary);
     if (Number.isNaN(salary) || salary < 0) return setError("Invalid salary.");
+    if (!isEdit) {
+      if (!form.password.trim()) return setError("Login password is required.");
+      if (form.password.trim().length < 5)
+        return setError("Password must be at least 5 characters.");
+    }
 
     if (isEdit && teacher) {
-      const res = updateTeacher(teacher.id, {
+      const res = await updateTeacher(teacher.id, {
         fullName: form.fullName,
         gender: form.gender,
         phone: form.phone,
@@ -89,6 +100,7 @@ export function TeacherFormDialog({ open, onClose, teacher, onSaved }: Props) {
         salary,
         shift: form.shift,
         status: form.status,
+        canViewStudents: form.canViewStudents,
       });
       if (!res.ok) return setError(res.error ?? "Update failed.");
       onSaved?.(`${res.teacher?.fullName} updated successfully.`);
@@ -96,7 +108,7 @@ export function TeacherFormDialog({ open, onClose, teacher, onSaved }: Props) {
       return;
     }
 
-    const res = registerTeacher({
+    const res = await registerTeacher({
       fullName: form.fullName,
       gender: form.gender,
       phone: form.phone,
@@ -106,6 +118,7 @@ export function TeacherFormDialog({ open, onClose, teacher, onSaved }: Props) {
       salary,
       shift: form.shift,
       status: form.status,
+      password: form.password.trim(),
     });
     if (!res.ok) return setError(res.error ?? "Registration failed.");
     onSaved?.(
@@ -187,6 +200,31 @@ export function TeacherFormDialog({ open, onClose, teacher, onSaved }: Props) {
             <option value="INACTIVE">Inactive</option>
           </Select>
         </div>
+        {isEdit ? (
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={form.canViewStudents}
+              onChange={(e) => set("canViewStudents", e.target.checked)}
+              className="h-4 w-4 rounded border-input"
+            />
+            Grant View Students permission (assigned classes only)
+          </label>
+        ) : (
+          <div className="sm:col-span-2">
+            <Label required>Login Password</Label>
+            <Input
+              type="text"
+              className="mt-1 font-mono"
+              value={form.password}
+              onChange={(e) => set("password", e.target.value)}
+              placeholder={DEFAULT_TEACHER_PASSWORD}
+            />
+            <p className="mt-1 text-xs text-muted-foreground">
+              Default sample password is {DEFAULT_TEACHER_PASSWORD}. Visible to admin only.
+            </p>
+          </div>
+        )}
       </div>
     </Dialog>
   );

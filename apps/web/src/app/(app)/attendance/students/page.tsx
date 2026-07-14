@@ -6,8 +6,8 @@ import {
   ArrowLeft,
   CheckCheck,
   FileDown,
+  Loader2,
   Printer,
-  RotateCcw,
   Save,
   Search,
 } from "lucide-react";
@@ -19,10 +19,10 @@ import { StudentAttendanceSummaryCards } from "@/components/attendance/summary-c
 import {
   filterStudentRecords,
   loadStudentMarkingRows,
-  resetAttendance,
   saveStudentAttendance,
   studentDashboardToday,
   useAttendanceState,
+  type AttendanceSummary,
 } from "@/lib/attendance/store";
 import {
   formatDisplayDate,
@@ -33,11 +33,19 @@ import {
   exportStudentAttendanceCsv,
   printStudentAttendanceSheet,
 } from "@/lib/attendance/print";
-import { ACADEMIC_YEARS, ACTIVE_ACADEMIC_YEAR, CLASSES, SECTIONS } from "@/lib/students/constants";
+import {
+  activeAcademicYear,
+  classByName,
+  sectionsForClass,
+  useAcademicsState,
+} from "@/lib/academics/store";
 import { genderLabel } from "@/lib/students/format";
-import type { StudentAttendanceStatus } from "@/lib/attendance/types";
+import type { StudentAttendanceStatus, StudentMarkRow } from "@/lib/attendance/types";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/lib/auth";
+import { loadTeacherMe } from "@/lib/teachers/session";
+import type { TeacherMe } from "@/lib/teachers/api";
 
 const TABS = [
   { id: "mark", label: "Mark Attendance" },
@@ -46,44 +54,153 @@ const TABS = [
 ];
 
 export default function StudentAttendancePage() {
+  const { user } = useAuth();
+  const isTeacher = user?.role === "TEACHER";
   const [mounted, setMounted] = useState(false);
+  const [teacherMe, setTeacherMe] = useState<TeacherMe | null>(null);
   useEffect(() => setMounted(true), []);
 
+  useEffect(() => {
+    if (!isTeacher) return;
+    void loadTeacherMe()
+      .then(setTeacherMe)
+      .catch(() => toast("Could not load teacher assignments", "error"));
+  }, [isTeacher]);
+
   useAttendanceState();
+  const academics = useAcademicsState();
   const [tab, setTab] = useState("mark");
 
-  const [year, setYear] = useState<string>(ACTIVE_ACADEMIC_YEAR);
+  const [year, setYear] = useState("");
+  useEffect(() => {
+    if (!year && academics.academicYears.length) {
+      setYear(activeAcademicYear() || academics.academicYears[0]?.name || "");
+    }
+  }, [academics.academicYears, year]);
+
   const [date, setDate] = useState(todayISO());
   const [klass, setKlass] = useState("");
   const [section, setSection] = useState("");
-  const [rows, setRows] = useState<ReturnType<typeof loadStudentMarkingRows>>([]);
+  const [rows, setRows] = useState<StudentMarkRow[]>([]);
   const [loaded, setLoaded] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   const [rSearch, setRSearch] = useState("");
   const [rDate, setRDate] = useState(todayISO());
   const [rClass, setRClass] = useState("");
   const [rSection, setRSection] = useState("");
   const [rStatus, setRStatus] = useState("");
+  const [reportRows, setReportRows] = useState<
+    Awaited<ReturnType<typeof filterStudentRecords>>
+  >([]);
+  const [reportLoading, setReportLoading] = useState(false);
 
-  const dashboard = useMemo(() => studentDashboardToday(todayISO()), [tab]);
+  const [dashboard, setDashboard] = useState<
+    AttendanceSummary & { totalStudents: number }
+  >({
+    total: 0,
+    present: 0,
+    absent: 0,
+    late: 0,
+    excused: 0,
+    percentage: 0,
+    totalStudents: 0,
+  });
+  const [dashboardLoading, setDashboardLoading] = useState(false);
 
-  const reportRows = useMemo(
-    () =>
-      filterStudentRecords({
-        academicYear: year,
-        date: rDate || undefined,
-        className: rClass || undefined,
-        section: rSection || undefined,
-        status: (rStatus as StudentAttendanceStatus) || undefined,
-        search: rSearch,
-      }),
-    [year, rDate, rClass, rSection, rStatus, rSearch, tab],
-  );
+  const assignedClassNames = useMemo(() => {
+    if (!isTeacher || !teacherMe) return null;
+    return new Set(
+      teacherMe.assignments
+        .filter((a) => !year || a.academicYear.name === year)
+        .map((a) => a.class.name),
+    );
+  }, [isTeacher, teacherMe, year]);
 
-  function loadList() {
+  const yearClasses = useMemo(() => {
+    const all = academics.classes.filter((c) => c.academicYear === year);
+    if (!assignedClassNames) return all;
+    return all.filter((c) => assignedClassNames.has(c.name));
+  }, [academics.classes, year, assignedClassNames]);
+
+  const sectionOptions = useMemo(() => {
+    const cls = classByName(klass, year);
+    const all = cls ? sectionsForClass(cls.id) : [];
+    if (!isTeacher || !teacherMe || !klass) return all;
+    const allowed = new Set(
+      teacherMe.assignments
+        .filter(
+          (a) =>
+            a.class.name === klass &&
+            (!year || a.academicYear.name === year) &&
+            a.section,
+        )
+        .map((a) => a.section!.name),
+    );
+    // null section assignment = all sections of that class
+    const hasAllSections = teacherMe.assignments.some(
+      (a) =>
+        a.class.name === klass &&
+        (!year || a.academicYear.name === year) &&
+        a.sectionId === null,
+    );
+    if (hasAllSections) return all;
+    return all.filter((s) => allowed.has(s.name));
+  }, [klass, year, academics.sections, isTeacher, teacherMe]);
+
+  useEffect(() => {
+    if (tab !== "dashboard" || !mounted) return;
+    if (isTeacher) {
+      const cls = classByName(klass, year);
+      if (!cls) {
+        setDashboard({
+          total: 0,
+          present: 0,
+          absent: 0,
+          late: 0,
+          excused: 0,
+          percentage: 0,
+          totalStudents: 0,
+        });
+        return;
+      }
+      const sec = sectionOptions.find((s) => s.name === section);
+      setDashboardLoading(true);
+      void studentDashboardToday(todayISO(), cls.id, sec?.id)
+        .then(setDashboard)
+        .finally(() => setDashboardLoading(false));
+      return;
+    }
+    setDashboardLoading(true);
+    void studentDashboardToday(todayISO())
+      .then(setDashboard)
+      .finally(() => setDashboardLoading(false));
+  }, [tab, mounted, isTeacher, klass, section, year, sectionOptions]);
+
+  useEffect(() => {
+    if (tab !== "reports" || !mounted || !year) return;
+    setReportLoading(true);
+    void filterStudentRecords({
+      academicYear: year,
+      date: rDate || undefined,
+      className: rClass || undefined,
+      section: rSection || undefined,
+      status: (rStatus as StudentAttendanceStatus) || undefined,
+      search: rSearch,
+    })
+      .then(setReportRows)
+      .finally(() => setReportLoading(false));
+  }, [tab, mounted, year, rDate, rClass, rSection, rStatus, rSearch]);
+
+  async function loadList() {
     if (!klass) return toast("Select a class.", "error");
     if (!section) return toast("Select a section.", "error");
-    setRows(loadStudentMarkingRows(year, klass, section, date));
+    setLoading(true);
+    const res = await loadStudentMarkingRows(year, klass, section, date);
+    setLoading(false);
+    if (res.error) return toast(res.error, "error");
+    setRows(res.rows);
     setLoaded(true);
   }
 
@@ -97,16 +214,18 @@ export default function StudentAttendancePage() {
     );
   }
 
-  function handleSave() {
+  async function handleSave() {
     if (!loaded || !klass || !section) return;
     const eligible = rows.filter((r) => r.eligible);
-    const res = saveStudentAttendance(
+    setSaving(true);
+    const res = await saveStudentAttendance(
       year,
       klass,
       section,
       date,
       eligible.map((r) => ({ studentId: r.studentId, status: r.status })),
     );
+    setSaving(false);
     if (!res.ok) return toast(res.error ?? "Save failed.", "error");
     toast(
       `Attendance saved. ${res.summary?.present} present, ${res.summary?.absent} absent (${res.summary?.percentage}%).`,
@@ -124,7 +243,8 @@ export default function StudentAttendancePage() {
       eligibleRows.length === 0
         ? 0
         : Math.round(
-            (eligibleRows.filter((r) => r.status === "PRESENT").length /
+            ((eligibleRows.filter((r) => r.status === "PRESENT").length +
+              eligibleRows.filter((r) => r.status === "LATE").length) /
               eligibleRows.length) *
               1000,
           ) / 10,
@@ -136,9 +256,11 @@ export default function StudentAttendancePage() {
 
   return (
     <div className="space-y-6">
+      {!isTeacher && (
       <Link href="/attendance" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
         <ArrowLeft className="h-4 w-4" /> Back to Attendance
       </Link>
+      )}
 
       <div>
         <h1 className="text-2xl font-bold">Student Attendance</h1>
@@ -157,7 +279,7 @@ export default function StudentAttendancePage() {
                 <div>
                   <label className="mb-1 block text-xs font-medium text-muted-foreground">Academic Year</label>
                   <Select value={year} onChange={(e) => { setYear(e.target.value); setLoaded(false); }}>
-                    {ACADEMIC_YEARS.map((y) => <option key={y} value={y}>{y}</option>)}
+                    {academics.academicYears.map((y) => <option key={y.id} value={y.name}>{y.name}</option>)}
                   </Select>
                 </div>
                 <div>
@@ -167,20 +289,23 @@ export default function StudentAttendancePage() {
                 </div>
                 <div>
                   <label className="mb-1 block text-xs font-medium text-muted-foreground">Class *</label>
-                  <Select value={klass} onChange={(e) => { setKlass(e.target.value); setLoaded(false); }}>
+                  <Select value={klass} onChange={(e) => { setKlass(e.target.value); setSection(""); setLoaded(false); }}>
                     <option value="">Select class</option>
-                    {CLASSES.map((c) => <option key={c} value={c}>{c}</option>)}
+                    {yearClasses.map((c) => <option key={c.id} value={c.name}>{c.name}</option>)}
                   </Select>
                 </div>
                 <div>
                   <label className="mb-1 block text-xs font-medium text-muted-foreground">Section *</label>
                   <Select value={section} onChange={(e) => { setSection(e.target.value); setLoaded(false); }}>
                     <option value="">Select section</option>
-                    {SECTIONS.map((s) => <option key={s} value={s}>Section {s}</option>)}
+                    {sectionOptions.map((s) => <option key={s.id} value={s.name}>Section {s.name}</option>)}
                   </Select>
                 </div>
                 <div className="flex items-end">
-                  <Button onClick={loadList} className="w-full">Load Students</Button>
+                  <Button onClick={() => void loadList()} disabled={loading} className="w-full">
+                    {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                    Load Students
+                  </Button>
                 </div>
               </div>
 
@@ -195,7 +320,10 @@ export default function StudentAttendancePage() {
                         <CheckCheck className="mr-2 h-4 w-4" /> Mark All Present
                       </Button>
                       <Button variant="outline" onClick={() => markAll("ABSENT")}>Mark All Absent</Button>
-                      <Button onClick={handleSave}><Save className="mr-2 h-4 w-4" /> Save Attendance</Button>
+                      <Button onClick={() => void handleSave()} disabled={saving}>
+                        {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                        Save Attendance
+                      </Button>
                     </div>
                   </div>
 
@@ -258,7 +386,13 @@ export default function StudentAttendancePage() {
           {tab === "dashboard" && (
             <div className="space-y-4">
               <p className="text-sm text-muted-foreground">Today — {formatDisplayDate(todayISO())}</p>
-              <StudentAttendanceSummaryCards summary={dashboard} />
+              {dashboardLoading ? (
+                <div className="flex h-32 items-center justify-center text-muted-foreground">
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Loading dashboard…
+                </div>
+              ) : (
+                <StudentAttendanceSummaryCards summary={dashboard} />
+              )}
             </div>
           )}
 
@@ -274,11 +408,13 @@ export default function StudentAttendancePage() {
                   className="h-10 rounded-lg border bg-background px-3 text-sm" />
                 <Select value={rClass} onChange={(e) => setRClass(e.target.value)} className="w-32">
                   <option value="">All Classes</option>
-                  {CLASSES.map((c) => <option key={c} value={c}>{c}</option>)}
+                  {yearClasses.map((c) => <option key={c.id} value={c.name}>{c.name}</option>)}
                 </Select>
                 <Select value={rSection} onChange={(e) => setRSection(e.target.value)} className="w-32">
                   <option value="">All Sections</option>
-                  {SECTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
+                  {(rClass ? sectionsForClass(classByName(rClass, year)?.id ?? "") : []).map((s) => (
+                    <option key={s.id} value={s.name}>{s.name}</option>
+                  ))}
                 </Select>
                 <Select value={rStatus} onChange={(e) => setRStatus(e.target.value)} className="w-32">
                   <option value="">All Status</option>
@@ -322,8 +458,12 @@ export default function StudentAttendancePage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {reportRows.length === 0 ? (
-                      <tr><td colSpan={5} className="px-4 py-12 text-center text-muted-foreground">No records.</td></tr>
+                    {reportLoading ? (
+                      <tr><td colSpan={5} className="px-4 py-12 text-center text-muted-foreground">
+                        <Loader2 className="mr-2 inline h-4 w-4 animate-spin" /> Loading records…
+                      </td></tr>
+                    ) : reportRows.length === 0 ? (
+                      <tr><td colSpan={5} className="px-4 py-12 text-center text-muted-foreground">No records for this date.</td></tr>
                     ) : (
                       reportRows.slice(0, 100).map((r) => (
                         <tr key={r.id} className="border-t">
@@ -341,13 +481,6 @@ export default function StudentAttendancePage() {
             </div>
           )}
         </div>
-      </div>
-
-      <div className="flex justify-end">
-        <button onClick={() => { resetAttendance(); toast("Attendance demo data reset.", "info"); }}
-          className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground">
-          <RotateCcw className="h-3.5 w-3.5" /> Reset demo data
-        </button>
       </div>
     </div>
   );

@@ -127,18 +127,19 @@ export default function ClassProfilePage() {
     );
   }
 
-  function handleDeleteSection() {
+  async function handleDeleteSection() {
     if (!deletingSection) return;
-    const res = deleteSection(deletingSection.id);
+    const res = await deleteSection(deletingSection.id);
     if (!res.ok) toast(res.error ?? "Delete failed.", "error");
     else toast("Section deleted.", "success");
     setDeletingSection(null);
   }
 
-  function handleRemoveSubject() {
+  async function handleRemoveSubject() {
     if (!removingSubject) return;
-    removeSubjectFromClass(id, removingSubject.id);
-    toast(`${removingSubject.name} removed from ${cls?.name}.`, "success");
+    const res = await removeSubjectFromClass(id, removingSubject.id);
+    if (!res.ok) toast(res.error ?? "Remove failed.", "error");
+    else toast(`${removingSubject.name} removed from ${cls?.name}.`, "success");
     setRemovingSubject(null);
   }
 

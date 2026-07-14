@@ -22,6 +22,14 @@ export const updateSettingsSchema = z
     receiptPrefix: z.string().min(1).max(10).optional(),
     invoicePrefix: z.string().min(1).max(10).optional(),
     certificatePrefix: z.string().min(1).max(10).optional(),
+    billingMode: z.enum(["MONTHLY", "ACADEMIC_YEAR"]).optional(),
+    feeAcademicMonths: z.number().int().positive().max(12).optional(),
+    feeBillingStartMonth: z.number().int().min(1).max(12).optional(),
+    feeBillingEndMonth: z.number().int().min(1).max(12).optional(),
+    feeAllowPartial: z.boolean().optional(),
+    feeAllowAdvance: z.boolean().optional(),
+    feeCarryForward: z.boolean().optional(),
+    feeMonthSetupDay: z.number().int().min(1).max(28).optional(),
   })
   .refine((o) => Object.keys(o).length > 0, {
     message: "Provide at least one field to update",

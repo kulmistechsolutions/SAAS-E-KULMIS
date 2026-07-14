@@ -23,6 +23,8 @@ import { UserFormDialog } from "@/components/users/user-form-dialog";
 import { ResetPasswordDialog } from "@/components/users/reset-password-dialog";
 import { ConfirmDialog } from "@/components/students/confirm-dialog";
 import { BUILT_IN_ROLES, dateTime, roleLabel } from "@/lib/users/format";
+import { isSchoolSuperAdminRole } from "@/lib/users/super-admin";
+import { Badge } from "@/components/ui/badge";
 import { printUserListReport } from "@/lib/users/print";
 import {
   deleteUser,
@@ -168,7 +170,12 @@ export default function UsersListPage() {
                   <td className="px-4 py-2.5 font-mono text-xs">{r.userId}</td>
                   <td className="px-4 py-2.5 font-medium">{r.fullName}</td>
                   <td className="px-4 py-2.5">{r.username}</td>
-                  <td className="px-4 py-2.5 text-muted-foreground">{r.roleLabel}</td>
+                  <td className="px-4 py-2.5">
+                    <span className="text-muted-foreground">{r.roleLabel}</span>
+                    {isSchoolSuperAdminRole(r.role) && (
+                      <Badge tone="warning" className="ml-2 text-[10px]">Protected</Badge>
+                    )}
+                  </td>
                   <td className="px-4 py-2.5">
                     <AccountStatusBadge status={r.status} />
                   </td>
@@ -194,9 +201,12 @@ export default function UsersListPage() {
                           <Button
                             variant="ghost"
                             className="h-8 w-8 p-0"
-                            onClick={() => {
-                              setAccountStatus(r.id, "INACTIVE");
-                              toast("User deactivated", "success");
+                            onClick={async () => {
+                              const res = await setAccountStatus(r.id, "INACTIVE");
+                              toast(
+                                res.ok ? "User deactivated" : res.error ?? "Failed",
+                                res.ok ? "success" : "error",
+                              );
                             }}
                           >
                             <UserX className="h-4 w-4" />
@@ -204,9 +214,12 @@ export default function UsersListPage() {
                           <Button
                             variant="ghost"
                             className="h-8 w-8 p-0"
-                            onClick={() => {
-                              setAccountStatus(r.id, "LOCKED");
-                              toast("Account locked", "success");
+                            onClick={async () => {
+                              const res = await setAccountStatus(r.id, "LOCKED");
+                              toast(
+                                res.ok ? "Account locked" : res.error ?? "Failed",
+                                res.ok ? "success" : "error",
+                              );
                             }}
                           >
                             <Lock className="h-4 w-4" />
@@ -216,9 +229,12 @@ export default function UsersListPage() {
                         <Button
                           variant="ghost"
                           className="h-8 w-8 p-0 text-emerald-600"
-                          onClick={() => {
-                            setAccountStatus(r.id, "ACTIVE");
-                            toast("Account activated", "success");
+                          onClick={async () => {
+                            const res = await setAccountStatus(r.id, "ACTIVE");
+                            toast(
+                              res.ok ? "Account activated" : res.error ?? "Failed",
+                              res.ok ? "success" : "error",
+                            );
                           }}
                         >
                           <Unlock className="h-4 w-4" />
@@ -267,9 +283,9 @@ export default function UsersListPage() {
         open={!!deleteId}
         title="Delete User"
         message="This action removes the user account. Super Administrator accounts cannot be deleted if they are the last one."
-        onConfirm={() => {
+        onConfirm={async () => {
           if (!deleteId) return;
-          const res = deleteUser(deleteId);
+          const res = await deleteUser(deleteId);
           if (!res.ok) toast(res.error ?? "Delete failed", "error");
           else toast("User deleted", "success");
           setDeleteId(null);

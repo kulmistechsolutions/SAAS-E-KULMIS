@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
   CheckCheck,
   FileDown,
+  Loader2,
   Printer,
-  RotateCcw,
   Save,
   Search,
 } from "lucide-react";
@@ -19,10 +19,10 @@ import { TeacherAttendanceSummaryCards } from "@/components/attendance/summary-c
 import {
   filterTeacherRecords,
   loadTeacherMarkingRows,
-  resetAttendance,
   saveTeacherAttendance,
   teacherDashboardToday,
   useAttendanceState,
+  type AttendanceSummary,
 } from "@/lib/attendance/store";
 import {
   formatDisplayDate,
@@ -33,9 +33,12 @@ import {
   exportTeacherAttendanceCsv,
   printTeacherAttendanceSheet,
 } from "@/lib/attendance/print";
-import { ACADEMIC_YEARS, ACTIVE_ACADEMIC_YEAR } from "@/lib/students/constants";
+import {
+  activeAcademicYear,
+  useAcademicsState,
+} from "@/lib/academics/store";
 import { shiftLabel } from "@/lib/teachers/format";
-import type { TeacherAttendanceStatus } from "@/lib/attendance/types";
+import type { TeacherAttendanceStatus, TeacherMarkRow } from "@/lib/attendance/types";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 
@@ -50,35 +53,74 @@ export default function TeacherAttendancePage() {
   useEffect(() => setMounted(true), []);
 
   useAttendanceState();
+  const academics = useAcademicsState();
   const [tab, setTab] = useState("mark");
 
-  const [year, setYear] = useState<string>(ACTIVE_ACADEMIC_YEAR);
+  const [year, setYear] = useState("");
+  useEffect(() => {
+    if (!year && academics.academicYears.length) {
+      setYear(activeAcademicYear() || academics.academicYears[0]?.name || "");
+    }
+  }, [academics.academicYears, year]);
+
   const [date, setDate] = useState(todayISO());
   const [shift, setShift] = useState<"MORNING" | "AFTERNOON">("MORNING");
-  const [rows, setRows] = useState<ReturnType<typeof loadTeacherMarkingRows>>([]);
+  const [rows, setRows] = useState<TeacherMarkRow[]>([]);
   const [loaded, setLoaded] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   const [rSearch, setRSearch] = useState("");
   const [rDate, setRDate] = useState(todayISO());
   const [rShift, setRShift] = useState("");
   const [rStatus, setRStatus] = useState("");
+  const [reportRows, setReportRows] = useState<
+    Awaited<ReturnType<typeof filterTeacherRecords>>
+  >([]);
+  const [reportLoading, setReportLoading] = useState(false);
 
-  const dashboard = useMemo(() => teacherDashboardToday(todayISO()), [tab]);
+  const [dashboard, setDashboard] = useState<
+    AttendanceSummary & { totalTeachers: number; morning?: number; afternoon?: number }
+  >({
+    total: 0,
+    present: 0,
+    absent: 0,
+    late: 0,
+    excused: 0,
+    leave: 0,
+    percentage: 0,
+    totalTeachers: 0,
+  });
+  const [dashboardLoading, setDashboardLoading] = useState(false);
 
-  const reportRows = useMemo(
-    () =>
-      filterTeacherRecords({
-        academicYear: year,
-        date: rDate || undefined,
-        shift: (rShift as "MORNING" | "AFTERNOON") || undefined,
-        status: (rStatus as TeacherAttendanceStatus) || undefined,
-        search: rSearch,
-      }),
-    [year, rDate, rShift, rStatus, rSearch, tab],
-  );
+  useEffect(() => {
+    if (tab !== "dashboard" || !mounted) return;
+    setDashboardLoading(true);
+    void teacherDashboardToday(todayISO())
+      .then(setDashboard)
+      .finally(() => setDashboardLoading(false));
+  }, [tab, mounted]);
 
-  function loadList() {
-    setRows(loadTeacherMarkingRows(year, shift, date));
+  useEffect(() => {
+    if (tab !== "reports" || !mounted) return;
+    setReportLoading(true);
+    void filterTeacherRecords({
+      academicYear: year || undefined,
+      date: rDate || undefined,
+      shift: (rShift as "MORNING" | "AFTERNOON") || undefined,
+      status: (rStatus as TeacherAttendanceStatus) || undefined,
+      search: rSearch,
+    })
+      .then(setReportRows)
+      .finally(() => setReportLoading(false));
+  }, [tab, mounted, year, rDate, rShift, rStatus, rSearch]);
+
+  async function loadList() {
+    setLoading(true);
+    const res = await loadTeacherMarkingRows(year, shift, date);
+    setLoading(false);
+    if (res.error) return toast(res.error, "error");
+    setRows(res.rows);
     setLoaded(true);
   }
 
@@ -90,15 +132,17 @@ export default function TeacherAttendancePage() {
     setRows((prev) => prev.map((r) => (r.eligible ? { ...r, status } : r)));
   }
 
-  function handleSave() {
+  async function handleSave() {
     if (!loaded) return;
     const eligible = rows.filter((r) => r.eligible);
-    const res = saveTeacherAttendance(
+    setSaving(true);
+    const res = await saveTeacherAttendance(
       year,
       shift,
       date,
       eligible.map((r) => ({ teacherId: r.teacherId, status: r.status })),
     );
+    setSaving(false);
     if (!res.ok) return toast(res.error ?? "Save failed.", "error");
     toast(`Attendance saved for ${shiftLabel(shift)} shift (${res.summary?.percentage}%).`);
   }
@@ -115,7 +159,10 @@ export default function TeacherAttendancePage() {
       eligibleRows.length === 0
         ? 0
         : Math.round(
-            (eligibleRows.filter((r) => r.status === "PRESENT").length / eligibleRows.length) * 1000,
+            ((eligibleRows.filter((r) => r.status === "PRESENT").length +
+              eligibleRows.filter((r) => r.status === "LATE").length) /
+              eligibleRows.length) *
+              1000,
           ) / 10,
   };
 
@@ -146,7 +193,7 @@ export default function TeacherAttendancePage() {
                 <div>
                   <label className="mb-1 block text-xs font-medium text-muted-foreground">Academic Year</label>
                   <Select value={year} onChange={(e) => { setYear(e.target.value); setLoaded(false); }}>
-                    {ACADEMIC_YEARS.map((y) => <option key={y} value={y}>{y}</option>)}
+                    {academics.academicYears.map((y) => <option key={y.id} value={y.name}>{y.name}</option>)}
                   </Select>
                 </div>
                 <div>
@@ -162,7 +209,10 @@ export default function TeacherAttendancePage() {
                   </Select>
                 </div>
                 <div className="flex items-end">
-                  <Button onClick={loadList} className="w-full">Load Teachers</Button>
+                  <Button onClick={() => void loadList()} disabled={loading} className="w-full">
+                    {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                    Load Teachers
+                  </Button>
                 </div>
               </div>
 
@@ -177,7 +227,10 @@ export default function TeacherAttendancePage() {
                         <CheckCheck className="mr-2 h-4 w-4" /> Mark All Present
                       </Button>
                       <Button variant="outline" onClick={() => markAll("ABSENT")}>Mark All Absent</Button>
-                      <Button onClick={handleSave}><Save className="mr-2 h-4 w-4" /> Save Attendance</Button>
+                      <Button onClick={() => void handleSave()} disabled={saving}>
+                        {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                        Save Attendance
+                      </Button>
                     </div>
                   </div>
 
@@ -239,7 +292,13 @@ export default function TeacherAttendancePage() {
           {tab === "dashboard" && (
             <div className="space-y-4">
               <p className="text-sm text-muted-foreground">Today — {formatDisplayDate(todayISO())}</p>
-              <TeacherAttendanceSummaryCards summary={dashboard} />
+              {dashboardLoading ? (
+                <div className="flex h-32 items-center justify-center text-muted-foreground">
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Loading dashboard…
+                </div>
+              ) : (
+                <TeacherAttendanceSummaryCards summary={dashboard} />
+              )}
             </div>
           )}
 
@@ -298,8 +357,12 @@ export default function TeacherAttendancePage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {reportRows.length === 0 ? (
-                      <tr><td colSpan={4} className="px-4 py-12 text-center text-muted-foreground">No records.</td></tr>
+                    {reportLoading ? (
+                      <tr><td colSpan={4} className="px-4 py-12 text-center text-muted-foreground">
+                        <Loader2 className="mr-2 inline h-4 w-4 animate-spin" /> Loading records…
+                      </td></tr>
+                    ) : reportRows.length === 0 ? (
+                      <tr><td colSpan={4} className="px-4 py-12 text-center text-muted-foreground">No records for this date.</td></tr>
                     ) : (
                       reportRows.slice(0, 100).map((r) => (
                         <tr key={r.id} className="border-t">
@@ -316,13 +379,6 @@ export default function TeacherAttendancePage() {
             </div>
           )}
         </div>
-      </div>
-
-      <div className="flex justify-end">
-        <button onClick={() => { resetAttendance(); toast("Attendance demo data reset.", "info"); }}
-          className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground">
-          <RotateCcw className="h-3.5 w-3.5" /> Reset demo data
-        </button>
       </div>
     </div>
   );

@@ -34,8 +34,10 @@ import {
   summarize,
   useTeachersState,
 } from "@/lib/teachers/store";
-import { ACADEMIC_YEARS } from "@/lib/teachers/constants";
+import { AcademicYearSelect } from "@/components/academics/academic-year-select";
+import { activeAcademicYear } from "@/lib/academics/store";
 import { money, shiftLabel, shortDate } from "@/lib/teachers/format";
+import { DEFAULT_TEACHER_PASSWORD } from "@/lib/teachers/constants";
 import { exportTeachersCsv, printTeacherProfile, printTeachersList } from "@/lib/teachers/print";
 import type { EmploymentStatus, Teacher } from "@/lib/teachers/types";
 import { toast } from "@/lib/toast";
@@ -72,7 +74,7 @@ export default function TeachersPage() {
   const summary = useMemo(() => summarize(state), [state]);
 
   const assignedThisYear = useMemo(() => {
-    const y = year || ACADEMIC_YEARS[0];
+    const y = year || activeAcademicYear();
     return new Set(
       state.assignments
         .filter((a) => a.academicYear === y && a.status === "ACTIVE")
@@ -121,23 +123,29 @@ export default function TeachersPage() {
     }
   }
 
-  function handleDelete() {
+  async function handleDelete() {
     if (!deleting) return;
-    deleteTeacher(deleting.id);
-    toast(`${deleting.fullName} deleted. Assignments and login access removed.`);
+    const res = await deleteTeacher(deleting.id);
+    if (res.ok) toast(`${deleting.fullName} deleted. Assignments and login access removed.`);
+    else toast(res.error ?? "Delete failed", "error");
     setDeleting(null);
   }
 
-  function handleResetPassword(t: Teacher) {
-    const res = resetTeacherPassword(t.id);
+  async function handleResetPassword(t: Teacher) {
+    const res = await resetTeacherPassword(t.id, DEFAULT_TEACHER_PASSWORD);
     if (res.ok && res.password) {
-      toast(`New password for ${t.code}: ${res.password}`, "info");
+      toast(`Password for ${t.code} reset to ${res.password}`, "info");
+    } else if (!res.ok) {
+      toast(res.error ?? "Reset failed", "error");
     }
   }
 
   if (!mounted) {
     return (
-      <div className="flex h-64 items-center justify-center text-muted-foreground">
+      <div
+        className="flex h-64 items-center justify-center text-muted-foreground"
+        suppressHydrationWarning
+      >
         Loading teachers…
       </div>
     );
@@ -188,12 +196,7 @@ export default function TeachersPage() {
             />
           </div>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:flex">
-            <Select value={year} onChange={(e) => setYear(e.target.value)} className="lg:w-36">
-              <option value="">All Years</option>
-              {ACADEMIC_YEARS.map((y) => (
-                <option key={y} value={y}>{y}</option>
-              ))}
-            </Select>
+            <AcademicYearSelect value={year} onChange={setYear} allowAll className="lg:w-36" />
             <Select value={shift} onChange={(e) => setShift(e.target.value)} className="lg:w-36">
               <option value="">All Shifts</option>
               <option value="MORNING">Morning</option>

@@ -112,9 +112,14 @@ export default function AcademicsDashboardPage() {
                   <td className="px-5 py-3 text-right">
                     {y.status !== "ACTIVE" && (
                       <button
-                        onClick={() => {
-                          setActiveAcademicYear(y.id);
-                          toast(`${y.name} is now the active academic year.`, "success");
+                        onClick={async () => {
+                          const res = await setActiveAcademicYear(y.id);
+                          toast(
+                            res.ok
+                              ? `${y.name} is now the active academic year.`
+                              : res.error ?? "Failed to set active year.",
+                            res.ok ? "success" : "error",
+                          );
                         }}
                         className="text-xs font-medium text-primary hover:underline"
                       >

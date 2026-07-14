@@ -1,13 +1,24 @@
 "use client";
 
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { SettingsInput } from "@/components/settings/settings-field";
 import { SettingsSaveBar } from "@/components/settings/settings-save-bar";
 import { SettingsToggle } from "@/components/settings/settings-toggle";
 import { useSettingsSection } from "@/components/settings/use-settings-section";
+import { useIsSchoolSuperAdmin } from "@/lib/users/super-admin";
 import { shortDate } from "@/lib/students/format";
 
 export default function LicenseSettingsPage() {
+  const router = useRouter();
+  const isSuper = useIsSchoolSuperAdmin();
   const { draft, update, dirty, cancel, resetToDefault, save, saving } = useSettingsSection("license");
+
+  useEffect(() => {
+    if (!isSuper) router.replace("/settings");
+  }, [isSuper, router]);
+
+  if (!isSuper) return null;
 
   return (
     <div className="space-y-6">

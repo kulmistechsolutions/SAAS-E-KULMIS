@@ -1,17 +1,22 @@
 "use client";
 
-import { use, useMemo } from "react";
+import { use, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { attemptsForQuiz, exportQuizResultsCsv, getQuiz } from "@/lib/quiz/store";
+import { attemptsForQuiz, exportQuizResultsCsv, getQuiz, loadAttemptsForQuiz } from "@/lib/quiz/store";
 import { dateTime, resultLabel } from "@/lib/quiz/format";
 import { printQuizResult } from "@/lib/quiz/print";
 
 export default function QuizResultsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const quiz = useMemo(() => getQuiz(id), [id]);
-  const attempts = useMemo(() => (quiz ? attemptsForQuiz(quiz.id) : []), [quiz, id]);
+  const [attempts, setAttempts] = useState(() => (quiz ? attemptsForQuiz(quiz.id) : []));
+
+  useEffect(() => {
+    if (!quiz) return;
+    void loadAttemptsForQuiz(quiz.id).then(setAttempts);
+  }, [quiz]);
 
   if (!quiz) return <p>Quiz not found.</p>;
 

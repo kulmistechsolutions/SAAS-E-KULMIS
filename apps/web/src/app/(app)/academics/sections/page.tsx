@@ -9,6 +9,8 @@ import { StatusBadge } from "@/components/academics/status-badge";
 import { SectionFormDialog } from "@/components/academics/section-form-dialog";
 import { ConfirmDialog } from "@/components/students/confirm-dialog";
 import {
+  activeAcademicYear,
+  classesForYear,
   deleteSection,
   exportSectionsCsv,
   getAcademicsState,
@@ -27,6 +29,7 @@ export default function SectionsPage() {
   const state = useAcademicsState();
 
   const [search, setSearch] = useState("");
+  const [year, setYear] = useState("");
   const [classId, setClassId] = useState("");
   const [status, setStatus] = useState("");
   const [page, setPage] = useState(1);
@@ -35,12 +38,14 @@ export default function SectionsPage() {
   const [editing, setEditing] = useState<Section | null>(null);
   const [deleting, setDeleting] = useState<SectionRow | null>(null);
 
-  const classes = getAcademicsState().classes.filter(
-    (c) => c.academicYear === (getAcademicsState().academicYears.find((y) => y.status === "ACTIVE")?.name ?? ""),
-  );
+  const years = getAcademicsState().academicYears;
+  const activeYearName = activeAcademicYear();
+  const filterYear = year || activeYearName;
+  const classes = classesForYear(filterYear);
 
   const rows = useMemo(() => {
     return sectionRows({
+      academicYear: filterYear,
       classId: classId || undefined,
       search,
       status: status || undefined,
@@ -48,19 +53,19 @@ export default function SectionsPage() {
       a.className.localeCompare(b.className, undefined, { numeric: true }) ||
       a.name.localeCompare(b.name),
     );
-  }, [state, search, classId, status]);
+  }, [state, search, year, classId, status, filterYear]);
 
   const pageCount = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
   const currentPage = Math.min(page, pageCount);
   const pageRows = rows.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
-  useEffect(() => setPage(1), [search, classId, status]);
+  useEffect(() => setPage(1), [search, year, classId, status]);
 
-  const hasFilters = !!(search || classId || status);
+  const hasFilters = !!(search || year || classId || status);
 
-  function handleDelete() {
+  async function handleDelete() {
     if (!deleting) return;
-    const res = deleteSection(deleting.id);
+    const res = await deleteSection(deleting.id);
     if (!res.ok) toast(res.error ?? "Delete failed.", "error");
     else toast(`Section deleted.`, "success");
     setDeleting(null);
@@ -117,6 +122,12 @@ export default function SectionsPage() {
             />
           </div>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:flex">
+            <Select value={year} onChange={(e) => { setYear(e.target.value); setClassId(""); }} className="lg:w-40">
+              <option value="">Active Year</option>
+              {years.map((y) => (
+                <option key={y.id} value={y.name}>{y.name}</option>
+              ))}
+            </Select>
             <Select value={classId} onChange={(e) => setClassId(e.target.value)} className="lg:w-44">
               <option value="">All Classes</option>
               {classes.map((c) => (
@@ -129,7 +140,7 @@ export default function SectionsPage() {
               <option value="INACTIVE">Inactive</option>
             </Select>
             {hasFilters && (
-              <Button variant="ghost" onClick={() => { setSearch(""); setClassId(""); setStatus(""); }}>
+              <Button variant="ghost" onClick={() => { setSearch(""); setYear(""); setClassId(""); setStatus(""); }}>
                 <X className="mr-1 h-4 w-4" /> Clear
               </Button>
             )}

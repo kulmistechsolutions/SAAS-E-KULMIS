@@ -1,33 +1,48 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useState } from "react";
 import { Download, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { usePortal, usePortalAudit } from "@/components/parent-portal/portal-context";
-import { childExamResults } from "@/lib/parent-portal/store";
+import { fetchChildExamResults } from "@/lib/parent-portal/store";
 import { printResultSlip } from "@/lib/parent-portal/print";
-import { studentFinalResult } from "@/lib/examinations/store";
+import type { StudentExamResult } from "@/lib/examinations/types";
 
 export default function ParentExamsPage() {
   const { selectedChild } = usePortal();
   usePortalAudit("RESULT_VIEWED", selectedChild?.id);
 
-  const examData = useMemo(
-    () => (selectedChild ? childExamResults(selectedChild.id) : null),
-    [selectedChild],
-  );
+  const [blocked, setBlocked] = useState(false);
+  const [results, setResults] = useState<StudentExamResult[]>([]);
+  const [finalGrade, setFinalGrade] = useState<string | null>(null);
+  const [finalPassed, setFinalPassed] = useState<boolean | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const finalResult = useMemo(
-    () => (selectedChild ? studentFinalResult(selectedChild.id) : null),
-    [selectedChild],
-  );
+  useEffect(() => {
+    if (!selectedChild) {
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    void fetchChildExamResults(selectedChild.id).then((data) => {
+      setBlocked(data.blocked);
+      setResults(data.results);
+      setFinalGrade(data.finalGrade ?? null);
+      setFinalPassed(data.passed ?? null);
+      setLoading(false);
+    });
+  }, [selectedChild]);
 
   if (!selectedChild) {
     return <p className="text-muted-foreground">Select a child to view exam results.</p>;
   }
 
-  if (examData?.blocked) {
+  if (loading) {
+    return <p className="text-muted-foreground">Loading results…</p>;
+  }
+
+  if (blocked) {
     return (
       <div className="space-y-6">
         <div>
@@ -55,51 +70,22 @@ export default function ParentExamsPage() {
         </p>
       </div>
 
-      {finalResult && finalResult.termResults.length > 1 && (
+      {finalGrade && results.length > 1 && (
         <div className="rounded-xl border bg-card p-5 shadow-sm">
           <h2 className="font-semibold">Final Academic Result</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Weighted average across {finalResult.termResults.length} terms · Grade{" "}
-            {finalResult.finalGrade} · {finalResult.passed ? "Pass" : "Fail"}
+            Grade {finalGrade} · {finalPassed ? "Pass" : "Fail"}
           </p>
-          <div className="mt-4 overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b text-left">
-                  <th className="px-3 py-2">Subject</th>
-                  {finalResult.termResults.map((t) => (
-                    <th key={t.examId} className="px-3 py-2">{t.term}</th>
-                  ))}
-                  <th className="px-3 py-2">Final</th>
-                  <th className="px-3 py-2">Grade</th>
-                </tr>
-              </thead>
-              <tbody>
-                {finalResult.subjectBreakdown.map((s) => (
-                  <tr key={s.subject} className="border-b">
-                    <td className="px-3 py-2 font-medium">{s.subject}</td>
-                    {finalResult.termResults.map((t) => (
-                      <td key={t.examId} className="px-3 py-2">
-                        {s.termMarks[t.term] ?? "—"}
-                      </td>
-                    ))}
-                    <td className="px-3 py-2">{s.finalMarks}</td>
-                    <td className="px-3 py-2">{s.grade}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
         </div>
       )}
 
-      {examData?.results.length === 0 && (
+      {results.length === 0 && (
         <div className="rounded-xl border bg-card p-8 text-center text-muted-foreground">
           No published examination results yet.
         </div>
       )}
 
-      {examData?.results.map((result) => (
+      {results.map((result) => (
         <div key={result.examId} className="rounded-xl border bg-card p-5 shadow-sm">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>

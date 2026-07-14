@@ -32,16 +32,16 @@ export default function ExaminationSettingsPage() {
     setGradesDirty(true);
   }
 
-  function handleSave() {
+  async function handleSave() {
     if (gradesDirty) {
-      const gResult = updateGrades(grades);
+      const gResult = await updateGrades(grades);
       if (!gResult.ok) {
         toast(gResult.error ?? "Invalid grade configuration", "error");
         return;
       }
       setGradesDirty(false);
     }
-    save();
+    await save();
   }
 
   const isDirty = dirty || gradesDirty;

@@ -1,15 +1,22 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
+import { AcademicYearSelect } from "@/components/academics/academic-year-select";
+import {
+  classNamesForYear,
+  ensureAcademicsLoaded,
+  sectionNamesForClass,
+  useAcademicsState,
+} from "@/lib/academics/store";
+import { useAcademicYearSelect } from "@/lib/academics/year-select";
 import { TERMS } from "@/lib/examinations/format";
 import { createExams } from "@/lib/examinations/store";
 import type { ExamType } from "@/lib/examinations/types";
-import { ACADEMIC_YEARS, CLASSES, SECTIONS } from "@/lib/students/constants";
 import { useExaminationsState } from "@/lib/examinations/store";
 import { toast } from "@/lib/toast";
 
@@ -21,8 +28,21 @@ interface ExamFormDialogProps {
 
 export function ExamFormDialog({ open, onClose, onSuccess }: ExamFormDialogProps) {
   const { examGroups } = useExaminationsState();
+  const academics = useAcademicsState();
+  const { year: academicYear, setYear: setAcademicYear } = useAcademicYearSelect("exam-create-year");
+  const classOptions = useMemo(
+    () => classNamesForYear(academicYear),
+    [academicYear, academics.classes],
+  );
+  const sectionOptions = useMemo(() => {
+    const names = new Set<string>();
+    for (const c of classOptions) {
+      for (const s of sectionNamesForClass(c, academicYear)) names.add(s);
+    }
+    return [...names].sort();
+  }, [classOptions, academicYear, academics.sections]);
+
   const [name, setName] = useState("");
-  const [academicYear, setAcademicYear] = useState<string>(ACADEMIC_YEARS[0]);
   const [examType, setExamType] = useState<ExamType>("TEACHER_ASSESSMENT");
   const [examGroupId, setExamGroupId] = useState("");
   const [term, setTerm] = useState<string>(TERMS[0]);
@@ -33,6 +53,10 @@ export function ExamFormDialog({ open, onClose, onSuccess }: ExamFormDialogProps
   const [selectedClasses, setSelectedClasses] = useState<string[]>([]);
   const [selectedSections, setSelectedSections] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (open) void ensureAcademicsLoaded();
+  }, [open]);
 
   function toggleClass(c: string) {
     setSelectedClasses((prev) =>
@@ -56,7 +80,7 @@ export function ExamFormDialog({ open, onClose, onSuccess }: ExamFormDialogProps
       return;
     }
     setSubmitting(true);
-    const res = createExams({
+    const res = await createExams({
       name: name.trim(),
       academicYear,
       examType,
@@ -104,11 +128,7 @@ export function ExamFormDialog({ open, onClose, onSuccess }: ExamFormDialogProps
         </div>
         <div>
           <Label required>Academic Year</Label>
-          <Select className="mt-1.5" value={academicYear} onChange={(e) => setAcademicYear(e.target.value)}>
-            {ACADEMIC_YEARS.map((y) => (
-              <option key={y} value={y}>{y}</option>
-            ))}
-          </Select>
+          <AcademicYearSelect className="mt-1.5" value={academicYear} onChange={setAcademicYear} />
         </div>
         <div>
           <Label required>Exam Type</Label>
@@ -153,7 +173,7 @@ export function ExamFormDialog({ open, onClose, onSuccess }: ExamFormDialogProps
         <div className="sm:col-span-2">
           <Label>Classes (leave empty for all with sections)</Label>
           <div className="mt-2 flex flex-wrap gap-2">
-            {CLASSES.slice(0, 8).map((c) => (
+            {classOptions.map((c) => (
               <button
                 key={c}
                 type="button"
@@ -172,7 +192,7 @@ export function ExamFormDialog({ open, onClose, onSuccess }: ExamFormDialogProps
         <div className="sm:col-span-2">
           <Label>Sections</Label>
           <div className="mt-2 flex flex-wrap gap-2">
-            {SECTIONS.map((s) => (
+            {sectionOptions.map((s) => (
               <button
                 key={s}
                 type="button"

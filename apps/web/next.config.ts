@@ -2,6 +2,8 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  // Self-contained server bundle for small Docker images (Coolify/VPS deploys).
+  output: "standalone",
   // Consume the shared workspace package's TS source directly.
   transpilePackages: ["@ekulmis/shared"],
   experimental: {

@@ -30,11 +30,11 @@ export function AcademicYearDialog({ open, onClose }: Props) {
     setMakeActive("no");
   }, [open]);
 
-  function submit() {
+  async function submit() {
     setError(null);
     if (!name.trim()) return setError("Academic year name is required.");
     if (!startDate || !endDate) return setError("Start and end dates are required.");
-    const res = createAcademicYear({
+    const res = await createAcademicYear({
       name,
       startDate,
       endDate,

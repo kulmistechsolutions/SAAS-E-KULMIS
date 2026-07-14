@@ -50,7 +50,7 @@ export function SalaryPaymentDialog({
       ? payroll.remainingBalance
       : Number(amount) || 0;
     setSubmitting(true);
-    const res = paySalary({
+    const res = await paySalary({
       payrollId: row.payrollId,
       amount: payAmount,
       paymentMethod: method,

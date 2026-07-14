@@ -1,7 +1,9 @@
 export const STUDENT_PREFIX = "SHMM";
 export const PARENT_PREFIX = "PSHMM";
 
+/** @deprecated Use `useAcademicYearSelect()` or `activeAcademicYear()` from `@/lib/academics/store` */
 export const ACADEMIC_YEARS = ["2024-2025", "2023-2024", "2022-2023"] as const;
+/** @deprecated Use `activeAcademicYear()` from `@/lib/academics/store` */
 export const ACTIVE_ACADEMIC_YEAR = ACADEMIC_YEARS[0];
 
 export const CLASSES = [

@@ -1,3 +1,4 @@
+import { parseCsv } from "@/lib/csv";
 import { getState as getStudentsState } from "@/lib/students/store";
 import type { Exam, ExamMark } from "./types";
 import { gradeFromAverage } from "./format";
@@ -70,18 +71,19 @@ export function parseMarksCsv(text: string): {
   studentName: string;
   marks: number | null;
 }[] {
-  const lines = text.trim().split(/\r?\n/);
-  if (lines.length < 2) return [];
+  const parsed = parseCsv(text.trim());
+  if (parsed.length < 2) return [];
   const rows: { studentId: string; studentName: string; marks: number | null }[] =
     [];
-  for (let i = 1; i < lines.length; i++) {
-    const cols = lines[i].split(",");
+  for (let i = 1; i < parsed.length; i++) {
+    const cols = parsed[i]!;
     if (cols.length < 2) continue;
-    const studentId = cols[0].trim();
-    const studentName = cols[1].replace(/^"|"$/g, "").trim();
+    const studentId = cols[0]!.trim();
+    const studentName = cols[1]!.replace(/^"|"$/g, "").trim();
     const marksRaw = cols[cols.length - 1]?.trim();
     const marks =
       marksRaw === "" || marksRaw === undefined ? null : Number(marksRaw);
+    if (marks !== null && Number.isNaN(marks)) continue;
     rows.push({ studentId, studentName, marks });
   }
   return rows;

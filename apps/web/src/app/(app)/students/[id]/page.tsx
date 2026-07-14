@@ -19,24 +19,28 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs } from "@/components/ui/tabs";
 import { StudentFormDialog } from "@/components/students/student-form-dialog";
-import { useStudentsState, withParents } from "@/lib/students/store";
+import { StudentAvatar } from "@/components/students/student-avatar";
+import { useStudentsState, withParents, ensureStudentLoaded } from "@/lib/students/store";
 import { genderLabel, longDate, money, shortDate, statusLabel } from "@/lib/students/format";
 import { exportStudentsCsv, printStudentProfile } from "@/lib/students/print";
 import { FeeStatusBadge } from "@/components/fees/fee-status-badge";
-import { studentLedger, useFeesState } from "@/lib/fees/store";
+import { apiStudentLedger, type ApiStudentLedger } from "@/lib/fees/api";
+import { monthKey, monthLabel, money as feeMoney } from "@/lib/fees/format";
 import {
   isStudentBlocked,
   studentFinalResult,
   studentPublishedResults,
   useExaminationsState,
 } from "@/lib/examinations/store";
-import { attendanceHistory } from "@/lib/students/history";
+import { attendanceHistory, loadAttendanceHistory, type AttendanceSummary } from "@/lib/students/history";
 import { studentQuizHistory } from "@/lib/quiz/store";
 import { studentPromotionHistory } from "@/lib/promotions/store";
 import { PromotionTypeBadge } from "@/components/promotions/badges";
 import { dateTime } from "@/lib/promotions/format";
 import type { StudentStatus, StudentWithParent } from "@/lib/students/types";
 import { toast } from "@/lib/toast";
+import { useAuth } from "@/lib/auth";
+import { cn } from "@/lib/utils";
 
 const STATUS_TONE: Record<StudentStatus, "success" | "muted" | "info"> = {
   ACTIVE: "success",
@@ -44,7 +48,7 @@ const STATUS_TONE: Record<StudentStatus, "success" | "muted" | "info"> = {
   GRADUATED: "info",
 };
 
-const TABS = [
+const ALL_TABS = [
   { id: "personal", label: "Personal", icon: <User className="h-4 w-4" /> },
   { id: "parent", label: "Parent", icon: <Users className="h-4 w-4" /> },
   { id: "attendance", label: "Attendance", icon: <CalendarCheck className="h-4 w-4" /> },
@@ -54,14 +58,26 @@ const TABS = [
   { id: "promotion", label: "Promotion", icon: <TrendingUp className="h-4 w-4" /> },
 ];
 
+const TEACHER_TABS = ALL_TABS.filter(
+  (t) => t.id !== "fees" && t.id !== "promotion",
+);
+
 export default function StudentProfilePage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
+  const { user } = useAuth();
+  const isTeacher = user?.role === "TEACHER";
+  const TABS = isTeacher ? TEACHER_TABS : ALL_TABS;
   const [mounted, setMounted] = useState(false);
+  const [loading, setLoading] = useState(true);
   useEffect(() => setMounted(true), []);
+  useEffect(() => {
+    if (!mounted) return;
+    void ensureStudentLoaded(id).finally(() => setLoading(false));
+  }, [mounted, id]);
 
   const state = useStudentsState();
   const student = useMemo(
@@ -72,7 +88,13 @@ export default function StudentProfilePage({
   const [tab, setTab] = useState("personal");
   const [editOpen, setEditOpen] = useState(false);
 
-  if (!mounted) {
+  useEffect(() => {
+    if (isTeacher && (tab === "fees" || tab === "promotion")) {
+      setTab("personal");
+    }
+  }, [isTeacher, tab]);
+
+  if (!mounted || loading) {
     return (
       <div className="flex h-64 items-center justify-center text-muted-foreground">
         Loading profile…
@@ -84,10 +106,11 @@ export default function StudentProfilePage({
     return (
       <div className="space-y-4">
         <Link
-          href="/students"
+          href={isTeacher ? "/my-students" : "/students"}
           className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
         >
-          <ArrowLeft className="h-4 w-4" /> Back to Students
+          <ArrowLeft className="h-4 w-4" />{" "}
+          {isTeacher ? "Back to My Students" : "Back to Students"}
         </Link>
         <div className="rounded-2xl border bg-card p-12 text-center text-muted-foreground">
           Student not found. It may have been deleted.
@@ -99,46 +122,62 @@ export default function StudentProfilePage({
   return (
     <div className="space-y-6">
       <Link
-        href="/students"
+        href={isTeacher ? "/my-students" : "/students"}
         className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
       >
-        <ArrowLeft className="h-4 w-4" /> Back to Students
+        <ArrowLeft className="h-4 w-4" />{" "}
+        {isTeacher ? "Back to My Students" : "Back to Students"}
       </Link>
 
       {/* Header card */}
-      <div className="flex flex-col gap-4 rounded-2xl border bg-card p-6 shadow-sm sm:flex-row sm:items-center">
-        <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 text-2xl font-bold text-white">
-          {student.fullName.charAt(0)}
-        </span>
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-3">
-            <h1 className="text-2xl font-bold text-foreground">
-              {student.fullName}
-            </h1>
-            <Badge tone={STATUS_TONE[student.status]} dot>
-              {statusLabel(student.status)}
-            </Badge>
+      <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
+        <div className="bg-gradient-to-r from-blue-500/10 via-indigo-500/5 to-transparent px-6 py-8">
+          <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
+            <StudentAvatar
+              name={student.fullName}
+              studentId={student.id}
+              hasPhoto={student.hasPhoto}
+              photoUrl={student.photoUrl}
+              size="xl"
+            />
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-3">
+                <h1 className="text-2xl font-bold text-foreground sm:text-3xl">
+                  {student.fullName}
+                </h1>
+                <Badge tone={STATUS_TONE[student.status]} dot>
+                  {statusLabel(student.status)}
+                </Badge>
+              </div>
+              <p className="mt-2 text-sm text-muted-foreground">
+                <span className="font-mono">{student.code}</span> ·{" "}
+                {student.className}
+                {student.section ? ` · Section ${student.section}` : ""} ·{" "}
+                {genderLabel(student.gender)}
+              </p>
+              {student.hasPhoto || student.photoUrl ? (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Click the photo to view full size
+                </p>
+              ) : null}
+            </div>
+            <div className="flex flex-wrap gap-2 sm:justify-end">
+              {!isTeacher && (
+                <Button variant="outline" onClick={() => setEditOpen(true)}>
+                  <Pencil className="mr-2 h-4 w-4" /> Edit
+                </Button>
+              )}
+              <Button variant="outline" onClick={() => printStudentProfile(student)}>
+                <Printer className="mr-2 h-4 w-4" /> Print
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => exportStudentsCsv([student], `${student.code}.csv`)}
+              >
+                <Download className="mr-2 h-4 w-4" /> Download
+              </Button>
+            </div>
           </div>
-          <p className="mt-1 text-sm text-muted-foreground">
-            <span className="font-mono">{student.code}</span> ·{" "}
-            {student.className}
-            {student.section ? ` - ${student.section}` : ""} ·{" "}
-            {genderLabel(student.gender)}
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Button variant="outline" onClick={() => setEditOpen(true)}>
-            <Pencil className="mr-2 h-4 w-4" /> Edit
-          </Button>
-          <Button variant="outline" onClick={() => printStudentProfile(student)}>
-            <Printer className="mr-2 h-4 w-4" /> Print
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => exportStudentsCsv([student], `${student.code}.csv`)}
-          >
-            <Download className="mr-2 h-4 w-4" /> Download
-          </Button>
         </div>
       </div>
 
@@ -156,12 +195,14 @@ export default function StudentProfilePage({
         </div>
       </div>
 
-      <StudentFormDialog
-        open={editOpen}
-        onClose={() => setEditOpen(false)}
-        student={student}
-        onSaved={(msg) => toast(msg)}
-      />
+      {!isTeacher && (
+        <StudentFormDialog
+          open={editOpen}
+          onClose={() => setEditOpen(false)}
+          student={student}
+          onSaved={(msg, tone) => toast(msg, tone ?? "success")}
+        />
+      )}
     </div>
   );
 }
@@ -177,7 +218,25 @@ function Field({ label, value }: { label: string; value: React.ReactNode }) {
 
 function PersonalTab({ student }: { student: StudentWithParent }) {
   return (
-    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+    <div className="space-y-6">
+      <div className="flex flex-col items-start gap-4 rounded-xl border bg-secondary/20 p-5 sm:flex-row sm:items-center">
+        <StudentAvatar
+          name={student.fullName}
+          studentId={student.id}
+          hasPhoto={student.hasPhoto}
+          photoUrl={student.photoUrl}
+          size="lg"
+        />
+        <div>
+          <p className="text-sm font-medium text-foreground">Profile Photo</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {student.hasPhoto || student.photoUrl
+              ? "Photo on file. Click the image to open the full-size preview."
+              : "No photo uploaded. Use Edit to add an optional student photo."}
+          </p>
+        </div>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
       <Field label="Student ID" value={<span className="font-mono">{student.code}</span>} />
       <Field label="Full Name" value={student.fullName} />
       <Field label="Gender" value={genderLabel(student.gender)} />
@@ -190,6 +249,7 @@ function PersonalTab({ student }: { student: StudentWithParent }) {
       <Field label="Registration Date" value={longDate(student.registrationDate)} />
       <Field label="Status" value={statusLabel(student.status)} />
       <Field label="Notes" value={student.notes ?? "—"} />
+      </div>
     </div>
   );
 }
@@ -266,7 +326,10 @@ function StatPill({
 }
 
 function AttendanceTab({ student }: { student: StudentWithParent }) {
-  const a = useMemo(() => attendanceHistory(student), [student]);
+  const [a, setA] = useState<AttendanceSummary>(() => attendanceHistory(student));
+  useEffect(() => {
+    void loadAttendanceHistory(student.id, 60).then(setA);
+  }, [student.id]);
   return (
     <div className="space-y-5">
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -310,45 +373,139 @@ function AttendanceTab({ student }: { student: StudentWithParent }) {
 }
 
 function FeesTab({ student }: { student: StudentWithParent }) {
-  useFeesState();
-  const rows = useMemo(() => studentLedger(student.id), [student.id]);
+  const [ledger, setLedger] = useState<ApiStudentLedger | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    void apiStudentLedger(student.id)
+      .then((data) => {
+        if (!cancelled) setLedger(data);
+      })
+      .catch(() => {
+        if (!cancelled) setLedger(null);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [student.id]);
+
+  const summary = ledger?.summary;
+  const rows = ledger?.charges ?? [];
+  const progressBlocks = summary
+    ? Math.min(10, summary.totalMonths || 10)
+    : 10;
+  const filledBlocks = summary
+    ? Math.round((summary.paidMonths / Math.max(summary.totalMonths, 1)) * progressBlocks)
+    : 0;
+
   return (
-    <div className="overflow-hidden rounded-xl border">
-      <table className="w-full text-sm">
-        <thead className="bg-secondary text-left text-xs text-muted-foreground">
-          <tr>
-            <th className="px-4 py-2.5 font-medium">Month</th>
-            <th className="px-4 py-2.5 font-medium">Monthly Charge</th>
-            <th className="px-4 py-2.5 font-medium">Amount Paid</th>
-            <th className="px-4 py-2.5 font-medium">Remaining Balance</th>
-            <th className="px-4 py-2.5 font-medium">Status</th>
-            <th className="px-4 py-2.5 font-medium">Payment Date</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((r) => (
-            <tr key={r.chargeId} className="border-t">
-              <td className="px-4 py-2.5">{r.monthLabel}</td>
-              <td className="px-4 py-2.5 tabular-nums">{money(r.monthlyCharge)}</td>
-              <td className="px-4 py-2.5 tabular-nums">{money(r.amountPaid)}</td>
-              <td className="px-4 py-2.5 tabular-nums">{money(r.remainingBalance)}</td>
-              <td className="px-4 py-2.5">
-                <FeeStatusBadge status={r.status} />
-              </td>
-              <td className="px-4 py-2.5 text-muted-foreground">
-                {shortDate(r.paymentDate)}
-              </td>
-            </tr>
-          ))}
-          {rows.length === 0 && (
+    <div className="space-y-4">
+      {summary && (
+        <div className="rounded-xl border bg-card p-4">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="text-sm font-medium text-muted-foreground">Academic Progress</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {summary.billingMode === "ACADEMIC_YEAR"
+                  ? "Academic Year Billing"
+                  : "Monthly Billing"}
+              </p>
+            </div>
+            <div className="text-right text-sm">
+              <p className="tabular-nums">
+                Paid: <span className="font-semibold">{feeMoney(summary.amountPaid)}</span>
+              </p>
+              <p className="tabular-nums text-rose-600">
+                Outstanding: <span className="font-semibold">{feeMoney(summary.outstandingBalance)}</span>
+              </p>
+            </div>
+          </div>
+          <div className="mt-3 flex gap-1">
+            {Array.from({ length: progressBlocks }).map((_, i) => (
+              <div
+                key={i}
+                className={cn(
+                  "h-3 flex-1 rounded-sm",
+                  i < filledBlocks ? "bg-emerald-500" : "bg-secondary",
+                )}
+              />
+            ))}
+          </div>
+          <dl className="mt-3 grid gap-2 text-sm sm:grid-cols-2 lg:grid-cols-4">
+            <div>
+              <dt className="text-muted-foreground">Paid Months</dt>
+              <dd className="font-medium">
+                {summary.paidMonths} / {summary.totalMonths}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-muted-foreground">Outstanding Months</dt>
+              <dd className="font-medium">{summary.unpaidMonths}</dd>
+            </div>
+            {summary.billingMode === "ACADEMIC_YEAR" && (
+              <div>
+                <dt className="text-muted-foreground">Annual Fee</dt>
+                <dd className="font-medium tabular-nums">{feeMoney(summary.totalAcademicFee)}</dd>
+              </div>
+            )}
+            {summary.inactiveMonths > 0 && (
+              <div>
+                <dt className="text-muted-foreground">Inactive Months</dt>
+                <dd className="font-medium">{summary.inactiveMonths}</dd>
+              </div>
+            )}
+          </dl>
+        </div>
+      )}
+
+      <div className="overflow-hidden rounded-xl border">
+        <table className="w-full text-sm">
+          <thead className="bg-secondary text-left text-xs text-muted-foreground">
             <tr>
-              <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
-                No fee records yet.
-              </td>
+              <th className="px-4 py-2.5 font-medium">Month</th>
+              <th className="px-4 py-2.5 font-medium">Monthly Charge</th>
+              <th className="px-4 py-2.5 font-medium">Amount Paid</th>
+              <th className="px-4 py-2.5 font-medium">Remaining Balance</th>
+              <th className="px-4 py-2.5 font-medium">Status</th>
             </tr>
-          )}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {loading && (
+              <tr>
+                <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">
+                  Loading fee records…
+                </td>
+              </tr>
+            )}
+            {!loading &&
+              rows.map((r) => (
+                <tr key={r.id} className="border-t">
+                  <td className="px-4 py-2.5">{monthLabel(monthKey(r.year, r.month))}</td>
+                  <td className="px-4 py-2.5 tabular-nums">{feeMoney(r.amount)}</td>
+                  <td className="px-4 py-2.5 tabular-nums">{feeMoney(r.paidAmount)}</td>
+                  <td className="px-4 py-2.5 tabular-nums">
+                    {feeMoney(Math.max(0, r.amount - r.paidAmount))}
+                  </td>
+                  <td className="px-4 py-2.5">
+                    <FeeStatusBadge status={r.status} />
+                  </td>
+                </tr>
+              ))}
+            {!loading && rows.length === 0 && (
+              <tr>
+                <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">
+                  No fee records yet.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

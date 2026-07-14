@@ -1,5 +1,6 @@
 import { CLASSES } from "./constants";
 import type { Student } from "./types";
+import { apiStudentAttendance } from "./api";
 
 function seedFrom(code: string): number {
   let h = 0;
@@ -15,6 +16,8 @@ function rng(seed: number) {
   };
 }
 
+const attendanceCache = new Map<string, AttendanceSummary>();
+
 export interface AttendanceRow {
   date: string;
   status: "PRESENT" | "ABSENT" | "LATE";
@@ -27,32 +30,26 @@ export interface AttendanceSummary {
   rows: AttendanceRow[];
 }
 
+export async function loadAttendanceHistory(
+  studentId: string,
+  days = 60,
+): Promise<AttendanceSummary> {
+  const data = await apiStudentAttendance(studentId, days);
+  attendanceCache.set(`${studentId}:${days}`, data);
+  return data;
+}
+
+/** Returns cached API data or empty summary until loaded. */
 export function attendanceHistory(student: Student, days = 40): AttendanceSummary {
-  const rand = rng(seedFrom(student.code));
-  const rows: AttendanceRow[] = [];
-  let present = 0,
-    absent = 0,
-    late = 0;
-  const base = new Date();
-  for (let i = 0; i < days; i++) {
-    const d = new Date(base);
-    d.setDate(base.getDate() - i);
-    if (d.getDay() === 5 || d.getDay() === 6) continue; // skip weekend
-    const r = rand();
-    const status = r > 0.12 ? "PRESENT" : r > 0.05 ? "LATE" : "ABSENT";
-    if (status === "PRESENT") present++;
-    else if (status === "LATE") late++;
-    else absent++;
-    rows.push({ date: d.toISOString(), status });
-  }
-  const total = present + absent + late || 1;
-  return {
-    present,
-    absent,
-    late,
-    percentage: Math.round((present / total) * 1000) / 10,
-    rows,
-  };
+  return (
+    attendanceCache.get(`${student.id}:${days}`) ?? {
+      present: 0,
+      absent: 0,
+      late: 0,
+      percentage: 0,
+      rows: [],
+    }
+  );
 }
 
 export interface FeeRow {

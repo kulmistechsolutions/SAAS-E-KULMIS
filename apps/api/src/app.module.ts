@@ -22,6 +22,20 @@ import { DashboardModule } from "./dashboard/dashboard.module";
 import { PlatformModule } from "./platform/platform.module";
 import { StorageModule } from "./storage/storage.module";
 import { SearchModule } from "./search/search.module";
+import { QueueModule } from "./queue/queue.module";
+import { DocumentsModule } from "./documents/documents.module";
+import { ExaminationsModule } from "./examinations/examinations.module";
+import { PromotionsModule } from "./promotions/promotions.module";
+import { QuizModule } from "./quiz/quiz.module";
+import { AiModule } from "./ai/ai.module";
+import { LibraryModule } from "./library/library.module";
+import { ReportsModule } from "./reports/reports.module";
+import { NotificationsModule } from "./notifications/notifications.module";
+import { ParentPortalModule } from "./parent-portal/parent-portal.module";
+import { TeacherPortalModule } from "./teacher-portal/teacher-portal.module";
+import { BackupModule } from "./backup/backup.module";
+import { ImportsModule } from "./imports/imports.module";
+import { SmsModule } from "./sms/sms.module";
 import { TenantMiddleware } from "./tenant/tenant.middleware";
 import { TenantModule } from "./tenant/tenant.module";
 
@@ -29,7 +43,6 @@ import { TenantModule } from "./tenant/tenant.module";
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      // Load the monorepo-root .env (relative to apps/api cwd) then a local one.
       envFilePath: ["../../.env", ".env"],
       validate: validateEnv,
     }),
@@ -43,6 +56,8 @@ import { TenantModule } from "./tenant/tenant.module";
       },
     }),
     PrismaModule,
+    QueueModule.forRoot(),
+    DocumentsModule,
     AuditModule,
     StorageModule,
     SearchModule,
@@ -55,6 +70,18 @@ import { TenantModule } from "./tenant/tenant.module";
     AttendanceModule,
     FinanceModule,
     DashboardModule,
+    ExaminationsModule,
+    PromotionsModule,
+    QuizModule,
+    AiModule,
+    LibraryModule,
+    ReportsModule,
+    NotificationsModule,
+    ParentPortalModule,
+    TeacherPortalModule,
+    BackupModule,
+    ImportsModule,
+    SmsModule,
     PlatformModule,
     TenantModule,
     HealthModule,
@@ -62,10 +89,12 @@ import { TenantModule } from "./tenant/tenant.module";
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer): void {
-    // Resolve the tenant on every request except the infra health check.
     consumer
       .apply(TenantMiddleware)
-      .exclude({ path: "health", method: RequestMethod.ALL })
+      .exclude(
+        { path: "health", method: RequestMethod.ALL },
+        { path: "", method: RequestMethod.ALL },
+      )
       .forRoutes("*");
   }
 }

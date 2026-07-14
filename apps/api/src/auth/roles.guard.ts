@@ -32,7 +32,11 @@ export class RolesGuard implements CanActivate {
     }
 
     const req = ctx.switchToHttp().getRequest<AuthedRequest>();
-    if (!req.user || !required.includes(req.user.role)) {
+    // SUPER_ADMINISTRATOR is a superset of ADMINISTRATOR: always permitted.
+    const isSuperset =
+      req.user?.role === "SUPER_ADMINISTRATOR" &&
+      required.includes("ADMINISTRATOR" as UserRole);
+    if (!req.user || (!required.includes(req.user.role) && !isSuperset)) {
       throw new ForbiddenException("Insufficient role");
     }
     return true;

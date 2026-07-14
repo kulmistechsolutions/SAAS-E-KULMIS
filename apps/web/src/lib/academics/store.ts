@@ -3,7 +3,27 @@
 import { useSyncExternalStore } from "react";
 import { getState as getStudentsState } from "@/lib/students/store";
 import { getTeachersState } from "@/lib/teachers/store";
-import { buildSeed } from "./seed";
+import { ApiError } from "@/lib/api";
+import {
+  apiActivateYear,
+  apiCreateClass,
+  apiCreateClassSubject,
+  apiCreateSection,
+  apiCreateSubject,
+  apiCreateYear,
+  apiDeleteClass,
+  apiDeleteClassSubject,
+  apiDeleteSection,
+  apiDeleteSubject,
+  apiListClasses,
+  apiListClassSubjects,
+  apiListSections,
+  apiListSubjects,
+  apiListYears,
+  apiUpdateClass,
+  apiUpdateSection,
+  apiUpdateSubject,
+} from "./api";
 import type {
   AcademicsDashboardSummary,
   AcademicsState,
@@ -12,7 +32,6 @@ import type {
   ClassInput,
   ClassRow,
   ClassStatistics,
-  ClassSubjectAssignment,
   SchoolClass,
   Section,
   SectionInput,
@@ -22,8 +41,6 @@ import type {
   SubjectInput,
   SubjectRow,
 } from "./types";
-
-const KEY = "ekulmis_academics_v1";
 
 const EMPTY: AcademicsState = {
   academicYears: [],
@@ -39,6 +56,7 @@ const EMPTY: AcademicsState = {
 };
 
 let state: AcademicsState | null = null;
+let loaded = false;
 const listeners = new Set<() => void>();
 
 function subscribe(cb: () => void) {
@@ -52,26 +70,86 @@ function emit() {
 
 function setState(next: AcademicsState) {
   state = next;
-  if (typeof window !== "undefined") {
-    localStorage.setItem(KEY, JSON.stringify(next));
-  }
   emit();
+}
+
+/** Fetch the full academic structure from the API and map it to the UI shape. */
+export async function refreshAcademics(): Promise<void> {
+  try {
+    const years = await apiListYears();
+
+    const [classes, sections, subjects, classSubjects] = await Promise.all([
+      apiListClasses(),
+      apiListSections(),
+      apiListSubjects(),
+      apiListClassSubjects(),
+    ]);
+
+    const yearName = new Map(years.map((y) => [y.id, y.name]));
+    const classYearName = new Map(
+      classes.map((c) => [c.id, yearName.get(c.academicYearId) ?? ""]),
+    );
+
+    const mapped: AcademicsState = {
+      academicYears: years.map((y) => ({
+        id: y.id,
+        name: y.name,
+        startDate: y.startDate ? y.startDate.slice(0, 10) : "",
+        endDate: y.endDate ? y.endDate.slice(0, 10) : "",
+        status: y.isActive ? "ACTIVE" : "CLOSED",
+      })),
+      classes: classes.map((c) => ({
+        id: c.id,
+        name: c.name,
+        academicYear: yearName.get(c.academicYearId) ?? "",
+        orderIndex: c.orderIndex ?? 0,
+        hasSections: c.hasSections,
+        status: c.status,
+        notes: c.notes,
+        createdAt: c.createdAt,
+      })),
+      sections: sections.map((s) => ({
+        id: s.id,
+        name: s.name,
+        classId: s.classId,
+        academicYear: classYearName.get(s.classId) ?? "",
+        status: s.status,
+        createdAt: s.createdAt,
+      })),
+      subjects: subjects.map((s) => ({
+        id: s.id,
+        name: s.name,
+        code: s.code,
+        status: s.status,
+        createdAt: s.createdAt,
+      })),
+      classSubjects: classSubjects.map((cs) => ({
+        id: cs.id,
+        academicYear: yearName.get(cs.academicYearId) ?? "",
+        classId: cs.classId,
+        sectionId: cs.sectionId,
+        subjectId: cs.subjectId,
+      })),
+      audit: state?.audit ?? [],
+      classSeq: 0,
+      sectionSeq: 0,
+      subjectSeq: 0,
+      yearSeq: 0,
+    };
+    setState(mapped);
+  } catch {
+    /* keep existing cache; pages surface load errors via empty state */
+  }
 }
 
 function ensure(): AcademicsState {
   if (state) return state;
   if (typeof window === "undefined") return EMPTY;
-  const raw = localStorage.getItem(KEY);
-  if (raw) {
-    try {
-      state = JSON.parse(raw) as AcademicsState;
-      return state;
-    } catch {
-      /* fall through */
-    }
+  state = EMPTY;
+  if (!loaded) {
+    loaded = true;
+    void refreshAcademics();
   }
-  state = buildSeed();
-  localStorage.setItem(KEY, JSON.stringify(state));
   return state;
 }
 
@@ -84,7 +162,7 @@ export function useAcademicsState(): AcademicsState {
 }
 
 export function resetAcademics() {
-  setState(buildSeed());
+  void refreshAcademics();
 }
 
 function logAudit(action: string, detail?: string, user = "Admin User", role = "ADMINISTRATOR") {
@@ -105,9 +183,111 @@ function logAudit(action: string, detail?: string, user = "Admin User", role = "
   });
 }
 
+function apiErr(e: unknown, fallback: string): string {
+  return e instanceof ApiError ? e.message : fallback;
+}
+
+function yearIdByName(name: string): string | undefined {
+  return ensure().academicYears.find((y) => y.name === name)?.id;
+}
+
 export function activeAcademicYear(): string {
   const s = ensure();
   return s.academicYears.find((y) => y.status === "ACTIVE")?.name ?? "";
+}
+
+/** Wait for API-backed academic structure when the cache is still empty. */
+export async function ensureAcademicsLoaded(): Promise<void> {
+  const s = ensure();
+  if (s.academicYears.length === 0 || s.classes.length === 0 || s.sections.length === 0) {
+    await refreshAcademics();
+  }
+}
+
+/** Notify dependent modules after the active academic year changes. */
+export async function broadcastAcademicYearChange(): Promise<void> {
+  const [
+    { refreshFees },
+    { refreshSalaries },
+    { refreshExpenses },
+    { refreshQuizzes },
+    { refreshExaminations },
+    { refreshPromotions },
+    { refreshStudents },
+    { refreshTeachers },
+  ] = await Promise.all([
+    import("@/lib/fees/store"),
+    import("@/lib/salary/store"),
+    import("@/lib/expenses/store"),
+    import("@/lib/quiz/store"),
+    import("@/lib/examinations/store"),
+    import("@/lib/promotions/store"),
+    import("@/lib/students/store"),
+    import("@/lib/teachers/store"),
+  ]);
+  await Promise.all([
+    refreshFees(),
+    refreshSalaries(),
+    refreshExpenses(),
+    refreshQuizzes(),
+    refreshExaminations(),
+    refreshPromotions(),
+    refreshStudents(),
+    refreshTeachers(),
+  ]);
+}
+
+export function academicYearNames(): string[] {
+  return [...ensure().academicYears]
+    .map((y) => y.name)
+    .sort((a, b) => b.localeCompare(a));
+}
+
+export const DEFAULT_GRADE_COUNT = 12;
+
+export function classesForYear(
+  year?: string,
+  opts?: { includeInactive?: boolean },
+): SchoolClass[] {
+  const y = year ?? activeAcademicYear();
+  const seen = new Set<string>();
+  return ensure()
+    .classes.filter((c) => {
+      if (y && c.academicYear !== y) return false;
+      if (!opts?.includeInactive && c.status !== "ACTIVE") return false;
+      const key = c.name.trim().toLowerCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .sort((a, b) => {
+      const orderDiff = (a.orderIndex || 0) - (b.orderIndex || 0);
+      if (orderDiff !== 0) return orderDiff;
+      return a.name.localeCompare(b.name, undefined, { numeric: true });
+    });
+}
+
+export function classNamesForYear(
+  year?: string,
+  opts?: { includeInactive?: boolean },
+): string[] {
+  return classesForYear(year, opts).map((c) => c.name);
+}
+
+export function canCreateClassInYear(year?: string): boolean {
+  const y = year ?? activeAcademicYear();
+  const count = ensure().classes.filter(
+    (c) => c.academicYear === y && c.status === "ACTIVE",
+  ).length;
+  return count < DEFAULT_GRADE_COUNT;
+}
+
+export function sectionNamesForClass(className: string, year?: string): string[] {
+  const cls = classByName(className, year, { allowInactive: true });
+  if (!cls || !cls.hasSections) return [];
+  return sectionsForClass(cls.id)
+    .filter((s) => s.status === "ACTIVE")
+    .map((s) => s.name);
 }
 
 // ---------- Lookups ----------
@@ -124,15 +304,25 @@ export function getSubject(id: string): Subject | undefined {
   return ensure().subjects.find((s) => s.id === id);
 }
 
-export function classByName(name: string, year?: string): SchoolClass | undefined {
+export function classByName(
+  name: string,
+  year?: string,
+  opts?: { allowInactive?: boolean },
+): SchoolClass | undefined {
   const s = ensure();
+  const trimmed = name.trim();
   const y = year ?? activeAcademicYear();
-  return s.classes.find((c) => c.name === name && c.academicYear === y);
+  return s.classes.find(
+    (c) =>
+      c.name === trimmed &&
+      c.academicYear === y &&
+      (opts?.allowInactive || c.status === "ACTIVE"),
+  );
 }
 
 export function sectionsForClass(classId: string): Section[] {
   return ensure()
-    .sections.filter((s) => s.classId === classId)
+    .sections.filter((s) => s.classId === classId && s.status === "ACTIVE")
     .sort((a, b) => a.name.localeCompare(b.name));
 }
 
@@ -221,7 +411,9 @@ export function classRows(opts?: {
 }): ClassRow[] {
   const s = ensure();
   const year = opts?.academicYear ?? activeAcademicYear();
-  let classes = s.classes.filter((c) => c.academicYear === year);
+  let classes = classesForYear(year, {
+    includeInactive: opts?.status === "INACTIVE" || !opts?.status,
+  });
   if (opts?.status) classes = classes.filter((c) => c.status === opts.status);
   if (opts?.search?.trim()) {
     const q = opts.search.trim().toLowerCase();
@@ -396,112 +588,102 @@ export function sectionStatistics(sectionId: string): SectionStatistics {
 
 // ---------- Academic Year mutations ----------
 
-export function createAcademicYear(
+export async function createAcademicYear(
   input: AcademicYearInput,
-): { ok: boolean; error?: string; year?: AcademicYear } {
+): Promise<{ ok: boolean; error?: string; year?: AcademicYear }> {
   const s = ensure();
   if (s.academicYears.some((y) => y.name === input.name)) {
     return { ok: false, error: "Academic year already exists." };
   }
-  const makeActive = input.status === "ACTIVE";
-  const year: AcademicYear = {
-    id: `ay_${s.yearSeq + 1}`,
-    name: input.name,
-    startDate: input.startDate,
-    endDate: input.endDate,
-    status: makeActive ? "ACTIVE" : "CLOSED",
-  };
-  setState({
-    ...s,
-    academicYears: [
-      ...s.academicYears.map((y) =>
-        makeActive ? { ...y, status: "CLOSED" as const } : y,
-      ),
-      year,
-    ],
-    yearSeq: s.yearSeq + 1,
-  });
-  logAudit("Academic Year Created", input.name);
-  return { ok: true, year };
+  try {
+    const created = await apiCreateYear({
+      name: input.name,
+      startDate: input.startDate || undefined,
+      endDate: input.endDate || undefined,
+      isActive: input.status === "ACTIVE",
+    });
+    await refreshAcademics();
+    await broadcastAcademicYearChange();
+    logAudit("Academic Year Created", input.name);
+    const year: AcademicYear = {
+      id: created.id,
+      name: created.name,
+      startDate: created.startDate ? created.startDate.slice(0, 10) : "",
+      endDate: created.endDate ? created.endDate.slice(0, 10) : "",
+      status: created.isActive ? "ACTIVE" : "CLOSED",
+    };
+    return { ok: true, year };
+  } catch (e) {
+    return { ok: false, error: apiErr(e, "Failed to create academic year.") };
+  }
 }
 
-export function setActiveAcademicYear(id: string): { ok: boolean } {
+export async function setActiveAcademicYear(id: string): Promise<{ ok: boolean; error?: string }> {
   const s = ensure();
-  setState({
-    ...s,
-    academicYears: s.academicYears.map((y) => ({
-      ...y,
-      status: y.id === id ? "ACTIVE" : "CLOSED",
-    })),
-  });
   const y = s.academicYears.find((x) => x.id === id);
-  logAudit("Academic Year Updated", `${y?.name} set active`);
-  return { ok: true };
+  try {
+    await apiActivateYear(id);
+    await refreshAcademics();
+    await broadcastAcademicYearChange();
+    logAudit("Academic Year Updated", `${y?.name} set active`);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: apiErr(e, "Failed to set active year.") };
+  }
 }
 
 // ---------- Class mutations ----------
 
-export function createClass(
+export async function createClass(
   input: ClassInput,
-): { ok: boolean; error?: string; cls?: SchoolClass } {
-  const s = ensure();
-  const dup = s.classes.some(
-    (c) =>
-      c.name.toLowerCase() === input.name.trim().toLowerCase() &&
-      c.academicYear === input.academicYear,
-  );
-  if (dup) {
-    return { ok: false, error: "Class name must be unique within the academic year." };
+): Promise<{ ok: boolean; error?: string; cls?: SchoolClass }> {
+  if (!canCreateClassInYear(input.academicYear)) {
+    return {
+      ok: false,
+      error: `This year already has ${DEFAULT_GRADE_COUNT} classes. Rename an existing class instead.`,
+    };
   }
-  const cls: SchoolClass = {
-    id: `cls_${s.classSeq + 1}`,
-    name: input.name.trim(),
-    academicYear: input.academicYear,
-    hasSections: input.hasSections,
-    status: input.status ?? "ACTIVE",
-    notes: input.notes ?? null,
-    createdAt: new Date().toISOString(),
-  };
-  setState({ ...s, classes: [...s.classes, cls], classSeq: s.classSeq + 1 });
-  logAudit("Class Created", cls.name);
-  return { ok: true, cls };
+  const academicYearId = yearIdByName(input.academicYear);
+  if (!academicYearId) return { ok: false, error: "Academic year not found." };
+  try {
+    const created = await apiCreateClass({
+      academicYearId,
+      name: input.name.trim(),
+      hasSections: input.hasSections,
+      notes: input.notes ?? null,
+      status: input.status ?? "ACTIVE",
+    });
+    await refreshAcademics();
+    logAudit("Class Created", created.name);
+    const cls = ensure().classes.find((c) => c.id === created.id);
+    return { ok: true, cls };
+  } catch (e) {
+    return { ok: false, error: apiErr(e, "Failed to create class.") };
+  }
 }
 
-export function updateClass(
+export async function updateClass(
   id: string,
   input: ClassInput,
-): { ok: boolean; error?: string } {
+): Promise<{ ok: boolean; error?: string }> {
   const s = ensure();
-  const existing = s.classes.find((c) => c.id === id);
-  if (!existing) return { ok: false, error: "Class not found." };
-  const dup = s.classes.some(
-    (c) =>
-      c.id !== id &&
-      c.name.toLowerCase() === input.name.trim().toLowerCase() &&
-      c.academicYear === input.academicYear,
-  );
-  if (dup) return { ok: false, error: "Class name must be unique within the academic year." };
-
-  setState({
-    ...s,
-    classes: s.classes.map((c) =>
-      c.id === id
-        ? {
-            ...c,
-            name: input.name.trim(),
-            academicYear: input.academicYear,
-            hasSections: input.hasSections,
-            status: input.status ?? c.status,
-            notes: input.notes ?? null,
-          }
-        : c,
-    ),
-  });
-  logAudit("Class Updated", input.name);
-  return { ok: true };
+  if (!s.classes.some((c) => c.id === id)) return { ok: false, error: "Class not found." };
+  try {
+    await apiUpdateClass(id, {
+      name: input.name.trim(),
+      hasSections: input.hasSections,
+      notes: input.notes ?? null,
+      status: input.status,
+    });
+    await refreshAcademics();
+    logAudit("Class Updated", input.name);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: apiErr(e, "Failed to update class.") };
+  }
 }
 
-export function deleteClass(id: string): { ok: boolean; error?: string } {
+export async function deleteClass(id: string): Promise<{ ok: boolean; error?: string }> {
   const s = ensure();
   const cls = s.classes.find((c) => c.id === id);
   if (!cls) return { ok: false, error: "Class not found." };
@@ -509,78 +691,58 @@ export function deleteClass(id: string): { ok: boolean; error?: string } {
   if (studentCount > 0) {
     return { ok: false, error: "Cannot delete a class that still contains students." };
   }
-  setState({
-    ...s,
-    classes: s.classes.filter((c) => c.id !== id),
-    sections: s.sections.filter((sec) => sec.classId !== id),
-    classSubjects: s.classSubjects.filter((cs) => cs.classId !== id),
-  });
-  logAudit("Class Deleted", cls.name);
-  return { ok: true };
+  try {
+    await apiDeleteClass(id);
+    await refreshAcademics();
+    logAudit("Class Deleted", cls.name);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: apiErr(e, "Failed to delete class.") };
+  }
 }
 
 // ---------- Section mutations ----------
 
-export function createSection(
+export async function createSection(
   input: SectionInput,
-): { ok: boolean; error?: string; section?: Section } {
+): Promise<{ ok: boolean; error?: string; section?: Section }> {
   const s = ensure();
   const cls = s.classes.find((c) => c.id === input.classId);
   if (!cls) return { ok: false, error: "Class not found." };
-  const dup = s.sections.some(
-    (sec) =>
-      sec.classId === input.classId &&
-      sec.name.toLowerCase() === input.name.trim().toLowerCase(),
-  );
-  if (dup) return { ok: false, error: "Section name must be unique within the class." };
-
-  const section: Section = {
-    id: `sec_${s.sectionSeq + 1}`,
-    name: input.name.trim(),
-    classId: input.classId,
-    academicYear: cls.academicYear,
-    status: input.status ?? "ACTIVE",
-    createdAt: new Date().toISOString(),
-  };
-  setState({
-    ...s,
-    sections: [...s.sections, section],
-    sectionSeq: s.sectionSeq + 1,
-    classes: s.classes.map((c) =>
-      c.id === input.classId ? { ...c, hasSections: true } : c,
-    ),
-  });
-  logAudit("Section Created", `${cls.name} — ${section.name}`);
-  return { ok: true, section };
+  try {
+    const created = await apiCreateSection({
+      classId: input.classId,
+      name: input.name.trim(),
+      status: input.status ?? "ACTIVE",
+    });
+    await refreshAcademics();
+    logAudit("Section Created", `${cls.name} — ${created.name}`);
+    const section = ensure().sections.find((x) => x.id === created.id);
+    return { ok: true, section };
+  } catch (e) {
+    return { ok: false, error: apiErr(e, "Failed to create section.") };
+  }
 }
 
-export function updateSection(
+export async function updateSection(
   id: string,
   input: SectionInput,
-): { ok: boolean; error?: string } {
+): Promise<{ ok: boolean; error?: string }> {
   const s = ensure();
-  const existing = s.sections.find((sec) => sec.id === id);
-  if (!existing) return { ok: false, error: "Section not found." };
-  const dup = s.sections.some(
-    (sec) =>
-      sec.id !== id &&
-      sec.classId === existing.classId &&
-      sec.name.toLowerCase() === input.name.trim().toLowerCase(),
-  );
-  if (dup) return { ok: false, error: "Section name must be unique within the class." };
-  setState({
-    ...s,
-    sections: s.sections.map((sec) =>
-      sec.id === id
-        ? { ...sec, name: input.name.trim(), status: input.status ?? sec.status }
-        : sec,
-    ),
-  });
-  logAudit("Section Updated", input.name);
-  return { ok: true };
+  if (!s.sections.some((sec) => sec.id === id)) {
+    return { ok: false, error: "Section not found." };
+  }
+  try {
+    await apiUpdateSection(id, { name: input.name.trim(), status: input.status });
+    await refreshAcademics();
+    logAudit("Section Updated", input.name);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: apiErr(e, "Failed to update section.") };
+  }
 }
 
-export function deleteSection(id: string): { ok: boolean; error?: string } {
+export async function deleteSection(id: string): Promise<{ ok: boolean; error?: string }> {
   const s = ensure();
   const sec = s.sections.find((x) => x.id === id);
   if (!sec) return { ok: false, error: "Section not found." };
@@ -593,61 +755,59 @@ export function deleteSection(id: string): { ok: boolean; error?: string } {
   if (studentCount > 0) {
     return { ok: false, error: "Cannot delete a section that still contains students." };
   }
-  setState({ ...s, sections: s.sections.filter((x) => x.id !== id) });
-  logAudit("Section Deleted", `${cls?.name} — ${sec.name}`);
-  return { ok: true };
+  try {
+    await apiDeleteSection(id);
+    await refreshAcademics();
+    logAudit("Section Deleted", `${cls?.name} — ${sec.name}`);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: apiErr(e, "Failed to delete section.") };
+  }
 }
 
 // ---------- Subject mutations ----------
 
-export function createSubject(
+export async function createSubject(
   input: SubjectInput,
-): { ok: boolean; error?: string; subject?: Subject } {
-  const s = ensure();
-  const dup = s.subjects.some(
-    (sub) => sub.name.toLowerCase() === input.name.trim().toLowerCase(),
-  );
-  if (dup) return { ok: false, error: "Subject name must be unique." };
-  const subject: Subject = {
-    id: `sub_${s.subjectSeq + 1}`,
-    name: input.name.trim(),
-    code: input.code?.trim() || null,
-    status: input.status ?? "ACTIVE",
-    createdAt: new Date().toISOString(),
-  };
-  setState({ ...s, subjects: [...s.subjects, subject], subjectSeq: s.subjectSeq + 1 });
-  logAudit("Subject Created", subject.name);
-  return { ok: true, subject };
+): Promise<{ ok: boolean; error?: string; subject?: Subject }> {
+  try {
+    const created = await apiCreateSubject({
+      name: input.name.trim(),
+      code: input.code?.trim() || null,
+      status: input.status ?? "ACTIVE",
+    });
+    await refreshAcademics();
+    logAudit("Subject Created", created.name);
+    const subject = ensure().subjects.find((x) => x.id === created.id);
+    return { ok: true, subject };
+  } catch (e) {
+    return { ok: false, error: apiErr(e, "Failed to create subject.") };
+  }
 }
 
-export function updateSubject(
+export async function updateSubject(
   id: string,
   input: SubjectInput,
-): { ok: boolean; error?: string } {
+): Promise<{ ok: boolean; error?: string }> {
   const s = ensure();
-  const dup = s.subjects.some(
-    (sub) =>
-      sub.id !== id && sub.name.toLowerCase() === input.name.trim().toLowerCase(),
-  );
-  if (dup) return { ok: false, error: "Subject name must be unique." };
-  setState({
-    ...s,
-    subjects: s.subjects.map((sub) =>
-      sub.id === id
-        ? {
-            ...sub,
-            name: input.name.trim(),
-            code: input.code?.trim() || null,
-            status: input.status ?? sub.status,
-          }
-        : sub,
-    ),
-  });
-  logAudit("Subject Updated", input.name);
-  return { ok: true };
+  if (!s.subjects.some((sub) => sub.id === id)) {
+    return { ok: false, error: "Subject not found." };
+  }
+  try {
+    await apiUpdateSubject(id, {
+      name: input.name.trim(),
+      code: input.code?.trim() || null,
+      status: input.status,
+    });
+    await refreshAcademics();
+    logAudit("Subject Updated", input.name);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: apiErr(e, "Failed to update subject.") };
+  }
 }
 
-export function deleteSubject(id: string): { ok: boolean; error?: string } {
+export async function deleteSubject(id: string): Promise<{ ok: boolean; error?: string }> {
   const s = ensure();
   const subject = s.subjects.find((sub) => sub.id === id);
   if (!subject) return { ok: false, error: "Subject not found." };
@@ -658,25 +818,28 @@ export function deleteSubject(id: string): { ok: boolean; error?: string } {
   if (usedByTeacher) {
     return { ok: false, error: "Cannot delete a subject used in teacher assignments." };
   }
-  setState({
-    ...s,
-    subjects: s.subjects.filter((sub) => sub.id !== id),
-    classSubjects: s.classSubjects.filter((cs) => cs.subjectId !== id),
-  });
-  logAudit("Subject Deleted", subject.name);
-  return { ok: true };
+  try {
+    await apiDeleteSubject(id);
+    await refreshAcademics();
+    logAudit("Subject Deleted", subject.name);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: apiErr(e, "Failed to delete subject.") };
+  }
 }
 
 // ---------- Class-Subject assignment ----------
 
-export function assignSubjectToClass(
+export async function assignSubjectToClass(
   classId: string,
   subjectId: string,
   sectionId: string | null = null,
-): { ok: boolean; error?: string } {
+): Promise<{ ok: boolean; error?: string }> {
   const s = ensure();
   const cls = s.classes.find((c) => c.id === classId);
   if (!cls) return { ok: false, error: "Class not found." };
+  const academicYearId = yearIdByName(cls.academicYear);
+  if (!academicYearId) return { ok: false, error: "Academic year not found." };
   const dup = s.classSubjects.some(
     (cs) =>
       cs.classId === classId &&
@@ -684,35 +847,37 @@ export function assignSubjectToClass(
       cs.sectionId === sectionId,
   );
   if (dup) return { ok: false, error: "Subject already assigned to this class/section." };
-
-  const assignment: ClassSubjectAssignment = {
-    id: `cs_${Date.now()}`,
-    academicYear: cls.academicYear,
-    classId,
-    sectionId,
-    subjectId,
-  };
-  setState({ ...s, classSubjects: [...s.classSubjects, assignment] });
-  const subject = s.subjects.find((sub) => sub.id === subjectId);
-  logAudit("Subject Assigned", `${cls.name} ← ${subject?.name}`);
-  return { ok: true };
+  try {
+    await apiCreateClassSubject({ academicYearId, classId, sectionId, subjectId });
+    await refreshAcademics();
+    const subject = s.subjects.find((sub) => sub.id === subjectId);
+    logAudit("Subject Assigned", `${cls.name} ← ${subject?.name}`);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: apiErr(e, "Failed to assign subject.") };
+  }
 }
 
-export function removeSubjectFromClass(
+export async function removeSubjectFromClass(
   classId: string,
   subjectId: string,
-): { ok: boolean } {
+): Promise<{ ok: boolean; error?: string }> {
   const s = ensure();
-  setState({
-    ...s,
-    classSubjects: s.classSubjects.filter(
-      (cs) => !(cs.classId === classId && cs.subjectId === subjectId),
-    ),
-  });
-  const subject = s.subjects.find((sub) => sub.id === subjectId);
-  const cls = s.classes.find((c) => c.id === classId);
-  logAudit("Subject Removed", `${cls?.name} ✕ ${subject?.name}`);
-  return { ok: true };
+  const targets = s.classSubjects.filter(
+    (cs) => cs.classId === classId && cs.subjectId === subjectId,
+  );
+  try {
+    for (const t of targets) {
+      await apiDeleteClassSubject(t.id);
+    }
+    await refreshAcademics();
+    const subject = s.subjects.find((sub) => sub.id === subjectId);
+    const cls = s.classes.find((c) => c.id === classId);
+    logAudit("Subject Removed", `${cls?.name} ✕ ${subject?.name}`);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: apiErr(e, "Failed to remove subject.") };
+  }
 }
 
 // ---------- CSV export ----------

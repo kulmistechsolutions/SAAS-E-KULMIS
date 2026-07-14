@@ -15,6 +15,7 @@ export interface Teacher {
   salary: number;
   shift: Shift;
   status: EmploymentStatus;
+  canViewStudents?: boolean;
   registrationDate: string;
   username: string;
   /** Demo-only: initial/generated password shown to admin once. */
@@ -42,6 +43,7 @@ export interface TeacherInput {
   salary: number;
   shift: Shift;
   status?: EmploymentStatus;
+  password?: string;
 }
 
 export interface AssignmentInput {
@@ -50,6 +52,25 @@ export interface AssignmentInput {
   className: string;
   section: string | null;
   subject: string;
+}
+
+/**
+ * One teaching slot in a bulk request:
+ * Class + Section + one or more Subjects.
+ * Example: Grade 7 / Section A / [Mathematics, Physics, Chemistry]
+ */
+export interface AssignmentSlotInput {
+  className: string;
+  /** null = all sections of the class */
+  section: string | null;
+  subjects: string[];
+}
+
+/** Bulk create from explicit class/section/subject slots (not a full cartesian product). */
+export interface BulkAssignmentInput {
+  teacherId: string;
+  academicYear: string;
+  slots: AssignmentSlotInput[];
 }
 
 export interface TeachersState {

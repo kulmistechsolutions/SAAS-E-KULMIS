@@ -146,11 +146,12 @@ export default function ParentProfilePage({
                 <p className="text-xs text-muted-foreground">Password</p>
                 <p className="mt-0.5 font-mono font-medium">{showPassword ? parent.password : "••••••••••"}</p>
                 <Button className="mt-3 h-8 px-3 text-xs" onClick={() => {
-                  const res = resetParentPassword(parent.id);
-                  if (res.ok && res.password) {
-                    setShowPassword(true);
-                    toast(`New password: ${res.password}`, "info");
-                  }
+                  void resetParentPassword(parent.id).then((res) => {
+                    if (res.ok && res.password) {
+                      setShowPassword(true);
+                      toast(`New password: ${res.password}`, "info");
+                    } else toast(res.error ?? "Reset failed", "error");
+                  });
                 }}>
                   <KeyRound className="mr-2 h-4 w-4" /> Reset Password
                 </Button>

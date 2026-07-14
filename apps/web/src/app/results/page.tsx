@@ -7,24 +7,47 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { BRAND } from "@/lib/brand";
 import { SCHOOL } from "@/lib/students/constants";
-import {
-  isStudentBlocked,
-  lookupStudentByCode,
-  studentFinalResult,
-  studentPublishedResults,
-} from "@/lib/examinations/store";
+import { lookupPublicResults } from "@/lib/examinations/store";
+import type { StudentExamResult, StudentFinalResult } from "@/lib/examinations/types";
+import { toast } from "@/lib/toast";
 
 export default function PublicResultsPage() {
   const [code, setCode] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [blocked, setBlocked] = useState(false);
+  const [termResults, setTermResults] = useState<StudentExamResult[]>([]);
+  const [finalResult, setFinalResult] = useState<StudentFinalResult | null>(null);
   const [searched, setSearched] = useState(false);
-  const student = searched && code ? lookupStudentByCode(code) : undefined;
-  const blocked = student ? isStudentBlocked(student.id) : false;
-  const termResults = student && !blocked ? studentPublishedResults(student.id) : [];
-  const finalResult = student && !blocked ? studentFinalResult(student.id) : null;
+  const [notFound, setNotFound] = useState(false);
 
-  function handleSearch() {
+  async function handleSearch() {
+    if (!code.trim()) return;
+    setLoading(true);
     setSearched(true);
+    setNotFound(false);
+    setBlocked(false);
+    setTermResults([]);
+    setFinalResult(null);
+
+    const res = await lookupPublicResults(code.trim());
+    setLoading(false);
+
+    if (!res.ok) {
+      setNotFound(true);
+      toast(res.error ?? "Student ID not found.", "error");
+      return;
+    }
+    if (res.blocked) {
+      setBlocked(true);
+      return;
+    }
+    if (res.result) {
+      setTermResults(res.result.termResults);
+      setFinalResult(res.result);
+    }
   }
+
+  const student = finalResult;
 
   return (
     <main className="min-h-screen bg-secondary/30 p-4 sm:p-8">
@@ -44,17 +67,20 @@ export default function PublicResultsPage() {
             <Input
               placeholder="e.g. SHMM000001"
               value={code}
-              onChange={(e) => { setCode(e.target.value); setSearched(false); }}
-              onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+              onChange={(e) => {
+                setCode(e.target.value);
+                setSearched(false);
+              }}
+              onKeyDown={(e) => e.key === "Enter" && void handleSearch()}
             />
-            <Button onClick={handleSearch}>
+            <Button onClick={() => void handleSearch()} disabled={loading}>
               <Search className="mr-2 h-4 w-4" />
-              View Results
+              {loading ? "Loading…" : "View Results"}
             </Button>
           </div>
         </div>
 
-        {searched && !student && (
+        {searched && notFound && (
           <p className="mt-6 text-center text-rose-600">Student ID not found.</p>
         )}
 
@@ -67,9 +93,9 @@ export default function PublicResultsPage() {
         {student && !blocked && (
           <div className="mt-6 space-y-6">
             <div className="rounded-2xl border bg-card p-6 shadow-sm">
-              <h2 className="text-lg font-bold">{student.fullName}</h2>
+              <h2 className="text-lg font-bold">{student.studentName}</h2>
               <dl className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
-                <div><dt className="text-muted-foreground">Student ID</dt><dd className="font-medium">{student.code}</dd></div>
+                <div><dt className="text-muted-foreground">Student ID</dt><dd className="font-medium">{student.studentCode}</dd></div>
                 <div><dt className="text-muted-foreground">Class</dt><dd className="font-medium">{student.className}</dd></div>
                 <div><dt className="text-muted-foreground">Section</dt><dd className="font-medium">{student.section ?? "—"}</dd></div>
                 <div><dt className="text-muted-foreground">Academic Year</dt><dd className="font-medium">{student.academicYear}</dd></div>

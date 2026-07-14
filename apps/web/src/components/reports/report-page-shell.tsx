@@ -15,11 +15,10 @@ import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Pagination } from "@/components/ui/pagination";
-import { activeAcademicYear, getAcademicsState } from "@/lib/academics/store";
-import { CLASSES, SECTIONS } from "@/lib/students/constants";
+import { activeAcademicYear, classNamesForYear, getAcademicsState, sectionNamesForClass, useAcademicsState } from "@/lib/academics/store";
 import { getExaminationsState } from "@/lib/examinations/store";
 import { logReportAction } from "@/lib/reports/audit";
-import { fetchReport } from "@/lib/reports/data";
+import { fetchReport, fetchReportAsync } from "@/lib/reports/data";
 import { downloadReportPdf, exportReportCsv, printReport } from "@/lib/reports/print";
 import type { ReportDef, ReportFilterKey, ReportFilters } from "@/lib/reports/types";
 import { cn } from "@/lib/utils";
@@ -63,6 +62,19 @@ export function ReportPageShell({ categoryId, categoryLabel, report }: Props) {
   const [refreshKey, setRefreshKey] = useState(0);
 
   const year = activeAcademicYear();
+  const academics = useAcademicsState();
+  const reportYear = filters.academicYear || year;
+  const classOptions = useMemo(
+    () => classNamesForYear(reportYear),
+    [reportYear, academics.classes],
+  );
+  const sectionOptions = useMemo(
+    () =>
+      filters.className
+        ? sectionNamesForClass(filters.className, reportYear)
+        : [],
+    [filters.className, reportYear, academics.sections],
+  );
 
   useEffect(() => setMounted(true), []);
 
@@ -72,11 +84,29 @@ export function ReportPageShell({ categoryId, categoryLabel, report }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mounted, categoryLabel, report.title]);
 
-  const data = useMemo(() => {
-    if (!mounted) return { columns: [], rows: [], summary: [] };
-    return fetchReport(categoryId, report.slug, { ...filters, search });
+  const needsAsync =
+    categoryId === "attendance" ||
+    (categoryId === "teachers" && report.slug === "attendance");
+
+  const [data, setData] = useState<ReturnType<typeof fetchReport>>({
+    columns: [],
+    rows: [],
+    summary: [],
+  });
+  const [dataLoading, setDataLoading] = useState(false);
+
+  useEffect(() => {
+    if (!mounted) return;
+    if (needsAsync) {
+      setDataLoading(true);
+      void fetchReportAsync(categoryId, report.slug, { ...filters, search })
+        .then(setData)
+        .finally(() => setDataLoading(false));
+      return;
+    }
+    setData(fetchReport(categoryId, report.slug, { ...filters, search }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mounted, categoryId, report.slug, filters, search, refreshKey]);
+  }, [mounted, categoryId, report.slug, filters, search, refreshKey, needsAsync]);
 
   const sorted = useMemo(() => {
     if (!sortKey) return data.rows;
@@ -201,9 +231,9 @@ export function ReportPageShell({ categoryId, categoryLabel, report }: Props) {
             {report.filters.includes("className") && (
               <div>
                 <Label>{FILTER_LABELS.className}</Label>
-                <Select value={filters.className ?? ""} onChange={(e) => setFilter("className", e.target.value)}>
+                <Select value={filters.className ?? ""} onChange={(e) => setFilters((f) => ({ ...f, className: e.target.value, section: "" }))}>
                   <option value="">All Classes</option>
-                  {CLASSES.map((c) => (
+                  {classOptions.map((c) => (
                     <option key={c} value={c}>{c}</option>
                   ))}
                 </Select>
@@ -212,9 +242,13 @@ export function ReportPageShell({ categoryId, categoryLabel, report }: Props) {
             {report.filters.includes("section") && (
               <div>
                 <Label>{FILTER_LABELS.section}</Label>
-                <Select value={filters.section ?? ""} onChange={(e) => setFilter("section", e.target.value)}>
+                <Select
+                  value={filters.section ?? ""}
+                  onChange={(e) => setFilter("section", e.target.value)}
+                  disabled={!filters.className || sectionOptions.length === 0}
+                >
                   <option value="">All Sections</option>
-                  {SECTIONS.map((s) => (
+                  {sectionOptions.map((s) => (
                     <option key={s} value={s}>Section {s}</option>
                   ))}
                 </Select>
@@ -351,7 +385,13 @@ export function ReportPageShell({ categoryId, categoryLabel, report }: Props) {
               </tr>
             </thead>
             <tbody>
-              {pageRows.length === 0 ? (
+              {dataLoading ? (
+                <tr>
+                  <td colSpan={data.columns.length + 1} className="px-4 py-16 text-center text-muted-foreground">
+                    Loading report data…
+                  </td>
+                </tr>
+              ) : pageRows.length === 0 ? (
                 <tr>
                   <td colSpan={data.columns.length + 1} className="px-4 py-16 text-center text-muted-foreground">
                     No records match your filters.

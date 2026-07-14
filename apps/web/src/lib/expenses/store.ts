@@ -1,11 +1,20 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
-import { dashboardSummary as feeDashboard } from "@/lib/fees/store";
+import { ApiError } from "@/lib/api";
+import { activeAcademicYear as getActiveAcademicYear } from "@/lib/academics/store";
+import { dashboardSummary as feeDashboard, refreshFinanceDashboard } from "@/lib/fees/store";
 import { totalSalariesForMonth } from "@/lib/salary/store";
-import { ACTIVE_ACADEMIC_YEAR } from "@/lib/students/constants";
-import { buildSeed } from "./seed";
-import { monthKey, referenceNo } from "./format";
+import {
+  apiCreateCategory,
+  apiCreateExpense,
+  apiDeleteCategory,
+  apiDeleteExpense,
+  apiListCategories,
+  apiListExpenses,
+  mapApiExpense,
+} from "./api";
+import { monthKey } from "./format";
 import type {
   CreateCategoryInput,
   CreateExpenseInput,
@@ -18,19 +27,18 @@ import type {
   UpdateExpenseInput,
 } from "./types";
 
-const KEY = "ekulmis_expenses_v1";
-
 const EMPTY: ExpensesState = {
   categories: [],
   expenses: [],
   recurring: [],
   audit: [],
   expenseSeq: 0,
-  academicYear: ACTIVE_ACADEMIC_YEAR,
+  academicYear: "2024-2025",
   maxAttachmentMb: 5,
 };
 
 let state: ExpensesState | null = null;
+let loaded = false;
 const listeners = new Set<() => void>();
 
 function subscribe(cb: () => void) {
@@ -42,28 +50,50 @@ function emit() {
   listeners.forEach((l) => l());
 }
 
+function activeAcademicYear(): string {
+  return getActiveAcademicYear();
+}
+
+function apiErr(e: unknown, fallback: string): string {
+  return e instanceof ApiError ? e.message : fallback;
+}
+
+export async function refreshExpenses(): Promise<void> {
+  try {
+    const academicYear = activeAcademicYear();
+    const [categories, expenseRows] = await Promise.all([
+      apiListCategories(),
+      apiListExpenses(),
+    ]);
+    const expenses = expenseRows.map((e) => mapApiExpense(e, academicYear));
+    setState({
+      categories,
+      expenses,
+      recurring: state?.recurring ?? [],
+      audit: state?.audit ?? [],
+      expenseSeq: expenses.length,
+      academicYear,
+      maxAttachmentMb: state?.maxAttachmentMb ?? 5,
+    });
+    void refreshFinanceDashboard();
+  } catch {
+    /* keep cache */
+  }
+}
+
 function ensure(): ExpensesState {
   if (state) return state;
   if (typeof window === "undefined") return EMPTY;
-  const raw = localStorage.getItem(KEY);
-  if (raw) {
-    try {
-      state = JSON.parse(raw) as ExpensesState;
-      return state;
-    } catch {
-      /* fall through */
-    }
+  state = { ...EMPTY, academicYear: activeAcademicYear() };
+  if (!loaded) {
+    loaded = true;
+    void refreshExpenses();
   }
-  state = buildSeed();
-  localStorage.setItem(KEY, JSON.stringify(state));
   return state;
 }
 
 function setState(next: ExpensesState) {
   state = next;
-  if (typeof window !== "undefined") {
-    localStorage.setItem(KEY, JSON.stringify(next));
-  }
   emit();
 }
 
@@ -76,7 +106,7 @@ export function useExpensesState(): ExpensesState {
 }
 
 export function resetExpenses() {
-  setState(buildSeed());
+  void refreshExpenses();
 }
 
 function logAudit(
@@ -218,7 +248,6 @@ export function listExpenses(opts?: {
   sortKey?: ExpenseSortKey;
   sortDir?: ExpenseSortDir;
 }): ExpenseRow[] {
-  const s = ensure();
   const q = opts?.search?.trim().toLowerCase() ?? "";
   let list = activeExpenses(opts?.academicYear);
 
@@ -273,9 +302,9 @@ export function recentExpenses(limit = 8): ExpenseRow[] {
   return listExpenses({ sortKey: "expenseDate", sortDir: "desc" }).slice(0, limit);
 }
 
-export function createExpense(
+export async function createExpense(
   input: CreateExpenseInput,
-): { ok: boolean; error?: string; expense?: Expense } {
+): Promise<{ ok: boolean; error?: string; expense?: Expense }> {
   const s = ensure();
   if (!input.title.trim()) return { ok: false, error: "Expense title is required." };
   if (!input.categoryId) return { ok: false, error: "Category is required." };
@@ -289,39 +318,21 @@ export function createExpense(
   }
   if (!input.paymentMethod) return { ok: false, error: "Payment method is required." };
 
-  const seq = s.expenseSeq + 1;
-  const now = new Date().toISOString();
-  const expense: Expense = {
-    id: `exp_${Date.now()}`,
-    referenceNo: referenceNo(seq),
-    title: input.title.trim(),
-    categoryId: input.categoryId,
-    amount: input.amount,
-    expenseDate: input.expenseDate,
-    academicYear: input.academicYear ?? s.academicYear,
-    paymentMethod: input.paymentMethod,
-    paidTo: input.paidTo.trim() || "—",
-    description: input.description ?? null,
-    attachment: input.attachment ?? null,
-    recordedBy: input.recordedBy ?? "Finance Officer",
-    status: input.status ?? "RECORDED",
-    createdAt: now,
-    updatedAt: now,
-  };
-
-  setState({
-    ...ensure(),
-    expenses: [expense, ...s.expenses],
-    expenseSeq: seq,
-  });
-  logAudit("Expense Created", expense.referenceNo, expense.title);
-  if (input.attachment) logAudit("Attachment Uploaded", expense.referenceNo);
-  return { ok: true, expense };
+  try {
+    const expense = await apiCreateExpense(input, input.academicYear ?? s.academicYear);
+    await refreshExpenses();
+    logAudit("Expense Created", expense.referenceNo, expense.title);
+    if (input.attachment) logAudit("Attachment Uploaded", expense.referenceNo);
+    return { ok: true, expense };
+  } catch (e) {
+    return { ok: false, error: apiErr(e, "Failed to create expense.") };
+  }
 }
 
-export function updateExpense(
+/** Backend has no PATCH — updates are local-only until delete+recreate is added. */
+export async function updateExpense(
   input: UpdateExpenseInput,
-): { ok: boolean; error?: string; expense?: Expense } {
+): Promise<{ ok: boolean; error?: string; expense?: Expense }> {
   const s = ensure();
   const existing = s.expenses.find((e) => e.id === input.id);
   if (!existing || existing.status === "DELETED") {
@@ -353,69 +364,73 @@ export function updateExpense(
   };
 
   setState({
-    ...ensure(),
+    ...s,
     expenses: s.expenses.map((e) => (e.id === existing.id ? updated : e)),
   });
   logAudit("Expense Updated", updated.referenceNo);
-  return { ok: true, expense: updated };
+  return {
+    ok: true,
+    expense: updated,
+    error: "Changes saved locally only — expense update API is not available yet.",
+  };
 }
 
-export function deleteExpense(id: string): { ok: boolean; error?: string } {
+export async function deleteExpense(id: string): Promise<{ ok: boolean; error?: string }> {
   const s = ensure();
   const existing = s.expenses.find((e) => e.id === id);
   if (!existing || existing.status === "DELETED") {
     return { ok: false, error: "Expense not found." };
   }
-  const updated = {
-    ...existing,
-    status: "DELETED" as const,
-    updatedAt: new Date().toISOString(),
-  };
-  setState({
-    ...ensure(),
-    expenses: s.expenses.map((e) => (e.id === id ? updated : e)),
-  });
-  logAudit("Expense Deleted", existing.referenceNo);
-  return { ok: true };
+  try {
+    await apiDeleteExpense(id);
+    await refreshExpenses();
+    logAudit("Expense Deleted", existing.referenceNo);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: apiErr(e, "Failed to delete expense.") };
+  }
 }
 
-export function createCategory(
+export async function createCategory(
   input: CreateCategoryInput,
-): { ok: boolean; error?: string } {
+): Promise<{ ok: boolean; error?: string }> {
   const s = ensure();
   const name = input.name.trim();
   if (!name) return { ok: false, error: "Category name is required." };
   if (s.categories.some((c) => c.name.toLowerCase() === name.toLowerCase())) {
     return { ok: false, error: "Category already exists." };
   }
-  setState({
-    ...ensure(),
-    categories: [
-      ...s.categories,
-      {
-        id: `cat_${Date.now()}`,
-        name,
-        status: "ACTIVE",
-        createdAt: new Date().toISOString(),
-      },
-    ],
-  });
-  return { ok: true };
+  try {
+    await apiCreateCategory(input);
+    await refreshExpenses();
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: apiErr(e, "Failed to create category.") };
+  }
 }
 
-export function toggleCategoryStatus(id: string): { ok: boolean; error?: string } {
+export async function toggleCategoryStatus(
+  id: string,
+): Promise<{ ok: boolean; error?: string }> {
   const s = ensure();
   const cat = s.categories.find((c) => c.id === id);
   if (!cat) return { ok: false, error: "Category not found." };
-  setState({
-    ...ensure(),
-    categories: s.categories.map((c) =>
-      c.id === id
-        ? { ...c, status: c.status === "ACTIVE" ? "INACTIVE" : "ACTIVE" }
-        : c,
-    ),
-  });
-  return { ok: true };
+  if (cat.status === "INACTIVE") {
+    setState({
+      ...s,
+      categories: s.categories.map((c) =>
+        c.id === id ? { ...c, status: "ACTIVE" as const } : c,
+      ),
+    });
+    return { ok: true };
+  }
+  try {
+    await apiDeleteCategory(id);
+    await refreshExpenses();
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: apiErr(e, "Failed to deactivate category.") };
+  }
 }
 
 export function generateRecurringDue(): number {
@@ -425,7 +440,7 @@ export function generateRecurringDue(): number {
 
   for (const rec of s.recurring.filter((r) => r.active)) {
     if (rec.nextDueDate > today) continue;
-    const res = createExpense({
+    void createExpense({
       title: rec.title,
       categoryId: rec.categoryId,
       amount: rec.amount,
@@ -435,20 +450,21 @@ export function generateRecurringDue(): number {
       paidTo: rec.paidTo,
       description: rec.description ?? `Auto-generated recurring expense (${rec.frequency})`,
       recordedBy: "System",
+    }).then((res) => {
+      if (res.ok) {
+        created += 1;
+        const next = new Date(rec.nextDueDate);
+        if (rec.frequency === "MONTHLY") next.setMonth(next.getMonth() + 1);
+        else if (rec.frequency === "QUARTERLY") next.setMonth(next.getMonth() + 3);
+        else next.setFullYear(next.getFullYear() + 1);
+        setState({
+          ...getExpensesState(),
+          recurring: getExpensesState().recurring.map((r) =>
+            r.id === rec.id ? { ...r, nextDueDate: next.toISOString().slice(0, 10) } : r,
+          ),
+        });
+      }
     });
-    if (res.ok) {
-      created += 1;
-      const next = new Date(rec.nextDueDate);
-      if (rec.frequency === "MONTHLY") next.setMonth(next.getMonth() + 1);
-      else if (rec.frequency === "QUARTERLY") next.setMonth(next.getMonth() + 3);
-      else next.setFullYear(next.getFullYear() + 1);
-      setState({
-        ...getExpensesState(),
-        recurring: getExpensesState().recurring.map((r) =>
-          r.id === rec.id ? { ...r, nextDueDate: next.toISOString().slice(0, 10) } : r,
-        ),
-      });
-    }
   }
   return created;
 }

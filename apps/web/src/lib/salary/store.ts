@@ -1,8 +1,17 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
-import { buildSeed } from "./seed";
-import { monthKey, monthLabel, netSalary } from "./format";
+import { ApiError } from "@/lib/api";
+import { activeAcademicYear as getActiveAcademicYear } from "@/lib/academics/store";
+import { monthKey as buildMonthKey } from "@/lib/fees/format";
+import { getTeachersState } from "@/lib/teachers/store";
+import {
+  apiCreateSalary,
+  apiListSalaries,
+  apiUpdateSalary,
+  mapApiSalary,
+} from "./api";
+import { monthKey, monthLabel } from "./format";
 import type {
   Employee,
   PaySalaryInput,
@@ -14,19 +23,18 @@ import type {
   SalaryState,
 } from "./types";
 
-const KEY = "ekulmis_salary_v1";
-
 const EMPTY: SalaryState = {
   employees: [],
   payroll: [],
   payments: [],
   audit: [],
   employeeSeq: 0,
-  activePayrollMonth: monthKey(),
+  activePayrollMonth: buildMonthKey(new Date().getFullYear(), new Date().getMonth() + 1),
   academicYear: "2024-2025",
 };
 
 let state: SalaryState | null = null;
+let loaded = false;
 const listeners = new Set<() => void>();
 
 function subscribe(cb: () => void) {
@@ -38,29 +46,60 @@ function emit() {
   listeners.forEach((l) => l());
 }
 
+function setState(next: SalaryState) {
+  state = next;
+  emit();
+}
+
+function apiErr(e: unknown, fallback: string): string {
+  return e instanceof ApiError ? e.message : fallback;
+}
+
+function activeAcademicYear(): string {
+  return getActiveAcademicYear();
+}
+
+export async function refreshSalaries(year?: number, month?: number): Promise<void> {
+  try {
+    const academicYear = activeAcademicYear();
+    const rows = await apiListSalaries(year, month);
+    const employees = new Map<string, Employee>();
+    const payroll: PayrollRecord[] = [];
+
+    for (const row of rows) {
+      const mapped = mapApiSalary(row, academicYear);
+      employees.set(mapped.employee.id, mapped.employee);
+      payroll.push(mapped.payroll);
+    }
+
+    const activeMonth =
+      payroll.length > 0
+        ? payroll.reduce((max, p) => (p.payrollMonth > max ? p.payrollMonth : max), payroll[0]!.payrollMonth)
+        : buildMonthKey(new Date().getFullYear(), new Date().getMonth() + 1);
+
+    setState({
+      employees: [...employees.values()],
+      payroll,
+      payments: state?.payments ?? [],
+      audit: state?.audit ?? [],
+      employeeSeq: employees.size,
+      activePayrollMonth: activeMonth,
+      academicYear,
+    });
+  } catch {
+    /* keep cache */
+  }
+}
+
 function ensure(): SalaryState {
   if (state) return state;
   if (typeof window === "undefined") return EMPTY;
-  const raw = localStorage.getItem(KEY);
-  if (raw) {
-    try {
-      state = JSON.parse(raw) as SalaryState;
-      return state;
-    } catch {
-      /* fall through */
-    }
+  state = { ...EMPTY, academicYear: activeAcademicYear() };
+  if (!loaded) {
+    loaded = true;
+    void refreshSalaries();
   }
-  state = buildSeed();
-  localStorage.setItem(KEY, JSON.stringify(state));
   return state;
-}
-
-function setState(next: SalaryState) {
-  state = next;
-  if (typeof window !== "undefined") {
-    localStorage.setItem(KEY, JSON.stringify(next));
-  }
-  emit();
 }
 
 export function getSalaryState(): SalaryState {
@@ -72,10 +111,16 @@ export function useSalaryState(): SalaryState {
 }
 
 export function resetSalary() {
-  setState(buildSeed());
+  void refreshSalaries();
 }
 
-function logAudit(action: string, employee?: string, detail?: string, user = "Admin User", role = "ADMINISTRATOR") {
+function logAudit(
+  action: string,
+  employee?: string,
+  detail?: string,
+  user = "Admin User",
+  role = "ADMINISTRATOR",
+) {
   const s = ensure();
   setState({
     ...s,
@@ -92,14 +137,6 @@ function logAudit(action: string, employee?: string, detail?: string, user = "Ad
       ...s.audit,
     ].slice(0, 300),
   });
-}
-
-function recomputePayroll(p: PayrollRecord): PayrollRecord {
-  const remaining = Math.max(0, p.netSalary - p.amountPaid);
-  let status: PayrollStatus = "PENDING";
-  if (remaining === 0 && p.amountPaid > 0) status = "PAID";
-  else if (p.amountPaid > 0) status = "PARTIAL";
-  return { ...p, remainingBalance: remaining, status };
 }
 
 export function getEmployee(id: string): Employee | undefined {
@@ -125,7 +162,7 @@ export function totalSalariesForMonth(month?: string): number {
   const s = ensure();
   const m = month ?? s.activePayrollMonth;
   return s.payroll
-    .filter((p) => p.payrollMonth === m)
+    .filter((p) => p.payrollMonth === m && p.status === "PAID")
     .reduce((sum, p) => sum + p.amountPaid, 0);
 }
 
@@ -225,55 +262,62 @@ export function paymentsForPayroll(payrollId: string): SalaryPayment[] {
     .sort((a, b) => b.paidAt.localeCompare(a.paidAt));
 }
 
-export function generatePayroll(month?: string): { ok: boolean; error?: string; created: number } {
+export async function generatePayroll(
+  month?: string,
+): Promise<{ ok: boolean; error?: string; created: number }> {
   const s = ensure();
   const payrollMonth = month ?? s.activePayrollMonth;
-  const active = s.employees.filter((e) => e.employmentStatus === "ACTIVE");
+  const { year, month: mo } = (() => {
+    const [y, m] = payrollMonth.split("-").map(Number);
+    return { year: y!, month: m! };
+  })();
+
+  const teachers = getTeachersState().teachers.filter((t) => t.status === "ACTIVE");
   const existing = new Set(
     s.payroll
       .filter((p) => p.payrollMonth === payrollMonth)
       .map((p) => p.employeeId),
   );
 
-  const newRecords: PayrollRecord[] = [];
-  for (const emp of active) {
-    if (existing.has(emp.id)) continue;
-    const ns = netSalary(emp.basicSalary, emp.allowances, emp.bonus, emp.deductions);
-    newRecords.push({
-      id: `pay_${payrollMonth}_${emp.id}`,
-      employeeId: emp.id,
-      payrollMonth,
-      academicYear: s.academicYear,
-      basicSalary: emp.basicSalary,
-      allowances: emp.allowances,
-      bonus: emp.bonus,
-      deductions: emp.deductions,
-      netSalary: ns,
-      amountPaid: 0,
-      remainingBalance: ns,
-      status: "PENDING",
-      generatedAt: new Date().toISOString(),
-    });
+  let created = 0;
+  try {
+    for (const t of teachers) {
+      if (existing.has(t.id)) continue;
+      await apiCreateSalary({
+        teacherId: t.id,
+        employeeName: t.fullName,
+        position: "Teacher",
+        amount: t.salary,
+        year,
+        month: mo,
+        status: "PENDING",
+      });
+      created += 1;
+    }
+    if (created === 0) {
+      return {
+        ok: false,
+        error: "Payroll already generated for all active employees this month.",
+        created: 0,
+      };
+    }
+    await refreshSalaries(year, mo);
+    logAudit(
+      "Salary Generated",
+      undefined,
+      `${created} records for ${monthLabel(payrollMonth)}`,
+    );
+    return { ok: true, created };
+  } catch (e) {
+    return { ok: false, error: apiErr(e, "Failed to generate payroll."), created: 0 };
   }
-
-  if (newRecords.length === 0) {
-    return { ok: false, error: "Payroll already generated for all active employees this month.", created: 0 };
-  }
-
-  setState({
-    ...ensure(),
-    payroll: [...newRecords, ...s.payroll],
-    activePayrollMonth: payrollMonth,
-  });
-  logAudit("Salary Generated", undefined, `${newRecords.length} records for ${monthLabel(payrollMonth)}`);
-  return { ok: true, created: newRecords.length };
 }
 
-export function paySalary(input: PaySalaryInput): {
+export async function paySalary(input: PaySalaryInput): Promise<{
   ok: boolean;
   error?: string;
   payment?: SalaryPayment;
-} {
+}> {
   const s = ensure();
   const payroll = s.payroll.find((p) => p.id === input.payrollId);
   if (!payroll) return { ok: false, error: "Payroll record not found." };
@@ -286,42 +330,55 @@ export function paySalary(input: PaySalaryInput): {
   }
 
   const emp = s.employees.find((e) => e.id === payroll.employeeId);
-  const payment: SalaryPayment = {
-    id: `sp_${Date.now()}`,
-    payrollId: payroll.id,
-    employeeId: payroll.employeeId,
-    amount: input.amount,
-    paymentMethod: input.paymentMethod,
-    paidAt: new Date().toISOString(),
-    paidBy: input.paidBy ?? "Admin User",
-    notes: input.notes ?? null,
-  };
+  const isFull = input.amount >= payroll.remainingBalance;
+  const status: PayrollStatus = isFull ? "PAID" : "PARTIAL";
 
-  const updated = recomputePayroll({
-    ...payroll,
-    amountPaid: payroll.amountPaid + input.amount,
-  });
+  try {
+    await apiUpdateSalary(payroll.id, {
+      status,
+      note: input.notes ?? undefined,
+    });
+    const { year, month: payrollMo } = (() => {
+      const [y, m] = payroll.payrollMonth.split("-").map(Number);
+      return { year: y!, month: m! };
+    })();
+    await refreshSalaries(year, payrollMo);
 
-  setState({
-    ...ensure(),
-    payroll: s.payroll.map((p) => (p.id === payroll.id ? updated : p)),
-    payments: [payment, ...s.payments],
-  });
+    const payment: SalaryPayment = {
+      id: `sp_${Date.now()}`,
+      payrollId: payroll.id,
+      employeeId: payroll.employeeId,
+      amount: input.amount,
+      paymentMethod: input.paymentMethod,
+      paidAt: new Date().toISOString(),
+      paidBy: input.paidBy ?? "Admin User",
+      notes: input.notes ?? null,
+    };
 
-  logAudit(
-    updated.status === "PAID" ? "Salary Paid" : "Partial Salary Paid",
-    emp?.fullName,
-    `${money(input.amount)} for ${monthLabel(payroll.payrollMonth)}`,
-  );
+    setState({
+      ...ensure(),
+      payments: [payment, ...ensure().payments],
+    });
 
-  return { ok: true, payment };
+    logAudit(
+      status === "PAID" ? "Salary Paid" : "Partial Salary Paid",
+      emp?.fullName,
+      `${money(input.amount)} for ${monthLabel(payroll.payrollMonth)}`,
+    );
+
+    return { ok: true, payment };
+  } catch (e) {
+    return { ok: false, error: apiErr(e, "Failed to record salary payment.") };
+  }
 }
 
 function money(n: number) {
   return `$${n.toLocaleString()}`;
 }
 
-export function recentPayments(limit = 8): (SalaryPayment & { employeeName: string; employeeCode: string; month: string })[] {
+export function recentPayments(
+  limit = 8,
+): (SalaryPayment & { employeeName: string; employeeCode: string; month: string })[] {
   const s = ensure();
   const empMap = new Map(s.employees.map((e) => [e.id, e]));
   const payrollMap = new Map(s.payroll.map((p) => [p.id, p]));

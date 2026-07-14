@@ -1,7 +1,15 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
+import { ApiError } from "@/lib/api";
+import { activeAcademicYear as getActiveAcademicYear } from "@/lib/academics/store";
 import { updateSecuritySettings } from "@/lib/users/store";
+import {
+  apiGetBranding,
+  apiGetSettings,
+  apiPatchSettings,
+  mapSettingsSectionToPatch,
+} from "./api";
 import { buildSettingsSeed } from "./seed";
 import { validateSettings } from "./format";
 import type {
@@ -11,11 +19,10 @@ import type {
   SettingsState,
 } from "./types";
 
-const KEY = "ekulmis_settings_v1";
-
 const EMPTY: SettingsState = buildSettingsSeed();
 
 let state: SettingsState | null = null;
+let loaded = false;
 const listeners = new Set<() => void>();
 
 function subscribe(cb: () => void) {
@@ -27,30 +34,53 @@ function emit() {
   listeners.forEach((l) => l());
 }
 
+function setState(next: SettingsState) {
+  state = next;
+  emit();
+}
+
+/** Load school settings from the API (merges with local-only sections). */
+export async function refreshSettings(): Promise<void> {
+  try {
+    const remote = await apiGetSettings();
+    const current = state ?? buildSettingsSeed();
+    setState({
+      ...remote,
+      audit: current.audit,
+      backups: current.backups,
+      grades: current.grades,
+      branding: { ...remote.branding, ...current.branding },
+      academic: current.academic,
+      examinations: current.examinations,
+      salary: current.salary,
+      expenses: current.expenses,
+      attendance: current.attendance,
+      quiz: current.quiz,
+      notifications: current.notifications,
+      email: current.email,
+      security: current.security,
+      backup: current.backup,
+      license: current.license,
+      system: current.system,
+    });
+  } catch {
+    /* keep cache */
+  }
+}
+
 function ensure(): SettingsState {
   if (state) return state;
   if (typeof window === "undefined") return EMPTY;
-  const raw = localStorage.getItem(KEY);
-  if (raw) {
-    try {
-      const parsed = JSON.parse(raw) as SettingsState;
-      state = { ...buildSettingsSeed(), ...parsed };
-      return state;
-    } catch {
-      /* fall through */
-    }
-  }
   state = buildSettingsSeed();
-  localStorage.setItem(KEY, JSON.stringify(state));
+  if (!loaded) {
+    loaded = true;
+    void refreshSettings();
+  }
   return state;
 }
 
-function setState(next: SettingsState) {
-  state = next;
-  if (typeof window !== "undefined") {
-    localStorage.setItem(KEY, JSON.stringify(next));
-  }
-  emit();
+function apiErr(e: unknown, fallback: string): string {
+  return e instanceof ApiError ? e.message : fallback;
 }
 
 export function getSettings(): SettingsState {
@@ -94,18 +124,48 @@ const SECTION_AUDIT: Partial<Record<SettingsSectionKey, SettingsAuditAction>> = 
   email: "SMTP_UPDATED",
 };
 
-export function updateSettingsSection<K extends SettingsSectionKey>(
+const API_SECTIONS = new Set<SettingsSectionKey>([
+  "school",
+  "fees",
+  "students",
+  "teachers",
+  "parents",
+]);
+
+export async function updateSettingsSection<K extends SettingsSectionKey>(
   key: K,
   patch: SettingsState[K],
   user = "Admin User",
   role = "ADMINISTRATOR",
-): { ok: boolean; error?: string } {
+): Promise<{ ok: boolean; error?: string }> {
   const s = ensure();
   const next = { ...s, [key]: patch };
   const err = validateSettings(next);
   if (err) return { ok: false, error: err };
 
-  setState(next);
+  if (API_SECTIONS.has(key)) {
+    const body = mapSettingsSectionToPatch(key, patch);
+    if (body) {
+      try {
+        const remote = await apiPatchSettings(body);
+        setState({
+          ...next,
+          school: remote.school,
+          fees: remote.fees,
+          students: remote.students,
+          teachers: remote.teachers,
+          parents: remote.parents,
+          branding: { ...next.branding, ...remote.branding },
+        });
+      } catch (e) {
+        return { ok: false, error: apiErr(e, "Failed to save settings.") };
+      }
+    } else {
+      setState(next);
+    }
+  } else {
+    setState(next);
+  }
 
   if (key === "school" && patch && typeof patch === "object" && "logoDataUrl" in patch) {
     logSettingsAudit("LOGO_CHANGED", user, role);
@@ -127,9 +187,9 @@ export function updateSettingsSection<K extends SettingsSectionKey>(
   return { ok: true };
 }
 
-export function updateGrades(
+export async function updateGrades(
   grades: SettingsState["grades"],
-): { ok: boolean; error?: string } {
+): Promise<{ ok: boolean; error?: string }> {
   return updateSettingsSection("grades", grades);
 }
 
@@ -142,9 +202,10 @@ export function resetSettingsToDefault(): void {
 
 export function settingsDashboard(): SettingsDashboardSummary {
   const s = ensure();
+  const activeYear = getActiveAcademicYear();
   return {
     schoolName: s.school.name,
-    activeAcademicYear: s.academic.activeAcademicYear,
+    activeAcademicYear: activeYear,
     parentPortalEnabled: s.parents.portalEnabled,
     studentPortalEnabled: s.students.portalLoginEnabled,
     lastBackupAt: s.backup.lastBackupAt,
@@ -243,6 +304,26 @@ export function schoolBranding() {
     logoUrl: s.school.logoDataUrl,
     loginBackgroundUrl: s.branding.loginBackgroundDataUrl,
   };
+}
+
+/** Fetch public branding (login page) without auth. */
+export async function loadPublicBranding(): Promise<ReturnType<typeof schoolBranding>> {
+  try {
+    const b = await apiGetBranding();
+    return {
+      name: b.name,
+      tagline: b.motto ?? "",
+      pageTitle: `${b.name} — School Management ERP`,
+      description: b.motto ?? "",
+      loginTitle: b.name,
+      footerText: `© ${new Date().getFullYear()} ${b.name}. All rights reserved.`,
+      primaryColor: "#3b82f6",
+      logoUrl: b.logoKey,
+      loginBackgroundUrl: null,
+    };
+  } catch {
+    return schoolBranding();
+  }
 }
 
 export function getGradeBands() {

@@ -49,13 +49,15 @@ export default function ParentPortalLoginPage() {
   }, [mounted]);
 
   async function onSubmit(values: FormValues) {
-    const result = loginParent(values.identifier, values.password);
+    const result = await loginParent(values.identifier, values.password);
     if (!result.ok) {
       toast(result.error ?? "Login failed", "error");
       return;
     }
     toast(`Welcome, ${result.parent?.name}`, "success");
-    router.push("/parent-portal");
+    // Hard navigation avoids a client-side redirect race with the global
+    // AuthProvider that can bounce a just-authenticated parent to /login.
+    window.location.assign("/parent-portal");
   }
 
   return (

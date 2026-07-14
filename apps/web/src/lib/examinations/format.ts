@@ -21,10 +21,22 @@ export function examStatusLabel(status: ExamStatus | string): string {
 }
 
 export function examTypeLabel(type: ExamType | string): string {
-  if (type === "TEACHER_ASSESSMENT") return "Teacher Assessment";
+  if (type === "TEACHER_ASSESSMENT") return "Teacher Entry";
   if (type === "SCHOOL_IMPORT") return "School Import";
   return type;
 }
+
+/** Suggested exam names / categories from PRD. */
+export const EXAM_CATEGORIES = [
+  "Monthly Test",
+  "Mid Term",
+  "Final Examination",
+  "Semester One",
+  "Semester Two",
+  "Academic Final",
+  "Practice Exam",
+  "Mock Exam",
+] as const;
 
 export function submissionStatusLabel(status: SubmissionStatus | string): string {
   return status.charAt(0) + status.slice(1).toLowerCase();

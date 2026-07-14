@@ -1,21 +1,35 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useState } from "react";
 import { usePortal, usePortalAudit } from "@/components/parent-portal/portal-context";
-import { childFeeSummary } from "@/lib/parent-portal/store";
+import { loadChildFeeSummary } from "@/lib/parent-portal/store";
 import { money } from "@/lib/students/format";
 
 export default function ParentFeesPage() {
   const { selectedChild } = usePortal();
   usePortalAudit("FEE_VIEWED", selectedChild?.id);
 
-  const fees = useMemo(
-    () => (selectedChild ? childFeeSummary(selectedChild) : null),
-    [selectedChild],
-  );
+  const [fees, setFees] = useState<Awaited<ReturnType<typeof loadChildFeeSummary>> | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!selectedChild) {
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    void loadChildFeeSummary(selectedChild).then((data) => {
+      setFees(data);
+      setLoading(false);
+    });
+  }, [selectedChild]);
 
   if (!selectedChild) {
     return <p className="text-muted-foreground">Select a child to view fee information.</p>;
+  }
+
+  if (loading) {
+    return <p className="text-muted-foreground">Loading fee information…</p>;
   }
 
   return (

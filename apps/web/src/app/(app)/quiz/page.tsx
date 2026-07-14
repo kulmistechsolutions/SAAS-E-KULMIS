@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Calendar, ChevronRight, ClipboardList, FileText, GraduationCap, Library, Plus } from "lucide-react";
+import { Calendar, ChevronRight, ClipboardList, FileText, GraduationCap, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { QuizSummaryCards } from "@/components/quiz/summary-cards";
@@ -13,8 +13,7 @@ import { shortDate } from "@/lib/quiz/format";
 const QUICK = [
   { href: "/quiz/list", label: "All Quizzes", desc: "Search and manage quizzes", icon: ClipboardList },
   { href: "/quiz/create", label: "Create Quiz", desc: "Build a new assessment", icon: Plus },
-  { href: "/quiz/question-bank", label: "Question Bank", desc: "Reusable questions", icon: Library },
-  { href: "/quiz/portal", label: "Student Portal", desc: "Student quiz access", icon: GraduationCap },
+  { href: "/quiz/monitoring", label: "Monitoring", desc: "All teacher quizzes", icon: GraduationCap },
   { href: "/quiz/reports", label: "Reports", desc: "Performance analytics", icon: FileText },
 ];
 

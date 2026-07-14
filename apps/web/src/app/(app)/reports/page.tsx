@@ -15,8 +15,15 @@ import {
   Users,
   Wallet,
 } from "lucide-react";
-import { REPORT_CATEGORIES, searchReports, totalReportCount } from "@/lib/reports/catalog";
+import {
+  REPORT_CATEGORIES,
+  searchReports,
+  searchTeacherReports,
+  teacherReportCategories,
+  totalReportCount,
+} from "@/lib/reports/catalog";
 import { activeAcademicYear } from "@/lib/academics/store";
+import { useAuth } from "@/lib/auth";
 import type { LucideIcon } from "lucide-react";
 
 const ICONS: Record<string, LucideIcon> = {
@@ -33,12 +40,22 @@ const ICONS: Record<string, LucideIcon> = {
 };
 
 export default function ReportsDashboardPage() {
+  const { user } = useAuth();
+  const isTeacher = user?.role === "TEACHER";
   const [mounted, setMounted] = useState(false);
   const [query, setQuery] = useState("");
   useEffect(() => setMounted(true), []);
 
-  const results = useMemo(() => searchReports(query), [query]);
+  const categories = useMemo(
+    () => (isTeacher ? teacherReportCategories() : REPORT_CATEGORIES),
+    [isTeacher],
+  );
+  const results = useMemo(
+    () => (isTeacher ? searchTeacherReports(query) : searchReports(query)),
+    [query, isTeacher],
+  );
   const year = mounted ? activeAcademicYear() : "";
+  const count = categories.reduce((n, c) => n + c.reports.length, 0);
 
   if (!mounted) {
     return (
@@ -51,9 +68,13 @@ export default function ReportsDashboardPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Reports Center</h1>
+        <h1 className="text-2xl font-bold">
+          {isTeacher ? "My Reports" : "Reports Center"}
+        </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Centralized analytics — {totalReportCount()} reports across {REPORT_CATEGORIES.length} categories.
+          {isTeacher
+            ? `${count} reports for your assigned classes and subjects.`
+            : `Centralized analytics — ${totalReportCount()} reports across ${REPORT_CATEGORIES.length} categories.`}{" "}
           Academic Year {year}.
         </p>
       </div>
@@ -75,17 +96,21 @@ export default function ReportsDashboardPage() {
           </div>
           <ul className="divide-y">
             {results.length === 0 ? (
-              <li className="px-5 py-10 text-center text-sm text-muted-foreground">No reports found.</li>
+              <li className="px-5 py-10 text-center text-sm text-muted-foreground">
+                No reports found.
+              </li>
             ) : (
               results.map(({ category, report }) => (
                 <li key={`${category.id}-${report.slug}`}>
                   <Link
                     href={`/reports/${category.id}/${report.slug}`}
-                    className="flex items-center justify-between gap-3 px-5 py-4 transition-colors hover:bg-secondary/40"
+                    className="flex items-center gap-3 px-5 py-3 hover:bg-muted/40"
                   >
-                    <div>
+                    <div className="min-w-0 flex-1">
                       <p className="font-medium">{report.title}</p>
-                      <p className="text-xs text-muted-foreground">{category.label}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {category.label} · {report.description}
+                      </p>
                     </div>
                     <ChevronRight className="h-4 w-4 text-muted-foreground" />
                   </Link>
@@ -95,24 +120,46 @@ export default function ReportsDashboardPage() {
           </ul>
         </div>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-          {REPORT_CATEGORIES.map((cat) => {
-            const Icon = ICONS[cat.id] ?? BarChart3;
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {categories.map((cat) => {
+            const Icon = ICONS[cat.id] ?? FileText;
             return (
-              <Link
+              <div
                 key={cat.id}
-                href={`/reports/${cat.id}`}
-                className="group flex flex-col rounded-2xl border bg-card p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
+                className="rounded-2xl border bg-card p-5 shadow-sm"
               >
-                <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary transition-transform group-hover:scale-110">
-                  <Icon className="h-6 w-6" />
-                </span>
-                <p className="mt-4 font-semibold">{cat.label}</p>
-                <p className="mt-1 flex-1 text-xs text-muted-foreground line-clamp-2">{cat.description}</p>
-                <p className="mt-3 text-xs font-medium text-primary">
-                  {cat.reports.length} reports <ChevronRight className="ml-0.5 inline h-3 w-3" />
+                <div className="mb-3 flex items-center gap-3">
+                  <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                    <Icon className="h-5 w-5" />
+                  </span>
+                  <div>
+                    <h2 className="font-semibold">{cat.label}</h2>
+                    <p className="text-xs text-muted-foreground">
+                      {cat.reports.length} reports
+                    </p>
+                  </div>
+                </div>
+                <p className="mb-3 text-sm text-muted-foreground">
+                  {cat.description}
                 </p>
-              </Link>
+                <ul className="space-y-1">
+                  {cat.reports.slice(0, 4).map((r) => (
+                    <li key={r.slug}>
+                      <Link
+                        href={`/reports/${cat.id}/${r.slug}`}
+                        className="text-sm text-primary hover:underline"
+                      >
+                        {r.title}
+                      </Link>
+                    </li>
+                  ))}
+                  {cat.reports.length > 4 && (
+                    <li className="text-xs text-muted-foreground">
+                      +{cat.reports.length - 4} more
+                    </li>
+                  )}
+                </ul>
+              </div>
             );
           })}
         </div>

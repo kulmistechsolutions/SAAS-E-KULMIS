@@ -3,15 +3,23 @@
  * the web app (Next.js). Single source of truth for validation.
  */
 export * from "./roles";
+export * from "./grades";
 export * from "./schemas/auth";
 export * from "./schemas/user";
 export * from "./schemas/settings";
 export * from "./schemas/academics";
 export * from "./schemas/student";
+export * from "./schemas/student-photo";
 export * from "./schemas/teacher";
 export * from "./schemas/attendance";
 export * from "./schemas/finance";
 export * from "./schemas/platform";
+export * from "./schemas/examination";
+export * from "./schemas/promotion";
+export * from "./schemas/quiz";
+export * from "./schemas/sms";
+export * from "./schemas/library";
+export * from "./schemas/ai";
 
 /** Multi-tenant primitives (MASTER_PRD scope decision: multi-tenant SaaS). */
 export interface TenantContext {

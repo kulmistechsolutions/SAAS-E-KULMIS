@@ -27,6 +27,15 @@ export class ClassController {
     return this.service.findAll(me.schoolId, academicYearId);
   }
 
+  @Roles(UserRole.ADMINISTRATOR)
+  @Post("structure/repair")
+  repairStructure(
+    @CurrentUser() me: AuthUser,
+    @Query("academicYearId") academicYearId?: string,
+  ) {
+    return this.service.repairStructure(me.schoolId, academicYearId);
+  }
+
   @Get(":id")
   findOne(@CurrentUser() me: AuthUser, @Param("id") id: string) {
     return this.service.findOne(me.schoolId, id);

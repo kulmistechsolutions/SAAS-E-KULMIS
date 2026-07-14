@@ -74,6 +74,7 @@ export function feeStatusLabel(
   if (status === "ADVANCE_MULTI" && advanceMonthsLeft)
     return `Advance (${advanceMonthsLeft})`;
   if (status === "ADVANCE") return "Advance";
+  if (status === "INACTIVE") return "Inactive";
   return status.charAt(0) + status.slice(1).toLowerCase();
 }
 

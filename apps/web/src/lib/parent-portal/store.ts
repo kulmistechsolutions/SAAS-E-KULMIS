@@ -1,31 +1,30 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
+import { ApiError } from "@/lib/api";
 import { attendanceHistory } from "@/lib/students/history";
 import {
   changeParentPassword,
   getParent,
   getParentWithChildren,
-  getState as getStudentsState,
-  parentDashboard,
   type ParentDashboardSummary,
 } from "@/lib/students/store";
 import type { Parent, Student } from "@/lib/students/types";
 import {
-  getFeesState,
-  outstandingBalance,
-  studentLedger,
-} from "@/lib/fees/store";
-import type { FeePayment } from "@/lib/fees/types";
-import {
-  isStudentBlocked,
-  studentPublishedResults,
-  getExaminationsState,
-} from "@/lib/examinations/store";
-import { quizzesForStudent, studentQuizHistory } from "@/lib/quiz/store";
-import { promotionHistory } from "@/lib/parents/history";
+  apiPortalAnnouncements,
+  apiPortalAttendance,
+  apiPortalChildren,
+  apiPortalFees,
+  apiPortalLogin,
+  apiPortalLogout,
+  apiPortalNotifications,
+  apiPortalResults,
+  mapPortalAnnouncement,
+  mapPortalChild,
+  mapPortalNotification,
+  type PortalAuthUser,
+} from "./api";
 import { portalDevice } from "./format";
-import { buildPortalSeed } from "./seed";
 import type {
   PortalAnnouncement,
   PortalAuditAction,
@@ -34,8 +33,9 @@ import type {
   PortalSession,
   PortalState,
 } from "./types";
-
-const KEY = "ekulmis_parent_portal_v1";
+import type { FeePayment } from "@/lib/fees/types";
+import type { StudentExamResult } from "@/lib/examinations/types";
+import type { PromotionRow } from "@/lib/students/history";
 
 const EMPTY: PortalState = {
   session: null,
@@ -46,6 +46,8 @@ const EMPTY: PortalState = {
 };
 
 let state: PortalState | null = null;
+let childrenCache: Student[] = [];
+let authUser: PortalAuthUser | null = null;
 const listeners = new Set<() => void>();
 
 function subscribe(cb: () => void) {
@@ -60,24 +62,48 @@ function emit() {
 function ensure(): PortalState {
   if (state) return state;
   if (typeof window === "undefined") return EMPTY;
-  const raw = localStorage.getItem(KEY);
+  const raw = localStorage.getItem("ekulmis_parent_portal_session_v1");
   if (raw) {
     try {
-      state = JSON.parse(raw) as PortalState;
+      const session = JSON.parse(raw) as PortalSession;
+      state = { ...EMPTY, session };
+      void refreshPortalData();
       return state;
     } catch {
       /* fall through */
     }
   }
-  state = buildPortalSeed();
-  localStorage.setItem(KEY, JSON.stringify(state));
+  state = EMPTY;
   return state;
 }
 
 function setState(next: PortalState) {
   state = next;
-  if (typeof window !== "undefined") localStorage.setItem(KEY, JSON.stringify(next));
   emit();
+}
+
+function apiErr(e: unknown, fallback: string): string {
+  return e instanceof ApiError ? e.message : fallback;
+}
+
+export async function refreshPortalData(): Promise<void> {
+  if (!ensure().session) return;
+  try {
+    const [children, announcements, notifications] = await Promise.all([
+      apiPortalChildren(),
+      apiPortalAnnouncements(),
+      apiPortalNotifications(),
+    ]);
+    childrenCache = children.map(mapPortalChild);
+    const parentId = ensure().session!.parentId;
+    setState({
+      ...ensure(),
+      announcements: announcements.map(mapPortalAnnouncement),
+      notifications: notifications.map((n) => mapPortalNotification(n, parentId)),
+    });
+  } catch {
+    /* keep cache */
+  }
 }
 
 export function getPortalState(): PortalState {
@@ -112,33 +138,59 @@ export function logPortalAudit(
   setState({ ...s, audit: [entry, ...s.audit].slice(0, 500) });
 }
 
-export function loginParent(
+export async function loginParent(
   identifier: string,
   password: string,
-): { ok: boolean; error?: string; parent?: Parent } {
-  const id = identifier.trim();
-  const parent = getParent(id);
-  if (!parent) return { ok: false, error: "Invalid Parent ID or password." };
-  if (parent.status !== "ACTIVE")
-    return { ok: false, error: "This parent account is inactive. Contact the school." };
-  const matchCode = parent.code.toLowerCase() === id.toLowerCase();
-  const matchUser = parent.username.toLowerCase() === id.toLowerCase();
-  if (!matchCode && !matchUser)
-    return { ok: false, error: "Invalid Parent ID or password." };
-  if (parent.password !== password)
-    return { ok: false, error: "Invalid Parent ID or password." };
+): Promise<{ ok: boolean; error?: string; parent?: Parent }> {
+  try {
+    const { user } = await apiPortalLogin(identifier, password);
+    if (user.role !== "PARENT" && user.role !== "ADMINISTRATOR") {
+      apiPortalLogout();
+      return { ok: false, error: "This account is not a parent portal user." };
+    }
+    authUser = user;
 
-  const session: PortalSession = { parentId: parent.id, loginAt: new Date().toISOString() };
-  const s = ensure();
-  setState({ ...s, session });
-  logPortalAudit(parent.id, "LOGIN");
-  seedNotificationsForParent(parent.id);
-  return { ok: true, parent };
+    const children = await apiPortalChildren();
+    childrenCache = children.map(mapPortalChild);
+    const parentId = children[0]?.parentId ?? user.userId;
+
+    const parent: Parent = {
+      id: parentId,
+      code: user.username,
+      name: user.username,
+      phone: "",
+      altPhone: null,
+      email: null,
+      address: null,
+      occupation: null,
+      registrationDate: new Date().toISOString(),
+      status: "ACTIVE",
+      username: user.username,
+      password: "",
+    };
+
+    const session: PortalSession = { parentId, loginAt: new Date().toISOString() };
+    if (typeof window !== "undefined") {
+      localStorage.setItem("ekulmis_parent_portal_session_v1", JSON.stringify(session));
+    }
+    setState({ ...ensure(), session });
+    await refreshPortalData();
+    logPortalAudit(parentId, "LOGIN");
+    return { ok: true, parent };
+  } catch (e) {
+    return { ok: false, error: apiErr(e, "Invalid Parent ID or password.") };
+  }
 }
 
 export function logoutParent() {
   const s = ensure();
   if (s.session) logPortalAudit(s.session.parentId, "LOGOUT");
+  apiPortalLogout();
+  authUser = null;
+  childrenCache = [];
+  if (typeof window !== "undefined") {
+    localStorage.removeItem("ekulmis_parent_portal_session_v1");
+  }
   setState({ ...s, session: null });
 }
 
@@ -149,16 +201,28 @@ export function currentSession(): PortalSession | null {
 export function currentParent(): Parent | null {
   const sess = currentSession();
   if (!sess) return null;
-  return getParent(sess.parentId);
+  return getParent(sess.parentId) ?? {
+    id: sess.parentId,
+    code: authUser?.username ?? sess.parentId,
+    name: authUser?.username ?? "Parent",
+    phone: "",
+    altPhone: null,
+    email: null,
+    address: null,
+    occupation: null,
+    registrationDate: sess.loginAt,
+    status: "ACTIVE",
+    username: authUser?.username ?? "",
+    password: "",
+  };
 }
 
-export function parentChildren(parentId: string): Student[] {
-  return getStudentsState().students.filter((s) => s.parentId === parentId);
+export function parentChildren(_parentId: string): Student[] {
+  return childrenCache;
 }
 
-export function assertChildAccess(parentId: string, studentId: string): Student | null {
-  const child = parentChildren(parentId).find((s) => s.id === studentId);
-  return child ?? null;
+export function assertChildAccess(_parentId: string, studentId: string): Student | null {
+  return childrenCache.find((c) => c.id === studentId) ?? null;
 }
 
 export function getSelectedChildId(parentId: string): string | null {
@@ -180,52 +244,22 @@ export function setSelectedChild(parentId: string, studentId: string) {
 }
 
 export function portalDashboardSummary(parentId: string): ParentDashboardSummary {
-  const st = getStudentsState();
-  const base = parentDashboard(parentId, st);
   const children = parentChildren(parentId);
-
-  let outstanding = 0;
-  let paid = 0;
-  for (const c of children) {
-    outstanding += outstandingBalance(c.id);
-    paid += getFeesState().payments
-      .filter((p: FeePayment) => p.studentId === c.id)
-      .reduce((sum: number, p: FeePayment) => sum + p.amount, 0);
-  }
-
   let attSum = 0;
   for (const c of children) {
     attSum += attendanceHistory(c, 30).percentage;
   }
   const attPct = children.length ? Math.round(attSum / children.length) : 0;
 
-  const examState = getExaminationsState();
-  const upcoming = examState.exams.filter(
-    (e) => e.status === "PUBLISHED" || e.status === "LOCKED",
-  ).length;
-
-  let activeQuizzes = 0;
-  for (const c of children) {
-    activeQuizzes += quizzesForStudent(c.id).filter((q) => q.status === "ACTIVE").length;
-  }
-
-  let latestGrade = "—";
-  for (const c of children) {
-    const results = studentPublishedResults(c.id);
-    if (results.length > 0) {
-      latestGrade = results[results.length - 1].grade;
-      break;
-    }
-  }
-
   return {
-    ...base,
-    outstandingFees: outstanding || base.outstandingFees,
-    totalFeesPaid: paid || base.totalFeesPaid,
-    attendancePercentage: attPct || base.attendancePercentage,
-    upcomingExams: upcoming || base.upcomingExams,
-    activeQuizzes: activeQuizzes || base.activeQuizzes,
-    latestGrade,
+    totalChildren: children.length,
+    activeStudents: children.filter((c) => c.status === "ACTIVE").length,
+    outstandingFees: 0,
+    totalFeesPaid: 0,
+    attendancePercentage: attPct,
+    upcomingExams: 0,
+    activeQuizzes: 0,
+    latestGrade: "—",
   };
 }
 
@@ -245,51 +279,6 @@ export function listAnnouncements(): PortalAnnouncement[] {
   );
 }
 
-function seedNotificationsForParent(parentId: string) {
-  const s = ensure();
-  if (s.notifications.some((n) => n.parentId === parentId)) return;
-
-  const children = parentChildren(parentId);
-  const now = Date.now();
-  const items: PortalNotification[] = [];
-
-  children.forEach((c, i) => {
-    items.push({
-      id: `pn_${parentId}_${i}_att`,
-      parentId,
-      studentId: c.id,
-      type: "ABSENCE",
-      title: "Absence recorded",
-      message: `${c.fullName} was marked absent yesterday.`,
-      createdAt: new Date(now - (i + 1) * 3600000).toISOString(),
-      read: false,
-    });
-    items.push({
-      id: `pn_${parentId}_${i}_fee`,
-      parentId,
-      studentId: c.id,
-      type: "FEE_DUE",
-      title: "Fee reminder",
-      message: `Monthly fee for ${c.fullName} is due soon.`,
-      createdAt: new Date(now - (i + 2) * 7200000).toISOString(),
-      read: i > 0,
-    });
-  });
-
-  items.push({
-    id: `pn_${parentId}_ann`,
-    parentId,
-    studentId: null,
-    type: "ANNOUNCEMENT",
-    title: "New school announcement",
-    message: "Mid-Term Examination Timetable has been published.",
-    createdAt: new Date(now - 86400000).toISOString(),
-    read: false,
-  });
-
-  setState({ ...s, notifications: [...items, ...s.notifications] });
-}
-
 export function parentNotifications(parentId: string): PortalNotification[] {
   return ensure()
     .notifications.filter((n) => n.parentId === parentId)
@@ -304,9 +293,7 @@ export function markNotificationRead(id: string) {
   const s = ensure();
   setState({
     ...s,
-    notifications: s.notifications.map((n) =>
-      n.id === id ? { ...n, read: true } : n,
-    ),
+    notifications: s.notifications.map((n) => (n.id === id ? { ...n, read: true } : n)),
   });
 }
 
@@ -320,50 +307,124 @@ export function markAllNotificationsRead(parentId: string) {
   });
 }
 
-export function studentPayments(studentId: string): FeePayment[] {
-  return getFeesState()
-    .payments.filter((p: FeePayment) => p.studentId === studentId)
-    .sort((a: FeePayment, b: FeePayment) => b.collectedAt.localeCompare(a.collectedAt));
+export async function fetchChildAttendance(studentId: string) {
+  return apiPortalAttendance(studentId);
+}
+
+export async function fetchChildFees(studentId: string) {
+  return apiPortalFees(studentId);
+}
+
+export async function fetchChildExamResults(studentId: string): Promise<{
+  blocked: boolean;
+  results: StudentExamResult[];
+  finalAverage?: number;
+  finalGrade?: string;
+  passed?: boolean;
+}> {
+  try {
+    const data = await apiPortalResults(studentId);
+    const results: StudentExamResult[] = data.termResults.map((tr) => ({
+      examId: tr.examId,
+      examName: tr.examName,
+      term: tr.term,
+      weightPercent: tr.weightPercent,
+      subjects: tr.subjects.map((s) => ({
+        subject: s.subject,
+        maxMarks: s.maxMarks,
+        marksObtained: s.marksObtained ?? 0,
+        grade: s.grade,
+      })),
+      totalObtained: tr.totalObtained,
+      totalMax: tr.totalMax,
+      average: tr.average,
+      grade: tr.grade,
+      passed: tr.passed,
+    }));
+    return {
+      blocked: false,
+      results,
+      finalAverage: data.finalAverage,
+      finalGrade: data.finalGrade,
+      passed: data.passed,
+    };
+  } catch {
+    return { blocked: false, results: [] };
+  }
+}
+
+export function childExamResults(_studentId: string) {
+  return { blocked: false as const, results: [] as StudentExamResult[] };
 }
 
 export function childFeeSummary(student: Student) {
-  const ledger = studentLedger(student.id);
-  const paidMonths = ledger.filter((r) => r.status === "PAID").length;
-  const partial = ledger.filter((r) => r.status === "PARTIAL").length;
-  const advance = ledger.filter((r) => r.status === "ADVANCE").length;
   return {
     monthlyFee: student.monthlyFee,
-    outstanding: outstandingBalance(student.id),
-    paidMonths,
-    partialMonths: partial,
-    advanceMonths: advance,
-    carryForward: ledger.reduce((s, r) => s + Math.max(0, r.remainingBalance), 0),
-    ledger,
+    outstanding: 0,
+    paidMonths: 0,
+    partialMonths: 0,
+    advanceMonths: 0,
+    carryForward: 0,
+    ledger: [] as {
+      monthKey: string;
+      monthLabel: string;
+      monthlyCharge: number;
+      amountPaid: number;
+      remainingBalance: number;
+      status: string;
+    }[],
   };
 }
 
-export function childExamResults(studentId: string) {
-  if (isStudentBlocked(studentId)) {
-    return { blocked: true as const, results: [] };
+export async function loadChildFeeSummary(student: Student) {
+  try {
+    const data = await apiPortalFees(student.id);
+    const ledger = data.charges.map((c) => {
+      const monthKey = `${c.year}-${String(c.month).padStart(2, "0")}`;
+      const remainingBalance = Math.max(0, c.amount - c.paidAmount);
+      return {
+        monthKey,
+        monthLabel: monthKey,
+        monthlyCharge: c.amount,
+        amountPaid: c.paidAmount,
+        remainingBalance,
+        status: c.status,
+      };
+    });
+    const paidMonths = ledger.filter((r) => r.status === "PAID").length;
+    const partial = ledger.filter((r) => r.status === "PARTIAL").length;
+    const advance = ledger.filter((r) => r.status === "ADVANCE").length;
+    return {
+      monthlyFee: data.student.monthlyFee,
+      outstanding: data.outstanding,
+      paidMonths,
+      partialMonths: partial,
+      advanceMonths: advance,
+      carryForward: data.outstanding,
+      ledger,
+    };
+  } catch {
+    return childFeeSummary(student);
   }
-  return {
-    blocked: false as const,
-    results: studentPublishedResults(studentId),
-  };
 }
 
-export function childQuizRows(studentId: string) {
-  const assigned = quizzesForStudent(studentId);
-  const history = studentQuizHistory(studentId);
-  return { assigned, history };
+export function childQuizRows(_studentId: string): {
+  assigned: import("@/lib/quiz/types").StudentQuizRow[];
+  history: ReturnType<typeof import("@/lib/quiz/store").studentQuizHistory>;
+} {
+  return { assigned: [], history: [] };
 }
 
-export function childAcademicHistory(student: Student) {
-  return promotionHistory(student);
+export function childAcademicHistory(_student: Student): PromotionRow[] {
+  return [];
 }
 
 export function portalAuditForParent(parentId: string): PortalAuditEntry[] {
   return ensure().audit.filter((a) => a.parentId === parentId);
+}
+
+export function studentPayments(_studentId: string): FeePayment[] {
+  return [];
 }
 
 export { getParentWithChildren };

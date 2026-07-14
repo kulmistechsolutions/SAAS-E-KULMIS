@@ -22,6 +22,11 @@ export default function TeacherSettingsPage() {
         <SettingsInput label="Afternoon Shift Start" type="time" value={draft.afternoonShiftStart} onChange={(e) => update({ afternoonShiftStart: e.target.value })} />
       </div>
       <SettingsToggle label="Teacher Portal Enabled" checked={draft.portalEnabled} onChange={(v) => update({ portalEnabled: v })} />
+      <SettingsToggle
+        label="Grant View Students by default for new teachers"
+        checked={draft.defaultViewStudents}
+        onChange={(v) => update({ defaultViewStudents: v })}
+      />
       <SettingsSaveBar dirty={dirty} saving={saving} onSave={save} onCancel={cancel} onResetDefault={resetToDefault} />
     </div>
   );

@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Bell, ChevronDown, LogOut, Menu, Search, User } from "lucide-react";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { useAuth } from "@/lib/auth";
+import { activeAcademicYear, ensureAcademicsLoaded, useAcademicsState } from "@/lib/academics/store";
 import { toast } from "@/lib/toast";
 
 interface TopbarProps {
@@ -15,9 +17,19 @@ interface TopbarProps {
 
 export function Topbar({ onMenuClick, userName, userRole }: TopbarProps) {
   const router = useRouter();
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
+  const academics = useAcademicsState();
+  const isTeacher = user?.role === "TEACHER";
   const [menuOpen, setMenuOpen] = useState(false);
   const [query, setQuery] = useState("");
+  const activeYear =
+    academics.academicYears.find((y) => y.status === "ACTIVE")?.name ||
+    activeAcademicYear() ||
+    "—";
+
+  useEffect(() => {
+    void ensureAcademicsLoaded();
+  }, []);
 
   function onSearchKey(e: React.KeyboardEvent<HTMLInputElement>) {
     if (e.key === "Enter" && query.trim()) {
@@ -61,11 +73,11 @@ export function Topbar({ onMenuClick, userName, userRole }: TopbarProps) {
       <div className="ml-auto flex items-center gap-2 sm:gap-3">
         {/* Academic year */}
         <button
-          onClick={() => toast("Active academic year: 2024-2025", "info")}
+          onClick={() => toast(`Active academic year: ${activeYear}`, "info")}
           className="hidden items-center gap-2 rounded-lg border border-input bg-background px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-secondary md:inline-flex"
         >
           <span className="text-muted-foreground">Academic Year:</span>
-          <span>2024-2025</span>
+          <span>{activeYear}</span>
           <ChevronDown className="h-4 w-4 text-muted-foreground" />
         </button>
 
@@ -118,16 +130,27 @@ export function Topbar({ onMenuClick, userName, userRole }: TopbarProps) {
                     {userRole}
                   </p>
                 </div>
-                <button
-                  onClick={() => {
-                    setMenuOpen(false);
-                    toast("Profile page — coming soon", "info");
-                  }}
-                  className="flex w-full items-center gap-2 px-3 py-2 text-sm text-foreground transition-colors hover:bg-secondary"
-                >
-                  <User className="h-4 w-4 text-muted-foreground" />
-                  My Profile
-                </button>
+                {isTeacher ? (
+                  <Link
+                    href="/profile"
+                    onClick={() => setMenuOpen(false)}
+                    className="flex w-full items-center gap-2 px-3 py-2 text-sm text-foreground transition-colors hover:bg-secondary"
+                  >
+                    <User className="h-4 w-4 text-muted-foreground" />
+                    My Profile
+                  </Link>
+                ) : (
+                  <button
+                    onClick={() => {
+                      setMenuOpen(false);
+                      toast("Profile page — coming soon", "info");
+                    }}
+                    className="flex w-full items-center gap-2 px-3 py-2 text-sm text-foreground transition-colors hover:bg-secondary"
+                  >
+                    <User className="h-4 w-4 text-muted-foreground" />
+                    My Profile
+                  </button>
+                )}
                 <button
                   onClick={handleLogout}
                   className="flex w-full items-center gap-2 px-3 py-2 text-sm text-rose-600 transition-colors hover:bg-secondary dark:text-rose-400"

@@ -37,13 +37,13 @@ export function SubjectFormDialog({ open, onClose, subject }: Props) {
     }
   }, [open, subject]);
 
-  function submit() {
+  async function submit() {
     setError(null);
     if (!name.trim()) return setError("Subject name is required.");
     const res =
       isEdit && subject
-        ? updateSubject(subject.id, { name, code, status })
-        : createSubject({ name, code, status });
+        ? await updateSubject(subject.id, { name, code, status })
+        : await createSubject({ name, code, status });
     if (!res.ok) return setError(res.error ?? "Operation failed.");
     toast(isEdit ? "Subject updated." : "Subject created.", "success");
     onClose();

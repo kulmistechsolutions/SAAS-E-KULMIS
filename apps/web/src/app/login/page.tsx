@@ -7,7 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { loginSchema, type LoginInput } from "@ekulmis/shared";
 import { useSchoolBranding } from "@/lib/settings/use-school-branding";
 import { useAuth } from "@/lib/auth";
-import { ApiError } from "@/lib/api";
+import { ApiError, api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -26,8 +26,8 @@ export default function LoginPage() {
   async function onSubmit(values: LoginInput) {
     setError(null);
     try {
-      await login(values.identifier, values.password);
-      router.push("/dashboard");
+      const me = await login(values.identifier, values.password);
+      router.push(me.role === "TEACHER" ? "/teacher-portal" : "/dashboard");
     } catch (e) {
       setError(
         e instanceof ApiError ? e.message : "Login failed. Please try again.",
@@ -92,6 +92,20 @@ export default function LoginPage() {
             </Button>
           </form>
           <p className="mt-6 text-center text-xs text-muted-foreground">{branding.footerText}</p>
+          <p className="mt-3 text-center text-sm">
+            <a href="/teacher-portal/login" className="text-primary hover:underline">
+              Teacher Portal →
+            </a>
+            {" · "}
+            <a href="/parent-portal/login" className="text-primary hover:underline">
+              Parent Portal →
+            </a>
+          </p>
+          <p className="mt-2 text-center text-sm">
+            <a href="/platform/login" className="text-primary hover:underline">
+              Platform Super Admin →
+            </a>
+          </p>
         </CardContent>
       </Card>
       </div>

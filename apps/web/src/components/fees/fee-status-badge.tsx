@@ -2,12 +2,16 @@ import type { FeeChargeStatus } from "@/lib/fees/types";
 import { Badge } from "@/components/ui/badge";
 import { feeStatusLabel } from "@/lib/fees/format";
 
-const TONE: Record<string, "success" | "warning" | "danger" | "info" | "default"> = {
+const TONE: Record<
+  string,
+  "success" | "warning" | "danger" | "info" | "default" | "muted"
+> = {
   PAID: "success",
   PARTIAL: "warning",
   UNPAID: "danger",
   ADVANCE: "info",
   ADVANCE_MULTI: "info",
+  INACTIVE: "muted",
 };
 
 export function FeeStatusBadge({

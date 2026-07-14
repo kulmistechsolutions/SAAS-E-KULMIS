@@ -11,7 +11,12 @@ export class SubjectService {
     return this.prisma
       .forTenant(schoolId, (tx) =>
         tx.subject.create({
-          data: { schoolId, name: dto.name, code: dto.code ?? null },
+          data: {
+            schoolId,
+            name: dto.name,
+            code: dto.code ?? null,
+            status: dto.status ?? "ACTIVE",
+          },
         }),
       )
       .catch(onUniqueViolation("A subject with this name already exists"));
@@ -39,7 +44,7 @@ export class SubjectService {
       .forTenant(schoolId, (tx) =>
         tx.subject.update({
           where: { id },
-          data: { name: dto.name, code: dto.code },
+          data: { name: dto.name, code: dto.code, status: dto.status },
         }),
       )
       .catch(onUniqueViolation("A subject with this name already exists"));

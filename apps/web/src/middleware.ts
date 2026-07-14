@@ -8,6 +8,13 @@ const ROOT_DOMAIN = process.env.APP_ROOT_DOMAIN ?? "ekulmis.local";
  * tenant. Per-tenant branding is loaded from this subdomain (Phase 1 Settings).
  */
 export function middleware(req: NextRequest) {
+  const { pathname } = req.nextUrl;
+
+  if (pathname === "/") {
+    const preview = process.env.NEXT_PUBLIC_PREVIEW_AUTH === "true";
+    return NextResponse.redirect(new URL(preview ? "/dashboard" : "/login", req.url));
+  }
+
   const host = (req.headers.get("host") ?? "").split(":")[0].toLowerCase();
   const subdomain = extractSubdomain(host);
 

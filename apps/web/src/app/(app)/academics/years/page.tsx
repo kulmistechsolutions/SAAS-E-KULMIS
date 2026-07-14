@@ -71,9 +71,14 @@ export default function AcademicYearsPage() {
               <Button
                 variant="outline"
                 className="mt-4 w-full"
-                onClick={() => {
-                  setActiveAcademicYear(y.id);
-                  toast(`${y.name} is now the active academic year.`, "success");
+                onClick={async () => {
+                  const res = await setActiveAcademicYear(y.id);
+                  toast(
+                    res.ok
+                      ? `${y.name} is now the active academic year.`
+                      : res.error ?? "Failed to set active year.",
+                    res.ok ? "success" : "error",
+                  );
                 }}
               >
                 Set as Active

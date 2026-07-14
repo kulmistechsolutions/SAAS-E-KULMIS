@@ -37,6 +37,8 @@ export const SUBJECTS = [
 
 export const DEFAULT_SALARY = 450;
 
+export const DEFAULT_TEACHER_PASSWORD = "12345";
+
 export function teacherCode(seq: number): string {
   return `${TEACHER_PREFIX}${String(seq).padStart(6, "0")}`;
 }

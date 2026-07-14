@@ -45,6 +45,7 @@ const ROLE_LABELS: Record<string, string> = {
   ATTENDANCE_OFFICER: "Attendance Officer",
   EXAM_MANAGER: "Exam Manager",
   RECEPTION_OFFICER: "Reception Officer",
+  LIBRARIAN: "Librarian",
 };
 
 export function roleLabel(role: SystemRole): string {
@@ -62,6 +63,7 @@ export const BUILT_IN_ROLES: BuiltInRole[] = [
   "ATTENDANCE_OFFICER",
   "EXAM_MANAGER",
   "RECEPTION_OFFICER",
+  "LIBRARIAN",
 ];
 
 export const MODULES: { id: PermissionModule; label: string }[] = [
@@ -81,6 +83,8 @@ export const MODULES: { id: PermissionModule; label: string }[] = [
   { id: "settings", label: "Settings" },
   { id: "users", label: "User Management" },
   { id: "audit", label: "Audit Logs" },
+  { id: "sms", label: "SMS" },
+  { id: "library", label: "Library" },
 ];
 
 export const ACTIONS: { id: PermissionAction; label: string }[] = [
@@ -109,6 +113,24 @@ export function emptyPermissions(): PermissionMap {
     };
   }
   return map;
+}
+
+/** Merge stored permissions with defaults so new modules never crash the UI. */
+export function normalizePermissions(
+  source?: Partial<PermissionMap> | null,
+): PermissionMap {
+  const base = emptyPermissions();
+  if (!source) return base;
+  for (const m of MODULES) {
+    const mod = source[m.id];
+    if (!mod) continue;
+    for (const a of ACTIONS) {
+      if (typeof mod[a.id] === "boolean") {
+        base[m.id][a.id] = mod[a.id];
+      }
+    }
+  }
+  return base;
 }
 
 function grant(
@@ -143,13 +165,20 @@ export function builtInRolePermissions(role: BuiltInRole): PermissionMap {
       );
       p = grant(p, "users", ["view", "create", "update", "export", "print"]);
       p = grant(p, "audit", ["view", "export"]);
+      p = grant(p, "sms", ["view", "create", "export"]);
       return p;
     case "ACADEMIC_MANAGER":
-      return grantAll(p, ["academics", "teachers", "promotions", "reports", "examinations"]);
+      p = grantAll(p, ["academics", "teachers", "promotions", "reports", "examinations"]);
+      p = grant(p, "sms", ["view", "create"]);
+      return p;
     case "TEACHER":
-      p = grant(p, "attendance", ["view"]);
-      p = grant(p, "examinations", ["view", "create", "update"]);
+      // Student access is per-teacher (canViewStudents) — not role-wide.
+      p = grant(p, "teachers", ["view", "update"]);
+      p = grant(p, "attendance", ["view", "create", "update"]);
+      // Official exams: view assigned + enter marks only (no create/delete/lock/publish).
+      p = grant(p, "examinations", ["view", "update"]);
       p = grant(p, "quiz", ["view", "create", "update"]);
+      p = grant(p, "academics", ["view"]);
       p = grant(p, "reports", ["view"]);
       return p;
     case "PARENT":
@@ -166,17 +195,24 @@ export function builtInRolePermissions(role: BuiltInRole): PermissionMap {
       return p;
     case "FINANCE_OFFICER":
       p = grantAll(p, ["fees", "salaries", "expenses", "finance", "reports"]);
+      p = grant(p, "sms", ["view", "create", "export"]);
       return p;
     case "ATTENDANCE_OFFICER":
       p = grantAll(p, ["attendance", "reports"]);
       return p;
     case "EXAM_MANAGER":
       p = grantAll(p, ["examinations", "reports"]);
+      p = grant(p, "sms", ["view", "create"]);
       return p;
     case "RECEPTION_OFFICER":
       p = grant(p, "students", ["view", "create", "update"]);
       p = grant(p, "parents", ["view", "create", "update"]);
       p = grant(p, "teachers", ["view", "create", "update"]);
+      p = grant(p, "reports", ["view"]);
+      return p;
+    case "LIBRARIAN":
+      p = grantAll(p, ["library"]);
+      p = grant(p, "students", ["view"]);
       p = grant(p, "reports", ["view"]);
       return p;
     default:

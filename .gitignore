@@ -36,6 +36,7 @@ Thumbs.db
 
 # Docker volumes (local)
 .docker-data/
+.uploads/
 
 # Coverage
 coverage/

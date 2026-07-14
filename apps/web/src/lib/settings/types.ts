@@ -74,6 +74,8 @@ export interface TeacherSettings {
   idPrefix: string;
   defaultPassword: string;
   portalEnabled: boolean;
+  /** When true, new teachers get canViewStudents on registration. */
+  defaultViewStudents: boolean;
   morningShiftStart: string;
   afternoonShiftStart: string;
 }
@@ -100,8 +102,11 @@ export interface ExaminationSettings {
 
 export interface FeeSettings {
   monthlyFeeSystem: boolean;
-  billingMode: "MONTHLY" | "TERM" | "ANNUAL";
+  billingMode: "MONTHLY" | "ACADEMIC_YEAR";
   monthSetupDay: number;
+  academicMonths: number;
+  billingStartMonth: number;
+  billingEndMonth: number;
   allowPartialPayment: boolean;
   allowAdvancePayment: boolean;
   carryForward: boolean;

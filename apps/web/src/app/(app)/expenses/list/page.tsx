@@ -20,7 +20,7 @@ import {
   useExpensesState,
 } from "@/lib/expenses/store";
 import type { Expense, ExpenseSortDir, ExpenseSortKey } from "@/lib/expenses/types";
-import { ACADEMIC_YEARS } from "@/lib/students/constants";
+import { AcademicYearSelect } from "@/components/academics/academic-year-select";
 import { toast } from "@/lib/toast";
 
 const PAGE_SIZE = 15;
@@ -45,6 +45,11 @@ export default function ExpenseListPage() {
   useEffect(() => {
     if (mounted) setAcademicYear(state.academicYear);
   }, [mounted, state.academicYear]);
+  useEffect(() => {
+    if (!mounted) return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("add") === "1") setShowCreate(true);
+  }, [mounted]);
 
   const rows = useMemo(
     () =>
@@ -77,9 +82,9 @@ export default function ExpenseListPage() {
   const pageCount = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
   const pageRows = rows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
-  function handleDelete() {
+  async function handleDelete() {
     if (!deleteId) return;
-    const res = deleteExpense(deleteId);
+    const res = await deleteExpense(deleteId);
     if (!res.ok) {
       toast(res.error ?? "Delete failed", "error");
       return;
@@ -127,20 +132,14 @@ export default function ExpenseListPage() {
           }}
           className="h-9 max-w-xs"
         />
-        <Select
+        <AcademicYearSelect
           value={academicYear}
-          onChange={(e) => {
-            setAcademicYear(e.target.value);
+          onChange={(v) => {
+            setAcademicYear(v);
             setPage(1);
           }}
           className="h-9 min-w-[130px]"
-        >
-          {ACADEMIC_YEARS.map((y) => (
-            <option key={y} value={y}>
-              {y}
-            </option>
-          ))}
-        </Select>
+        />
         <Select
           value={categoryId}
           onChange={(e) => {

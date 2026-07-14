@@ -3,14 +3,12 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Plus } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { ExamSummaryCards } from "@/components/examinations/summary-cards";
 import {
   ExamQuickActions,
   MonitoringTable,
   RecentExamsList,
 } from "@/components/examinations/widgets";
-import { ExamFormDialog } from "@/components/examinations/exam-form-dialog";
 import { ExamStatusBadge } from "@/components/examinations/exam-status-badge";
 import { examTypeLabel, shortDate } from "@/lib/examinations/format";
 import {
@@ -22,7 +20,6 @@ import {
 
 export default function ExaminationsDashboardPage() {
   const [mounted, setMounted] = useState(false);
-  const [createOpen, setCreateOpen] = useState(false);
   const exams = useExaminationsState();
 
   useEffect(() => setMounted(true), []);
@@ -49,10 +46,13 @@ export default function ExaminationsDashboardPage() {
             Complete examination lifecycle — creation, marking, results, and publishing.
           </p>
         </div>
-        <Button onClick={() => setCreateOpen(true)}>
+        <Link
+          href="/examinations/create"
+          className="inline-flex h-10 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+        >
           <Plus className="mr-2 h-4 w-4" />
           Create Exam
-        </Button>
+        </Link>
       </div>
 
       {summary && <ExamSummaryCards summary={summary} />}
@@ -112,8 +112,6 @@ export default function ExaminationsDashboardPage() {
           <ExamQuickActions />
         </div>
       </div>
-
-      <ExamFormDialog open={createOpen} onClose={() => setCreateOpen(false)} />
     </div>
   );
 }

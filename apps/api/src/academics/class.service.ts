@@ -1,13 +1,22 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import {
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
 import type { CreateClassInput, UpdateClassInput } from "@ekulmis/shared";
+import { normalizeAcademicName } from "@ekulmis/shared";
 import { PrismaService } from "../prisma/prisma.service";
+import { ClassStructureService } from "./class-structure.service";
 import { onUniqueViolation } from "./prisma-errors";
 
 @Injectable()
 export class ClassService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly structure: ClassStructureService,
+  ) {}
 
   async create(schoolId: string, dto: CreateClassInput) {
+    const name = normalizeAcademicName(dto.name);
     const year = await this.prisma.forTenant(schoolId, (tx) =>
       tx.academicYear.findFirst({
         where: { id: dto.academicYearId },
@@ -17,14 +26,20 @@ export class ClassService {
     if (!year) {
       throw new NotFoundException("Academic year not found");
     }
+
+    await this.structure.assertCanCreateClass(schoolId, dto.academicYearId, name);
+
     return this.prisma
       .forTenant(schoolId, (tx) =>
         tx.class.create({
           data: {
             schoolId,
             academicYearId: dto.academicYearId,
-            name: dto.name,
+            name,
             orderIndex: dto.orderIndex ?? 0,
+            hasSections: dto.hasSections ?? false,
+            notes: dto.notes ?? null,
+            status: dto.status ?? "ACTIVE",
           },
         }),
       )
@@ -33,7 +48,11 @@ export class ClassService {
       );
   }
 
-  findAll(schoolId: string, academicYearId?: string) {
+  async findAll(schoolId: string, academicYearId?: string) {
+    // NOTE: this is a hot read path (loaded on every academics-dependent page).
+    // Class provisioning/repair is an explicit operation via
+    // POST /classes/structure/repair — it must NOT run on every read, or each
+    // GET pays for a heavy write transaction (previously ~12s per call).
     return this.prisma.forTenant(schoolId, (tx) =>
       tx.class.findMany({
         where: academicYearId ? { academicYearId } : {},
@@ -57,12 +76,30 @@ export class ClassService {
   }
 
   async update(schoolId: string, id: string, dto: UpdateClassInput) {
-    await this.findOne(schoolId, id);
+    const existing = await this.findOne(schoolId, id);
+    const name =
+      dto.name !== undefined ? normalizeAcademicName(dto.name) : undefined;
+
+    if (name !== undefined) {
+      await this.structure.assertCanRenameClass(
+        schoolId,
+        id,
+        existing.academicYearId,
+        name,
+      );
+    }
+
     return this.prisma
       .forTenant(schoolId, (tx) =>
         tx.class.update({
           where: { id },
-          data: { name: dto.name, orderIndex: dto.orderIndex },
+          data: {
+            name,
+            orderIndex: dto.orderIndex,
+            hasSections: dto.hasSections,
+            notes: dto.notes,
+            status: dto.status,
+          },
         }),
       )
       .catch(
@@ -76,5 +113,12 @@ export class ClassService {
       tx.class.delete({ where: { id } }),
     );
     return { success: true };
+  }
+
+  repairStructure(schoolId: string, academicYearId?: string) {
+    if (academicYearId) {
+      return this.structure.repairAcademicYear(schoolId, academicYearId);
+    }
+    return this.structure.repairAllYears(schoolId);
   }
 }

@@ -64,8 +64,8 @@ export default function PayrollPage() {
   const pageRows = rows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
   const payslip = payslipId ? getPayroll(payslipId) ?? null : null;
 
-  function handleGenerate() {
-    const res = generatePayroll(month);
+  async function handleGenerate() {
+    const res = await generatePayroll(month);
     if (!res.ok) {
       toast(res.error ?? "Could not generate payroll", "error");
       return;

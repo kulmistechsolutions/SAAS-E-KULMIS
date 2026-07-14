@@ -1,13 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Download, Printer, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { usePortal, usePortalAudit } from "@/components/parent-portal/portal-context";
 import { printAttendanceReport } from "@/lib/parent-portal/print";
-import { attendanceHistory } from "@/lib/students/history";
+import { attendanceHistory, loadAttendanceHistory, type AttendanceSummary } from "@/lib/students/history";
 import { shortDate } from "@/lib/students/format";
 import { Badge } from "@/components/ui/badge";
 
@@ -25,10 +25,16 @@ export default function ParentAttendancePage() {
   const [filter, setFilter] = useState("ALL");
   const [range, setRange] = useState("30");
 
-  const att = useMemo(
-    () => (selectedChild ? attendanceHistory(selectedChild, Number(range) || 30) : null),
-    [selectedChild, range],
-  );
+  const [att, setAtt] = useState<AttendanceSummary | null>(null);
+
+  useEffect(() => {
+    if (!selectedChild) {
+      setAtt(null);
+      return;
+    }
+    const days = Number(range) || 30;
+    void loadAttendanceHistory(selectedChild.id, days).then(setAtt);
+  }, [selectedChild, range]);
 
   const rows = useMemo(() => {
     if (!att) return [];

@@ -34,13 +34,14 @@ export default function BlockedStudentsPage() {
     );
   });
 
-  function handleBlock() {
+  async function handleBlock() {
     if (!studentId) {
       toast("Select a student", "error");
       return;
     }
-    const res = blockStudent(studentId, reason, examId || undefined);
+    const res = await blockStudent(studentId, reason, examId || undefined);
     if (res.ok) toast("Student blocked", "success");
+    else toast(res.error ?? "Failed to block", "error");
   }
 
   return (
@@ -111,8 +112,9 @@ export default function BlockedStudentsPage() {
                     </p>
                   </div>
                   <Button variant="outline" className="h-9 shrink-0" onClick={() => {
-                    unblockStudent(b.id);
-                    toast("Student unblocked", "success");
+                    const res = unblockStudent(b.id);
+                    if (res.ok) toast("Student unblocked", "success");
+                    else toast(res.error ?? "Unblock not supported", "error");
                   }}>
                     <ShieldCheck className="mr-2 h-4 w-4" />
                     Unblock

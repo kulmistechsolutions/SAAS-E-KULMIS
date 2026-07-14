@@ -39,10 +39,10 @@ export function ParentFormDialog({ open, onClose, parent, onSaved }: Props) {
     setStatus(parent.status);
   }, [open, parent]);
 
-  function handleSubmit() {
+  async function handleSubmit() {
     if (!parent) return;
     setError(null);
-    const res = updateParent(parent.id, {
+    const res = await updateParent(parent.id, {
       name,
       phone,
       altPhone: altPhone || null,

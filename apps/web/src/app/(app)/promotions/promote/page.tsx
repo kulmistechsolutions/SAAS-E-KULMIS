@@ -140,12 +140,12 @@ export default function PromotePage() {
     return true;
   }
 
-  function handleConfirm() {
+  async function handleConfirm() {
     setConfirmOpen(false);
 
     if (type === "SCHOOL_WIDE") {
       const res = schoolWidePreview
-        ? promoteStudents({
+        ? await promoteStudents({
             type: "SCHOOL_WIDE",
             academicYear: year,
             studentIds: schoolWidePreview.candidates.filter((c) => c.eligible).map((c) => c.studentId),
@@ -156,7 +156,7 @@ export default function PromotePage() {
       return;
     }
 
-    const res = promoteStudents({
+    const res = await promoteStudents({
       type,
       academicYear: year,
       studentIds: [...selected],

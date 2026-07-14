@@ -35,6 +35,7 @@ export function buildSeed(): AcademicsState {
     id: `cls_${i + 1}`,
     name,
     academicYear: year,
+    orderIndex: i + 1,
     hasSections: name !== "Grade 12",
     status: "ACTIVE",
     notes: null,

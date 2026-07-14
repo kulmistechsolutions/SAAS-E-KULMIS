@@ -13,6 +13,11 @@ export const UserRole = {
   FINANCE_OFFICER: "FINANCE_OFFICER",
   EXAM_MANAGER: "EXAM_MANAGER",
   RECEPTION: "RECEPTION",
+  // Extended roles surfaced in the admin UI (Module 15).
+  SUPER_ADMINISTRATOR: "SUPER_ADMINISTRATOR",
+  ACADEMIC_MANAGER: "ACADEMIC_MANAGER",
+  RECEPTION_OFFICER: "RECEPTION_OFFICER",
+  LIBRARIAN: "LIBRARIAN",
 } as const;
 
 export type UserRole = (typeof UserRole)[keyof typeof UserRole];

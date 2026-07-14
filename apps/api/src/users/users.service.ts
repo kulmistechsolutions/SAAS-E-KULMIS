@@ -8,14 +8,21 @@ import type { CreateUserInput, UpdateUserInput } from "@ekulmis/shared";
 import { PrismaService } from "../prisma/prisma.service";
 import { hashPassword } from "../auth/password.util";
 
+function pad(n: number): string {
+  return String(n).padStart(6, "0");
+}
+
 /** Public shape of a user (never expose the password hash). */
 function toDto(u: User) {
   return {
     id: u.id,
     schoolId: u.schoolId,
     username: u.username,
+    code: u.code,
+    fullName: u.fullName,
     role: u.role,
     status: u.status,
+    lastLoginAt: u.lastLoginAt,
     createdAt: u.createdAt,
     updatedAt: u.updatedAt,
   };
@@ -29,17 +36,24 @@ export class UsersService {
   async create(schoolId: string, dto: CreateUserInput) {
     const passwordHash = await hashPassword(dto.password);
     try {
-      const user = await this.prisma.forTenant(schoolId, (tx) =>
-        tx.user.create({
+      const user = await this.prisma.forTenant(schoolId, async (tx) => {
+        const seq = await tx.counter.upsert({
+          where: { schoolId_name: { schoolId, name: "user" } },
+          create: { schoolId, name: "user", value: 1 },
+          update: { value: { increment: 1 } },
+        });
+        return tx.user.create({
           data: {
             schoolId,
             username: dto.username,
+            code: `USR-${pad(seq.value)}`,
+            fullName: dto.fullName ?? dto.username,
             role: dto.role,
             status: dto.status ?? "ACTIVE",
             passwordHash,
           },
-        }),
-      );
+        });
+      });
       return toDto(user);
     } catch (e) {
       if (
@@ -71,13 +85,28 @@ export class UsersService {
 
   async update(schoolId: string, id: string, dto: UpdateUserInput) {
     await this.findOne(schoolId, id); // 404s if not in this tenant
-    const user = await this.prisma.forTenant(schoolId, (tx) =>
-      tx.user.update({
-        where: { id },
-        data: { role: dto.role, status: dto.status },
-      }),
-    );
-    return toDto(user);
+    try {
+      const user = await this.prisma.forTenant(schoolId, (tx) =>
+        tx.user.update({
+          where: { id },
+          data: {
+            username: dto.username,
+            fullName: dto.fullName,
+            role: dto.role,
+            status: dto.status,
+          },
+        }),
+      );
+      return toDto(user);
+    } catch (e) {
+      if (
+        e instanceof Prisma.PrismaClientKnownRequestError &&
+        e.code === "P2002"
+      ) {
+        throw new ConflictException("Username already exists in this school");
+      }
+      throw e;
+    }
   }
 
   /** Admin password reset — also revokes the user's refresh tokens. */

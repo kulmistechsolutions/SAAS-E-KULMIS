@@ -32,8 +32,8 @@ export function MonthSetupWidget({
     month: "long",
   });
 
-  function handleSetup() {
-    const res = activateNextMonth();
+  async function handleSetup() {
+    const res = await activateNextMonth();
     if (!res.ok) toast(res.error ?? "Could not activate month", "error");
     else toast(`Activated ${monthLabel(nextKey)}`, "success");
   }

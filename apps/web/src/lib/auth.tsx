@@ -8,7 +8,7 @@ import {
   type ReactNode,
 } from "react";
 import type { UserRole } from "@ekulmis/shared";
-import { api, setAccessToken } from "./api";
+import { api, clearAuthTokens, setAccessToken, setRefreshToken } from "./api";
 
 export interface AuthUser {
   userId: string;
@@ -26,7 +26,7 @@ interface LoginResponse {
 interface AuthContextValue {
   user: AuthUser | null;
   loading: boolean;
-  login: (identifier: string, password: string) => Promise<void>;
+  login: (identifier: string, password: string) => Promise<AuthUser>;
   logout: () => void;
 }
 
@@ -46,6 +46,39 @@ const PREVIEW_USER: AuthUser = {
   username: "Admin",
 };
 
+/** Module-level session for non-React stores (e.g. students cache). */
+let cachedAuthUser: AuthUser | null = PREVIEW_AUTH ? PREVIEW_USER : null;
+
+export function getCachedAuthUser(): AuthUser | null {
+  return cachedAuthUser;
+}
+
+export function setCachedAuthUser(user: AuthUser | null) {
+  cachedAuthUser = user;
+}
+
+function syncCachedAuthUser(user: AuthUser | null) {
+  setCachedAuthUser(user);
+}
+
+function toAuthRole(role: string): UserRole {
+  if (role === "SUPER_ADMINISTRATOR" || role === "ACADEMIC_MANAGER") {
+    return "ADMINISTRATOR";
+  }
+  if (role === "RECEPTION_OFFICER") return "RECEPTION";
+  const roles: UserRole[] = [
+    "ADMINISTRATOR",
+    "TEACHER",
+    "PARENT",
+    "STUDENT",
+    "ATTENDANCE_OFFICER",
+    "FINANCE_OFFICER",
+    "EXAM_MANAGER",
+    "RECEPTION",
+  ];
+  return roles.includes(role as UserRole) ? (role as UserRole) : "ADMINISTRATOR";
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(
     PREVIEW_AUTH ? PREVIEW_USER : null,
@@ -54,26 +87,60 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (PREVIEW_AUTH) return;
-    // Restore session from a stored token.
+    // Restore session from a stored token (refresh if access expired).
     api<AuthUser>("/auth/me")
-      .then(setUser)
-      .catch(() => setUser(null))
+      .then((me) => {
+        syncCachedAuthUser(me);
+        setUser(me);
+      })
+      .catch(() => {
+        clearAuthTokens();
+        syncCachedAuthUser(null);
+        setUser(null);
+      })
       .finally(() => setLoading(false));
   }, []);
 
-  async function login(identifier: string, password: string) {
+  async function login(identifier: string, password: string): Promise<AuthUser> {
+    if (PREVIEW_AUTH) {
+      const { authenticateLocal } = await import("./users/store");
+      const result = authenticateLocal(identifier, password);
+      if (result.ok && result.user) {
+        const authUser = {
+          userId: result.user.id,
+          schoolId: "demo",
+          role: toAuthRole(result.user.role),
+          username: result.user.username,
+        };
+        setUser(authUser);
+        syncCachedAuthUser(authUser);
+        return authUser;
+      }
+      if (identifier.trim() && password) {
+        const authUser = { ...PREVIEW_USER, username: identifier.trim() };
+        setUser(authUser);
+        syncCachedAuthUser(authUser);
+        return authUser;
+      }
+      throw new Error(result.error ?? "Login failed. Please try again.");
+    }
     const res = await api<LoginResponse>("/auth/login", {
       method: "POST",
       body: { identifier, password },
       auth: false,
     });
     setAccessToken(res.accessToken);
+    setRefreshToken(res.refreshToken);
     const me = await api<AuthUser>("/auth/me");
+    syncCachedAuthUser(me);
     setUser(me);
+    return me;
   }
 
   function logout() {
-    setAccessToken(null);
+    clearAuthTokens();
+    void import("./teachers/session").then((m) => m.clearTeacherMeCache());
+    syncCachedAuthUser(null);
     setUser(null);
   }
 

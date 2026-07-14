@@ -1,6 +1,6 @@
 "use client";
 
-import { ACTIONS, MODULES } from "@/lib/users/format";
+import { ACTIONS, MODULES, normalizePermissions } from "@/lib/users/format";
 import type { PermissionMap } from "@/lib/users/types";
 
 interface PermissionMatrixProps {
@@ -10,10 +10,12 @@ interface PermissionMatrixProps {
 }
 
 export function PermissionMatrix({
-  permissions,
+  permissions: permissionsProp,
   readOnly = false,
   onChange,
 }: PermissionMatrixProps) {
+  const permissions = normalizePermissions(permissionsProp);
+
   function toggle(module: keyof PermissionMap, action: (typeof ACTIONS)[number]["id"]) {
     if (readOnly || !onChange) return;
     const next = {

@@ -1,13 +1,14 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Select } from "@/components/ui/select";
 import { MarkEntryTable } from "@/components/examinations/mark-entry-table";
 import { getExam, useExaminationsState } from "@/lib/examinations/store";
-import { ACADEMIC_YEARS } from "@/lib/students/constants";
+import { AcademicYearSelect } from "@/components/academics/academic-year-select";
+import { activeAcademicYear } from "@/lib/academics/store";
 
-export default function MarksEntryPage() {
+function MarksEntryContent() {
   const [mounted, setMounted] = useState(false);
   const params = useSearchParams();
   const state = useExaminationsState();
@@ -20,7 +21,7 @@ export default function MarksEntryPage() {
     if (!mounted) return;
     const qExam = params.get("exam");
     if (qExam) setExamId(qExam);
-    setYear(state.exams[0]?.academicYear ?? ACADEMIC_YEARS[0]);
+    setYear(state.exams[0]?.academicYear ?? activeAcademicYear());
   }, [mounted, params, state.exams]);
 
   const exams = useMemo(
@@ -48,11 +49,7 @@ export default function MarksEntryPage() {
       <div className="flex flex-wrap gap-3 rounded-xl border bg-card p-4">
         <div className="min-w-[140px]">
           <label className="mb-1 block text-xs font-medium text-muted-foreground">Academic Year</label>
-          <Select value={year} onChange={(e) => setYear(e.target.value)}>
-            {ACADEMIC_YEARS.map((y) => (
-              <option key={y} value={y}>{y}</option>
-            ))}
-          </Select>
+          <AcademicYearSelect value={year} onChange={setYear} />
         </div>
         <div className="min-w-[200px] flex-1">
           <label className="mb-1 block text-xs font-medium text-muted-foreground">Exam</label>
@@ -79,5 +76,19 @@ export default function MarksEntryPage() {
         <MarkEntryTable exam={exam} subject={subject} />
       )}
     </div>
+  );
+}
+
+export default function MarksEntryPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex h-64 items-center justify-center text-muted-foreground">
+          Loading marks…
+        </div>
+      }
+    >
+      <MarksEntryContent />
+    </Suspense>
   );
 }

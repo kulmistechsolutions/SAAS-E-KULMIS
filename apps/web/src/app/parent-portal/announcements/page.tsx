@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { listAnnouncements } from "@/lib/parent-portal/store";
+import { usePortalState, listAnnouncements } from "@/lib/parent-portal/store";
 import {
   announcementCategoryLabel,
   relativeTime,
@@ -9,7 +9,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 
 export default function ParentAnnouncementsPage() {
-  const items = useMemo(() => listAnnouncements(), []);
+  const portal = usePortalState();
+  const items = useMemo(() => listAnnouncements(), [portal.announcements]);
 
   return (
     <div className="space-y-6">

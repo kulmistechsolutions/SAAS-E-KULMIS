@@ -15,7 +15,7 @@ import {
   recentPayments,
   useSalaryState,
 } from "@/lib/salary/store";
-import { ACADEMIC_YEARS } from "@/lib/students/constants";
+import { AcademicYearSelect } from "@/components/academics/academic-year-select";
 import { toast } from "@/lib/toast";
 import { Button } from "@/components/ui/button";
 
@@ -54,8 +54,8 @@ export default function SalaryDashboardPage() {
   );
   const months = useMemo(() => (mounted ? availableMonths() : []), [mounted, state]);
 
-  function handleGenerate() {
-    const res = generatePayroll(month);
+  async function handleGenerate() {
+    const res = await generatePayroll(month);
     if (!res.ok) {
       toast(res.error ?? "Could not generate payroll", "error");
       return;
@@ -83,17 +83,11 @@ export default function SalaryDashboardPage() {
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex items-center gap-2 rounded-lg border bg-card px-3 py-2 text-sm">
             <Calendar className="h-4 w-4 text-muted-foreground" />
-            <Select
+            <AcademicYearSelect
               value={filterYear}
-              onChange={(e) => setFilterYear(e.target.value)}
+              onChange={setFilterYear}
               className="h-8 min-w-[120px] border-0 bg-transparent py-0 shadow-none"
-            >
-              {ACADEMIC_YEARS.map((y) => (
-                <option key={y} value={y}>
-                  {y}
-                </option>
-              ))}
-            </Select>
+            />
           </div>
           <div className="flex items-center gap-2 rounded-lg border bg-card px-3 py-2 text-sm">
             <span className="text-muted-foreground">Month:</span>

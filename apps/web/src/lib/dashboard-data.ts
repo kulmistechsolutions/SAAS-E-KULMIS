@@ -172,7 +172,6 @@ export const quickActions = [
   { label: "Add Expense", icon: "expense" as const, theme: "rose" as const },
   { label: "Generate Report", icon: "report" as const, theme: "teal" as const },
   { label: "Send Notice", icon: "notice" as const, theme: "amber" as const },
-  { label: "Calendar", icon: "calendar" as const, theme: "sky" as const },
 ];
 
 export const admissionTrend = [

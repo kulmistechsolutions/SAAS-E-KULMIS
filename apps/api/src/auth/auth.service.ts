@@ -1,10 +1,14 @@
-import { Injectable, UnauthorizedException } from "@nestjs/common";
+import {
+  BadRequestException,
+  Injectable,
+  UnauthorizedException,
+} from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { JwtService } from "@nestjs/jwt";
 import { createHash, randomBytes } from "node:crypto";
 import type { User } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
-import { verifyPassword } from "./password.util";
+import { hashPassword, verifyPassword } from "./password.util";
 import type { JwtPayload } from "./auth.types";
 
 /** Parses simple durations like "15m", "7d", "12h", "30s" into milliseconds. */
@@ -37,27 +41,42 @@ export class AuthService {
     if (!ok) {
       throw new UnauthorizedException("Invalid credentials");
     }
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { lastLoginAt: new Date() },
+    });
     return this.issueTokens(user);
   }
 
-  /** Rotate a refresh token: revoke the old one, issue a fresh pair. */
+  /**
+   * Issue a fresh access token from a refresh token WITHOUT rotating the
+   * refresh token. Rotating on every call (revoke old + issue new) created a
+   * race: a client that fires several requests in parallel (e.g. the teacher
+   * portal loading profile + permissions + dashboard at once) triggers
+   * overlapping refreshes; the second one presents a token the first already
+   * revoked, gets 401, and the app force-logs-out to /login. Reusing the same
+   * refresh token until it expires makes concurrent refreshes idempotent.
+   */
   async refresh(refreshToken: string) {
     const tokenHash = this.hashToken(refreshToken);
     const existing = await this.prisma.refreshToken.findUnique({
       where: { tokenHash },
       include: { user: true },
     });
-    if (!existing || existing.revokedAt || existing.expiresAt < new Date()) {
+    if (
+      !existing ||
+      existing.revokedAt ||
+      existing.expiresAt < new Date() ||
+      existing.user.status !== "ACTIVE"
+    ) {
       throw new UnauthorizedException("Invalid refresh token");
     }
-    await this.prisma.refreshToken.update({
-      where: { id: existing.id },
-      data: { revokedAt: new Date() },
-    });
-    if (existing.user.status !== "ACTIVE") {
-      throw new UnauthorizedException("User is not active");
-    }
-    return this.issueTokens(existing.user);
+    const accessToken = await this.signAccessToken(existing.user);
+    return {
+      accessToken,
+      refreshToken,
+      user: this.userSummary(existing.user),
+    };
   }
 
   /** Revoke a refresh token (logout). */
@@ -69,14 +88,27 @@ export class AuthService {
     });
   }
 
-  private async issueTokens(user: User) {
+  private signAccessToken(user: User): Promise<string> {
     const payload: JwtPayload = {
       sub: user.id,
       sid: user.schoolId,
       role: user.role,
       username: user.username,
     };
-    const accessToken = await this.jwt.signAsync(payload);
+    return this.jwt.signAsync(payload);
+  }
+
+  private userSummary(user: User) {
+    return {
+      id: user.id,
+      username: user.username,
+      role: user.role,
+      schoolId: user.schoolId,
+    };
+  }
+
+  private async issueTokens(user: User) {
+    const accessToken = await this.signAccessToken(user);
 
     const raw = randomBytes(32).toString("hex");
     const ttlMs = parseDurationMs(this.config.get<string>("JWT_REFRESH_TTL") ?? "7d");
@@ -92,13 +124,33 @@ export class AuthService {
     return {
       accessToken,
       refreshToken: raw,
-      user: {
-        id: user.id,
-        username: user.username,
-        role: user.role,
-        schoolId: user.schoolId,
-      },
+      user: this.userSummary(user),
     };
+  }
+
+  /** Authenticated user changes their own password. */
+  async changePassword(
+    userId: string,
+    currentPassword: string,
+    newPassword: string,
+  ): Promise<void> {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user || user.status !== "ACTIVE") {
+      throw new UnauthorizedException("Invalid credentials");
+    }
+    const ok = await verifyPassword(currentPassword, user.passwordHash);
+    if (!ok) {
+      throw new BadRequestException("Current password is incorrect");
+    }
+    const passwordHash = await hashPassword(newPassword);
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { passwordHash },
+    });
+    await this.prisma.refreshToken.updateMany({
+      where: { userId, revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
   }
 
   private hashToken(raw: string): string {

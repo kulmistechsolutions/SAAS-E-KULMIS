@@ -6,7 +6,11 @@ import {
   HttpCode,
   Post,
 } from "@nestjs/common";
-import { loginSchema, type TenantContext } from "@ekulmis/shared";
+import {
+  changePasswordSchema,
+  loginSchema,
+  type TenantContext,
+} from "@ekulmis/shared";
 import { AuthService } from "./auth.service";
 import { CurrentUser } from "./current-user.decorator";
 import { Public } from "./public.decorator";
@@ -58,5 +62,20 @@ export class AuthController {
   @Get("me")
   me(@CurrentUser() user: AuthUser) {
     return user;
+  }
+
+  @Post("change-password")
+  @HttpCode(200)
+  async changePassword(@CurrentUser() user: AuthUser, @Body() body: unknown) {
+    const parsed = changePasswordSchema.safeParse(body);
+    if (!parsed.success) {
+      throw new BadRequestException(parsed.error.flatten());
+    }
+    await this.auth.changePassword(
+      user.userId,
+      parsed.data.currentPassword,
+      parsed.data.newPassword,
+    );
+    return { success: true };
   }
 }

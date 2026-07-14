@@ -112,14 +112,18 @@ export default function ParentsPage() {
     }
   }
 
-  function handleDisable() {
+  async function handleDisable() {
     if (!disableId) return;
     const next: ParentStatus = disableId.status === "ACTIVE" ? "INACTIVE" : "ACTIVE";
-    setParentStatus(disableId.id, next);
-    toast(
-      `${disableId.name} is now ${next === "ACTIVE" ? "active" : "inactive"}.`,
-      next === "ACTIVE" ? "success" : "info",
-    );
+    const res = await setParentStatus(disableId.id, next);
+    if (res.ok) {
+      toast(
+        `${disableId.name} is now ${next === "ACTIVE" ? "active" : "inactive"}.`,
+        next === "ACTIVE" ? "success" : "info",
+      );
+    } else {
+      toast(res.error ?? "Update failed", "error");
+    }
     setDisableId(null);
   }
 
@@ -219,8 +223,11 @@ export default function ParentsPage() {
                         <Action href={`/parents/${p.id}`} title="View Profile" icon={Eye} />
                         <Action title="Edit" icon={Pencil} onClick={() => setEditId(p.id)} />
                         <Action title="Reset Password" icon={KeyRound} onClick={() => {
-                          const res = resetParentPassword(p.id);
-                          if (res.ok && res.password) toast(`New password for ${p.code}: ${res.password}`, "info");
+                          void resetParentPassword(p.id).then((res) => {
+                            if (res.ok && res.password)
+                              toast(`New password for ${p.code}: ${res.password}`, "info");
+                            else toast(res.error ?? "Reset failed", "error");
+                          });
                         }} />
                         <Action title="Print" icon={Printer} onClick={() => {
                           const full = getParentWithChildren(p.id);

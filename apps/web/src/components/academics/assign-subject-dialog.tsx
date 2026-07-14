@@ -34,10 +34,10 @@ export function AssignSubjectDialog({ open, onClose, classId }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, classId]);
 
-  function submit() {
+  async function submit() {
     setError(null);
     if (!subjectId) return setError("Please select a subject.");
-    const res = assignSubjectToClass(classId, subjectId);
+    const res = await assignSubjectToClass(classId, subjectId);
     if (!res.ok) return setError(res.error ?? "Operation failed.");
     toast("Subject assigned to class.", "success");
     onClose();

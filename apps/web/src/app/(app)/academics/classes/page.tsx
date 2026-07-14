@@ -22,6 +22,7 @@ import { ClassFormDialog } from "@/components/academics/class-form-dialog";
 import { ConfirmDialog } from "@/components/students/confirm-dialog";
 import {
   classRows,
+  canCreateClassInYear,
   deleteClass,
   exportClassesCsv,
   getAcademicsState,
@@ -53,6 +54,10 @@ export default function ClassesPage() {
   const [deleting, setDeleting] = useState<ClassRow | null>(null);
 
   const years = getAcademicsState().academicYears;
+  const activeYearName =
+    years.find((y) => y.status === "ACTIVE")?.name ?? "";
+  const filterYear = year || activeYearName;
+  const canAddClass = canCreateClassInYear(filterYear);
 
   const rows = useMemo(() => {
     const list = classRows({
@@ -85,9 +90,9 @@ export default function ClassesPage() {
     }
   }
 
-  function handleDelete() {
+  async function handleDelete() {
     if (!deleting) return;
-    const res = deleteClass(deleting.id);
+    const res = await deleteClass(deleting.id);
     if (!res.ok) toast(res.error ?? "Delete failed.", "error");
     else toast(`${deleting.name} deleted.`, "success");
     setDeleting(null);
@@ -105,9 +110,9 @@ export default function ClassesPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold">Classes</h1>
+          <h1 className="text-2xl font-bold">Classes / Grades</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Create and manage classes for the academic year.
+            Each academic year has up to 12 grades. Rename grades to match your school&apos;s naming — sections are managed separately.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -127,9 +132,11 @@ export default function ClassesPage() {
           <Button variant="outline" onClick={() => { exportClassesCsv(); toast(`Exported ${rows.length} classes.`, "info"); }}>
             <FileDown className="mr-2 h-4 w-4" /> Export
           </Button>
-          <Button onClick={() => { setEditing(null); setFormOpen(true); }}>
-            <Plus className="mr-2 h-4 w-4" /> Add Class
-          </Button>
+          {canAddClass ? (
+            <Button onClick={() => { setEditing(null); setFormOpen(true); }}>
+              <Plus className="mr-2 h-4 w-4" /> Add Class
+            </Button>
+          ) : null}
         </div>
       </div>
 
@@ -215,7 +222,7 @@ export default function ClassesPage() {
                       <div className="flex justify-end gap-1">
                         <Action href={`/academics/classes/${r.id}`} title="View Profile" icon={Eye} />
                         <Action
-                          title="Edit"
+                          title="Rename"
                           icon={Pencil}
                           onClick={() => {
                             const cls = getAcademicsState().classes.find((c) => c.id === r.id) ?? null;

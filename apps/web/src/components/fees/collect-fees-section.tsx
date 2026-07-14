@@ -8,9 +8,14 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Pagination } from "@/components/ui/pagination";
 import { money } from "@/lib/fees/format";
-import { listStudentFees } from "@/lib/fees/store";
+import { listStudentFees, useFeesState } from "@/lib/fees/store";
+import { useStudentsState } from "@/lib/students/store";
 import type { StudentFeeRow } from "@/lib/fees/types";
-import { CLASSES, SECTIONS } from "@/lib/students/constants";
+import {
+  classNamesForYear,
+  sectionNamesForClass,
+  useAcademicsState,
+} from "@/lib/academics/store";
 import { FeeStatusBadge } from "./fee-status-badge";
 
 const PAGE_SIZE = 8;
@@ -34,7 +39,21 @@ export function CollectFeesSection({
   const [applied, setApplied] = useState({ klass: "", section: "", search: "" });
   const [page, setPage] = useState(1);
   const [mounted, setMounted] = useState(false);
+  const academics = useAcademicsState();
+  // Subscribe to the students + fees stores so the table recomputes once their
+  // data finishes loading (both hydrate asynchronously after first render).
+  const studentsState = useStudentsState();
+  const feesState = useFeesState();
   useEffect(() => setMounted(true), []);
+
+  const classOptions = useMemo(
+    () => classNamesForYear(academicYear),
+    [academicYear, academics.classes],
+  );
+  const sectionOptions = useMemo(
+    () => (klass ? sectionNamesForClass(klass, academicYear) : []),
+    [klass, academicYear, academics.sections],
+  );
 
   const rows = useMemo(
     () =>
@@ -47,7 +66,8 @@ export function CollectFeesSection({
             search: applied.search || undefined,
           })
         : [],
-    [mounted, academicYear, monthKey, applied],
+    // studentsState / feesState included so rows recompute when they hydrate.
+    [mounted, academicYear, monthKey, applied, studentsState, feesState],
   );
 
   const pageCount = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
@@ -66,6 +86,11 @@ export function CollectFeesSection({
     setPage(1);
   }
 
+  function onClassChange(next: string) {
+    setKlass(next);
+    setSection("");
+  }
+
   return (
     <div className="rounded-2xl border bg-card shadow-sm">
       <div className="border-b px-5 py-4">
@@ -82,9 +107,9 @@ export function CollectFeesSection({
           <label className="mb-1 block text-xs font-medium text-muted-foreground">
             Class
           </label>
-          <Select value={klass} onChange={(e) => setKlass(e.target.value)}>
+          <Select value={klass} onChange={(e) => onClassChange(e.target.value)}>
             <option value="">All Classes</option>
-            {CLASSES.map((c) => (
+            {classOptions.map((c) => (
               <option key={c} value={c}>
                 {c}
               </option>
@@ -95,9 +120,13 @@ export function CollectFeesSection({
           <label className="mb-1 block text-xs font-medium text-muted-foreground">
             Section
           </label>
-          <Select value={section} onChange={(e) => setSection(e.target.value)}>
+          <Select
+            value={section}
+            onChange={(e) => setSection(e.target.value)}
+            disabled={!klass || sectionOptions.length === 0}
+          >
             <option value="">All Sections</option>
-            {SECTIONS.map((s) => (
+            {sectionOptions.map((s) => (
               <option key={s} value={s}>
                 Section {s}
               </option>

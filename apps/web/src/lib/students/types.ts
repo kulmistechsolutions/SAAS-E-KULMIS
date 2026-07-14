@@ -1,6 +1,7 @@
 export type Gender = "MALE" | "FEMALE";
 export type StudentStatus = "ACTIVE" | "INACTIVE" | "GRADUATED";
 export type ParentStatus = "ACTIVE" | "INACTIVE";
+export type FeeStartMode = "FULL_CURRENT" | "AGREEMENT" | "NEXT_MONTH";
 
 export interface Parent {
   id: string;
@@ -33,6 +34,12 @@ export interface Student {
   registrationDate: string;
   status: StudentStatus;
   notes?: string | null;
+  hasPhoto?: boolean;
+  /** Supabase public/signed URL from the API when available. */
+  photoUrl?: string | null;
+  feeStartMode?: FeeStartMode | null;
+  feeAgreementAmount?: number | null;
+  annualFeeAmount?: number | null;
 }
 
 /** A student joined with its parent, used by list/table views. */
@@ -53,6 +60,13 @@ export interface StudentInput {
   academicYear: string;
   status?: StudentStatus;
   notes?: string | null;
+  feeStartMode?: FeeStartMode;
+  agreementAmount?: number;
+}
+
+export interface StudentPhotoChange {
+  file?: File | null;
+  remove?: boolean;
 }
 
 export interface StudentsState {

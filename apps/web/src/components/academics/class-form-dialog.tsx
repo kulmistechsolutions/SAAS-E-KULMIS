@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/lib/toast";
 import {
   activeAcademicYear,
+  canCreateClassInYear,
   createClass,
   getAcademicsState,
   updateClass,
@@ -32,6 +33,8 @@ export function ClassFormDialog({ open, onClose, cls }: Props) {
   const [notes, setNotes] = useState("");
   const [error, setError] = useState<string | null>(null);
 
+  const allowCreate = canCreateClassInYear(academicYear);
+
   useEffect(() => {
     if (!open) return;
     setError(null);
@@ -50,9 +53,14 @@ export function ClassFormDialog({ open, onClose, cls }: Props) {
     }
   }, [open, cls]);
 
-  function submit() {
+  async function submit() {
     setError(null);
     if (!name.trim()) return setError("Class name is required.");
+    if (!isEdit && !allowCreate) {
+      return setError(
+        "This academic year already has 12 classes. Rename an existing class instead.",
+      );
+    }
     const input = {
       name,
       academicYear,
@@ -60,9 +68,10 @@ export function ClassFormDialog({ open, onClose, cls }: Props) {
       status,
       notes: notes || null,
     };
-    const res = isEdit && cls ? updateClass(cls.id, input) : createClass(input);
+    const res =
+      isEdit && cls ? await updateClass(cls.id, input) : await createClass(input);
     if (!res.ok) return setError(res.error ?? "Operation failed.");
-    toast(isEdit ? "Class updated." : "Class created.", "success");
+    toast(isEdit ? "Class renamed." : "Class created.", "success");
     onClose();
   }
 
@@ -70,14 +79,20 @@ export function ClassFormDialog({ open, onClose, cls }: Props) {
     <Dialog
       open={open}
       onClose={onClose}
-      title={isEdit ? "Edit Class" : "Add Class"}
-      description="Class names must be unique within an academic year."
+      title={isEdit ? "Rename Class" : "Add Class"}
+      description={
+        isEdit
+          ? "Update the display name for this grade. The class record stays the same — no duplicate is created."
+          : "Class names must be unique within an academic year. Each year supports up to 12 grades."
+      }
       footer={
         <>
           <Button variant="outline" onClick={onClose}>
             Cancel
           </Button>
-          <Button onClick={submit}>{isEdit ? "Save Changes" : "Create Class"}</Button>
+          <Button onClick={submit} disabled={!isEdit && !allowCreate}>
+            {isEdit ? "Save Name" : "Create Class"}
+          </Button>
         </>
       }
     >
@@ -97,7 +112,11 @@ export function ClassFormDialog({ open, onClose, cls }: Props) {
         </div>
         <div>
           <Label required>Academic Year</Label>
-          <Select value={academicYear} onChange={(e) => setAcademicYear(e.target.value)}>
+          <Select
+            value={academicYear}
+            onChange={(e) => setAcademicYear(e.target.value)}
+            disabled={isEdit}
+          >
             {years.map((y) => (
               <option key={y.id} value={y.name}>
                 {y.name}

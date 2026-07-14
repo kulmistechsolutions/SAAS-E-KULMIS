@@ -31,7 +31,7 @@ export function ResetPasswordDialog({
   async function handleSubmit() {
     if (!userId) return;
     setSubmitting(true);
-    const res = resetPassword(userId, password);
+    const res = await resetPassword(userId, password);
     setSubmitting(false);
     if (!res.ok) {
       toast(res.error ?? "Reset failed", "error");

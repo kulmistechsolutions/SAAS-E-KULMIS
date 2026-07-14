@@ -5,21 +5,26 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createExamGroup, useExaminationsState } from "@/lib/examinations/store";
-import { ACADEMIC_YEARS } from "@/lib/students/constants";
+import { AcademicYearSelect } from "@/components/academics/academic-year-select";
+import { useAcademicYearSelect } from "@/lib/academics/year-select";
 import { toast } from "@/lib/toast";
 
 export default function ExamGroupsPage() {
   const { examGroups, exams } = useExaminationsState();
   const [name, setName] = useState("");
-  const [year, setYear] = useState(ACADEMIC_YEARS[0]);
+  const { year, setYear } = useAcademicYearSelect("exam-groups-year");
   const [desc, setDesc] = useState("");
 
-  function handleCreate() {
+  async function handleCreate() {
     if (!name.trim()) {
       toast("Group name required", "error");
       return;
     }
-    createExamGroup(name.trim(), year, desc || undefined);
+    const res = await createExamGroup(name.trim(), year, desc || undefined);
+    if (!res.ok) {
+      toast(res.error ?? "Failed to create group", "error");
+      return;
+    }
     toast("Exam group created", "success");
     setName("");
     setDesc("");
@@ -41,6 +46,10 @@ export default function ExamGroupsPage() {
             <div>
               <Label required>Group Name</Label>
               <Input className="mt-1.5" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Academic Final" />
+            </div>
+            <div>
+              <Label>Academic Year</Label>
+              <AcademicYearSelect className="mt-1.5" value={year} onChange={setYear} />
             </div>
             <div>
               <Label>Description</Label>

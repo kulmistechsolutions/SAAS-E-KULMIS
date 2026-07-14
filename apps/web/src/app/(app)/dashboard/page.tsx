@@ -1,5 +1,6 @@
 "use client";
 
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { LucideIcon } from "lucide-react";
 import {
   AlertTriangle,
@@ -25,6 +26,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth";
 import { toast } from "@/lib/toast";
 import { StatCard, type StatTheme } from "@/components/dashboard/stat-card";
+import { TeacherDashboard } from "@/components/dashboard/teacher-dashboard";
 import {
   AdmissionAreaChart,
   AttendanceDonut,
@@ -33,18 +35,11 @@ import {
 } from "@/components/dashboard/charts";
 import { cn } from "@/lib/utils";
 import {
-  admissionTrend,
-  alerts,
-  attendanceBreakdown,
-  feeCollection,
-  incomeVsExpense,
-  quickActions,
-  recentActivities,
-  stats,
-  systemInfo,
-  topClasses,
-  upcomingExams,
-} from "@/lib/dashboard-data";
+  apiAdminDashboard,
+  money,
+  type AdminDashboardResponse,
+} from "@/lib/dashboard/api";
+import { quickActions, upcomingExams } from "@/lib/dashboard-data";
 
 const STAT_ICONS: Record<string, LucideIcon> = {
   students: Users,
@@ -73,11 +68,15 @@ const ALERT_ICONS: Record<string, LucideIcon> = {
   check: CheckCircle2,
 };
 
-/** Quick actions whose target page already exists navigate there; the rest
- * show a "coming soon" toast so every button responds. */
 const ACTION_ROUTES: Record<string, string> = {
-  "Add Student": "/students",
-  "Take Attendance": "/attendance",
+  "Add Student": "/students?add=1",
+  "Collect Fees": "/finance/collect",
+  "Take Attendance": "/attendance/students",
+  "Create Exam": "/examinations/create",
+  "Create Quiz": "/quiz/create",
+  "Add Expense": "/expenses/list?add=1",
+  "Generate Report": "/reports",
+  "Send Notice": "/announcements?compose=1",
 };
 
 const ACTION_THEME: Record<StatTheme, string> = {
@@ -95,6 +94,120 @@ const ALERT_TONE: Record<string, string> = {
   sky: "text-sky-500",
   emerald: "text-emerald-500",
 };
+
+const ACTIVITY_COLORS = [
+  "#3b82f6",
+  "#f59e0b",
+  "#ef4444",
+  "#8b5cf6",
+  "#22c55e",
+];
+
+function buildStats(data: AdminDashboardResponse) {
+  const outstandingStudents = data.fees.partialPayments;
+  return [
+    {
+      key: "students",
+      label: "Total Students",
+      value: data.students.total.toLocaleString(),
+      hint: `+${data.students.newThisMonth} this month`,
+      hintTone: "up" as const,
+      icon: "students" as const,
+      theme: "violet" as const,
+    },
+    {
+      key: "teachers",
+      label: "Total Teachers",
+      value: data.teachers.total.toLocaleString(),
+      hint: `${data.teachers.morning + data.teachers.afternoon} active`,
+      hintTone: "muted" as const,
+      icon: "teachers" as const,
+      theme: "emerald" as const,
+    },
+    {
+      key: "parents",
+      label: "Total Parents",
+      value: data.parents.total.toLocaleString(),
+      hint: "Registered",
+      hintTone: "muted" as const,
+      icon: "parents" as const,
+      theme: "amber" as const,
+    },
+    {
+      key: "classes",
+      label: "Total Classes",
+      value: data.academics.classes.toLocaleString(),
+      hint: `${data.academics.sections} Sections`,
+      hintTone: "muted" as const,
+      icon: "classes" as const,
+      theme: "sky" as const,
+    },
+    {
+      key: "fees",
+      label: "Fees Outstanding",
+      value: money(data.fees.totalOutstanding),
+      hint: `${outstandingStudents} partial`,
+      hintTone: "muted" as const,
+      icon: "fees" as const,
+      theme: "rose" as const,
+    },
+    {
+      key: "attendance",
+      label: "Today's Attendance",
+      value: `${data.attendanceToday.percentage}%`,
+      hint: "Present",
+      hintTone: "muted" as const,
+      icon: "attendance" as const,
+      theme: "teal" as const,
+    },
+  ];
+}
+
+function buildAttendance(data: AdminDashboardResponse) {
+  const { present, absent, late, total } = data.attendanceToday;
+  const pct = (n: number) => (total ? `${Math.round((n / total) * 1000) / 10}%` : "0%");
+  return {
+    total,
+    segments: [
+      { name: "Present", value: present, percent: pct(present), color: "#22c55e" },
+      { name: "Absent", value: absent, percent: pct(absent), color: "#ef4444" },
+      { name: "Late", value: late, percent: pct(late), color: "#f59e0b" },
+    ],
+  };
+}
+
+function buildAlerts(data: AdminDashboardResponse) {
+  const alerts: { text: string; icon: "alert" | "info" | "check"; tone: string }[] = [];
+  if (data.fees.totalOutstanding > 0) {
+    alerts.push({
+      text: `${money(data.fees.totalOutstanding)} in outstanding fees`,
+      icon: "alert",
+      tone: "rose",
+    });
+  }
+  if (data.teacherAttendanceToday.absent > 0) {
+    alerts.push({
+      text: `${data.teacherAttendanceToday.absent} teachers absent today`,
+      icon: "alert",
+      tone: "amber",
+    });
+  }
+  if (data.fees.partialPayments > 0) {
+    alerts.push({
+      text: `${data.fees.partialPayments} students with partial payments`,
+      icon: "info",
+      tone: "sky",
+    });
+  }
+  if (alerts.length === 0) {
+    alerts.push({
+      text: "All systems operating normally",
+      icon: "check",
+      tone: "emerald",
+    });
+  }
+  return alerts;
+}
 
 function Panel({
   title,
@@ -135,9 +248,115 @@ function Panel({
   );
 }
 
+async function fetchDashboardWithRetry(
+  attempts = 3,
+): Promise<AdminDashboardResponse> {
+  let lastError: unknown;
+  for (let i = 0; i < attempts; i++) {
+    try {
+      return await apiAdminDashboard();
+    } catch (err) {
+      lastError = err;
+      if (i < attempts - 1) {
+        await new Promise((r) => setTimeout(r, 400 * (i + 1)));
+      }
+    }
+  }
+  throw lastError;
+}
+
 export default function DashboardPage() {
   const { user } = useAuth();
+
+  if (user?.role === "TEACHER") {
+    return <TeacherDashboard />;
+  }
+
+  return <AdminDashboard />;
+}
+
+function AdminDashboard() {
+  const { user } = useAuth();
   const router = useRouter();
+  const [data, setData] = useState<AdminDashboardResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+
+  const loadDashboard = useCallback(async (showToastOnError = true) => {
+    setLoading(true);
+    setLoadError(false);
+    try {
+      const res = await fetchDashboardWithRetry();
+      setData(res);
+    } catch {
+      setData(null);
+      setLoadError(true);
+      if (showToastOnError) toast("Failed to load dashboard data", "error");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!user) return;
+    void loadDashboard();
+  }, [user, loadDashboard]);
+
+  const stats = useMemo(() => (data ? buildStats(data) : []), [data]);
+  const attendanceBreakdown = useMemo(
+    () => (data ? buildAttendance(data) : null),
+    [data],
+  );
+  const feeCollection = useMemo(() => {
+    if (!data) return null;
+    const total = data.fees.collectedThisMonth;
+    return {
+      total: money(total),
+      change: `${money(data.fees.collectedToday)} collected today`,
+      series: data.charts.feeCollection.map((p) => ({
+        label: p.label,
+        value: p.value,
+      })),
+    };
+  }, [data]);
+  const incomeVsExpense = useMemo(() => {
+    if (!data) return null;
+    const { finance, charts } = data;
+    return {
+      income: money(finance.totalIncome),
+      expenses: money(finance.totalExpenses),
+      netIncome: money(finance.netIncome),
+      series: charts.incomeVsExpense.map((p) => ({
+        label: p.label,
+        income: p.income,
+        expense: p.expense,
+      })),
+    };
+  }, [data]);
+  const recentActivities = useMemo(() => {
+    if (!data) return [];
+    return data.recentActivities.map((a, i) => ({
+      id: a.id,
+      text: `${a.action} — ${a.module} (${a.username})`,
+      color: ACTIVITY_COLORS[i % ACTIVITY_COLORS.length]!,
+    }));
+  }, [data]);
+  const alerts = useMemo(() => (data ? buildAlerts(data) : []), [data]);
+  const admissionTrend = useMemo(
+    () => data?.charts.studentGrowth ?? [],
+    [data],
+  );
+  const systemInfo = useMemo(() => {
+    if (!data) return [];
+    return [
+      { label: "Academic Year", value: data.activeAcademicYear ?? "—", tone: "default" as const },
+      { label: "Total Subjects", value: String(data.academics.subjects), tone: "default" as const },
+      { label: "Net Income", value: money(data.finance.netIncome), tone: "default" as const },
+      { label: "Fee Collection (Month)", value: money(data.fees.collectedThisMonth), tone: "default" as const },
+      { label: "Database Status", value: "Connected", tone: "success" as const },
+      { label: "Server Status", value: "Online", tone: "success" as const },
+    ];
+  }, [data]);
 
   function runAction(label: string) {
     const href = ACTION_ROUTES[label];
@@ -161,9 +380,33 @@ export default function DashboardPage() {
     weekday: "long",
   });
 
+  if (loading) {
+    return (
+      <div className="flex h-64 items-center justify-center text-muted-foreground">
+        Loading dashboard…
+      </div>
+    );
+  }
+
+  if (!data || !attendanceBreakdown || !feeCollection || !incomeVsExpense) {
+    return (
+      <div className="flex h-64 flex-col items-center justify-center gap-3 text-muted-foreground">
+        <p>{loadError ? "Could not reach the dashboard API." : "Dashboard data unavailable."}</p>
+        {loadError ? (
+          <button
+            type="button"
+            onClick={() => void loadDashboard()}
+            className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90"
+          >
+            Retry
+          </button>
+        ) : null}
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
-      {/* Welcome header */}
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-foreground sm:text-3xl">
@@ -188,7 +431,6 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Stat cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         {stats.map((s) => (
           <StatCard
@@ -203,15 +445,15 @@ export default function DashboardPage() {
         ))}
       </div>
 
-      {/* Attendance / Fee / Income row */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        {/* Attendance donut */}
         <Panel title="Attendance Overview (Today)">
           <div className="flex flex-col items-center gap-4 sm:flex-row">
             <div className="relative w-full max-w-[220px]">
               <AttendanceDonut segments={attendanceBreakdown.segments} />
               <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-2xl font-bold text-foreground">92.4%</span>
+                <span className="text-2xl font-bold text-foreground">
+                  {data.attendanceToday.percentage}%
+                </span>
                 <span className="text-xs text-muted-foreground">Present</span>
               </div>
             </div>
@@ -239,7 +481,6 @@ export default function DashboardPage() {
           </div>
         </Panel>
 
-        {/* Fee collection */}
         <Panel title="Fee Collection Overview (This Month)">
           <p className="text-xs text-muted-foreground">Total Collected</p>
           <div className="flex items-baseline gap-2">
@@ -255,7 +496,6 @@ export default function DashboardPage() {
           </div>
         </Panel>
 
-        {/* Income vs expense */}
         <Panel title="Income vs Expense (This Month)">
           <div className="flex flex-wrap items-center gap-4 text-xs">
             <span className="inline-flex items-center gap-1.5">
@@ -293,9 +533,7 @@ export default function DashboardPage() {
         </Panel>
       </div>
 
-      {/* Exams / Activities / Alerts / Quick actions row */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {/* Upcoming exams */}
         <Panel
           title="Upcoming Exams"
           action="View All"
@@ -325,36 +563,38 @@ export default function DashboardPage() {
           </ul>
         </Panel>
 
-        {/* Recent activities */}
         <Panel
           title="Recent Activities"
           action="View All"
           onAction={() => toast("Activity log — coming soon", "info")}
         >
           <ul className="space-y-4">
-            {recentActivities.map((a) => (
-              <li key={a.text} className="flex items-start gap-3 text-sm">
-                <span
-                  className="mt-1.5 h-2 w-2 shrink-0 rounded-full"
-                  style={{ backgroundColor: a.color }}
-                />
-                <span className="text-foreground">{a.text}</span>
-              </li>
-            ))}
+            {recentActivities.length > 0 ? (
+              recentActivities.map((a) => (
+                <li key={a.id} className="flex items-start gap-3 text-sm">
+                  <span
+                    className="mt-1.5 h-2 w-2 shrink-0 rounded-full"
+                    style={{ backgroundColor: a.color }}
+                  />
+                  <span className="text-foreground">{a.text}</span>
+                </li>
+              ))
+            ) : (
+              <li className="text-sm text-muted-foreground">No recent activity.</li>
+            )}
           </ul>
         </Panel>
 
-        {/* Alerts */}
         <Panel
           title="Alerts & Notifications"
           action="View All"
           onAction={() => toast("Notifications — coming soon", "info")}
         >
           <ul className="space-y-3">
-            {alerts.map((a) => {
+            {alerts.map((a, i) => {
               const Icon = ALERT_ICONS[a.icon];
               return (
-                <li key={a.text} className="flex items-start gap-3 text-sm">
+                <li key={`${a.icon}-${i}`} className="flex items-start gap-3 text-sm">
                   <Icon
                     className={cn("mt-0.5 h-4 w-4 shrink-0", ALERT_TONE[a.tone])}
                   />
@@ -365,7 +605,6 @@ export default function DashboardPage() {
           </ul>
         </Panel>
 
-        {/* Quick actions grid */}
         <Panel title="Quick Actions" id="quick-actions">
           <div className="grid grid-cols-3 gap-3">
             {quickActions.map((q) => {
@@ -390,40 +629,39 @@ export default function DashboardPage() {
         </Panel>
       </div>
 
-      {/* Admission trend / Top classes / System info row */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-4">
-        {/* Admission trend */}
         <Panel title="Student Admission Trend" className="xl:col-span-2">
           <AdmissionAreaChart data={admissionTrend} />
         </Panel>
 
-        {/* Top classes */}
         <Panel
-          title="Top Classes by Strength"
+          title="Recent Payments"
           action="View All"
-          onAction={() => router.push("/students")}
+          onAction={() => router.push("/finance/history")}
         >
-          <ul className="space-y-4">
-            {topClasses.map((c) => (
-              <li key={c.label} className="space-y-1.5">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-foreground">{c.label}</span>
-                  <span className="font-medium tabular-nums text-muted-foreground">
-                    {c.value}/{c.capacity}
-                  </span>
+          <ul className="space-y-3">
+            {data.recentPayments.slice(0, 5).map((p) => (
+              <li
+                key={p.id}
+                className="flex items-center justify-between gap-2 text-sm"
+              >
+                <div className="min-w-0">
+                  <p className="truncate font-medium">{p.student}</p>
+                  <p className="truncate text-xs text-muted-foreground">
+                    {p.receiptNumber} · {p.className ?? "—"}
+                  </p>
                 </div>
-                <div className="h-2 w-full overflow-hidden rounded-full bg-secondary">
-                  <div
-                    className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-emerald-600"
-                    style={{ width: `${(c.value / c.capacity) * 100}%` }}
-                  />
-                </div>
+                <span className="shrink-0 font-semibold tabular-nums text-emerald-600">
+                  {money(p.amount)}
+                </span>
               </li>
             ))}
+            {data.recentPayments.length === 0 && (
+              <li className="text-sm text-muted-foreground">No payments yet.</li>
+            )}
           </ul>
         </Panel>
 
-        {/* System information */}
         <Panel title="System Information">
           <ul className="divide-y">
             {systemInfo.map((s) => (

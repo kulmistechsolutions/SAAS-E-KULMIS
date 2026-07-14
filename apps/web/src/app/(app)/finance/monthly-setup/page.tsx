@@ -1,12 +1,16 @@
 "use client";
 
-import { Calendar, CheckCircle2 } from "lucide-react";
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import { Calendar, CheckCircle2, GraduationCap } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { monthLabel, nextMonthKey } from "@/lib/fees/format";
+import { apiFeeSettings } from "@/lib/fees/api";
 import {
   activateNextMonth,
   canActivateNextMonth,
+  getFeeMonthSetupDay,
   useFeesState,
 } from "@/lib/fees/store";
 import { toast } from "@/lib/toast";
@@ -15,11 +19,51 @@ export default function MonthlySetupPage() {
   const fees = useFeesState();
   const nextKey = nextMonthKey(fees.activeMonthKey);
   const canActivate = canActivateNextMonth();
+  const setupDay = getFeeMonthSetupDay();
+  const [billingMode, setBillingMode] = useState<"MONTHLY" | "ACADEMIC_YEAR" | null>(
+    null,
+  );
 
-  function handleSetup() {
-    const res = activateNextMonth();
+  useEffect(() => {
+    void apiFeeSettings()
+      .then((s) => setBillingMode(s.billingMode))
+      .catch(() => setBillingMode("MONTHLY"));
+  }, []);
+
+  async function handleSetup() {
+    const res = await activateNextMonth();
     if (!res.ok) toast(res.error ?? "Failed", "error");
     else toast(`Activated ${monthLabel(nextKey)}`, "success");
+  }
+
+  if (billingMode === "ACADEMIC_YEAR") {
+    return (
+      <div className="mx-auto max-w-2xl space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold">Monthly Setup</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Not used when Academic Year billing is active.
+          </p>
+        </div>
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200">
+          <div className="flex items-start gap-3">
+            <GraduationCap className="mt-0.5 h-5 w-5 shrink-0" />
+            <div>
+              <p className="font-semibold">Academic Year Billing is enabled</p>
+              <p className="mt-1 text-sm">
+                The school charges the full annual tuition upfront and tracks month-by-month
+                progress. Use Academic Year Setup instead of monthly activation.
+              </p>
+              <Link href="/finance/academic-year-setup">
+                <Button className="mt-4" variant="outline">
+                  Go to Academic Year Setup
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -65,9 +109,9 @@ export default function MonthlySetupPage() {
           Activate Next Month
         </div>
         <p className="mt-2 text-sm text-muted-foreground">
-          A new month can only be activated after the 25th of the current billing month.
-          When activated, the system creates fee records for all active students, carries
-          forward unpaid balances, and skips months covered by advance payments.
+          A new month can only be activated after the {setupDay}th of the current billing
+          month. When activated, the system creates fee records for all active students,
+          carries forward unpaid balances, and skips months covered by advance payments.
         </p>
         <div className="mt-4 rounded-xl bg-secondary/30 p-4">
           <p className="text-xs text-muted-foreground">Next Month</p>
@@ -78,7 +122,7 @@ export default function MonthlySetupPage() {
         </Button>
         {!canActivate && (
           <p className="mt-2 text-center text-xs text-amber-600">
-            Available after the 25th of {monthLabel(fees.activeMonthKey)}
+            Available after the {setupDay}th of {monthLabel(fees.activeMonthKey)}
           </p>
         )}
       </div>

@@ -1,10 +1,24 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
+import { ApiError } from "@/lib/api";
+import {
+  getAcademicsState,
+  activeAcademicYear as getActiveAcademicYear,
+} from "@/lib/academics/store";
 import { getState as getStudentsState } from "@/lib/students/store";
 import type { Student } from "@/lib/students/types";
-import { monthLabel, nextMonthKey, parseMonthKey } from "./format";
-import { buildSeed, DEMO_TODAY } from "./seed";
+import {
+  apiChargeMonth,
+  apiFeeSettings,
+  apiFinanceDashboard,
+  apiListCharges,
+  apiListPayments,
+  apiPayFee,
+  mapApiCharge,
+  mapApiPayment,
+} from "./api";
+import { monthKey, monthLabel, nextMonthKey, parseMonthKey } from "./format";
 import type {
   FeeCharge,
   FeeChargeStatus,
@@ -18,11 +32,9 @@ import type {
   StudentLedgerRow,
 } from "./types";
 
-const KEY = "ekulmis_fees_v1";
-
 const EMPTY: FeesState = {
   academicYear: "2024-2025",
-  activeMonthKey: "2024-05",
+  activeMonthKey: monthKey(new Date().getFullYear(), new Date().getMonth() + 1),
   billingPeriods: [],
   charges: [],
   payments: [],
@@ -31,6 +43,11 @@ const EMPTY: FeesState = {
 };
 
 let state: FeesState | null = null;
+let loaded = false;
+let feeSettingsCache: {
+  billingMode: "MONTHLY" | "ACADEMIC_YEAR";
+  monthSetupDay: number;
+} = { billingMode: "MONTHLY", monthSetupDay: 25 };
 const listeners = new Set<() => void>();
 
 function subscribe(cb: () => void) {
@@ -44,26 +61,86 @@ function emit() {
 
 function setState(next: FeesState) {
   state = next;
-  if (typeof window !== "undefined") {
-    localStorage.setItem(KEY, JSON.stringify(next));
-  }
   emit();
+}
+
+function apiErr(e: unknown, fallback: string): string {
+  return e instanceof ApiError ? e.message : fallback;
+}
+
+function activeAcademicYear(): string {
+  return getActiveAcademicYear();
+}
+
+function deriveActiveMonth(charges: FeeCharge[]): string {
+  if (charges.length === 0) {
+    const now = new Date();
+    return monthKey(now.getFullYear(), now.getMonth() + 1);
+  }
+  return charges.reduce((max, c) => (c.monthKey > max ? c.monthKey : max), charges[0]!.monthKey);
+}
+
+function buildBillingPeriods(charges: FeeCharge[], academicYear: string): FeesState["billingPeriods"] {
+  const keys = [...new Set(charges.map((c) => c.monthKey))].sort();
+  const active = deriveActiveMonth(charges);
+  return keys.map((mk, i) => ({
+    id: `bp_${i + 1}`,
+    academicYear,
+    monthKey: mk,
+    activatedAt: new Date().toISOString(),
+    status: mk === active ? ("ACTIVE" as const) : ("CLOSED" as const),
+  }));
+}
+
+/** Load charges and payments from the API. */
+export async function refreshFees(): Promise<void> {
+  try {
+    const academicYear = activeAcademicYear();
+    const [chargeRows, paymentRows, feeSettings] = await Promise.all([
+      apiListCharges(),
+      apiListPayments(200),
+      apiFeeSettings().catch(() => null),
+    ]);
+    if (feeSettings) {
+      feeSettingsCache = {
+        billingMode: feeSettings.billingMode,
+        monthSetupDay: feeSettings.feeMonthSetupDay,
+      };
+    }
+    const activeMonthKey = deriveActiveMonth(
+      chargeRows.map((c) =>
+        mapApiCharge(c, academicYear, monthKey(c.year, c.month)),
+      ),
+    );
+    const charges = chargeRows.map((c) => mapApiCharge(c, academicYear, activeMonthKey));
+    const payments = paymentRows.map((p) => mapApiPayment(p, academicYear));
+    const maxReceipt = payments.reduce((max, p) => {
+      const n = Number(p.receiptNo.replace(/\D/g, ""));
+      return Number.isFinite(n) && n > max ? n : max;
+    }, 1000);
+
+    setState({
+      academicYear,
+      activeMonthKey,
+      billingPeriods: buildBillingPeriods(charges, academicYear),
+      charges,
+      payments,
+      receiptSeq: maxReceipt,
+      audit: state?.audit ?? [],
+    });
+  } catch {
+    /* keep cache */
+  }
 }
 
 function ensure(): FeesState {
   if (state) return state;
   if (typeof window === "undefined") return EMPTY;
-  const raw = localStorage.getItem(KEY);
-  if (raw) {
-    try {
-      state = JSON.parse(raw) as FeesState;
-      return state;
-    } catch {
-      /* fall through */
-    }
+  state = { ...EMPTY, academicYear: activeAcademicYear() };
+  if (!loaded) {
+    loaded = true;
+    void refreshFees();
   }
-  state = buildSeed();
-  localStorage.setItem(KEY, JSON.stringify(state));
   return state;
 }
 
@@ -76,7 +153,7 @@ export function useFeesState(): FeesState {
 }
 
 export function resetFees() {
-  setState(buildSeed());
+  void refreshFees();
 }
 
 function logAudit(action: string, user: string, detail?: string) {
@@ -102,13 +179,17 @@ function activeStudents(year: string): Student[] {
   );
 }
 
-function recomputeCharge(c: FeeCharge): FeeCharge {
-  const balance = Math.max(0, c.monthlyFee - c.amountPaid);
-  let status: FeeChargeStatus = "UNPAID";
-  if (c.advanceCovered) status = "ADVANCE";
-  else if (balance === 0) status = "PAID";
-  else if (c.amountPaid > 0) status = "PARTIAL";
-  return { ...c, balance, status };
+function resolveClassSectionIds(
+  className: string,
+  sectionName: string | null | undefined,
+): { classId?: string; sectionId?: string | null; error?: string } {
+  const a = getAcademicsState();
+  const cls = a.classes.find((c) => c.name === className);
+  if (!cls) return { error: `Class "${className}" not found.` };
+  if (!sectionName) return { classId: cls.id, sectionId: null };
+  const sec = a.sections.find((s) => s.classId === cls.id && s.name === sectionName);
+  if (!sec) return { error: `Section "${sectionName}" not found.` };
+  return { classId: cls.id, sectionId: sec.id };
 }
 
 export function studentCharges(
@@ -122,12 +203,37 @@ export function studentCharges(
     .sort((a, b) => a.monthKey.localeCompare(b.monthKey));
 }
 
+export function getFeeBillingMode(): "MONTHLY" | "ACADEMIC_YEAR" {
+  return feeSettingsCache.billingMode;
+}
+
+export function getFeeMonthSetupDay(): number {
+  return feeSettingsCache.monthSetupDay;
+}
+
 export function outstandingBalance(studentId: string, upToMonth?: string): number {
   const charges = studentCharges(studentId);
+  const allBillable =
+    feeSettingsCache.billingMode === "ACADEMIC_YEAR" && upToMonth === undefined;
   const month = upToMonth ?? ensure().activeMonthKey;
   return charges
-    .filter((c) => c.monthKey <= month && c.balance > 0 && !c.advanceCovered)
+    .filter(
+      (c) =>
+        c.status !== "INACTIVE" &&
+        (allBillable || c.monthKey <= month) &&
+        c.balance > 0 &&
+        !c.advanceCovered,
+    )
     .reduce((sum, c) => sum + c.balance, 0);
+}
+
+function earliestUnpaidCharge(studentId: string): FeeCharge | undefined {
+  return studentCharges(studentId)
+    .filter(
+      (c) =>
+        c.status !== "INACTIVE" && c.balance > 0 && !c.advanceCovered,
+    )
+    .sort((a, b) => a.monthKey.localeCompare(b.monthKey))[0];
 }
 
 export function advanceMonthsLeft(studentId: string, fromMonth: string): number {
@@ -139,66 +245,52 @@ export function advanceMonthsLeft(studentId: string, fromMonth: string): number 
 
 export function aggregateStudentStatus(
   studentId: string,
-  monthKey: string,
+  monthKeyArg: string,
 ): { status: FeeChargeStatus | "ADVANCE_MULTI"; advanceMonthsLeft?: number } {
-  const adv = advanceMonthsLeft(studentId, monthKey);
+  const adv = advanceMonthsLeft(studentId, monthKeyArg);
   if (adv > 0) return { status: "ADVANCE_MULTI", advanceMonthsLeft: adv };
 
-  const outstanding = outstandingBalance(studentId, monthKey);
+  const outstanding = outstandingBalance(studentId, monthKeyArg);
   if (outstanding > 0) {
-    const charge = studentCharges(studentId).find((c) => c.monthKey === monthKey);
+    const charge = studentCharges(studentId).find((c) => c.monthKey === monthKeyArg);
     if (charge && charge.amountPaid > 0) return { status: "PARTIAL" };
     return { status: "UNPAID" };
   }
 
-  const charge = studentCharges(studentId).find((c) => c.monthKey === monthKey);
+  const charge = studentCharges(studentId).find((c) => c.monthKey === monthKeyArg);
   if (charge?.status === "PAID" || charge?.advanceCovered) return { status: "PAID" };
   return { status: "UNPAID" };
 }
 
-function applyPaymentToCharges(
-  charges: FeeCharge[],
-  studentId: string,
-  amount: number,
-): { touched: string[] } {
-  let left = amount;
-  const touched: string[] = [];
-  const pool = charges
-    .filter(
-      (c) => c.studentId === studentId && c.balance > 0 && !c.advanceCovered,
-    )
-    .sort((a, b) => a.monthKey.localeCompare(b.monthKey));
-
-  for (const c of pool) {
-    if (left <= 0) break;
-    const pay = Math.min(left, c.balance);
-    c.amountPaid += pay;
-    c.paymentDate = DEMO_TODAY;
-    left -= pay;
-    touched.push(c.monthKey);
-    Object.assign(c, recomputeCharge(c));
-  }
-  return { touched };
-}
-
-export function canActivateNextMonth(at = new Date(DEMO_TODAY)): boolean {
+export function canActivateNextMonth(at = new Date()): boolean {
+  if (feeSettingsCache.billingMode === "ACADEMIC_YEAR") return false;
   const s = ensure();
   const { year, month } = parseMonthKey(s.activeMonthKey);
   const day = at.getUTCDate();
+  const setupDay = feeSettingsCache.monthSetupDay;
   const isActiveMonth =
     at.getUTCFullYear() === year && at.getUTCMonth() + 1 === month;
-  return isActiveMonth && day >= 25;
+  return isActiveMonth && day >= setupDay;
 }
 
 export function nextActivatableMonth(): string {
   return nextMonthKey(ensure().activeMonthKey);
 }
 
-export function activateNextMonth(user = "Admin User"): { ok: boolean; error?: string } {
+export async function activateNextMonth(
+  user = "Admin User",
+): Promise<{ ok: boolean; error?: string }> {
+  if (feeSettingsCache.billingMode === "ACADEMIC_YEAR") {
+    return {
+      ok: false,
+      error: "Monthly setup is disabled while Academic Year billing is active.",
+    };
+  }
+  const setupDay = feeSettingsCache.monthSetupDay;
   if (!canActivateNextMonth()) {
     return {
       ok: false,
-      error: `Next month can only be activated after the 25th of ${monthLabel(ensure().activeMonthKey)}.`,
+      error: `Next month can only be activated after the ${setupDay}th of ${monthLabel(ensure().activeMonthKey)}.`,
     };
   }
 
@@ -208,67 +300,31 @@ export function activateNextMonth(user = "Admin User"): { ok: boolean; error?: s
     return { ok: false, error: "Next month is already activated." };
   }
 
+  const { year, month } = parseMonthKey(nextKey);
   const students = activeStudents(s.academicYear);
-  const charges = [...s.charges];
-  let seq = charges.length;
+  const pairs = new Map<string, { classId: string; sectionId: string | null }>();
 
   for (const st of students) {
-    const advLeft = advanceMonthsLeft(st.id, nextKey);
-    seq += 1;
-    if (advLeft > 0) {
-      charges.push(
-        recomputeCharge({
-          id: `fc_${seq}`,
-          studentId: st.id,
-          academicYear: s.academicYear,
-          monthKey: nextKey,
-          monthlyFee: st.monthlyFee,
-          amountPaid: st.monthlyFee,
-          balance: 0,
-          status: "ADVANCE",
-          paymentDate: null,
-          advanceCovered: true,
-        }),
-      );
-      continue;
-    }
-
-    charges.push(
-      recomputeCharge({
-        id: `fc_${seq}`,
-        studentId: st.id,
-        academicYear: s.academicYear,
-        monthKey: nextKey,
-        monthlyFee: st.monthlyFee,
-        amountPaid: 0,
-        balance: st.monthlyFee,
-        status: "UNPAID",
-        paymentDate: null,
-      }),
-    );
+    const r = resolveClassSectionIds(st.className, st.section);
+    if (!r.classId) continue;
+    const key = `${r.classId}:${r.sectionId ?? ""}`;
+    pairs.set(key, { classId: r.classId, sectionId: r.sectionId ?? null });
   }
 
-  const billingPeriods = [
-    ...s.billingPeriods.map((b) =>
-      b.monthKey === s.activeMonthKey ? { ...b, status: "CLOSED" as const } : b,
-    ),
-    {
-      id: `bp_${s.billingPeriods.length + 1}`,
-      academicYear: s.academicYear,
-      monthKey: nextKey,
-      activatedAt: new Date().toISOString(),
-      status: "ACTIVE" as const,
-    },
-  ];
+  if (pairs.size === 0) {
+    return { ok: false, error: "No classes found for active students." };
+  }
 
-  setState({
-    ...s,
-    activeMonthKey: nextKey,
-    billingPeriods,
-    charges,
-  });
-  logAudit("Month Setup", user, `Activated ${monthLabel(nextKey)}`);
-  return { ok: true };
+  try {
+    for (const { classId, sectionId } of pairs.values()) {
+      await apiChargeMonth({ classId, sectionId, year, month });
+    }
+    await refreshFees();
+    logAudit("Month Setup", user, `Activated ${monthLabel(nextKey)}`);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: apiErr(e, "Failed to activate next month.") };
+  }
 }
 
 export interface PayInput {
@@ -279,28 +335,31 @@ export interface PayInput {
   collectedBy?: string;
 }
 
-export function collectPayment(input: PayInput): {
+export async function collectPayment(input: PayInput): Promise<{
   ok: boolean;
   error?: string;
   payment?: FeePayment;
-} {
+}> {
   const s = ensure();
   const student = getStudentsState().students.find((x) => x.id === input.studentId);
   if (!student) return { ok: false, error: "Student not found." };
 
   const month = s.activeMonthKey;
-  const outstanding = outstandingBalance(student.id, month);
-  const activeCharge = s.charges.find(
-    (c) =>
-      c.studentId === student.id &&
-      c.academicYear === s.academicYear &&
-      c.monthKey === month,
-  );
+  const outstanding =
+    feeSettingsCache.billingMode === "ACADEMIC_YEAR"
+      ? outstandingBalance(student.id)
+      : outstandingBalance(student.id, month);
+  const activeCharge =
+    feeSettingsCache.billingMode === "ACADEMIC_YEAR"
+      ? earliestUnpaidCharge(student.id)
+      : s.charges.find(
+          (c) =>
+            c.studentId === student.id &&
+            c.academicYear === s.academicYear &&
+            c.monthKey === month,
+        );
 
-  const charges = s.charges.map((c) => ({ ...c }));
   let amount = 0;
-  let monthKeys: string[] = [];
-  let advanceMonths: number | undefined;
 
   if (input.paymentType === "THIS_MONTH") {
     if (!activeCharge || activeCharge.advanceCovered)
@@ -308,11 +367,6 @@ export function collectPayment(input: PayInput): {
     if (activeCharge.balance === 0)
       return { ok: false, error: "This month is already fully paid." };
     amount = activeCharge.balance;
-    const idx = charges.findIndex((c) => c.id === activeCharge.id);
-    charges[idx].amountPaid += amount;
-    charges[idx].paymentDate = DEMO_TODAY;
-    Object.assign(charges[idx], recomputeCharge(charges[idx]));
-    monthKeys = [month];
   } else if (input.paymentType === "PARTIAL") {
     if (outstanding <= 0)
       return { ok: false, error: "No outstanding balance to pay." };
@@ -323,8 +377,6 @@ export function collectPayment(input: PayInput): {
         ok: false,
         error: `Amount cannot exceed outstanding balance (${outstanding}).`,
       };
-    const result = applyPaymentToCharges(charges, student.id, amount);
-    monthKeys = result.touched;
   } else if (input.paymentType === "ADVANCE") {
     if (outstanding > 0)
       return {
@@ -334,71 +386,32 @@ export function collectPayment(input: PayInput): {
     if (activeCharge && activeCharge.balance > 0 && !activeCharge.advanceCovered)
       return { ok: false, error: "Current month must be fully paid first." };
 
-    advanceMonths = input.advanceMonths ?? 1;
+    const advanceMonths = input.advanceMonths ?? 1;
     if (advanceMonths < 1 || advanceMonths > 12)
       return { ok: false, error: "Select 1–12 months for advance payment." };
-
     amount = student.monthlyFee * advanceMonths;
-    monthKeys = [];
-    let seq = charges.length;
-    let mk = nextMonthKey(month);
-    for (let i = 0; i < advanceMonths; i++) {
-      const existing = charges.find(
-        (c) =>
-          c.studentId === student.id &&
-          c.academicYear === s.academicYear &&
-          c.monthKey === mk,
-      );
-      if (existing) {
-        existing.amountPaid = existing.monthlyFee;
-        existing.advanceCovered = true;
-        existing.paymentDate = DEMO_TODAY;
-        Object.assign(existing, recomputeCharge(existing));
-      } else {
-        seq += 1;
-        charges.push(
-          recomputeCharge({
-            id: `fc_${seq}`,
-            studentId: student.id,
-            academicYear: s.academicYear,
-            monthKey: mk,
-            monthlyFee: student.monthlyFee,
-            amountPaid: student.monthlyFee,
-            balance: 0,
-            status: "ADVANCE",
-            paymentDate: DEMO_TODAY,
-            advanceCovered: true,
-          }),
-        );
-      }
-      monthKeys.push(mk);
-      mk = nextMonthKey(mk);
-    }
   }
 
-  const receiptSeq = s.receiptSeq + 1;
-  const payment: FeePayment = {
-    id: `fp_${Date.now()}`,
-    receiptNo: `RCP-${receiptSeq}`,
-    studentId: student.id,
-    academicYear: s.academicYear,
-    amount,
-    paymentType: input.paymentType,
-    advanceMonths,
-    monthKeys,
-    collectedBy: input.collectedBy ?? "Admin User",
-    collectedAt: DEMO_TODAY,
-    outstandingAfter: outstandingBalance(student.id, month),
-  };
-
-  setState({
-    ...s,
-    charges,
-    payments: [payment, ...s.payments],
-    receiptSeq,
-  });
-  logAudit("Fee Collection", payment.collectedBy, `${payment.receiptNo} — ${amount}`);
-  return { ok: true, payment };
+  try {
+    const res = await apiPayFee({
+      studentId: student.id,
+      amount,
+      type: input.paymentType,
+    });
+    await refreshFees();
+    const payment = mapApiPayment(res.payment, s.academicYear);
+    payment.receiptNo = res.receiptNumber;
+    payment.collectedBy = input.collectedBy ?? "Admin User";
+    payment.outstandingAfter = outstandingBalance(student.id, month);
+    logAudit(
+      "Fee Collection",
+      payment.collectedBy,
+      `${payment.receiptNo} — ${amount}`,
+    );
+    return { ok: true, payment };
+  } catch (e) {
+    return { ok: false, error: apiErr(e, "Payment failed.") };
+  }
 }
 
 export function dashboardSummary(
@@ -409,7 +422,7 @@ export function dashboardSummary(
   const month = filterMonth ?? s.activeMonthKey;
   const year = academicYear ?? s.academicYear;
   const students = activeStudents(year);
-  const today = DEMO_TODAY.slice(0, 10);
+  const today = new Date().toISOString().slice(0, 10);
 
   const monthCharges = s.charges.filter(
     (c) => c.academicYear === year && c.monthKey === month,
@@ -464,6 +477,17 @@ export function dashboardSummary(
     netFeeCollection: collectedThisMonth,
     totalActiveStudents: students.length,
   };
+}
+
+/** Finance dashboard totals from API (cached call on refresh). */
+let financeDashCache: Awaited<ReturnType<typeof apiFinanceDashboard>> | null = null;
+
+export async function refreshFinanceDashboard() {
+  try {
+    financeDashCache = await apiFinanceDashboard();
+  } catch {
+    /* ignore */
+  }
 }
 
 export function paymentSummary(filterMonth?: string): PaymentSummarySlice[] {
@@ -530,7 +554,11 @@ export function listStudentFees(opts: {
 }): StudentFeeRow[] {
   const s = ensure();
   const month = opts.monthKey ?? s.activeMonthKey;
-  const year = opts.academicYear ?? s.academicYear;
+  // Fall back to a fresh active-year read (not `??`) so an empty snapshot —
+  // which happens when the fees store initializes before academics loads —
+  // never silently filters every student out.
+  const year =
+    opts.academicYear || s.academicYear || activeAcademicYear();
   let students = activeStudents(year);
 
   if (opts.className) students = students.filter((x) => x.className === opts.className);
@@ -576,7 +604,9 @@ export function studentLedger(studentId: string): StudentLedgerRow[] {
 }
 
 export function getPayment(receiptNo: string): FeePayment | undefined {
-  return ensure().payments.find((p) => p.receiptNo === receiptNo);
+  return ensure().payments.find(
+    (p) => p.receiptNo === receiptNo || p.id === receiptNo,
+  );
 }
 
 export function availableMonths(): string[] {
@@ -593,6 +623,9 @@ export function outstandingStudents(limit = 10): StudentFeeRow[] {
 }
 
 export function canPayThisMonth(studentId: string): boolean {
+  if (feeSettingsCache.billingMode === "ACADEMIC_YEAR") {
+    return !!earliestUnpaidCharge(studentId);
+  }
   const s = ensure();
   const charge = s.charges.find(
     (c) =>
@@ -610,19 +643,57 @@ export function canPayPartial(studentId: string): boolean {
 
 export function canPayAdvance(studentId: string): boolean {
   const s = ensure();
-  if (outstandingBalance(studentId, s.activeMonthKey) > 0) return false;
-  const charge = s.charges.find(
-    (c) =>
-      c.studentId === studentId &&
-      c.monthKey === s.activeMonthKey &&
-      c.academicYear === s.academicYear,
-  );
+  const monthCap =
+    feeSettingsCache.billingMode === "ACADEMIC_YEAR"
+      ? undefined
+      : s.activeMonthKey;
+  if (outstandingBalance(studentId, monthCap) > 0) return false;
+  const charge =
+    feeSettingsCache.billingMode === "ACADEMIC_YEAR"
+      ? earliestUnpaidCharge(studentId)
+      : s.charges.find(
+          (c) =>
+            c.studentId === studentId &&
+            c.monthKey === s.activeMonthKey &&
+            c.academicYear === s.academicYear,
+        );
   if (charge && charge.balance > 0 && !charge.advanceCovered) return false;
   return true;
 }
 
 export function partialOutstandingMonths(studentId: string): string[] {
   return studentCharges(studentId)
-    .filter((c) => c.balance > 0 && !c.advanceCovered)
+    .filter(
+      (c) =>
+        c.status !== "INACTIVE" && c.balance > 0 && !c.advanceCovered,
+    )
     .map((c) => c.monthKey);
+}
+
+/** Per-student annual fee summary from charge records. */
+export function studentAnnualSummary(studentId: string) {
+  const charges = studentCharges(studentId).filter((c) => c.status !== "INACTIVE");
+  const totalDue = charges.reduce((s, c) => s + c.monthlyFee, 0);
+  const totalPaid = charges.reduce((s, c) => s + c.amountPaid, 0);
+  const outstanding = charges.reduce((s, c) => s + c.balance, 0);
+  const paidMonths = charges.filter((c) => c.status === "PAID").length;
+  const unpaidMonths = charges.filter(
+    (c) => c.status === "UNPAID" || c.status === "PARTIAL",
+  ).length;
+  const inactiveMonths = studentCharges(studentId).filter(
+    (c) => c.status === "INACTIVE",
+  ).length;
+  return {
+    totalDue,
+    totalPaid,
+    outstanding,
+    paidMonths,
+    unpaidMonths,
+    inactiveMonths,
+    totalMonths: charges.length,
+    progressPercent:
+      charges.length > 0
+        ? Math.round((paidMonths / charges.length) * 1000) / 10
+        : 0,
+  };
 }

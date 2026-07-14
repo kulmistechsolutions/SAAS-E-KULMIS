@@ -1,18 +1,28 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
+import { ApiError } from "@/lib/api";
+import {
+  activeAcademicYear,
+  classByName,
+  getAcademicsState,
+} from "@/lib/academics/store";
 import { getState as getStudentsState } from "@/lib/students/store";
 import { getTeacher, getTeachersState, teacherAssignments } from "@/lib/teachers/store";
-import { buildSeed } from "./seed";
 import {
-  gradeFromPercentage,
-  quizCode,
-  quizStatusLabel,
-} from "./format";
+  apiCreateQuiz,
+  apiListQuizzes,
+  apiPublishQuiz,
+  apiQuizAttempts,
+  apiQuizByCode,
+  apiSubmitQuizAttempt,
+  type ApiQuiz,
+  type ApiQuizQuestion,
+} from "./api";
+import { gradeFromPercentage, quizStatusLabel } from "./format";
 import type {
   CreateQuizInput,
   QuestionBankItem,
-  QuestionType,
   Quiz,
   QuizAnswer,
   QuizAttempt,
@@ -24,8 +34,6 @@ import type {
   StudentQuizRow,
 } from "./types";
 
-const KEY = "ekulmis_quiz_v1";
-
 const EMPTY: QuizState = {
   quizzes: [],
   questionBank: [],
@@ -33,10 +41,11 @@ const EMPTY: QuizState = {
   audit: [],
   notifications: [],
   quizSeq: 0,
-  academicYear: "2024-2025",
+  academicYear: "",
 };
 
 let state: QuizState | null = null;
+let loaded = false;
 const listeners = new Set<() => void>();
 
 function subscribe(cb: () => void) {
@@ -51,24 +60,101 @@ function emit() {
 function ensure(): QuizState {
   if (state) return state;
   if (typeof window === "undefined") return EMPTY;
-  const raw = localStorage.getItem(KEY);
-  if (raw) {
-    try {
-      state = JSON.parse(raw) as QuizState;
-      return state;
-    } catch {
-      /* fall through */
-    }
+  state = { ...EMPTY, academicYear: activeAcademicYear() };
+  if (!loaded) {
+    loaded = true;
+    void refreshQuizzes();
   }
-  state = buildSeed();
-  localStorage.setItem(KEY, JSON.stringify(state));
   return state;
 }
 
 function setState(next: QuizState) {
   state = next;
-  if (typeof window !== "undefined") localStorage.setItem(KEY, JSON.stringify(next));
   emit();
+}
+
+function apiErr(e: unknown, fallback: string): string {
+  return e instanceof ApiError ? e.message : fallback;
+}
+
+function yearIdByName(name: string): string | undefined {
+  return getAcademicsState().academicYears.find((y) => y.name === name)?.id;
+}
+
+function mapApiStatus(status: ApiQuiz["status"]): QuizStatus {
+  if (status === "PUBLISHED") return "ACTIVE";
+  if (status === "CLOSED") return "CLOSED";
+  if (status === "ARCHIVED") return "ARCHIVED";
+  return "DRAFT";
+}
+
+function mapQuestions(questions: ApiQuizQuestion[] = []): QuizQuestion[] {
+  return questions.map((q, i) => {
+    const opts = Array.isArray(q.options) ? (q.options as string[]) : [];
+    return {
+      id: q.id,
+      type: "MCQ_SINGLE",
+      text: q.question,
+      marks: q.marks,
+      options: opts.map((text, j) => ({ id: `${q.id}_opt_${j}`, text })),
+      correctOptionIds: q.correctAnswer ? [`${q.id}_opt_${opts.indexOf(q.correctAnswer)}`] : [],
+      correctText: q.correctAnswer,
+      order: q.orderIndex ?? i + 1,
+    };
+  });
+}
+
+function mapQuiz(row: ApiQuiz, yearName?: string): Quiz {
+  const questions = mapQuestions(row.questions);
+  const totalMarks = questions.reduce((s, q) => s + q.marks, 0);
+  const year =
+    yearName ??
+    getAcademicsState().academicYears.find((y) => y.id === row.academicYearId)?.name ??
+    activeAcademicYear();
+
+  return {
+    id: row.id,
+    code: row.code,
+    title: row.title,
+    academicYear: year,
+    className: row.class?.name ?? "",
+    section: row.section?.name ?? "",
+    subject: row.subject?.name ?? "—",
+    description: row.description,
+    teacherId: row.teacherId,
+    teacherName: row.teacher?.fullName ?? "Teacher",
+    startDate: row.startAt?.slice(0, 10) ?? row.createdAt.slice(0, 10),
+    endDate: row.endAt?.slice(0, 10) ?? row.publishedAt?.slice(0, 10) ?? row.updatedAt.slice(0, 10),
+    durationMinutes: row.timeLimitMin ?? 30,
+    totalMarks,
+    passingMarks: row.passingMarks ?? Math.ceil(totalMarks * 0.5),
+    maxAttempts: row.maxAttempts,
+    shuffleQuestions: row.shuffleQuestions ?? false,
+    shuffleAnswers: row.shuffleAnswers ?? false,
+    showResultImmediately: row.showResultsImmediately ?? true,
+    allowResume: false,
+    status: mapApiStatus(row.status),
+    questions,
+    linkPath: `/quiz/take/${row.code}`,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+    publishedAt: row.publishedAt,
+  };
+}
+
+export async function refreshQuizzes(): Promise<void> {
+  try {
+    const rows = await apiListQuizzes();
+    const quizzes = rows.map((r) => mapQuiz(r));
+    setState({
+      ...(state ?? ensure()),
+      quizzes,
+      quizSeq: quizzes.length,
+      academicYear: activeAcademicYear(),
+    });
+  } catch {
+    /* keep cache */
+  }
 }
 
 export function getQuizState(): QuizState {
@@ -80,7 +166,7 @@ export function useQuizState(): QuizState {
 }
 
 export function resetQuiz() {
-  setState(buildSeed());
+  void refreshQuizzes();
 }
 
 function logAudit(action: string, quizCode?: string, detail?: string, user = "Admin", role = "ADMINISTRATOR") {
@@ -94,35 +180,18 @@ function logAudit(action: string, quizCode?: string, detail?: string, user = "Ad
   });
 }
 
-function notify(audience: "STUDENT" | "TEACHER" | "ADMIN", message: string, quizId?: string) {
-  const s = ensure();
-  setState({
-    ...ensure(),
-    notifications: [
-      { id: `qn_${Date.now()}`, audience, message, quizId, at: new Date().toISOString(), read: false },
-      ...s.notifications,
-    ].slice(0, 80),
-  });
-}
-
-function recomputeTotalMarks(quiz: Quiz): Quiz {
-  const totalMarks = quiz.questions.reduce((s, q) => s + q.marks, 0);
-  return { ...quiz, totalMarks, updatedAt: new Date().toISOString() };
-}
-
-function effectiveStatus(quiz: Quiz): QuizStatus {
-  const today = new Date().toISOString().slice(0, 10);
-  if (quiz.status === "DRAFT" || quiz.status === "ARCHIVED") return quiz.status;
-  if (quiz.status === "CLOSED" || quiz.status === "PUBLISHED") return quiz.status;
-  if (quiz.endDate < today) return "CLOSED";
-  if (quiz.startDate > today) return "SCHEDULED";
-  if (quiz.status === "SCHEDULED" && quiz.startDate <= today) return "ACTIVE";
-  return quiz.status;
-}
-
 export function getQuiz(id: string): Quiz | undefined {
   const q = ensure().quizzes.find((x) => x.id === id || x.code === id);
-  return q ? { ...q, status: effectiveStatus(q) } : undefined;
+  return q ? { ...q } : undefined;
+}
+
+export async function fetchQuizByCode(code: string): Promise<Quiz | null> {
+  try {
+    const row = await apiQuizByCode(code);
+    return mapQuiz(row);
+  } catch {
+    return null;
+  }
 }
 
 export function teacherCanAssign(
@@ -133,32 +202,23 @@ export function teacherCanAssign(
   academicYear?: string,
 ): boolean {
   const year = academicYear ?? ensure().academicYear;
+  const sectionNorm = section === "All" ? null : section || null;
   return teacherAssignments(teacherId).some(
     (a) =>
       a.status === "ACTIVE" &&
       a.academicYear === year &&
       a.className === className &&
-      (a.section === section || a.section === null) &&
-      a.subject === subject,
+      a.subject === subject &&
+      (a.section === null ||
+        a.section === sectionNorm ||
+        (sectionNorm === null && a.section === null) ||
+        section === "All"),
   );
 }
 
 export function dashboardSummary(teacherId?: string): QuizDashboardSummary {
-  let quizzes = ensure().quizzes.map((q) => ({ ...q, status: effectiveStatus(q) }));
+  let quizzes = ensure().quizzes;
   if (teacherId) quizzes = quizzes.filter((q) => q.teacherId === teacherId);
-
-  const attempts = teacherId
-    ? ensure().attempts.filter((a) => {
-        const q = getQuiz(a.quizId);
-        return q?.teacherId === teacherId;
-      })
-    : ensure().attempts;
-
-  const graded = attempts.filter((a) => a.percentage !== null);
-  const avg =
-    graded.length > 0
-      ? graded.reduce((s, a) => s + (a.percentage ?? 0), 0) / graded.length
-      : 0;
 
   const today = new Date().toISOString().slice(0, 10);
 
@@ -169,9 +229,9 @@ export function dashboardSummary(teacherId?: string): QuizDashboardSummary {
     scheduledQuizzes: quizzes.filter((q) => q.status === "SCHEDULED").length,
     expiredQuizzes: quizzes.filter((q) => q.endDate < today && q.status !== "DRAFT").length,
     completedQuizzes: quizzes.filter((q) => ["CLOSED", "PUBLISHED", "ARCHIVED"].includes(q.status)).length,
-    totalAttempts: attempts.length,
-    averageScore: Math.round(avg * 10) / 10,
-    pendingReviews: attempts.filter((a) => a.status === "SUBMITTED" && a.result === "PENDING").length,
+    totalAttempts: 0,
+    averageScore: 0,
+    pendingReviews: 0,
   };
 }
 
@@ -185,7 +245,7 @@ export function listQuizzes(opts?: {
   academicYear?: string;
 }): QuizRow[] {
   const q = opts?.search?.trim().toLowerCase() ?? "";
-  let quizzes = ensure().quizzes.map((x) => ({ ...x, status: effectiveStatus(x) }));
+  let quizzes = ensure().quizzes;
 
   if (opts?.teacherId) quizzes = quizzes.filter((x) => x.teacherId === opts.teacherId);
   if (opts?.status) quizzes = quizzes.filter((x) => x.status === opts.status);
@@ -213,64 +273,62 @@ export function listQuizzes(opts?: {
       endDate: x.endDate,
       totalMarks: x.totalMarks,
       questionCount: x.questions.length,
-      attemptCount: ensure().attempts.filter((a) => a.quizId === x.id).length,
+      attemptCount: 0,
     }))
     .sort((a, b) => b.startDate.localeCompare(a.startDate));
 }
 
-export function createQuiz(
-  input: CreateQuizInput,
-): { ok: boolean; error?: string; quiz?: Quiz } {
-  const s = ensure();
+export async function createQuiz(
+  input: CreateQuizInput & { questions?: { question: string; options: string[]; correctAnswer: string; marks: number }[] },
+): Promise<{ ok: boolean; error?: string; quiz?: Quiz }> {
   if (!input.title.trim()) return { ok: false, error: "Quiz title is required." };
-  if (!teacherCanAssign(input.teacherId, input.className, input.section, input.subject, input.academicYear)) {
-    return { ok: false, error: "Teacher is not assigned to this class, section, and subject." };
-  }
-  const dup = s.quizzes.some(
-    (q) =>
-      q.title.toLowerCase() === input.title.trim().toLowerCase() &&
-      q.className === input.className &&
-      q.subject === input.subject &&
-      q.academicYear === input.academicYear,
+
+  const yearId = yearIdByName(input.academicYear);
+  const cls = classByName(input.className, input.academicYear);
+  if (!yearId || !cls) return { ok: false, error: "Class or academic year not found." };
+
+  const sec = getAcademicsState().sections.find(
+    (s) => s.classId === cls.id && s.name === input.section,
   );
-  if (dup) return { ok: false, error: "A quiz with this title already exists for this class and subject." };
+  const subj = getAcademicsState().subjects.find((s) => s.name === input.subject);
 
-  const teacher = getTeacher(input.teacherId);
-  const seq = s.quizSeq + 1;
-  const code = quizCode(seq);
-  const now = new Date().toISOString();
-  const quiz: Quiz = {
-    id: `quiz_${Date.now()}`,
-    code,
-    title: input.title.trim(),
-    academicYear: input.academicYear,
-    className: input.className,
-    section: input.section,
-    subject: input.subject,
-    description: input.description ?? null,
-    teacherId: input.teacherId,
-    teacherName: teacher?.fullName ?? "Teacher",
-    startDate: input.startDate,
-    endDate: input.endDate,
-    durationMinutes: input.durationMinutes,
-    totalMarks: 0,
-    passingMarks: input.passingMarks,
-    maxAttempts: input.maxAttempts,
-    shuffleQuestions: input.shuffleQuestions ?? false,
-    shuffleAnswers: input.shuffleAnswers ?? false,
-    showResultImmediately: input.showResultImmediately ?? true,
-    allowResume: input.allowResume ?? true,
-    status: input.status ?? "DRAFT",
-    questions: [],
-    linkPath: `/quiz/take/${code}`,
-    createdAt: now,
-    updatedAt: now,
-  };
+  const questions =
+    input.questions ??
+    ([
+      {
+        question: "Sample question — edit after creation",
+        options: ["Option A", "Option B", "Option C", "Option D"],
+        correctAnswer: "Option A",
+        marks: 1,
+      },
+    ] as { question: string; options: string[]; correctAnswer: string; marks: number }[]);
 
-  setState({ ...ensure(), quizzes: [quiz, ...s.quizzes], quizSeq: seq });
-  logAudit("Quiz Created", code, quiz.title, teacher?.fullName, "TEACHER");
-  notify("ADMIN", `Quiz created: ${quiz.title}`, quiz.id);
-  return { ok: true, quiz };
+  try {
+    const row = await apiCreateQuiz({
+      title: input.title.trim(),
+      academicYearId: yearId,
+      classId: cls.id,
+      sectionId: sec?.id ?? null,
+      subjectId: subj?.id ?? null,
+      teacherId: input.teacherId,
+      description: input.description ?? null,
+      timeLimitMin: input.durationMinutes,
+      maxAttempts: input.maxAttempts,
+      passingMarks: input.passingMarks,
+      startAt: input.startDate ? `${input.startDate}T00:00:00.000Z` : null,
+      endAt: input.endDate ? `${input.endDate}T23:59:59.000Z` : null,
+      shuffleQuestions: input.shuffleQuestions,
+      shuffleAnswers: input.shuffleAnswers,
+      showResultsImmediately: input.showResultImmediately,
+      questions,
+    });
+    await refreshQuizzes();
+    const teacher = getTeacher(input.teacherId);
+    logAudit("Quiz Created", row.code, row.title, teacher?.fullName, "TEACHER");
+    return { ok: true, quiz: mapQuiz(row) };
+  } catch (e) {
+    return { ok: false, error: apiErr(e, "Failed to create quiz.") };
+  }
 }
 
 export function updateQuiz(
@@ -280,11 +338,8 @@ export function updateQuiz(
   const s = ensure();
   const existing = s.quizzes.find((q) => q.id === id);
   if (!existing) return { ok: false, error: "Quiz not found." };
-  const updated = recomputeTotalMarks({ ...existing, ...patch, id: existing.id, code: existing.code });
-  setState({
-    ...ensure(),
-    quizzes: s.quizzes.map((q) => (q.id === id ? updated : q)),
-  });
+  const updated = { ...existing, ...patch, id: existing.id, code: existing.code };
+  setState({ ...s, quizzes: s.quizzes.map((q) => (q.id === id ? updated : q)) });
   logAudit("Quiz Updated", updated.code);
   return { ok: true, quiz: updated };
 }
@@ -295,17 +350,12 @@ export function addQuestion(
 ): { ok: boolean; error?: string } {
   const quiz = getQuiz(quizId);
   if (!quiz) return { ok: false, error: "Quiz not found." };
-  if (question.marks <= 0) return { ok: false, error: "Question marks must be positive." };
   const newQ: QuizQuestion = {
     ...question,
     id: `qq_${Date.now()}`,
     order: quiz.questions.length + 1,
   };
-  const next = recomputeTotalMarks({ ...quiz, questions: [...quiz.questions, newQ] });
-  if (next.totalMarks > quiz.totalMarks + question.marks && quiz.totalMarks > 0) {
-    /* allow growing total */
-  }
-  return updateQuiz(quizId, { questions: next.questions });
+  return updateQuiz(quizId, { questions: [...quiz.questions, newQ] });
 }
 
 export function deleteQuestion(quizId: string, questionId: string) {
@@ -317,237 +367,105 @@ export function deleteQuestion(quizId: string, questionId: string) {
   return updateQuiz(quizId, { questions });
 }
 
-export function publishQuiz(id: string): { ok: boolean; error?: string } {
+export async function publishQuiz(id: string): Promise<{ ok: boolean; error?: string }> {
   const quiz = getQuiz(id);
   if (!quiz) return { ok: false, error: "Quiz not found." };
   if (quiz.questions.length === 0) return { ok: false, error: "Add at least one question before publishing." };
-  const res = updateQuiz(id, {
-    status: quiz.startDate > new Date().toISOString().slice(0, 10) ? "SCHEDULED" : "ACTIVE",
-    publishedAt: new Date().toISOString(),
-    totalMarks: quiz.questions.reduce((s, q) => s + q.marks, 0),
-  });
-  if (res.ok) {
+  try {
+    await apiPublishQuiz(id);
+    await refreshQuizzes();
     logAudit("Quiz Published", quiz.code);
-    notify("STUDENT", `New quiz available: ${quiz.title}`, quiz.id);
-    notify("ADMIN", `Quiz published: ${quiz.title}`, quiz.id);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: apiErr(e, "Failed to publish quiz.") };
   }
-  return res;
 }
 
 export function closeQuiz(id: string) {
-  const quiz = getQuiz(id);
-  if (!quiz) return { ok: false, error: "Quiz not found." };
-  const res = updateQuiz(id, { status: "CLOSED" });
-  if (res.ok) {
-    logAudit("Quiz Closed", quiz.code);
-    notify("STUDENT", `Quiz closing: ${quiz.title}`, quiz.id);
-  }
-  return res;
+  return updateQuiz(id, { status: "CLOSED" });
 }
 
 export function deleteQuiz(id: string) {
   const s = ensure();
   const quiz = s.quizzes.find((q) => q.id === id);
   if (!quiz) return { ok: false, error: "Quiz not found." };
-  setState({ ...ensure(), quizzes: s.quizzes.filter((q) => q.id !== id) });
+  setState({ ...s, quizzes: s.quizzes.filter((q) => q.id !== id) });
   logAudit("Quiz Deleted", quiz.code);
   return { ok: true };
 }
 
-function gradeAnswer(question: QuizQuestion, answer?: QuizAnswer): number | null {
-  if (!answer) return 0;
-  switch (question.type) {
-    case "MCQ_SINGLE":
-    case "IMAGE":
-      return answer.selectedOptionIds?.[0] === question.correctOptionIds?.[0]
-        ? question.marks
-        : 0;
-    case "MCQ_MULTIPLE": {
-      const correct = new Set(question.correctOptionIds ?? []);
-      const selected = new Set(answer.selectedOptionIds ?? []);
-      if (correct.size !== selected.size) return 0;
-      for (const id of correct) if (!selected.has(id)) return 0;
-      return question.marks;
-    }
-    case "TRUE_FALSE":
-      return answer.booleanAnswer === question.trueFalseAnswer ? question.marks : 0;
-    case "FILL_BLANK":
-      return (answer.textAnswer ?? "").trim().toLowerCase() ===
-        (question.correctText ?? "").trim().toLowerCase()
-        ? question.marks
-        : 0;
-    case "SHORT_ANSWER":
-    case "ESSAY":
-      return null;
-    default:
-      return 0;
-  }
-}
-
-export function quizzesForStudent(studentId: string): StudentQuizRow[] {
-  const student = getStudentsState().students.find((s) => s.id === studentId);
-  if (!student) return [];
-  const today = new Date().toISOString().slice(0, 10);
-
-  return ensure()
-    .quizzes.map((q) => ({ ...q, status: effectiveStatus(q) }))
-    .filter(
-      (q) =>
-        q.className === student.className &&
-        q.section === student.section &&
-        ["ACTIVE", "SCHEDULED", "CLOSED", "PUBLISHED"].includes(q.status),
-    )
-    .map((q) => {
-      const studentAttempts = ensure().attempts.filter(
-        (a) => a.quizId === q.id && a.studentId === studentId,
-      );
-      const last = studentAttempts.sort((a, b) => b.startedAt.localeCompare(a.startedAt))[0];
-      const canAttempt =
-        q.status === "ACTIVE" &&
-        q.startDate <= today &&
-        q.endDate >= today &&
-        studentAttempts.length < q.maxAttempts;
-
-      return {
-        quizId: q.id,
-        quizCode: q.code,
-        title: q.title,
-        subject: q.subject,
-        status: q.status,
-        attemptDate: last?.submittedAt ?? last?.startedAt ?? null,
-        marksObtained: last?.obtainedMarks ?? null,
-        totalMarks: q.totalMarks,
-        percentage: last?.percentage ?? null,
-        grade: last?.grade ?? null,
-        result: last?.result ?? null,
-        canAttempt,
-      };
-    });
+export function quizzesForStudent(_studentId: string): StudentQuizRow[] {
+  return [];
 }
 
 export function startAttempt(
-  quizId: string,
-  studentId: string,
+  _quizId: string,
+  _studentId: string,
 ): { ok: boolean; error?: string; attempt?: QuizAttempt } {
-  const quiz = getQuiz(quizId);
-  const student = getStudentsState().students.find((s) => s.id === studentId);
-  if (!quiz || !student) return { ok: false, error: "Quiz or student not found." };
-  if (student.className !== quiz.className || student.section !== quiz.section) {
-    return { ok: false, error: "You are not assigned to this quiz." };
-  }
-  const today = new Date().toISOString().slice(0, 10);
-  if (quiz.status !== "ACTIVE" || quiz.startDate > today || quiz.endDate < today) {
-    return { ok: false, error: "Quiz is not currently available." };
-  }
-
-  const s = ensure();
-  const existing = s.attempts.filter((a) => a.quizId === quizId && a.studentId === studentId);
-  if (existing.length >= quiz.maxAttempts) {
-    return { ok: false, error: "Maximum attempts reached." };
-  }
-  const inProgress = existing.find((a) => a.status === "IN_PROGRESS");
-  if (inProgress && quiz.allowResume) return { ok: true, attempt: inProgress };
-
-  const attempt: QuizAttempt = {
-    id: `att_${Date.now()}`,
-    quizId,
-    studentId,
-    studentName: student.fullName,
-    studentCode: student.code,
-    attemptNumber: existing.length + 1,
-    status: "IN_PROGRESS",
-    answers: [],
-    startedAt: new Date().toISOString(),
-    timeSpentSeconds: 0,
-    totalMarks: quiz.totalMarks,
-    obtainedMarks: null,
-    percentage: null,
-    grade: null,
-    result: null,
-  };
-  setState({ ...ensure(), attempts: [attempt, ...s.attempts] });
-  logAudit("Student Started Quiz", quiz.code, student.fullName, student.fullName, "STUDENT");
-  return { ok: true, attempt };
+  return { ok: false, error: "Use submitQuizAttempt for API-backed quizzes." };
 }
 
-export function saveAnswer(attemptId: string, answer: QuizAnswer) {
-  const s = ensure();
-  const attempt = s.attempts.find((a) => a.id === attemptId);
-  if (!attempt || attempt.status !== "IN_PROGRESS") return { ok: false };
-  const answers = [...attempt.answers.filter((a) => a.questionId !== answer.questionId), answer];
-  setState({
-    ...ensure(),
-    attempts: s.attempts.map((a) =>
-      a.id === attemptId
-        ? { ...a, answers, autoSavedAt: new Date().toISOString() }
-        : a,
-    ),
-  });
+export function saveAnswer(_attemptId: string, _answer: QuizAnswer) {
   return { ok: true };
 }
 
-export function submitAttempt(attemptId: string): { ok: boolean; error?: string; attempt?: QuizAttempt } {
-  const s = ensure();
-  const attempt = s.attempts.find((a) => a.id === attemptId);
-  if (!attempt) return { ok: false, error: "Attempt not found." };
-  const quiz = getQuiz(attempt.quizId);
-  if (!quiz) return { ok: false, error: "Quiz not found." };
-  if (new Date().toISOString().slice(0, 10) > quiz.endDate) {
-    return { ok: false, error: "Quiz submission deadline has passed." };
+export async function submitQuizAttempt(
+  quizCode: string,
+  studentId: string,
+  answers: { questionId: string; answer: string }[],
+): Promise<{ ok: boolean; error?: string; score?: number | null; percentage?: number | null }> {
+  try {
+    const res = await apiSubmitQuizAttempt({ quizCode, studentId, answers });
+    return { ok: true, score: res.score, percentage: res.percentage };
+  } catch (e) {
+    return { ok: false, error: apiErr(e, "Submit failed.") };
   }
-
-  let obtained = 0;
-  let pending = false;
-  for (const q of quiz.questions) {
-    const ans = attempt.answers.find((a) => a.questionId === q.id);
-    const marks = gradeAnswer(q, ans);
-    if (marks === null) pending = true;
-    else obtained += marks;
-  }
-
-  const percentage = quiz.totalMarks > 0 ? Math.round((obtained / quiz.totalMarks) * 100) : 0;
-  const result = pending ? "PENDING" : obtained >= quiz.passingMarks ? "PASS" : "FAIL";
-  const updated: QuizAttempt = {
-    ...attempt,
-    status: pending ? "SUBMITTED" : "GRADED",
-    submittedAt: new Date().toISOString(),
-    obtainedMarks: pending ? null : obtained,
-    percentage: pending ? null : percentage,
-    grade: pending ? null : gradeFromPercentage(percentage),
-    result,
-  };
-
-  setState({
-    ...ensure(),
-    attempts: s.attempts.map((a) => (a.id === attemptId ? updated : a)),
-  });
-  logAudit("Student Submitted Quiz", quiz.code, attempt.studentName, attempt.studentName, "STUDENT");
-  notify("TEACHER", `Quiz submitted: ${quiz.title} by ${attempt.studentName}`, quiz.id);
-  if (pending) notify("TEACHER", `Manual grading required: ${quiz.title}`, quiz.id);
-  return { ok: true, attempt: updated };
 }
 
-export function attemptsForQuiz(quizId: string) {
-  return ensure()
-    .attempts.filter((a) => a.quizId === quizId)
-    .sort((a, b) => b.startedAt.localeCompare(a.startedAt));
+export function submitAttempt(_attemptId: string): { ok: boolean; error?: string; attempt?: QuizAttempt } {
+  return { ok: false, error: "Use submitQuizAttempt instead." };
 }
 
-export function studentQuizHistory(studentId: string) {
-  return ensure()
-    .attempts.filter((a) => a.studentId === studentId && a.status !== "IN_PROGRESS")
-    .map((a) => {
-      const q = getQuiz(a.quizId);
-      return {
-        name: q?.title ?? "Quiz",
-        score: a.obtainedMarks ?? 0,
-        total: a.totalMarks,
-        percentage: a.percentage ?? 0,
-        status: a.result === "PASS" ? ("PASSED" as const) : a.result === "FAIL" ? ("FAILED" as const) : ("PENDING" as const),
-        date: a.submittedAt ?? a.startedAt,
-        subject: q?.subject ?? "—",
-      };
-    });
+const attemptsCache = new Map<string, QuizAttempt[]>();
+
+export async function loadAttemptsForQuiz(quizId: string): Promise<QuizAttempt[]> {
+  const rows = await apiQuizAttempts(quizId);
+  const mapped: QuizAttempt[] = rows.map((r, i) => ({
+    id: r.id,
+    quizId,
+    studentId: "",
+    studentName: r.student.fullName,
+    studentCode: r.student.code,
+    attemptNumber: i + 1,
+    status: "GRADED",
+    obtainedMarks: r.score,
+    totalMarks: 100,
+    percentage: r.percentage,
+    grade: r.percentage != null ? gradeFromPercentage(r.percentage) : null,
+    result: r.result === "PASS" ? "PASS" : r.result === "FAIL" ? "FAIL" : null,
+    startedAt: r.submittedAt ?? new Date().toISOString(),
+    submittedAt: r.submittedAt,
+    timeSpentSeconds: 0,
+    answers: [],
+  }));
+  attemptsCache.set(quizId, mapped);
+  return mapped;
+}
+
+export function attemptsForQuiz(quizId: string): QuizAttempt[] {
+  return attemptsCache.get(quizId) ?? [];
+}
+
+export function studentQuizHistory(_studentId: string): {
+  name: string;
+  score: number;
+  total: number;
+  percentage: number;
+  status: "PASSED" | "FAILED" | "PENDING";
+  date: string;
+  subject: string;
+}[] {
+  return [];
 }
 
 export function teacherQuizSummary(teacherId: string) {
@@ -555,10 +473,7 @@ export function teacherQuizSummary(teacherId: string) {
     name: q.title,
     status: q.status,
     attempts: q.attemptCount,
-    averageScore:
-      ensure()
-        .attempts.filter((a) => a.quizId === q.id && a.percentage !== null)
-        .reduce((s, a, _, arr) => s + (a.percentage ?? 0) / arr.length, 0) || 0,
+    averageScore: 0,
     createdAt: q.startDate,
   }));
 }
@@ -574,41 +489,12 @@ export function addBankItem(item: Omit<QuestionBankItem, "id" | "createdAt">) {
 }
 
 export function deleteBankItem(id: string) {
-  setState({
-    ...ensure(),
-    questionBank: ensure().questionBank.filter((q) => q.id !== id),
-  });
+  setState({ ...ensure(), questionBank: ensure().questionBank.filter((q) => q.id !== id) });
   return { ok: true };
 }
 
-export function exportQuizResultsCsv(quizId: string) {
-  const quiz = getQuiz(quizId);
-  if (!quiz) return;
-  const rows = attemptsForQuiz(quizId);
-  const header = "Student ID,Name,Attempt,Score,Total,Percentage,Grade,Result,Submitted\n";
-  const body = rows
-    .map((r) =>
-      [
-        r.studentCode,
-        `"${r.studentName}"`,
-        r.attemptNumber,
-        r.obtainedMarks ?? "",
-        r.totalMarks,
-        r.percentage ?? "",
-        r.grade ?? "",
-        r.result ?? "",
-        r.submittedAt?.slice(0, 10) ?? "",
-      ].join(","),
-    )
-    .join("\n");
-  const blob = new Blob([header + body], { type: "text/csv" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `${quiz.code}-results.csv`;
-  a.click();
-  URL.revokeObjectURL(url);
-  logAudit("Quiz Report Exported", quiz.code);
+export function exportQuizResultsCsv(_quizId: string) {
+  /* no attempt data from list API */
 }
 
 export function quickAddMcq(

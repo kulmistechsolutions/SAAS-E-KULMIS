@@ -18,7 +18,7 @@ import {
   updateExpense,
 } from "@/lib/expenses/store";
 import type { Expense, ExpenseAttachment, PaymentMethod } from "@/lib/expenses/types";
-import { ACADEMIC_YEARS } from "@/lib/students/constants";
+import { AcademicYearSelect } from "@/components/academics/academic-year-select";
 import { toast } from "@/lib/toast";
 
 interface ExpenseFormDialogProps {
@@ -116,14 +116,15 @@ export function ExpenseFormDialog({
     };
 
     const res = isEdit
-      ? updateExpense({ id: expense!.id, ...payload })
-      : createExpense(payload);
+      ? await updateExpense({ id: expense!.id, ...payload })
+      : await createExpense(payload);
     setSubmitting(false);
 
     if (!res.ok) {
       toast(res.error ?? "Failed to save expense", "error");
       return;
     }
+    if (res.error) toast(res.error, "info");
     toast(isEdit ? "Expense updated" : `Expense ${res.expense?.referenceNo} recorded`, "success");
     if (res.expense) onSuccess?.(res.expense);
     onClose();
@@ -198,17 +199,10 @@ export function ExpenseFormDialog({
           </div>
           <div className="space-y-2">
             <Label htmlFor="exp-year">Academic Year</Label>
-            <Select
-              id="exp-year"
+            <AcademicYearSelect
               value={academicYear}
-              onChange={(e) => setAcademicYear(e.target.value)}
-            >
-              {ACADEMIC_YEARS.map((y) => (
-                <option key={y} value={y}>
-                  {y}
-                </option>
-              ))}
-            </Select>
+              onChange={setAcademicYear}
+            />
           </div>
         </div>
 

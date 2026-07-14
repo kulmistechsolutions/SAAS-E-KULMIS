@@ -1,12 +1,19 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth";
+import { refreshAcademics } from "@/lib/academics/store";
+import { refreshStudents } from "@/lib/students/store";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
 import { Toaster } from "@/lib/toast";
 import { cn } from "@/lib/utils";
+import {
+  isFullAccessRole,
+  isRouteAllowedForRole,
+  landingRouteForRole,
+} from "@/lib/rbac/routes";
 
 const ROLE_LABEL: Record<string, string> = {
   SUPER_ADMINISTRATOR: "Super Administrator",
@@ -16,6 +23,7 @@ const ROLE_LABEL: Record<string, string> = {
   ATTENDANCE_OFFICER: "Attendance Officer",
   EXAM_MANAGER: "Exam Manager",
   RECEPTION_OFFICER: "Reception Officer",
+  LIBRARIAN: "Librarian",
   TEACHER: "Teacher",
   PARENT: "Parent",
   STUDENT: "Student",
@@ -24,16 +32,43 @@ const ROLE_LABEL: Record<string, string> = {
 export default function AppLayout({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
+  const [mounted, setMounted] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     setCollapsed(localStorage.getItem("sidebar-collapsed") === "true");
   }, []);
 
   useEffect(() => {
-    if (!loading && !user) router.replace("/login");
-  }, [loading, user, router]);
+    if (!mounted || loading || user) return;
+    router.replace("/login");
+  }, [mounted, loading, user, router]);
+
+  useEffect(() => {
+    if (!user || user.role !== "TEACHER") return;
+    router.replace("/teacher-portal");
+  }, [user, router]);
+
+  useEffect(() => {
+    if (user && user.role !== "TEACHER") {
+      void refreshAcademics();
+      void refreshStudents();
+    }
+  }, [user]);
+
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!user || !pathname || isFullAccessRole(user.role) || user.role === "TEACHER") return;
+    if (!isRouteAllowedForRole(user.role, pathname)) {
+      router.replace(landingRouteForRole(user.role));
+    }
+  }, [user, pathname, router]);
 
   function toggleCollapsed() {
     setCollapsed((prev) => {
@@ -43,20 +78,34 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     });
   }
 
-  if (loading)
+  if (!mounted || loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center text-muted-foreground">
-        Loading…
+      <div
+        className="flex min-h-screen items-center justify-center bg-muted/40"
+        suppressHydrationWarning
+        aria-busy="true"
+        aria-label="Loading"
+      >
+        <div
+          className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent"
+          suppressHydrationWarning
+        />
       </div>
     );
-  if (!user) return null;
+  }
+
+  if (!user || user.role === "TEACHER") return null;
+
+  const routeBlocked =
+    pathname != null &&
+    !isFullAccessRole(user.role) &&
+    !isRouteAllowedForRole(user.role, pathname);
 
   const roleLabel = ROLE_LABEL[user.role] ?? user.role;
   const sidebarWidth = collapsed ? "w-20" : "w-64";
 
   return (
-    <div className="flex min-h-screen bg-muted/40">
-      {/* Desktop sidebar */}
+    <div className="flex min-h-screen bg-muted/40" suppressHydrationWarning>
       <aside
         className={cn(
           "hidden shrink-0 transition-[width] duration-300 ease-in-out lg:block",
@@ -73,38 +122,35 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         </div>
       </aside>
 
-      {/* Mobile drawer */}
-      <div
-        className={cn(
-          "fixed inset-0 z-50 lg:hidden",
-          mobileOpen ? "pointer-events-auto" : "pointer-events-none",
-        )}
-      >
-        <div
-          onClick={() => setMobileOpen(false)}
-          className={cn(
-            "absolute inset-0 bg-black/50 transition-opacity",
-            mobileOpen ? "opacity-100" : "opacity-0",
-          )}
-        />
-        <div
-          className={cn(
-            "absolute inset-y-0 left-0 w-64 shadow-xl transition-transform duration-300",
-            mobileOpen ? "translate-x-0" : "-translate-x-full",
-          )}
-        >
-          <Sidebar onNavigate={() => setMobileOpen(false)} />
+      {mobileOpen && (
+        <div className="fixed inset-0 z-50 lg:hidden">
+          <div
+            onClick={() => setMobileOpen(false)}
+            className="absolute inset-0 bg-black/50"
+            aria-hidden
+          />
+          <div className="absolute inset-y-0 left-0 w-64 shadow-xl">
+            <Sidebar onNavigate={() => setMobileOpen(false)} />
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* Main column */}
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="relative z-0 flex min-w-0 flex-1 flex-col">
         <Topbar
           onMenuClick={() => setMobileOpen(true)}
           userName={user.username}
           userRole={roleLabel}
         />
-        <main className="flex-1 p-4 sm:p-6">{children}</main>
+        <main className="flex-1 p-4 sm:p-6">
+          {routeBlocked ? (
+            <div className="flex flex-col items-center justify-center gap-3 py-20 text-muted-foreground">
+              <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+              <p className="text-sm">Redirecting to your dashboard…</p>
+            </div>
+          ) : (
+            children
+          )}
+        </main>
       </div>
       <Toaster />
     </div>

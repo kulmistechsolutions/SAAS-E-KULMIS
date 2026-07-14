@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import type { CreateSectionInput, UpdateSectionInput } from "@ekulmis/shared";
+import { normalizeAcademicName } from "@ekulmis/shared";
 import { PrismaService } from "../prisma/prisma.service";
 import { onUniqueViolation } from "./prisma-errors";
 
@@ -8,6 +9,7 @@ export class SectionService {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(schoolId: string, dto: CreateSectionInput) {
+    const name = normalizeAcademicName(dto.name);
     const cls = await this.prisma.forTenant(schoolId, (tx) =>
       tx.class.findFirst({ where: { id: dto.classId }, select: { id: true } }),
     );
@@ -15,11 +17,21 @@ export class SectionService {
       throw new NotFoundException("Class not found");
     }
     return this.prisma
-      .forTenant(schoolId, (tx) =>
-        tx.section.create({
-          data: { schoolId, classId: dto.classId, name: dto.name },
-        }),
-      )
+      .forTenant(schoolId, async (tx) => {
+        const section = await tx.section.create({
+          data: {
+            schoolId,
+            classId: dto.classId,
+            name,
+            status: dto.status ?? "ACTIVE",
+          },
+        });
+        await tx.class.update({
+          where: { id: dto.classId },
+          data: { hasSections: true },
+        });
+        return section;
+      })
       .catch(
         onUniqueViolation("A section with this name already exists in this class"),
       );
@@ -46,9 +58,14 @@ export class SectionService {
 
   async update(schoolId: string, id: string, dto: UpdateSectionInput) {
     await this.findOne(schoolId, id);
+    const name =
+      dto.name !== undefined ? normalizeAcademicName(dto.name) : undefined;
     return this.prisma
       .forTenant(schoolId, (tx) =>
-        tx.section.update({ where: { id }, data: { name: dto.name } }),
+        tx.section.update({
+          where: { id },
+          data: { name, status: dto.status },
+        }),
       )
       .catch(
         onUniqueViolation("A section with this name already exists in this class"),
@@ -56,10 +73,17 @@ export class SectionService {
   }
 
   async remove(schoolId: string, id: string) {
-    await this.findOne(schoolId, id);
-    await this.prisma.forTenant(schoolId, (tx) =>
-      tx.section.delete({ where: { id } }),
-    );
+    const section = await this.findOne(schoolId, id);
+    await this.prisma.forTenant(schoolId, async (tx) => {
+      await tx.section.delete({ where: { id } });
+      const remaining = await tx.section.count({
+        where: { classId: section.classId },
+      });
+      await tx.class.update({
+        where: { id: section.classId },
+        data: { hasSections: remaining > 0 },
+      });
+    });
     return { success: true };
   }
 }

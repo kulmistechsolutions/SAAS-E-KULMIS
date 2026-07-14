@@ -3,10 +3,17 @@
 import { useSyncExternalStore } from "react";
 import { buildSeed } from "./seed";
 import {
+  apiCreateUser,
+  apiDeleteUser,
+  apiListUsers,
+  apiResetPassword,
+  apiUpdateUser,
+} from "./api";
+import { ApiError } from "@/lib/api";
+import {
   builtInRolePermissions,
-  hashPassword,
+  normalizePermissions,
   roleLabel,
-  userIdCode,
   verifyPassword,
 } from "./format";
 import type {
@@ -43,6 +50,7 @@ const EMPTY: UsersState = {
 };
 
 let state: UsersState | null = null;
+let usersLoaded = false;
 const listeners = new Set<() => void>();
 
 function subscribe(cb: () => void) {
@@ -54,20 +62,47 @@ function emit() {
   listeners.forEach((l) => l());
 }
 
+/**
+ * User accounts are backed by the real API/DB. Roles, permissions, sessions and
+ * security settings remain client-side (no backend yet) and come from the seed.
+ */
+export async function refreshUsers(): Promise<void> {
+  try {
+    const users = await apiListUsers();
+    const s = ensure();
+    setState({ ...s, users, userSeq: users.length });
+  } catch {
+    /* leave existing users; the list page surfaces load errors */
+  }
+}
+
 function ensure(): UsersState {
   if (state) return state;
   if (typeof window === "undefined") return EMPTY;
   const raw = localStorage.getItem(KEY);
   if (raw) {
     try {
-      state = JSON.parse(raw) as UsersState;
-      return state;
+      const parsed = JSON.parse(raw) as UsersState;
+      state = {
+        ...parsed,
+        roles: parsed.roles.map((r) => ({
+          ...r,
+          permissions: normalizePermissions(r.permissions),
+        })),
+      };
     } catch {
-      /* fall through */
+      state = buildSeed();
     }
+  } else {
+    state = buildSeed();
+    localStorage.setItem(KEY, JSON.stringify(state));
   }
-  state = buildSeed();
-  localStorage.setItem(KEY, JSON.stringify(state));
+  // User accounts always come from the API — never the seed.
+  if (!usersLoaded) {
+    usersLoaded = true;
+    state = { ...state, users: [] };
+    void refreshUsers();
+  }
   return state;
 }
 
@@ -224,173 +259,126 @@ export function sessionsForUser(userId: string) {
     .sort((a, b) => b.loginAt.localeCompare(a.loginAt));
 }
 
-export function createUser(
+function apiErr(e: unknown, fallback: string): string {
+  return e instanceof ApiError ? e.message : fallback;
+}
+
+export async function createUser(
   input: CreateUserInput,
-): { ok: boolean; error?: string; user?: SystemUser } {
-  const s = ensure();
+): Promise<{ ok: boolean; error?: string; user?: SystemUser }> {
+  const fullName = input.fullName.trim();
   const username = input.username.trim();
-  if (!input.fullName.trim()) return { ok: false, error: "Full name is required." };
+  if (!fullName) return { ok: false, error: "Full name is required." };
   if (!username) return { ok: false, error: "Username is required." };
-  if (s.users.some((u) => u.username.toLowerCase() === username.toLowerCase())) {
-    return { ok: false, error: "Username already exists." };
-  }
   const pwErr = validatePassword(input.password);
   if (pwErr) return { ok: false, error: pwErr };
 
-  const seq = s.userSeq + 1;
-  const now = new Date().toISOString();
-  const user: SystemUser = {
-    id: `usr_${Date.now()}`,
-    userId: userIdCode(seq),
-    fullName: input.fullName.trim(),
-    username,
-    passwordHash: hashPassword(input.password),
-    role: input.role,
-    status: input.status ?? "ACTIVE",
-    lastLogin: null,
-    createdAt: now,
-    updatedAt: now,
-  };
-
-  setState({ ...ensure(), users: [user, ...s.users], userSeq: seq });
-  logAudit("User Created", user.fullName, user.username);
-  pushNotification("USER_CREATED", `New user ${user.username} created`);
-  return { ok: true, user };
+  try {
+    const user = await apiCreateUser({
+      fullName,
+      username,
+      password: input.password,
+      role: input.role,
+      status: input.status,
+    });
+    await refreshUsers();
+    logAudit("User Created", user.fullName, user.username);
+    pushNotification("USER_CREATED", `New user ${user.username} created`);
+    return { ok: true, user };
+  } catch (e) {
+    return { ok: false, error: apiErr(e, "Failed to create user.") };
+  }
 }
 
-export function updateUser(
+export async function updateUser(
   input: UpdateUserInput,
-): { ok: boolean; error?: string; user?: SystemUser } {
+): Promise<{ ok: boolean; error?: string; user?: SystemUser }> {
   const s = ensure();
   const existing = s.users.find((u) => u.id === input.id);
   if (!existing) return { ok: false, error: "User not found." };
 
-  if (
-    existing.role === "SUPER_ADMINISTRATOR" &&
-    input.role &&
-    input.role !== "SUPER_ADMINISTRATOR"
-  ) {
-    const supers = s.users.filter((u) => u.role === "SUPER_ADMINISTRATOR");
-    if (supers.length <= 1) {
-      return { ok: false, error: "Cannot change role of the last Super Administrator." };
+  try {
+    const updated = await apiUpdateUser(input.id, {
+      fullName: input.fullName?.trim(),
+      username: input.username?.trim(),
+      role: input.role,
+      status: input.status,
+    });
+    await refreshUsers();
+    if (input.role && input.role !== existing.role) {
+      logAudit("Role Changed", updated.fullName, `${existing.role} → ${input.role}`);
+      pushNotification("ROLE_UPDATED", `Role updated for ${updated.username}`);
+    } else {
+      logAudit("User Updated", updated.fullName);
     }
+    return { ok: true, user: updated };
+  } catch (e) {
+    return { ok: false, error: apiErr(e, "Failed to update user.") };
   }
-
-  if (input.username) {
-    const username = input.username.trim();
-    if (
-      s.users.some(
-        (u) => u.id !== existing.id && u.username.toLowerCase() === username.toLowerCase(),
-      )
-    ) {
-      return { ok: false, error: "Username already exists." };
-    }
-  }
-
-  const updated: SystemUser = {
-    ...existing,
-    fullName: input.fullName?.trim() ?? existing.fullName,
-    username: input.username?.trim() ?? existing.username,
-    role: input.role ?? existing.role,
-    status: input.status ?? existing.status,
-    updatedAt: new Date().toISOString(),
-  };
-
-  setState({
-    ...ensure(),
-    users: s.users.map((u) => (u.id === existing.id ? updated : u)),
-  });
-
-  if (input.role && input.role !== existing.role) {
-    logAudit("Role Changed", updated.fullName, `${existing.role} → ${input.role}`);
-    pushNotification("ROLE_UPDATED", `Role updated for ${updated.username}`);
-  } else {
-    logAudit("User Updated", updated.fullName);
-  }
-  return { ok: true, user: updated };
 }
 
-export function resetPassword(
+export async function resetPassword(
   userId: string,
   newPassword: string,
-): { ok: boolean; error?: string } {
+): Promise<{ ok: boolean; error?: string }> {
   const pwErr = validatePassword(newPassword);
   if (pwErr) return { ok: false, error: pwErr };
   const s = ensure();
   const user = s.users.find((u) => u.id === userId);
   if (!user) return { ok: false, error: "User not found." };
 
-  setState({
-    ...ensure(),
-    users: s.users.map((u) =>
-      u.id === userId
-        ? {
-            ...u,
-            passwordHash: hashPassword(newPassword),
-            forcePasswordChange: true,
-            updatedAt: new Date().toISOString(),
-          }
-        : u,
-    ),
-  });
-  logAudit("Password Reset", user.fullName);
-  pushNotification("PASSWORD_RESET", `Password reset for ${user.username}`);
-  return { ok: true };
+  try {
+    await apiResetPassword(userId, newPassword);
+    logAudit("Password Reset", user.fullName);
+    pushNotification("PASSWORD_RESET", `Password reset for ${user.username}`);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: apiErr(e, "Failed to reset password.") };
+  }
 }
 
-export function setAccountStatus(
+export async function setAccountStatus(
   userId: string,
   status: AccountStatus,
-): { ok: boolean; error?: string } {
+): Promise<{ ok: boolean; error?: string }> {
   const s = ensure();
   const user = s.users.find((u) => u.id === userId);
   if (!user) return { ok: false, error: "User not found." };
 
-  if (user.role === "SUPER_ADMINISTRATOR" && status !== "ACTIVE") {
-    const activeSupers = s.users.filter(
-      (u) => u.role === "SUPER_ADMINISTRATOR" && u.status === "ACTIVE" && u.id !== userId,
-    );
-    if (activeSupers.length === 0) {
-      return { ok: false, error: "Cannot deactivate the last Super Administrator." };
+  try {
+    await apiUpdateUser(userId, { status });
+    await refreshUsers();
+    const action =
+      status === "LOCKED"
+        ? "Account Locked"
+        : status === "ACTIVE"
+          ? "Account Unlocked"
+          : "User Updated";
+    logAudit(action, user.fullName, status);
+    if (status === "LOCKED") {
+      pushNotification("ACCOUNT_LOCKED", `Account ${user.username} locked`);
     }
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: apiErr(e, "Failed to update status.") };
   }
-
-  setState({
-    ...ensure(),
-    users: s.users.map((u) =>
-      u.id === userId ? { ...u, status, updatedAt: new Date().toISOString() } : u,
-    ),
-  });
-
-  const action =
-    status === "LOCKED"
-      ? "Account Locked"
-      : status === "ACTIVE"
-        ? "Account Unlocked"
-        : "User Updated";
-  logAudit(action, user.fullName, status);
-  if (status === "LOCKED") {
-    pushNotification("ACCOUNT_LOCKED", `Account ${user.username} locked`);
-  }
-  return { ok: true };
 }
 
-export function deleteUser(userId: string): { ok: boolean; error?: string } {
+export async function deleteUser(
+  userId: string,
+): Promise<{ ok: boolean; error?: string }> {
   const s = ensure();
   const user = s.users.find((u) => u.id === userId);
   if (!user) return { ok: false, error: "User not found." };
-  if (user.role === "SUPER_ADMINISTRATOR") {
-    const supers = s.users.filter((u) => u.role === "SUPER_ADMINISTRATOR");
-    if (supers.length <= 1) {
-      return { ok: false, error: "Cannot delete the last Super Administrator." };
-    }
+
+  try {
+    await apiDeleteUser(userId);
+    await refreshUsers();
+    logAudit("User Deleted", user.fullName, user.username);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: apiErr(e, "Failed to delete user.") };
   }
-  setState({
-    ...ensure(),
-    users: s.users.filter((u) => u.id !== userId),
-  });
-  logAudit("User Deleted", user.fullName, user.username);
-  return { ok: true };
 }
 
 export function updateRolePermissions(

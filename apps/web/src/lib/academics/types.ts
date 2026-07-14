@@ -13,6 +13,7 @@ export interface SchoolClass {
   id: string;
   name: string;
   academicYear: string;
+  orderIndex: number;
   hasSections: boolean;
   status: EntityStatus;
   notes?: string | null;

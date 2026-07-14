@@ -12,6 +12,8 @@ interface DialogProps {
   children: ReactNode;
   footer?: ReactNode;
   className?: string;
+  /** When false, the dialog grows to fit content (no inner scroll). */
+  scrollable?: boolean;
 }
 
 export function Dialog({
@@ -22,6 +24,7 @@ export function Dialog({
   children,
   footer,
   className,
+  scrollable = true,
 }: DialogProps) {
   useEffect(() => {
     if (!open) return;
@@ -39,34 +42,52 @@ export function Dialog({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-start justify-center overflow-y-auto p-4 sm:items-center">
+    <div
+      className="fixed inset-0 z-[60] flex items-center justify-center p-3 sm:p-4"
+      role="presentation"
+    >
       <div
         className="absolute inset-0 bg-black/50 backdrop-blur-sm"
         onClick={onClose}
+        aria-hidden
       />
       <div
         role="dialog"
         aria-modal="true"
+        aria-labelledby={title ? "dialog-title" : undefined}
+        aria-describedby={description ? "dialog-description" : undefined}
+        onClick={(e) => e.stopPropagation()}
         className={cn(
-          "animate-fade-up relative z-10 my-8 w-full max-w-lg rounded-2xl border bg-card shadow-xl",
+          "animate-fade-up relative z-10 flex w-full flex-col rounded-2xl border bg-card shadow-xl",
+          "max-w-[calc(100vw-1.5rem)]",
+          scrollable && "max-h-[min(92dvh,920px)] overflow-hidden",
+          !scrollable && "max-h-[96dvh]",
+          !className && "sm:max-w-lg",
           className,
         )}
       >
         {(title || description) && (
-          <div className="flex items-start justify-between gap-4 border-b px-6 py-4">
-            <div>
+          <div className="flex shrink-0 items-start justify-between gap-3 border-b px-4 py-2.5 sm:px-5">
+            <div className="min-w-0 pr-2">
               {title && (
-                <h2 className="text-lg font-semibold text-foreground">
+                <h2
+                  id="dialog-title"
+                  className="text-base font-semibold leading-tight text-foreground"
+                >
                   {title}
                 </h2>
               )}
               {description && (
-                <p className="mt-0.5 text-sm text-muted-foreground">
+                <p
+                  id="dialog-description"
+                  className="mt-0.5 text-xs text-muted-foreground"
+                >
                   {description}
                 </p>
               )}
             </div>
             <button
+              type="button"
               onClick={onClose}
               aria-label="Close"
               className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-secondary"
@@ -75,9 +96,19 @@ export function Dialog({
             </button>
           </div>
         )}
-        <div className="px-6 py-5">{children}</div>
+
+        <div
+          className={cn(
+            "px-4 py-2.5 sm:px-5",
+            scrollable &&
+              "min-h-0 flex-1 overflow-y-auto overscroll-contain scrollbar-none",
+          )}
+        >
+          {children}
+        </div>
+
         {footer && (
-          <div className="flex items-center justify-end gap-3 border-t px-6 py-4">
+          <div className="flex shrink-0 flex-col-reverse gap-2 border-t bg-card px-4 py-3 sm:flex-row sm:items-center sm:justify-end sm:gap-3 sm:px-5 [&_button]:w-full sm:[&_button]:w-auto">
             {footer}
           </div>
         )}

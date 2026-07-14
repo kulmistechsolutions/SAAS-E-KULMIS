@@ -49,8 +49,8 @@ export function UserFormDialog({ open, user, onClose, onSuccess }: UserFormDialo
   async function handleSubmit() {
     setSubmitting(true);
     const res = isEdit
-      ? updateUser({ id: user!.id, fullName, username, role, status })
-      : createUser({ fullName, username, password, role, status });
+      ? await updateUser({ id: user!.id, fullName, username, role, status })
+      : await createUser({ fullName, username, password, role, status });
     setSubmitting(false);
     if (!res.ok) {
       toast(res.error ?? "Failed", "error");

@@ -25,6 +25,7 @@ export function ConfirmDialog({
     <Dialog
       open={open}
       onClose={onClose}
+      title={title}
       className="max-w-md"
       footer={
         <>
@@ -41,10 +42,7 @@ export function ConfirmDialog({
         <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-rose-500/12 text-rose-600 dark:text-rose-400">
           <AlertTriangle className="h-5 w-5" />
         </span>
-        <div>
-          <h2 className="text-lg font-semibold text-foreground">{title}</h2>
-          <p className="mt-1 text-sm text-muted-foreground">{message}</p>
-        </div>
+        <p className="text-sm text-muted-foreground">{message}</p>
       </div>
     </Dialog>
   );

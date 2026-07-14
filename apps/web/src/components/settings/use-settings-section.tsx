@@ -32,9 +32,9 @@ export function useSettingsSection<K extends SettingsSectionKey>(key: K) {
     setDirty(true);
   }, [key]);
 
-  const save = useCallback(() => {
+  const save = useCallback(async () => {
     setSaving(true);
-    const result = updateSettingsSection(key, draft);
+    const result = await updateSettingsSection(key, draft);
     setSaving(false);
     if (!result.ok) {
       toast(result.error ?? "Failed to save settings", "error");

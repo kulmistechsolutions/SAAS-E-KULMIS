@@ -22,16 +22,26 @@ import { Select } from "@/components/ui/select";
 import { Pagination } from "@/components/ui/pagination";
 import { SummaryCards } from "@/components/students/summary-cards";
 import { StudentFormDialog } from "@/components/students/student-form-dialog";
+import { StudentAvatar } from "@/components/students/student-avatar";
 import { ImportDialog } from "@/components/students/import-dialog";
 import { ConfirmDialog } from "@/components/students/confirm-dialog";
 import {
   deleteStudent,
+  refreshStudents,
   resetStudents,
   summarize,
+  useStudentsRefresh,
   useStudentsState,
   withParents,
 } from "@/lib/students/store";
-import { ACADEMIC_YEARS, CLASSES, SECTIONS } from "@/lib/students/constants";
+import {
+  classNamesForYear,
+  ensureAcademicsLoaded,
+  sectionNamesForClass,
+  useAcademicsState,
+} from "@/lib/academics/store";
+import { defaultAcademicYear } from "@/lib/academics/year-select";
+import { AcademicYearSelect } from "@/components/academics/academic-year-select";
 import { genderLabel, money, shortDate } from "@/lib/students/format";
 import {
   exportStudentsCsv,
@@ -53,13 +63,17 @@ const STATUS_TONE: Record<StudentStatus, "success" | "muted" | "info"> = {
   GRADUATED: "info",
 };
 
-const CLASS_ORDER = new Map<string, number>(CLASSES.map((c, i) => [c, i]));
-
 export default function StudentsPage() {
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
+  useEffect(() => {
+    void ensureAcademicsLoaded();
+    void refreshStudents();
+  }, []);
 
   const state = useStudentsState();
+  const { loading: studentsLoading, failed: studentsFailed } = useStudentsRefresh();
+  const academics = useAcademicsState();
 
   const [search, setSearch] = useState("");
   const [year, setYear] = useState("");
@@ -71,12 +85,44 @@ export default function StudentsPage() {
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [page, setPage] = useState(1);
 
+  useEffect(() => {
+    if (!mounted) return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("add") === "1") setFormOpen(true);
+  }, [mounted]);
+
+  useEffect(() => {
+    if (!mounted || year || academics.academicYears.length === 0) return;
+    const active = defaultAcademicYear(academics);
+    if (active) setYear(active);
+  }, [mounted, year, academics.academicYears]);
+
+  const classOptions = useMemo(
+    () => classNamesForYear(year || undefined),
+    [year, academics.classes],
+  );
+  const sectionOptions = useMemo(
+    () => (klass ? sectionNamesForClass(klass, year || undefined) : []),
+    [klass, year, academics.sections],
+  );
+
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<StudentWithParent | null>(null);
   const [importOpen, setImportOpen] = useState(false);
   const [deleting, setDeleting] = useState<StudentWithParent | null>(null);
 
-  const summary = useMemo(() => summarize(state.students), [state.students]);
+  // Cards reflect the selected academic year so they always agree with the
+  // table below (an all-years total next to an empty year-filtered table reads
+  // as "the data disappeared").
+  const summary = useMemo(
+    () =>
+      summarize(
+        year
+          ? state.students.filter((s) => s.academicYear === year)
+          : state.students,
+      ),
+    [state.students, year],
+  );
   const all = useMemo(() => withParents(state), [state]);
 
   const filtered = useMemo(() => {
@@ -105,8 +151,7 @@ export default function StudentsPage() {
           new Date(b.registrationDate).getTime();
       else if (sortKey === "className")
         cmp =
-          (CLASS_ORDER.get(a.className) ?? 0) -
-          (CLASS_ORDER.get(b.className) ?? 0);
+          a.className.localeCompare(b.className, undefined, { numeric: true });
       return sortDir === "asc" ? cmp : -cmp;
     });
     return rows;
@@ -142,15 +187,17 @@ export default function StudentsPage() {
     }
   }
 
-  function handleDelete() {
+  async function handleDelete() {
     if (!deleting) return;
-    const res = deleteStudent(deleting.id);
+    const res = await deleteStudent(deleting.id);
     if (res.ok) {
       toast(
         `${deleting.fullName} deleted.${
           res.parentDeleted ? " Parent account removed (no other children)." : ""
         }`,
       );
+    } else {
+      toast(res.error ?? "Delete failed", "error");
     }
     setDeleting(null);
   }
@@ -175,6 +222,23 @@ export default function StudentsPage() {
       </div>
     );
   }
+
+  // When the selected year simply has no students but other years do, say so
+  // explicitly — otherwise the page looks broken ("students disappeared").
+  const activeYearName = defaultAcademicYear(academics);
+  const tableEmptyMessage = studentsLoading
+    ? "Loading students from the server…"
+    : studentsFailed
+      ? "Could not load students. Try refreshing the page."
+      : year && all.length > 0 && all.every((s) => s.academicYear !== year)
+        ? `No students in ${year}. ${
+            activeYearName && activeYearName !== year
+              ? `Switch the year filter to ${activeYearName} (active year) to see them.`
+              : "Choose another academic year."
+          }`
+        : hasFilters
+          ? "No students match your filters."
+          : "No students registered yet.";
 
   return (
     <div className="space-y-6">
@@ -222,17 +286,22 @@ export default function StudentsPage() {
             />
           </div>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:flex lg:flex-nowrap">
-            <Select value={year} onChange={(e) => setYear(e.target.value)} className="lg:w-36">
-              <option value="">All Years</option>
-              {ACADEMIC_YEARS.map((y) => (
-                <option key={y} value={y}>
-                  {y}
-                </option>
-              ))}
-            </Select>
-            <Select value={klass} onChange={(e) => setKlass(e.target.value)} className="lg:w-32">
+            <AcademicYearSelect
+              value={year}
+              onChange={setYear}
+              allowAll
+              className="lg:w-36"
+            />
+            <Select
+              value={klass}
+              onChange={(e) => {
+                setKlass(e.target.value);
+                setSection("");
+              }}
+              className="lg:w-32"
+            >
               <option value="">All Classes</option>
-              {CLASSES.map((c) => (
+              {classOptions.map((c) => (
                 <option key={c} value={c}>
                   {c}
                 </option>
@@ -240,7 +309,7 @@ export default function StudentsPage() {
             </Select>
             <Select value={section} onChange={(e) => setSection(e.target.value)} className="lg:w-32">
               <option value="">All Sections</option>
-              {SECTIONS.map((s) => (
+              {sectionOptions.map((s) => (
                 <option key={s} value={s}>
                   Section {s}
                 </option>
@@ -290,7 +359,14 @@ export default function StudentsPage() {
               {pageRows.length === 0 ? (
                 <tr>
                   <td colSpan={12} className="px-4 py-16 text-center text-muted-foreground">
-                    No students match your filters.
+                    {studentsLoading ? (
+                      <span className="inline-flex items-center gap-2">
+                        <span className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                        {tableEmptyMessage}
+                      </span>
+                    ) : (
+                      tableEmptyMessage
+                    )}
                   </td>
                 </tr>
               ) : (
@@ -306,12 +382,22 @@ export default function StudentsPage() {
                       {s.code}
                     </td>
                     <td className="px-4 py-3">
-                      <Link
-                        href={`/students/${s.id}`}
-                        className="font-medium text-foreground hover:text-primary hover:underline"
-                      >
-                        {s.fullName}
-                      </Link>
+                      <div className="flex items-center gap-2.5">
+                        <StudentAvatar
+                          name={s.fullName}
+                          studentId={s.id}
+                          hasPhoto={s.hasPhoto}
+                          photoUrl={s.photoUrl}
+                          size="sm"
+                          clickable={false}
+                        />
+                        <Link
+                          href={`/students/${s.id}`}
+                          className="font-medium text-foreground hover:text-primary hover:underline"
+                        >
+                          {s.fullName}
+                        </Link>
+                      </div>
                     </td>
                     <td className="px-4 py-3 text-muted-foreground">
                       {genderLabel(s.gender)}
@@ -397,7 +483,7 @@ export default function StudentsPage() {
         open={formOpen}
         onClose={() => setFormOpen(false)}
         student={editing}
-        onSaved={(msg) => toast(msg)}
+        onSaved={(msg, tone) => toast(msg, tone ?? "success")}
       />
       <ImportDialog
         open={importOpen}

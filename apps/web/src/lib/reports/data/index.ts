@@ -10,7 +10,10 @@ import {
   getFeesState,
   listStudentFees,
   outstandingBalance,
+  studentAnnualSummary,
+  studentCharges,
 } from "@/lib/fees/store";
+import { monthLabel } from "@/lib/fees/format";
 import {
   graduatedStudents,
   promotionHistory,
@@ -37,6 +40,20 @@ import {
   totalExpenses,
 } from "@/lib/expenses/store";
 
+export async function fetchReportAsync(
+  category: string,
+  slug: string,
+  filters: ReportFilters,
+): Promise<ReportData> {
+  if (category === "attendance") {
+    return fetchAttendanceReportAsync(slug, filters);
+  }
+  if (category === "teachers" && slug === "attendance") {
+    return fetchTeacherAttendanceReportAsync(filters);
+  }
+  return fetchReport(category, slug, filters);
+}
+
 export function fetchReport(
   category: string,
   slug: string,
@@ -48,7 +65,7 @@ export function fetchReport(
     case "teachers":
       return fetchTeacherReport(slug, filters);
     case "attendance":
-      return fetchAttendanceReport(slug, filters);
+      return emptyReport("Loading attendance data…");
     case "fees":
       return fetchFeeReport(slug, filters);
     case "examinations":
@@ -275,29 +292,8 @@ function fetchTeacherReport(slug: string, filters: ReportFilters): ReportData {
         summary: [{ label: "Assignments", value: String(assigns.length) }],
       };
     }
-    case "attendance": {
-      const records = filterTeacherRecords({
-        date: filters.date,
-        shift: filters.shift as "MORNING" | "AFTERNOON" | undefined,
-        status: filters.status as never,
-        search: filters.search,
-      });
-      return {
-        columns: [
-          { key: "teacher", label: "Teacher" },
-          { key: "date", label: "Date" },
-          { key: "shift", label: "Shift" },
-          { key: "status", label: "Status" },
-        ],
-        rows: records.map((r) => ({
-          teacher: r.teacher.fullName,
-          date: r.date,
-          shift: r.shift,
-          status: r.status,
-        })),
-        summary: [{ label: "Records", value: String(records.length) }],
-      };
-    }
+    case "attendance":
+      return emptyReport("Use async report loader for attendance data.");
     case "salary": {
       const teachers = tt.teachers.filter((t) => t.status === "ACTIVE");
       const total = teachers.reduce((s, t) => s + t.salary, 0);
@@ -349,13 +345,43 @@ function fetchTeacherReport(slug: string, filters: ReportFilters): ReportData {
   }
 }
 
-function fetchAttendanceReport(slug: string, filters: ReportFilters): ReportData {
+async function fetchTeacherAttendanceReportAsync(
+  filters: ReportFilters,
+): Promise<ReportData> {
+  const records = await filterTeacherRecords({
+    date: filters.date,
+    shift: filters.shift as "MORNING" | "AFTERNOON" | undefined,
+    status: filters.status as never,
+    search: filters.search,
+  });
+  return {
+    columns: [
+      { key: "teacher", label: "Teacher" },
+      { key: "date", label: "Date" },
+      { key: "shift", label: "Shift" },
+      { key: "status", label: "Status" },
+    ],
+    rows: records.map((r) => ({
+      teacher: r.teacher.fullName,
+      date: r.date,
+      shift: r.shift,
+      status: r.status,
+    })),
+    summary: [{ label: "Records", value: String(records.length) }],
+  };
+}
+
+async function fetchAttendanceReportAsync(
+  slug: string,
+  filters: ReportFilters,
+): Promise<ReportData> {
   const year = yearOf(filters);
 
   if (slug.startsWith("student")) {
     if (slug === "student-class" || slug === "student-section") {
-      const records = filterStudentRecords({
+      const records = await filterStudentRecords({
         academicYear: year,
+        date: filters.date,
         className: filters.className,
         section: filters.section,
       });
@@ -386,7 +412,7 @@ function fetchAttendanceReport(slug: string, filters: ReportFilters): ReportData
       };
     }
 
-    const records = filterStudentRecords({
+    const records = await filterStudentRecords({
       academicYear: year,
       date: filters.date,
       className: filters.className,
@@ -421,27 +447,7 @@ function fetchAttendanceReport(slug: string, filters: ReportFilters): ReportData
     };
   }
 
-  const records = filterTeacherRecords({
-    date: filters.date,
-    shift: filters.shift as "MORNING" | "AFTERNOON" | undefined,
-    status: filters.status as never,
-    search: filters.search,
-  });
-  return {
-    columns: [
-      { key: "teacher", label: "Teacher" },
-      { key: "shift", label: "Shift" },
-      { key: "date", label: "Date" },
-      { key: "status", label: "Status" },
-    ],
-    rows: records.map((r) => ({
-      teacher: r.teacher.fullName,
-      shift: r.shift,
-      date: r.date,
-      status: r.status,
-    })),
-    summary: [{ label: "Records", value: String(records.length) }],
-  };
+  return fetchTeacherAttendanceReportAsync(filters);
 }
 
 function fetchFeeReport(slug: string, filters: ReportFilters): ReportData {
@@ -563,6 +569,293 @@ function fetchFeeReport(slug: string, filters: ReportFilters): ReportData {
           due: money(v.due),
         })),
         summary: [{ label: "Groups", value: String(map.size) }],
+      };
+    }
+    case "academic-year-summary": {
+      const students = filterStudents({ ...filters, academicYear: year }, "ACTIVE");
+      const rows = students.map((s) => {
+        const sum = studentAnnualSummary(s.id);
+        return {
+          code: s.code,
+          name: s.fullName,
+          className: s.className,
+          monthlyFee: money(s.monthlyFee),
+          annualFee: money(sum.totalDue),
+          paid: money(sum.totalPaid),
+          outstanding: money(sum.outstanding),
+          progress: `${sum.paidMonths}/${sum.totalMonths} (${sum.progressPercent}%)`,
+        };
+      });
+      return {
+        columns: [
+          { key: "code", label: "Student ID", mono: true },
+          { key: "name", label: "Name" },
+          { key: "className", label: "Class" },
+          { key: "monthlyFee", label: "Monthly Fee", align: "right" },
+          { key: "annualFee", label: "Annual Fee", align: "right" },
+          { key: "paid", label: "Paid", align: "right" },
+          { key: "outstanding", label: "Outstanding", align: "right" },
+          { key: "progress", label: "Progress" },
+        ],
+        rows,
+        summary: [
+          { label: "Students", value: String(rows.length) },
+          {
+            label: "Total Outstanding",
+            value: money(
+              students.reduce((n, s) => n + studentAnnualSummary(s.id).outstanding, 0),
+            ),
+          },
+        ],
+      };
+    }
+    case "monthly-progress": {
+      const students = filterStudents({ ...filters, academicYear: year }, "ACTIVE");
+      const monthFilter = filters.month;
+      const rows: Record<string, string>[] = [];
+      for (const s of students) {
+        const charges = studentCharges(s.id).filter((c) => {
+          if (monthFilter && c.monthKey !== monthFilter) return false;
+          return true;
+        });
+        for (const c of charges) {
+          rows.push({
+            code: s.code,
+            name: s.fullName,
+            className: s.className,
+            month: monthLabel(c.monthKey),
+            charge: money(c.monthlyFee),
+            paid: money(c.amountPaid),
+            balance: money(c.balance),
+            status: c.status,
+          });
+        }
+      }
+      return {
+        columns: [
+          { key: "code", label: "Student ID", mono: true },
+          { key: "name", label: "Name" },
+          { key: "className", label: "Class" },
+          { key: "month", label: "Month" },
+          { key: "charge", label: "Charge", align: "right" },
+          { key: "paid", label: "Paid", align: "right" },
+          { key: "balance", label: "Balance", align: "right" },
+          { key: "status", label: "Status" },
+        ],
+        rows,
+        summary: [{ label: "Records", value: String(rows.length) }],
+      };
+    }
+    case "paid-months": {
+      const students = filterStudents({ ...filters, academicYear: year }, "ACTIVE");
+      const monthFilter = filters.month;
+      const rows: Record<string, string>[] = [];
+      let totalPaid = 0;
+      for (const s of students) {
+        for (const c of studentCharges(s.id)) {
+          if (c.status !== "PAID") continue;
+          if (monthFilter && c.monthKey !== monthFilter) continue;
+          totalPaid += c.monthlyFee;
+          rows.push({
+            code: s.code,
+            name: s.fullName,
+            className: s.className,
+            month: monthLabel(c.monthKey),
+            amount: money(c.monthlyFee),
+          });
+        }
+      }
+      return {
+        columns: [
+          { key: "code", label: "Student ID", mono: true },
+          { key: "name", label: "Name" },
+          { key: "className", label: "Class" },
+          { key: "month", label: "Month" },
+          { key: "amount", label: "Amount", align: "right" },
+        ],
+        rows,
+        summary: [
+          { label: "Paid Months", value: String(rows.length) },
+          { label: "Total", value: money(totalPaid) },
+        ],
+      };
+    }
+    case "outstanding-months": {
+      const students = filterStudents({ ...filters, academicYear: year }, "ACTIVE");
+      const monthFilter = filters.month;
+      const rows: Record<string, string>[] = [];
+      let totalDue = 0;
+      for (const s of students) {
+        for (const c of studentCharges(s.id)) {
+          if (c.status === "INACTIVE" || c.status === "PAID") continue;
+          if (monthFilter && c.monthKey !== monthFilter) continue;
+          totalDue += c.balance;
+          rows.push({
+            code: s.code,
+            name: s.fullName,
+            className: s.className,
+            month: monthLabel(c.monthKey),
+            charge: money(c.monthlyFee),
+            paid: money(c.amountPaid),
+            balance: money(c.balance),
+            status: c.status,
+          });
+        }
+      }
+      return {
+        columns: [
+          { key: "code", label: "Student ID", mono: true },
+          { key: "name", label: "Name" },
+          { key: "className", label: "Class" },
+          { key: "month", label: "Month" },
+          { key: "charge", label: "Charge", align: "right" },
+          { key: "paid", label: "Paid", align: "right" },
+          { key: "balance", label: "Balance", align: "right" },
+          { key: "status", label: "Status" },
+        ],
+        rows,
+        summary: [
+          { label: "Outstanding Months", value: String(rows.length) },
+          { label: "Total Due", value: money(totalDue) },
+        ],
+      };
+    }
+    case "agreement-fee": {
+      const students = filterStudents({ ...filters, academicYear: year }, "ACTIVE");
+      const rows: Record<string, string>[] = [];
+      for (const s of students) {
+        if (s.feeStartMode !== "AGREEMENT") {
+          const agreementCharge = studentCharges(s.id).find(
+            (c) =>
+              c.status !== "INACTIVE" &&
+              c.monthlyFee < s.monthlyFee &&
+              (c.status === "PARTIAL" || c.status === "UNPAID"),
+          );
+          if (!agreementCharge) continue;
+          rows.push({
+            code: s.code,
+            name: s.fullName,
+            className: s.className,
+            standardFee: money(s.monthlyFee),
+            agreementFee: money(agreementCharge.monthlyFee),
+            month: monthLabel(agreementCharge.monthKey),
+            balance: money(agreementCharge.balance),
+          });
+          continue;
+        }
+        const agreementCharge = studentCharges(s.id).find(
+          (c) => c.status !== "INACTIVE" && c.monthlyFee <= (s.feeAgreementAmount ?? s.monthlyFee),
+        );
+        rows.push({
+          code: s.code,
+          name: s.fullName,
+          className: s.className,
+          standardFee: money(s.monthlyFee),
+          agreementFee: money(s.feeAgreementAmount ?? agreementCharge?.monthlyFee ?? 0),
+          month: agreementCharge ? monthLabel(agreementCharge.monthKey) : "—",
+          balance: money(agreementCharge?.balance ?? 0),
+        });
+      }
+      return {
+        columns: [
+          { key: "code", label: "Student ID", mono: true },
+          { key: "name", label: "Name" },
+          { key: "className", label: "Class" },
+          { key: "month", label: "Month" },
+          { key: "standardFee", label: "Standard Fee", align: "right" },
+          { key: "agreementFee", label: "Agreement", align: "right" },
+          { key: "balance", label: "Balance", align: "right" },
+        ],
+        rows,
+        summary: [{ label: "Students", value: String(rows.length) }],
+      };
+    }
+    case "new-student-adjustment": {
+      const students = filterStudents({ ...filters, academicYear: year }, "ACTIVE");
+      const rows: Record<string, string>[] = [];
+      for (const s of students) {
+        const charges = studentCharges(s.id);
+        const inactive = charges.filter((c) => c.status === "INACTIVE").length;
+        const hasAdjustment =
+          inactive > 0 ||
+          s.feeStartMode === "AGREEMENT" ||
+          s.feeStartMode === "NEXT_MONTH";
+        if (!hasAdjustment) continue;
+        const firstActive = charges.find((c) => c.status !== "INACTIVE");
+        const modeLabel =
+          s.feeStartMode === "FULL_CURRENT"
+            ? "Full current month"
+            : s.feeStartMode === "AGREEMENT"
+              ? `Agreement (${money(s.feeAgreementAmount ?? 0)})`
+              : s.feeStartMode === "NEXT_MONTH"
+                ? "Starts next month"
+                : inactive > 0
+                  ? `${inactive} inactive month(s)`
+                  : "Adjusted";
+        rows.push({
+          code: s.code,
+          name: s.fullName,
+          className: s.className,
+          registered: shortDate(s.registrationDate),
+          inactiveMonths: String(inactive),
+          billingStarts: firstActive ? monthLabel(firstActive.monthKey) : "—",
+          annualFee: money(s.annualFeeAmount ?? studentAnnualSummary(s.id).totalDue),
+          adjustment: modeLabel,
+        });
+      }
+      return {
+        columns: [
+          { key: "code", label: "Student ID", mono: true },
+          { key: "name", label: "Name" },
+          { key: "className", label: "Class" },
+          { key: "registered", label: "Registered" },
+          { key: "billingStarts", label: "Billing Starts" },
+          { key: "inactiveMonths", label: "Inactive", align: "right" },
+          { key: "annualFee", label: "Adjusted Annual", align: "right" },
+          { key: "adjustment", label: "Adjustment" },
+        ],
+        rows,
+        summary: [{ label: "Adjusted Students", value: String(rows.length) }],
+      };
+    }
+    case "carry-forward": {
+      const students = filterStudents({ ...filters, academicYear: year }, "ACTIVE");
+      const rows: Record<string, string>[] = [];
+      let totalCarried = 0;
+      for (const s of students) {
+        for (const c of studentCharges(s.id)) {
+          if (c.status === "INACTIVE") continue;
+          const carried = c.monthlyFee - s.monthlyFee;
+          if (carried <= 0) continue;
+          totalCarried += carried;
+          rows.push({
+            code: s.code,
+            name: s.fullName,
+            className: s.className,
+            month: monthLabel(c.monthKey),
+            standardFee: money(s.monthlyFee),
+            charged: money(c.monthlyFee),
+            carried: money(carried),
+            balance: money(c.balance),
+          });
+        }
+      }
+      return {
+        columns: [
+          { key: "code", label: "Student ID", mono: true },
+          { key: "name", label: "Name" },
+          { key: "className", label: "Class" },
+          { key: "month", label: "Month" },
+          { key: "standardFee", label: "Standard", align: "right" },
+          { key: "charged", label: "Charged", align: "right" },
+          { key: "carried", label: "Carried", align: "right" },
+          { key: "balance", label: "Balance", align: "right" },
+        ],
+        rows,
+        summary: [
+          { label: "Records", value: String(rows.length) },
+          { label: "Total Carried", value: money(totalCarried) },
+        ],
       };
     }
     default:

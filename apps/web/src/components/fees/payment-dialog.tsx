@@ -12,9 +12,11 @@ import {
   canPayPartial,
   canPayThisMonth,
   collectPayment,
+  getFeeBillingMode,
   getFeesState,
   outstandingBalance,
   partialOutstandingMonths,
+  studentCharges,
 } from "@/lib/fees/store";
 import type { FeePayment, PaymentType, StudentFeeRow } from "@/lib/fees/types";
 import { toast } from "@/lib/toast";
@@ -58,6 +60,12 @@ export function PaymentDialog({
   const previewAmount = useMemo(() => {
     if (!student) return 0;
     if (type === "THIS_MONTH") {
+      if (getFeeBillingMode() === "ACADEMIC_YEAR") {
+        const next = studentCharges(student.studentId)
+          .filter((c) => c.status !== "INACTIVE" && c.balance > 0 && !c.advanceCovered)
+          .sort((a, b) => a.monthKey.localeCompare(b.monthKey))[0];
+        return next?.balance ?? 0;
+      }
       const s = getFeesState();
       const charge = s.charges.find(
         (c) =>
@@ -76,7 +84,7 @@ export function PaymentDialog({
   async function handleSubmit() {
     if (!student) return;
     setSubmitting(true);
-    const res = collectPayment({
+    const res = await collectPayment({
       studentId: student.studentId,
       paymentType: type,
       amount: type === "PARTIAL" ? Number(amount) : undefined,
@@ -193,9 +201,11 @@ export function PaymentDialog({
 
           {type === "THIS_MONTH" && thisMonthOk && (
             <p className="text-sm text-muted-foreground">
-              Pays the active month fee in full:{" "}
+              {getFeeBillingMode() === "ACADEMIC_YEAR"
+                ? "Pays the next unpaid month in full:"
+                : "Pays the active month fee in full:"}{" "}
               <span className="font-semibold text-foreground">
-                {money(student.outstandingBalance)}
+                {money(previewAmount)}
               </span>
             </p>
           )}

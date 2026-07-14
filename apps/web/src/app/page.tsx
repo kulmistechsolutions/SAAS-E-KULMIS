@@ -1,21 +1,7 @@
-"use client";
+import { redirect } from "next/navigation";
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { useAuth } from "@/lib/auth";
-
+/** Root path: send users straight to the app without a client-side loading screen. */
 export default function Home() {
-  const { user, loading } = useAuth();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (loading) return;
-    router.replace(user ? "/dashboard" : "/login");
-  }, [user, loading, router]);
-
-  return (
-    <div className="flex min-h-screen items-center justify-center text-muted-foreground">
-      Loading…
-    </div>
-  );
+  const preview = process.env.NEXT_PUBLIC_PREVIEW_AUTH === "true";
+  redirect(preview ? "/dashboard" : "/login");
 }

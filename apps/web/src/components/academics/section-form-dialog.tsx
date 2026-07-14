@@ -8,8 +8,9 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { toast } from "@/lib/toast";
 import {
+  activeAcademicYear,
+  classesForYear,
   createSection,
-  getAcademicsState,
   updateSection,
 } from "@/lib/academics/store";
 import type { EntityStatus, Section } from "@/lib/academics/types";
@@ -29,8 +30,7 @@ export function SectionFormDialog({
   defaultClassId,
 }: Props) {
   const isEdit = !!section;
-  const state = getAcademicsState();
-  const classes = state.classes.filter((c) => c.academicYear === (state.academicYears.find((y) => y.status === "ACTIVE")?.name ?? ""));
+  const classes = classesForYear(activeAcademicYear());
   const [name, setName] = useState("");
   const [classId, setClassId] = useState(defaultClassId ?? classes[0]?.id ?? "");
   const [status, setStatus] = useState<EntityStatus>("ACTIVE");
@@ -51,14 +51,14 @@ export function SectionFormDialog({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, section, defaultClassId]);
 
-  function submit() {
+  async function submit() {
     setError(null);
     if (!name.trim()) return setError("Section name is required.");
     if (!classId) return setError("Please select a class.");
     const res =
       isEdit && section
-        ? updateSection(section.id, { name, classId, status })
-        : createSection({ name, classId, status });
+        ? await updateSection(section.id, { name, classId, status })
+        : await createSection({ name, classId, status });
     if (!res.ok) return setError(res.error ?? "Operation failed.");
     toast(isEdit ? "Section updated." : "Section created.", "success");
     onClose();

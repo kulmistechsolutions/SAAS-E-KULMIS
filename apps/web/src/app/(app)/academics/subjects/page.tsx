@@ -48,9 +48,9 @@ export default function SubjectsPage() {
 
   const hasFilters = !!(search || status);
 
-  function handleDelete() {
+  async function handleDelete() {
     if (!deleting) return;
-    const res = deleteSubject(deleting.id);
+    const res = await deleteSubject(deleting.id);
     if (!res.ok) toast(res.error ?? "Delete failed.", "error");
     else toast(`${deleting.name} deleted.`, "success");
     setDeleting(null);

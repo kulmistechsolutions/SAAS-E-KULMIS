@@ -10,7 +10,8 @@ export type BuiltInRole =
   | "FINANCE_OFFICER"
   | "ATTENDANCE_OFFICER"
   | "EXAM_MANAGER"
-  | "RECEPTION_OFFICER";
+  | "RECEPTION_OFFICER"
+  | "LIBRARIAN";
 
 export type SystemRole = BuiltInRole | string;
 
@@ -40,7 +41,9 @@ export type PermissionModule =
   | "academics"
   | "settings"
   | "users"
-  | "audit";
+  | "audit"
+  | "sms"
+  | "library";
 
 export type PermissionMap = Record<
   PermissionModule,

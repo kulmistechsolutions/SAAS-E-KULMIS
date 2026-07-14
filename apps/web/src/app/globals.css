@@ -86,4 +86,12 @@
   .scrollbar-slim::-webkit-scrollbar-thumb:hover {
     background-color: rgba(148, 163, 184, 0.5);
   }
+
+  .scrollbar-none {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
 }

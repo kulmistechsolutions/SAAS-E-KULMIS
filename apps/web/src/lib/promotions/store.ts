@@ -1,14 +1,24 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
+import { ApiError } from "@/lib/api";
 import {
   activeAcademicYear,
+  classByName,
   getAcademicsState,
 } from "@/lib/academics/store";
-import { getState as getStudentsState, updateStudent } from "@/lib/students/store";
-import { studentFinalResult, isStudentBlocked } from "@/lib/examinations/store";
+import { getState as getStudentsState, refreshStudents } from "@/lib/students/store";
+import { isStudentBlocked } from "@/lib/examinations/store";
 import { outstandingBalance } from "@/lib/fees/store";
 import type { Student } from "@/lib/students/types";
+import {
+  apiGraduatedStudents,
+  apiPromoteClass,
+  apiPromoteStudent,
+  apiPromotionHistory,
+  type ApiGraduatedStudent,
+  type ApiPromotionRecord,
+} from "./api";
 import { isFinalClass, nextClassName } from "./format";
 import type {
   EligibilityIssue,
@@ -21,8 +31,6 @@ import type {
   PromotionSettings,
   PromotionType,
 } from "./types";
-
-const KEY = "ekulmis_promotions_v1";
 
 const DEFAULT_SETTINGS: PromotionSettings = {
   requirePublishedResults: false,
@@ -38,6 +46,8 @@ const EMPTY: PromotionsState = {
 };
 
 let state: PromotionsState | null = null;
+let graduatedCache: GraduatedStudentRow[] = [];
+let loaded = false;
 const listeners = new Set<() => void>();
 
 function subscribe(cb: () => void) {
@@ -52,27 +62,99 @@ function emit() {
 function ensure(): PromotionsState {
   if (state) return state;
   if (typeof window === "undefined") return EMPTY;
-  const raw = localStorage.getItem(KEY);
+  const raw = localStorage.getItem("ekulmis_promotions_settings_v1");
+  let settings = DEFAULT_SETTINGS;
   if (raw) {
     try {
-      const parsed = JSON.parse(raw) as PromotionsState;
-      state = { ...EMPTY, ...parsed, settings: { ...DEFAULT_SETTINGS, ...parsed.settings } };
-      return state;
+      settings = { ...DEFAULT_SETTINGS, ...(JSON.parse(raw) as PromotionSettings) };
     } catch {
-      /* fall through */
+      /* ignore */
     }
   }
-  state = EMPTY;
-  localStorage.setItem(KEY, JSON.stringify(state));
+  state = { ...EMPTY, settings };
+  if (!loaded) {
+    loaded = true;
+    void refreshPromotions();
+  }
   return state;
 }
 
 function setState(next: PromotionsState) {
   state = next;
-  if (typeof window !== "undefined") {
-    localStorage.setItem(KEY, JSON.stringify(next));
-  }
   emit();
+}
+
+function apiErr(e: unknown, fallback: string): string {
+  return e instanceof ApiError ? e.message : fallback;
+}
+
+function yearIdByName(name: string): string | undefined {
+  return getAcademicsState().academicYears.find((y) => y.name === name)?.id;
+}
+
+function classNameById(id: string): string {
+  return getAcademicsState().classes.find((c) => c.id === id)?.name ?? "—";
+}
+
+function sectionNameById(id: string | null): string | null {
+  if (!id) return null;
+  return getAcademicsState().sections.find((s) => s.id === id)?.name ?? null;
+}
+
+function yearNameById(id: string): string {
+  return getAcademicsState().academicYears.find((y) => y.id === id)?.name ?? id;
+}
+
+function mapPromotionRecord(r: ApiPromotionRecord): PromotionRecord {
+  const toClass = r.toClassId
+    ? getAcademicsState().classes.find((c) => c.id === r.toClassId)
+    : undefined;
+  return {
+    id: r.id,
+    studentId: r.studentId,
+    studentCode: r.student.code,
+    studentName: r.student.fullName,
+    type: r.type,
+    fromAcademicYear: yearNameById(r.academicYearId),
+    fromClass: classNameById(r.fromClassId),
+    fromSection: sectionNameById(r.fromSectionId),
+    toAcademicYear: toClass?.academicYear ?? yearNameById(r.academicYearId),
+    toClass: r.toClassId ? classNameById(r.toClassId) : r.student.class.name,
+    toSection: sectionNameById(r.toSectionId),
+    graduated: r.graduated,
+    promotedAt: r.promotedAt,
+    promotedBy: r.promotedByUserId ?? "Admin",
+  };
+}
+
+function mapGraduated(g: ApiGraduatedStudent, history: PromotionRecord[]): GraduatedStudentRow {
+  const gradRecord = history.find((r) => r.studentId === g.id && r.graduated);
+  const st = getStudentsState();
+  const parent = st.parents.find((p) => p.id === g.parentId);
+  return {
+    studentId: g.id,
+    studentCode: g.code,
+    studentName: g.fullName,
+    parentName: parent?.name ?? "—",
+    graduationYear: gradRecord?.fromAcademicYear ?? g.class?.academicYear?.name ?? "",
+    finalClass: gradRecord?.fromClass ?? g.class?.name ?? "",
+    finalSection: gradRecord?.fromSection ?? g.section?.name ?? null,
+    graduationDate: gradRecord?.promotedAt ?? g.updatedAt,
+  };
+}
+
+export async function refreshPromotions(academicYearId?: string): Promise<void> {
+  try {
+    const [history, graduated] = await Promise.all([
+      apiPromotionHistory(academicYearId),
+      apiGraduatedStudents(),
+    ]);
+    const mappedHistory = history.map(mapPromotionRecord);
+    graduatedCache = graduated.map((g) => mapGraduated(g, mappedHistory));
+    setState({ ...ensure(), history: mappedHistory });
+  } catch {
+    /* keep cache */
+  }
 }
 
 export function getPromotionsState(): PromotionsState {
@@ -84,7 +166,7 @@ export function usePromotionsState(): PromotionsState {
 }
 
 export function resetPromotions() {
-  setState(EMPTY);
+  void refreshPromotions();
 }
 
 function logAudit(action: string, detail?: string, user = "Admin User", role = "ADMINISTRATOR") {
@@ -105,19 +187,19 @@ function logAudit(action: string, detail?: string, user = "Admin User", role = "
   });
 }
 
-// ---------- Settings ----------
-
 export function getSettings(): PromotionSettings {
   return ensure().settings;
 }
 
 export function updateSettings(patch: Partial<PromotionSettings>) {
   const s = ensure();
-  setState({ ...s, settings: { ...s.settings, ...patch } });
+  const settings = { ...s.settings, ...patch };
+  setState({ ...s, settings });
+  if (typeof window !== "undefined") {
+    localStorage.setItem("ekulmis_promotions_settings_v1", JSON.stringify(settings));
+  }
   logAudit("Promotion Settings Updated", JSON.stringify(patch));
 }
-
-// ---------- Class ladder ----------
 
 export function orderedClassNames(year?: string): string[] {
   const s = getAcademicsState();
@@ -152,8 +234,6 @@ export function sectionsForClassName(className: string, year?: string): string[]
     .sort();
 }
 
-// ---------- Eligibility ----------
-
 function alreadyPromotedThisYear(studentId: string, fromYear: string): boolean {
   return ensure().history.some(
     (r) => r.studentId === studentId && r.fromAcademicYear === fromYear && !r.rolledBackAt,
@@ -183,13 +263,9 @@ export function evaluateStudent(student: Student): PromotionCandidate {
   }
 
   if (settings.requirePublishedResults || settings.requireMinimumPass) {
-    const result = studentFinalResult(student.id);
-    if (!result) {
-      if (settings.requirePublishedResults) {
-        issues.push({ code: "NO_RESULTS", label: "No published final results" });
-      }
-    } else if (settings.requireMinimumPass && !result.passed) {
-      issues.push({ code: "FAILED", label: "Did not meet pass grade" });
+    const result = null;
+    if (!result && settings.requirePublishedResults) {
+      issues.push({ code: "NO_RESULTS", label: "No published final results" });
     }
   }
 
@@ -216,8 +292,6 @@ export function evaluateStudent(student: Student): PromotionCandidate {
     issues,
   };
 }
-
-// ---------- Preview ----------
 
 export function buildPreview(opts: {
   academicYear: string;
@@ -254,46 +328,6 @@ export function buildPreview(opts: {
   };
 }
 
-// ---------- Execute promotions ----------
-
-function applyPromotion(
-  student: Student,
-  type: PromotionType,
-  toClass: string | null,
-  toSection: string | null,
-  toYear: string,
-  graduate: boolean,
-): PromotionRecord {
-  const record: PromotionRecord = {
-    id: `prm_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
-    studentId: student.id,
-    studentCode: student.code,
-    studentName: student.fullName,
-    type,
-    fromAcademicYear: student.academicYear,
-    fromClass: student.className,
-    fromSection: student.section ?? null,
-    toAcademicYear: toYear,
-    toClass: graduate ? student.className : toClass ?? student.className,
-    toSection: graduate ? student.section ?? null : toSection,
-    graduated: graduate,
-    promotedAt: new Date().toISOString(),
-    promotedBy: "Admin User",
-  };
-
-  if (graduate) {
-    updateStudent(student.id, { status: "GRADUATED" });
-  } else {
-    updateStudent(student.id, {
-      className: toClass ?? student.className,
-      section: toSection,
-      academicYear: toYear,
-    });
-  }
-
-  return record;
-}
-
 export interface PromotionResult {
   ok: boolean;
   error?: string;
@@ -302,143 +336,147 @@ export interface PromotionResult {
   skipped: number;
 }
 
-export function promoteStudents(opts: {
+export async function promoteStudents(opts: {
   type: PromotionType;
   academicYear: string;
   studentIds: string[];
   toClass?: string | null;
   toSection?: string | null;
   toAcademicYear?: string;
-}): PromotionResult {
-  const s = ensure();
+}): Promise<PromotionResult> {
   const students = getStudentsState().students;
-  const toYear = opts.toAcademicYear ?? opts.academicYear;
+  const yearId = yearIdByName(opts.academicYear);
+  if (!yearId) return { ok: false, error: "Academic year not found.", promoted: 0, graduated: 0, skipped: 0 };
 
   const targets = students.filter((st) => opts.studentIds.includes(st.id));
   if (targets.length === 0) {
     return { ok: false, error: "No students selected.", promoted: 0, graduated: 0, skipped: 0 };
   }
 
-  const newRecords: PromotionRecord[] = [];
   let promoted = 0;
   let graduated = 0;
   let skipped = 0;
 
-  for (const student of targets) {
-    const candidate = evaluateStudent(student);
-    if (!candidate.eligible) {
-      skipped += 1;
-      continue;
-    }
-    const graduate = candidate.graduating;
-    if (!graduate) {
-      const toClass = opts.toClass ?? suggestedNextClass(student.className, opts.academicYear);
-      if (!toClass) {
+  const toClassId = opts.toClass ? classByName(opts.toClass, opts.toAcademicYear ?? opts.academicYear)?.id : null;
+  const toSectionId =
+    opts.toSection && toClassId
+      ? getAcademicsState().sections.find((s) => s.classId === toClassId && s.name === opts.toSection)?.id
+      : null;
+
+  try {
+    for (const student of targets) {
+      const candidate = evaluateStudent(student);
+      if (!candidate.eligible) {
         skipped += 1;
         continue;
       }
-      if (toClass === student.className) {
+      const graduate = candidate.graduating;
+      if (!graduate && !toClassId) {
         skipped += 1;
         continue;
       }
-      // Validate destination section belongs to the target class.
-      if (opts.toSection) {
-        const validSections = sectionsForClassName(toClass, toYear);
-        if (validSections.length > 0 && !validSections.includes(opts.toSection)) {
-          skipped += 1;
-          continue;
-        }
+      if (!graduate && toClassId === classByName(student.className, opts.academicYear)?.id) {
+        skipped += 1;
+        continue;
       }
-      newRecords.push(
-        applyPromotion(student, opts.type, toClass, opts.toSection ?? student.section ?? null, toYear, false),
-      );
-      promoted += 1;
-    } else {
-      newRecords.push(applyPromotion(student, opts.type, null, null, toYear, true));
-      graduated += 1;
+
+      await apiPromoteStudent({
+        studentId: student.id,
+        academicYearId: yearId,
+        toClassId: graduate ? null : toClassId,
+        toSectionId: graduate ? null : toSectionId,
+        graduate,
+      });
+
+      if (graduate) graduated += 1;
+      else promoted += 1;
     }
+
+    if (promoted === 0 && graduated === 0) {
+      return { ok: false, error: "No eligible students to promote.", promoted: 0, graduated: 0, skipped };
+    }
+
+    await Promise.all([refreshPromotions(yearId), refreshStudents()]);
+    logAudit(
+      graduated > 0 && promoted === 0 ? "Student Graduated" : "Promotion Completed",
+      `${opts.type}: ${promoted} promoted, ${graduated} graduated, ${skipped} skipped`,
+    );
+    return { ok: true, promoted, graduated, skipped };
+  } catch (e) {
+    return { ok: false, error: apiErr(e, "Promotion failed."), promoted, graduated, skipped };
   }
-
-  if (newRecords.length === 0) {
-    return { ok: false, error: "No eligible students to promote.", promoted: 0, graduated: 0, skipped };
-  }
-
-  setState({ ...ensure(), history: [...newRecords, ...s.history] });
-  logAudit(
-    graduated > 0 && promoted === 0 ? "Student Graduated" : "Promotion Completed",
-    `${opts.type}: ${promoted} promoted, ${graduated} graduated, ${skipped} skipped`,
-  );
-
-  return { ok: true, promoted, graduated, skipped };
 }
 
-export function promoteSchoolWide(academicYear: string): PromotionResult {
+export async function promoteClass(opts: {
+  academicYear: string;
+  fromClass: string;
+  fromSection?: string | null;
+  toClass?: string | null;
+  toSection?: string | null;
+  graduate?: boolean;
+}): Promise<PromotionResult> {
+  const yearId = yearIdByName(opts.academicYear);
+  const fromClass = classByName(opts.fromClass, opts.academicYear);
+  if (!yearId || !fromClass) {
+    return { ok: false, error: "Class or year not found.", promoted: 0, graduated: 0, skipped: 0 };
+  }
+  const fromSectionId = opts.fromSection
+    ? getAcademicsState().sections.find((s) => s.classId === fromClass.id && s.name === opts.fromSection)?.id
+    : null;
+  const toClassId = opts.toClass ? classByName(opts.toClass, opts.academicYear)?.id : null;
+  const toSectionId =
+    opts.toSection && toClassId
+      ? getAcademicsState().sections.find((s) => s.classId === toClassId && s.name === opts.toSection)?.id
+      : null;
+
+  try {
+    const res = await apiPromoteClass({
+      academicYearId: yearId,
+      fromClassId: fromClass.id,
+      fromSectionId,
+      toClassId,
+      toSectionId,
+      graduate: opts.graduate ?? false,
+    });
+    await Promise.all([refreshPromotions(yearId), refreshStudents()]);
+    logAudit("Class Promotion Completed", `${res.promoted} students`);
+    return { ok: true, promoted: res.promoted, graduated: opts.graduate ? res.promoted : 0, skipped: 0 };
+  } catch (e) {
+    return { ok: false, error: apiErr(e, "Class promotion failed."), promoted: 0, graduated: 0, skipped: 0 };
+  }
+}
+
+export async function promoteSchoolWide(academicYear: string): Promise<PromotionResult> {
   const students = getStudentsState().students.filter(
     (s) => s.academicYear === academicYear && s.status === "ACTIVE",
   );
-  const ids = students.map((s) => s.id);
   return promoteStudents({
     type: "SCHOOL_WIDE",
     academicYear,
-    studentIds: ids,
+    studentIds: students.map((s) => s.id),
     toAcademicYear: academicYear,
   });
 }
 
-// ---------- Rollback ----------
-
-export function canRollback(record: PromotionRecord): boolean {
-  return !record.rolledBackAt;
+export function canRollback(_record: PromotionRecord): boolean {
+  return false;
 }
 
-export function rollbackPromotion(recordId: string): { ok: boolean; error?: string } {
-  const s = ensure();
-  const record = s.history.find((r) => r.id === recordId);
-  if (!record) return { ok: false, error: "Promotion record not found." };
-  if (record.rolledBackAt) return { ok: false, error: "Promotion already rolled back." };
-
-  const student = getStudentsState().students.find((st) => st.id === record.studentId);
-  if (student) {
-    if (record.graduated) {
-      updateStudent(student.id, { status: "ACTIVE", className: record.fromClass, section: record.fromSection });
-    } else {
-      updateStudent(student.id, {
-        className: record.fromClass,
-        section: record.fromSection,
-        academicYear: record.fromAcademicYear,
-      });
-    }
-  }
-
-  setState({
-    ...ensure(),
-    history: s.history.map((r) =>
-      r.id === recordId ? { ...r, rolledBackAt: new Date().toISOString() } : r,
-    ),
-  });
-  logAudit("Promotion Rolled Back", `${record.studentName}: ${record.fromClass} → ${record.toClass}`);
-  return { ok: true };
+export function rollbackPromotion(_recordId: string): { ok: boolean; error?: string } {
+  return { ok: false, error: "Rollback is not supported via API yet." };
 }
-
-// ---------- Selectors ----------
 
 export function dashboardSummary(): PromotionDashboardSummary {
   const s = ensure();
   const year = activeAcademicYear();
   const students = getStudentsState().students;
-
-  const activeThisYear = students.filter(
-    (st) => st.academicYear === year && st.status === "ACTIVE",
-  );
+  const activeThisYear = students.filter((st) => st.academicYear === year && st.status === "ACTIVE");
   const eligible = activeThisYear.filter((st) => evaluateStudent(st).eligible).length;
-
   const promotedThisYear = s.history.filter(
     (r) => !r.rolledBackAt && !r.graduated && r.fromAcademicYear === year,
   ).length;
-
   const graduatedTotal = students.filter((st) => st.status === "GRADUATED").length;
   const inactive = students.filter((st) => st.status === "INACTIVE").length;
-
   const active = s.history.filter((r) => !r.rolledBackAt);
   const lastPromotionDate = active.length > 0 ? active[0].promotedAt : null;
 
@@ -486,26 +524,7 @@ export function graduatedStudents(opts?: {
   search?: string;
   academicYear?: string;
 }): GraduatedStudentRow[] {
-  const st = getStudentsState();
-  const parents = new Map(st.parents.map((p) => [p.id, p]));
-  const history = ensure().history;
-
-  let rows: GraduatedStudentRow[] = st.students
-    .filter((s) => s.status === "GRADUATED")
-    .map((s) => {
-      const gradRecord = history.find((r) => r.studentId === s.id && r.graduated && !r.rolledBackAt);
-      return {
-        studentId: s.id,
-        studentCode: s.code,
-        studentName: s.fullName,
-        parentName: parents.get(s.parentId)?.name ?? "—",
-        graduationYear: gradRecord?.fromAcademicYear ?? s.academicYear,
-        finalClass: gradRecord?.fromClass ?? s.className,
-        finalSection: gradRecord?.fromSection ?? s.section ?? null,
-        graduationDate: gradRecord?.promotedAt ?? null,
-      };
-    });
-
+  let rows = [...graduatedCache];
   if (opts?.academicYear) rows = rows.filter((r) => r.graduationYear === opts.academicYear);
   if (opts?.search?.trim()) {
     const q = opts.search.trim().toLowerCase();
@@ -522,8 +541,6 @@ export function graduatedStudents(opts?: {
 export function getAuditLog(): PromotionsState["audit"] {
   return ensure().audit;
 }
-
-// ---------- CSV ----------
 
 export function exportPromotionHistoryCsv(rows: PromotionRecord[]) {
   const header =

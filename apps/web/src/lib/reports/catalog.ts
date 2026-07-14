@@ -59,6 +59,13 @@ export const REPORT_CATEGORIES: ReportCategoryDef[] = [
       { slug: "partial", title: "Partial Payments", description: "Students with partial payment status.", filters: ["academicYear", "className", "section"] },
       { slug: "advance", title: "Advance Payments", description: "Students with advance fee coverage.", filters: ["academicYear", "className"] },
       { slug: "ledger", title: "Student Fee Ledger", description: "Monthly charge and payment history.", filters: ["academicYear", "className", "section"] },
+      { slug: "academic-year-summary", title: "Academic Year Fee Summary", description: "Annual tuition, paid amount, and progress per student.", filters: ["academicYear", "className", "section"] },
+      { slug: "monthly-progress", title: "Monthly Progress Report", description: "Month-by-month payment status for each student.", filters: ["academicYear", "className", "section", "month"] },
+      { slug: "paid-months", title: "Paid Months Report", description: "Students with fully paid billing months.", filters: ["academicYear", "className", "section", "month"] },
+      { slug: "outstanding-months", title: "Outstanding Months Report", description: "Unpaid or partially paid months.", filters: ["academicYear", "className", "section", "month"] },
+      { slug: "agreement-fee", title: "Agreement Fee Report", description: "Students admitted with special fee agreements.", filters: ["academicYear", "className"] },
+      { slug: "new-student-adjustment", title: "New Student Fee Adjustment", description: "Late admissions and billing start adjustments.", filters: ["academicYear", "className"] },
+      { slug: "carry-forward", title: "Carry Forward Report", description: "Months with carried-forward balances.", filters: ["academicYear", "className", "section"] },
       { slug: "by-class", title: "Collection by Class", description: "Fee summary grouped by class.", filters: ["academicYear", "month"] },
       { slug: "by-section", title: "Collection by Section", description: "Fee summary grouped by section.", filters: ["academicYear", "className", "month"] },
     ],
@@ -158,6 +165,54 @@ export function searchReports(query: string) {
   if (!q) return [];
   const out: { category: ReportCategoryDef; report: ReportDef }[] = [];
   for (const cat of REPORT_CATEGORIES) {
+    for (const report of cat.reports) {
+      if (
+        report.title.toLowerCase().includes(q) ||
+        report.description.toLowerCase().includes(q) ||
+        cat.label.toLowerCase().includes(q)
+      ) {
+        out.push({ category: cat, report });
+      }
+    }
+  }
+  return out;
+}
+
+/** Report categories teachers may access (assignment-scoped data only). */
+export const TEACHER_REPORT_CATEGORY_IDS = new Set([
+  "students",
+  "attendance",
+  "examinations",
+  "quiz",
+]);
+
+export const TEACHER_BLOCKED_REPORT_SLUGS = new Set([
+  "parent-list",
+  "parent-relationships",
+  "teacher-daily",
+  "teacher-monthly",
+  "teacher-shift",
+  "teacher-activity",
+  "submission-status",
+]);
+
+export function teacherReportCategories(): ReportCategoryDef[] {
+  return REPORT_CATEGORIES.filter((c) => TEACHER_REPORT_CATEGORY_IDS.has(c.id))
+    .map((c) => ({
+      ...c,
+      reports: c.reports.filter(
+        (r) => !TEACHER_BLOCKED_REPORT_SLUGS.has(r.slug),
+      ),
+    }))
+    .filter((c) => c.reports.length > 0);
+}
+
+export function searchTeacherReports(query: string) {
+  const cats = teacherReportCategories();
+  const q = query.trim().toLowerCase();
+  if (!q) return [];
+  const out: { category: ReportCategoryDef; report: ReportDef }[] = [];
+  for (const cat of cats) {
     for (const report of cat.reports) {
       if (
         report.title.toLowerCase().includes(q) ||

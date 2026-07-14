@@ -9,6 +9,7 @@ import { updateSettingsSchema, UserRole, type TenantContext } from "@ekulmis/sha
 import { SettingsService } from "./settings.service";
 import { Public } from "../auth/public.decorator";
 import { Roles } from "../auth/roles.decorator";
+import { STAFF_ROLES } from "../auth/role-groups";
 import { CurrentUser } from "../auth/current-user.decorator";
 import { CurrentTenant } from "../tenant/current-tenant.decorator";
 import type { AuthUser } from "../auth/auth.types";
@@ -24,7 +25,8 @@ export class SettingsController {
     return this.settings.getBranding(tenant.schoolId);
   }
 
-  /** Full settings (any authenticated user in the tenant). */
+  /** Full settings — staff only (portal roles read branding via /branding). */
+  @Roles(...STAFF_ROLES)
   @Get()
   get(@CurrentUser() me: AuthUser) {
     return this.settings.get(me.schoolId);

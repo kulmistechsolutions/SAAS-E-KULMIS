@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useEffect, useMemo, useState } from "react";
+import { Suspense, use, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import {
@@ -26,6 +26,7 @@ import { ConfirmDialog } from "@/components/students/confirm-dialog";
 import {
   deleteAssignment,
   getTeacher,
+  groupTeacherAssignments,
   resetTeacherPassword,
   teacherAssignments,
   useTeachersState,
@@ -62,6 +63,9 @@ import {
 import { exportTeachersCsv, printTeacherProfile } from "@/lib/teachers/print";
 import type { EmploymentStatus, TeacherAssignment } from "@/lib/teachers/types";
 import { toast } from "@/lib/toast";
+import { DEFAULT_TEACHER_PASSWORD } from "@/lib/teachers/constants";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 const STATUS_TONE: Record<EmploymentStatus, "success" | "muted"> = {
   ACTIVE: "success",
@@ -84,6 +88,20 @@ export default function TeacherProfilePage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
+  return (
+    <Suspense
+      fallback={
+        <div className="flex h-64 items-center justify-center text-muted-foreground">
+          Loading profile…
+        </div>
+      }
+    >
+      <TeacherProfileContent id={id} />
+    </Suspense>
+  );
+}
+
+function TeacherProfileContent({ id }: { id: string }) {
   const search = useSearchParams();
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
@@ -94,13 +112,22 @@ export default function TeacherProfilePage({
     () => (teacher ? teacherAssignments(teacher.id) : []),
     [state.assignments, teacher],
   );
+  const grouped = useMemo(
+    () => (teacher ? groupTeacherAssignments(teacher.id) : []),
+    [state.assignments, teacher],
+  );
 
   const [tab, setTab] = useState(search.get("tab") ?? "personal");
   const [editOpen, setEditOpen] = useState(false);
   const [assignOpen, setAssignOpen] = useState(false);
   const [editAssign, setEditAssign] = useState<TeacherAssignment | null>(null);
   const [deleteAssign, setDeleteAssign] = useState<TeacherAssignment | null>(null);
-  const [showPassword, setShowPassword] = useState(false);
+  const [loginPassword, setLoginPassword] = useState(DEFAULT_TEACHER_PASSWORD);
+  const [savingPassword, setSavingPassword] = useState(false);
+
+  useEffect(() => {
+    if (teacher) setLoginPassword(teacher.password || DEFAULT_TEACHER_PASSWORD);
+  }, [teacher?.id, teacher?.password]);
 
   if (!mounted) {
     return <div className="flex h-64 items-center justify-center text-muted-foreground">Loading profile…</div>;
@@ -119,11 +146,29 @@ export default function TeacherProfilePage({
     );
   }
 
-  function handleResetPassword() {
-    const res = resetTeacherPassword(teacher!.id);
-    if (res.ok && res.password) {
-      setShowPassword(true);
-      toast(`New password: ${res.password}`, "info");
+  async function handleSavePassword() {
+    const next = loginPassword.trim();
+    if (next.length < 5) {
+      toast("Password must be at least 5 characters.", "error");
+      return;
+    }
+    setSavingPassword(true);
+    const res = await resetTeacherPassword(teacher!.id, next);
+    setSavingPassword(false);
+    if (res.ok) {
+      toast(`Password updated for ${teacher!.code}.`, "success");
+    } else {
+      toast(res.error ?? "Save failed", "error");
+    }
+  }
+
+  async function handleResetPassword() {
+    setLoginPassword(DEFAULT_TEACHER_PASSWORD);
+    const res = await resetTeacherPassword(teacher!.id, DEFAULT_TEACHER_PASSWORD);
+    if (res.ok) {
+      toast(`Password reset to ${DEFAULT_TEACHER_PASSWORD}.`, "success");
+    } else {
+      toast(res.error ?? "Reset failed", "error");
     }
   }
 
@@ -184,28 +229,51 @@ export default function TeacherProfilePage({
           {tab === "login" && (
             <div className="max-w-md space-y-4">
               <Field label="Username" value={<span className="font-mono">{teacher.username}</span>} />
-              <Field
-                label="Password"
-                value={
-                  <span className="font-mono">
-                    {showPassword ? teacher.password : "••••••••••"}
-                  </span>
-                }
-              />
+              <div className="space-y-2">
+                <Label>Password</Label>
+                <Input
+                  type="text"
+                  className="font-mono"
+                  value={loginPassword}
+                  onChange={(e) => setLoginPassword(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Default sample password is {DEFAULT_TEACHER_PASSWORD}. Password is shown in
+                  plain text for admin reference only.
+                </p>
+              </div>
               <p className="text-xs text-muted-foreground">
                 Only active teachers may log in. Inactive teachers are blocked at the portal.
               </p>
-              <Button onClick={handleResetPassword}>
-                <KeyRound className="mr-2 h-4 w-4" /> Generate New Password
-              </Button>
+              <div className="flex flex-wrap gap-2">
+                <Button onClick={() => void handleSavePassword()} disabled={savingPassword}>
+                  <KeyRound className="mr-2 h-4 w-4" />
+                  {savingPassword ? "Saving…" : "Save Password"}
+                </Button>
+                <Button variant="outline" onClick={() => void handleResetPassword()}>
+                  Reset to {DEFAULT_TEACHER_PASSWORD}
+                </Button>
+              </div>
             </div>
           )}
 
           {tab === "assignments" && (
             <div className="space-y-4">
-              <div className="flex justify-end">
-                <Button onClick={() => { setEditAssign(null); setAssignOpen(true); }}>
-                  Assign Subject
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-sm text-muted-foreground">
+                  {assignments.length} subject assignment
+                  {assignments.length === 1 ? "" : "s"} across {grouped.length}{" "}
+                  class/section slot
+                  {grouped.length === 1 ? "" : "s"}. Only this teacher&apos;s
+                  workload is shown.
+                </p>
+                <Button
+                  onClick={() => {
+                    setEditAssign(null);
+                    setAssignOpen(true);
+                  }}
+                >
+                  Assign Subjects
                 </Button>
               </div>
               <div className="overflow-hidden rounded-xl border">
@@ -215,29 +283,46 @@ export default function TeacherProfilePage({
                       <th className="px-4 py-2.5 font-medium">Academic Year</th>
                       <th className="px-4 py-2.5 font-medium">Class</th>
                       <th className="px-4 py-2.5 font-medium">Section</th>
-                      <th className="px-4 py-2.5 font-medium">Subject</th>
-                      <th className="px-4 py-2.5 font-medium">Status</th>
-                      <th className="px-4 py-2.5 text-right font-medium">Actions</th>
+                      <th className="px-4 py-2.5 font-medium">Subjects</th>
+                      <th className="px-4 py-2.5 text-right font-medium">
+                        Actions
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
-                    {assignments.length === 0 ? (
-                      <tr><td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">No assignments yet.</td></tr>
+                    {grouped.length === 0 ? (
+                      <tr>
+                        <td
+                          colSpan={5}
+                          className="px-4 py-8 text-center text-muted-foreground"
+                        >
+                          No assignments yet. Use Assign Subjects to add multiple
+                          subjects per class and section.
+                        </td>
+                      </tr>
                     ) : (
-                      assignments.map((a) => (
-                        <tr key={a.id} className="border-t">
-                          <td className="px-4 py-2.5">{a.academicYear}</td>
-                          <td className="px-4 py-2.5">{a.className}</td>
-                          <td className="px-4 py-2.5">{sectionLabel(a.section)}</td>
-                          <td className="px-4 py-2.5">{a.subject}</td>
+                      grouped.map((g) => (
+                        <tr
+                          key={`${g.academicYear}-${g.className}-${g.section ?? "all"}`}
+                          className="border-t"
+                        >
+                          <td className="px-4 py-2.5">{g.academicYear}</td>
+                          <td className="px-4 py-2.5">{g.className}</td>
                           <td className="px-4 py-2.5">
-                            <Badge tone={a.status === "ACTIVE" ? "success" : "muted"}>{statusLabel(a.status)}</Badge>
+                            {sectionLabel(g.section)}
                           </td>
                           <td className="px-4 py-2.5">
-                            <div className="flex justify-end gap-1">
-                              <button onClick={() => { setEditAssign(a); setAssignOpen(true); }} className="rounded-lg px-2 py-1 text-xs hover:bg-secondary">Edit</button>
-                              <button onClick={() => setDeleteAssign(a)} className="rounded-lg px-2 py-1 text-xs text-rose-600 hover:bg-rose-500/10">Remove</button>
+                            <div className="flex flex-wrap gap-1">
+                              {g.subjects.map((sub) => (
+                                <Badge key={sub} tone="info">
+                                  {sub}
+                                </Badge>
+                              ))}
                             </div>
+                          </td>
+                          <td className="px-4 py-2.5 text-right text-xs text-muted-foreground">
+                            {g.subjects.length} subject
+                            {g.subjects.length === 1 ? "" : "s"}
                           </td>
                         </tr>
                       ))
@@ -245,6 +330,60 @@ export default function TeacherProfilePage({
                   </tbody>
                 </table>
               </div>
+              {assignments.length > 0 ? (
+                <div className="overflow-hidden rounded-xl border">
+                  <p className="border-b bg-secondary/40 px-4 py-2 text-xs font-medium text-muted-foreground">
+                    Individual assignment rows (edit or remove one subject at a
+                    time)
+                  </p>
+                  <table className="w-full text-sm">
+                    <thead className="bg-secondary text-left text-xs text-muted-foreground">
+                      <tr>
+                        <th className="px-4 py-2.5 font-medium">Year</th>
+                        <th className="px-4 py-2.5 font-medium">Class</th>
+                        <th className="px-4 py-2.5 font-medium">Section</th>
+                        <th className="px-4 py-2.5 font-medium">Subject</th>
+                        <th className="px-4 py-2.5 text-right font-medium">
+                          Actions
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {assignments.map((a) => (
+                        <tr key={a.id} className="border-t">
+                          <td className="px-4 py-2.5">{a.academicYear}</td>
+                          <td className="px-4 py-2.5">{a.className}</td>
+                          <td className="px-4 py-2.5">
+                            {sectionLabel(a.section)}
+                          </td>
+                          <td className="px-4 py-2.5">{a.subject}</td>
+                          <td className="px-4 py-2.5">
+                            <div className="flex justify-end gap-1">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setEditAssign(a);
+                                  setAssignOpen(true);
+                                }}
+                                className="rounded-lg px-2 py-1 text-xs hover:bg-secondary"
+                              >
+                                Edit
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setDeleteAssign(a)}
+                                className="rounded-lg px-2 py-1 text-xs text-rose-600 hover:bg-rose-500/10"
+                              >
+                                Remove
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : null}
             </div>
           )}
 
@@ -268,10 +407,10 @@ export default function TeacherProfilePage({
         title="Remove Assignment"
         message={deleteAssign ? `Remove ${deleteAssign.subject} from ${deleteAssign.className}?` : ""}
         confirmLabel="Remove"
-        onConfirm={() => {
+        onConfirm={async () => {
           if (deleteAssign) {
-            deleteAssignment(deleteAssign.id);
-            toast("Assignment removed.");
+            const res = await deleteAssignment(deleteAssign.id);
+            toast(res.ok ? "Assignment removed." : res.error ?? "Failed", res.ok ? "success" : "error");
           }
           setDeleteAssign(null);
         }}

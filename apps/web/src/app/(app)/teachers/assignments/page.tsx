@@ -13,7 +13,8 @@ import {
   deleteAssignment,
   useTeachersState,
 } from "@/lib/teachers/store";
-import { ACADEMIC_YEARS, CLASSES } from "@/lib/teachers/constants";
+import { AcademicYearSelect } from "@/components/academics/academic-year-select";
+import { classNamesForYear, useAcademicsState } from "@/lib/academics/store";
 import { sectionLabel, statusLabel } from "@/lib/teachers/format";
 import type { TeacherAssignment } from "@/lib/teachers/types";
 import { toast } from "@/lib/toast";
@@ -25,6 +26,7 @@ export default function TeacherAssignmentsPage() {
   useEffect(() => setMounted(true), []);
 
   const { teachers, assignments } = useTeachersState();
+  const academics = useAcademicsState();
   const teacherMap = useMemo(() => new Map(teachers.map((t) => [t.id, t])), [teachers]);
 
   const [search, setSearch] = useState("");
@@ -34,6 +36,11 @@ export default function TeacherAssignmentsPage() {
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<TeacherAssignment | null>(null);
   const [deleting, setDeleting] = useState<TeacherAssignment | null>(null);
+
+  const classOptions = useMemo(
+    () => classNamesForYear(year || undefined),
+    [year, academics.classes],
+  );
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -69,7 +76,8 @@ export default function TeacherAssignmentsPage() {
         <div>
           <h1 className="text-2xl font-bold">Teacher Assignments</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Manage class, section, and subject assignments independently from registration.
+            Each teacher can hold many independent class, section, and subject
+            assignments. Assign multiple subjects in one step.
           </p>
         </div>
         <div className="flex gap-2">
@@ -77,7 +85,7 @@ export default function TeacherAssignmentsPage() {
             <Printer className="mr-2 h-4 w-4" /> Print
           </Button>
           <Button onClick={() => { setEditing(null); setFormOpen(true); }}>
-            <Plus className="mr-2 h-4 w-4" /> New Assignment
+            <Plus className="mr-2 h-4 w-4" /> Assign Subjects
           </Button>
         </div>
       </div>
@@ -93,15 +101,10 @@ export default function TeacherAssignmentsPage() {
               className="h-10 w-full rounded-lg border bg-background pl-9 pr-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
             />
           </div>
-          <Select value={year} onChange={(e) => setYear(e.target.value)} className="sm:w-36">
-            <option value="">All Years</option>
-            {ACADEMIC_YEARS.map((y) => (
-              <option key={y} value={y}>{y}</option>
-            ))}
-          </Select>
+          <AcademicYearSelect value={year} onChange={setYear} allowAll className="sm:w-36" />
           <Select value={klass} onChange={(e) => setKlass(e.target.value)} className="sm:w-36">
             <option value="">All Classes</option>
-            {CLASSES.map((c) => (
+            {classOptions.map((c) => (
               <option key={c} value={c}>{c}</option>
             ))}
           </Select>
@@ -189,10 +192,10 @@ export default function TeacherAssignmentsPage() {
         open={!!deleting}
         title="Delete Assignment"
         message={deleting ? `Remove ${deleting.subject} assignment for ${deleting.className}?` : ""}
-        onConfirm={() => {
+        onConfirm={async () => {
           if (deleting) {
-            deleteAssignment(deleting.id);
-            toast("Assignment deleted.");
+            const res = await deleteAssignment(deleting.id);
+            toast(res.ok ? "Assignment deleted." : res.error ?? "Failed", res.ok ? "success" : "error");
           }
           setDeleting(null);
         }}

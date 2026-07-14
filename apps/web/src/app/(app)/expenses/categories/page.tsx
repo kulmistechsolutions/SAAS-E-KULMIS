@@ -13,8 +13,8 @@ export default function ExpenseCategoriesPage() {
   const state = useExpensesState();
   const [name, setName] = useState("");
 
-  function handleAdd() {
-    const res = createCategory({ name });
+  async function handleAdd() {
+    const res = await createCategory({ name });
     if (!res.ok) {
       toast(res.error ?? "Failed to add category", "error");
       return;
@@ -23,8 +23,8 @@ export default function ExpenseCategoriesPage() {
     setName("");
   }
 
-  function handleToggle(id: string) {
-    const res = toggleCategoryStatus(id);
+  async function handleToggle(id: string) {
+    const res = await toggleCategoryStatus(id);
     if (!res.ok) toast(res.error ?? "Failed", "error");
   }
 

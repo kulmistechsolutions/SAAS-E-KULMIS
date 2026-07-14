@@ -39,6 +39,40 @@ export const payFeeSchema = z.object({
 });
 export type PayFeeInput = z.infer<typeof payFeeSchema>;
 
+export const BillingMode = {
+  MONTHLY: "MONTHLY",
+  ACADEMIC_YEAR: "ACADEMIC_YEAR",
+} as const;
+export type BillingMode = (typeof BillingMode)[keyof typeof BillingMode];
+export const billingModeSchema = z.nativeEnum(BillingMode);
+
+export const FeeStartMode = {
+  FULL_CURRENT: "FULL_CURRENT",
+  AGREEMENT: "AGREEMENT",
+  NEXT_MONTH: "NEXT_MONTH",
+} as const;
+export type FeeStartMode = (typeof FeeStartMode)[keyof typeof FeeStartMode];
+export const feeStartModeSchema = z.nativeEnum(FeeStartMode);
+
+export const setupAcademicYearFeesSchema = z.object({
+  academicYearId: z.string().min(1),
+  academicMonths: z.number().int().positive().optional(),
+  monthlyFee: z.number().int().nonnegative().optional(),
+  billingStartMonth: month.optional(),
+  billingEndMonth: month.optional(),
+});
+export type SetupAcademicYearFeesInput = z.infer<
+  typeof setupAcademicYearFeesSchema
+>;
+
+export const studentFeeStartSchema = z.object({
+  feeStartMode: feeStartModeSchema.optional(),
+  agreementAmount: z.number().int().nonnegative().optional(),
+  billingStartYear: year.optional(),
+  billingStartMonth: month.optional(),
+});
+export type StudentFeeStartInput = z.infer<typeof studentFeeStartSchema>;
+
 // ── Salary (Module 8) ──
 export const createSalarySchema = z.object({
   teacherId: z.string().min(1).nullable().optional(),

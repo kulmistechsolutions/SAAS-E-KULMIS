@@ -1,4 +1,4 @@
-export type FeeChargeStatus = "UNPAID" | "PARTIAL" | "PAID" | "ADVANCE";
+export type FeeChargeStatus = "UNPAID" | "PARTIAL" | "PAID" | "ADVANCE" | "INACTIVE";
 
 export type PaymentType = "THIS_MONTH" | "PARTIAL" | "ADVANCE";
 
