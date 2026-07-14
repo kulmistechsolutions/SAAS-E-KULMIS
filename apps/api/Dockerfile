@@ -28,7 +28,7 @@ COPY --from=build /app ./
 
 EXPOSE 4000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s \
-  CMD curl -fsS http://localhost:4000/api/health || exit 1
+  CMD curl -fsS http://localhost:4000/health || exit 1
 
 WORKDIR /app/apps/api
 CMD ["sh", "-c", "npx prisma migrate deploy && node dist/main.js"]
