@@ -7,7 +7,7 @@ RUN corepack enable
 WORKDIR /app
 
 # Install with a warm layer cache: manifests first, then sources.
-COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
+COPY pnpm-lock.yaml pnpm-workspace.yaml package.json tsconfig.base.json ./
 COPY apps/api/package.json apps/api/
 COPY packages/shared/package.json packages/shared/
 RUN pnpm install --frozen-lockfile --filter "@ekulmis/api..." --filter "@ekulmis/shared"
