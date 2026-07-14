@@ -17,6 +17,11 @@ RUN pnpm install --frozen-lockfile --filter "@ekulmis/web..." --filter "@ekulmis
 COPY packages/shared packages/shared
 COPY apps/web apps/web
 
+# @ekulmis/shared resolves via package.json "main": "./dist/index.js" — it must
+# be compiled before Next.js (webpack module resolution needs dist/ to exist
+# even though transpilePackages re-transpiles the source for bundling).
+RUN pnpm --filter @ekulmis/shared build
+
 ARG NEXT_PUBLIC_API_URL
 ARG NEXT_PUBLIC_APP_ROOT_DOMAIN
 ARG NEXT_PUBLIC_TENANT_SUBDOMAIN=demo
