@@ -50,5 +50,6 @@ export function buildPortalSeed(): PortalState {
     announcements: buildAnnouncements(),
     notifications: [],
     audit: [],
+    parentProfile: null,
   };
 }
