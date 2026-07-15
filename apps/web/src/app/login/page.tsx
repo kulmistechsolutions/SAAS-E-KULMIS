@@ -92,20 +92,6 @@ export default function LoginPage() {
             </Button>
           </form>
           <p className="mt-6 text-center text-xs text-muted-foreground">{branding.footerText}</p>
-          <p className="mt-3 text-center text-sm">
-            <a href="/teacher-portal/login" className="text-primary hover:underline">
-              Teacher Portal →
-            </a>
-            {" · "}
-            <a href="/parent-portal/login" className="text-primary hover:underline">
-              Parent Portal →
-            </a>
-          </p>
-          <p className="mt-2 text-center text-sm">
-            <a href="/platform/login" className="text-primary hover:underline">
-              Platform Super Admin →
-            </a>
-          </p>
         </CardContent>
       </Card>
       </div>

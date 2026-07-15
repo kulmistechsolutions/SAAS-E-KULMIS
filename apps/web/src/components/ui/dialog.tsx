@@ -58,10 +58,9 @@ export function Dialog({
         aria-describedby={description ? "dialog-description" : undefined}
         onClick={(e) => e.stopPropagation()}
         className={cn(
-          "animate-fade-up relative z-10 flex w-full flex-col rounded-2xl border bg-card shadow-xl",
+          "animate-fade-up relative z-10 flex w-full flex-col overflow-hidden rounded-2xl border bg-card shadow-xl",
           "max-w-[calc(100vw-1.5rem)]",
-          scrollable && "max-h-[min(92dvh,920px)] overflow-hidden",
-          !scrollable && "max-h-[96dvh]",
+          scrollable ? "max-h-[min(92dvh,920px)]" : "max-h-[96dvh]",
           !className && "sm:max-w-lg",
           className,
         )}
@@ -99,9 +98,8 @@ export function Dialog({
 
         <div
           className={cn(
-            "px-4 py-2.5 sm:px-5",
-            scrollable &&
-              "min-h-0 flex-1 overflow-y-auto overscroll-contain scrollbar-none",
+            "overflow-y-auto overscroll-contain scrollbar-none px-4 py-2.5 sm:px-5",
+            scrollable && "min-h-0 flex-1",
           )}
         >
           {children}
