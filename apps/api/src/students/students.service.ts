@@ -15,6 +15,7 @@ import type {
 import { PrismaService } from "../prisma/prisma.service";
 import { StorageService } from "../storage/storage.service";
 import { FeesService } from "../finance/fees.service";
+import { SubscriptionsService } from "../subscriptions/subscriptions.service";
 import { hashPassword } from "../auth/password.util";
 import {
   assertStudentPhotoMime,
@@ -73,6 +74,7 @@ export class StudentsService {
     private readonly storage: StorageService,
     private readonly config: ConfigService,
     private readonly fees: FeesService,
+    private readonly subscriptions: SubscriptionsService,
   ) {
     this.bucket =
       this.config.get<string>("SUPABASE_STORAGE_BUCKET") ??
@@ -127,6 +129,7 @@ export class StudentsService {
    * and validates the class/section — all in one tenant transaction.
    */
   async register(schoolId: string, dto: RegisterStudentInput) {
+    await this.subscriptions.assertCanAddStudent(schoolId);
     const result = await this.prisma.forTenant(schoolId, async (tx) => {
       const school = await tx.school.findUnique({
         where: { id: schoolId },

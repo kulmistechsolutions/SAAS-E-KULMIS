@@ -12,6 +12,7 @@ import {
   Settings2,
   Shield,
   Sparkles,
+  Layers,
   ExternalLink,
 } from "lucide-react";
 import { usePlatformAuth } from "@/lib/platform/auth";
@@ -20,6 +21,7 @@ import { cn } from "@/lib/utils";
 const NAV = [
   { href: "/platform", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { href: "/platform/schools", label: "Schools", icon: Building2 },
+  { href: "/platform/subscriptions", label: "Subscriptions", icon: Layers },
   { href: "/platform/sms/settings", label: "SMS Settings", icon: Settings2 },
   { href: "/platform/sms/payments", label: "Waafi Payments", icon: CreditCard },
   { href: "/platform/sms", label: "SMS Packages", icon: MessageSquare, exact: true },

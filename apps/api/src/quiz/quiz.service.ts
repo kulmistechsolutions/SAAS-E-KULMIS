@@ -15,6 +15,7 @@ import type {
 import { PrismaService } from "../prisma/prisma.service";
 import { TeachersService } from "../teachers/teachers.service";
 import { AiService } from "../ai/ai.service";
+import { SubscriptionsService } from "../subscriptions/subscriptions.service";
 
 function padQuizSeq(n: number): string {
   return String(n).padStart(6, "0");
@@ -35,6 +36,7 @@ export class QuizService {
     private readonly prisma: PrismaService,
     private readonly teachers: TeachersService,
     private readonly ai: AiService,
+    private readonly subscriptions: SubscriptionsService,
   ) {}
 
   async list(
@@ -816,6 +818,14 @@ export class QuizService {
     let allAiGraded = aiEnabled;
     if (aiEnabled) {
       for (const item of prep.aiPending) {
+        // Monthly AI grading quota is per-school (subscription plan). Once
+        // exhausted, remaining answers just stay pending for manual review
+        // instead of blocking the student's submission.
+        const quotaOk = await this.subscriptions.tryConsumeAiGrading(schoolId);
+        if (!quotaOk) {
+          allAiGraded = false;
+          continue;
+        }
         const res = await this.ai.gradeConcept(
           item.question,
           item.modelAnswer,

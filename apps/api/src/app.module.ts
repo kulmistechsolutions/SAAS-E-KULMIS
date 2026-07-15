@@ -36,6 +36,7 @@ import { TeacherPortalModule } from "./teacher-portal/teacher-portal.module";
 import { BackupModule } from "./backup/backup.module";
 import { ImportsModule } from "./imports/imports.module";
 import { SmsModule } from "./sms/sms.module";
+import { SubscriptionsModule } from "./subscriptions/subscriptions.module";
 import { TenantMiddleware } from "./tenant/tenant.middleware";
 import { TenantModule } from "./tenant/tenant.module";
 
@@ -82,6 +83,7 @@ import { TenantModule } from "./tenant/tenant.module";
     BackupModule,
     ImportsModule,
     SmsModule,
+    SubscriptionsModule,
     PlatformModule,
     TenantModule,
     HealthModule,

@@ -5,10 +5,11 @@ import { ParentsController } from "./parents.controller";
 import { ParentsService } from "./parents.service";
 import { TeachersModule } from "../teachers/teachers.module";
 import { FinanceModule } from "../finance/finance.module";
+import { SubscriptionsModule } from "../subscriptions/subscriptions.module";
 
 /** Student Management (Module 1) + Parent Management (Module 2). */
 @Module({
-  imports: [TeachersModule, FinanceModule],
+  imports: [TeachersModule, FinanceModule, SubscriptionsModule],
   controllers: [StudentsController, ParentsController],
   providers: [StudentsService, ParentsService],
   exports: [StudentsService, ParentsService],

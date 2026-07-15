@@ -493,3 +493,86 @@ export async function fetchPlatformSmsPayments() {
 export async function deletePlatformSmsPackage(id: string) {
   return platformFetch(`/platform/sms/packages/${id}`, { method: "DELETE" });
 }
+
+// ── School Subscriptions (billing plans) ────────────────────────────────────
+
+export interface PlatformSubscriptionPlan {
+  id: string;
+  name: string;
+  maxStudents: number | null;
+  durationDays: number;
+  aiGradingMonthlyQuota: number | null;
+  priceUsd: string | number | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PlatformSchoolSubscriptionRow {
+  school: {
+    id: string;
+    name: string;
+    subdomain: string;
+    status: "ACTIVE" | "SUSPENDED";
+  };
+  studentCount: number;
+  subscription: {
+    id: string;
+    status: "ACTIVE" | "EXPIRED" | "CANCELLED";
+    startDate: string;
+    endDate: string;
+    aiGradingUsed: number;
+    plan: PlatformSubscriptionPlan;
+  } | null;
+}
+
+export const fetchPlatformSubscriptionPlans = () =>
+  platformFetch<PlatformSubscriptionPlan[]>("/platform/subscriptions/plans");
+
+export const createPlatformSubscriptionPlan = (body: {
+  name: string;
+  maxStudents: number | null;
+  durationDays: number;
+  aiGradingMonthlyQuota: number | null;
+  priceUsd?: number | null;
+}) =>
+  platformFetch<PlatformSubscriptionPlan>("/platform/subscriptions/plans", {
+    method: "POST",
+    body,
+  });
+
+export const updatePlatformSubscriptionPlan = (
+  id: string,
+  body: Partial<{
+    name: string;
+    maxStudents: number | null;
+    durationDays: number;
+    aiGradingMonthlyQuota: number | null;
+    priceUsd: number | null;
+    isActive: boolean;
+  }>,
+) =>
+  platformFetch<PlatformSubscriptionPlan>(`/platform/subscriptions/plans/${id}`, {
+    method: "PATCH",
+    body,
+  });
+
+export const deletePlatformSubscriptionPlan = (id: string) =>
+  platformFetch(`/platform/subscriptions/plans/${id}`, { method: "DELETE" });
+
+export const fetchPlatformSchoolSubscriptions = () =>
+  platformFetch<PlatformSchoolSubscriptionRow[]>("/platform/subscriptions/schools");
+
+export const assignPlatformSchoolSubscription = (
+  schoolId: string,
+  body: { planId: string; startDate?: string },
+) =>
+  platformFetch<unknown>(`/platform/subscriptions/schools/${schoolId}/assign`, {
+    method: "POST",
+    body,
+  });
+
+export const cancelPlatformSchoolSubscription = (schoolId: string) =>
+  platformFetch<unknown>(`/platform/subscriptions/schools/${schoolId}/cancel`, {
+    method: "POST",
+  });
