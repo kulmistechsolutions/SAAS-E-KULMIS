@@ -43,7 +43,8 @@ export function Dialog({
 
   return (
     <div
-      className="fixed inset-0 z-[60] flex items-center justify-center p-3 sm:p-4"
+      className="fixed inset-y-0 right-0 z-[60] flex items-center justify-center p-3 sm:p-4"
+      style={{ left: "var(--app-sidebar-w, 0px)" }}
       role="presentation"
     >
       <div

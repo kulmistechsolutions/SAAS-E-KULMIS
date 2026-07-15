@@ -105,7 +105,13 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   const sidebarWidth = collapsed ? "w-20" : "w-64";
 
   return (
-    <div className="flex min-h-screen bg-muted/40" suppressHydrationWarning>
+    <div
+      className={cn(
+        "flex min-h-screen bg-muted/40 [--app-sidebar-w:0px]",
+        collapsed ? "lg:[--app-sidebar-w:5rem]" : "lg:[--app-sidebar-w:16rem]",
+      )}
+      suppressHydrationWarning
+    >
       <aside
         className={cn(
           "hidden shrink-0 transition-[width] duration-300 ease-in-out lg:block",

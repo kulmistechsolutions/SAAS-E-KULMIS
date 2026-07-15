@@ -206,11 +206,15 @@ export async function saveStudentAttendance(
   rows: { studentId: string; status: StudentAttendanceStatus }[],
 ): Promise<SaveStudentResult> {
   if (!className) return { ok: false, error: "Class is required." };
-  if (!section) return { ok: false, error: "Section is required for this class." };
 
   await ensureAcademicsLoaded();
   const { classId, error: classErr } = resolveClassId(className, academicYear);
   if (classErr || !classId) return { ok: false, error: classErr };
+
+  const cls = classByName(className, academicYear);
+  if (cls?.hasSections && !section) {
+    return { ok: false, error: "Section is required for this class." };
+  }
 
   const { sectionId, error: secErr } = resolveSectionId(classId, section);
   if (secErr) return { ok: false, error: secErr };
