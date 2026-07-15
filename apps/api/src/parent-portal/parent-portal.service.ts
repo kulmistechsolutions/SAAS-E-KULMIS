@@ -22,6 +22,28 @@ export class ParentPortalService {
     });
   }
 
+  async me(schoolId: string, userId: string) {
+    return this.prisma.forTenant(schoolId, async (tx) => {
+      const parent = await tx.parent.findFirst({
+        where: { userId },
+        select: {
+          id: true,
+          code: true,
+          name: true,
+          phone: true,
+          altPhone: true,
+          email: true,
+          address: true,
+          occupation: true,
+          status: true,
+          createdAt: true,
+        },
+      });
+      if (!parent) throw new NotFoundException("Parent profile not found");
+      return parent;
+    });
+  }
+
   async children(schoolId: string, userId: string) {
     const parentId = await this.parentIdForUser(schoolId, userId);
     return this.prisma.forTenant(schoolId, (tx) =>

@@ -14,6 +14,11 @@ export class ParentPortalController {
     private readonly notificationsService: NotificationsService,
   ) {}
 
+  @Get("me")
+  me(@CurrentUser() me: AuthUser) {
+    return this.portal.me(me.schoolId, me.userId);
+  }
+
   @Get("children")
   children(@CurrentUser() me: AuthUser) {
     return this.portal.children(me.schoolId, me.userId);

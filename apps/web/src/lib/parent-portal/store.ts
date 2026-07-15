@@ -17,6 +17,7 @@ import {
   apiPortalFees,
   apiPortalLogin,
   apiPortalLogout,
+  apiPortalMe,
   apiPortalNotifications,
   apiPortalResults,
   mapPortalAnnouncement,
@@ -43,6 +44,7 @@ const EMPTY: PortalState = {
   announcements: [],
   notifications: [],
   audit: [],
+  parentProfile: null,
 };
 
 let state: PortalState | null = null;
@@ -89,7 +91,8 @@ function apiErr(e: unknown, fallback: string): string {
 export async function refreshPortalData(): Promise<void> {
   if (!ensure().session) return;
   try {
-    const [children, announcements, notifications] = await Promise.all([
+    const [me, children, announcements, notifications] = await Promise.all([
+      apiPortalMe(),
       apiPortalChildren(),
       apiPortalAnnouncements(),
       apiPortalNotifications(),
@@ -98,6 +101,7 @@ export async function refreshPortalData(): Promise<void> {
     const parentId = ensure().session!.parentId;
     setState({
       ...ensure(),
+      parentProfile: me,
       announcements: announcements.map(mapPortalAnnouncement),
       notifications: notifications.map((n) => mapPortalNotification(n, parentId)),
     });
@@ -154,21 +158,6 @@ export async function loginParent(
     childrenCache = children.map(mapPortalChild);
     const parentId = children[0]?.parentId ?? user.userId;
 
-    const parent: Parent = {
-      id: parentId,
-      code: user.username,
-      name: user.username,
-      phone: "",
-      altPhone: null,
-      email: null,
-      address: null,
-      occupation: null,
-      registrationDate: new Date().toISOString(),
-      status: "ACTIVE",
-      username: user.username,
-      password: "",
-    };
-
     const session: PortalSession = { parentId, loginAt: new Date().toISOString() };
     if (typeof window !== "undefined") {
       localStorage.setItem("ekulmis_parent_portal_session_v1", JSON.stringify(session));
@@ -176,7 +165,7 @@ export async function loginParent(
     setState({ ...ensure(), session });
     await refreshPortalData();
     logPortalAudit(parentId, "LOGIN");
-    return { ok: true, parent };
+    return { ok: true, parent: currentParent() ?? undefined };
   } catch (e) {
     return { ok: false, error: apiErr(e, "Invalid Parent ID or password.") };
   }
@@ -191,7 +180,7 @@ export function logoutParent() {
   if (typeof window !== "undefined") {
     localStorage.removeItem("ekulmis_parent_portal_session_v1");
   }
-  setState({ ...s, session: null });
+  setState({ ...s, session: null, parentProfile: null });
 }
 
 export function currentSession(): PortalSession | null {
@@ -201,6 +190,23 @@ export function currentSession(): PortalSession | null {
 export function currentParent(): Parent | null {
   const sess = currentSession();
   if (!sess) return null;
+  const profile = ensure().parentProfile;
+  if (profile) {
+    return {
+      id: profile.id,
+      code: profile.code,
+      name: profile.name,
+      phone: profile.phone,
+      altPhone: profile.altPhone,
+      email: profile.email,
+      address: profile.address,
+      occupation: profile.occupation,
+      registrationDate: profile.createdAt,
+      status: profile.status === "INACTIVE" ? "INACTIVE" : "ACTIVE",
+      username: profile.code,
+      password: "",
+    };
+  }
   return getParent(sess.parentId) ?? {
     id: sess.parentId,
     code: authUser?.username ?? sess.parentId,

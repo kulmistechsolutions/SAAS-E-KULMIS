@@ -120,6 +120,21 @@ export function apiPortalLogout() {
   clearAuthTokens();
 }
 
+export interface ApiPortalParent {
+  id: string;
+  code: string;
+  name: string;
+  phone: string;
+  altPhone: string | null;
+  email: string | null;
+  address: string | null;
+  occupation: string | null;
+  status: string;
+  createdAt: string;
+}
+
+export const apiPortalMe = () => api<ApiPortalParent>("/parent-portal/me");
+
 export const apiPortalChildren = () => api<ApiPortalChild[]>("/parent-portal/children");
 
 export const apiPortalAttendance = (studentId: string) =>

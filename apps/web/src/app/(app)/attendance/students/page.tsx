@@ -124,6 +124,9 @@ export default function StudentAttendancePage() {
     return all.filter((c) => assignedClassNames.has(c.name));
   }, [academics.classes, year, assignedClassNames]);
 
+  const selectedMarkClass = useMemo(() => classByName(klass, year), [klass, year]);
+  const markClassNeedsSection = selectedMarkClass?.hasSections ?? true;
+
   const sectionOptions = useMemo(() => {
     const cls = classByName(klass, year);
     const all = cls ? sectionsForClass(cls.id) : [];
@@ -195,7 +198,7 @@ export default function StudentAttendancePage() {
 
   async function loadList() {
     if (!klass) return toast("Select a class.", "error");
-    if (!section) return toast("Select a section.", "error");
+    if (markClassNeedsSection && !section) return toast("Select a section.", "error");
     setLoading(true);
     const res = await loadStudentMarkingRows(year, klass, section, date);
     setLoading(false);
@@ -215,7 +218,7 @@ export default function StudentAttendancePage() {
   }
 
   async function handleSave() {
-    if (!loaded || !klass || !section) return;
+    if (!loaded || !klass || (markClassNeedsSection && !section)) return;
     const eligible = rows.filter((r) => r.eligible);
     setSaving(true);
     const res = await saveStudentAttendance(
@@ -295,9 +298,17 @@ export default function StudentAttendancePage() {
                   </Select>
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-muted-foreground">Section *</label>
-                  <Select value={section} onChange={(e) => { setSection(e.target.value); setLoaded(false); }}>
-                    <option value="">Select section</option>
+                  <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                    Section{markClassNeedsSection ? " *" : ""}
+                  </label>
+                  <Select
+                    value={section}
+                    onChange={(e) => { setSection(e.target.value); setLoaded(false); }}
+                    disabled={!markClassNeedsSection}
+                  >
+                    <option value="">
+                      {markClassNeedsSection ? "Select section" : "— (no sections)"}
+                    </option>
                     {sectionOptions.map((s) => <option key={s.id} value={s.name}>Section {s.name}</option>)}
                   </Select>
                 </div>
@@ -313,7 +324,7 @@ export default function StudentAttendancePage() {
                 <>
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <p className="text-sm text-muted-foreground">
-                      {formatDisplayDate(date)} · {klass} · Section {section} · {eligibleRows.length} students
+                      {formatDisplayDate(date)} · {klass}{section ? ` · Section ${section}` : ""} · {eligibleRows.length} students
                     </p>
                     <div className="flex flex-wrap gap-2">
                       <Button variant="outline" onClick={() => markAll("PRESENT")}>

@@ -7,7 +7,6 @@ import {
   ServiceUnavailableException,
 } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import { randomBytes } from "node:crypto";
 import type { Prisma } from "@prisma/client";
 import type {
   RegisterStudentInput,
@@ -28,6 +27,8 @@ import {
 function pad(n: number): string {
   return String(n).padStart(4, "0");
 }
+
+const DEFAULT_PARENT_PASSWORD = "12345";
 
 const studentInclude = {
   parent: {
@@ -161,7 +162,7 @@ export class StudentsService {
           update: { value: { increment: 1 } },
         });
         const parentCode = `${school.parentPrefix}${pad(seq.value)}`;
-        initialParentPassword = randomBytes(6).toString("base64url");
+        initialParentPassword = DEFAULT_PARENT_PASSWORD;
         const user = await tx.user.create({
           data: {
             schoolId,

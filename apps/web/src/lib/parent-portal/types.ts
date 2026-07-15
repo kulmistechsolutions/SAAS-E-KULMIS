@@ -56,10 +56,24 @@ export interface PortalAuditEntry {
   device: string;
 }
 
+export interface PortalParentProfile {
+  id: string;
+  code: string;
+  name: string;
+  phone: string;
+  altPhone: string | null;
+  email: string | null;
+  address: string | null;
+  occupation: string | null;
+  status: string;
+  createdAt: string;
+}
+
 export interface PortalState {
   session: PortalSession | null;
   selectedChildByParent: Record<string, string>;
   announcements: PortalAnnouncement[];
   notifications: PortalNotification[];
   audit: PortalAuditEntry[];
+  parentProfile: PortalParentProfile | null;
 }

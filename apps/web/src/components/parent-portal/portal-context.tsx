@@ -39,7 +39,10 @@ export function PortalProvider({ children: node }: { children: ReactNode }) {
 
   useEffect(() => setMounted(true), []);
 
-  const parent = useMemo(() => currentParent(), [portal.session]);
+  const parent = useMemo(
+    () => currentParent(),
+    [portal.session, portal.parentProfile],
+  );
   const childList = useMemo(
     () => (parent ? parentChildren(parent.id) : []),
     [parent, portal.session],
