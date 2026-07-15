@@ -154,12 +154,17 @@ export function StudentFormDialog({ open, onClose, student, onSaved }: Props) {
         agreementAmount: "",
       });
     } else {
-      const y = activeAcademicYear() || years[0] || "";
+      const y = activeAcademicYear() || academicYearNames(academics)[0] || "";
       const classes = classNamesForYear(y);
       setForm(empty(y, classes[0] ?? ""));
       setPhotoPreview(null);
     }
-  }, [open, student?.id, years]);
+    // Intentionally excludes `academics`/`years`: this effect should only
+    // reset the form when the dialog opens or the target student changes,
+    // not whenever the academics store re-emits (which was wiping the form
+    // mid-keystroke whenever the store refreshed elsewhere in the app).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, student?.id]);
 
   function set<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((f) => ({ ...f, [key]: value }));
@@ -492,7 +497,7 @@ export function StudentFormDialog({ open, onClose, student, onSaved }: Props) {
                 ? " (remaining academic months are calculated automatically)."
                 : "."}
             </p>
-            <div className="mt-3 space-y-2">
+            <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-3">
               {(
                 [
                   {
