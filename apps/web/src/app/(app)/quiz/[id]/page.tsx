@@ -204,6 +204,9 @@ export default function QuizBuilderPage({ params }: { params: Promise<{ id: stri
           <Button variant="outline" className="h-9" onClick={copyLink}><Copy className="mr-2 h-4 w-4" />Copy Link</Button>
           <Link href={`/quiz-take/${quiz.code}`} target="_blank"><Button variant="outline" className="h-9"><Play className="mr-2 h-4 w-4" />Preview</Button></Link>
           <Link href={`/quiz/${quiz.id}/results`}><Button variant="outline" className="h-9">Results</Button></Link>
+          {!isDraft && (
+            <Link href={`/quiz/${quiz.id}/live`}><Button variant="outline" className="h-9">Live Monitor</Button></Link>
+          )}
         </div>
       </div>
 

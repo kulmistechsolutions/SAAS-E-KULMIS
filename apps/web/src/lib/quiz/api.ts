@@ -148,6 +148,44 @@ export const apiQuizDashboard = () => api<QuizDashboardResponse>("/quiz/dashboar
 
 export const apiQuizMonitoring = () => api<QuizMonitoringResponse>("/quiz/monitoring");
 
+export interface QuizLiveStudentRow {
+  no: number;
+  studentId: string;
+  studentCode: string;
+  studentName: string;
+  className: string;
+  section: string | null;
+  status: "NOT_STARTED" | "IN_PROGRESS" | "COMPLETED" | "TIME_EXPIRED";
+  attemptId: string | null;
+  startTime: string | null;
+  finishTime: string | null;
+  score: number | null;
+  percentage: number | null;
+}
+
+export interface QuizLiveMonitoringResponse {
+  quiz: {
+    id: string;
+    title: string;
+    code: string;
+    status: string;
+    timeLimitMin: number | null;
+    className: string;
+    section: string | null;
+  };
+  summary: {
+    total: number;
+    notStarted: number;
+    inProgress: number;
+    completed: number;
+    timeExpired: number;
+  };
+  students: QuizLiveStudentRow[];
+}
+
+export const apiQuizLiveMonitoring = (quizId: string) =>
+  api<QuizLiveMonitoringResponse>(`/quiz/${quizId}/live`);
+
 export const apiCreateQuiz = (body: {
   title: string;
   academicYearId: string;
@@ -224,7 +262,7 @@ export const apiQuizAttempts = (quizId: string) =>
 export const apiVerifyQuizAccess = (body: {
   quizCode: string;
   studentCode: string;
-  password?: string;
+  password: string;
 }) =>
   api<QuizAccessResponse>("/quiz/verify-access", {
     method: "POST",

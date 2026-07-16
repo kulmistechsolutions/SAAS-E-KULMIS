@@ -16,6 +16,7 @@ import { PrismaService } from "../prisma/prisma.service";
 import { TeachersService } from "../teachers/teachers.service";
 import { AiService } from "../ai/ai.service";
 import { SubscriptionsService } from "../subscriptions/subscriptions.service";
+import { verifyPassword } from "../auth/password.util";
 
 function padQuizSeq(n: number): string {
   return String(n).padStart(6, "0");
@@ -408,6 +409,12 @@ export class QuizService {
         },
       });
       if (!student) throw new UnauthorizedException("Invalid student ID");
+      const passwordOk =
+        !!student.portalPasswordHash &&
+        (await verifyPassword(dto.password, student.portalPasswordHash));
+      if (!passwordOk) {
+        throw new UnauthorizedException("Invalid student ID or password");
+      }
       this.assertStudentEligible(student, quiz);
 
       const prior = await tx.quizAttempt.count({
@@ -589,6 +596,108 @@ export class QuizService {
         },
       }),
     );
+  }
+
+  async liveMonitoring(schoolId: string, quizId: string) {
+    return this.prisma.forTenant(schoolId, async (tx) => {
+      const quiz = await tx.quiz.findFirst({
+        where: { id: quizId },
+        include: {
+          class: { select: { name: true } },
+          section: { select: { name: true } },
+        },
+      });
+      if (!quiz) throw new NotFoundException("Quiz not found");
+
+      const students = await tx.student.findMany({
+        where: {
+          classId: quiz.classId,
+          ...(quiz.sectionId ? { sectionId: quiz.sectionId } : {}),
+          status: "ACTIVE",
+        },
+        orderBy: { fullName: "asc" },
+        select: {
+          id: true,
+          code: true,
+          fullName: true,
+          class: { select: { name: true } },
+          section: { select: { name: true } },
+        },
+      });
+
+      const attempts = await tx.quizAttempt.findMany({
+        where: { quizId },
+        orderBy: { startedAt: "desc" },
+        select: {
+          id: true,
+          studentId: true,
+          status: true,
+          score: true,
+          percentage: true,
+          startedAt: true,
+          submittedAt: true,
+        },
+      });
+      const latestAttemptByStudent = new Map<string, (typeof attempts)[number]>();
+      for (const a of attempts) {
+        if (!latestAttemptByStudent.has(a.studentId)) {
+          latestAttemptByStudent.set(a.studentId, a);
+        }
+      }
+
+      const now = Date.now();
+      const students_rows = students.map((s, idx) => {
+        const attempt = latestAttemptByStudent.get(s.id) ?? null;
+        let status: "NOT_STARTED" | "IN_PROGRESS" | "COMPLETED" | "TIME_EXPIRED" =
+          "NOT_STARTED";
+        if (attempt) {
+          if (attempt.status === "IN_PROGRESS") {
+            const deadline = quiz.timeLimitMin
+              ? attempt.startedAt.getTime() + quiz.timeLimitMin * 60_000
+              : null;
+            status = deadline && now > deadline ? "TIME_EXPIRED" : "IN_PROGRESS";
+          } else {
+            status = "COMPLETED";
+          }
+        }
+        return {
+          no: idx + 1,
+          studentId: s.id,
+          studentCode: s.code,
+          studentName: s.fullName,
+          className: s.class.name,
+          section: s.section?.name ?? null,
+          status,
+          attemptId: attempt?.id ?? null,
+          startTime: attempt?.startedAt ?? null,
+          finishTime: attempt?.submittedAt ?? null,
+          score: attempt?.score ?? null,
+          percentage: attempt?.percentage ?? null,
+        };
+      });
+
+      const summary = {
+        total: students_rows.length,
+        notStarted: students_rows.filter((r) => r.status === "NOT_STARTED").length,
+        inProgress: students_rows.filter((r) => r.status === "IN_PROGRESS").length,
+        completed: students_rows.filter((r) => r.status === "COMPLETED").length,
+        timeExpired: students_rows.filter((r) => r.status === "TIME_EXPIRED").length,
+      };
+
+      return {
+        quiz: {
+          id: quiz.id,
+          title: quiz.title,
+          code: quiz.code,
+          status: quiz.status,
+          timeLimitMin: quiz.timeLimitMin,
+          className: quiz.class.name,
+          section: quiz.section?.name ?? null,
+        },
+        summary,
+        students: students_rows,
+      };
+    });
   }
 
   studentAttempts(schoolId: string, studentId: string) {

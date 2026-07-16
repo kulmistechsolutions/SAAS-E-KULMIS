@@ -137,6 +137,15 @@ export class QuizController {
   }
 
   @Roles(UserRole.ADMINISTRATOR, UserRole.TEACHER, UserRole.EXAM_MANAGER)
+  @Get(":id/live")
+  async liveMonitoring(@CurrentUser() me: AuthUser, @Param("id") id: string) {
+    if (me.role === "TEACHER") {
+      await this.quiz.assertOwnsQuiz(me.schoolId, me.userId, id);
+    }
+    return this.quiz.liveMonitoring(me.schoolId, id);
+  }
+
+  @Roles(UserRole.ADMINISTRATOR, UserRole.TEACHER, UserRole.EXAM_MANAGER)
   @Get(":id/attempts")
   async attempts(@CurrentUser() me: AuthUser, @Param("id") id: string) {
     if (me.role === "TEACHER") {
