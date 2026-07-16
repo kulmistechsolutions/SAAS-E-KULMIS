@@ -7,9 +7,12 @@ import { Button } from "@/components/ui/button";
 import { attemptsForQuiz, exportQuizResultsCsv, getQuiz, loadAttemptsForQuiz } from "@/lib/quiz/store";
 import { dateTime, resultLabel } from "@/lib/quiz/format";
 import { printQuizResult } from "@/lib/quiz/print";
+import { useAuth } from "@/lib/auth";
 
 export default function QuizResultsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
+  const { user } = useAuth();
+  const quizBase = user?.role === "TEACHER" ? "/teacher-portal/quizzes" : "/quiz";
   const quiz = useMemo(() => getQuiz(id), [id]);
   const [attempts, setAttempts] = useState(() => (quiz ? attemptsForQuiz(quiz.id) : []));
 
@@ -24,7 +27,7 @@ export default function QuizResultsPage({ params }: { params: Promise<{ id: stri
     <div className="space-y-6">
       <div className="flex justify-between gap-4">
         <div>
-          <Link href={`/quiz/${quiz.id}`} className="inline-flex items-center gap-2 text-sm text-primary">
+          <Link href={`${quizBase}/${quiz.id}`} className="inline-flex items-center gap-2 text-sm text-primary">
             <ArrowLeft className="h-4 w-4" />Back to Quiz
           </Link>
           <h1 className="mt-2 text-2xl font-bold">Results — {quiz.title}</h1>

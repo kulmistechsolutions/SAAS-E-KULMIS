@@ -17,6 +17,7 @@ import {
   type QuizBuilderQuestion,
 } from "@/lib/quiz/api";
 import { toast } from "@/lib/toast";
+import { useAuth } from "@/lib/auth";
 
 type QType = "MCQ" | "DIRECT" | "MATCH" | "FILL_BLANK";
 
@@ -95,6 +96,10 @@ function toPayload(qs: BQ[]): QuizBuilderQuestion[] {
 
 export default function QuizBuilderPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
+  const { user } = useAuth();
+  const isTeacher = user?.role === "TEACHER";
+  const listHref = isTeacher ? "/teacher-portal/quizzes" : "/quiz/list";
+  const quizBase = isTeacher ? "/teacher-portal/quizzes" : "/quiz";
   const [quiz, setQuiz] = useState<ApiQuiz | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -194,7 +199,7 @@ export default function QuizBuilderPage({ params }: { params: Promise<{ id: stri
     <div className="mx-auto max-w-3xl space-y-6">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
-          <Link href="/quiz/list" className="inline-flex items-center gap-2 text-sm text-primary">
+          <Link href={listHref} className="inline-flex items-center gap-2 text-sm text-primary">
             <ArrowLeft className="h-4 w-4" />All Quizzes
           </Link>
           <h1 className="mt-2 text-2xl font-bold">{quiz.title}</h1>
@@ -203,9 +208,9 @@ export default function QuizBuilderPage({ params }: { params: Promise<{ id: stri
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" className="h-9" onClick={copyLink}><Copy className="mr-2 h-4 w-4" />Copy Link</Button>
           <Link href={`/quiz-take/${quiz.code}`} target="_blank"><Button variant="outline" className="h-9"><Play className="mr-2 h-4 w-4" />Preview</Button></Link>
-          <Link href={`/quiz/${quiz.id}/results`}><Button variant="outline" className="h-9">Results</Button></Link>
+          <Link href={`${quizBase}/${quiz.id}/results`}><Button variant="outline" className="h-9">Results</Button></Link>
           {!isDraft && (
-            <Link href={`/quiz/${quiz.id}/live`}><Button variant="outline" className="h-9">Live Monitor</Button></Link>
+            <Link href={`${quizBase}/${quiz.id}/live`}><Button variant="outline" className="h-9">Live Monitor</Button></Link>
           )}
         </div>
       </div>

@@ -6,6 +6,7 @@ import { ArrowLeft, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { apiQuizLiveMonitoring, type QuizLiveMonitoringResponse } from "@/lib/quiz/api";
 import { toast } from "@/lib/toast";
+import { useAuth } from "@/lib/auth";
 
 const STATUS_LABEL: Record<string, string> = {
   NOT_STARTED: "Not Started",
@@ -35,6 +36,8 @@ function fmtTime(iso: string | null): string {
 
 export default function QuizLiveMonitoringPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
+  const { user } = useAuth();
+  const quizBase = user?.role === "TEACHER" ? "/teacher-portal/quizzes" : "/quiz";
   const [data, setData] = useState<QuizLiveMonitoringResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -68,7 +71,7 @@ export default function QuizLiveMonitoringPage({ params }: { params: Promise<{ i
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <Link href={`/quiz/${quiz.id}`} className="inline-flex items-center gap-2 text-sm text-primary">
+          <Link href={`${quizBase}/${quiz.id}`} className="inline-flex items-center gap-2 text-sm text-primary">
             <ArrowLeft className="h-4 w-4" />Back to Quiz
           </Link>
           <h1 className="mt-2 text-2xl font-bold">Live Monitoring — {quiz.title}</h1>
