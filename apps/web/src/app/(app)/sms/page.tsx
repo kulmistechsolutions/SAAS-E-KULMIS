@@ -16,7 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { RecipientPreview } from "@/components/sms/recipient-preview";
+import { RecipientPickerDialog } from "@/components/sms/recipient-picker";
 import { TemplateManager } from "@/components/sms/template-manager";
 import { CATEGORIES } from "@/components/sms/categories";
 import {
@@ -48,11 +48,11 @@ import { toast } from "@/lib/toast";
 type Tab = "send" | "custom" | "templates" | "logs" | "settings";
 
 const AUDIENCES: { value: SmsAudience; label: string; hint: string }[] = [
-  { value: "ALL_PARENTS", label: "Dhammaan Waalidiinta", hint: "Dhammaan ardayda firfircoon" },
-  { value: "CLASS", label: "Fasal gaar ah", hint: "Xulo fasal" },
-  { value: "SECTION", label: "Xarun gaar ah", hint: "Xulo fasal iyo xarun" },
-  { value: "OUTSTANDING", label: "Lacag Hadhaysa", hint: "Waalidiinta ay ku leeyihiin deyn" },
-  { value: "TEACHERS", label: "Macallimiinta", hint: "Dhammaan macallimiinta firfircoon" },
+  { value: "ALL_PARENTS", label: "All parents", hint: "Every active student's parent" },
+  { value: "CLASS", label: "A class", hint: "Choose a class" },
+  { value: "SECTION", label: "A section", hint: "Choose a class and section" },
+  { value: "OUTSTANDING", label: "Outstanding fees", hint: "Parents who owe a balance" },
+  { value: "TEACHERS", label: "Teachers", hint: "Every active teacher" },
 ];
 
 /** Parse "phone" or "phone, name" per line/comma/semicolon into recipients. */
@@ -96,6 +96,7 @@ export default function SchoolSmsPage() {
   const [recipients, setRecipients] = useState<SmsAudienceRecipient[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [previewLoading, setPreviewLoading] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   // ── Custom bulk send ───────────────────────────────────────────────────
   const [bulkNumbers, setBulkNumbers] = useState("");
@@ -164,19 +165,22 @@ export default function SchoolSmsPage() {
     }
   }, [templateId, templates]);
 
-  // Load recipient preview whenever the audience/class/section changes.
+  // Resolve who would receive the message whenever the audience changes.
   const loadPreview = useCallback(async () => {
     setPreviewLoading(true);
     try {
+      const usesClass =
+        audience === "CLASS" || audience === "SECTION" || audience === "OUTSTANDING";
+      const usesSection = audience === "SECTION" || audience === "OUTSTANDING";
       const list = await apiPreviewAudience({
         audience,
-        classId: audience === "CLASS" || audience === "SECTION" || audience === "OUTSTANDING" ? classId ?? null : null,
-        sectionId: audience === "SECTION" || audience === "OUTSTANDING" ? sectionId ?? null : null,
+        classId: usesClass ? classId ?? null : null,
+        sectionId: usesSection ? sectionId ?? null : null,
       });
       setRecipients(list);
       setSelected(new Set(list.map((r) => r.recordId)));
     } catch (e) {
-      toast(e instanceof Error ? e.message : "Liiska qaadis way fashilantay", "error");
+      toast(e instanceof Error ? e.message : "Could not load recipients", "error");
       setRecipients([]);
       setSelected(new Set());
     } finally {
@@ -204,11 +208,11 @@ export default function SchoolSmsPage() {
 
   async function handleSend() {
     if (selected.size === 0) {
-      toast("Fadlan ugu yaraan hal qof dooro", "error");
+      toast("Select at least one recipient", "error");
       return;
     }
     if (!body.trim()) {
-      toast("Fariinta waa loo baahan yahay", "error");
+      toast("Message is required", "error");
       return;
     }
     setSending(true);
@@ -231,15 +235,15 @@ export default function SchoolSmsPage() {
       }
       const res = await apiSendAudienceSms(payload);
       toast(
-        `Waa la diray ${res.sent}, way fashilantay ${res.failed}${
-          excludedCount > 0 ? `, ${excludedCount} qof waa laga reebay` : ""
+        `Sent ${res.sent}, failed ${res.failed}${
+          excludedCount > 0 ? `, ${excludedCount} excluded` : ""
         } (${res.creditsUsed} credits)`,
         res.failed && !res.sent ? "error" : "success",
       );
       await load();
       await loadPreview();
     } catch (e) {
-      toast(e instanceof Error ? e.message : "Diridda way fashilantay", "error");
+      toast(e instanceof Error ? e.message : "Send failed", "error");
     } finally {
       setSending(false);
     }
@@ -250,12 +254,12 @@ export default function SchoolSmsPage() {
     try {
       const res = await apiFeeReminders(body || undefined);
       toast(
-        `Xasuusinta lacagta: waa la diray ${res.sent}, way fashilantay ${res.failed} (${res.creditsUsed} credits)`,
+        `Fee reminders: sent ${res.sent}, failed ${res.failed} (${res.creditsUsed} credits)`,
         "success",
       );
       await load();
     } catch (e) {
-      toast(e instanceof Error ? e.message : "Xasuusinta way fashilantay", "error");
+      toast(e instanceof Error ? e.message : "Fee reminders failed", "error");
     } finally {
       setSending(false);
     }
@@ -263,11 +267,11 @@ export default function SchoolSmsPage() {
 
   async function handleBulkSend() {
     if (bulkRecipients.length === 0) {
-      toast("Fadlan geli ugu yaraan hal lambar taleefan", "error");
+      toast("Enter at least one phone number", "error");
       return;
     }
     if (!bulkBody.trim()) {
-      toast("Fariinta waa loo baahan yahay", "error");
+      toast("Message is required", "error");
       return;
     }
     setSending(true);
@@ -280,14 +284,14 @@ export default function SchoolSmsPage() {
         scheduledAt: scheduleIso,
       });
       toast(
-        `Waa la diray ${res.sent}, way fashilantay ${res.failed}, sugaya ${res.queued} (${res.creditsUsed} credits)`,
+        `Sent ${res.sent}, failed ${res.failed}, queued ${res.queued} (${res.creditsUsed} credits)`,
         res.failed && !res.sent ? "error" : "success",
       );
       setBulkNumbers("");
       setBulkBody("");
       await load();
     } catch (e) {
-      toast(e instanceof Error ? e.message : "Diridda way fashilantay", "error");
+      toast(e instanceof Error ? e.message : "Send failed", "error");
     } finally {
       setSending(false);
     }
@@ -299,7 +303,7 @@ export default function SchoolSmsPage() {
         smsSenderName: senderName || null,
         smsEnabled,
       });
-      toast("Dejinta SMS-ka waa la kaydiyay", "success");
+      toast("SMS settings saved", "success");
       await load();
     } catch (e) {
       toast(e instanceof Error ? e.message : "Save failed", "error");
@@ -307,14 +311,15 @@ export default function SchoolSmsPage() {
   }
 
   const tabs: { id: Tab; label: string; icon: typeof Send }[] = [
-    { id: "send", label: "Dir Liis", icon: Send },
-    { id: "custom", label: "SMS Gaar ah", icon: Users },
+    { id: "send", label: "Send", icon: Send },
+    { id: "custom", label: "Custom SMS", icon: Users },
     { id: "templates", label: "Templates", icon: FileText },
-    { id: "logs", label: "Diiwaanka", icon: Bell },
-    { id: "settings", label: "Dejinta", icon: Wallet },
+    { id: "logs", label: "Logs", icon: Bell },
+    { id: "settings", label: "Settings", icon: Wallet },
   ];
 
   const canSend = !!balance?.provider.canSend && (balance?.creditsRemaining ?? 0) > 0;
+  const excludedCount = recipients.length - selected.size;
 
   return (
     <div className="space-y-6">
@@ -325,7 +330,7 @@ export default function SchoolSmsPage() {
             SMS
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            U dir ogeysiisyo, xasuusin lacag, iyo fariimo dadka dugsigaaga via Hormuud SMS.
+            Send announcements, fee reminders, and notifications via Hormuud SMS.
           </p>
         </div>
         <div className="flex gap-2">
@@ -333,17 +338,17 @@ export default function SchoolSmsPage() {
             href="/sms/packages"
             className="inline-flex h-9 items-center justify-center gap-2 rounded-md border bg-background px-3 text-sm font-medium hover:bg-accent"
           >
-            Iibso Credits
+            Buy credits
           </Link>
           <Button variant="outline" onClick={() => void load()}>
-            <RefreshCw className="mr-2 h-4 w-4" /> Cusboonaysii
+            <RefreshCw className="mr-2 h-4 w-4" /> Refresh
           </Button>
         </div>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <div className="rounded-2xl border bg-card p-4 shadow-sm">
-          <p className="text-xs text-muted-foreground">Credits hadhay</p>
+          <p className="text-xs text-muted-foreground">Credits remaining</p>
           <p className="mt-1 text-3xl font-bold">
             {loading ? "…" : (balance?.creditsRemaining ?? 0)}
           </p>
@@ -358,41 +363,41 @@ export default function SchoolSmsPage() {
             {loading
               ? "…"
               : balance?.provider?.connected
-                ? "Isku xiran"
-                : (balance?.provider?.status ?? "Diyaar maaha")}
+                ? "Connected"
+                : (balance?.provider?.status ?? "Not ready")}
           </p>
           <p className="mt-1 text-xs text-muted-foreground">
-            {balance?.provider?.message ?? "Soo raridda xaaladda…"}
+            {balance?.provider?.message ?? "Loading provider status…"}
           </p>
         </div>
         <div className="rounded-2xl border bg-card p-4 shadow-sm">
-          <p className="text-xs text-muted-foreground">Magaca Diraha</p>
+          <p className="text-xs text-muted-foreground">Sender name</p>
           <p className="mt-1 truncate text-lg font-semibold">
             {balance?.school.smsSenderName || balance?.school.name || "—"}
           </p>
         </div>
         <div className="rounded-2xl border bg-card p-4 shadow-sm">
-          <p className="text-xs text-muted-foreground">SMS Dugsiga</p>
+          <p className="text-xs text-muted-foreground">School SMS</p>
           <p className="mt-1 text-lg font-semibold">
-            {balance?.school.smsEnabled ? "Furan" : "Xiran"}
+            {balance?.school.smsEnabled ? "Enabled" : "Disabled"}
           </p>
         </div>
       </div>
 
       {!loading && balance && !balance.provider.canSend && (
         <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-          <p className="font-semibold">Diridda SMS-ka weli lama heli karo</p>
+          <p className="font-semibold">SMS sending is not available yet</p>
           <p className="mt-1">{balance.provider.message}</p>
           {!balance.provider.connected && (
             <p className="mt-1 text-xs">
-              Maamulaha nidaamka waa inuu isku xiraa Hormuud SMS Platform → SMS Settings.
-              Ka dib waxaad iibsan kartaa package.
+              The platform administrator must connect Hormuud SMS under Platform → SMS
+              Settings. Then purchase an SMS package for your school.
             </p>
           )}
           {balance.provider.connected && balance.creditsRemaining === 0 && (
             <p className="mt-2">
               <Link href="/sms/packages" className="font-medium underline">
-                Iibso SMS Credits
+                Buy SMS credits
               </Link>
             </p>
           )}
@@ -419,155 +424,183 @@ export default function SchoolSmsPage() {
 
       {tab === "send" && (
         <div className="grid gap-4 lg:grid-cols-2">
-          <div className="space-y-4 rounded-2xl border bg-card p-5 shadow-sm">
-            <h2 className="font-semibold">1. Xulo Dadka</h2>
-            <div>
-              <Label>Kooxda la diri doono</Label>
-              <Select
-                className="mt-1.5"
-                value={audience}
-                onChange={(e) => setAudience(e.target.value as SmsAudience)}
-              >
-                {AUDIENCES.map((a) => (
-                  <option key={a.value} value={a.value}>
-                    {a.label}
-                  </option>
-                ))}
-              </Select>
-              <p className="mt-1 text-xs text-muted-foreground">
-                {AUDIENCES.find((a) => a.value === audience)?.hint}
-              </p>
-            </div>
-            {(audience === "CLASS" || audience === "SECTION" || audience === "OUTSTANDING") && (
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label>Fasal</Label>
-                  <Select
-                    className="mt-1.5"
-                    value={className}
-                    onChange={(e) => {
-                      setClassName(e.target.value);
-                      setSection("");
-                    }}
-                  >
-                    <option value="">Dhammaan…</option>
-                    {classes.map((c) => (
-                      <option key={c} value={c}>
-                        {c}
-                      </option>
-                    ))}
-                  </Select>
-                </div>
-                {(audience === "SECTION" || audience === "OUTSTANDING") && (
+          <div className="space-y-5 rounded-2xl border bg-card p-5 shadow-sm">
+            {/* Step 1 — audience */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+                  1
+                </span>
+                <h2 className="font-semibold">Choose audience</h2>
+              </div>
+              <div>
+                <Label>Send to</Label>
+                <Select
+                  className="mt-1.5"
+                  value={audience}
+                  onChange={(e) => setAudience(e.target.value as SmsAudience)}
+                >
+                  {AUDIENCES.map((a) => (
+                    <option key={a.value} value={a.value}>
+                      {a.label}
+                    </option>
+                  ))}
+                </Select>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {AUDIENCES.find((a) => a.value === audience)?.hint}
+                </p>
+              </div>
+              {(audience === "CLASS" || audience === "SECTION" || audience === "OUTSTANDING") && (
+                <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <Label>Xarun</Label>
+                    <Label>Class</Label>
                     <Select
                       className="mt-1.5"
-                      value={section}
-                      onChange={(e) => setSection(e.target.value)}
+                      value={className}
+                      onChange={(e) => {
+                        setClassName(e.target.value);
+                        setSection("");
+                      }}
                     >
-                      <option value="">Dhammaan</option>
-                      {sections.map((s) => (
-                        <option key={s} value={s}>
-                          {s}
+                      <option value="">All…</option>
+                      {classes.map((c) => (
+                        <option key={c} value={c}>
+                          {c}
                         </option>
                       ))}
                     </Select>
                   </div>
-                )}
-              </div>
-            )}
+                  {(audience === "SECTION" || audience === "OUTSTANDING") && (
+                    <div>
+                      <Label>Section</Label>
+                      <Select
+                        className="mt-1.5"
+                        value={section}
+                        onChange={(e) => setSection(e.target.value)}
+                      >
+                        <option value="">All</option>
+                        {sections.map((s) => (
+                          <option key={s} value={s}>
+                            {s}
+                          </option>
+                        ))}
+                      </Select>
+                    </div>
+                  )}
+                </div>
+              )}
 
-            <div className="pt-2">
-              <div className="mb-2 flex items-center justify-between">
-                <Label>2. Eeg &amp; Reeb Cid (haddii loo baahdo)</Label>
-                <Button className="h-8 px-3 text-xs" variant="outline" onClick={() => void loadPreview()}>
-                  <RefreshCw className="mr-1.5 h-3.5 w-3.5" /> Cusboonaysii
-                </Button>
-              </div>
-              <RecipientPreview
-                recipients={recipients}
-                selected={selected}
-                onToggle={toggleRecipient}
-                onToggleAll={toggleAllRecipients}
-                loading={previewLoading}
-              />
-            </div>
-
-            <h2 className="pt-2 font-semibold">3. Qor Fariinta</h2>
-            <div>
-              <Label>Nooca</Label>
-              <Select
-                className="mt-1.5"
-                value={category}
-                onChange={(e) => setCategory(e.target.value as SmsCategory)}
-              >
-                {CATEGORIES.map((c) => (
-                  <option key={c.value} value={c.value}>
-                    {c.label}
-                  </option>
-                ))}
-              </Select>
-            </div>
-            <div>
-              <Label>Template (ikhtiyaari)</Label>
-              <Select
-                className="mt-1.5"
-                value={templateId}
-                onChange={(e) => setTemplateId(e.target.value)}
-              >
-                <option value="">Midna — qor fariin gaar ah</option>
-                {templates.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.name}
-                  </option>
-                ))}
-              </Select>
-            </div>
-            <div>
-              <Label>Fariinta</Label>
-              <Textarea
-                className="mt-1.5 min-h-[120px]"
-                value={body}
-                onChange={(e) => setBody(e.target.value)}
-                placeholder="Isticmaal {{Magaca Waalidka}}, {{Magaca Ardayga}}, {{Magaca Dugsiga}}, {{Lacagta Hadhaysa}}…"
-              />
-              <p className="mt-1 text-xs text-muted-foreground">
-                Variables: {"{{Magaca Waalidka}}"}, {"{{Magaca Ardayga}}"}, {"{{Fasalka}}"},{" "}
-                {"{{Lacagta Hadhaysa}}"}, {"{{Magaca Dugsiga}}"}, {"{{Sanad Dugsiyeedka}}"}
-              </p>
-            </div>
-            <div>
-              <Label>Jadwal (ikhtiyaari)</Label>
-              <Input
-                type="datetime-local"
-                className="mt-1.5"
-                value={scheduledAt}
-                onChange={(e) => setScheduledAt(e.target.value)}
-              />
-            </div>
-            <div className="flex flex-wrap gap-2 pt-1">
-              <Button
-                onClick={() => void handleSend()}
-                disabled={sending || !body.trim() || !canSend || selected.size === 0}
-              >
-                <Send className="mr-2 h-4 w-4" />
-                {sending ? "Dirayaa…" : `Dir SMS (${selected.size})`}
-              </Button>
-              {audience === "OUTSTANDING" && (
+              {/* Recipient summary + View button (opens the picker dialog) */}
+              <div className="flex items-center justify-between rounded-xl border bg-secondary/40 px-4 py-3">
+                <div className="flex items-center gap-2.5">
+                  <Users className="h-5 w-5 text-muted-foreground" />
+                  <div className="text-sm">
+                    <p className="font-medium">
+                      {previewLoading
+                        ? "Loading recipients…"
+                        : `${selected.size} recipient${selected.size === 1 ? "" : "s"} selected`}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {recipients.length} matched
+                      {excludedCount > 0 ? ` · ${excludedCount} excluded` : ""}
+                    </p>
+                  </div>
+                </div>
                 <Button
                   variant="outline"
-                  onClick={() => void handleFeeReminders()}
-                  disabled={sending}
+                  className="h-8 px-3 text-xs"
+                  onClick={() => setPickerOpen(true)}
+                  disabled={recipients.length === 0 && !previewLoading}
                 >
-                  Dir Xasuusin Lacag oo Toos ah
+                  View & choose
                 </Button>
-              )}
+              </div>
+            </div>
+
+            {/* Step 2 — compose */}
+            <div className="space-y-3 border-t pt-4">
+              <div className="flex items-center gap-2">
+                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+                  2
+                </span>
+                <h2 className="font-semibold">Write your message</h2>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label>Category</Label>
+                  <Select
+                    className="mt-1.5"
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value as SmsCategory)}
+                  >
+                    {CATEGORIES.map((c) => (
+                      <option key={c.value} value={c.value}>
+                        {c.label}
+                      </option>
+                    ))}
+                  </Select>
+                </div>
+                <div>
+                  <Label>Template</Label>
+                  <Select
+                    className="mt-1.5"
+                    value={templateId}
+                    onChange={(e) => setTemplateId(e.target.value)}
+                  >
+                    <option value="">None — write custom</option>
+                    {templates.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.name}
+                      </option>
+                    ))}
+                  </Select>
+                </div>
+              </div>
+              <div>
+                <Label>Message</Label>
+                <Textarea
+                  className="mt-1.5 min-h-[120px]"
+                  value={body}
+                  onChange={(e) => setBody(e.target.value)}
+                  placeholder="Use {{Parent Name}}, {{Student Name}}, {{School Name}}, {{Outstanding Balance}}…"
+                />
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Variables: {"{{Parent Name}}"}, {"{{Student Name}}"}, {"{{Class}}"},{" "}
+                  {"{{Outstanding Balance}}"}, {"{{School Name}}"}, {"{{Academic Year}}"}
+                </p>
+              </div>
+              <div>
+                <Label>Schedule (optional)</Label>
+                <Input
+                  type="datetime-local"
+                  className="mt-1.5"
+                  value={scheduledAt}
+                  onChange={(e) => setScheduledAt(e.target.value)}
+                />
+              </div>
+              <div className="flex flex-wrap gap-2 pt-1">
+                <Button
+                  onClick={() => void handleSend()}
+                  disabled={sending || !body.trim() || !canSend || selected.size === 0}
+                >
+                  <Send className="mr-2 h-4 w-4" />
+                  {sending ? "Sending…" : `Send SMS (${selected.size})`}
+                </Button>
+                {audience === "OUTSTANDING" && (
+                  <Button
+                    variant="outline"
+                    onClick={() => void handleFeeReminders()}
+                    disabled={sending}
+                  >
+                    Send default fee reminder
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
 
           <div className="rounded-2xl border bg-card p-5 shadow-sm">
-            <h2 className="font-semibold">Packages Firfircoon</h2>
+            <h2 className="font-semibold">Active packages</h2>
             <ul className="mt-3 space-y-2 text-sm">
               {(balance?.purchases ?? [])
                 .filter((p) => p.status === "ACTIVE")
@@ -575,18 +608,18 @@ export default function SchoolSmsPage() {
                   <li key={p.id} className="rounded-lg border px-3 py-2">
                     <p className="font-medium">{p.package.name}</p>
                     <p className="text-muted-foreground">
-                      {p.creditsRemaining} / {p.creditsTotal} credits hadhay
+                      {p.creditsRemaining} / {p.creditsTotal} credits remaining
                     </p>
                   </li>
                 ))}
               {(balance?.purchases ?? []).filter((p) => p.status === "ACTIVE")
                 .length === 0 && (
                 <p className="text-muted-foreground">
-                  Package firfircoon lama helin. Weydii maamulaha nidaamka.
+                  No active SMS package. Ask the platform administrator to assign one.
                 </p>
               )}
             </ul>
-            <h2 className="mt-6 font-semibold">Xaaladda Diridda</h2>
+            <h2 className="mt-6 font-semibold">Delivery stats</h2>
             <ul className="mt-2 space-y-1 text-sm">
               {(balance?.deliveryStats ?? []).map((s) => (
                 <li key={s.status} className="flex justify-between">
@@ -605,20 +638,20 @@ export default function SchoolSmsPage() {
         <div className="grid gap-4 lg:grid-cols-2">
           <div className="space-y-4 rounded-2xl border bg-card p-5 shadow-sm">
             <div>
-              <Label>Lambarada Taleefanka (mid kasta xariiq)</Label>
+              <Label>Phone numbers (one per line)</Label>
               <Textarea
                 className="mt-1.5 min-h-[140px] font-mono text-sm"
                 value={bulkNumbers}
                 onChange={(e) => setBulkNumbers(e.target.value)}
-                placeholder={"25261xxxxxxx, Magaca (ikhtiyaari)\n25263xxxxxxx\n25265xxxxxxx"}
+                placeholder={"25261xxxxxxx, Name (optional)\n25263xxxxxxx\n25265xxxxxxx"}
               />
               <p className="mt-1 text-xs text-muted-foreground">
-                Ku dar lambar kasta xariiq cusub ama u kala saar comma (,). Waxaad ku dari
-                kartaa magaca ka dib comma. {bulkRecipients.length} lambar ayaa la aqoonsaday.
+                Add one number per line, or separate with a comma. You can add a name after
+                a comma. {bulkRecipients.length} number{bulkRecipients.length === 1 ? "" : "s"} detected.
               </p>
             </div>
             <div>
-              <Label>Nooca</Label>
+              <Label>Category</Label>
               <Select
                 className="mt-1.5"
                 value={bulkCategory}
@@ -632,16 +665,16 @@ export default function SchoolSmsPage() {
               </Select>
             </div>
             <div>
-              <Label>Fariinta (hal fariin ayaa loo diri doonaa dhammaan)</Label>
+              <Label>Message (one message sent to everyone)</Label>
               <Textarea
                 className="mt-1.5 min-h-[120px]"
                 value={bulkBody}
                 onChange={(e) => setBulkBody(e.target.value)}
-                placeholder="Qor fariinta halkan…"
+                placeholder="Write your message here…"
               />
             </div>
             <div>
-              <Label>Jadwal (ikhtiyaari)</Label>
+              <Label>Schedule (optional)</Label>
               <Input
                 type="datetime-local"
                 className="mt-1.5"
@@ -654,16 +687,16 @@ export default function SchoolSmsPage() {
               disabled={sending || !bulkBody.trim() || bulkRecipients.length === 0 || !canSend}
             >
               <Send className="mr-2 h-4 w-4" />
-              {sending ? "Dirayaa…" : `Dir SMS (${bulkRecipients.length} qof)`}
+              {sending ? "Sending…" : `Send SMS (${bulkRecipients.length})`}
             </Button>
           </div>
 
           <div className="rounded-2xl border bg-card p-5 shadow-sm">
-            <h2 className="font-semibold">Sida loo isticmaalo</h2>
+            <h2 className="font-semibold">How this works</h2>
             <p className="mt-2 text-sm text-muted-foreground">
-              Qeybtan waxaad ku diri kartaa fariin gaar ah lambarro badan oo aadan ka helin
-              liiska ardayda ama waalidiinta — sida broadcast-ka WhatsApp. Geli lambarada,
-              qor hal fariin, dabadeedna dhammaan waxay heli doonaan isla fariinta hal mar.
+              Use this to send one message to many phone numbers that aren't in your student
+              or parent lists — like a WhatsApp broadcast. Paste the numbers, write one
+              message, and everyone gets the same message at once.
             </p>
             {bulkRecipients.length > 0 && (
               <div className="mt-4 max-h-[280px] overflow-auto rounded-lg border">
@@ -692,11 +725,11 @@ export default function SchoolSmsPage() {
           <table className="w-full text-sm">
             <thead className="bg-secondary text-left text-xs uppercase text-muted-foreground">
               <tr>
-                <th className="px-4 py-3">Qofka</th>
-                <th className="px-4 py-3">Nooca</th>
-                <th className="px-4 py-3">Xaaladda</th>
+                <th className="px-4 py-3">Recipient</th>
+                <th className="px-4 py-3">Category</th>
+                <th className="px-4 py-3">Status</th>
                 <th className="px-4 py-3">Credits</th>
-                <th className="px-4 py-3">Waqtiga</th>
+                <th className="px-4 py-3">When</th>
               </tr>
             </thead>
             <tbody>
@@ -739,7 +772,7 @@ export default function SchoolSmsPage() {
               {messages.length === 0 && (
                 <tr>
                   <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">
-                    Weli wax SMS ah lama dirin.
+                    No SMS logs yet.
                   </td>
                 </tr>
               )}
@@ -751,7 +784,7 @@ export default function SchoolSmsPage() {
       {tab === "settings" && (
         <div className="max-w-md space-y-4 rounded-2xl border bg-card p-5 shadow-sm">
           <div>
-            <Label>Magaca Diraha (waxay ku muuqan doontaa qaadaha)</Label>
+            <Label>Sender name (shown to recipients)</Label>
             <Input
               className="mt-1.5"
               value={senderName}
@@ -759,7 +792,7 @@ export default function SchoolSmsPage() {
               maxLength={20}
             />
             <p className="mt-1 text-xs text-muted-foreground">
-              Ugu badnaan 20 xaraf. Wuxuu iska caadi ahaan noqdaa magaca dugsiga.
+              Max 20 characters. Defaults to the school name.
             </p>
           </div>
           <label className="flex items-center gap-2 text-sm">
@@ -768,11 +801,21 @@ export default function SchoolSmsPage() {
               checked={smsEnabled}
               onChange={(e) => setSmsEnabled(e.target.checked)}
             />
-            Dugsigan ka fur SMS-ka
+            Enable SMS for this school
           </label>
-          <Button onClick={() => void saveSettings()}>Kaydi Dejinta</Button>
+          <Button onClick={() => void saveSettings()}>Save settings</Button>
         </div>
       )}
+
+      <RecipientPickerDialog
+        open={pickerOpen}
+        onClose={() => setPickerOpen(false)}
+        recipients={recipients}
+        selected={selected}
+        onToggle={toggleRecipient}
+        onToggleAll={toggleAllRecipients}
+        loading={previewLoading}
+      />
     </div>
   );
 }

@@ -46,35 +46,35 @@ export function TemplateManager({ templates, onChanged }: Props) {
 
   async function save() {
     if (!form.name.trim() || !form.body.trim()) {
-      toast("Magaca iyo fariinta waa loo baahan yahay", "error");
+      toast("Name and message are required", "error");
       return;
     }
     setSaving(true);
     try {
       if (editingId === "new") {
         await apiCreateSmsTemplate(form);
-        toast("Template waa la abuuray", "success");
+        toast("Template created", "success");
       } else if (editingId) {
         await apiUpdateSmsTemplate(editingId, form);
-        toast("Template waa la cusboonaysiiyay", "success");
+        toast("Template updated", "success");
       }
       cancel();
       await onChanged();
     } catch (e) {
-      toast(e instanceof Error ? e.message : "Keydinta way fashilantay", "error");
+      toast(e instanceof Error ? e.message : "Save failed", "error");
     } finally {
       setSaving(false);
     }
   }
 
   async function remove(id: string) {
-    if (!confirm("Ma hubtaa inaad tirtirto template-kan?")) return;
+    if (!confirm("Delete this template?")) return;
     try {
       await apiDeleteSmsTemplate(id);
-      toast("Template waa la tirtiray", "success");
+      toast("Template deleted", "success");
       await onChanged();
     } catch (e) {
-      toast(e instanceof Error ? e.message : "Tirtiridda way fashilantay", "error");
+      toast(e instanceof Error ? e.message : "Delete failed", "error");
     }
   }
 
@@ -84,7 +84,7 @@ export function TemplateManager({ templates, onChanged }: Props) {
         <h2 className="font-semibold">Templates</h2>
         {editingId === null && (
           <Button className="h-8 px-3 text-xs" onClick={startCreate}>
-            <Plus className="mr-1.5 h-4 w-4" /> Template cusub
+            <Plus className="mr-1.5 h-4 w-4" /> New template
           </Button>
         )}
       </div>
@@ -93,7 +93,7 @@ export function TemplateManager({ templates, onChanged }: Props) {
         <div className="space-y-3 rounded-xl border bg-secondary/30 p-4">
           <div className="grid gap-3 sm:grid-cols-2">
             <div>
-              <Label>Magaca template-ka</Label>
+              <Label>Template name</Label>
               <Input
                 className="mt-1.5"
                 value={form.name}
@@ -101,7 +101,7 @@ export function TemplateManager({ templates, onChanged }: Props) {
               />
             </div>
             <div>
-              <Label>Nooca</Label>
+              <Label>Category</Label>
               <Select
                 className="mt-1.5"
                 value={form.category}
@@ -118,24 +118,25 @@ export function TemplateManager({ templates, onChanged }: Props) {
             </div>
           </div>
           <div>
-            <Label>Qoraalka fariinta</Label>
+            <Label>Message body</Label>
             <Textarea
               className="mt-1.5 min-h-[100px]"
               value={form.body}
               onChange={(e) => setForm((f) => ({ ...f, body: e.target.value }))}
-              placeholder="{{Magaca Waalidka}}, {{Magaca Ardayga}}, {{Magaca Dugsiga}}…"
+              placeholder="Write in English or Somali, e.g. {{Parent Name}} / {{Magaca Waalidka}}…"
             />
             <p className="mt-1 text-xs text-muted-foreground">
-              Isticmaal: {"{{Magaca Waalidka}}"}, {"{{Magaca Ardayga}}"},{" "}
-              {"{{Fasalka}}"}, {"{{Lacagta Hadhaysa}}"}, {"{{Magaca Dugsiga}}"}
+              Variables (English or Somali): {"{{Parent Name}}"} / {"{{Magaca Waalidka}}"},{" "}
+              {"{{Student Name}}"} / {"{{Magaca Ardayga}}"}, {"{{Class}}"} / {"{{Fasalka}}"},{" "}
+              {"{{Outstanding Balance}}"} / {"{{Lacagta Hadhaysa}}"}, {"{{School Name}}"} / {"{{Magaca Dugsiga}}"}
             </p>
           </div>
           <div className="flex gap-2">
             <Button className="h-8 px-3 text-xs" onClick={() => void save()} disabled={saving}>
-              {saving ? "Kaydinaya…" : "Kaydi"}
+              {saving ? "Saving…" : "Save"}
             </Button>
             <Button className="h-8 px-3 text-xs" variant="outline" onClick={cancel}>
-              <X className="mr-1.5 h-4 w-4" /> Jooji
+              <X className="mr-1.5 h-4 w-4" /> Cancel
             </Button>
           </div>
         </div>
@@ -176,7 +177,7 @@ export function TemplateManager({ templates, onChanged }: Props) {
           ))}
           {templates.length === 0 && (
             <li className="px-5 py-8 text-center text-muted-foreground">
-              Wali template ma jiro.
+              No templates yet.
             </li>
           )}
         </ul>
