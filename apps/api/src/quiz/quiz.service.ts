@@ -181,7 +181,14 @@ export class QuizService {
     dto: CreateQuizInput,
     opts?: { userId?: string; role?: string },
   ) {
-    if (!dto.sectionId) {
+    const cls = await this.prisma.forTenant(schoolId, (tx) =>
+      tx.class.findFirst({
+        where: { id: dto.classId },
+        select: { hasSections: true },
+      }),
+    );
+    if (!cls) throw new NotFoundException("Class not found");
+    if (cls.hasSections && !dto.sectionId) {
       throw new BadRequestException(
         "Section is required — students from different sections must not be mixed",
       );
@@ -518,10 +525,13 @@ export class QuizService {
     return this.prisma.forTenant(schoolId, async (tx) => {
       const quiz = await tx.quiz.findFirst({
         where: { id: quizId },
-        include: { _count: { select: { questions: true } } },
+        include: {
+          _count: { select: { questions: true } },
+          class: { select: { hasSections: true } },
+        },
       });
       if (!quiz) throw new NotFoundException("Quiz not found");
-      if (!quiz.sectionId) {
+      if (quiz.class.hasSections && !quiz.sectionId) {
         throw new BadRequestException("Quiz must target a specific section before publishing");
       }
       if (quiz._count.questions < 1) {
