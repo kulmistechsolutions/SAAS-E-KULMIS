@@ -287,7 +287,7 @@ async function fetchStudentRecordsForDate(
   const st = getStudentsState();
   const smap = new Map(st.students.map((s) => [s.id, s]));
 
-  let pairs: { className: string; section: string; classId: string; sectionId: string }[] = [];
+  let pairs: { className: string; section: string; classId: string; sectionId: string | null }[] = [];
 
   if (className) {
     const { classId, error } = resolveClassId(className, academicYear);
@@ -297,24 +297,30 @@ async function fetchStudentRecordsForDate(
       if (secErr || !sectionId) return [];
       pairs = [{ className, section, classId, sectionId }];
     } else {
-      pairs = sectionsForClass(classId).map((sec) => ({
-        className,
-        section: sec.name,
-        classId,
-        sectionId: sec.id,
-      }));
+      const sections = sectionsForClass(classId);
+      pairs = sections.length
+        ? sections.map((sec) => ({
+            className,
+            section: sec.name,
+            classId,
+            sectionId: sec.id,
+          }))
+        : [{ className, section: "", classId, sectionId: null }];
     }
   } else {
     pairs = a.classes
       .filter((c) => c.academicYear === academicYear)
-      .flatMap((cls) =>
-        sectionsForClass(cls.id).map((sec) => ({
-          className: cls.name,
-          section: sec.name,
-          classId: cls.id,
-          sectionId: sec.id,
-        })),
-      );
+      .flatMap((cls): { className: string; section: string; classId: string; sectionId: string | null }[] => {
+        const sections = sectionsForClass(cls.id);
+        return sections.length
+          ? sections.map((sec) => ({
+              className: cls.name,
+              section: sec.name,
+              classId: cls.id,
+              sectionId: sec.id as string | null,
+            }))
+          : [{ className: cls.name, section: "", classId: cls.id, sectionId: null }];
+      });
   }
 
   const records: StudentAttendanceRecord[] = [];
