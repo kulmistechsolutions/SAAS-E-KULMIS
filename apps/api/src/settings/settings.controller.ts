@@ -2,11 +2,19 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Delete,
   Get,
   Patch,
+  Post,
 } from "@nestjs/common";
-import { updateSettingsSchema, UserRole, type TenantContext } from "@ekulmis/shared";
+import {
+  updateSettingsSchema,
+  uploadSchoolLogoSchema,
+  UserRole,
+  type TenantContext,
+} from "@ekulmis/shared";
 import { SettingsService } from "./settings.service";
+import { assertSchoolLogoMime } from "./school-logo.util";
 import { Public } from "../auth/public.decorator";
 import { Roles } from "../auth/roles.decorator";
 import { STAFF_ROLES } from "../auth/role-groups";
@@ -41,5 +49,24 @@ export class SettingsController {
       throw new BadRequestException(parsed.error.flatten());
     }
     return this.settings.update(me.schoolId, parsed.data);
+  }
+
+  /** Upload/replace the school logo — administrators only. */
+  @Roles(UserRole.ADMINISTRATOR)
+  @Post("logo")
+  async uploadLogo(@CurrentUser() me: AuthUser, @Body() body: unknown) {
+    const parsed = uploadSchoolLogoSchema.safeParse(body);
+    if (!parsed.success) {
+      throw new BadRequestException(parsed.error.flatten());
+    }
+    const mime = assertSchoolLogoMime(parsed.data.mimeType);
+    const buffer = Buffer.from(parsed.data.file, "base64");
+    return this.settings.uploadLogo(me.schoolId, buffer, mime);
+  }
+
+  @Roles(UserRole.ADMINISTRATOR)
+  @Delete("logo")
+  removeLogo(@CurrentUser() me: AuthUser) {
+    return this.settings.removeLogo(me.schoolId);
   }
 }

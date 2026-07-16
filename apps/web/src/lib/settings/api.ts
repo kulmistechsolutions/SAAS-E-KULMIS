@@ -16,6 +16,7 @@ export interface ApiSchool {
   website: string | null;
   principalName: string | null;
   logoKey: string | null;
+  logoUrl: string | null;
   stampKey: string | null;
   currency: string;
   timezone: string;
@@ -45,6 +46,7 @@ export interface ApiBranding {
   name: string;
   motto: string | null;
   logoKey: string | null;
+  logoUrl: string | null;
   currency: string;
   language: string;
   timezone: string;
@@ -66,6 +68,7 @@ export function mapApiSchoolToSettings(
       email: row.email ?? base.school.email,
       website: row.website ?? base.school.website,
       principalName: row.principalName ?? base.school.principalName,
+      logoDataUrl: row.logoUrl,
       currency: row.currency,
       timezone: row.timezone,
       language: row.language,
@@ -146,6 +149,22 @@ export async function apiGetSettings(): Promise<SettingsState> {
 
 export async function apiGetBranding(): Promise<ApiBranding> {
   return api<ApiBranding>("/settings/branding", { auth: false });
+}
+
+export async function apiUploadSchoolLogo(
+  file: string,
+  mimeType: string,
+): Promise<SettingsState> {
+  const row = await api<ApiSchool>("/settings/logo", {
+    method: "POST",
+    body: { file, mimeType },
+  });
+  return mapApiSchoolToSettings(row);
+}
+
+export async function apiRemoveSchoolLogo(): Promise<SettingsState> {
+  const row = await api<ApiSchool>("/settings/logo", { method: "DELETE" });
+  return mapApiSchoolToSettings(row);
 }
 
 export async function apiPatchSettings(

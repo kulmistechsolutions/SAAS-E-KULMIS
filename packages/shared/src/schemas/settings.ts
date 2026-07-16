@@ -36,3 +36,10 @@ export const updateSettingsSchema = z
   });
 
 export type UpdateSettingsInput = z.infer<typeof updateSettingsSchema>;
+
+export const uploadSchoolLogoSchema = z.object({
+  file: z.string().min(1, "Logo data is required"),
+  mimeType: z.enum(["image/jpeg", "image/png", "image/webp", "image/svg+xml"]),
+});
+
+export type UploadSchoolLogoInput = z.infer<typeof uploadSchoolLogoSchema>;

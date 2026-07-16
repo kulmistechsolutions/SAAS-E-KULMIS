@@ -8,6 +8,8 @@ import {
   apiGetBranding,
   apiGetSettings,
   apiPatchSettings,
+  apiRemoveSchoolLogo,
+  apiUploadSchoolLogo,
   mapSettingsSectionToPatch,
 } from "./api";
 import { buildSettingsSeed } from "./seed";
@@ -55,7 +57,7 @@ export async function refreshSettings(): Promise<void> {
           ...current.school,
           name: b.name,
           motto: b.motto ?? current.school.motto,
-          logoDataUrl: b.logoKey,
+          logoDataUrl: b.logoUrl,
         },
       });
     } catch {
@@ -209,6 +211,32 @@ export async function updateSettingsSection<K extends SettingsSectionKey>(
   return { ok: true };
 }
 
+/** Upload/replace the school logo immediately (not gated on Save Changes). */
+export async function uploadSchoolLogo(
+  file: string,
+  mimeType: string,
+): Promise<{ ok: boolean; logoUrl?: string | null; error?: string }> {
+  try {
+    const remote = await apiUploadSchoolLogo(file, mimeType);
+    setState({ ...ensure(), school: remote.school });
+    logSettingsAudit("LOGO_CHANGED");
+    return { ok: true, logoUrl: remote.school.logoDataUrl };
+  } catch (e) {
+    return { ok: false, error: apiErr(e, "Failed to upload logo.") };
+  }
+}
+
+export async function removeSchoolLogo(): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const remote = await apiRemoveSchoolLogo();
+    setState({ ...ensure(), school: remote.school });
+    logSettingsAudit("LOGO_CHANGED");
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: apiErr(e, "Failed to remove logo.") };
+  }
+}
+
 export async function updateGrades(
   grades: SettingsState["grades"],
 ): Promise<{ ok: boolean; error?: string }> {
@@ -340,7 +368,7 @@ export async function loadPublicBranding(): Promise<ReturnType<typeof schoolBran
       loginTitle: b.name,
       footerText: `© ${new Date().getFullYear()} ${b.name}. All rights reserved.`,
       primaryColor: "#3b82f6",
-      logoUrl: b.logoKey,
+      logoUrl: b.logoUrl,
       loginBackgroundUrl: null,
     };
   } catch {

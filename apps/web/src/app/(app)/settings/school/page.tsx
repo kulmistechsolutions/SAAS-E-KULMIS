@@ -1,23 +1,52 @@
 "use client";
 
+import { useState } from "react";
 import { SettingsInput, SettingsSelect } from "@/components/settings/settings-field";
 import { SettingsSaveBar } from "@/components/settings/settings-save-bar";
 import { useSettingsSection } from "@/components/settings/use-settings-section";
 import { readImageAsDataUrl } from "@/lib/settings/format";
+import { removeSchoolLogo, uploadSchoolLogo } from "@/lib/settings/store";
 import { toast } from "@/lib/toast";
 import { Button } from "@/components/ui/button";
 
 export default function SchoolSettingsPage() {
   const { draft, update, dirty, cancel, resetToDefault, save, saving } =
     useSettingsSection("school");
+  const [logoBusy, setLogoBusy] = useState(false);
 
   async function onLogoChange(file: File | null) {
     if (!file) return;
+    setLogoBusy(true);
     try {
       const dataUrl = await readImageAsDataUrl(file);
-      update({ logoDataUrl: dataUrl });
+      const comma = dataUrl.indexOf(",");
+      const base64 = comma >= 0 ? dataUrl.slice(comma + 1) : dataUrl;
+      const res = await uploadSchoolLogo(base64, file.type);
+      if (!res.ok) {
+        toast(res.error ?? "Upload failed", "error");
+        return;
+      }
+      update({ logoDataUrl: res.logoUrl ?? null });
+      toast("School logo updated.", "success");
     } catch (e) {
       toast(e instanceof Error ? e.message : "Upload failed", "error");
+    } finally {
+      setLogoBusy(false);
+    }
+  }
+
+  async function onRemoveLogo() {
+    setLogoBusy(true);
+    try {
+      const res = await removeSchoolLogo();
+      if (!res.ok) {
+        toast(res.error ?? "Failed to remove logo", "error");
+        return;
+      }
+      update({ logoDataUrl: null });
+      toast("School logo removed.", "success");
+    } finally {
+      setLogoBusy(false);
     }
   }
 
@@ -72,11 +101,12 @@ export default function SchoolSettingsPage() {
             <input
               type="file"
               accept="image/png,image/jpeg,image/webp,image/svg+xml"
-              onChange={(e) => onLogoChange(e.target.files?.[0] ?? null)}
+              disabled={logoBusy}
+              onChange={(e) => void onLogoChange(e.target.files?.[0] ?? null)}
             />
             {draft.logoDataUrl && (
-              <Button variant="outline" className="h-8" onClick={() => update({ logoDataUrl: null })}>
-                Remove logo
+              <Button variant="outline" className="h-8" disabled={logoBusy} onClick={() => void onRemoveLogo()}>
+                {logoBusy ? "Working…" : "Remove logo"}
               </Button>
             )}
           </div>
