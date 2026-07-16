@@ -75,7 +75,15 @@ const TEACHER_PORTAL_SESSION_KEY = "ekulmis_teacher_portal_session_v1";
 function shouldSkipBulkStudentDirectory(): boolean {
   if (typeof window === "undefined") return false;
   if (isTeacherPortalRoute(window.location.pathname)) return true;
-  if (getCachedAuthUser()?.role === "TEACHER") return true;
+  const role = getCachedAuthUser()?.role;
+  if (role === "TEACHER") return true;
+  if (role) {
+    // We know the logged-in role and it isn't TEACHER — any leftover
+    // teacher-portal session flag from an earlier login in this browser is
+    // stale, so clear it instead of letting it block this account forever.
+    localStorage.removeItem(TEACHER_PORTAL_SESSION_KEY);
+    return false;
+  }
   if (localStorage.getItem(TEACHER_PORTAL_SESSION_KEY)) return true;
   return false;
 }
