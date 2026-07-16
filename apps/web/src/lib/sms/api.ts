@@ -103,6 +103,13 @@ export async function apiCreateSmsTemplate(body: {
   return api<SmsTemplate>("/sms/templates", { method: "POST", body });
 }
 
+export async function apiUpdateSmsTemplate(
+  id: string,
+  body: Partial<{ name: string; category: SmsCategory; body: string; isActive: boolean }>,
+) {
+  return api<SmsTemplate>(`/sms/templates/${id}`, { method: "PATCH", body });
+}
+
 export async function apiDeleteSmsTemplate(id: string) {
   return api(`/sms/templates/${id}`, { method: "DELETE" });
 }
@@ -143,18 +150,42 @@ export async function apiSendSms(body: {
   }>("/sms/send", { method: "POST", body });
 }
 
+export type SmsAudience =
+  | "ALL_PARENTS"
+  | "CLASS"
+  | "SECTION"
+  | "TEACHERS"
+  | "OUTSTANDING"
+  | "CUSTOM";
+
+export interface SmsAudienceRecipient {
+  recordId: string;
+  refId: string | null;
+  phone: string;
+  name: string | null;
+  type: string | null;
+  variables: Record<string, string>;
+}
+
+export async function apiPreviewAudience(body: {
+  audience: SmsAudience;
+  classId?: string | null;
+  sectionId?: string | null;
+}) {
+  return api<SmsAudienceRecipient[]>("/sms/preview-audience", {
+    method: "POST",
+    body,
+  });
+}
+
 export async function apiSendAudienceSms(body: {
   category?: SmsCategory;
   body: string;
-  audience:
-    | "ALL_PARENTS"
-    | "CLASS"
-    | "SECTION"
-    | "TEACHERS"
-    | "OUTSTANDING"
-    | "CUSTOM";
+  audience: SmsAudience;
   classId?: string | null;
   sectionId?: string | null;
+  studentIds?: string[];
+  teacherIds?: string[];
   campaignName?: string;
   scheduledAt?: string | null;
 }) {

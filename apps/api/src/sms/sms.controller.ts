@@ -12,6 +12,7 @@ import {
 import {
   createSmsCampaignSchema,
   createSmsTemplateSchema,
+  previewAudienceSchema,
   sendAudienceSmsSchema,
   sendSmsSchema,
   updateSchoolSmsSettingsSchema,
@@ -117,6 +118,13 @@ export class SmsController {
     const parsed = sendSmsSchema.safeParse(body);
     if (!parsed.success) throw new BadRequestException(parsed.error.flatten());
     return this.sms.sendDirect(me.schoolId, me.userId, parsed.data);
+  }
+
+  @Post("preview-audience")
+  previewAudience(@CurrentUser() me: AuthUser, @Body() body: unknown) {
+    const parsed = previewAudienceSchema.safeParse(body);
+    if (!parsed.success) throw new BadRequestException(parsed.error.flatten());
+    return this.sms.previewAudience(me.schoolId, parsed.data);
   }
 
   @Post("send-audience")

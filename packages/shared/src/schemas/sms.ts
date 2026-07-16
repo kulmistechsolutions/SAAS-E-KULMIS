@@ -101,6 +101,19 @@ export const sendAudienceSmsSchema = z.object({
   campaignName: z.string().max(120).optional(),
 });
 
+export const previewAudienceSchema = z.object({
+  audience: z.enum([
+    "ALL_PARENTS",
+    "CLASS",
+    "SECTION",
+    "TEACHERS",
+    "OUTSTANDING",
+    "CUSTOM",
+  ]),
+  classId: z.string().optional().nullable(),
+  sectionId: z.string().optional().nullable(),
+});
+
 export const createSmsTemplateSchema = z.object({
   name: z.string().min(1).max(120),
   category: smsCategorySchema.default(SmsCategory.CUSTOM),
@@ -179,6 +192,7 @@ export type UpdateSmsPackageInput = z.infer<typeof updateSmsPackageSchema>;
 export type AssignSmsPackageInput = z.infer<typeof assignSmsPackageSchema>;
 export type SendSmsInput = z.infer<typeof sendSmsSchema>;
 export type SendAudienceSmsInput = z.infer<typeof sendAudienceSmsSchema>;
+export type PreviewAudienceInput = z.infer<typeof previewAudienceSchema>;
 export type CreateSmsTemplateInput = z.infer<typeof createSmsTemplateSchema>;
 export type CreateSmsCampaignInput = z.infer<typeof createSmsCampaignSchema>;
 export type UpdateWaafiConfigInput = z.infer<typeof updateWaafiConfigSchema>;

@@ -10,6 +10,7 @@ import type {
   CreateSmsCampaignInput,
   CreateSmsPackageInput,
   CreateSmsTemplateInput,
+  PreviewAudienceInput,
   SendAudienceSmsInput,
   SendSmsInput,
   TestSmsConnectionInput,
@@ -33,6 +34,8 @@ type Recipient = {
   name?: string | null;
   type?: string | null;
   refId?: string | null;
+  /** The selectable entity id (studentId for parent recipients, teacherId for teachers) — used for preview/exclude checkboxes. */
+  recordId?: string | null;
   variables?: Record<string, string>;
 };
 
@@ -764,6 +767,23 @@ export class SmsService {
     });
   }
 
+  /** Resolve who would receive a message for the given audience, without sending. */
+  async previewAudience(schoolId: string, input: PreviewAudienceInput) {
+    const recipients = await this.resolveAudience(schoolId, {
+      ...input,
+      category: "CUSTOM",
+      body: "",
+    } as SendAudienceSmsInput);
+    return recipients.map((r) => ({
+      recordId: r.recordId ?? r.refId ?? r.phone,
+      refId: r.refId ?? null,
+      phone: r.phone,
+      name: r.name ?? null,
+      type: r.type ?? null,
+      variables: r.variables ?? {},
+    }));
+  }
+
   async sendToAudience(
     schoolId: string,
     userId: string | undefined,
@@ -933,6 +953,7 @@ export class SmsService {
             name: t.fullName,
             type: "TEACHER",
             refId: t.id,
+            recordId: t.id,
             variables: {
               schoolName,
               academicYear: year?.name ?? "",
@@ -963,7 +984,7 @@ export class SmsService {
           },
         });
 
-        const byParentStudent = new Map<string, Recipient>();
+        const byParentStudent = new Map<string, { studentId: string; recipient: Recipient }>();
         for (const c of charges) {
           const st = c.student;
           const parent = st.parent;
@@ -972,26 +993,41 @@ export class SmsService {
           const outstanding = Number(c.amount) - Number(c.paidAmount);
           const prev = byParentStudent.get(key);
           const total = (prev
-            ? Number(prev.variables?.outstandingBalance ?? 0)
+            ? Number(prev.recipient.variables?.outstandingBalance ?? 0)
             : 0) + outstanding;
           byParentStudent.set(key, {
-            phone: parent.phone,
-            name: parent.name,
-            type: "PARENT",
-            refId: parent.id,
-            variables: {
-              parentName: parent.name,
-              studentName: st.fullName,
-              studentCode: st.code,
-              className: st.class?.name ?? "",
-              section: st.section?.name ?? "",
-              schoolName,
-              academicYear: year?.name ?? "",
-              outstandingBalance: `$${total.toFixed(2)}`,
+            studentId: st.id,
+            recipient: {
+              phone: parent.phone,
+              name: parent.name,
+              type: "PARENT",
+              refId: parent.id,
+              recordId: st.id,
+              variables: {
+                parentName: parent.name,
+                studentName: st.fullName,
+                studentCode: st.code,
+                className: st.class?.name ?? "",
+                section: st.section?.name ?? "",
+                schoolName,
+                academicYear: year?.name ?? "",
+                outstandingBalance: `$${total.toFixed(2)}`,
+              },
             },
           });
         }
-        return [...byParentStudent.values()];
+
+        let entries = [...byParentStudent.values()];
+        if (input.studentIds?.length) {
+          const allow = new Set(input.studentIds);
+          entries = entries.filter((e) => allow.has(e.studentId));
+        } else if (input.parentIds?.length) {
+          const allow = new Set(input.parentIds);
+          entries = entries.filter(
+            (e) => e.recipient.refId && allow.has(e.recipient.refId),
+          );
+        }
+        return entries.map((e) => e.recipient);
       }
 
       const students = await tx.student.findMany({
@@ -1028,6 +1064,7 @@ export class SmsService {
           name: parent.name,
           type: "PARENT",
           refId: parent.id,
+          recordId: st.id,
           variables: {
             parentName: parent.name,
             studentName: st.fullName,
