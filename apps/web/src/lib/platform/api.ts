@@ -120,8 +120,18 @@ export async function platformLogout(): Promise<void> {
 }
 
 export async function platformMe(): Promise<PlatformAdmin> {
-  const me = await platformFetch<{ adminId: string; username: string }>("/platform/auth/me");
-  return { adminId: me.adminId, username: me.username };
+  const me = await platformFetch<{
+    adminId: string;
+    username: string;
+    name?: string;
+    role?: "SUPER_ADMIN" | "OPERATOR";
+  }>("/platform/auth/me");
+  return {
+    adminId: me.adminId,
+    username: me.username,
+    name: me.name,
+    role: me.role === "OPERATOR" ? "OPERATOR" : "SUPER_ADMIN",
+  };
 }
 
 export async function fetchPlatformDashboard(): Promise<PlatformDashboard> {
@@ -522,9 +532,116 @@ export interface PlatformSchoolSubscriptionRow {
     startDate: string;
     endDate: string;
     aiGradingUsed: number;
+    assignedByAdminId?: string | null;
+    assignedByUsername?: string | null;
+    daysRemaining?: number;
     plan: PlatformSubscriptionPlan;
   } | null;
 }
+
+export interface PlatformSubscriptionDashboard {
+  totalSchools: number;
+  activeSchools: number;
+  expiredSchools: number;
+  cancelledSchools: number;
+  unassignedSchools: number;
+  expiringSoon: number;
+  totalAiUsage: number;
+  totalAiQuota: number | null;
+  studentUsage: number;
+  studentCap: number | null;
+  subscriptionStatus: {
+    ACTIVE: number;
+    EXPIRED: number;
+    CANCELLED: number;
+    UNASSIGNED: number;
+  };
+}
+
+export interface PlatformSubscriptionHistoryRow {
+  id: string;
+  school: { id: string; name: string; subdomain: string };
+  plan: string;
+  planId: string;
+  assignedBy: string;
+  assignedDate: string;
+  expiredDate: string;
+  status: "ACTIVE" | "EXPIRED" | "CANCELLED";
+  action: string;
+  createdAt: string;
+}
+
+export interface PlatformSubscriptionHistoryPage {
+  total: number;
+  page: number;
+  pageSize: number;
+  pageCount: number;
+  rows: PlatformSubscriptionHistoryRow[];
+}
+
+export interface PlatformSchoolSubscriptionDetail {
+  school: {
+    id: string;
+    name: string;
+    subdomain: string;
+    status: string;
+    createdAt: string;
+  };
+  studentCount: number;
+  subscription: {
+    id: string;
+    status: "ACTIVE" | "EXPIRED" | "CANCELLED";
+    startDate: string;
+    endDate: string;
+    daysRemaining: number;
+    assignedByAdminId: string | null;
+    assignedByUsername: string | null;
+    assignedAt: string;
+    studentLimit: number | null;
+    studentsUsed: number;
+    studentsRemaining: number | null;
+    aiLimit: number | null;
+    aiUsed: number;
+    aiRemaining: number | null;
+    plan: PlatformSubscriptionPlan;
+  } | null;
+}
+
+export interface PlatformSubscriptionAlert {
+  school: { id: string; name: string; subdomain: string };
+  planName: string;
+  endDate: string;
+  daysRemaining: number;
+  status: "ACTIVE" | "EXPIRED" | "CANCELLED";
+}
+
+export const fetchPlatformSubscriptionDashboard = () =>
+  platformFetch<PlatformSubscriptionDashboard>("/platform/subscriptions/dashboard");
+
+export const fetchPlatformSubscriptionAlerts = () =>
+  platformFetch<PlatformSubscriptionAlert[]>("/platform/subscriptions/alerts");
+
+export const fetchPlatformSubscriptionHistory = (params?: {
+  search?: string;
+  status?: string;
+  page?: number;
+  pageSize?: number;
+}) => {
+  const q = new URLSearchParams();
+  if (params?.search) q.set("search", params.search);
+  if (params?.status) q.set("status", params.status);
+  if (params?.page) q.set("page", String(params.page));
+  if (params?.pageSize) q.set("pageSize", String(params.pageSize));
+  const qs = q.toString();
+  return platformFetch<PlatformSubscriptionHistoryPage>(
+    `/platform/subscriptions/history${qs ? `?${qs}` : ""}`,
+  );
+};
+
+export const fetchPlatformSchoolSubscriptionDetail = (schoolId: string) =>
+  platformFetch<PlatformSchoolSubscriptionDetail>(
+    `/platform/subscriptions/schools/${schoolId}`,
+  );
 
 export const fetchPlatformSubscriptionPlans = () =>
   platformFetch<PlatformSubscriptionPlan[]>("/platform/subscriptions/plans");
@@ -535,6 +652,7 @@ export const createPlatformSubscriptionPlan = (body: {
   durationDays: number;
   aiGradingMonthlyQuota: number | null;
   priceUsd?: number | null;
+  isActive?: boolean;
 }) =>
   platformFetch<PlatformSubscriptionPlan>("/platform/subscriptions/plans", {
     method: "POST",

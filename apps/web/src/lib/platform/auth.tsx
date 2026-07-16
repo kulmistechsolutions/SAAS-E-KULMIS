@@ -29,6 +29,7 @@ const PREVIEW_ADMIN: PlatformAdmin = {
   adminId: "preview-superadmin",
   username: "superadmin",
   name: "Super Admin",
+  role: "SUPER_ADMIN",
 };
 
 const SESSION_KEY = "ekulmis_platform_session";
@@ -93,6 +94,7 @@ export function PlatformAuthProvider({ children }: { children: ReactNode }) {
         adminId: res.admin.id,
         username: res.admin.username,
         name: res.admin.name,
+        role: res.admin.role,
       });
       setIsPreviewSession(false);
       if (typeof window !== "undefined") {

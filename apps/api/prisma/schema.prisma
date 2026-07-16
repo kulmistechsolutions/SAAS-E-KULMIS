@@ -988,13 +988,21 @@ enum StudentStatus {
 
 /// Platform-level Super Admin — operates ABOVE all schools (multi-tenant SaaS
 /// operator). Not tied to any school; manages/creates/suspends tenants.
+enum PlatformAdminRole {
+  SUPER_ADMIN
+  OPERATOR
+}
+
 model PlatformAdmin {
-  id           String   @id @default(cuid())
-  username     String   @unique
+  id           String            @id @default(cuid())
+  username     String            @unique
   name         String
   passwordHash String
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  /// SUPER_ADMIN: full platform control including subscription mutations.
+  /// OPERATOR: read-only for billing/subscriptions (and other gated modules).
+  role         PlatformAdminRole @default(SUPER_ADMIN)
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
 
   refreshTokens PlatformRefreshToken[]
 
@@ -1489,18 +1497,60 @@ enum SchoolSubscriptionStatus {
 /// Admin assigns/renews manually (no self-service billing yet). Enforcement
 /// (student cap, AI grading quota) is per-feature, not a whole-tenant lockout.
 model SchoolSubscription {
-  id               String                    @id @default(cuid())
-  schoolId         String                    @unique
-  planId           String
-  status           SchoolSubscriptionStatus  @default(ACTIVE)
-  startDate        DateTime                  @default(now())
-  endDate          DateTime
-  aiGradingUsed    Int                       @default(0)
-  aiGradingResetAt DateTime                  @default(now())
-  createdAt        DateTime                  @default(now())
-  updatedAt        DateTime                  @updatedAt
+  id                   String                   @id @default(cuid())
+  schoolId             String                   @unique
+  planId               String
+  status               SchoolSubscriptionStatus @default(ACTIVE)
+  startDate            DateTime                 @default(now())
+  endDate              DateTime
+  aiGradingUsed        Int                      @default(0)
+  aiGradingResetAt     DateTime                 @default(now())
+  assignedByAdminId    String?
+  assignedByUsername   String?
+  /// Last expiry warning sent: 7 | 3 | 1 (or null if none this cycle).
+  lastExpiryNoticeDays Int?
+  createdAt            DateTime                 @default(now())
+  updatedAt            DateTime                 @updatedAt
 
   plan SubscriptionPlan @relation(fields: [planId], references: [id], onDelete: Restrict)
 
   @@map("school_subscriptions")
+}
+
+/// Immutable history row for every assign / cancel / expire / renew.
+model SubscriptionHistory {
+  id                 String                   @id @default(cuid())
+  schoolId           String
+  planId             String
+  planName           String
+  status             SchoolSubscriptionStatus
+  startDate          DateTime
+  endDate            DateTime
+  assignedByAdminId  String?
+  assignedByUsername String?
+  action             String
+  createdAt          DateTime                 @default(now())
+
+  @@index([schoolId, createdAt])
+  @@index([status])
+  @@index([createdAt])
+  @@map("subscription_history")
+}
+
+/// Platform Super Admin audit trail (no schoolId required).
+model PlatformAuditLog {
+  id        String   @id @default(cuid())
+  adminId   String
+  username  String?
+  schoolId  String?
+  action    String
+  module    String   @default("subscriptions")
+  oldValue  Json?
+  newValue  Json?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([adminId, createdAt])
+  @@index([schoolId, createdAt])
+  @@map("platform_audit_logs")
 }

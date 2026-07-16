@@ -13,6 +13,7 @@ export interface PlanFormValues {
   durationDays: number;
   aiGradingMonthlyQuota: number | null;
   priceUsd: number | null;
+  isActive?: boolean;
 }
 
 interface Props {
@@ -32,6 +33,7 @@ export function PlanFormDialog({ open, onClose, plan, onSubmit }: Props) {
   const [durationDays, setDurationDays] = useState("30");
   const [aiQuota, setAiQuota] = useState("");
   const [priceUsd, setPriceUsd] = useState("");
+  const [isActive, setIsActive] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -42,6 +44,7 @@ export function PlanFormDialog({ open, onClose, plan, onSubmit }: Props) {
     setDurationDays(toStr(plan?.durationDays ?? 30) || "30");
     setAiQuota(toStr(plan?.aiGradingMonthlyQuota));
     setPriceUsd(toStr(plan?.priceUsd));
+    setIsActive(plan?.isActive ?? true);
     setError(null);
   }, [open, plan]);
 
@@ -61,6 +64,7 @@ export function PlanFormDialog({ open, onClose, plan, onSubmit }: Props) {
         durationDays: duration,
         aiGradingMonthlyQuota: aiQuota.trim() === "" ? null : Number(aiQuota),
         priceUsd: priceUsd.trim() === "" ? null : Number(priceUsd),
+        isActive,
       });
       onClose();
     } catch (err) {
@@ -146,6 +150,20 @@ export function PlanFormDialog({ open, onClose, plan, onSubmit }: Props) {
             />
           </div>
         </div>
+        <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-input bg-background px-3 py-3 text-sm">
+          <input
+            type="checkbox"
+            className="h-4 w-4 rounded border-input"
+            checked={isActive}
+            onChange={(e) => setIsActive(e.target.checked)}
+          />
+          <span>
+            <span className="font-medium text-foreground">Plan is active</span>
+            <span className="mt-0.5 block text-xs text-muted-foreground">
+              Inactive plans cannot be assigned to schools.
+            </span>
+          </span>
+        </label>
       </form>
     </Dialog>
   );

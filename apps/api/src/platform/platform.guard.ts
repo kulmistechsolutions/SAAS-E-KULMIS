@@ -36,7 +36,11 @@ export class PlatformGuard implements CanActivate {
     if (payload.platform !== true) {
       throw new UnauthorizedException("Not a platform token");
     }
-    req.platformAdmin = { adminId: payload.sub, username: payload.username };
+    req.platformAdmin = {
+      adminId: payload.sub,
+      username: payload.username,
+      role: payload.role === "OPERATOR" ? "OPERATOR" : "SUPER_ADMIN",
+    };
     return true;
   }
 }

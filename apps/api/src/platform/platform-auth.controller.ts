@@ -44,7 +44,12 @@ export class PlatformAuthController {
 
   @UseGuards(PlatformGuard)
   @Get("me")
-  me(@CurrentPlatformAdmin() admin: PlatformAdminCtx) {
-    return admin;
+  async me(@CurrentPlatformAdmin() admin: PlatformAdminCtx) {
+    const row = await this.auth.getAdminProfile(admin.adminId);
+    return row ?? {
+      adminId: admin.adminId,
+      username: admin.username,
+      role: admin.role,
+    };
   }
 }

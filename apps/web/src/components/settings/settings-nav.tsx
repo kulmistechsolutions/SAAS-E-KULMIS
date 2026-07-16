@@ -19,6 +19,7 @@ import {
   CalendarCheck,
   FileUp,
   Info,
+  Layers,
   Settings,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -44,6 +45,7 @@ const NAV: { href: string; label: string; icon: LucideIcon; exact?: boolean }[] 
   { href: "/settings/backup", label: "Backup", icon: Database },
   { href: "/settings/system", label: "System Info", icon: Info },
   { href: "/settings/import-export", label: "Import / Export", icon: FileUp },
+  { href: "/settings/subscription", label: "Subscription", icon: Layers },
   { href: "/settings/license", label: "License", icon: KeyRound },
 ];
 

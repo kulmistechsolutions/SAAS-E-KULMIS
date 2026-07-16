@@ -9,6 +9,7 @@ import { Sidebar } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
 import { Toaster } from "@/lib/toast";
 import { cn } from "@/lib/utils";
+import { SubscriptionBanner } from "@/components/subscriptions/subscription-banner";
 import {
   isFullAccessRole,
   isRouteAllowedForRole,
@@ -154,7 +155,10 @@ export default function AppLayout({ children }: { children: ReactNode }) {
               <p className="text-sm">Redirecting to your dashboard…</p>
             </div>
           ) : (
-            children
+            <>
+              <SubscriptionBanner />
+              {children}
+            </>
           )}
         </main>
       </div>

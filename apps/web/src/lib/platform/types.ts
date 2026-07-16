@@ -4,6 +4,7 @@ export interface PlatformAdmin {
   adminId: string;
   username: string;
   name?: string;
+  role?: "SUPER_ADMIN" | "OPERATOR";
 }
 
 export interface PlatformDashboard {
@@ -40,5 +41,10 @@ export interface UpdateSchoolPayload {
 export interface PlatformLoginResponse {
   accessToken: string;
   refreshToken: string;
-  admin: { id: string; username: string; name?: string };
+  admin: {
+    id: string;
+    username: string;
+    name?: string;
+    role?: "SUPER_ADMIN" | "OPERATOR";
+  };
 }

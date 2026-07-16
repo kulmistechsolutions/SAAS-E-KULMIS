@@ -58,11 +58,33 @@ export class PlatformAuthService {
     });
   }
 
+  async getAdminProfile(adminId: string) {
+    const admin = await this.prisma.platformAdmin.findUnique({
+      where: { id: adminId },
+      select: { id: true, username: true, name: true, role: true },
+    });
+    if (!admin) return null;
+    return {
+      adminId: admin.id,
+      username: admin.username,
+      name: admin.name,
+      role:
+        admin.role === "OPERATOR"
+          ? ("OPERATOR" as const)
+          : ("SUPER_ADMIN" as const),
+    };
+  }
+
   private async issueTokens(admin: PlatformAdmin) {
+    const role =
+      admin.role === "OPERATOR"
+        ? ("OPERATOR" as const)
+        : ("SUPER_ADMIN" as const);
     const payload: PlatformJwtPayload = {
       sub: admin.id,
       platform: true,
       username: admin.username,
+      role,
     };
     const accessToken = await this.jwt.signAsync(payload);
 
@@ -81,7 +103,12 @@ export class PlatformAuthService {
     return {
       accessToken,
       refreshToken: raw,
-      admin: { id: admin.id, username: admin.username, name: admin.name },
+      admin: {
+        id: admin.id,
+        username: admin.username,
+        name: admin.name,
+        role,
+      },
     };
   }
 

@@ -7,6 +7,7 @@ export const createSubscriptionPlanSchema = z.object({
   durationDays: z.number().int().positive("Duration must be at least 1 day"),
   aiGradingMonthlyQuota: z.number().int().nonnegative().nullable(),
   priceUsd: z.number().nonnegative().nullable().optional(),
+  isActive: z.boolean().optional(),
 });
 export type CreateSubscriptionPlanInput = z.infer<
   typeof createSubscriptionPlanSchema

@@ -816,6 +816,7 @@ export class QuizService {
     const aiEnabled = await this.ai.isEnabled();
     let aiScore = 0;
     let allAiGraded = aiEnabled;
+    let aiQuotaExhausted = false;
     if (aiEnabled) {
       for (const item of prep.aiPending) {
         // Monthly AI grading quota is per-school (subscription plan). Once
@@ -824,6 +825,7 @@ export class QuizService {
         const quotaOk = await this.subscriptions.tryConsumeAiGrading(schoolId);
         if (!quotaOk) {
           allAiGraded = false;
+          aiQuotaExhausted = true;
           continue;
         }
         const res = await this.ai.gradeConcept(
@@ -856,7 +858,7 @@ export class QuizService {
       ? Math.round((finalScore / prep.totalMarks) * 1000) / 10
       : 0;
     const pendingRemains = prep.hasManual || !allAiGraded;
-    return this.prisma.forTenant(schoolId, (tx) =>
+    const attempt = await this.prisma.forTenant(schoolId, (tx) =>
       tx.quizAttempt.update({
         where: { id: prep.attemptId },
         data: {
@@ -871,6 +873,12 @@ export class QuizService {
         },
       }),
     );
+    return {
+      ...attempt,
+      ...(aiQuotaExhausted
+        ? { aiQuotaNote: this.subscriptions.getAiQuotaExhaustedMessage() }
+        : {}),
+    };
   }
 
   async gradeAnswer(
