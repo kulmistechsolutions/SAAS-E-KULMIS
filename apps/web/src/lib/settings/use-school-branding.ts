@@ -12,6 +12,7 @@ const STATIC_BRANDING = {
   logoUrl: null as string | null,
   loginBackgroundUrl: null as string | null,
   primaryColor: "#3b82f6",
+  headerLayout: "LEFT" as "LEFT" | "CENTERED",
 };
 
 /** Reactive school name/branding from System Settings (SSR-safe). */

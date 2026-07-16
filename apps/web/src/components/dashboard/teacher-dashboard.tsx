@@ -102,7 +102,7 @@ export function TeacherDashboard({
             <img
               src={branding.logoUrl}
               alt=""
-              className="h-full w-full object-cover"
+              className="h-full w-full object-contain"
             />
           ) : (
             <GraduationCap className="h-7 w-7" />

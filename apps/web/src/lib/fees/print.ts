@@ -1,4 +1,4 @@
-import { schoolBranding } from "@/lib/settings/store";
+import { getSettings, schoolBranding } from "@/lib/settings/store";
 import { getState as getStudentsState } from "@/lib/students/store";
 import { monthLabel, money, paymentTypeLabel, receiptDate } from "./format";
 import type { FeePayment } from "./types";
@@ -6,14 +6,16 @@ import { outstandingBalance } from "./store";
 
 export function receiptHtml(payment: FeePayment): string {
   const school = schoolBranding();
+  const { receiptHeader, receiptFooter } = getSettings().fees;
   const student = getStudentsState().students.find((s) => s.id === payment.studentId);
   const months = payment.monthKeys.map(monthLabel).join(", ");
   const outstanding = student
     ? outstandingBalance(student.id)
     : payment.outstandingAfter;
   const logo = school.logoUrl
-    ? `<img src="${school.logoUrl}" alt="" class="logo" style="object-fit:cover"/>`
+    ? `<img src="${school.logoUrl}" alt="" class="logo" style="object-fit:contain"/>`
     : `<div class="logo">${school.name.slice(0, 2).toUpperCase()}</div>`;
+  const centered = school.headerLayout === "CENTERED";
 
   return `<!DOCTYPE html>
 <html><head><meta charset="utf-8"/><title>${payment.receiptNo}</title>
@@ -21,10 +23,12 @@ export function receiptHtml(payment: FeePayment): string {
   *{box-sizing:border-box;margin:0;padding:0}
   body{font-family:system-ui,sans-serif;padding:40px;color:#0f172a;max-width:720px;margin:0 auto}
   .head{display:flex;align-items:center;gap:16px;border-bottom:2px solid #e2e8f0;padding-bottom:20px;margin-bottom:24px}
+  .head.centered{flex-direction:column;text-align:center}
+  .head.centered .receipt-no{text-align:center;margin-top:8px}
   .logo{width:56px;height:56px;border-radius:12px;background:linear-gradient(135deg,#3b82f6,#6366f1);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:20px}
   h1{font-size:22px}
   .meta{color:#64748b;font-size:13px;margin-top:4px}
-  .receipt-no{text-align:right;font-size:14px;color:#64748b}
+  .receipt-no{text-align:right;font-size:14px;color:#64748b;margin-left:auto}
   .receipt-no strong{display:block;font-size:20px;color:#0f172a}
   table{width:100%;border-collapse:collapse;margin:20px 0}
   th,td{text-align:left;padding:10px 12px;border-bottom:1px solid #e2e8f0;font-size:14px}
@@ -33,11 +37,11 @@ export function receiptHtml(payment: FeePayment): string {
   .foot{margin-top:32px;padding-top:16px;border-top:1px solid #e2e8f0;font-size:12px;color:#94a3b8;text-align:center}
   @media print{body{padding:20px}}
 </style></head><body>
-  <div class="head">
+  <div class="head${centered ? " centered" : ""}">
     ${logo}
     <div>
       <h1>${school.name}</h1>
-      <div class="meta">Fee Receipt</div>
+      ${receiptHeader ? `<div class="meta">${receiptHeader}</div>` : `<div class="meta">Fee Receipt</div>`}
     </div>
     <div class="receipt-no">Receipt No.<strong>${payment.receiptNo}</strong></div>
   </div>
@@ -52,7 +56,7 @@ export function receiptHtml(payment: FeePayment): string {
     <tr><th>Outstanding Balance</th><td>${money(outstanding)}</td></tr>
   </table>
   <div class="amount">Amount Paid: ${money(payment.amount)}</div>
-  <div class="foot">This is a computer-generated receipt. Thank you for your payment.</div>
+  <div class="foot">${receiptFooter || "This is a computer-generated receipt. Thank you for your payment."}</div>
 </body></html>`;
 }
 

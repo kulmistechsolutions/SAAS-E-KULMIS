@@ -27,6 +27,10 @@ export default function TeacherSettingsPage() {
         checked={draft.defaultViewStudents}
         onChange={(v) => update({ defaultViewStudents: v })}
       />
+      <div className="grid gap-4 sm:grid-cols-2">
+        <SettingsInput label="Teacher Profile Header (optional)" value={draft.teacherHeader} onChange={(e) => update({ teacherHeader: e.target.value })} />
+        <SettingsInput label="Teacher Profile Footer (optional)" value={draft.teacherFooter} onChange={(e) => update({ teacherFooter: e.target.value })} />
+      </div>
       <SettingsSaveBar dirty={dirty} saving={saving} onSave={save} onCancel={cancel} onResetDefault={resetToDefault} />
     </div>
   );

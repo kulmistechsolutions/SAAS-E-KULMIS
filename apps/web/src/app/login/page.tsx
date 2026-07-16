@@ -50,7 +50,7 @@ export default function LoginPage() {
           <div className="mb-6 text-center">
             {branding.logoUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={branding.logoUrl} alt="" className="mx-auto mb-3 h-16 w-16 rounded-full object-cover" />
+              <img src={branding.logoUrl} alt="" className="mx-auto mb-3 h-16 w-16 rounded-full object-contain" />
             ) : null}
             <h1 className="text-2xl font-bold text-primary">{branding.loginTitle}</h1>
             <p className="mt-0.5 text-sm font-medium text-muted-foreground">{branding.tagline}</p>

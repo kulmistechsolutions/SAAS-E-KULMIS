@@ -26,6 +26,10 @@ export default function StudentSettingsPage() {
       <SettingsToggle label="Allow Student Portal Login" checked={draft.portalLoginEnabled} onChange={(v) => update({ portalLoginEnabled: v })} />
       <SettingsToggle label="Require Student Phone" checked={draft.requirePhone} onChange={(v) => update({ requirePhone: v })} />
       <SettingsToggle label="Allow Student Photo Upload" checked={draft.allowPhotoUpload} onChange={(v) => update({ allowPhotoUpload: v })} />
+      <div className="grid gap-4 sm:grid-cols-2">
+        <SettingsInput label="Student Profile Header (optional)" value={draft.studentHeader} onChange={(e) => update({ studentHeader: e.target.value })} />
+        <SettingsInput label="Student Profile Footer (optional)" value={draft.studentFooter} onChange={(e) => update({ studentFooter: e.target.value })} />
+      </div>
       <SettingsSaveBar dirty={dirty} saving={saving} onSave={save} onCancel={cancel} onResetDefault={resetToDefault} />
     </div>
   );

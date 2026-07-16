@@ -59,6 +59,7 @@ export async function refreshSettings(): Promise<void> {
           name: b.name,
           motto: b.motto ?? current.school.motto,
           logoDataUrl: resolveLogoUrl(b.logoUrl, b.logoKey),
+          documentHeaderLayout: b.documentHeaderLayout,
         },
       });
     } catch {
@@ -152,6 +153,8 @@ const SECTION_AUDIT: Partial<Record<SettingsSectionKey, SettingsAuditAction>> = 
 const API_SECTIONS = new Set<SettingsSectionKey>([
   "school",
   "fees",
+  "salary",
+  "expenses",
   "students",
   "teachers",
   "parents",
@@ -177,6 +180,8 @@ export async function updateSettingsSection<K extends SettingsSectionKey>(
           ...next,
           school: remote.school,
           fees: remote.fees,
+          salary: remote.salary,
+          expenses: remote.expenses,
           students: remote.students,
           teachers: remote.teachers,
           parents: remote.parents,
@@ -354,6 +359,8 @@ export function schoolBranding() {
     primaryColor: s.branding.primaryColor,
     logoUrl: s.school.logoDataUrl,
     loginBackgroundUrl: s.branding.loginBackgroundDataUrl,
+    /** "LEFT" (logo beside name) or "CENTERED" (logo above name) — every printed document. */
+    headerLayout: s.school.documentHeaderLayout,
   };
 }
 
@@ -371,6 +378,7 @@ export async function loadPublicBranding(): Promise<ReturnType<typeof schoolBran
       primaryColor: "#3b82f6",
       logoUrl: resolveLogoUrl(b.logoUrl, b.logoKey),
       loginBackgroundUrl: null,
+      headerLayout: b.documentHeaderLayout,
     };
   } catch {
     return schoolBranding();

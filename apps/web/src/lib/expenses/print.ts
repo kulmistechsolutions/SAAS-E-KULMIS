@@ -1,4 +1,4 @@
-import { schoolBranding } from "@/lib/settings/store";
+import { getSettings, schoolBranding } from "@/lib/settings/store";
 import {
   dateTime,
   money,
@@ -10,9 +10,11 @@ import type { Expense } from "./types";
 
 export function expenseHtml(expense: Expense, preparedBy = "Admin User"): string {
   const school = schoolBranding();
+  const { expenseHeader, expenseFooter } = getSettings().expenses;
   const logo = school.logoUrl
-    ? `<img src="${school.logoUrl}" alt="" class="logo" style="object-fit:cover"/>`
+    ? `<img src="${school.logoUrl}" alt="" class="logo" style="object-fit:contain"/>`
     : `<div class="logo">${school.name.slice(0, 2).toUpperCase()}</div>`;
+  const centered = school.headerLayout === "CENTERED";
   const cat = categoryName(expense.categoryId);
   return `<!DOCTYPE html>
 <html><head><meta charset="utf-8"/><title>${expense.referenceNo}</title>
@@ -20,6 +22,8 @@ export function expenseHtml(expense: Expense, preparedBy = "Admin User"): string
   *{box-sizing:border-box;margin:0;padding:0}
   body{font-family:system-ui,sans-serif;padding:40px;color:#0f172a;max-width:760px;margin:0 auto}
   .head{display:flex;align-items:center;gap:16px;border-bottom:2px solid #e2e8f0;padding-bottom:20px;margin-bottom:24px}
+  .head.centered{flex-direction:column;text-align:center}
+  .head.centered .ref{margin-left:0;text-align:center;margin-top:8px}
   .logo{width:56px;height:56px;border-radius:12px;background:linear-gradient(135deg,#ef4444,#f97316);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:20px}
   h1{font-size:22px}
   .meta{color:#64748b;font-size:13px;margin-top:4px}
@@ -33,11 +37,11 @@ export function expenseHtml(expense: Expense, preparedBy = "Admin User"): string
   .foot{margin-top:32px;padding-top:16px;border-top:1px solid #e2e8f0;font-size:12px;color:#94a3b8;text-align:center}
   @media print{body{padding:20px}}
 </style></head><body>
-  <div class="head">
+  <div class="head${centered ? " centered" : ""}">
     ${logo}
     <div>
       <h1>${school.name}</h1>
-      <div class="meta">Expense Record</div>
+      <div class="meta">${expenseHeader || "Expense Record"}</div>
       <div class="meta">Academic Year: ${expense.academicYear}</div>
     </div>
     <div class="ref">Reference<strong>${expense.referenceNo}</strong></div>
@@ -55,7 +59,7 @@ export function expenseHtml(expense: Expense, preparedBy = "Admin User"): string
   </table>
   <div class="amount">Amount: ${money(expense.amount)}</div>
   <div class="sign">Authorized Signature — ${preparedBy}</div>
-  <div class="foot">Generated ${dateTime(new Date().toISOString())} · eKulmis Expense Management</div>
+  <div class="foot">${expenseFooter || `Generated ${dateTime(new Date().toISOString())}`}</div>
 </body></html>`;
 }
 

@@ -39,6 +39,10 @@ export interface SchoolSettings {
   currency: string;
   timezone: string;
   language: string;
+  /** "LEFT" (logo beside the school name) or "CENTERED" (logo above it), applied to every printed document. */
+  documentHeaderLayout: "LEFT" | "CENTERED";
+  reportHeader: string;
+  reportFooter: string;
 }
 
 export interface BrandingSettings {
@@ -68,6 +72,8 @@ export interface StudentSettings {
   portalLoginEnabled: boolean;
   requirePhone: boolean;
   allowPhotoUpload: boolean;
+  studentHeader: string;
+  studentFooter: string;
 }
 
 export interface TeacherSettings {
@@ -78,6 +84,8 @@ export interface TeacherSettings {
   defaultViewStudents: boolean;
   morningShiftStart: string;
   afternoonShiftStart: string;
+  teacherHeader: string;
+  teacherFooter: string;
 }
 
 export interface ParentSettings {
@@ -86,6 +94,8 @@ export interface ParentSettings {
   autoAccountCreation: boolean;
   usernameFormat: "FIRST_NAME" | "FIRST_NAME_CODE";
   defaultPassword: string;
+  parentHeader: string;
+  parentFooter: string;
 }
 
 export interface ExaminationSettings {
@@ -112,12 +122,15 @@ export interface FeeSettings {
   carryForward: boolean;
   currencySymbol: string;
   receiptPrefix: string;
+  receiptHeader: string;
+  receiptFooter: string;
 }
 
 export interface SalarySettings {
   payrollDay: number;
   allowPartialSalary: boolean;
   currency: string;
+  payslipHeader: string;
   payslipFooter: string;
 }
 
@@ -125,6 +138,8 @@ export interface ExpenseSettings {
   approvalWorkflow: boolean;
   defaultCategories: string[];
   attachmentSizeLimitMb: number;
+  expenseHeader: string;
+  expenseFooter: string;
 }
 
 export interface AttendanceSettings {

@@ -25,6 +25,10 @@ export default function ParentSettingsPage() {
       </div>
       <SettingsToggle label="Parent Portal Enabled" checked={draft.portalEnabled} onChange={(v) => update({ portalEnabled: v })} />
       <SettingsToggle label="Automatic Parent Account Creation" checked={draft.autoAccountCreation} onChange={(v) => update({ autoAccountCreation: v })} />
+      <div className="grid gap-4 sm:grid-cols-2">
+        <SettingsInput label="Parent Profile Header (optional)" value={draft.parentHeader} onChange={(e) => update({ parentHeader: e.target.value })} />
+        <SettingsInput label="Parent Profile Footer (optional)" value={draft.parentFooter} onChange={(e) => update({ parentFooter: e.target.value })} />
+      </div>
       <SettingsSaveBar dirty={dirty} saving={saving} onSave={save} onCancel={cancel} onResetDefault={resetToDefault} />
     </div>
   );

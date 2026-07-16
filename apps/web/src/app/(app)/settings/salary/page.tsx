@@ -13,7 +13,8 @@ export default function SalarySettingsPage() {
       <div className="grid gap-4 sm:grid-cols-2">
         <SettingsInput label="Payroll Day" type="number" value={draft.payrollDay} onChange={(e) => update({ payrollDay: Number(e.target.value) })} />
         <SettingsInput label="Salary Currency" value={draft.currency} onChange={(e) => update({ currency: e.target.value })} />
-        <SettingsInput label="Payslip Footer" className="sm:col-span-2" value={draft.payslipFooter} onChange={(e) => update({ payslipFooter: e.target.value })} />
+        <SettingsInput label="Payslip Header (optional)" value={draft.payslipHeader} onChange={(e) => update({ payslipHeader: e.target.value })} />
+        <SettingsInput label="Payslip Footer" value={draft.payslipFooter} onChange={(e) => update({ payslipFooter: e.target.value })} />
       </div>
       <SettingsToggle label="Allow Partial Salary" checked={draft.allowPartialSalary} onChange={(v) => update({ allowPartialSalary: v })} />
       <SettingsSaveBar dirty={dirty} saving={saving} onSave={save} onCancel={cancel} onResetDefault={resetToDefault} />

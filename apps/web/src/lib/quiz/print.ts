@@ -10,7 +10,7 @@ function esc(s: string | null | undefined): string {
 
 export function attemptReviewPdfHtml(review: QuizAttemptReview): string {
   const logo = review.logoUrl
-    ? `<img src="${esc(review.logoUrl)}" alt="" style="height:56px;width:56px;object-fit:cover;border-radius:10px"/>`
+    ? `<img src="${esc(review.logoUrl)}" alt="" style="height:56px;width:56px;object-fit:contain;border-radius:10px"/>`
     : "";
   const rows = review.questions
     .map(

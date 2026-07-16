@@ -33,9 +33,23 @@ model School {
   currency      String  @default("USD")
   timezone      String  @default("UTC")
   language      String  @default("en")
-  receiptFooter String?
-  reportFooter  String?
-  resultFooter  String?
+  /// "LEFT" (logo beside name) or "CENTERED" (logo above name) on every printed document.
+  documentHeaderLayout String  @default("LEFT")
+  receiptHeader        String?
+  receiptFooter        String?
+  payslipHeader        String?
+  payslipFooter        String?
+  expenseHeader        String?
+  expenseFooter        String?
+  studentHeader        String?
+  studentFooter        String?
+  teacherHeader        String?
+  teacherFooter        String?
+  parentHeader         String?
+  parentFooter         String?
+  reportHeader         String?
+  reportFooter         String?
+  resultFooter         String?
 
   // ── ID prefixes (auto-generated IDs derive from these) ──
   studentPrefix     String @default("STD")

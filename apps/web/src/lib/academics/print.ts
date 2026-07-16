@@ -12,8 +12,9 @@ interface PrintTableOptions {
 export function printTable(opts: PrintTableOptions) {
   const school = schoolBranding();
   const logo = school.logoUrl
-    ? `<img src="${school.logoUrl}" alt="" class="logo" style="object-fit:cover"/>`
+    ? `<img src="${school.logoUrl}" alt="" class="logo" style="object-fit:contain"/>`
     : `<div class="logo">${school.name.charAt(0)}</div>`;
+  const centered = school.headerLayout === "CENTERED";
   const now = new Date();
   const head = opts.columns.map((c) => `<th>${c}</th>`).join("");
   const body = opts.rows
@@ -28,6 +29,7 @@ export function printTable(opts: PrintTableOptions) {
     * { font-family: system-ui, -apple-system, Segoe UI, sans-serif; }
     body { padding: 32px; color: #0f172a; }
     .head { display:flex; align-items:center; gap:12px; border-bottom:2px solid #6366f1; padding-bottom:14px; margin-bottom:18px; }
+    .head.centered { flex-direction:column; text-align:center; }
     .logo { width:44px; height:44px; border-radius:10px; background:#6366f1; color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:20px; }
     h1 { margin:0; font-size:20px; }
     .muted { color:#64748b; font-size:13px; }
@@ -37,7 +39,7 @@ export function printTable(opts: PrintTableOptions) {
     th { background:#f1f5f9; font-weight:600; }
     .foot { margin-top:24px; display:flex; justify-content:space-between; font-size:12px; color:#64748b; }
   </style></head><body>
-    <div class="head">
+    <div class="head${centered ? " centered" : ""}">
       ${logo}
       <div>
         <h1>${school.name}</h1>

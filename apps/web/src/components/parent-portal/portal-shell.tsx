@@ -62,7 +62,7 @@ export function PortalShell({ children }: { children: React.ReactNode }) {
             <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 text-sm font-bold text-white">
               {branding.logoUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={branding.logoUrl} alt="" className="h-full w-full object-cover" />
+                <img src={branding.logoUrl} alt="" className="h-full w-full object-contain" />
               ) : (
                 branding.name.slice(0, 2).toUpperCase()
               )}

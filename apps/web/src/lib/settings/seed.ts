@@ -19,6 +19,9 @@ export function buildSettingsSeed(): SettingsState {
       currency: "USD",
       timezone: "Africa/Mogadishu",
       language: "en",
+      documentHeaderLayout: "LEFT",
+      reportHeader: "",
+      reportFooter: "",
     },
     branding: {
       primaryColor: "#3b82f6",
@@ -45,6 +48,8 @@ export function buildSettingsSeed(): SettingsState {
       portalLoginEnabled: true,
       requirePhone: false,
       allowPhotoUpload: true,
+      studentHeader: "",
+      studentFooter: "",
     },
     teachers: {
       idPrefix: "TSHMM",
@@ -53,6 +58,8 @@ export function buildSettingsSeed(): SettingsState {
       defaultViewStudents: false,
       morningShiftStart: "07:30",
       afternoonShiftStart: "13:00",
+      teacherHeader: "",
+      teacherFooter: "",
     },
     parents: {
       idPrefix: "PSHMM",
@@ -60,6 +67,8 @@ export function buildSettingsSeed(): SettingsState {
       autoAccountCreation: true,
       usernameFormat: "FIRST_NAME",
       defaultPassword: "Parent@123",
+      parentHeader: "",
+      parentFooter: "",
     },
     examinations: {
       maxTerms: 3,
@@ -92,17 +101,22 @@ export function buildSettingsSeed(): SettingsState {
       carryForward: true,
       currencySymbol: "$",
       receiptPrefix: "RCP",
+      receiptHeader: "",
+      receiptFooter: "This is a computer-generated receipt. Thank you for your payment.",
     },
     salary: {
       payrollDay: 28,
       allowPartialSalary: false,
       currency: "USD",
+      payslipHeader: "",
       payslipFooter: "This is a system-generated payslip.",
     },
     expenses: {
       approvalWorkflow: true,
       defaultCategories: ["Utilities", "Supplies", "Maintenance", "Transport", "Events"],
       attachmentSizeLimitMb: 5,
+      expenseHeader: "",
+      expenseFooter: "",
     },
     attendance: {
       startTime: "07:00",

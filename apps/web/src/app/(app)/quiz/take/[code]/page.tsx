@@ -80,7 +80,7 @@ function SchoolHeader({
         <img
           src={logoUrl}
           alt={schoolName}
-          className="h-14 w-14 rounded-xl object-cover ring-1 ring-black/5"
+          className="h-14 w-14 rounded-xl object-contain ring-1 ring-black/5"
         />
       ) : (
         <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-primary/10 text-lg font-bold text-primary">

@@ -1,6 +1,6 @@
 "use client";
 
-import { schoolBranding } from "@/lib/settings/store";
+import { getSettings, schoolBranding } from "@/lib/settings/store";
 import { shortDate, statusLabel } from "@/lib/students/format";
 import type { Parent, Student } from "@/lib/students/types";
 
@@ -43,9 +43,11 @@ function escapeHtml(s: string): string {
 
 export function printParentProfile(parent: Parent, children: Student[]) {
   const school = schoolBranding();
+  const { parentHeader, parentFooter } = getSettings().parents;
   const logo = school.logoUrl
-    ? `<img src="${school.logoUrl}" alt="" class="logo" style="object-fit:cover"/>`
+    ? `<img src="${school.logoUrl}" alt="" class="logo" style="object-fit:contain"/>`
     : `<div class="logo">${school.name.slice(0, 2).toUpperCase()}</div>`;
+  const centered = school.headerLayout === "CENTERED";
   const w = window.open("", "_blank", "width=800,height=700");
   if (!w) return;
   const row = (k: string, v: string) =>
@@ -60,14 +62,16 @@ export function printParentProfile(parent: Parent, children: Student[]) {
   <style>
     *{font-family:Arial,sans-serif;box-sizing:border-box}body{padding:32px;color:#0f172a}
     .head{display:flex;gap:16px;border-bottom:2px solid #4f46e5;padding-bottom:16px;margin-bottom:20px}
+    .head.centered{flex-direction:column;text-align:center}
     .logo{width:52px;height:52px;border-radius:12px;background:linear-gradient(135deg,#3b82f6,#4f46e5);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:20px}
     h2{font-size:14px;margin:16px 0 6px;color:#4f46e5}
     table{width:100%;border-collapse:collapse;font-size:13px}
     td,th{border:1px solid #e2e8f0;padding:7px 10px}
     td.k{background:#f8fafc;font-weight:600;width:200px}
     th{background:#f8fafc;text-align:left}
+    .foot{margin-top:24px;font-size:11px;color:#94a3b8;text-align:center}
   </style></head><body>
-  <div class="head">${logo}<div><h1>${escapeHtml(school.name)}</h1><div style="color:#475569;font-size:13px">Parent Profile</div></div></div>
+  <div class="head${centered ? " centered" : ""}">${logo}<div><h1>${escapeHtml(school.name)}</h1><div style="color:#475569;font-size:13px">${parentHeader || "Parent Profile"}</div></div></div>
   <h2>Parent Information</h2>
   <table>
     ${row("Parent ID", parent.code)}
@@ -85,6 +89,7 @@ export function printParentProfile(parent: Parent, children: Student[]) {
     <thead><tr><th>Student ID</th><th>Name</th><th>Class</th><th>Status</th></tr></thead>
     <tbody>${childRows || '<tr><td colspan="4">No students linked</td></tr>'}</tbody>
   </table>
+  ${parentFooter ? `<div class="foot">${escapeHtml(parentFooter)}</div>` : ""}
   <script>window.onload=function(){window.print()}</script>
   </body></html>`);
   w.document.close();

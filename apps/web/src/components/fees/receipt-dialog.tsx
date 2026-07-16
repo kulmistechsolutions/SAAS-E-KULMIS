@@ -41,7 +41,7 @@ export function ReceiptDialog({ payment, onClose }: ReceiptDialogProps) {
             <img
               src={branding.logoUrl}
               alt={branding.name}
-              className="h-12 w-12 rounded-xl object-cover"
+              className="h-12 w-12 rounded-xl object-contain"
             />
           ) : (
             <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 text-lg font-bold text-white">

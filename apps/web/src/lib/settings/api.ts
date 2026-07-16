@@ -33,7 +33,20 @@ export interface ApiSchool {
   currency: string;
   timezone: string;
   language: string;
+  documentHeaderLayout: "LEFT" | "CENTERED";
+  receiptHeader: string | null;
   receiptFooter: string | null;
+  payslipHeader: string | null;
+  payslipFooter: string | null;
+  expenseHeader: string | null;
+  expenseFooter: string | null;
+  studentHeader: string | null;
+  studentFooter: string | null;
+  teacherHeader: string | null;
+  teacherFooter: string | null;
+  parentHeader: string | null;
+  parentFooter: string | null;
+  reportHeader: string | null;
   reportFooter: string | null;
   resultFooter: string | null;
   studentPrefix: string;
@@ -62,6 +75,7 @@ export interface ApiBranding {
   currency: string;
   language: string;
   timezone: string;
+  documentHeaderLayout: "LEFT" | "CENTERED";
 }
 
 /** Merge API school record into the UI settings shape (non-persisted sections keep seed defaults). */
@@ -84,6 +98,9 @@ export function mapApiSchoolToSettings(
       currency: row.currency,
       timezone: row.timezone,
       language: row.language,
+      documentHeaderLayout: row.documentHeaderLayout,
+      reportHeader: row.reportHeader ?? base.school.reportHeader,
+      reportFooter: row.reportFooter ?? base.school.reportFooter,
     },
     fees: {
       ...base.fees,
@@ -97,10 +114,37 @@ export function mapApiSchoolToSettings(
       allowAdvancePayment: row.feeAllowAdvance ?? base.fees.allowAdvancePayment,
       carryForward: row.feeCarryForward ?? base.fees.carryForward,
       monthSetupDay: row.feeMonthSetupDay ?? base.fees.monthSetupDay,
+      receiptHeader: row.receiptHeader ?? base.fees.receiptHeader,
+      receiptFooter: row.receiptFooter ?? base.fees.receiptFooter,
     },
-    students: { ...base.students, idPrefix: row.studentPrefix },
-    teachers: { ...base.teachers, idPrefix: row.teacherPrefix },
-    parents: { ...base.parents, idPrefix: row.parentPrefix },
+    salary: {
+      ...base.salary,
+      payslipHeader: row.payslipHeader ?? base.salary.payslipHeader,
+      payslipFooter: row.payslipFooter ?? base.salary.payslipFooter,
+    },
+    expenses: {
+      ...base.expenses,
+      expenseHeader: row.expenseHeader ?? base.expenses.expenseHeader,
+      expenseFooter: row.expenseFooter ?? base.expenses.expenseFooter,
+    },
+    students: {
+      ...base.students,
+      idPrefix: row.studentPrefix,
+      studentHeader: row.studentHeader ?? base.students.studentHeader,
+      studentFooter: row.studentFooter ?? base.students.studentFooter,
+    },
+    teachers: {
+      ...base.teachers,
+      idPrefix: row.teacherPrefix,
+      teacherHeader: row.teacherHeader ?? base.teachers.teacherHeader,
+      teacherFooter: row.teacherFooter ?? base.teachers.teacherFooter,
+    },
+    parents: {
+      ...base.parents,
+      idPrefix: row.parentPrefix,
+      parentHeader: row.parentHeader ?? base.parents.parentHeader,
+      parentFooter: row.parentFooter ?? base.parents.parentFooter,
+    },
     branding: {
       ...base.branding,
       loginTitle: row.name,
@@ -126,6 +170,9 @@ export function mapSettingsSectionToPatch(
       currency: s.currency,
       timezone: s.timezone,
       language: s.language,
+      documentHeaderLayout: s.documentHeaderLayout,
+      reportHeader: s.reportHeader || null,
+      reportFooter: s.reportFooter || null,
     };
   }
   if (key === "fees") {
@@ -140,16 +187,47 @@ export function mapSettingsSectionToPatch(
       feeAllowAdvance: f.allowAdvancePayment,
       feeCarryForward: f.carryForward,
       feeMonthSetupDay: f.monthSetupDay,
+      receiptHeader: f.receiptHeader || null,
+      receiptFooter: f.receiptFooter || null,
+    };
+  }
+  if (key === "salary") {
+    const s = section as SettingsState["salary"];
+    return {
+      payslipHeader: s.payslipHeader || null,
+      payslipFooter: s.payslipFooter || null,
+    };
+  }
+  if (key === "expenses") {
+    const e = section as SettingsState["expenses"];
+    return {
+      expenseHeader: e.expenseHeader || null,
+      expenseFooter: e.expenseFooter || null,
     };
   }
   if (key === "students") {
-    return { studentPrefix: (section as SettingsState["students"]).idPrefix };
+    const s = section as SettingsState["students"];
+    return {
+      studentPrefix: s.idPrefix,
+      studentHeader: s.studentHeader || null,
+      studentFooter: s.studentFooter || null,
+    };
   }
   if (key === "teachers") {
-    return { teacherPrefix: (section as SettingsState["teachers"]).idPrefix };
+    const t = section as SettingsState["teachers"];
+    return {
+      teacherPrefix: t.idPrefix,
+      teacherHeader: t.teacherHeader || null,
+      teacherFooter: t.teacherFooter || null,
+    };
   }
   if (key === "parents") {
-    return { parentPrefix: (section as SettingsState["parents"]).idPrefix };
+    const p = section as SettingsState["parents"];
+    return {
+      parentPrefix: p.idPrefix,
+      parentHeader: p.parentHeader || null,
+      parentFooter: p.parentFooter || null,
+    };
   }
   return null;
 }

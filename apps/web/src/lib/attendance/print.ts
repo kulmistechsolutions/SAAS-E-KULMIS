@@ -18,8 +18,9 @@ export function printStudentAttendanceSheet(opts: {
 }) {
   const school = schoolBranding();
   const logo = school.logoUrl
-    ? `<img src="${school.logoUrl}" alt="" class="logo" style="object-fit:cover"/>`
+    ? `<img src="${school.logoUrl}" alt="" class="logo" style="object-fit:contain"/>`
     : `<div class="logo">${school.name.slice(0, 2).toUpperCase()}</div>`;
+  const centered = school.headerLayout === "CENTERED";
   const w = window.open("", "_blank", "width=900,height=700");
   if (!w) return;
   const body = opts.rows
@@ -32,6 +33,7 @@ export function printStudentAttendanceSheet(opts: {
   <style>
     *{font-family:Arial,sans-serif;box-sizing:border-box}body{padding:32px;color:#0f172a}
     .head{display:flex;gap:16px;border-bottom:2px solid #4f46e5;padding-bottom:16px;margin-bottom:16px}
+    .head.centered{flex-direction:column;text-align:center}
     .logo{width:52px;height:52px;border-radius:12px;background:linear-gradient(135deg,#3b82f6,#4f46e5);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:20px}
   table{width:100%;border-collapse:collapse;font-size:13px;margin-top:12px}
   th,td{border:1px solid #cbd5e1;padding:8px 10px;text-align:left}
@@ -40,7 +42,7 @@ export function printStudentAttendanceSheet(opts: {
   .sign{margin-top:40px;display:flex;justify-content:space-between}
   .sign div{width:40%;border-top:1px solid #94a3b8;padding-top:8px;font-size:12px;color:#64748b}
   </style></head><body>
-  <div class="head">${logo}<div>
+  <div class="head${centered ? " centered" : ""}">${logo}<div>
     <h1>${escapeHtml(school.name)}</h1>
     <p style="color:#475569;font-size:13px;margin:4px 0 0">Student Attendance · ${opts.academicYear}</p>
     <p style="color:#475569;font-size:13px">${formatDisplayDate(opts.date)} · ${escapeHtml(opts.className)} · Section ${opts.section}</p>

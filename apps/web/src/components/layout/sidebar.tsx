@@ -277,7 +277,7 @@ export function Sidebar({
         <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-lg">
           {branding.logoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={branding.logoUrl} alt="" className="h-full w-full object-cover" />
+            <img src={branding.logoUrl} alt="" className="h-full w-full object-contain" />
           ) : (
             <GraduationCap className="h-5 w-5" />
           )}

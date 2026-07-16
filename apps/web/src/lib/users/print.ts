@@ -1,28 +1,31 @@
-import { schoolBranding } from "@/lib/settings/store";
+import { getSettings, schoolBranding } from "@/lib/settings/store";
 import { dateTime, roleLabel, shortDate } from "./format";
 import type { SystemUser } from "./types";
 
 export function userProfileHtml(user: SystemUser): string {
   const school = schoolBranding();
+  const { reportHeader, reportFooter } = getSettings().school;
   const logo = school.logoUrl
-    ? `<img src="${school.logoUrl}" alt="" class="logo" style="object-fit:cover"/>`
+    ? `<img src="${school.logoUrl}" alt="" class="logo" style="object-fit:contain"/>`
     : `<div class="logo">${school.name.slice(0, 2).toUpperCase()}</div>`;
+  const centered = school.headerLayout === "CENTERED";
   return `<!DOCTYPE html>
 <html><head><meta charset="utf-8"/><title>${user.userId}</title>
 <style>
   body{font-family:system-ui,sans-serif;padding:40px;color:#0f172a;max-width:720px;margin:0 auto}
   .head{display:flex;align-items:center;gap:16px;border-bottom:2px solid #e2e8f0;padding-bottom:20px;margin-bottom:24px}
+  .head.centered{flex-direction:column;text-align:center}
   .logo{width:56px;height:56px;border-radius:12px;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700}
   table{width:100%;border-collapse:collapse}
   th,td{text-align:left;padding:10px 12px;border-bottom:1px solid #e2e8f0;font-size:14px}
   th{width:38%;color:#64748b}
   .sign{margin-top:48px;border-top:1px solid #cbd5e1;padding-top:8px;font-size:12px;color:#64748b;width:240px}
 </style></head><body>
-  <div class="head">
+  <div class="head${centered ? " centered" : ""}">
     ${logo}
     <div>
       <h1>${school.name}</h1>
-      <div style="color:#64748b;font-size:13px">User Profile Report</div>
+      <div style="color:#64748b;font-size:13px">${reportHeader || "User Profile Report"}</div>
     </div>
   </div>
   <table>
@@ -34,7 +37,7 @@ export function userProfileHtml(user: SystemUser): string {
     <tr><th>Last Login</th><td>${user.lastLogin ? dateTime(user.lastLogin) : "—"}</td></tr>
     <tr><th>Created</th><td>${dateTime(user.createdAt)}</td></tr>
   </table>
-  <div class="sign">Prepared By: Administrator</div>
+  <div class="sign">${reportFooter || "Prepared By: Administrator"}</div>
 </body></html>`;
 }
 

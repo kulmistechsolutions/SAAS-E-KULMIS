@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { SettingsInput, SettingsSelect } from "@/components/settings/settings-field";
+import { SettingsInput, SettingsSelect, SettingsTextarea } from "@/components/settings/settings-field";
 import { SettingsSaveBar } from "@/components/settings/settings-save-bar";
 import { useSettingsSection } from "@/components/settings/use-settings-section";
 import { readImageAsDataUrl } from "@/lib/settings/format";
@@ -93,7 +93,7 @@ export default function SchoolSettingsPage() {
             <div className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-full border-2 border-dashed bg-secondary/50">
               {draft.logoDataUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={draft.logoDataUrl} alt="School logo" className="h-full w-full object-cover" />
+                <img src={draft.logoDataUrl} alt="School logo" className="h-full w-full object-contain p-1" />
               ) : (
                 <span className="text-2xl font-bold text-primary">{draft.name.slice(0, 2).toUpperCase()}</span>
               )}
@@ -110,6 +110,27 @@ export default function SchoolSettingsPage() {
               </Button>
             )}
           </div>
+        </div>
+      </div>
+
+      <div className="rounded-xl border bg-card p-5">
+        <p className="text-sm font-medium">Printed Documents</p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Applies to every receipt, payslip, and report generated across the system.
+        </p>
+        <div className="mt-4 grid gap-4 sm:grid-cols-2">
+          <SettingsSelect
+            label="Logo & Header Layout"
+            value={draft.documentHeaderLayout}
+            onChange={(e) => update({ documentHeaderLayout: e.target.value as "LEFT" | "CENTERED" })}
+          >
+            <option value="LEFT">Left-aligned (logo beside name)</option>
+            <option value="CENTERED">Centered (logo above name)</option>
+          </SettingsSelect>
+        </div>
+        <div className="mt-4 grid gap-4 sm:grid-cols-2">
+          <SettingsInput label="Report Header (optional)" value={draft.reportHeader} onChange={(e) => update({ reportHeader: e.target.value })} />
+          <SettingsTextarea label="Report Footer (optional)" rows={2} value={draft.reportFooter} onChange={(e) => update({ reportFooter: e.target.value })} />
         </div>
       </div>
 

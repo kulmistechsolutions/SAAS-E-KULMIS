@@ -1,6 +1,6 @@
 "use client";
 
-import { SettingsInput, SettingsSelect } from "@/components/settings/settings-field";
+import { SettingsInput, SettingsSelect, SettingsTextarea } from "@/components/settings/settings-field";
 import { SettingsSaveBar } from "@/components/settings/settings-save-bar";
 import { SettingsToggle } from "@/components/settings/settings-toggle";
 import { useSettingsSection } from "@/components/settings/use-settings-section";
@@ -125,6 +125,14 @@ export default function FeeSettingsPage() {
         checked={draft.carryForward}
         onChange={(v) => update({ carryForward: v })}
       />
+      <div className="rounded-xl border bg-card p-5">
+        <p className="text-sm font-medium">Fee Receipt Header &amp; Footer</p>
+        <p className="mt-1 text-xs text-muted-foreground">Shown on every printed fee receipt.</p>
+        <div className="mt-4 grid gap-4 sm:grid-cols-2">
+          <SettingsInput label="Receipt Header (optional)" value={draft.receiptHeader} onChange={(e) => update({ receiptHeader: e.target.value })} />
+          <SettingsTextarea label="Receipt Footer" rows={2} value={draft.receiptFooter} onChange={(e) => update({ receiptFooter: e.target.value })} />
+        </div>
+      </div>
       <SettingsSaveBar
         dirty={dirty}
         saving={saving}

@@ -85,6 +85,7 @@ export class SettingsService {
         currency: true,
         language: true,
         timezone: true,
+        documentHeaderLayout: true,
       },
     });
     if (!school) {

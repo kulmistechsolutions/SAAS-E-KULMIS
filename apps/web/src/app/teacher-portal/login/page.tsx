@@ -63,7 +63,7 @@ export default function TeacherPortalLoginPage() {
               <img
                 src={branding.logoUrl}
                 alt=""
-                className="mx-auto mb-3 h-14 w-14 rounded-full object-cover"
+                className="mx-auto mb-3 h-14 w-14 rounded-full object-contain"
               />
             ) : (
               <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white">

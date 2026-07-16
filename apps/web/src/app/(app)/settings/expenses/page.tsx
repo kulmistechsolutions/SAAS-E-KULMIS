@@ -13,6 +13,10 @@ export default function ExpenseSettingsPage() {
       <SettingsInput label="Default Categories (comma-separated)" value={draft.defaultCategories.join(", ")} onChange={(e) => update({ defaultCategories: e.target.value.split(",").map((s) => s.trim()).filter(Boolean) })} />
       <SettingsInput label="Attachment Size Limit (MB)" type="number" value={draft.attachmentSizeLimitMb} onChange={(e) => update({ attachmentSizeLimitMb: Number(e.target.value) })} />
       <SettingsToggle label="Expense Approval Workflow" checked={draft.approvalWorkflow} onChange={(v) => update({ approvalWorkflow: v })} />
+      <div className="grid gap-4 sm:grid-cols-2">
+        <SettingsInput label="Expense Record Header (optional)" value={draft.expenseHeader} onChange={(e) => update({ expenseHeader: e.target.value })} />
+        <SettingsInput label="Expense Record Footer (optional)" value={draft.expenseFooter} onChange={(e) => update({ expenseFooter: e.target.value })} />
+      </div>
       <SettingsSaveBar dirty={dirty} saving={saving} onSave={save} onCancel={cancel} onResetDefault={resetToDefault} />
     </div>
   );

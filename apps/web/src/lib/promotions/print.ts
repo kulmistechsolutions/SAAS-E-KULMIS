@@ -11,8 +11,9 @@ export function printTranscript(studentId: string) {
   if (!sw) return;
   const school = schoolBranding();
   const logo = school.logoUrl
-    ? `<img src="${school.logoUrl}" alt="" class="logo" style="object-fit:cover"/>`
+    ? `<img src="${school.logoUrl}" alt="" class="logo" style="object-fit:contain"/>`
     : `<div class="logo">${school.name.charAt(0)}</div>`;
+  const centered = school.headerLayout === "CENTERED";
   const history = studentPromotionHistory(studentId);
   const now = new Date();
 
@@ -34,6 +35,7 @@ export function printTranscript(studentId: string) {
     * { font-family: system-ui, -apple-system, Segoe UI, sans-serif; }
     body { padding: 32px; color: #0f172a; }
     .head { display:flex; align-items:center; gap:12px; border-bottom:2px solid #6366f1; padding-bottom:14px; margin-bottom:18px; }
+    .head.centered { flex-direction:column; text-align:center; }
     .logo { width:44px; height:44px; border-radius:10px; background:#6366f1; color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:20px; }
     h1 { margin:0; font-size:20px; }
     .muted { color:#64748b; font-size:13px; }
@@ -46,7 +48,7 @@ export function printTranscript(studentId: string) {
     .foot { margin-top:24px; display:flex; justify-content:space-between; font-size:12px; color:#64748b; }
     .badge { display:inline-block; padding:2px 10px; border-radius:9999px; background:#dcfce7; color:#166534; font-size:12px; font-weight:600; }
   </style></head><body>
-    <div class="head">
+    <div class="head${centered ? " centered" : ""}">
       ${logo}
       <div>
         <h1>${school.name}</h1>
