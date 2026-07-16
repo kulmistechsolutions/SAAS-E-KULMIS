@@ -58,6 +58,13 @@ export interface AdminDashboardResponse {
     username: string;
     createdAt: string;
   }[];
+  upcomingExams: {
+    id: string;
+    title: string;
+    date: string;
+    className: string;
+    section: string | null;
+  }[];
 }
 
 export async function apiAdminDashboard(): Promise<AdminDashboardResponse> {

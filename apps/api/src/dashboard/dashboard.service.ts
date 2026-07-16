@@ -398,9 +398,21 @@ export class DashboardService {
         }),
       ]);
 
-      const [recentAudit, studentsForGrowth, paymentsForChart, expensesForChart] =
+      const [recentAudit, upcomingExams, studentsForGrowth, paymentsForChart, expensesForChart] =
         await Promise.all([
           tx.auditLog.findMany({ orderBy: { createdAt: "desc" }, take: 8 }),
+          tx.exam.findMany({
+            where: { startDate: { gte: new Date() }, status: { not: "DRAFT" } },
+            orderBy: { startDate: "asc" },
+            take: 4,
+            select: {
+              id: true,
+              name: true,
+              startDate: true,
+              class: { select: { name: true } },
+              section: { select: { name: true } },
+            },
+          }),
           tx.student.findMany({
             where: { registrationDate: { gte: sixMonthsAgo } },
             select: { registrationDate: true },
@@ -538,6 +550,13 @@ export class DashboardService {
           action: a.action,
           username: a.username,
           createdAt: a.createdAt,
+        })),
+        upcomingExams: upcomingExams.map((e) => ({
+          id: e.id,
+          title: e.name,
+          date: e.startDate,
+          className: e.class.name,
+          section: e.section?.name ?? null,
         })),
       };
       },

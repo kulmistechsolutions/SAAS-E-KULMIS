@@ -128,11 +128,40 @@ const ACTION_RULES: { method?: string; test: RegExp; action: string }[] = [
   { method: "POST", test: /\/teacher-assignments(\/bulk)?$/, action: "ASSIGNMENT_CREATED" },
 ];
 
+const METHOD_VERB: Record<string, string> = {
+  POST: "CREATED",
+  PATCH: "UPDATED",
+  PUT: "UPDATED",
+  DELETE: "DELETED",
+};
+
+/** True for path segments that are IDs (cuid/uuid-like or numeric), not nouns. */
+function isIdSegment(segment: string): boolean {
+  return /^[a-z0-9]{20,}$/i.test(segment) || /^\d+$/.test(segment);
+}
+
+/**
+ * Fallback for any (method, path) not covered by ACTION_RULES: derive a
+ * generic but still human-readable action from the last meaningful path
+ * segment, e.g. PATCH /api/settings -> SETTINGS_UPDATED,
+ * POST /api/settings/logo -> LOGO_CREATED. Never falls back to the raw
+ * "METHOD /path" string.
+ */
+function genericAction(method: string, path: string): string {
+  const segments = path
+    .split("/")
+    .filter(Boolean)
+    .filter((s) => s !== "api" && !isIdSegment(s));
+  const noun = segments[segments.length - 1] ?? "item";
+  const verb = METHOD_VERB[method] ?? "UPDATED";
+  return `${noun.toUpperCase().replace(/-/g, "_")}_${verb}`;
+}
+
 function friendlyAction(method: string, path: string): string {
   for (const r of ACTION_RULES) {
     if ((!r.method || r.method === method) && r.test.test(path)) return r.action;
   }
-  return `${method} ${path}`;
+  return genericAction(method, path);
 }
 
 /** Pull the class/section/subject/exam context from a request body, if present. */

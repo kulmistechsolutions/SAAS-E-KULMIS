@@ -39,7 +39,7 @@ import {
   money,
   type AdminDashboardResponse,
 } from "@/lib/dashboard/api";
-import { quickActions, upcomingExams } from "@/lib/dashboard-data";
+import { quickActions } from "@/lib/dashboard-data";
 
 const STAT_ICONS: Record<string, LucideIcon> = {
   students: Users,
@@ -67,6 +67,18 @@ const ALERT_ICONS: Record<string, LucideIcon> = {
   info: Info,
   check: CheckCircle2,
 };
+
+/** Turn an audit action code (e.g. "SETTINGS_UPDATED") into a sentence fragment ("Settings updated"). */
+function humanizeAuditAction(action: string): string {
+  const words = action.toLowerCase().split("_");
+  return words.length ? words[0]!.charAt(0).toUpperCase() + words[0]!.slice(1) + " " + words.slice(1).join(" ") : action;
+}
+
+/** Turn a module slug (e.g. "student-attendance") into "Student attendance". */
+function humanizeAuditModule(module: string): string {
+  const s = module.replace(/-/g, " ");
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
 
 const ACTION_ROUTES: Record<string, string> = {
   "Add Student": "/students?add=1",
@@ -337,9 +349,22 @@ function AdminDashboard() {
     if (!data) return [];
     return data.recentActivities.map((a, i) => ({
       id: a.id,
-      text: `${a.action} — ${a.module} (${a.username})`,
+      text: `${humanizeAuditAction(a.action)} · ${humanizeAuditModule(a.module)} (${a.username})`,
       color: ACTIVITY_COLORS[i % ACTIVITY_COLORS.length]!,
     }));
+  }, [data]);
+  const upcomingExams = useMemo(() => {
+    if (!data) return [];
+    return data.upcomingExams.map((e) => {
+      const d = new Date(e.date);
+      return {
+        id: e.id,
+        day: d.toLocaleDateString(undefined, { day: "2-digit" }),
+        month: d.toLocaleDateString(undefined, { month: "short" }).toUpperCase(),
+        title: e.title,
+        subtitle: `${e.className}${e.section ? ` - ${e.section}` : " - All Sections"}`,
+      };
+    });
   }, [data]);
   const alerts = useMemo(() => (data ? buildAlerts(data) : []), [data]);
   const admissionTrend = useMemo(
@@ -537,30 +562,35 @@ function AdminDashboard() {
         <Panel
           title="Upcoming Exams"
           action="View All"
-          onAction={() => toast("Examinations module — coming soon", "info")}
+          onAction={() => router.push("/examinations")}
         >
-          <ul className="space-y-3">
-            {upcomingExams.map((e) => (
-              <li
-                key={e.title}
-                className="flex items-center gap-3 rounded-lg border p-2.5 transition-colors hover:bg-secondary/50"
-              >
-                <span className="flex h-11 w-11 shrink-0 flex-col items-center justify-center rounded-lg bg-primary/10 text-primary">
-                  <span className="text-sm font-bold leading-none">{e.day}</span>
-                  <span className="text-[10px] font-medium">{e.month}</span>
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium text-foreground">
-                    {e.title}
-                  </p>
-                  <p className="truncate text-xs text-muted-foreground">
-                    {e.subtitle}
-                  </p>
-                </div>
-                <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-              </li>
-            ))}
-          </ul>
+          {upcomingExams.length === 0 ? (
+            <p className="py-6 text-center text-sm text-muted-foreground">No upcoming exams scheduled.</p>
+          ) : (
+            <ul className="space-y-3">
+              {upcomingExams.map((e) => (
+                <li
+                  key={e.id}
+                  className="flex cursor-pointer items-center gap-3 rounded-lg border p-2.5 transition-colors hover:bg-secondary/50"
+                  onClick={() => router.push("/examinations")}
+                >
+                  <span className="flex h-11 w-11 shrink-0 flex-col items-center justify-center rounded-lg bg-primary/10 text-primary">
+                    <span className="text-sm font-bold leading-none">{e.day}</span>
+                    <span className="text-[10px] font-medium">{e.month}</span>
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium text-foreground">
+                      {e.title}
+                    </p>
+                    <p className="truncate text-xs text-muted-foreground">
+                      {e.subtitle}
+                    </p>
+                  </div>
+                  <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                </li>
+              ))}
+            </ul>
+          )}
         </Panel>
 
         <Panel

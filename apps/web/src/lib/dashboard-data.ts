@@ -100,69 +100,6 @@ export const incomeVsExpense = {
   ],
 };
 
-export const upcomingExams = [
-  {
-    day: "28",
-    month: "MAY",
-    title: "Mid Term Examination",
-    subtitle: "Grade 10 - All Sections",
-  },
-  {
-    day: "30",
-    month: "MAY",
-    title: "Science Examination",
-    subtitle: "Grade 8 - Section A",
-  },
-  {
-    day: "31",
-    month: "MAY",
-    title: "English Test",
-    subtitle: "Grade 6 - All Sections",
-  },
-  {
-    day: "02",
-    month: "JUN",
-    title: "Maths Examination",
-    subtitle: "Grade 9 - Section B",
-  },
-];
-
-export const recentActivities = [
-  { text: "New student John Doe registered", color: "#3b82f6" },
-  { text: "Fees payment of $250 by Sarah Smith", color: "#f59e0b" },
-  { text: "Exam Mid Term Examination created", color: "#ef4444" },
-  { text: "Attendance marked for today", color: "#8b5cf6" },
-  { text: "Quiz Mathematics Quiz published", color: "#22c55e" },
-];
-
-export const alerts = [
-  {
-    text: "236 students have outstanding fees",
-    icon: "alert" as const,
-    tone: "rose" as const,
-  },
-  {
-    text: "5 teachers have not marked attendance",
-    icon: "alert" as const,
-    tone: "amber" as const,
-  },
-  {
-    text: "3 exams are waiting for marks",
-    icon: "info" as const,
-    tone: "sky" as const,
-  },
-  {
-    text: "2 quizzes are pending review",
-    icon: "info" as const,
-    tone: "sky" as const,
-  },
-  {
-    text: "Backup completed successfully",
-    icon: "check" as const,
-    tone: "emerald" as const,
-  },
-];
-
 export const quickActions = [
   { label: "Add Student", icon: "add-student" as const, theme: "violet" as const },
   { label: "Collect Fees", icon: "collect-fees" as const, theme: "emerald" as const },
