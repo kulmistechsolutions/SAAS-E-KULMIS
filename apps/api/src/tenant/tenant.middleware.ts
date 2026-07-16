@@ -12,6 +12,9 @@ import type { TenantRequest } from "./tenant-request";
  * `req.tenant`. Resolution order:
  *   1. `x-tenant-subdomain` header (used in dev / by the web app middleware)
  *   2. the Host subdomain, e.g. `iskuul1.ekulmis.local` -> `iskuul1`
+ *   3. a `?tenant=` query param — browser `<img>`/`<link>` tags can't send
+ *      custom headers, so public asset routes (e.g. the school logo) pass
+ *      the tenant this way instead.
  *
  * The `schools` table has no RLS, so this lookup runs on the normal connection.
  * If a subdomain is present but unknown, the request is rejected. If no
@@ -52,12 +55,17 @@ export class TenantMiddleware implements NestMiddleware {
     }
 
     const host = (req.headers.host ?? "").split(":")[0].toLowerCase();
-    if (!host || host === this.rootDomain || host === `www.${this.rootDomain}`) {
-      return null;
+    if (host && host !== this.rootDomain && host !== `www.${this.rootDomain}`) {
+      if (host.endsWith(`.${this.rootDomain}`)) {
+        return host.slice(0, host.length - this.rootDomain.length - 1);
+      }
     }
-    if (host.endsWith(`.${this.rootDomain}`)) {
-      return host.slice(0, host.length - this.rootDomain.length - 1);
+
+    const querySub = req.query?.tenant;
+    if (typeof querySub === "string" && querySub.trim()) {
+      return querySub.trim().toLowerCase();
     }
+
     return null;
   }
 }

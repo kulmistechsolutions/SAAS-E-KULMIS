@@ -11,6 +11,7 @@ import {
   apiRemoveSchoolLogo,
   apiUploadSchoolLogo,
   mapSettingsSectionToPatch,
+  resolveLogoUrl,
 } from "./api";
 import { buildSettingsSeed } from "./seed";
 import { validateSettings } from "./format";
@@ -57,7 +58,7 @@ export async function refreshSettings(): Promise<void> {
           ...current.school,
           name: b.name,
           motto: b.motto ?? current.school.motto,
-          logoDataUrl: b.logoUrl,
+          logoDataUrl: resolveLogoUrl(b.logoUrl, b.logoKey),
         },
       });
     } catch {
@@ -368,7 +369,7 @@ export async function loadPublicBranding(): Promise<ReturnType<typeof schoolBran
       loginTitle: b.name,
       footerText: `© ${new Date().getFullYear()} ${b.name}. All rights reserved.`,
       primaryColor: "#3b82f6",
-      logoUrl: b.logoUrl,
+      logoUrl: resolveLogoUrl(b.logoUrl, b.logoKey),
       loginBackgroundUrl: null,
     };
   } catch {

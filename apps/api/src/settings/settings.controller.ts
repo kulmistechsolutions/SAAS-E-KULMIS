@@ -6,7 +6,9 @@ import {
   Get,
   Patch,
   Post,
+  Res,
 } from "@nestjs/common";
+import type { Response } from "express";
 import {
   updateSettingsSchema,
   uploadSchoolLogoSchema,
@@ -31,6 +33,20 @@ export class SettingsController {
   @Get("branding")
   branding(@CurrentTenant() tenant: TenantContext) {
     return this.settings.getBranding(tenant.schoolId);
+  }
+
+  /**
+   * Public logo bytes — used when the storage backend has no direct URL
+   * (local filesystem). `<img>` tags can't send the tenant header, so the
+   * tenant middleware also accepts `?tenant=<subdomain>` for this route.
+   */
+  @Public()
+  @Get("logo")
+  async logo(@CurrentTenant() tenant: TenantContext, @Res() res: Response) {
+    const { buffer, contentType } = await this.settings.getLogoFile(tenant.schoolId);
+    res.setHeader("Content-Type", contentType);
+    res.setHeader("Cache-Control", "public, max-age=300");
+    res.send(buffer);
   }
 
   /** Full settings — staff only (portal roles read branding via /branding). */

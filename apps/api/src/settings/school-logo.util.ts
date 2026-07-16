@@ -38,3 +38,20 @@ export function logoExtension(mime: SchoolLogoMime): string {
 export function schoolLogoKey(schoolId: string, ext: string): string {
   return `${schoolId}/school/logo.${ext}`;
 }
+
+export function logoContentTypeFromKey(key: string): string {
+  const ext = key.split(".").pop()?.toLowerCase();
+  switch (ext) {
+    case "png":
+      return "image/png";
+    case "webp":
+      return "image/webp";
+    case "svg":
+      return "image/svg+xml";
+    case "jpg":
+    case "jpeg":
+      return "image/jpeg";
+    default:
+      return "application/octet-stream";
+  }
+}

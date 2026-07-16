@@ -5,6 +5,7 @@ import { PrismaService } from "../prisma/prisma.service";
 import { StorageService } from "../storage/storage.service";
 import {
   SCHOOL_LOGO_MAX_BYTES,
+  logoContentTypeFromKey,
   logoExtension,
   schoolLogoKey,
   type SchoolLogoMime,
@@ -30,7 +31,12 @@ export class SettingsService {
       "ekulmis";
   }
 
-  /** Resolve a stored logoKey into a browser-usable signed URL. */
+  /**
+   * Resolve a stored logoKey into a browser-usable signed URL when the
+   * storage backend supports one (S3/Supabase/MinIO). Local filesystem
+   * storage has no direct URL — callers fall back to streaming the bytes
+   * through GET /settings/logo (see getLogoFile below).
+   */
   private async attachLogoUrl<T extends { logoKey: string | null }>(
     school: T,
   ): Promise<T & { logoUrl: string | null }> {
@@ -45,6 +51,17 @@ export class SettingsService {
     } catch {
       return { ...school, logoUrl: null };
     }
+  }
+
+  /** Stream the raw logo bytes — used when the storage backend has no direct URL. */
+  async getLogoFile(schoolId: string): Promise<{ buffer: Buffer; contentType: string }> {
+    const school = await this.prisma.school.findUnique({
+      where: { id: schoolId },
+      select: { logoKey: true },
+    });
+    if (!school?.logoKey) throw new NotFoundException("No logo set");
+    const buffer = await this.storage.getObject(this.bucket, school.logoKey);
+    return { buffer, contentType: logoContentTypeFromKey(school.logoKey) };
   }
 
   async get(schoolId: string) {

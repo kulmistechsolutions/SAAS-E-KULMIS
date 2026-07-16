@@ -1,8 +1,20 @@
 "use client";
 
-import { api } from "@/lib/api";
+import { api, API_URL, TENANT } from "@/lib/api";
 import { buildSettingsSeed } from "./seed";
 import type { SettingsState } from "./types";
+
+/**
+ * Resolve a logo into a browser-loadable URL. When the storage backend can't
+ * produce a direct URL (local filesystem), fall back to the public byte-proxy
+ * endpoint — `<img>` tags can't send the tenant header, so the tenant is
+ * passed as a query param instead (see tenant.middleware.ts).
+ */
+export function resolveLogoUrl(logoUrl: string | null, logoKey: string | null): string | null {
+  if (logoUrl) return logoUrl;
+  if (!logoKey) return null;
+  return `${API_URL}/api/settings/logo?tenant=${encodeURIComponent(TENANT)}`;
+}
 
 export interface ApiSchool {
   id: string;
@@ -68,7 +80,7 @@ export function mapApiSchoolToSettings(
       email: row.email ?? base.school.email,
       website: row.website ?? base.school.website,
       principalName: row.principalName ?? base.school.principalName,
-      logoDataUrl: row.logoUrl,
+      logoDataUrl: resolveLogoUrl(row.logoUrl, row.logoKey),
       currency: row.currency,
       timezone: row.timezone,
       language: row.language,

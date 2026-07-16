@@ -3,7 +3,7 @@
  * (dev default "demo") and the bearer access token when present.
  * Automatically refreshes expired access tokens using the stored refresh token.
  */
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
+export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
 const ROOT_DOMAIN = process.env.NEXT_PUBLIC_APP_ROOT_DOMAIN ?? "";
 
 /**
@@ -29,7 +29,7 @@ function resolveTenant(): string {
   return fallback;
 }
 
-const TENANT = resolveTenant();
+export const TENANT = resolveTenant();
 
 const TOKEN_KEY = "ekulmis_access_token";
 const REFRESH_KEY = "ekulmis_refresh_token";
