@@ -16,7 +16,6 @@ import { PrismaService } from "../prisma/prisma.service";
 import { TeachersService } from "../teachers/teachers.service";
 import { AiService } from "../ai/ai.service";
 import { SubscriptionsService } from "../subscriptions/subscriptions.service";
-import { verifyPassword } from "../auth/password.util";
 
 function padQuizSeq(n: number): string {
   return String(n).padStart(6, "0");
@@ -412,16 +411,9 @@ export class QuizService {
           status: true,
           classId: true,
           sectionId: true,
-          portalPasswordHash: true,
         },
       });
       if (!student) throw new UnauthorizedException("Invalid student ID");
-      const passwordOk =
-        !!student.portalPasswordHash &&
-        (await verifyPassword(dto.password, student.portalPasswordHash));
-      if (!passwordOk) {
-        throw new UnauthorizedException("Invalid student ID or password");
-      }
       this.assertStudentEligible(student, quiz);
 
       const prior = await tx.quizAttempt.count({

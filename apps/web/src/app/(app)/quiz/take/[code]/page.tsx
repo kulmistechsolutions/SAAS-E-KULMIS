@@ -45,7 +45,6 @@ function TakeQuizContent({ code }: { code: string }) {
   const [mounted, setMounted] = useState(false);
   const [step, setStep] = useState<"login" | "instructions" | "quiz" | "done">("login");
   const [studentCode, setStudentCode] = useState("");
-  const [password, setPassword] = useState("");
   const [access, setAccess] = useState<QuizAccessResponse | null>(null);
   const [quiz, setQuiz] = useState<PublicQuiz | null>(null);
   const [loading, setLoading] = useState(false);
@@ -121,7 +120,6 @@ function TakeQuizContent({ code }: { code: string }) {
       const res = await apiVerifyQuizAccess({
         quizCode: code,
         studentCode: studentCode.trim(),
-        password,
       });
       setAccess(res);
       setStep("instructions");
@@ -244,7 +242,7 @@ function TakeQuizContent({ code }: { code: string }) {
         <div className="text-center">
           <h1 className="text-2xl font-bold">Online Quiz</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Sign in with your Student ID and password to begin.
+            Sign in with your Student ID to begin.
           </p>
         </div>
         <form onSubmit={(e) => void handleLogin(e)} className="space-y-4 rounded-xl border bg-card p-6 shadow-sm">
@@ -257,18 +255,6 @@ function TakeQuizContent({ code }: { code: string }) {
               onChange={(e) => setStudentCode(e.target.value)}
               placeholder="e.g. SHMM000001"
               autoFocus
-              required
-            />
-          </div>
-          <div>
-            <Label htmlFor="quizPassword">Password</Label>
-            <Input
-              id="quizPassword"
-              type="password"
-              className="mt-1.5"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
               required
             />
           </div>

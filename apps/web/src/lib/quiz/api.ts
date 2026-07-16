@@ -262,7 +262,6 @@ export const apiQuizAttempts = (quizId: string) =>
 export const apiVerifyQuizAccess = (body: {
   quizCode: string;
   studentCode: string;
-  password: string;
 }) =>
   api<QuizAccessResponse>("/quiz/verify-access", {
     method: "POST",
