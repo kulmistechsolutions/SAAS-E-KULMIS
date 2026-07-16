@@ -13,6 +13,7 @@ import {
 import {
   assignSchoolSubscriptionSchema,
   createSubscriptionPlanSchema,
+  purchaseSubscriptionPlanSchema,
   updateSubscriptionPlanSchema,
   UserRole,
 } from "@ekulmis/shared";
@@ -165,7 +166,10 @@ export class PlatformSubscriptionsController {
   }
 }
 
-/** School Administrator: read-only view of the school's own subscription. */
+/**
+ * School Administrator: view the school's own subscription, browse plans,
+ * and self-purchase/renew via WaafiPay (mirrors the SMS package flow).
+ */
 @Controller("subscriptions")
 export class SubscriptionsController {
   constructor(private readonly subscriptions: SubscriptionsService) {}
@@ -174,5 +178,66 @@ export class SubscriptionsController {
   @Get("me")
   getMine(@CurrentUser() me: AuthUser) {
     return this.subscriptions.getMySubscription(me.schoolId);
+  }
+
+  @Roles(UserRole.ADMINISTRATOR)
+  @Get("plans")
+  listPlans() {
+    return this.subscriptions.listAvailablePlans();
+  }
+
+  @Roles(UserRole.ADMINISTRATOR)
+  @Post("purchase")
+  purchase(@CurrentUser() me: AuthUser, @Body() body: unknown) {
+    const parsed = purchaseSubscriptionPlanSchema.safeParse(body);
+    if (!parsed.success) throw new BadRequestException(parsed.error.flatten());
+    return this.subscriptions.initiateSubscriptionPurchase(
+      me.schoolId,
+      me.userId,
+      parsed.data,
+    );
+  }
+
+  @Roles(UserRole.ADMINISTRATOR)
+  @Get("payments")
+  listPayments(@CurrentUser() me: AuthUser) {
+    return this.subscriptions.listSchoolSubscriptionOrders(me.schoolId);
+  }
+
+  @Roles(UserRole.ADMINISTRATOR)
+  @Get("payments/:id")
+  paymentReceipt(@CurrentUser() me: AuthUser, @Param("id") id: string) {
+    return this.subscriptions.getSubscriptionOrderReceipt(me.schoolId, id);
+  }
+
+  @Roles(UserRole.ADMINISTRATOR)
+  @Post("payments/:id/verify")
+  verifyPayment(@CurrentUser() me: AuthUser, @Param("id") id: string) {
+    return this.subscriptions.verifyAndActivateSubscriptionPayment(id, me.schoolId);
+  }
+
+  /** Waafi callbacks — public; activation still verifies with Waafi inquiry. */
+  @Public()
+  @Post("payments/waafi/callback/success")
+  successCallback(@Body() body: Record<string, unknown>) {
+    return this.subscriptions.handleSubscriptionCallback("success", body ?? {});
+  }
+
+  @Public()
+  @Get("payments/waafi/callback/success")
+  successCallbackGet(@Query() query: Record<string, unknown>) {
+    return this.subscriptions.handleSubscriptionCallback("success", query ?? {});
+  }
+
+  @Public()
+  @Post("payments/waafi/callback/failure")
+  failureCallback(@Body() body: Record<string, unknown>) {
+    return this.subscriptions.handleSubscriptionCallback("failure", body ?? {});
+  }
+
+  @Public()
+  @Get("payments/waafi/callback/failure")
+  failureCallbackGet(@Query() query: Record<string, unknown>) {
+    return this.subscriptions.handleSubscriptionCallback("failure", query ?? {});
   }
 }

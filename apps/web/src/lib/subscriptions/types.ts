@@ -10,6 +10,9 @@ export interface SchoolSubscriptionMe {
   studentCount: number;
   studentLimit: number | null;
   studentsRemaining: number | null;
+  teacherCount: number;
+  teacherLimit: number | null;
+  teachersRemaining: number | null;
   aiGradingUsed: number;
   aiLimit: number | null;
   aiRemaining: number | null;
@@ -17,6 +20,7 @@ export interface SchoolSubscriptionMe {
     id: string;
     name: string;
     maxStudents: number | null;
+    maxTeachers: number | null;
     durationDays: number;
     aiGradingMonthlyQuota: number | null;
     priceUsd: number | string | null;

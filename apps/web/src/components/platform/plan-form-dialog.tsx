@@ -10,6 +10,7 @@ import type { PlatformSubscriptionPlan } from "@/lib/platform/api";
 export interface PlanFormValues {
   name: string;
   maxStudents: number | null;
+  maxTeachers: number | null;
   durationDays: number;
   aiGradingMonthlyQuota: number | null;
   priceUsd: number | null;
@@ -30,6 +31,7 @@ function toStr(n: number | string | null | undefined): string {
 export function PlanFormDialog({ open, onClose, plan, onSubmit }: Props) {
   const [name, setName] = useState("");
   const [maxStudents, setMaxStudents] = useState("");
+  const [maxTeachers, setMaxTeachers] = useState("");
   const [durationDays, setDurationDays] = useState("30");
   const [aiQuota, setAiQuota] = useState("");
   const [priceUsd, setPriceUsd] = useState("");
@@ -41,6 +43,7 @@ export function PlanFormDialog({ open, onClose, plan, onSubmit }: Props) {
     if (!open) return;
     setName(plan?.name ?? "");
     setMaxStudents(toStr(plan?.maxStudents));
+    setMaxTeachers(toStr(plan?.maxTeachers));
     setDurationDays(toStr(plan?.durationDays ?? 30) || "30");
     setAiQuota(toStr(plan?.aiGradingMonthlyQuota));
     setPriceUsd(toStr(plan?.priceUsd));
@@ -61,6 +64,7 @@ export function PlanFormDialog({ open, onClose, plan, onSubmit }: Props) {
       await onSubmit({
         name: name.trim(),
         maxStudents: maxStudents.trim() === "" ? null : Number(maxStudents),
+        maxTeachers: maxTeachers.trim() === "" ? null : Number(maxTeachers),
         durationDays: duration,
         aiGradingMonthlyQuota: aiQuota.trim() === "" ? null : Number(aiQuota),
         priceUsd: priceUsd.trim() === "" ? null : Number(priceUsd),
@@ -116,6 +120,16 @@ export function PlanFormDialog({ open, onClose, plan, onSubmit }: Props) {
               min={1}
               value={maxStudents}
               onChange={(e) => setMaxStudents(e.target.value)}
+              placeholder="Unlimited"
+            />
+          </div>
+          <div>
+            <Label>Max Teachers</Label>
+            <Input
+              type="number"
+              min={1}
+              value={maxTeachers}
+              onChange={(e) => setMaxTeachers(e.target.value)}
               placeholder="Unlimited"
             />
           </div>

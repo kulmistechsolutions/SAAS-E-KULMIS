@@ -405,6 +405,7 @@ export default function PlatformSubscriptionsPage() {
               <tr className="border-b border-white/10 text-left text-slate-400">
                 <th className="px-4 py-3">Plan</th>
                 <th className="px-4 py-3">Max Students</th>
+                <th className="px-4 py-3">Max Teachers</th>
                 <th className="px-4 py-3">Duration</th>
                 <th className="px-4 py-3">AI Grading / mo</th>
                 <th className="px-4 py-3">Price</th>
@@ -418,6 +419,9 @@ export default function PlatformSubscriptionsPage() {
                   <td className="px-4 py-3 font-medium text-white">{p.name}</td>
                   <td className="px-4 py-3 text-slate-300">
                     {p.maxStudents ?? "Unlimited"}
+                  </td>
+                  <td className="px-4 py-3 text-slate-300">
+                    {p.maxTeachers ?? "Unlimited"}
                   </td>
                   <td className="px-4 py-3 text-slate-300">{p.durationDays} days</td>
                   <td className="px-4 py-3 text-slate-300">
@@ -466,7 +470,7 @@ export default function PlatformSubscriptionsPage() {
               ))}
               {plans.length === 0 && !loading && (
                 <tr>
-                  <td colSpan={7} className="px-4 py-12 text-center text-slate-500">
+                  <td colSpan={8} className="px-4 py-12 text-center text-slate-500">
                     No plans yet — create your first plan.
                   </td>
                 </tr>

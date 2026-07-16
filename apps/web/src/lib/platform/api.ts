@@ -510,6 +510,7 @@ export interface PlatformSubscriptionPlan {
   id: string;
   name: string;
   maxStudents: number | null;
+  maxTeachers: number | null;
   durationDays: number;
   aiGradingMonthlyQuota: number | null;
   priceUsd: string | number | null;
@@ -649,6 +650,7 @@ export const fetchPlatformSubscriptionPlans = () =>
 export const createPlatformSubscriptionPlan = (body: {
   name: string;
   maxStudents: number | null;
+  maxTeachers: number | null;
   durationDays: number;
   aiGradingMonthlyQuota: number | null;
   priceUsd?: number | null;
@@ -664,6 +666,7 @@ export const updatePlatformSubscriptionPlan = (
   body: Partial<{
     name: string;
     maxStudents: number | null;
+    maxTeachers: number | null;
     durationDays: number;
     aiGradingMonthlyQuota: number | null;
     priceUsd: number | null;

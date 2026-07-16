@@ -9,6 +9,7 @@ import type {
 } from "@ekulmis/shared";
 import { PrismaService } from "../prisma/prisma.service";
 import { hashPassword } from "../auth/password.util";
+import { SubscriptionsService } from "../subscriptions/subscriptions.service";
 
 const meInclude = {
   assignments: {
@@ -30,10 +31,14 @@ const DEFAULT_TEACHER_PASSWORD = "12345";
 
 @Injectable()
 export class TeachersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly subscriptions: SubscriptionsService,
+  ) {}
 
   /** Register a teacher: auto ID from prefix + auto login User (role TEACHER). */
   async register(schoolId: string, dto: RegisterTeacherInput) {
+    await this.subscriptions.assertCanAddTeacher(schoolId);
     return this.prisma.forTenant(schoolId, async (tx) => {
       const school = await tx.school.findUnique({
         where: { id: schoolId },

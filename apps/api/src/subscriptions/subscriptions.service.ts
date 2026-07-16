@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   ForbiddenException,
   Injectable,
@@ -7,13 +8,25 @@ import {
 } from "@nestjs/common";
 import { Cron, CronExpression } from "@nestjs/schedule";
 import { Prisma } from "@prisma/client";
+import { randomBytes } from "node:crypto";
 import type {
   AssignSchoolSubscriptionInput,
   CreateSubscriptionPlanInput,
+  PurchaseSubscriptionPlanInput,
   UpdateSubscriptionPlanInput,
 } from "@ekulmis/shared";
 import { PrismaService } from "../prisma/prisma.service";
 import { NotificationsService } from "../notifications/notifications.service";
+import {
+  isApprovedCallbackStatus,
+  normalizeWaafiAccount,
+  waafiApiPurchase,
+  waafiGetTranInfo,
+  waafiHppPurchase,
+  type WaafiCredentials,
+} from "../sms/waafi.client";
+
+const ORDER_TTL_MS = 15 * 60 * 1000; // 15 minutes
 
 function addDays(date: Date, days: number): Date {
   const d = new Date(date);
@@ -37,6 +50,7 @@ function isSameMonth(a: Date, b: Date): boolean {
 const MSG_EXPIRED =
   "Your school subscription has expired. Please contact Platform Administrator.";
 const MSG_STUDENT_LIMIT = "Maximum student limit reached.";
+const MSG_TEACHER_LIMIT = "Maximum teacher limit reached.";
 const MSG_AI_LIMIT = "Monthly AI grading quota exhausted.";
 
 export type PlatformAdminActor = { adminId: string; username: string };
@@ -296,17 +310,20 @@ export class SubscriptionsService {
       include: { plan: true },
     });
     const studentCount = await this.prisma.student.count({ where: { schoolId } });
+    const teacherCount = await this.prisma.teacher.count({ where: { schoolId } });
 
     if (!sub) {
       return {
         school,
         studentCount,
+        teacherCount,
         subscription: null,
       };
     }
 
     const status = this.effectiveStatus(sub);
     const maxStudents = sub.plan.maxStudents;
+    const maxTeachers = sub.plan.maxTeachers;
     const aiQuota = sub.plan.aiGradingMonthlyQuota;
     const aiUsed = isSameMonth(sub.aiGradingResetAt, new Date())
       ? sub.aiGradingUsed
@@ -315,6 +332,7 @@ export class SubscriptionsService {
     return {
       school,
       studentCount,
+      teacherCount,
       subscription: {
         id: sub.id,
         status,
@@ -328,6 +346,10 @@ export class SubscriptionsService {
         studentsUsed: studentCount,
         studentsRemaining:
           maxStudents == null ? null : Math.max(0, maxStudents - studentCount),
+        teacherLimit: maxTeachers,
+        teachersUsed: teacherCount,
+        teachersRemaining:
+          maxTeachers == null ? null : Math.max(0, maxTeachers - teacherCount),
         aiLimit: aiQuota,
         aiUsed,
         aiRemaining: aiQuota == null ? null : Math.max(0, aiQuota - aiUsed),
@@ -689,6 +711,19 @@ export class SubscriptionsService {
     }
   }
 
+  /** Throws if the school cannot register another teacher under its plan. */
+  async assertCanAddTeacher(schoolId: string): Promise<void> {
+    const sub = await this.getSubscription(schoolId);
+    if (!sub || sub.status !== "ACTIVE") {
+      throw new ForbiddenException(MSG_EXPIRED);
+    }
+    if (sub.plan.maxTeachers == null) return;
+    const count = await this.prisma.teacher.count({ where: { schoolId } });
+    if (count >= sub.plan.maxTeachers) {
+      throw new ForbiddenException(MSG_TEACHER_LIMIT);
+    }
+  }
+
   /**
    * Atomically consume one unit of monthly AI grading quota.
    * Uses SELECT … FOR UPDATE so concurrent quiz submissions cannot overshoot.
@@ -782,6 +817,9 @@ export class SubscriptionsService {
         studentCount: await this.prisma.student.count({ where: { schoolId } }),
         studentLimit: null,
         studentsRemaining: null,
+        teacherCount: await this.prisma.teacher.count({ where: { schoolId } }),
+        teacherLimit: null,
+        teachersRemaining: null,
         aiGradingUsed: 0,
         aiLimit: null,
         aiRemaining: null,
@@ -794,12 +832,16 @@ export class SubscriptionsService {
     const studentCount = await this.prisma.student.count({
       where: { schoolId },
     });
+    const teacherCount = await this.prisma.teacher.count({
+      where: { schoolId },
+    });
     const status = this.effectiveStatus(sub);
     const remaining = daysUntil(sub.endDate);
     const aiUsed = isSameMonth(sub.aiGradingResetAt, new Date())
       ? sub.aiGradingUsed
       : 0;
     const maxStudents = sub.plan.maxStudents;
+    const maxTeachers = sub.plan.maxTeachers;
     const aiQuota = sub.plan.aiGradingMonthlyQuota;
 
     let tone: "green" | "orange" | "red" = "green";
@@ -828,6 +870,10 @@ export class SubscriptionsService {
       studentLimit: maxStudents,
       studentsRemaining:
         maxStudents == null ? null : Math.max(0, maxStudents - studentCount),
+      teacherCount,
+      teacherLimit: maxTeachers,
+      teachersRemaining:
+        maxTeachers == null ? null : Math.max(0, maxTeachers - teacherCount),
       aiGradingUsed: aiUsed,
       aiLimit: aiQuota,
       aiRemaining: aiQuota == null ? null : Math.max(0, aiQuota - aiUsed),
@@ -881,5 +927,620 @@ export class SubscriptionsService {
         `Failed to write platform audit log: ${e instanceof Error ? e.message : e}`,
       );
     }
+  }
+
+  // ── School self-service: browse + purchase a plan via WaafiPay ───────
+  // Mirrors SmsPaymentService's flow exactly (same shared WaafiPaymentConfig
+  // / merchant account) — just activates a SchoolSubscription instead of
+  // SMS credits.
+
+  /** Active plans a school can browse/purchase. No pricing secrets involved. */
+  listAvailablePlans() {
+    return this.prisma.subscriptionPlan.findMany({
+      where: { isActive: true },
+      orderBy: { priceUsd: "asc" },
+    });
+  }
+
+  private async ensureWaafiConfig() {
+    const existing = await this.prisma.waafiPaymentConfig.findFirst();
+    if (existing) return existing;
+    return this.prisma.waafiPaymentConfig.create({
+      data: {
+        baseUrl: process.env.WAAFI_BASE_URL ?? "https://sandbox.waafipay.net/asm",
+        merchantUid: process.env.WAAFI_MERCHANT_UID ?? "",
+        apiUserId: process.env.WAAFI_API_USER_ID ?? "",
+        apiKey: process.env.WAAFI_API_KEY ?? "",
+        storeId: process.env.WAAFI_STORE_ID ?? "",
+        hppKey: process.env.WAAFI_HPP_KEY ?? "",
+        callbackBaseUrl: process.env.WAAFI_CALLBACK_BASE_URL ?? null,
+      },
+    });
+  }
+
+  private toWaafiCreds(row: {
+    baseUrl: string;
+    merchantUid: string;
+    apiUserId: string;
+    apiKey: string;
+    storeId: string;
+    hppKey: string;
+  }): WaafiCredentials {
+    return {
+      baseUrl: row.baseUrl,
+      merchantUid: row.merchantUid,
+      apiUserId: row.apiUserId,
+      apiKey: row.apiKey,
+      storeId: row.storeId,
+      hppKey: row.hppKey,
+    };
+  }
+
+  private async requirePaymentsUnlocked() {
+    const cfg = await this.ensureWaafiConfig();
+    const unlocked = cfg.simulationMode || (cfg.connectionVerified && cfg.enabled);
+    if (!unlocked) {
+      throw new ConflictException(
+        "WaafiPay payments are disabled by Super Admin. Enable them in Platform → Waafi Payments.",
+      );
+    }
+    return cfg;
+  }
+
+  private makeSubscriptionReferenceId(): string {
+    const ts = Date.now().toString(36).toUpperCase();
+    const rnd = randomBytes(4).toString("hex").toUpperCase();
+    return `SUB-${ts}-${rnd}`;
+  }
+
+  private async nextSubscriptionReceipt(
+    tx: Prisma.TransactionClient,
+  ): Promise<string> {
+    const count = await tx.subscriptionPaymentOrder.count({
+      where: { receiptNumber: { not: null } },
+    });
+    return `SUBRCP${String(count + 1).padStart(6, "0")}`;
+  }
+
+  private async auditPayment(
+    orderId: string,
+    schoolId: string,
+    action: string,
+    success: boolean,
+    message: string,
+    details?: Record<string, unknown>,
+    actorId?: string,
+  ) {
+    await this.prisma.subscriptionPaymentAuditLog.create({
+      data: {
+        orderId,
+        schoolId,
+        action,
+        success,
+        message,
+        details: details ? (details as Prisma.InputJsonValue) : undefined,
+        actorId: actorId ?? null,
+      },
+    });
+  }
+
+  async initiateSubscriptionPurchase(
+    schoolId: string,
+    userId: string,
+    input: PurchaseSubscriptionPlanInput,
+  ) {
+    const cfg = await this.requirePaymentsUnlocked();
+    const plan = await this.prisma.subscriptionPlan.findUnique({
+      where: { id: input.planId },
+    });
+    if (!plan || !plan.isActive) {
+      throw new NotFoundException("Plan not found or inactive.");
+    }
+    if (plan.priceUsd == null) {
+      throw new BadRequestException(
+        "This plan has no price set — contact Platform Administrator.",
+      );
+    }
+
+    const channel =
+      input.channel ?? (cfg.defaultMethod as "API_PURCHASE" | "HPP_PURCHASE");
+    const paymentMethod = input.paymentMethod ?? "MWALLET_ACCOUNT";
+
+    let payerAccount: string | null = null;
+    if (input.payerAccount) {
+      payerAccount = normalizeWaafiAccount(input.payerAccount);
+      if (!/^\d{9,15}$/.test(payerAccount)) {
+        throw new BadRequestException(
+          "Invalid payer mobile number. Use international format, e.g. 252611111111.",
+        );
+      }
+    }
+    if (channel === "API_PURCHASE" && !payerAccount) {
+      throw new BadRequestException(
+        "payerAccount (mobile wallet number) is required for direct Waafi payment.",
+      );
+    }
+
+    await this.expireStaleSubscriptionOrders(schoolId);
+
+    const referenceId = this.makeSubscriptionReferenceId();
+    const amount = Number(plan.priceUsd);
+    const expiresAt = new Date(Date.now() + ORDER_TTL_MS);
+
+    const order = await this.prisma.subscriptionPaymentOrder.create({
+      data: {
+        schoolId,
+        planId: plan.id,
+        referenceId,
+        invoiceId: referenceId,
+        amount: plan.priceUsd,
+        currency: cfg.currency || "USD",
+        status: "PENDING",
+        paymentMethod,
+        channel,
+        payerAccount,
+        initiatedByUserId: userId,
+        expiresAt,
+      },
+    });
+
+    await this.auditPayment(
+      order.id,
+      schoolId,
+      "CREATED",
+      true,
+      "Payment order created",
+      { planId: plan.id, amount, channel, referenceId, simulation: cfg.simulationMode },
+      userId,
+    );
+
+    if (cfg.simulationMode) {
+      const simTxn = `SIM-${Date.now()}`;
+      await this.prisma.subscriptionPaymentOrder.update({
+        where: { id: order.id },
+        data: {
+          status: "PROCESSING",
+          channel: "SIMULATION",
+          waafiTransactionId: simTxn,
+          responsePayload: {
+            simulation: true,
+            message: "Simulated WaafiPay approval",
+            referenceId,
+          } as Prisma.InputJsonValue,
+        },
+      });
+      await this.auditPayment(
+        order.id,
+        schoolId,
+        "WAAFI_RESPONSE",
+        true,
+        "Simulated WaafiPay approval (simulation mode)",
+        { transactionId: simTxn },
+        userId,
+      );
+      return this.activateSubscriptionOrder(order.id, {
+        transactionId: simTxn,
+        responsePayload: { simulation: true, referenceId },
+      });
+    }
+
+    const creds = this.toWaafiCreds(cfg);
+    const description = `Subscription plan: ${plan.name}`;
+
+    if (channel === "HPP_PURCHASE") {
+      const callbackBase =
+        cfg.callbackBaseUrl?.replace(/\/+$/, "") ||
+        process.env.WAAFI_CALLBACK_BASE_URL?.replace(/\/+$/, "");
+      if (!callbackBase) {
+        await this.failSubscriptionOrder(
+          order.id,
+          schoolId,
+          "Callback base URL is not configured by Super Admin.",
+        );
+        throw new ConflictException(
+          "Payment callbacks are not configured. Contact platform administrator.",
+        );
+      }
+
+      const result = await waafiHppPurchase(creds, {
+        accountNo: payerAccount ?? undefined,
+        referenceId,
+        amount,
+        currency: order.currency,
+        description,
+        successCallbackUrl: `${callbackBase}/api/subscriptions/payments/waafi/callback/success`,
+        failureCallbackUrl: `${callbackBase}/api/subscriptions/payments/waafi/callback/failure`,
+      });
+
+      await this.prisma.subscriptionPaymentOrder.update({
+        where: { id: order.id },
+        data: {
+          status: result.ok ? "PROCESSING" : "FAILED",
+          waafiRequestId: result.requestId,
+          waafiOrderId: result.orderId ?? null,
+          hppUrl: result.hppUrl ?? result.directPaymentLink ?? null,
+          requestPayload: result.requestBody as Prisma.InputJsonValue,
+          responsePayload: result.raw as Prisma.InputJsonValue,
+          failureReason: result.ok ? null : result.responseMsg,
+        },
+      });
+
+      await this.auditPayment(
+        order.id,
+        schoolId,
+        "WAAFI_RESPONSE",
+        result.ok,
+        result.ok ? "HPP session created" : result.responseMsg,
+        { responseCode: result.responseCode, orderId: result.orderId },
+        userId,
+      );
+
+      if (!result.ok) {
+        throw new BadRequestException(
+          result.responseMsg || "Failed to create Waafi hosted payment session.",
+        );
+      }
+
+      return this.getSubscriptionOrderReceipt(schoolId, order.id);
+    }
+
+    // Direct API_PURCHASE
+    const result = await waafiApiPurchase(creds, {
+      accountNo: payerAccount!,
+      referenceId,
+      invoiceId: referenceId,
+      amount,
+      currency: order.currency,
+      description,
+      paymentMethod,
+    });
+
+    await this.prisma.subscriptionPaymentOrder.update({
+      where: { id: order.id },
+      data: {
+        status: result.ok ? "PROCESSING" : "FAILED",
+        waafiRequestId: result.requestId,
+        waafiTransactionId: result.transactionId ?? null,
+        waafiIssuerTxnId: result.issuerTransactionId ?? null,
+        requestPayload: result.requestBody as Prisma.InputJsonValue,
+        responsePayload: result.raw as Prisma.InputJsonValue,
+        failureReason: result.ok ? null : result.responseMsg,
+      },
+    });
+
+    await this.auditPayment(
+      order.id,
+      schoolId,
+      "WAAFI_RESPONSE",
+      result.ok,
+      result.ok ? "Waafi purchase approved" : result.responseMsg,
+      { responseCode: result.responseCode, transactionId: result.transactionId },
+      userId,
+    );
+
+    if (!result.ok) {
+      throw new BadRequestException(
+        result.responseMsg || "Waafi payment was declined.",
+      );
+    }
+
+    return this.activateSubscriptionOrder(order.id, {
+      transactionId: result.transactionId,
+      issuerTransactionId: result.issuerTransactionId,
+      responsePayload: result.raw,
+    });
+  }
+
+  async handleSubscriptionCallback(
+    kind: "success" | "failure",
+    payload: Record<string, unknown>,
+  ) {
+    const referenceId = String(
+      payload.referenceId ?? payload.ReferenceId ?? payload.invoiceId ?? payload.InvoiceId ?? "",
+    ).trim();
+    if (!referenceId) return { ok: false, message: "Missing referenceId" };
+
+    const order = await this.prisma.subscriptionPaymentOrder.findUnique({
+      where: { referenceId },
+    });
+    if (!order) return { ok: false, message: "Unknown payment reference" };
+
+    if (order.status === "SUCCESS") {
+      return { ok: true, message: "Already activated", orderId: order.id };
+    }
+
+    await this.prisma.subscriptionPaymentOrder.update({
+      where: { id: order.id },
+      data: { callbackPayload: payload as Prisma.InputJsonValue },
+    });
+
+    await this.auditPayment(
+      order.id,
+      order.schoolId,
+      "CALLBACK",
+      kind === "success",
+      `Waafi ${kind} callback received`,
+      payload,
+    );
+
+    if (kind === "failure") {
+      await this.failSubscriptionOrder(
+        order.id,
+        order.schoolId,
+        String(payload.responseMsg ?? payload.message ?? "Payment failed"),
+      );
+      return { ok: false, message: "Payment marked failed", orderId: order.id };
+    }
+
+    const status = payload.status ?? payload.tranStatusDesc ?? payload.state ?? payload.Status;
+    const transactionId =
+      payload.transactionId ?? payload.TransactionId ?? payload.transaction_id;
+
+    if (!isApprovedCallbackStatus(status) && !transactionId) {
+      return this.verifyAndActivateSubscriptionPayment(order.id);
+    }
+
+    return this.activateSubscriptionOrder(order.id, {
+      transactionId: transactionId != null ? String(transactionId) : undefined,
+      responsePayload: payload,
+    });
+  }
+
+  async verifyAndActivateSubscriptionPayment(orderId: string, schoolId?: string) {
+    const order = await this.prisma.subscriptionPaymentOrder.findUnique({
+      where: { id: orderId },
+    });
+    if (!order) throw new NotFoundException("Payment order not found.");
+    if (schoolId && order.schoolId !== schoolId) {
+      throw new ForbiddenException("Payment order does not belong to this school.");
+    }
+    if (order.status === "SUCCESS") {
+      return this.getSubscriptionOrderReceipt(order.schoolId, order.id);
+    }
+    if (order.status === "CANCELLED") {
+      throw new ConflictException(`Payment is ${order.status}.`);
+    }
+    if (order.expiresAt && order.expiresAt < new Date() && order.status === "PENDING") {
+      await this.failSubscriptionOrder(order.id, order.schoolId, "Payment order expired.", "EXPIRED");
+      throw new BadRequestException("Payment order expired.");
+    }
+
+    const cfg = await this.ensureWaafiConfig();
+    const info = await waafiGetTranInfo(this.toWaafiCreds(cfg), order.referenceId);
+
+    await this.prisma.subscriptionPaymentOrder.update({
+      where: { id: order.id },
+      data: { verifyPayload: info.raw as Prisma.InputJsonValue },
+    });
+
+    await this.auditPayment(
+      order.id,
+      order.schoolId,
+      "VERIFY",
+      info.ok,
+      info.ok
+        ? `Verified with Waafi (${info.status ?? info.tranStatusDesc})`
+        : info.raw.responseMsg || "Verification failed",
+      info.raw as unknown as Record<string, unknown>,
+    );
+
+    if (!info.ok) {
+      throw new BadRequestException(
+        info.raw.responseMsg || "Payment not yet confirmed by WaafiPay. Try again shortly.",
+      );
+    }
+
+    return this.activateSubscriptionOrder(order.id, {
+      transactionId: info.transactionId,
+      responsePayload: info.raw,
+    });
+  }
+
+  private async activateSubscriptionOrder(
+    orderId: string,
+    opts: {
+      transactionId?: string;
+      issuerTransactionId?: string;
+      responsePayload?: unknown;
+    } = {},
+  ) {
+    if (opts.transactionId) {
+      const dup = await this.prisma.subscriptionPaymentOrder.findFirst({
+        where: {
+          waafiTransactionId: opts.transactionId,
+          id: { not: orderId },
+          status: "SUCCESS",
+        },
+      });
+      if (dup) {
+        throw new ConflictException(
+          "This Waafi transaction was already applied to another order.",
+        );
+      }
+    }
+
+    const result = await this.prisma.$transaction(async (tx) => {
+      const order = await tx.subscriptionPaymentOrder.findUnique({
+        where: { id: orderId },
+        include: { plan: true },
+      });
+      if (!order) throw new NotFoundException("Payment order not found.");
+
+      if (order.status === "SUCCESS") {
+        return { order, alreadyActive: true };
+      }
+      if (order.status === "FAILED" || order.status === "EXPIRED" || order.status === "CANCELLED") {
+        throw new ConflictException(`Cannot activate payment in status ${order.status}.`);
+      }
+
+      const receiptNumber = order.receiptNumber ?? (await this.nextSubscriptionReceipt(tx));
+
+      const updated = await tx.subscriptionPaymentOrder.update({
+        where: { id: order.id },
+        data: {
+          status: "SUCCESS",
+          receiptNumber,
+          waafiTransactionId: opts.transactionId ?? order.waafiTransactionId ?? null,
+          waafiIssuerTxnId: opts.issuerTransactionId ?? order.waafiIssuerTxnId ?? null,
+          responsePayload:
+            opts.responsePayload !== undefined
+              ? (opts.responsePayload as Prisma.InputJsonValue)
+              : undefined,
+          paidAt: new Date(),
+          activatedAt: new Date(),
+          failureReason: null,
+        },
+        include: { plan: true },
+      });
+
+      // Activate/renew the school's subscription to this plan.
+      const startDate = new Date();
+      const endDate = addDays(startDate, order.plan.durationDays);
+      await tx.schoolSubscription.upsert({
+        where: { schoolId: order.schoolId },
+        create: {
+          schoolId: order.schoolId,
+          planId: order.planId,
+          status: "ACTIVE",
+          startDate,
+          endDate,
+          aiGradingUsed: 0,
+          aiGradingResetAt: startDate,
+          assignedByAdminId: null,
+          assignedByUsername: null,
+        },
+        update: {
+          planId: order.planId,
+          status: "ACTIVE",
+          startDate,
+          endDate,
+          aiGradingUsed: 0,
+          aiGradingResetAt: startDate,
+          assignedByAdminId: null,
+          assignedByUsername: null,
+        },
+      });
+
+      await tx.subscriptionHistory.create({
+        data: {
+          schoolId: order.schoolId,
+          planId: order.planId,
+          planName: order.plan.name,
+          status: "ACTIVE",
+          startDate,
+          endDate,
+          assignedByAdminId: null,
+          assignedByUsername: null,
+          action: "SELF_PURCHASE",
+        },
+      });
+
+      await tx.subscriptionPaymentAuditLog.create({
+        data: {
+          schoolId: order.schoolId,
+          orderId: order.id,
+          action: "ACTIVATED",
+          success: true,
+          message: `Subscription activated — plan "${order.plan.name}"`,
+          details: { receiptNumber, transactionId: opts.transactionId } as Prisma.InputJsonValue,
+        },
+      });
+
+      return { order: updated, alreadyActive: false };
+    });
+
+    return this.getSubscriptionOrderReceipt(result.order.schoolId, result.order.id);
+  }
+
+  private async failSubscriptionOrder(
+    orderId: string,
+    schoolId: string,
+    reason: string,
+    status: "FAILED" | "EXPIRED" | "CANCELLED" = "FAILED",
+  ) {
+    await this.prisma.subscriptionPaymentOrder.update({
+      where: { id: orderId },
+      data: { status, failureReason: reason },
+    });
+    await this.auditPayment(
+      orderId,
+      schoolId,
+      status === "EXPIRED" ? "EXPIRED" : "FAILED",
+      false,
+      reason,
+    );
+  }
+
+  async expireStaleSubscriptionOrders(schoolId?: string) {
+    const where: Prisma.SubscriptionPaymentOrderWhereInput = {
+      status: { in: ["PENDING", "PROCESSING"] },
+      expiresAt: { lt: new Date() },
+      ...(schoolId ? { schoolId } : {}),
+    };
+    const stale = await this.prisma.subscriptionPaymentOrder.findMany({ where, take: 100 });
+    for (const o of stale) {
+      await this.failSubscriptionOrder(o.id, o.schoolId, "Payment order timed out.", "EXPIRED");
+    }
+    return { expired: stale.length };
+  }
+
+  async listSchoolSubscriptionOrders(schoolId: string) {
+    await this.expireStaleSubscriptionOrders(schoolId);
+    return this.prisma.forTenant(schoolId, (tx) =>
+      tx.subscriptionPaymentOrder.findMany({
+        where: { schoolId },
+        include: { plan: { select: { id: true, name: true, priceUsd: true } } },
+        orderBy: { createdAt: "desc" },
+        take: 100,
+      }),
+    );
+  }
+
+  async getSubscriptionOrderReceipt(schoolId: string, orderId: string) {
+    const order = await this.prisma.forTenant(schoolId, (tx) =>
+      tx.subscriptionPaymentOrder.findFirst({
+        where: { id: orderId, schoolId },
+        include: {
+          plan: true,
+          auditLogs: { orderBy: { createdAt: "asc" }, take: 50 },
+        },
+      }),
+    );
+    if (!order) throw new NotFoundException("Payment order not found.");
+
+    return {
+      id: order.id,
+      referenceId: order.referenceId,
+      invoiceId: order.invoiceId,
+      receiptNumber: order.receiptNumber,
+      status: order.status,
+      amount: order.amount,
+      currency: order.currency,
+      channel: order.channel,
+      paymentMethod: order.paymentMethod,
+      payerAccount: order.payerAccount,
+      hppUrl: order.hppUrl,
+      waafiTransactionId: order.waafiTransactionId,
+      failureReason: order.failureReason,
+      paidAt: order.paidAt,
+      activatedAt: order.activatedAt,
+      expiresAt: order.expiresAt,
+      createdAt: order.createdAt,
+      plan: {
+        id: order.plan.id,
+        name: order.plan.name,
+        maxStudents: order.plan.maxStudents,
+        maxTeachers: order.plan.maxTeachers,
+        durationDays: order.plan.durationDays,
+        aiGradingMonthlyQuota: order.plan.aiGradingMonthlyQuota,
+      },
+      auditLogs: order.auditLogs.map((a) => ({
+        id: a.id,
+        action: a.action,
+        success: a.success,
+        message: a.message,
+        createdAt: a.createdAt,
+      })),
+    };
   }
 }
