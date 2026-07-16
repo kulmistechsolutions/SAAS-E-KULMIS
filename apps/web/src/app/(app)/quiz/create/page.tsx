@@ -17,7 +17,7 @@ import {
   teacherAssignments,
 } from "@/lib/teachers/store";
 import { loadTeacherMe } from "@/lib/teachers/session";
-import { refreshAcademics } from "@/lib/academics/store";
+import { classByName, refreshAcademics } from "@/lib/academics/store";
 import { AcademicYearSelect } from "@/components/academics/academic-year-select";
 import { useAcademicYearSelect } from "@/lib/academics/year-select";
 import { useAuth } from "@/lib/auth";
@@ -78,6 +78,11 @@ export default function CreateQuizPage() {
     () => teacherAssignedClasses(teacherId, academicYear || undefined),
     [teacherId, academicYear, assignments],
   );
+  const selectedClass = useMemo(
+    () => (className ? classByName(className, academicYear || undefined) : undefined),
+    [className, academicYear],
+  );
+  const classNeedsSection = selectedClass?.hasSections ?? true;
   const sections = useMemo(
     () =>
       className
@@ -122,7 +127,7 @@ export default function CreateQuizPage() {
   }, [subjects, subject]);
 
   async function handleSubmit() {
-    if (!section || section === "All") {
+    if (classNeedsSection && (!section || section === "All")) {
       toast("Select a specific section before creating a quiz", "error");
       return;
     }
@@ -241,12 +246,13 @@ export default function CreateQuizPage() {
             <Label>Section</Label>
             <Select
               value={section}
+              disabled={!classNeedsSection || sections.length === 0}
               onChange={(e) => {
                 setSection(e.target.value);
                 setSubject("");
               }}
             >
-              <option value="">Select</option>
+              <option value="">{classNeedsSection ? "Select" : "—"}</option>
               {sections.map((s) => (
                 <option key={s} value={s}>
                   {s}
