@@ -56,7 +56,10 @@ export interface ApiQuiz {
   shuffleQuestions?: boolean;
   shuffleAnswers?: boolean;
   showResultsImmediately?: boolean;
+  allowReviewAnswers?: boolean;
+  allowPdfDownload?: boolean;
   instructions?: string | null;
+  examinationRules?: string | null;
   preventMinimize?: boolean;
   disableCopyPaste?: boolean;
   resetOnMinimize?: boolean;
@@ -67,6 +70,7 @@ export interface ApiQuiz {
   section?: { name: string } | null;
   subject?: { name: string } | null;
   teacher?: { fullName: string };
+  teacherName?: string | null;
   questions?: ApiQuizQuestion[];
   _count?: { questions: number; attempts: number };
 }
@@ -79,14 +83,22 @@ export interface ApiQuizAttemptResult {
   score: number | null;
   percentage: number | null;
   result: string | null;
+  grade?: string | null;
   submittedAt: string | null;
+  allowReviewAnswers?: boolean;
+  allowPdfDownload?: boolean;
+  showResultsImmediately?: boolean;
 }
 
 export interface QuizAccessResponse {
+  schoolName: string;
+  logoUrl: string | null;
   studentId: string;
   studentCode: string;
   studentName: string;
+  studentPhotoUrl: string | null;
   remainingAttempts: number;
+  resumeAttemptId: string | null;
   quiz: {
     id: string;
     title: string;
@@ -94,11 +106,96 @@ export interface QuizAccessResponse {
     className: string;
     section: string | null;
     subject: string | null;
+    teacherName: string;
+    academicYear: string;
     description: string | null;
+    instructions: string | null;
+    examinationRules: string;
     timeLimitMin: number | null;
     maxAttempts: number;
+    totalQuestions: number;
+    totalMarks: number;
+    passingMarks: number;
+    showResultsImmediately: boolean;
+    allowReviewAnswers: boolean;
+    allowPdfDownload: boolean;
+  };
+}
+
+export interface QuizLandingResponse {
+  schoolName: string;
+  logoUrl: string | null;
+  quiz: {
+    id: string;
+    title: string;
+    code: string;
+    subject: string | null;
+    teacherName: string;
+    className: string;
+    section: string | null;
+    academicYear: string;
+    totalQuestions: number;
+    totalMarks: number;
+    passingMarks: number;
+    durationMin: number | null;
+    instructions: string | null;
+    examinationRules: string;
+    description: string | null;
+    showResultsImmediately: boolean;
+    allowReviewAnswers: boolean;
+    allowPdfDownload: boolean;
+  };
+}
+
+export interface QuizAttemptReview {
+  schoolName: string;
+  logoUrl: string | null;
+  resultFooter: string | null;
+  attemptId: string;
+  status: string;
+  student: {
+    id: string;
+    code: string;
+    name: string;
+    photoUrl: string | null;
+    className: string;
+    section: string | null;
+  };
+  quiz: {
+    id: string;
+    title: string;
+    code: string;
+    subject: string | null;
+    teacherName: string;
+    allowReviewAnswers: boolean;
+    allowPdfDownload: boolean;
     showResultsImmediately: boolean;
   };
+  date: string;
+  timeTakenSec: number;
+  totalQuestions: number;
+  attempted: number;
+  correct: number;
+  incorrect: number;
+  unanswered: number;
+  totalMarks: number;
+  marksObtained: number;
+  percentage: number;
+  grade: string;
+  result: string | null;
+  teacherComment: string | null;
+  questions: {
+    number: number;
+    questionId: string;
+    question: string;
+    questionType: string;
+    studentAnswer: string | null;
+    correctAnswer: string;
+    marksAwarded: number;
+    maxMarks: number;
+    status: "CORRECT" | "INCORRECT" | "UNANSWERED";
+    explanation: string | null;
+  }[];
 }
 
 export interface QuizDashboardResponse {
@@ -155,12 +252,24 @@ export interface QuizLiveStudentRow {
   studentName: string;
   className: string;
   section: string | null;
-  status: "NOT_STARTED" | "IN_PROGRESS" | "COMPLETED" | "TIME_EXPIRED";
+  status:
+    | "LINK_NOT_OPENED"
+    | "LINK_OPENED"
+    | "LOGGED_IN"
+    | "TAKING_QUIZ"
+    | "SUBMITTED"
+    | "TIME_EXPIRED"
+    | "NOT_STARTED"
+    | "IN_PROGRESS"
+    | "COMPLETED";
   attemptId: string | null;
+  linkOpenedAt?: string | null;
+  loginAt?: string | null;
   startTime: string | null;
   finishTime: string | null;
   score: number | null;
   percentage: number | null;
+  timeline?: { event: string; at: string }[];
 }
 
 export interface QuizLiveMonitoringResponse {
@@ -175,6 +284,9 @@ export interface QuizLiveMonitoringResponse {
   };
   summary: {
     total: number;
+    linkNotOpened?: number;
+    linkOpened?: number;
+    loggedIn?: number;
     notStarted: number;
     inProgress: number;
     completed: number;
@@ -228,12 +340,15 @@ export const apiUpdateQuizBuilder = (
     title?: string;
     description?: string | null;
     instructions?: string | null;
+    examinationRules?: string | null;
     timeLimitMin?: number | null;
     passingMarks?: number | null;
     maxAttempts?: number;
     shuffleQuestions?: boolean;
     shuffleAnswers?: boolean;
     showResultsImmediately?: boolean;
+    allowReviewAnswers?: boolean;
+    allowPdfDownload?: boolean;
     preventMinimize?: boolean;
     disableCopyPaste?: boolean;
     resetOnMinimize?: boolean;
@@ -259,9 +374,22 @@ export const apiQuizAttempts = (quizId: string) =>
     }[]
   >(`/quiz/${quizId}/attempts`);
 
+export const apiQuizLanding = (code: string) =>
+  api<QuizLandingResponse>(`/quiz/code/${encodeURIComponent(code)}/landing`, {
+    auth: false,
+  });
+
+export const apiQuizLinkOpened = (body: { quizCode: string; studentCode: string }) =>
+  api<{ ok: boolean }>("/quiz/link-opened", {
+    method: "POST",
+    body,
+    auth: false,
+  });
+
 export const apiVerifyQuizAccess = (body: {
   quizCode: string;
   studentCode: string;
+  password: string;
 }) =>
   api<QuizAccessResponse>("/quiz/verify-access", {
     method: "POST",
@@ -272,11 +400,45 @@ export const apiVerifyQuizAccess = (body: {
 export const apiQuizByCode = (code: string) =>
   api<ApiQuiz>(`/quiz/code/${encodeURIComponent(code)}`, { auth: false });
 
+export const apiStartQuizAttempt = (body: {
+  quizCode: string;
+  studentId: string;
+}) =>
+  api<{
+    attemptId: string;
+    startedAt: string;
+    secondsLeft: number | null;
+    savedAnswers: { questionId: string; answer: string; markedForReview: boolean }[];
+  }>("/quiz/attempt/start", { method: "POST", body, auth: false });
+
+export const apiSaveQuizAnswers = (body: {
+  attemptId: string;
+  studentId: string;
+  answers: { questionId: string; answer: string; markedForReview?: boolean }[];
+}) =>
+  api<{ ok: boolean; savedAt: string }>("/quiz/attempt/save", {
+    method: "PATCH",
+    body,
+    auth: false,
+  });
+
 export const apiSubmitQuizAttempt = (body: {
   quizCode: string;
   studentId: string;
-  answers: { questionId: string; answer: string }[];
-}) => api<ApiQuizAttemptResult>("/quiz/attempt", { method: "POST", body, auth: false });
+  attemptId?: string;
+  answers: { questionId: string; answer: string; markedForReview?: boolean }[];
+}) =>
+  api<ApiQuizAttemptResult>("/quiz/attempt", {
+    method: "POST",
+    body,
+    auth: false,
+  });
+
+export const apiQuizAttemptReview = (attemptId: string) =>
+  api<QuizAttemptReview>(`/quiz/attempts/${attemptId}/review`, { auth: false });
+
+export const apiQuizAttemptResultStaff = (attemptId: string) =>
+  api<QuizAttemptReview>(`/quiz/attempts/${attemptId}/result`);
 
 export const apiGradeQuizAnswer = (
   attemptId: string,

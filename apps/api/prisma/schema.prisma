@@ -723,7 +723,10 @@ model Quiz {
   shuffleQuestions       Boolean    @default(false)
   shuffleAnswers         Boolean    @default(false)
   showResultsImmediately Boolean    @default(true)
+  allowReviewAnswers     Boolean    @default(true)
+  allowPdfDownload       Boolean    @default(true)
   instructions           String?
+  examinationRules       String?
   preventMinimize        Boolean    @default(false)
   disableCopyPaste       Boolean    @default(false)
   resetOnMinimize        Boolean    @default(false)
@@ -738,6 +741,7 @@ model Quiz {
   teacher      Teacher        @relation(fields: [teacherId], references: [id], onDelete: Cascade)
   questions    QuizQuestion[]
   attempts     QuizAttempt[]
+  activities   QuizActivityEvent[]
 
   @@unique([schoolId, code])
   @@index([schoolId])
@@ -779,6 +783,8 @@ model QuizAttempt {
   score       Int?
   percentage  Float?
   result      String?
+  grade       String?
+  teacherComment String?
   startedAt   DateTime          @default(now())
   submittedAt DateTime?
 
@@ -802,11 +808,30 @@ model QuizAnswer {
   // 0-100 similarity for AI-graded DIRECT answers; null for exact-graded types.
   awardedPercentage Float?
   aiFeedback        String?
+  markedForReview   Boolean @default(false)
 
   attempt QuizAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
 
   @@unique([schoolId, attemptId, questionId])
   @@map("quiz_answers")
+}
+
+/// Per-student quiz participation timeline (link opened → login → start → submit).
+model QuizActivityEvent {
+  id        String   @id @default(cuid())
+  schoolId  String
+  quizId    String
+  studentId String
+  /// LINK_OPENED | LOGGED_IN | QUIZ_STARTED | QUIZ_SUBMITTED | SCORE_GENERATED | TIME_EXPIRED
+  event     String
+  meta      Json?
+  createdAt DateTime @default(now())
+
+  quiz Quiz @relation(fields: [quizId], references: [id], onDelete: Cascade)
+
+  @@index([quizId, studentId])
+  @@index([schoolId])
+  @@map("quiz_activity_events")
 }
 
 // ── Announcements & Notifications (Module 17) ───────────────────────────────

@@ -71,7 +71,10 @@ export const createQuizSchema = z.object({
   shuffleQuestions: z.boolean().default(false),
   shuffleAnswers: z.boolean().default(false),
   showResultsImmediately: z.boolean().default(true),
+  allowReviewAnswers: z.boolean().default(true),
+  allowPdfDownload: z.boolean().default(true),
   instructions: z.string().optional().nullable(),
+  examinationRules: z.string().optional().nullable(),
   preventMinimize: z.boolean().default(false),
   disableCopyPaste: z.boolean().default(false),
   resetOnMinimize: z.boolean().default(false),
@@ -85,12 +88,15 @@ export const updateQuizBuilderSchema = z.object({
   title: z.string().min(1).optional(),
   description: z.string().optional().nullable(),
   instructions: z.string().optional().nullable(),
+  examinationRules: z.string().optional().nullable(),
   timeLimitMin: z.number().int().positive().optional().nullable(),
   passingMarks: z.number().int().positive().optional().nullable(),
   maxAttempts: z.number().int().positive().optional(),
   shuffleQuestions: z.boolean().optional(),
   shuffleAnswers: z.boolean().optional(),
   showResultsImmediately: z.boolean().optional(),
+  allowReviewAnswers: z.boolean().optional(),
+  allowPdfDownload: z.boolean().optional(),
   preventMinimize: z.boolean().optional(),
   disableCopyPaste: z.boolean().optional(),
   resetOnMinimize: z.boolean().optional(),
@@ -102,19 +108,50 @@ export type UpdateQuizBuilderInput = z.infer<typeof updateQuizBuilderSchema>;
 export const verifyQuizAccessSchema = z.object({
   quizCode: z.string().min(1),
   studentCode: z.string().min(1),
+  password: z.string().min(1),
 });
 
 export type VerifyQuizAccessInput = z.infer<typeof verifyQuizAccessSchema>;
 
+export const quizLinkOpenedSchema = z.object({
+  quizCode: z.string().min(1),
+  studentCode: z.string().min(1),
+});
+
+export type QuizLinkOpenedInput = z.infer<typeof quizLinkOpenedSchema>;
+
+export const startQuizAttemptSchema = z.object({
+  quizCode: z.string().min(1),
+  studentId: z.string().min(1),
+});
+
+export type StartQuizAttemptInput = z.infer<typeof startQuizAttemptSchema>;
+
+export const saveQuizAnswersSchema = z.object({
+  attemptId: z.string().min(1),
+  studentId: z.string().min(1),
+  answers: z.array(
+    z.object({
+      questionId: z.string().min(1),
+      answer: z.string().default(""),
+      markedForReview: z.boolean().optional(),
+    }),
+  ),
+});
+
+export type SaveQuizAnswersInput = z.infer<typeof saveQuizAnswersSchema>;
+
 export const submitQuizAttemptSchema = z.object({
   quizCode: z.string().min(1),
   studentId: z.string().min(1),
+  attemptId: z.string().optional(),
   answers: z.array(
     z.object({
       questionId: z.string().min(1),
       // Plain text for MCQ/DIRECT/FILL; a JSON string ({leftIndex: rightValue})
       // for MATCH. Empty string = left unanswered.
       answer: z.string().default(""),
+      markedForReview: z.boolean().optional(),
     }),
   ),
 });

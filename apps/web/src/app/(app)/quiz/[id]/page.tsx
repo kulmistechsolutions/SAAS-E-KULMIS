@@ -109,6 +109,8 @@ export default function QuizBuilderPage({ params }: { params: Promise<{ id: stri
   const [disableCopyPaste, setDisableCopyPaste] = useState(false);
   const [resetOnMinimize, setResetOnMinimize] = useState(false);
   const [showResults, setShowResults] = useState(true);
+  const [allowReview, setAllowReview] = useState(true);
+  const [allowPdf, setAllowPdf] = useState(true);
   const [duration, setDuration] = useState("");
   const [maxAttempts, setMaxAttempts] = useState("1");
   const [addType, setAddType] = useState<QType>("MCQ");
@@ -124,6 +126,8 @@ export default function QuizBuilderPage({ params }: { params: Promise<{ id: stri
       setDisableCopyPaste(!!q.disableCopyPaste);
       setResetOnMinimize(!!q.resetOnMinimize);
       setShowResults(q.showResultsImmediately ?? true);
+      setAllowReview(q.allowReviewAnswers ?? true);
+      setAllowPdf(q.allowPdfDownload ?? true);
       setDuration(q.timeLimitMin ? String(q.timeLimitMin) : "");
       setMaxAttempts(String(q.maxAttempts ?? 1));
     } catch {
@@ -177,6 +181,8 @@ export default function QuizBuilderPage({ params }: { params: Promise<{ id: stri
         disableCopyPaste,
         resetOnMinimize,
         showResultsImmediately: showResults,
+        allowReviewAnswers: allowReview,
+        allowPdfDownload: allowPdf,
         timeLimitMin: duration ? Number(duration) : null,
         maxAttempts: Number(maxAttempts) || 1,
         questions: toPayload(questions),
@@ -247,6 +253,8 @@ export default function QuizBuilderPage({ params }: { params: Promise<{ id: stri
         </div>
         <div className="space-y-2">
           <Toggle label="Show result to student immediately after finishing" checked={showResults} onChange={setShowResults} />
+          <Toggle label="Allow students to review answers after finishing" checked={allowReview} onChange={setAllowReview} />
+          <Toggle label="Allow PDF download of result sheet" checked={allowPdf} onChange={setAllowPdf} />
           <Toggle label="Prevent minimizing / leaving the exam tab" checked={preventMinimize} onChange={setPreventMinimize} />
           <Toggle label="Reset all answers if the student leaves the tab" checked={resetOnMinimize} onChange={setResetOnMinimize} />
           <Toggle label="Disable copy &amp; paste" checked={disableCopyPaste} onChange={setDisableCopyPaste} />

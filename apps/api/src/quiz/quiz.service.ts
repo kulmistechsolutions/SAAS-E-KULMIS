@@ -8,14 +8,20 @@ import {
 import type {
   CreateQuizInput,
   GradeQuizAnswerInput,
+  QuizLinkOpenedInput,
+  SaveQuizAnswersInput,
+  StartQuizAttemptInput,
   SubmitQuizAttemptInput,
   UpdateQuizBuilderInput,
   VerifyQuizAccessInput,
 } from "@ekulmis/shared";
+import { ConfigService } from "@nestjs/config";
 import { PrismaService } from "../prisma/prisma.service";
 import { TeachersService } from "../teachers/teachers.service";
 import { AiService } from "../ai/ai.service";
 import { SubscriptionsService } from "../subscriptions/subscriptions.service";
+import { StorageService } from "../storage/storage.service";
+import { verifyPassword } from "../auth/password.util";
 
 function padQuizSeq(n: number): string {
   return String(n).padStart(6, "0");
@@ -30,14 +36,36 @@ function shuffleArray<T>(items: T[]): T[] {
   return copy;
 }
 
+function letterGrade(pct: number): string {
+  if (pct >= 90) return "A";
+  if (pct >= 80) return "B";
+  if (pct >= 70) return "C";
+  if (pct >= 60) return "D";
+  return "F";
+}
+
+const DEFAULT_EXAM_RULES = [
+  "Keep your Student ID and password confidential.",
+  "Do not leave the exam window during the quiz.",
+  "Do not use unauthorized materials or assistance.",
+  "Submit before the timer expires — unanswered questions score zero.",
+  "Academic honesty rules apply to all online assessments.",
+].join("\n");
+
 @Injectable()
 export class QuizService {
+  private readonly bucket: string;
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly teachers: TeachersService,
     private readonly ai: AiService,
     private readonly subscriptions: SubscriptionsService,
-  ) {}
+    private readonly storage: StorageService,
+    config: ConfigService,
+  ) {
+    this.bucket = config.get<string>("MINIO_BUCKET") ?? "ekulmis";
+  }
 
   async list(
     schoolId: string,
@@ -224,7 +252,10 @@ export class QuizService {
           shuffleQuestions: dto.shuffleQuestions,
           shuffleAnswers: dto.shuffleAnswers,
           showResultsImmediately: dto.showResultsImmediately,
+          allowReviewAnswers: dto.allowReviewAnswers,
+          allowPdfDownload: dto.allowPdfDownload,
           instructions: dto.instructions ?? null,
+          examinationRules: dto.examinationRules ?? null,
           preventMinimize: dto.preventMinimize,
           disableCopyPaste: dto.disableCopyPaste,
           resetOnMinimize: dto.resetOnMinimize,
@@ -292,6 +323,9 @@ export class QuizService {
           ...set("shuffleQuestions"),
           ...set("shuffleAnswers"),
           ...set("showResultsImmediately"),
+          ...set("allowReviewAnswers"),
+          ...set("allowPdfDownload"),
+          ...set("examinationRules"),
           ...set("preventMinimize"),
           ...set("disableCopyPaste"),
           ...set("resetOnMinimize"),
@@ -389,7 +423,134 @@ export class QuizService {
     }
   }
 
+  private async schoolBranding(schoolId: string) {
+    const school = await this.prisma.school.findUnique({
+      where: { id: schoolId },
+      select: { name: true, logoKey: true, resultFooter: true },
+    });
+    let logoUrl: string | null = null;
+    if (school?.logoKey) {
+      try {
+        logoUrl = await this.storage.getSignedUrl(
+          this.bucket,
+          school.logoKey,
+          3600,
+        );
+      } catch {
+        logoUrl = null;
+      }
+    }
+    return {
+      schoolName: school?.name ?? "School",
+      logoUrl,
+      resultFooter: school?.resultFooter ?? null,
+    };
+  }
+
+  private async recordActivity(
+    tx: {
+      quizActivityEvent: {
+        create: (args: {
+          data: {
+            schoolId: string;
+            quizId: string;
+            studentId: string;
+            event: string;
+            meta?: object;
+          };
+        }) => Promise<unknown>;
+      };
+    },
+    data: {
+      schoolId: string;
+      quizId: string;
+      studentId: string;
+      event: string;
+      meta?: object;
+    },
+  ) {
+    await tx.quizActivityEvent.create({ data });
+  }
+
+  /** Public landing metadata (no student auth). */
+  async getLanding(schoolId: string, code: string) {
+    const branding = await this.schoolBranding(schoolId);
+    return this.prisma.forTenant(schoolId, async (tx) => {
+      const quiz = await tx.quiz.findFirst({
+        where: { code, status: "PUBLISHED" },
+        include: {
+          class: { select: { name: true } },
+          section: { select: { name: true } },
+          subject: { select: { name: true } },
+          teacher: { select: { fullName: true } },
+          academicYear: { select: { name: true } },
+          questions: { select: { marks: true } },
+        },
+      });
+      if (!quiz) throw new NotFoundException("Quiz not found");
+      this.assertQuizWindow(quiz);
+      const totalMarks = quiz.questions.reduce((s, q) => s + q.marks, 0);
+      return {
+        ...branding,
+        quiz: {
+          id: quiz.id,
+          title: quiz.title,
+          code: quiz.code,
+          subject: quiz.subject?.name ?? null,
+          teacherName: quiz.teacher.fullName,
+          className: quiz.class.name,
+          section: quiz.section?.name ?? null,
+          academicYear: quiz.academicYear.name,
+          totalQuestions: quiz.questions.length,
+          totalMarks,
+          passingMarks: quiz.passingMarks ?? Math.ceil(totalMarks * 0.5),
+          durationMin: quiz.timeLimitMin,
+          instructions: quiz.instructions,
+          examinationRules: quiz.examinationRules || DEFAULT_EXAM_RULES,
+          description: quiz.description,
+          showResultsImmediately: quiz.showResultsImmediately,
+          allowReviewAnswers: quiz.allowReviewAnswers,
+          allowPdfDownload: quiz.allowPdfDownload,
+        },
+      };
+    });
+  }
+
+  async recordLinkOpened(schoolId: string, dto: QuizLinkOpenedInput) {
+    return this.prisma.forTenant(schoolId, async (tx) => {
+      const quiz = await tx.quiz.findFirst({
+        where: { code: dto.quizCode, status: "PUBLISHED" },
+        select: { id: true, classId: true, sectionId: true, status: true, startAt: true, endAt: true },
+      });
+      if (!quiz) throw new NotFoundException("Quiz not found");
+      this.assertQuizWindow(quiz);
+      const student = await tx.student.findFirst({
+        where: { code: dto.studentCode.trim() },
+        select: { id: true, status: true, classId: true, sectionId: true },
+      });
+      if (!student) throw new UnauthorizedException("Invalid student ID");
+      this.assertStudentEligible(student, quiz);
+      const existing = await tx.quizActivityEvent.findFirst({
+        where: {
+          quizId: quiz.id,
+          studentId: student.id,
+          event: "LINK_OPENED",
+        },
+      });
+      if (!existing) {
+        await this.recordActivity(tx, {
+          schoolId,
+          quizId: quiz.id,
+          studentId: student.id,
+          event: "LINK_OPENED",
+        });
+      }
+      return { ok: true };
+    });
+  }
+
   async verifyAccess(schoolId: string, dto: VerifyQuizAccessInput) {
+    const branding = await this.schoolBranding(schoolId);
     return this.prisma.forTenant(schoolId, async (tx) => {
       const quiz = await tx.quiz.findFirst({
         where: { code: dto.quizCode },
@@ -397,6 +558,9 @@ export class QuizService {
           class: { select: { name: true } },
           section: { select: { name: true } },
           subject: { select: { name: true } },
+          teacher: { select: { fullName: true } },
+          academicYear: { select: { name: true } },
+          questions: { select: { marks: true } },
         },
       });
       if (!quiz) throw new NotFoundException("Quiz not found");
@@ -411,9 +575,21 @@ export class QuizService {
           status: true,
           classId: true,
           sectionId: true,
+          portalPasswordHash: true,
+          photoKey: true,
         },
       });
-      if (!student) throw new UnauthorizedException("Invalid student ID");
+      if (!student) throw new UnauthorizedException("Invalid student ID or password");
+      if (!student.portalPasswordHash) {
+        throw new UnauthorizedException("Invalid student ID or password");
+      }
+      const passwordOk = await verifyPassword(
+        dto.password,
+        student.portalPasswordHash,
+      );
+      if (!passwordOk) {
+        throw new UnauthorizedException("Invalid student ID or password");
+      }
       this.assertStudentEligible(student, quiz);
 
       const prior = await tx.quizAttempt.count({
@@ -427,11 +603,44 @@ export class QuizService {
         throw new BadRequestException("Maximum attempts reached");
       }
 
+      const inProgress = await tx.quizAttempt.findFirst({
+        where: {
+          quizId: quiz.id,
+          studentId: student.id,
+          status: "IN_PROGRESS",
+        },
+        orderBy: { startedAt: "desc" },
+      });
+
+      await this.recordActivity(tx, {
+        schoolId,
+        quizId: quiz.id,
+        studentId: student.id,
+        event: "LOGGED_IN",
+      });
+
+      const totalMarks = quiz.questions.reduce((s, q) => s + q.marks, 0);
+      let photoUrl: string | null = null;
+      if (student.photoKey) {
+        try {
+          photoUrl = await this.storage.getSignedUrl(
+            this.bucket,
+            student.photoKey,
+            3600,
+          );
+        } catch {
+          photoUrl = null;
+        }
+      }
+
       return {
+        ...branding,
         studentId: student.id,
         studentCode: student.code,
         studentName: student.fullName,
+        studentPhotoUrl: photoUrl,
         remainingAttempts: quiz.maxAttempts - prior,
+        resumeAttemptId: inProgress?.id ?? null,
         quiz: {
           id: quiz.id,
           title: quiz.title,
@@ -439,10 +648,19 @@ export class QuizService {
           className: quiz.class.name,
           section: quiz.section?.name ?? null,
           subject: quiz.subject?.name ?? null,
+          teacherName: quiz.teacher.fullName,
+          academicYear: quiz.academicYear.name,
           description: quiz.description,
+          instructions: quiz.instructions,
+          examinationRules: quiz.examinationRules || DEFAULT_EXAM_RULES,
           timeLimitMin: quiz.timeLimitMin,
           maxAttempts: quiz.maxAttempts,
+          totalQuestions: quiz.questions.length,
+          totalMarks,
+          passingMarks: quiz.passingMarks ?? Math.ceil(totalMarks * 0.5),
           showResultsImmediately: quiz.showResultsImmediately,
+          allowReviewAnswers: quiz.allowReviewAnswers,
+          allowPdfDownload: quiz.allowPdfDownload,
         },
       };
     });
@@ -457,6 +675,7 @@ export class QuizService {
           class: { select: { name: true } },
           section: { select: { name: true } },
           subject: { select: { name: true } },
+          teacher: { select: { fullName: true } },
         },
       });
       if (!quiz) throw new NotFoundException("Quiz not found");
@@ -475,12 +694,15 @@ export class QuizService {
         instructions: quiz.instructions,
         timeLimitMin: quiz.timeLimitMin,
         showResultsImmediately: quiz.showResultsImmediately,
+        allowReviewAnswers: quiz.allowReviewAnswers,
+        allowPdfDownload: quiz.allowPdfDownload,
         preventMinimize: quiz.preventMinimize,
         disableCopyPaste: quiz.disableCopyPaste,
         resetOnMinimize: quiz.resetOnMinimize,
         className: quiz.class.name,
         section: quiz.section?.name ?? null,
         subject: quiz.subject?.name ?? null,
+        teacherName: quiz.teacher?.fullName ?? null,
         questions: questions.map((q) => {
           let options = Array.isArray(q.options) ? (q.options as string[]) : [];
           if (quiz.shuffleAnswers && options.length > 1) {
@@ -647,21 +869,55 @@ export class QuizService {
         }
       }
 
+      const events = await tx.quizActivityEvent.findMany({
+        where: { quizId },
+        orderBy: { createdAt: "asc" },
+        select: {
+          studentId: true,
+          event: true,
+          createdAt: true,
+        },
+      });
+      const eventsByStudent = new Map<string, typeof events>();
+      for (const e of events) {
+        const list = eventsByStudent.get(e.studentId) ?? [];
+        list.push(e);
+        eventsByStudent.set(e.studentId, list);
+      }
+
       const now = Date.now();
+      type LiveStatus =
+        | "LINK_NOT_OPENED"
+        | "LINK_OPENED"
+        | "LOGGED_IN"
+        | "TAKING_QUIZ"
+        | "SUBMITTED"
+        | "TIME_EXPIRED";
+
       const students_rows = students.map((s, idx) => {
         const attempt = latestAttemptByStudent.get(s.id) ?? null;
-        let status: "NOT_STARTED" | "IN_PROGRESS" | "COMPLETED" | "TIME_EXPIRED" =
-          "NOT_STARTED";
-        if (attempt) {
-          if (attempt.status === "IN_PROGRESS") {
-            const deadline = quiz.timeLimitMin
-              ? attempt.startedAt.getTime() + quiz.timeLimitMin * 60_000
-              : null;
-            status = deadline && now > deadline ? "TIME_EXPIRED" : "IN_PROGRESS";
-          } else {
-            status = "COMPLETED";
-          }
+        const studentEvents = eventsByStudent.get(s.id) ?? [];
+        const hasLink = studentEvents.some((e) => e.event === "LINK_OPENED");
+        const hasLogin = studentEvents.some((e) => e.event === "LOGGED_IN");
+        const loginAt =
+          studentEvents.find((e) => e.event === "LOGGED_IN")?.createdAt ?? null;
+        const linkAt =
+          studentEvents.find((e) => e.event === "LINK_OPENED")?.createdAt ?? null;
+
+        let status: LiveStatus = "LINK_NOT_OPENED";
+        if (attempt?.status === "IN_PROGRESS") {
+          const deadline = quiz.timeLimitMin
+            ? attempt.startedAt.getTime() + quiz.timeLimitMin * 60_000
+            : null;
+          status = deadline && now > deadline ? "TIME_EXPIRED" : "TAKING_QUIZ";
+        } else if (attempt) {
+          status = "SUBMITTED";
+        } else if (hasLogin) {
+          status = "LOGGED_IN";
+        } else if (hasLink) {
+          status = "LINK_OPENED";
         }
+
         return {
           no: idx + 1,
           studentId: s.id,
@@ -671,19 +927,35 @@ export class QuizService {
           section: s.section?.name ?? null,
           status,
           attemptId: attempt?.id ?? null,
+          linkOpenedAt: linkAt,
+          loginAt,
           startTime: attempt?.startedAt ?? null,
           finishTime: attempt?.submittedAt ?? null,
           score: attempt?.score ?? null,
           percentage: attempt?.percentage ?? null,
+          timeline: studentEvents.map((e) => ({
+            event: e.event,
+            at: e.createdAt,
+          })),
         };
       });
 
       const summary = {
         total: students_rows.length,
-        notStarted: students_rows.filter((r) => r.status === "NOT_STARTED").length,
-        inProgress: students_rows.filter((r) => r.status === "IN_PROGRESS").length,
-        completed: students_rows.filter((r) => r.status === "COMPLETED").length,
+        linkNotOpened: students_rows.filter((r) => r.status === "LINK_NOT_OPENED")
+          .length,
+        linkOpened: students_rows.filter((r) =>
+          ["LINK_OPENED", "LOGGED_IN", "TAKING_QUIZ", "SUBMITTED", "TIME_EXPIRED"].includes(
+            r.status,
+          ),
+        ).length,
+        loggedIn: students_rows.filter((r) =>
+          ["LOGGED_IN", "TAKING_QUIZ", "SUBMITTED", "TIME_EXPIRED"].includes(r.status),
+        ).length,
+        inProgress: students_rows.filter((r) => r.status === "TAKING_QUIZ").length,
+        completed: students_rows.filter((r) => r.status === "SUBMITTED").length,
         timeExpired: students_rows.filter((r) => r.status === "TIME_EXPIRED").length,
+        notStarted: students_rows.filter((r) => r.status === "LINK_NOT_OPENED").length,
       };
 
       return {
@@ -699,6 +971,301 @@ export class QuizService {
         summary,
         students: students_rows,
       };
+    });
+  }
+
+  async startAttempt(schoolId: string, dto: StartQuizAttemptInput) {
+    return this.prisma.forTenant(schoolId, async (tx) => {
+      const quiz = await tx.quiz.findFirst({
+        where: { code: dto.quizCode, status: "PUBLISHED" },
+        include: { questions: { select: { id: true } } },
+      });
+      if (!quiz) throw new NotFoundException("Quiz not found");
+      this.assertQuizWindow(quiz);
+
+      const student = await tx.student.findFirst({
+        where: { id: dto.studentId },
+        select: { id: true, status: true, classId: true, sectionId: true },
+      });
+      if (!student) throw new NotFoundException("Student not found");
+      this.assertStudentEligible(student, quiz);
+
+      const priorDone = await tx.quizAttempt.count({
+        where: {
+          quizId: quiz.id,
+          studentId: dto.studentId,
+          status: { in: ["SUBMITTED", "GRADED", "PENDING_REVIEW"] },
+        },
+      });
+      if (priorDone >= quiz.maxAttempts) {
+        throw new BadRequestException("Maximum attempts reached");
+      }
+
+      const existing = await tx.quizAttempt.findFirst({
+        where: {
+          quizId: quiz.id,
+          studentId: dto.studentId,
+          status: "IN_PROGRESS",
+        },
+        include: { answers: true },
+        orderBy: { startedAt: "desc" },
+      });
+      if (existing) {
+        const elapsedMs = Date.now() - existing.startedAt.getTime();
+        const limitMs = (quiz.timeLimitMin ?? 30) * 60_000;
+        if (quiz.timeLimitMin && elapsedMs >= limitMs) {
+          await tx.quizAttempt.update({
+            where: { id: existing.id },
+            data: { status: "SUBMITTED", submittedAt: new Date(), result: "FAIL" },
+          });
+          await this.recordActivity(tx, {
+            schoolId,
+            quizId: quiz.id,
+            studentId: dto.studentId,
+            event: "TIME_EXPIRED",
+          });
+          throw new BadRequestException("Time expired on previous attempt");
+        }
+        return {
+          attemptId: existing.id,
+          startedAt: existing.startedAt,
+          secondsLeft: quiz.timeLimitMin
+            ? Math.max(0, Math.floor((limitMs - elapsedMs) / 1000))
+            : null,
+          savedAnswers: existing.answers.map((a) => ({
+            questionId: a.questionId,
+            answer: a.answer ?? "",
+            markedForReview: a.markedForReview,
+          })),
+        };
+      }
+
+      const attempt = await tx.quizAttempt.create({
+        data: {
+          schoolId,
+          quizId: quiz.id,
+          studentId: dto.studentId,
+          status: "IN_PROGRESS",
+        },
+      });
+      await this.recordActivity(tx, {
+        schoolId,
+        quizId: quiz.id,
+        studentId: dto.studentId,
+        event: "QUIZ_STARTED",
+      });
+
+      return {
+        attemptId: attempt.id,
+        startedAt: attempt.startedAt,
+        secondsLeft: quiz.timeLimitMin ? quiz.timeLimitMin * 60 : null,
+        savedAnswers: [] as {
+          questionId: string;
+          answer: string;
+          markedForReview: boolean;
+        }[],
+      };
+    });
+  }
+
+  async saveAnswers(schoolId: string, dto: SaveQuizAnswersInput) {
+    return this.prisma.forTenant(schoolId, async (tx) => {
+      const attempt = await tx.quizAttempt.findFirst({
+        where: { id: dto.attemptId, studentId: dto.studentId },
+        include: { quiz: { select: { id: true, status: true, startAt: true, endAt: true } } },
+      });
+      if (!attempt) throw new NotFoundException("Attempt not found");
+      if (attempt.status !== "IN_PROGRESS") {
+        throw new BadRequestException("Attempt is no longer in progress");
+      }
+      this.assertQuizWindow(attempt.quiz);
+
+      for (const ans of dto.answers) {
+        await tx.quizAnswer.upsert({
+          where: {
+            schoolId_attemptId_questionId: {
+              schoolId,
+              attemptId: attempt.id,
+              questionId: ans.questionId,
+            },
+          },
+          create: {
+            schoolId,
+            attemptId: attempt.id,
+            questionId: ans.questionId,
+            answer: ans.answer,
+            markedForReview: ans.markedForReview ?? false,
+            isCorrect: false,
+            marks: 0,
+          },
+          update: {
+            answer: ans.answer,
+            markedForReview: ans.markedForReview ?? false,
+          },
+        });
+      }
+      return { ok: true, savedAt: new Date() };
+    });
+  }
+
+  async getAttemptReview(
+    schoolId: string,
+    attemptId: string,
+    opts?: { public?: boolean },
+  ) {
+    const branding = await this.schoolBranding(schoolId);
+    return this.prisma.forTenant(schoolId, async (tx) => {
+      const attempt = await tx.quizAttempt.findFirst({
+        where: { id: attemptId },
+        include: {
+          student: {
+            select: {
+              code: true,
+              fullName: true,
+              photoKey: true,
+              class: { select: { name: true } },
+              section: { select: { name: true } },
+            },
+          },
+          quiz: {
+            include: {
+              subject: { select: { name: true } },
+              teacher: { select: { fullName: true } },
+              questions: { orderBy: { orderIndex: "asc" } },
+            },
+          },
+          answers: true,
+        },
+      });
+      if (!attempt) throw new NotFoundException("Attempt not found");
+      if (
+        opts?.public &&
+        (attempt.status === "IN_PROGRESS" ||
+          (!attempt.quiz.showResultsImmediately &&
+            attempt.status !== "GRADED" &&
+            attempt.status !== "PENDING_REVIEW"))
+      ) {
+        // Teachers still get full review via staff auth; the public student
+        // path only sees the review once the quiz allows it.
+        throw new BadRequestException("Result is not available yet");
+      }
+
+      const answerMap = new Map(attempt.answers.map((a) => [a.questionId, a]));
+      const totalMarks = attempt.quiz.questions.reduce((s, q) => s + q.marks, 0);
+      let attempted = 0;
+      let correct = 0;
+      let incorrect = 0;
+      let unanswered = 0;
+
+      const questions = attempt.quiz.questions.map((q, i) => {
+        const a = answerMap.get(q.id);
+        const studentAnswer = a?.answer?.trim() ? a.answer : "";
+        const answered = !!studentAnswer;
+        if (!answered) unanswered++;
+        else {
+          attempted++;
+          if (a?.isCorrect) correct++;
+          else incorrect++;
+        }
+        let correctDisplay = q.correctAnswer;
+        if (q.questionType === "MATCH" && Array.isArray(q.pairs)) {
+          correctDisplay = (q.pairs as { left: string; right: string }[])
+            .map((p) => `${p.left} → ${p.right}`)
+            .join("; ");
+        } else if (q.questionType === "FILL_BLANK" && Array.isArray(q.blanks)) {
+          correctDisplay = (q.blanks as string[]).join(", ");
+        }
+        return {
+          number: i + 1,
+          questionId: q.id,
+          question: q.question,
+          questionType: q.questionType,
+          studentAnswer: studentAnswer || null,
+          correctAnswer: correctDisplay,
+          marksAwarded: a?.marks ?? 0,
+          maxMarks: q.marks,
+          status: !answered
+            ? ("UNANSWERED" as const)
+            : a?.isCorrect
+              ? ("CORRECT" as const)
+              : ("INCORRECT" as const),
+          explanation: a?.aiFeedback ?? null,
+        };
+      });
+
+      const pct = attempt.percentage ?? 0;
+      const started = attempt.startedAt.getTime();
+      const ended = (attempt.submittedAt ?? attempt.startedAt).getTime();
+      const timeTakenSec = Math.max(0, Math.round((ended - started) / 1000));
+
+      let photoUrl: string | null = null;
+      if (attempt.student.photoKey) {
+        try {
+          photoUrl = await this.storage.getSignedUrl(
+            this.bucket,
+            attempt.student.photoKey,
+            3600,
+          );
+        } catch {
+          photoUrl = null;
+        }
+      }
+
+      return {
+        ...branding,
+        attemptId: attempt.id,
+        status: attempt.status,
+        student: {
+          id: attempt.studentId,
+          code: attempt.student.code,
+          name: attempt.student.fullName,
+          photoUrl,
+          className: attempt.student.class.name,
+          section: attempt.student.section?.name ?? null,
+        },
+        quiz: {
+          id: attempt.quiz.id,
+          title: attempt.quiz.title,
+          code: attempt.quiz.code,
+          subject: attempt.quiz.subject?.name ?? null,
+          teacherName: attempt.quiz.teacher.fullName,
+          allowReviewAnswers: attempt.quiz.allowReviewAnswers,
+          allowPdfDownload: attempt.quiz.allowPdfDownload,
+          showResultsImmediately: attempt.quiz.showResultsImmediately,
+        },
+        date: attempt.submittedAt ?? attempt.startedAt,
+        timeTakenSec,
+        totalQuestions: attempt.quiz.questions.length,
+        attempted,
+        correct,
+        incorrect,
+        unanswered,
+        totalMarks,
+        marksObtained: attempt.score ?? 0,
+        percentage: pct,
+        grade: attempt.grade ?? letterGrade(pct),
+        result: attempt.result,
+        teacherComment: attempt.teacherComment,
+        questions,
+      };
+    });
+  }
+
+  async getStudentTimeline(
+    schoolId: string,
+    quizId: string,
+    studentId: string,
+  ) {
+    return this.prisma.forTenant(schoolId, async (tx) => {
+      const events = await tx.quizActivityEvent.findMany({
+        where: { quizId, studentId },
+        orderBy: { createdAt: "asc" },
+      });
+      return events.map((e) => ({
+        event: e.event,
+        at: e.createdAt,
+        meta: e.meta,
+      }));
     });
   }
 
@@ -808,20 +1375,54 @@ export class QuizService {
       if (!student) throw new NotFoundException("Student not found");
       this.assertStudentEligible(student, quiz);
 
-      const prior = await tx.quizAttempt.count({
-        where: {
-          quizId: quiz.id,
-          studentId: dto.studentId,
-          status: { in: ["SUBMITTED", "GRADED", "PENDING_REVIEW"] },
-        },
-      });
-      if (prior >= quiz.maxAttempts) {
-        throw new BadRequestException("Maximum attempts reached");
+      let attempt = dto.attemptId
+        ? await tx.quizAttempt.findFirst({
+            where: {
+              id: dto.attemptId,
+              studentId: dto.studentId,
+              quizId: quiz.id,
+            },
+          })
+        : await tx.quizAttempt.findFirst({
+            where: {
+              quizId: quiz.id,
+              studentId: dto.studentId,
+              status: "IN_PROGRESS",
+            },
+            orderBy: { startedAt: "desc" },
+          });
+
+      if (attempt && attempt.status !== "IN_PROGRESS") {
+        throw new BadRequestException("This attempt was already submitted");
       }
+
+      if (!attempt) {
+        const prior = await tx.quizAttempt.count({
+          where: {
+            quizId: quiz.id,
+            studentId: dto.studentId,
+            status: { in: ["SUBMITTED", "GRADED", "PENDING_REVIEW"] },
+          },
+        });
+        if (prior >= quiz.maxAttempts) {
+          throw new BadRequestException("Maximum attempts reached");
+        }
+        attempt = await tx.quizAttempt.create({
+          data: {
+            schoolId,
+            quizId: quiz.id,
+            studentId: dto.studentId,
+            status: "IN_PROGRESS",
+          },
+        });
+      }
+
+      // Clear prior autosaved rows then rewrite with final answers.
+      await tx.quizAnswer.deleteMany({ where: { attemptId: attempt.id } });
 
       const qmap = new Map(quiz.questions.map((q) => [q.id, q]));
       let score = 0;
-      let totalMarks = 0;
+      const totalMarks = quiz.questions.reduce((s, q) => s + q.marks, 0);
       let hasManual = false;
       const aiPending: {
         answerId: string;
@@ -831,20 +1432,9 @@ export class QuizService {
         maxMarks: number;
       }[] = [];
 
-      const attempt = await tx.quizAttempt.create({
-        data: {
-          schoolId,
-          quizId: quiz.id,
-          studentId: dto.studentId,
-          status: "SUBMITTED",
-          submittedAt: new Date(),
-        },
-      });
-
       for (const ans of dto.answers) {
         const q = qmap.get(ans.questionId);
         if (!q) continue;
-        totalMarks += q.marks;
 
         if (q.requiresManualGrade) {
           hasManual = true;
@@ -856,6 +1446,7 @@ export class QuizService {
               answer: ans.answer,
               isCorrect: false,
               marks: 0,
+              markedForReview: ans.markedForReview ?? false,
             },
           });
           continue;
@@ -870,6 +1461,7 @@ export class QuizService {
             answer: ans.answer,
             isCorrect: graded.isCorrect,
             marks: graded.marks,
+            markedForReview: ans.markedForReview ?? false,
             awardedPercentage:
               graded.needsReview
                 ? null
@@ -879,7 +1471,6 @@ export class QuizService {
           },
         });
         if (graded.needsReview) {
-          // AI_CONCEPT DIRECT — scored by OpenAI after the transaction.
           aiPending.push({
             answerId: row.id,
             question: q.question,
@@ -897,15 +1488,34 @@ export class QuizService {
       const percentage = totalMarks
         ? Math.round((score / totalMarks) * 1000) / 10
         : 0;
+      const grade = letterGrade(percentage);
       await tx.quizAttempt.update({
         where: { id: attempt.id },
         data: {
           score,
           percentage,
+          grade,
+          submittedAt: new Date(),
           status: settledNow ? "GRADED" : "PENDING_REVIEW",
           result: settledNow ? (score >= passing ? "PASS" : "FAIL") : null,
         },
       });
+
+      await this.recordActivity(tx, {
+        schoolId,
+        quizId: quiz.id,
+        studentId: dto.studentId,
+        event: "QUIZ_SUBMITTED",
+      });
+      if (settledNow) {
+        await this.recordActivity(tx, {
+          schoolId,
+          quizId: quiz.id,
+          studentId: dto.studentId,
+          event: "SCORE_GENERATED",
+          meta: { score, percentage, grade },
+        });
+      }
 
       return {
         attemptId: attempt.id,
@@ -914,14 +1524,23 @@ export class QuizService {
         autoScore: score,
         totalMarks,
         passing,
+        showResultsImmediately: quiz.showResultsImmediately,
+        allowReviewAnswers: quiz.allowReviewAnswers,
+        allowPdfDownload: quiz.allowPdfDownload,
       };
     });
 
     // ── AI grading happens OUTSIDE the transaction (network call to OpenAI) ──
     if (prep.aiPending.length === 0) {
-      return this.prisma.forTenant(schoolId, (tx) =>
+      const attempt = await this.prisma.forTenant(schoolId, (tx) =>
         tx.quizAttempt.findFirst({ where: { id: prep.attemptId } }),
       );
+      return {
+        ...attempt,
+        allowReviewAnswers: prep.allowReviewAnswers,
+        allowPdfDownload: prep.allowPdfDownload,
+        showResultsImmediately: prep.showResultsImmediately,
+      };
     }
 
     const aiEnabled = await this.ai.isEnabled();
@@ -969,12 +1588,14 @@ export class QuizService {
       ? Math.round((finalScore / prep.totalMarks) * 1000) / 10
       : 0;
     const pendingRemains = prep.hasManual || !allAiGraded;
-    const attempt = await this.prisma.forTenant(schoolId, (tx) =>
-      tx.quizAttempt.update({
+    const grade = letterGrade(percentage);
+    const attempt = await this.prisma.forTenant(schoolId, async (tx) => {
+      const updated = await tx.quizAttempt.update({
         where: { id: prep.attemptId },
         data: {
           score: finalScore,
           percentage,
+          grade,
           status: pendingRemains ? "PENDING_REVIEW" : "GRADED",
           result: pendingRemains
             ? null
@@ -982,10 +1603,23 @@ export class QuizService {
               ? "PASS"
               : "FAIL",
         },
-      }),
-    );
+      });
+      if (!pendingRemains) {
+        await this.recordActivity(tx, {
+          schoolId,
+          quizId: updated.quizId,
+          studentId: updated.studentId,
+          event: "SCORE_GENERATED",
+          meta: { score: finalScore, percentage, grade },
+        });
+      }
+      return updated;
+    });
     return {
       ...attempt,
+      allowReviewAnswers: prep.allowReviewAnswers,
+      allowPdfDownload: prep.allowPdfDownload,
+      showResultsImmediately: prep.showResultsImmediately,
       ...(aiQuotaExhausted
         ? { aiQuotaNote: this.subscriptions.getAiQuotaExhaustedMessage() }
         : {}),
