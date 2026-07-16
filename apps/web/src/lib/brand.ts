@@ -6,8 +6,3 @@ export const BRAND = {
   pageTitle: "eKulmis — School Management ERP",
   description: "School Management ERP",
 } as const;
-
-export const SCHOOL = {
-  name: BRAND.name,
-  shortName: BRAND.name,
-};

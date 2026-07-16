@@ -51,7 +51,3 @@ export function generatePassword(): string {
   }
   return out;
 }
-
-import { SCHOOL as BRAND_SCHOOL } from "@/lib/brand";
-
-export const SCHOOL = BRAND_SCHOOL;

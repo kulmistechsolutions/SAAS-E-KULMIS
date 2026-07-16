@@ -1,4 +1,4 @@
-import { SCHOOL } from "@/lib/students/constants";
+import { schoolBranding } from "@/lib/settings/store";
 import {
   money,
   monthLabel,
@@ -16,6 +16,10 @@ export function payslipHtml(
   const emp = getEmployee(payroll.employeeId);
   const lastPayment =
     payment ?? paymentsForPayroll(payroll.id)[0] ?? null;
+  const school = schoolBranding();
+  const logo = school.logoUrl
+    ? `<img src="${school.logoUrl}" alt="" class="logo" style="object-fit:cover"/>`
+    : `<div class="logo">${school.name.slice(0, 2).toUpperCase()}</div>`;
 
   return `<!DOCTYPE html>
 <html><head><meta charset="utf-8"/><title>Payslip — ${emp?.fullName ?? "Employee"}</title>
@@ -37,10 +41,10 @@ export function payslipHtml(
   @media print{body{padding:20px}}
 </style></head><body>
   <div class="head">
-    <div class="logo">EK</div>
+    ${logo}
     <div>
-      <h1>${SCHOOL.name}</h1>
-      <div class="meta">School Management ERP — Salary Payslip</div>
+      <h1>${school.name}</h1>
+      <div class="meta">Salary Payslip</div>
     </div>
     <div style="margin-left:auto;text-align:right">
       <span class="badge">${payrollStatusLabel(payroll.status)}</span>

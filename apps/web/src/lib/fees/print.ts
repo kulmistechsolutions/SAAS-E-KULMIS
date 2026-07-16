@@ -1,15 +1,19 @@
-import { SCHOOL } from "@/lib/students/constants";
+import { schoolBranding } from "@/lib/settings/store";
 import { getState as getStudentsState } from "@/lib/students/store";
 import { monthLabel, money, paymentTypeLabel, receiptDate } from "./format";
 import type { FeePayment } from "./types";
 import { outstandingBalance } from "./store";
 
 export function receiptHtml(payment: FeePayment): string {
+  const school = schoolBranding();
   const student = getStudentsState().students.find((s) => s.id === payment.studentId);
   const months = payment.monthKeys.map(monthLabel).join(", ");
   const outstanding = student
     ? outstandingBalance(student.id)
     : payment.outstandingAfter;
+  const logo = school.logoUrl
+    ? `<img src="${school.logoUrl}" alt="" class="logo" style="object-fit:cover"/>`
+    : `<div class="logo">${school.name.slice(0, 2).toUpperCase()}</div>`;
 
   return `<!DOCTYPE html>
 <html><head><meta charset="utf-8"/><title>${payment.receiptNo}</title>
@@ -30,10 +34,10 @@ export function receiptHtml(payment: FeePayment): string {
   @media print{body{padding:20px}}
 </style></head><body>
   <div class="head">
-    <div class="logo">EK</div>
+    ${logo}
     <div>
-      <h1>${SCHOOL.name}</h1>
-      <div class="meta">School Management ERP — Fee Receipt</div>
+      <h1>${school.name}</h1>
+      <div class="meta">Fee Receipt</div>
     </div>
     <div class="receipt-no">Receipt No.<strong>${payment.receiptNo}</strong></div>
   </div>

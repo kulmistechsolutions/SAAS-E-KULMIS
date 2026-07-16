@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth";
 import { refreshAcademics } from "@/lib/academics/store";
 import { refreshStudents } from "@/lib/students/store";
+import { refreshSettings } from "@/lib/settings/store";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
 import { Toaster } from "@/lib/toast";
@@ -57,6 +58,11 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     if (user && user.role !== "TEACHER") {
       void refreshAcademics();
       void refreshStudents();
+      // The settings store may have already been touched by an unauthenticated
+      // page (e.g. /login) before this session existed, fetching only public
+      // branding. Re-fetch now that we have a token so the full school
+      // settings (used by every receipt/PDF) load, not just the seed cache.
+      void refreshSettings();
     }
   }, [user]);
 

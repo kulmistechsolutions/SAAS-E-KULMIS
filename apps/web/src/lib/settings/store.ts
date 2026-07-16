@@ -1,7 +1,7 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
-import { ApiError } from "@/lib/api";
+import { ApiError, getAccessToken } from "@/lib/api";
 import { activeAcademicYear as getActiveAcademicYear } from "@/lib/academics/store";
 import { updateSecuritySettings } from "@/lib/users/store";
 import {
@@ -41,6 +41,28 @@ function setState(next: SettingsState) {
 
 /** Load school settings from the API (merges with local-only sections). */
 export async function refreshSettings(): Promise<void> {
+  // Public/unauthenticated pages (login screens, public results lookup) can't
+  // call the staff-only /settings endpoint — fetch just the public branding
+  // (name + logo) instead so they still show the real school, not the
+  // generic product brand.
+  if (!getAccessToken()) {
+    try {
+      const b = await apiGetBranding();
+      const current = state ?? buildSettingsSeed();
+      setState({
+        ...current,
+        school: {
+          ...current.school,
+          name: b.name,
+          motto: b.motto ?? current.school.motto,
+          logoDataUrl: b.logoKey,
+        },
+      });
+    } catch {
+      /* keep cache */
+    }
+    return;
+  }
   try {
     const remote = await apiGetSettings();
     const current = state ?? buildSettingsSeed();

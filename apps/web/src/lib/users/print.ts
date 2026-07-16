@@ -1,8 +1,12 @@
-import { SCHOOL } from "@/lib/students/constants";
+import { schoolBranding } from "@/lib/settings/store";
 import { dateTime, roleLabel, shortDate } from "./format";
 import type { SystemUser } from "./types";
 
 export function userProfileHtml(user: SystemUser): string {
+  const school = schoolBranding();
+  const logo = school.logoUrl
+    ? `<img src="${school.logoUrl}" alt="" class="logo" style="object-fit:cover"/>`
+    : `<div class="logo">${school.name.slice(0, 2).toUpperCase()}</div>`;
   return `<!DOCTYPE html>
 <html><head><meta charset="utf-8"/><title>${user.userId}</title>
 <style>
@@ -15,9 +19,9 @@ export function userProfileHtml(user: SystemUser): string {
   .sign{margin-top:48px;border-top:1px solid #cbd5e1;padding-top:8px;font-size:12px;color:#64748b;width:240px}
 </style></head><body>
   <div class="head">
-    <div class="logo">EK</div>
+    ${logo}
     <div>
-      <h1>${SCHOOL.name}</h1>
+      <h1>${school.name}</h1>
       <div style="color:#64748b;font-size:13px">User Profile Report</div>
     </div>
   </div>
@@ -47,6 +51,7 @@ export function userListReportHtml(
   rows: { userId: string; fullName: string; username: string; roleLabel: string; status: string }[],
   title: string,
 ): string {
+  const school = schoolBranding();
   const body = rows
     .map(
       (r) =>
@@ -63,7 +68,7 @@ export function userListReportHtml(
   th{background:#f8fafc}
   .sign{margin-top:40px;font-size:12px;color:#64748b}
 </style></head><body>
-  <h1>${SCHOOL.name}</h1>
+  <h1>${school.name}</h1>
   <div class="meta">${title} · Generated ${shortDate(new Date().toISOString())}</div>
   <table>
     <thead><tr><th>User ID</th><th>Name</th><th>Username</th><th>Role</th><th>Status</th></tr></thead>

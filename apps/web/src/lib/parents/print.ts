@@ -1,6 +1,6 @@
 "use client";
 
-import { SCHOOL } from "@/lib/students/constants";
+import { schoolBranding } from "@/lib/settings/store";
 import { shortDate, statusLabel } from "@/lib/students/format";
 import type { Parent, Student } from "@/lib/students/types";
 
@@ -42,6 +42,10 @@ function escapeHtml(s: string): string {
 }
 
 export function printParentProfile(parent: Parent, children: Student[]) {
+  const school = schoolBranding();
+  const logo = school.logoUrl
+    ? `<img src="${school.logoUrl}" alt="" class="logo" style="object-fit:cover"/>`
+    : `<div class="logo">${school.name.slice(0, 2).toUpperCase()}</div>`;
   const w = window.open("", "_blank", "width=800,height=700");
   if (!w) return;
   const row = (k: string, v: string) =>
@@ -63,7 +67,7 @@ export function printParentProfile(parent: Parent, children: Student[]) {
     td.k{background:#f8fafc;font-weight:600;width:200px}
     th{background:#f8fafc;text-align:left}
   </style></head><body>
-  <div class="head"><div class="logo">ES</div><div><h1>${SCHOOL.name}</h1><div style="color:#475569;font-size:13px">Parent Profile</div></div></div>
+  <div class="head">${logo}<div><h1>${escapeHtml(school.name)}</h1><div style="color:#475569;font-size:13px">Parent Profile</div></div></div>
   <h2>Parent Information</h2>
   <table>
     ${row("Parent ID", parent.code)}
@@ -90,6 +94,7 @@ export function printParentsList(
   rows: (Parent & { childCount: number })[],
   meta: { status: string },
 ) {
+  const school = schoolBranding();
   const w = window.open("", "_blank", "width=900,height=700");
   if (!w) return;
   const body = rows
@@ -100,7 +105,7 @@ export function printParentsList(
     .join("");
   w.document.write(`<!DOCTYPE html><html><head><title>Parent List</title>
   <style>*{font-family:Arial,sans-serif}body{padding:32px}table{width:100%;border-collapse:collapse;font-size:13px}th,td{border:1px solid #cbd5e1;padding:7px}th{background:#f1f5f9}</style></head><body>
-  <h1>${SCHOOL.name} — Parent List</h1>
+  <h1>${escapeHtml(school.name)} — Parent List</h1>
   <p>Status filter: ${meta.status}</p>
   <table><thead><tr><th>#</th><th>Parent ID</th><th>Name</th><th>Phone</th><th>Children</th><th>Status</th></tr></thead>
   <tbody>${body}</tbody></table>

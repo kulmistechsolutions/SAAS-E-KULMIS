@@ -1,4 +1,4 @@
-import { SCHOOL } from "@/lib/brand";
+import { schoolBranding } from "@/lib/settings/store";
 
 interface PrintTableOptions {
   title: string;
@@ -10,6 +10,10 @@ interface PrintTableOptions {
 }
 
 export function printTable(opts: PrintTableOptions) {
+  const school = schoolBranding();
+  const logo = school.logoUrl
+    ? `<img src="${school.logoUrl}" alt="" class="logo" style="object-fit:cover"/>`
+    : `<div class="logo">${school.name.charAt(0)}</div>`;
   const now = new Date();
   const head = opts.columns.map((c) => `<th>${c}</th>`).join("");
   const body = opts.rows
@@ -34,9 +38,9 @@ export function printTable(opts: PrintTableOptions) {
     .foot { margin-top:24px; display:flex; justify-content:space-between; font-size:12px; color:#64748b; }
   </style></head><body>
     <div class="head">
-      <div class="logo">${SCHOOL.shortName.charAt(0)}</div>
+      ${logo}
       <div>
-        <h1>${SCHOOL.name}</h1>
+        <h1>${school.name}</h1>
         <div class="muted">${opts.academicYear ? `Academic Year: ${opts.academicYear}` : ""}</div>
       </div>
     </div>

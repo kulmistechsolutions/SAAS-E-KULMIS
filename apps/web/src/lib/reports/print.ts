@@ -1,4 +1,5 @@
-import { BRAND, SCHOOL } from "@/lib/brand";
+import { BRAND } from "@/lib/brand";
+import { schoolBranding } from "@/lib/settings/store";
 import type { ReportColumn, ReportData } from "./types";
 
 interface PrintOpts {
@@ -9,6 +10,10 @@ interface PrintOpts {
 }
 
 export function printReport(opts: PrintOpts) {
+  const school = schoolBranding();
+  const logo = school.logoUrl
+    ? `<img src="${school.logoUrl}" alt="" class="logo" style="object-fit:cover"/>`
+    : `<div class="logo">${school.name.charAt(0)}</div>`;
   const now = new Date();
   const head = opts.data.columns.map((c) => `<th>${c.label}</th>`).join("");
   const body = opts.data.rows
@@ -43,9 +48,9 @@ export function printReport(opts: PrintOpts) {
     @media print { body { padding: 20px; } }
   </style></head><body>
     <div class="head">
-      <div class="logo">${SCHOOL.shortName.charAt(0)}</div>
+      ${logo}
       <div>
-        <h1>${SCHOOL.name}</h1>
+        <h1>${school.name}</h1>
         <div class="meta">${BRAND.tagline}</div>
         <div class="meta"><b>${opts.title}</b>${opts.academicYear ? ` · Academic Year ${opts.academicYear}` : ""}</div>
       </div>

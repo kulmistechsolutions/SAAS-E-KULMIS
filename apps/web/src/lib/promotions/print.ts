@@ -1,4 +1,4 @@
-import { SCHOOL } from "@/lib/brand";
+import { schoolBranding } from "@/lib/settings/store";
 import { getStudentWithParent } from "@/lib/students/store";
 import { studentPromotionHistory } from "./store";
 import { dateTime, shortDate } from "./format";
@@ -9,6 +9,10 @@ export { printTable } from "@/lib/academics/print";
 export function printTranscript(studentId: string) {
   const sw = getStudentWithParent(studentId);
   if (!sw) return;
+  const school = schoolBranding();
+  const logo = school.logoUrl
+    ? `<img src="${school.logoUrl}" alt="" class="logo" style="object-fit:cover"/>`
+    : `<div class="logo">${school.name.charAt(0)}</div>`;
   const history = studentPromotionHistory(studentId);
   const now = new Date();
 
@@ -43,9 +47,9 @@ export function printTranscript(studentId: string) {
     .badge { display:inline-block; padding:2px 10px; border-radius:9999px; background:#dcfce7; color:#166534; font-size:12px; font-weight:600; }
   </style></head><body>
     <div class="head">
-      <div class="logo">${SCHOOL.shortName.charAt(0)}</div>
+      ${logo}
       <div>
-        <h1>${SCHOOL.name}</h1>
+        <h1>${school.name}</h1>
         <div class="muted">Official Student Transcript</div>
       </div>
     </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { SCHOOL } from "@/lib/students/constants";
+import { schoolBranding } from "@/lib/settings/store";
 import { studentStatusLabel, teacherStatusLabel, formatDisplayDate } from "./format";
 import type { StudentAttendanceStatus, TeacherAttendanceStatus } from "./types";
 
@@ -16,6 +16,10 @@ export function printStudentAttendanceSheet(opts: {
   rows: { serial: number; code: string; name: string; status: StudentAttendanceStatus }[];
   summary: { total: number; present: number; absent: number; late: number; excused: number; percentage: number };
 }) {
+  const school = schoolBranding();
+  const logo = school.logoUrl
+    ? `<img src="${school.logoUrl}" alt="" class="logo" style="object-fit:cover"/>`
+    : `<div class="logo">${school.name.slice(0, 2).toUpperCase()}</div>`;
   const w = window.open("", "_blank", "width=900,height=700");
   if (!w) return;
   const body = opts.rows
@@ -36,8 +40,8 @@ export function printStudentAttendanceSheet(opts: {
   .sign{margin-top:40px;display:flex;justify-content:space-between}
   .sign div{width:40%;border-top:1px solid #94a3b8;padding-top:8px;font-size:12px;color:#64748b}
   </style></head><body>
-  <div class="head"><div class="logo">ES</div><div>
-    <h1>${SCHOOL.name}</h1>
+  <div class="head">${logo}<div>
+    <h1>${escapeHtml(school.name)}</h1>
     <p style="color:#475569;font-size:13px;margin:4px 0 0">Student Attendance · ${opts.academicYear}</p>
     <p style="color:#475569;font-size:13px">${formatDisplayDate(opts.date)} · ${escapeHtml(opts.className)} · Section ${opts.section}</p>
   </div></div>
@@ -73,6 +77,7 @@ export function printTeacherAttendanceSheet(opts: {
   rows: { serial: number; code: string; name: string; status: TeacherAttendanceStatus }[];
   summary: { total: number; present: number; absent: number; late: number; leave?: number; percentage: number };
 }) {
+  const school = schoolBranding();
   const w = window.open("", "_blank", "width=900,height=700");
   if (!w) return;
   const body = opts.rows
@@ -83,7 +88,7 @@ export function printTeacherAttendanceSheet(opts: {
     .join("");
   w.document.write(`<!DOCTYPE html><html><head><title>Teacher Attendance</title>
   <style>*{font-family:Arial,sans-serif}body{padding:32px}table{width:100%;border-collapse:collapse;font-size:13px}th,td{border:1px solid #cbd5e1;padding:8px}th{background:#f1f5f9}</style></head><body>
-  <h1>${SCHOOL.name} — Teacher Attendance</h1>
+  <h1>${escapeHtml(school.name)} — Teacher Attendance</h1>
   <p>${formatDisplayDate(opts.date)} · ${opts.shift} Shift · ${opts.academicYear}</p>
   <table><thead><tr><th>#</th><th>Teacher ID</th><th>Name</th><th>Status</th></tr></thead><tbody>${body}</tbody></table>
   <p style="margin-top:16px">Present: ${opts.summary.present} · Absent: ${opts.summary.absent} · Late: ${opts.summary.late} · Leave: ${opts.summary.leave ?? 0} · ${opts.summary.percentage}%</p>

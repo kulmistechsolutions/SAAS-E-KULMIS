@@ -1,6 +1,6 @@
 "use client";
 
-import { SCHOOL } from "./constants";
+import { schoolBranding } from "@/lib/settings/store";
 import {
   genderLabel,
   money,
@@ -70,6 +70,10 @@ export function printTeachersList(
   teachers: Teacher[],
   meta: { shift: string; status: string },
 ) {
+  const school = schoolBranding();
+  const logo = school.logoUrl
+    ? `<img src="${school.logoUrl}" alt="" class="logo" style="object-fit:cover"/>`
+    : `<div class="logo">${school.name.slice(0, 2).toUpperCase()}</div>`;
   const w = window.open("", "_blank", "width=900,height=700");
   if (!w) return;
   const body = teachers
@@ -98,8 +102,8 @@ export function printTeachersList(
     th{background:#f1f5f9}
     @media print{body{padding:0}}
   </style></head><body>
-  <div class="head"><div class="logo">ES</div><div>
-    <h1>${SCHOOL.name}</h1>
+  <div class="head">${logo}<div>
+    <h1>${escapeHtml(school.name)}</h1>
     <div class="meta">Teacher List · Shift: ${meta.shift} · Status: ${meta.status}</div>
   </div></div>
   <table>
@@ -115,6 +119,10 @@ export function printTeacherProfile(
   teacher: Teacher,
   assignments: TeacherAssignment[],
 ) {
+  const school = schoolBranding();
+  const logo = school.logoUrl
+    ? `<img src="${school.logoUrl}" alt="" class="logo" style="object-fit:cover"/>`
+    : `<div class="logo">${school.name.slice(0, 2).toUpperCase()}</div>`;
   const w = window.open("", "_blank", "width=800,height=700");
   if (!w) return;
   const row = (k: string, v: string) =>
@@ -139,7 +147,7 @@ export function printTeacherProfile(
     th{border:1px solid #e2e8f0;padding:7px 10px;background:#f8fafc;text-align:left}
     @media print{body{padding:0}}
   </style></head><body>
-  <div class="head"><div class="logo">ES</div><div><h1>${SCHOOL.name}</h1><div style="color:#475569;font-size:13px">Teacher Profile</div></div></div>
+  <div class="head">${logo}<div><h1>${escapeHtml(school.name)}</h1><div style="color:#475569;font-size:13px">Teacher Profile</div></div></div>
   <h2>Teacher Information</h2>
   <table>
     ${row("Teacher ID", teacher.code)}

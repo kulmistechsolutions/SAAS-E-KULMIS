@@ -1,4 +1,4 @@
-import { SCHOOL } from "@/lib/students/constants";
+import { schoolBranding } from "@/lib/settings/store";
 import {
   dateTime,
   money,
@@ -9,6 +9,10 @@ import { categoryName } from "./store";
 import type { Expense } from "./types";
 
 export function expenseHtml(expense: Expense, preparedBy = "Admin User"): string {
+  const school = schoolBranding();
+  const logo = school.logoUrl
+    ? `<img src="${school.logoUrl}" alt="" class="logo" style="object-fit:cover"/>`
+    : `<div class="logo">${school.name.slice(0, 2).toUpperCase()}</div>`;
   const cat = categoryName(expense.categoryId);
   return `<!DOCTYPE html>
 <html><head><meta charset="utf-8"/><title>${expense.referenceNo}</title>
@@ -30,10 +34,10 @@ export function expenseHtml(expense: Expense, preparedBy = "Admin User"): string
   @media print{body{padding:20px}}
 </style></head><body>
   <div class="head">
-    <div class="logo">EK</div>
+    ${logo}
     <div>
-      <h1>${SCHOOL.name}</h1>
-      <div class="meta">School Management ERP — Expense Record</div>
+      <h1>${school.name}</h1>
+      <div class="meta">Expense Record</div>
       <div class="meta">Academic Year: ${expense.academicYear}</div>
     </div>
     <div class="ref">Reference<strong>${expense.referenceNo}</strong></div>
@@ -71,6 +75,7 @@ export function reportHtml(opts: {
   total: number;
   preparedBy?: string;
 }): string {
+  const school = schoolBranding();
   const rows = opts.rows
     .map(
       (r) =>
@@ -89,7 +94,7 @@ export function reportHtml(opts: {
   .total{font-size:24px;font-weight:700;text-align:right;margin-top:20px;color:#dc2626}
   .sign{margin-top:48px;border-top:1px solid #cbd5e1;padding-top:8px;font-size:12px;color:#64748b;width:240px}
 </style></head><body>
-  <h1>${SCHOOL.name}</h1>
+  <h1>${school.name}</h1>
   <div class="meta">${opts.title} · ${opts.academicYear} · ${dateTime(new Date().toISOString())}</div>
   <table>
     <thead><tr><th>Item</th><th style="text-align:right">Amount</th></tr></thead>

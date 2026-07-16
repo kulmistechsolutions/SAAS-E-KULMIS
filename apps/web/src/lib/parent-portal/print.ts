@@ -1,7 +1,6 @@
 "use client";
 
-import { BRAND } from "@/lib/brand";
-import { SCHOOL } from "@/lib/students/constants";
+import { schoolBranding } from "@/lib/settings/store";
 import { shortDate, statusLabel } from "@/lib/students/format";
 import type { Student } from "@/lib/students/types";
 import type { FeePayment } from "@/lib/fees/types";
@@ -13,21 +12,25 @@ function escapeHtml(s: string): string {
 }
 
 function printWindow(title: string, body: string) {
+  const school = schoolBranding();
+  const logo = school.logoUrl
+    ? `<img src="${school.logoUrl}" alt="" class="logo" style="object-fit:cover"/>`
+    : `<div class="logo">${escapeHtml(school.name.slice(0, 2).toUpperCase())}</div>`;
   const w = window.open("", "_blank", "width=800,height=700");
   if (!w) return;
   w.document.write(`<!DOCTYPE html><html><head><title>${escapeHtml(title)}</title>
   <style>
     *{font-family:Arial,sans-serif;box-sizing:border-box}body{padding:32px;color:#0f172a}
     .head{display:flex;gap:16px;border-bottom:2px solid #4f46e5;padding-bottom:16px;margin-bottom:20px}
-    .logo{width:52px;height:52px;border-radius:12px;background:linear-gradient(135deg,#3b82f6,#4f46e5);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:18px}
+    .logo{width:52px;height:52px;border-radius:12px;background:linear-gradient(135deg,#3b82f6,#4f46e5);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:18px;object-fit:cover}
     h2{font-size:14px;margin:16px 0 6px;color:#4f46e5}
     table{width:100%;border-collapse:collapse;font-size:13px}
     td,th{border:1px solid #e2e8f0;padding:7px 10px}
     th{background:#f8fafc;text-align:left}
     .muted{color:#64748b;font-size:12px}
   </style></head><body>
-  <div class="head"><div class="logo">${escapeHtml(BRAND.name.slice(0, 2).toUpperCase())}</div>
-  <div><h1 style="margin:0;font-size:20px">${escapeHtml(SCHOOL.name)}</h1>
+  <div class="head">${logo}
+  <div><h1 style="margin:0;font-size:20px">${escapeHtml(school.name)}</h1>
   <div class="muted">${escapeHtml(title)}</div></div></div>
   ${body}
   <p class="muted" style="margin-top:24px">Printed ${new Date().toLocaleString()}</p>

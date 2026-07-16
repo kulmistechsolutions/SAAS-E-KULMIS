@@ -1,6 +1,6 @@
 "use client";
 
-import { SCHOOL } from "./constants";
+import { schoolBranding } from "@/lib/settings/store";
 import { genderLabel, money, shortDate, statusLabel } from "./format";
 import type { StudentWithParent } from "./types";
 
@@ -56,6 +56,10 @@ interface PrintMeta {
 }
 
 export function printStudentsList(rows: StudentWithParent[], meta: PrintMeta) {
+  const school = schoolBranding();
+  const logo = school.logoUrl
+    ? `<img src="${school.logoUrl}" alt="" class="logo" style="object-fit:cover"/>`
+    : `<div class="logo">${school.name.slice(0, 2).toUpperCase()}</div>`;
   const w = window.open("", "_blank", "width=900,height=700");
   if (!w) return;
   const body = rows
@@ -85,9 +89,9 @@ export function printStudentsList(rows: StudentWithParent[], meta: PrintMeta) {
     @media print{body{padding:0}}
   </style></head><body>
   <div class="head">
-    <div class="logo">ES</div>
+    ${logo}
     <div>
-      <h1>${SCHOOL.name}</h1>
+      <h1>${escapeHtml(school.name)}</h1>
       <div class="meta">Student List · Academic Year ${meta.academicYear} · Class: ${meta.className} · Section: ${meta.section}</div>
     </div>
   </div>
@@ -110,6 +114,10 @@ function escapeHtml(s: string): string {
 }
 
 export function printStudentProfile(r: StudentWithParent) {
+  const school = schoolBranding();
+  const logo = school.logoUrl
+    ? `<img src="${school.logoUrl}" alt="" class="logo" style="object-fit:cover"/>`
+    : `<div class="logo">${school.name.slice(0, 2).toUpperCase()}</div>`;
   const w = window.open("", "_blank", "width=800,height=700");
   if (!w) return;
   const row = (k: string, v: string) =>
@@ -128,7 +136,7 @@ export function printStudentProfile(r: StudentWithParent) {
     td.k{background:#f8fafc;font-weight:600;width:220px}
     @media print{body{padding:0}}
   </style></head><body>
-  <div class="head"><div class="logo">ES</div><div><h1>${SCHOOL.name}</h1><div class="meta">Student Profile</div></div></div>
+  <div class="head">${logo}<div><h1>${escapeHtml(school.name)}</h1><div class="meta">Student Profile</div></div></div>
   <h2>Personal Information</h2>
   <table>
     ${row("Student ID", r.code)}

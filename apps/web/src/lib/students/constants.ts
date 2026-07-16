@@ -38,7 +38,3 @@ export function generatePassword(): string {
 export function code(prefix: string, seq: number): string {
   return `${prefix}${String(seq).padStart(6, "0")}`;
 }
-
-import { SCHOOL as BRAND_SCHOOL } from "../brand";
-
-export const SCHOOL = BRAND_SCHOOL;

@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
-import { SCHOOL } from "@/lib/students/constants";
+import { useSchoolBranding } from "@/lib/settings/use-school-branding";
 import { getState as getStudentsState } from "@/lib/students/store";
 import { money, monthLabel, paymentTypeLabel, receiptDate } from "@/lib/fees/format";
 import { printReceipt } from "@/lib/fees/print";
@@ -15,6 +15,7 @@ interface ReceiptDialogProps {
 }
 
 export function ReceiptDialog({ payment, onClose }: ReceiptDialogProps) {
+  const branding = useSchoolBranding();
   if (!payment) return null;
   const student = getStudentsState().students.find((s) => s.id === payment.studentId);
 
@@ -35,11 +36,20 @@ export function ReceiptDialog({ payment, onClose }: ReceiptDialogProps) {
     >
       <div className="space-y-4 rounded-xl border bg-secondary/20 p-5 text-sm">
         <div className="flex items-center gap-3 border-b pb-4">
-          <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 text-lg font-bold text-white">
-            EK
-          </span>
+          {branding.logoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={branding.logoUrl}
+              alt={branding.name}
+              className="h-12 w-12 rounded-xl object-cover"
+            />
+          ) : (
+            <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 text-lg font-bold text-white">
+              {branding.name.slice(0, 2).toUpperCase()}
+            </span>
+          )}
           <div>
-            <p className="font-semibold">{SCHOOL.name}</p>
+            <p className="font-semibold">{branding.name}</p>
             <p className="text-xs text-muted-foreground">Fee Receipt</p>
           </div>
         </div>

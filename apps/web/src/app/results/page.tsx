@@ -5,13 +5,13 @@ import { GraduationCap, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { BRAND } from "@/lib/brand";
-import { SCHOOL } from "@/lib/students/constants";
+import { useSchoolBranding } from "@/lib/settings/use-school-branding";
 import { lookupPublicResults } from "@/lib/examinations/store";
 import type { StudentExamResult, StudentFinalResult } from "@/lib/examinations/types";
 import { toast } from "@/lib/toast";
 
 export default function PublicResultsPage() {
+  const branding = useSchoolBranding();
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [blocked, setBlocked] = useState(false);
@@ -53,11 +53,20 @@ export default function PublicResultsPage() {
     <main className="min-h-screen bg-secondary/30 p-4 sm:p-8">
       <div className="mx-auto max-w-3xl">
         <div className="mb-8 text-center">
-          <span className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-lg">
-            <GraduationCap className="h-7 w-7" />
-          </span>
-          <h1 className="text-2xl font-bold">{SCHOOL.name}</h1>
-          <p className="text-sm text-muted-foreground">{BRAND.tagline}</p>
+          {branding.logoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={branding.logoUrl}
+              alt={branding.name}
+              className="mx-auto mb-4 h-14 w-14 rounded-2xl object-cover shadow-lg"
+            />
+          ) : (
+            <span className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-lg">
+              <GraduationCap className="h-7 w-7" />
+            </span>
+          )}
+          <h1 className="text-2xl font-bold">{branding.name}</h1>
+          <p className="text-sm text-muted-foreground">{branding.tagline}</p>
           <p className="mt-2 text-lg font-semibold">Student Results Portal</p>
         </div>
 
