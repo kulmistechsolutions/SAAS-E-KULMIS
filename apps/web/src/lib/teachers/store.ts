@@ -2,6 +2,8 @@
 
 import { useSyncExternalStore } from "react";
 import { ApiError } from "@/lib/api";
+import { getCachedAuthUser } from "@/lib/auth";
+import { isTeacherPortalRoute } from "@/lib/teacher-portal/routes";
 import { activeAcademicYear, ensureAcademicsLoaded, getAcademicsState } from "@/lib/academics/store";
 import {
   apiBulkCreateAssignments,
@@ -88,7 +90,15 @@ function apiErr(e: unknown, fallback: string): string {
   return e instanceof ApiError ? e.message : fallback;
 }
 
+function shouldSkipBulkTeacherDirectory(): boolean {
+  if (typeof window === "undefined") return false;
+  if (isTeacherPortalRoute(window.location.pathname)) return true;
+  if (getCachedAuthUser()?.role === "TEACHER") return true;
+  return false;
+}
+
 export async function refreshTeachers(): Promise<void> {
+  if (shouldSkipBulkTeacherDirectory()) return;
   try {
     const [teachers, assignments] = await Promise.all([
       apiListTeachers(),
