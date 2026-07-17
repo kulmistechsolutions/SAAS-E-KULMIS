@@ -22,6 +22,7 @@ import {
   refreshStudents,
   useStudentsState,
 } from "@/lib/students/store";
+import { DocumentsTab } from "@/components/library/documents-tab";
 
 function StatCard({ label, value, icon: Icon }: { label: string; value: number; icon: typeof BookOpen }) {
   return (
@@ -36,7 +37,7 @@ function StatCard({ label, value, icon: Icon }: { label: string; value: number; 
 
 export default function LibraryPage() {
   const [mounted, setMounted] = useState(false);
-  const [tab, setTab] = useState<"catalog" | "loans">("catalog");
+  const [tab, setTab] = useState<"catalog" | "loans" | "documents">("catalog");
   const [dash, setDash] = useState<LibraryDashboard | null>(null);
   const [books, setBooks] = useState<Book[]>([]);
   const [loans, setLoans] = useState<BookLoan[]>([]);
@@ -153,20 +154,26 @@ export default function LibraryPage() {
       </div>
 
       <div className="flex gap-2 border-b">
-        {(["catalog", "loans"] as const).map((t) => (
+        {(["catalog", "loans", "documents"] as const).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
-            className={`px-4 py-2 text-sm font-medium capitalize ${
+            className={`px-4 py-2 text-sm font-medium ${
               tab === t
                 ? "border-b-2 border-primary text-foreground"
                 : "text-muted-foreground"
             }`}
           >
-            {t === "catalog" ? "Catalogue" : "Issued Books"}
+            {t === "catalog"
+              ? "Catalogue"
+              : t === "loans"
+                ? "Issued Books"
+                : "PDF Books"}
           </button>
         ))}
       </div>
+
+      {tab === "documents" && <DocumentsTab />}
 
       {tab === "catalog" && (
         <div className="space-y-4">

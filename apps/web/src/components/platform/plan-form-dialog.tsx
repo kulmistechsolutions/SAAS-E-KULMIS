@@ -13,6 +13,7 @@ export interface PlanFormValues {
   maxTeachers: number | null;
   durationDays: number;
   aiGradingMonthlyQuota: number | null;
+  libraryStorageMb: number | null;
   priceUsd: number | null;
   isActive?: boolean;
 }
@@ -34,6 +35,7 @@ export function PlanFormDialog({ open, onClose, plan, onSubmit }: Props) {
   const [maxTeachers, setMaxTeachers] = useState("");
   const [durationDays, setDurationDays] = useState("30");
   const [aiQuota, setAiQuota] = useState("");
+  const [libraryStorageMb, setLibraryStorageMb] = useState("");
   const [priceUsd, setPriceUsd] = useState("");
   const [isActive, setIsActive] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -46,6 +48,7 @@ export function PlanFormDialog({ open, onClose, plan, onSubmit }: Props) {
     setMaxTeachers(toStr(plan?.maxTeachers));
     setDurationDays(toStr(plan?.durationDays ?? 30) || "30");
     setAiQuota(toStr(plan?.aiGradingMonthlyQuota));
+    setLibraryStorageMb(toStr(plan?.libraryStorageMb));
     setPriceUsd(toStr(plan?.priceUsd));
     setIsActive(plan?.isActive ?? true);
     setError(null);
@@ -67,6 +70,8 @@ export function PlanFormDialog({ open, onClose, plan, onSubmit }: Props) {
         maxTeachers: maxTeachers.trim() === "" ? null : Number(maxTeachers),
         durationDays: duration,
         aiGradingMonthlyQuota: aiQuota.trim() === "" ? null : Number(aiQuota),
+        libraryStorageMb:
+          libraryStorageMb.trim() === "" ? null : Number(libraryStorageMb),
         priceUsd: priceUsd.trim() === "" ? null : Number(priceUsd),
         isActive,
       });
@@ -149,6 +154,16 @@ export function PlanFormDialog({ open, onClose, plan, onSubmit }: Props) {
               min={0}
               value={aiQuota}
               onChange={(e) => setAiQuota(e.target.value)}
+              placeholder="Unlimited"
+            />
+          </div>
+          <div>
+            <Label>Library storage (MB)</Label>
+            <Input
+              type="number"
+              min={0}
+              value={libraryStorageMb}
+              onChange={(e) => setLibraryStorageMb(e.target.value)}
               placeholder="Unlimited"
             />
           </div>

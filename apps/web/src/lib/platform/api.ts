@@ -513,6 +513,7 @@ export interface PlatformSubscriptionPlan {
   maxTeachers: number | null;
   durationDays: number;
   aiGradingMonthlyQuota: number | null;
+  libraryStorageMb: number | null;
   priceUsd: string | number | null;
   isActive: boolean;
   createdAt: string;
@@ -653,6 +654,7 @@ export const createPlatformSubscriptionPlan = (body: {
   maxTeachers: number | null;
   durationDays: number;
   aiGradingMonthlyQuota: number | null;
+  libraryStorageMb?: number | null;
   priceUsd?: number | null;
   isActive?: boolean;
 }) =>
@@ -669,6 +671,7 @@ export const updatePlatformSubscriptionPlan = (
     maxTeachers: number | null;
     durationDays: number;
     aiGradingMonthlyQuota: number | null;
+    libraryStorageMb: number | null;
     priceUsd: number | null;
     isActive: boolean;
   }>,

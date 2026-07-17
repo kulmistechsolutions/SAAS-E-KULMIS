@@ -86,8 +86,12 @@ export class SubscriptionsService {
         data: {
           name: dto.name,
           maxStudents: dto.maxStudents,
+          // maxTeachers was previously dropped here, so a teacher limit set on
+          // a plan was silently ignored by assertCanAddTeacher.
+          maxTeachers: dto.maxTeachers ?? null,
           durationDays: dto.durationDays,
           aiGradingMonthlyQuota: dto.aiGradingMonthlyQuota,
+          libraryStorageMb: dto.libraryStorageMb ?? null,
           priceUsd: dto.priceUsd ?? null,
           isActive: dto.isActive ?? true,
         },
@@ -120,8 +124,10 @@ export class SubscriptionsService {
         data: {
           name: dto.name,
           maxStudents: dto.maxStudents,
+          maxTeachers: dto.maxTeachers,
           durationDays: dto.durationDays,
           aiGradingMonthlyQuota: dto.aiGradingMonthlyQuota,
+          libraryStorageMb: dto.libraryStorageMb,
           priceUsd: dto.priceUsd,
           isActive: dto.isActive,
         },
@@ -722,6 +728,49 @@ export class SubscriptionsService {
     if (count >= sub.plan.maxTeachers) {
       throw new ForbiddenException(MSG_TEACHER_LIMIT);
     }
+  }
+
+  /**
+   * Throws if storing `incomingBytes` more of library PDFs would take the
+   * school past its plan's storage allowance.
+   */
+  async assertLibraryStorage(
+    schoolId: string,
+    incomingBytes: number,
+  ): Promise<void> {
+    const sub = await this.getSubscription(schoolId);
+    if (!sub || sub.status !== "ACTIVE") {
+      throw new ForbiddenException(MSG_EXPIRED);
+    }
+    if (sub.plan.libraryStorageMb == null) return;
+    const limitBytes = sub.plan.libraryStorageMb * 1024 * 1024;
+    const agg = await this.prisma.libraryDocument.aggregate({
+      where: { schoolId },
+      _sum: { fileSizeBytes: true },
+    });
+    const used = agg._sum.fileSizeBytes ?? 0;
+    if (used + incomingBytes > limitBytes) {
+      const remaining = Math.max(0, limitBytes - used);
+      throw new ForbiddenException(
+        `Library storage limit reached. Your plan allows ${sub.plan.libraryStorageMb} MB and ${(remaining / (1024 * 1024)).toFixed(1)} MB is free. Delete a book or upgrade your plan.`,
+      );
+    }
+  }
+
+  /** Library storage used vs allowed, for the admin library page. */
+  async libraryStorageUsage(schoolId: string) {
+    const sub = await this.getSubscription(schoolId);
+    const agg = await this.prisma.libraryDocument.aggregate({
+      where: { schoolId },
+      _sum: { fileSizeBytes: true },
+    });
+    const usedBytes = agg._sum.fileSizeBytes ?? 0;
+    const limitMb = sub?.plan.libraryStorageMb ?? null;
+    return {
+      usedBytes,
+      limitMb,
+      limitBytes: limitMb == null ? null : limitMb * 1024 * 1024,
+    };
   }
 
   /**

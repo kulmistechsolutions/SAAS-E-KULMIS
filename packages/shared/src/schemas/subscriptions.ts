@@ -7,6 +7,8 @@ export const createSubscriptionPlanSchema = z.object({
   maxTeachers: z.number().int().positive().nullable().optional(),
   durationDays: z.number().int().positive("Duration must be at least 1 day"),
   aiGradingMonthlyQuota: z.number().int().nonnegative().nullable(),
+  /** Total library PDF storage in MB. Null = unlimited. */
+  libraryStorageMb: z.number().int().nonnegative().nullable().optional(),
   priceUsd: z.number().nonnegative().nullable().optional(),
   isActive: z.boolean().optional(),
 });
@@ -21,6 +23,7 @@ export const updateSubscriptionPlanSchema = z
     maxTeachers: z.number().int().positive().nullable().optional(),
     durationDays: z.number().int().positive().optional(),
     aiGradingMonthlyQuota: z.number().int().nonnegative().nullable().optional(),
+    libraryStorageMb: z.number().int().nonnegative().nullable().optional(),
     priceUsd: z.number().nonnegative().nullable().optional(),
     isActive: z.boolean().optional(),
   })

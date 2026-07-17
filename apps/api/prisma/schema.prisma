@@ -128,13 +128,14 @@ model Class {
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
-  academicYear  AcademicYear        @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
-  sections      Section[]
-  students      Student[]
-  assignments   TeacherAssignment[]
-  classSubjects ClassSubject[]
-  exams         Exam[]
-  quizzes       Quiz[]
+  academicYear     AcademicYear        @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
+  sections         Section[]
+  students         Student[]
+  assignments      TeacherAssignment[]
+  classSubjects    ClassSubject[]
+  exams            Exam[]
+  quizzes          Quiz[]
+  libraryDocuments LibraryDocument[]
 
   @@unique([schoolId, academicYearId, name])
   @@index([schoolId])
@@ -932,6 +933,37 @@ model Book {
   @@map("books")
 }
 
+/// Library (Module 16): a PDF book/notes file students read in their portal.
+/// Separate from `Book` because a digital file has no copies to lend — it has
+/// a stored file, an audience, and a read/download permission instead.
+model LibraryDocument {
+  id          String  @id @default(cuid())
+  schoolId    String
+  title       String
+  description String?
+  author      String?
+
+  /// null = every student in the school may read it. Set = only this class,
+  /// so a book meant for one grade never shows up for another.
+  classId String?
+  class   Class?  @relation(fields: [classId], references: [id], onDelete: Restrict)
+
+  /// Storage key, namespaced by tenant: `${schoolId}/library/${id}.pdf`.
+  fileKey       String
+  fileSizeBytes Int
+  /// When false the portal only streams it for on-screen reading.
+  allowDownload Boolean @default(false)
+
+  status           EntityStatus @default(ACTIVE)
+  uploadedByUserId String?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  @@index([schoolId])
+  @@index([classId])
+  @@map("library_documents")
+}
+
 /// A book issued to a student; returned when the copy comes back.
 model BookLoan {
   id             String     @id @default(cuid())
@@ -1517,6 +1549,8 @@ model SubscriptionPlan {
   maxTeachers           Int?
   durationDays          Int
   aiGradingMonthlyQuota Int?
+  /// Total size of all uploaded library PDFs a school may store. Null = unlimited.
+  libraryStorageMb      Int?
   priceUsd              Decimal? @db.Decimal(12, 2)
   isActive              Boolean  @default(true)
   createdAt             DateTime @default(now())
