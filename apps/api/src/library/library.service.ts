@@ -377,6 +377,38 @@ export class LibraryService {
   }
 
   /**
+   * Metadata only (no bytes) — same visibility rule as getDocumentFile, so a
+   * document locked to another class 404s here too, not just on the file.
+   */
+  async getVisibleDocument(
+    schoolId: string,
+    id: string,
+    opts: { studentClassId?: string } = {},
+  ) {
+    const doc = await this.prisma.forTenant(schoolId, (tx) =>
+      tx.libraryDocument.findFirst({
+        where: {
+          id,
+          status: "ACTIVE",
+          ...(opts.studentClassId
+            ? { OR: [{ classId: null }, { classId: opts.studentClassId }] }
+            : {}),
+        },
+        select: {
+          id: true,
+          title: true,
+          description: true,
+          author: true,
+          fileSizeBytes: true,
+          allowDownload: true,
+        },
+      }),
+    );
+    if (!doc) throw new NotFoundException("Document not found");
+    return doc;
+  }
+
+  /**
    * Fetch the PDF bytes. `classId` scopes the read to what a student is
    * allowed to see: a document locked to another class is treated as missing.
    */

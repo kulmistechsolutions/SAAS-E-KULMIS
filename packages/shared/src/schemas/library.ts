@@ -88,3 +88,10 @@ export const updateLibraryDocumentSchema = z.object({
 export type UpdateLibraryDocumentInput = z.infer<
   typeof updateLibraryDocumentSchema
 >;
+
+// ── Library portal (student-facing, ID-only sign-in) ────────────────────────
+
+export const libraryPortalLoginSchema = z.object({
+  studentCode: z.string().trim().min(1, "Student ID is required"),
+});
+export type LibraryPortalLoginInput = z.infer<typeof libraryPortalLoginSchema>;
