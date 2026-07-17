@@ -2,13 +2,16 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { AlertTriangle, CheckCircle2, XCircle } from "lucide-react";
+import { AlertTriangle, XCircle } from "lucide-react";
 import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import type { SchoolSubscriptionMe } from "@/lib/subscriptions/types";
 
 /**
- * Green / orange / red subscription status strip for the school admin app.
+ * Orange / red subscription warning strip for the school admin app. Only
+ * shown when the subscription needs attention (expiring soon, expired, or
+ * unassigned) — a healthy subscription with plenty of time left stays
+ * silent so it doesn't take up space on every page.
  * Loaded from GET /subscriptions/me.
  */
 export function SubscriptionBanner() {
@@ -28,52 +31,35 @@ export function SubscriptionBanner() {
     };
   }, []);
 
-  if (!data?.banner) return null;
+  if (!data?.banner || data.banner.tone === "green") return null;
 
   const styles = {
-    green:
-      "border-emerald-500/30 bg-emerald-500/10 text-emerald-800 dark:text-emerald-200",
     orange:
       "border-amber-500/40 bg-amber-500/10 text-amber-900 dark:text-amber-100",
     red: "border-rose-500/40 bg-rose-500/10 text-rose-900 dark:text-rose-100",
   } as const;
 
-  const Icon =
-    data.banner.tone === "green"
-      ? CheckCircle2
-      : data.banner.tone === "orange"
-        ? AlertTriangle
-        : XCircle;
+  const Icon = data.banner.tone === "orange" ? AlertTriangle : XCircle;
 
   return (
     <div
       role="status"
       className={cn(
-        "mb-4 flex items-start gap-3 rounded-xl border px-4 py-3 text-sm",
+        "mb-4 flex flex-wrap items-center gap-x-2 gap-y-0.5 rounded-lg border px-3 py-1.5 text-xs",
         styles[data.banner.tone],
       )}
     >
-      <Icon className="mt-0.5 h-4 w-4 shrink-0" />
-      <div className="min-w-0 flex-1">
-        <p className="font-medium">{data.banner.message}</p>
-        {data.plan && (
-          <p className="mt-0.5 text-xs opacity-80">
-            Plan: {data.plan.name}
-            {data.endDate
-              ? ` · Ends ${data.endDate.slice(0, 10)}`
-              : ""}
-            {data.daysRemaining != null && data.daysRemaining >= 0
-              ? ` · ${data.daysRemaining} day(s) left`
-              : ""}
-          </p>
-        )}
-        <Link
-          href="/settings/subscription"
-          className="mt-1 inline-block text-xs font-medium underline-offset-2 hover:underline"
-        >
-          View subscription details
-        </Link>
-      </div>
+      <Icon className="h-3.5 w-3.5 shrink-0" />
+      <p className="font-medium">{data.banner.message}</p>
+      {data.daysRemaining != null && data.daysRemaining >= 0 && (
+        <span className="opacity-80">· {data.daysRemaining} day(s) left</span>
+      )}
+      <Link
+        href="/settings/subscription"
+        className="font-medium underline-offset-2 hover:underline"
+      >
+        View details
+      </Link>
     </div>
   );
 }
