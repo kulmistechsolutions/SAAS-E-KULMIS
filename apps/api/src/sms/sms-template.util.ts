@@ -35,6 +35,7 @@ const ALIASES: Record<string, string[]> = {
     "outstanding",
     "outstandingBalance",
     "Lacagta Hadhaysa",
+    "Lacagta Hadhay",
     "Deynta",
   ],
   dueDate: ["Due Date", "dueDate", "DueDate", "Taariikhda Ugu Dambeysa"],
@@ -89,43 +90,63 @@ export const DEFAULT_TEMPLATES: {
   body: string;
 }[] = [
   {
-    name: "Xasuusin Lacag (Fee Reminder)",
-    category: "FEE_REMINDER",
-    body: "Salaan {{Magaca Waalidka}}, {{Magaca Ardayga}} ee {{Fasalka}} wuxuu ku leeyahay {{Magaca Dugsiga}} lacag hadhaysa oo dhan {{Lacagta Hadhaysa}}. Fadlan dib u bixi lacagta. Mahadsanid.",
-  },
-  {
-    name: "Xaqiijinta Lacag (Payment Confirmation)",
-    category: "PAYMENT_CONFIRMATION",
-    body: "Salaan {{Magaca Waalidka}}, waxaan si buuxda u helnay {{Lacagta}} ee aad u bixisay {{Magaca Ardayga}}. Lambarka Rasiidhka: {{Lambarka Rasiidhka}}. Mahadsanid — {{Magaca Dugsiga}}.",
-  },
-  {
     name: "Digniin Xaadirin (Attendance Alert)",
     category: "ATTENDANCE",
-    body: "Salaan {{Magaca Waalidka}}, {{Magaca Ardayga}} kama uu iman dugsiga taariikhda {{Taariikhda}}. — {{Magaca Dugsiga}}",
-  },
-  {
-    name: "Ogeysiis Imtixaan (Exam Announcement)",
-    category: "EXAM_ANNOUNCEMENT",
-    body: "Salaan {{Magaca Waalidka}}, {{Imtixaanka}} ee {{Fasalka}} wuxuu bilaabanayaa {{Taariikhda}}. — {{Magaca Dugsiga}}",
+    body: "Salaan {{Magaca Waalidka}},\n\nWaxaan ku wargelinaynaa in ardaygaaga {{Magaca Ardayga}} uusan maanta oo taariikhdu tahay {{Taariikhda}} soo xaadirin dugsiga.\n\nHaddii aad qabto wax faahfaahin ah, fadlan nala soo xiriir.\n\nMahadsanid.\n{{Magaca Dugsiga}}",
   },
   {
     name: "Natiijada Imtixaanka (Exam Result)",
     category: "EXAM_RESULT",
-    body: "Salaan {{Magaca Waalidka}}, {{Magaca Ardayga}} wuxuu ka helay {{Dhibcaha}} dhibcood imtixaankii {{Imtixaanka}}. — {{Magaca Dugsiga}}",
-  },
-  {
-    name: "Xasuusin Diiwaan Dhibco (Exam Submission Reminder)",
-    category: "EXAM_ANNOUNCEMENT",
-    body: "{{Magaca Dugsiga}}: Fadlan soo gudbi dhibcaha {{Imtixaanka}} ee {{Fasalka}} sida ugu dhaqsaha badan. Mahadsanid.",
-  },
-  {
-    name: "Xaqiijinta Diiwaangelinta (Registration Confirmation)",
-    category: "REGISTRATION",
-    body: "Soo dhawoow {{Magaca Dugsiga}}! {{Magaca Ardayga}} (Lambarka: {{Lambarka Ardayga}}) waa lagu diiwaan geliyay sanad-dugsiyeedka {{Sanad Dugsiyeedka}}.",
+    body: "Salaan {{Magaca Waalidka}},\n\nArdaygaaga {{Magaca Ardayga}} wuxuu helay {{Dhibcaha}} imtixaanka {{Imtixaanka}}.\n\nWaxaan u rajaynaynaa guul iyo horumar.\n\nMahadsanid.\n{{Magaca Dugsiga}}",
   },
   {
     name: "Ogeysiis Degdeg ah (Emergency Notice)",
     category: "EMERGENCY",
-    body: "OGEYSIIS DEGDEG AH — {{Magaca Dugsiga}}: {{Fariinta}}. Fadlan isla markiiba nala soo xiriir.",
+    body: "OGEYSIIS DEGDEG AH\n\n{{Farriinta}}\n\nFadlan si degdeg ah ula soco ogeysiiskan ama nala soo xiriir haddii loo baahdo.\n\n{{Magaca Dugsiga}}",
+  },
+  {
+    name: "Ogeysiis Imtixaan (Exam Announcement)",
+    category: "EXAM_ANNOUNCEMENT",
+    body: "Salaan {{Magaca Waalidka}},\n\nWaxaan ku wargelinaynaa in imtixaanka {{Imtixaanka}} ee fasalka {{Fasalka}} uu bilaaban doono {{Taariikhda}}.\n\nFadlan hubi in ardaygu diyaar u yahay.\n\nMahadsanid.\n{{Magaca Dugsiga}}",
+  },
+  {
+    name: "Xaqiijinta Diiwaangelinta (Registration Confirmation)",
+    category: "REGISTRATION",
+    body: "Ku soo dhawoow {{Magaca Dugsiga}}.\n\nWaxaan xaqiijinay diiwaangelinta ardayga {{Magaca Ardayga}}.\n\nLambarka Ardayga: {{Lambarka Ardayga}}\n\nSanad Dugsiyeedka: {{Sanad Dugsiyeedka}}\n\nMahadsanid.\n{{Magaca Dugsiga}}",
+  },
+  {
+    name: "Xaqiijinta Lacag-bixinta (Payment Confirmation)",
+    category: "PAYMENT_CONFIRMATION",
+    body: "Salaan {{Magaca Waalidka}},\n\nWaxaan xaqiijinay helitaanka lacag dhan {{Lacagta}} oo laga bixiyay ardayga {{Magaca Ardayga}}.\n\nLambarka Rasiidka: {{Lambarka Rasiidhka}}\n\nWaad ku mahadsan tahay lacag-bixintaada.\n\n{{Magaca Dugsiga}}",
+  },
+  {
+    name: "Xasuusin Gudbinta Dhibcaha (Exam Submission Reminder)",
+    category: "EXAM_ANNOUNCEMENT",
+    body: "Xasuusin\n\nMacallin, fadlan soo gudbi dhibcaha imtixaanka {{Imtixaanka}} ee fasalka {{Fasalka}} sida ugu dhaqsaha badan.\n\nMahadsanid.\n{{Magaca Dugsiga}}",
+  },
+  {
+    name: "Xasuusin Lacag-bixin (Fee Reminder)",
+    category: "FEE_REMINDER",
+    body: "Salaan {{Magaca Waalidka}},\n\nWaxaan ku xasuusinaynaa in ardayga {{Magaca Ardayga}} ee fasalka {{Fasalka}} uu wali leeyahay lacag dugsiyeed oo dhan {{Lacagta Hadhay}}.\n\nFadlan bixi lacagta si looga fogaado dib u dhac.\n\nMahadsanid.\n{{Magaca Dugsiga}}",
+  },
+  {
+    name: "Soo Dhawayn (Welcome SMS)",
+    category: "ADMISSION",
+    body: "Ku soo dhawoow {{Magaca Dugsiga}}.\n\nWaxaan ku faraxsanahay inaad nagu soo biirtay. Waxaan kuu rajaynaynaa sanad dugsiyeed guul leh.\n\nMahadsanid.\n{{Magaca Dugsiga}}",
+  },
+  {
+    name: "Dhalasho Wacan (Birthday)",
+    category: "ANNOUNCEMENT",
+    body: "Dhalasho Wacan {{Magaca Ardayga}}!\n\nWaxaan kuu rajaynaynaa caafimaad, farxad iyo guulo badan.\n\nHambalyo!\n{{Magaca Dugsiga}}",
+  },
+  {
+    name: "Fasax Dugsi (School Holiday)",
+    category: "ANNOUNCEMENT",
+    body: "Salaan,\n\nWaxaan ku wargelinaynaa in dugsigu fasax noqon doono laga bilaabo {{Taariikhda Bilaabashada}} ilaa {{Taariikhda Dhamaadka}}.\n\nMahadsanid.\n{{Magaca Dugsiga}}",
+  },
+  {
+    name: "Shirka Waalidiinta (Parent Meeting)",
+    category: "ANNOUNCEMENT",
+    body: "Salaan {{Magaca Waalidka}},\n\nWaxaan kugu casuumeynaa kulanka waalidiinta oo dhici doona {{Taariikhda}} saacadda {{Waqtiga}}.\n\nGoobta: {{Goobta}}\n\nMahadsanid.\n{{Magaca Dugsiga}}",
   },
 ];
