@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Pencil, Plus, RotateCcw, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,6 +17,7 @@ import {
 } from "@/lib/sms/api";
 import { toast } from "@/lib/toast";
 import { CATEGORIES } from "./categories";
+import { VariablePicker, VariableWarning } from "./variables";
 
 interface Props {
   templates: SmsTemplate[];
@@ -30,6 +31,7 @@ export function TemplateManager({ templates, onChanged }: Props) {
   const [form, setForm] = useState(EMPTY);
   const [saving, setSaving] = useState(false);
   const [resetting, setResetting] = useState(false);
+  const bodyRef = useRef<HTMLTextAreaElement>(null);
 
   function startCreate() {
     setForm(EMPTY);
@@ -158,17 +160,21 @@ export function TemplateManager({ templates, onChanged }: Props) {
           </div>
           <div>
             <Label>Message body</Label>
-            <Textarea
-              className="mt-1.5 min-h-[100px]"
-              value={form.body}
-              onChange={(e) => setForm((f) => ({ ...f, body: e.target.value }))}
-              placeholder="Write in English or Somali, e.g. {{Parent Name}} / {{Magaca Waalidka}}…"
-            />
-            <p className="mt-1 text-xs text-muted-foreground">
-              Variables (English or Somali): {"{{Parent Name}}"} / {"{{Magaca Waalidka}}"},{" "}
-              {"{{Student Name}}"} / {"{{Magaca Ardayga}}"}, {"{{Class}}"} / {"{{Fasalka}}"},{" "}
-              {"{{Outstanding Balance}}"} / {"{{Lacagta Hadhaysa}}"}, {"{{School Name}}"} / {"{{Magaca Dugsiga}}"}
-            </p>
+            <div className="mt-1.5 space-y-2">
+              <VariablePicker
+                targetRef={bodyRef}
+                value={form.body}
+                onChange={(body) => setForm((f) => ({ ...f, body }))}
+              />
+              <Textarea
+                ref={bodyRef}
+                className="min-h-[100px]"
+                value={form.body}
+                onChange={(e) => setForm((f) => ({ ...f, body: e.target.value }))}
+                placeholder="Write your message, and click a variable above to insert it…"
+              />
+            </div>
+            <VariableWarning body={form.body} />
           </div>
           <div className="flex gap-2">
             <Button className="h-8 px-3 text-xs" onClick={() => void save()} disabled={saving}>

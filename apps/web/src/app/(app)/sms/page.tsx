@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
   MessageSquare,
@@ -10,6 +10,7 @@ import {
   FileText,
   Bell,
   Users,
+  Clock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,6 +20,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { RecipientPickerDialog } from "@/components/sms/recipient-picker";
 import { TemplateManager } from "@/components/sms/template-manager";
 import { CATEGORIES } from "@/components/sms/categories";
+import { VariablePicker, VariableWarning } from "@/components/sms/variables";
 import {
   apiFeeReminders,
   apiPreviewAudience,
@@ -54,6 +56,17 @@ const AUDIENCES: { value: SmsAudience; label: string; hint: string }[] = [
   { value: "OUTSTANDING", label: "Outstanding fees", hint: "Parents who owe a balance" },
   { value: "TEACHERS", label: "Teachers", hint: "Every active teacher" },
 ];
+
+/**
+ * `datetime-local` inputs speak local time, so build the value by hand —
+ * toISOString() would hand the browser a UTC string and shift the clock.
+ */
+function toLocalInputValue(d: Date): string {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(
+    d.getHours(),
+  )}:${pad(d.getMinutes())}`;
+}
 
 /** Parse "phone" or "phone, name" per line/comma/semicolon into recipients. */
 function parseBulkNumbers(raw: string): { phone: string; name?: string }[] {
@@ -92,6 +105,7 @@ export default function SchoolSmsPage() {
   const [body, setBody] = useState("");
   const [templateId, setTemplateId] = useState("");
   const [scheduledAt, setScheduledAt] = useState("");
+  const bodyRef = useRef<HTMLTextAreaElement>(null);
 
   const [recipients, setRecipients] = useState<SmsAudienceRecipient[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -215,6 +229,10 @@ export default function SchoolSmsPage() {
       toast("Message is required", "error");
       return;
     }
+    if (scheduledAt && new Date(scheduledAt).getTime() <= Date.now()) {
+      toast("Pick a schedule time in the future", "error");
+      return;
+    }
     setSending(true);
     try {
       const scheduleIso = scheduledAt ? new Date(scheduledAt).toISOString() : null;
@@ -234,12 +252,20 @@ export default function SchoolSmsPage() {
         payload.studentIds = [...selected];
       }
       const res = await apiSendAudienceSms(payload);
-      toast(
-        `Sent ${res.sent}, failed ${res.failed}${
-          excludedCount > 0 ? `, ${excludedCount} excluded` : ""
-        } (${res.creditsUsed} credits)`,
-        res.failed && !res.sent ? "error" : "success",
-      );
+      const excluded = excludedCount > 0 ? `, ${excludedCount} excluded` : "";
+      if (scheduleIso) {
+        toast(
+          `${res.queued} message(s) scheduled for ${new Date(
+            scheduleIso,
+          ).toLocaleString()}${excluded}`,
+          "success",
+        );
+      } else {
+        toast(
+          `Sent ${res.sent}, failed ${res.failed}${excluded} (${res.creditsUsed} credits)`,
+          res.failed && !res.sent ? "error" : "success",
+        );
+      }
       await load();
       await loadPreview();
     } catch (e) {
@@ -274,6 +300,10 @@ export default function SchoolSmsPage() {
       toast("Message is required", "error");
       return;
     }
+    if (bulkScheduledAt && new Date(bulkScheduledAt).getTime() <= Date.now()) {
+      toast("Pick a schedule time in the future", "error");
+      return;
+    }
     setSending(true);
     try {
       const scheduleIso = bulkScheduledAt ? new Date(bulkScheduledAt).toISOString() : null;
@@ -283,10 +313,19 @@ export default function SchoolSmsPage() {
         recipients: bulkRecipients.map((r) => ({ phone: r.phone, name: r.name, type: "OTHER" })),
         scheduledAt: scheduleIso,
       });
-      toast(
-        `Sent ${res.sent}, failed ${res.failed}, queued ${res.queued} (${res.creditsUsed} credits)`,
-        res.failed && !res.sent ? "error" : "success",
-      );
+      if (scheduleIso) {
+        toast(
+          `${res.queued} message(s) scheduled for ${new Date(
+            scheduleIso,
+          ).toLocaleString()}`,
+          "success",
+        );
+      } else {
+        toast(
+          `Sent ${res.sent}, failed ${res.failed} (${res.creditsUsed} credits)`,
+          res.failed && !res.sent ? "error" : "success",
+        );
+      }
       setBulkNumbers("");
       setBulkBody("");
       await load();
@@ -558,25 +597,47 @@ export default function SchoolSmsPage() {
               </div>
               <div>
                 <Label>Message</Label>
-                <Textarea
-                  className="mt-1.5 min-h-[120px]"
-                  value={body}
-                  onChange={(e) => setBody(e.target.value)}
-                  placeholder="Use {{Parent Name}}, {{Student Name}}, {{School Name}}, {{Outstanding Balance}}…"
-                />
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Variables: {"{{Parent Name}}"}, {"{{Student Name}}"}, {"{{Class}}"},{" "}
-                  {"{{Outstanding Balance}}"}, {"{{School Name}}"}, {"{{Academic Year}}"}
-                </p>
+                <div className="mt-1.5 space-y-2">
+                  <VariablePicker
+                    targetRef={bodyRef}
+                    value={body}
+                    onChange={setBody}
+                  />
+                  <Textarea
+                    ref={bodyRef}
+                    className="min-h-[120px]"
+                    value={body}
+                    onChange={(e) => setBody(e.target.value)}
+                    placeholder="Write your message, and click a variable above to insert it…"
+                  />
+                </div>
+                <VariableWarning body={body} />
               </div>
               <div>
                 <Label>Schedule (optional)</Label>
-                <Input
-                  type="datetime-local"
-                  className="mt-1.5"
-                  value={scheduledAt}
-                  onChange={(e) => setScheduledAt(e.target.value)}
-                />
+                <div className="mt-1.5 flex items-center gap-2">
+                  <Input
+                    type="datetime-local"
+                    min={toLocalInputValue(new Date())}
+                    value={scheduledAt}
+                    onChange={(e) => setScheduledAt(e.target.value)}
+                  />
+                  {scheduledAt && (
+                    <Button
+                      variant="outline"
+                      className="h-8 shrink-0 px-3 text-xs"
+                      onClick={() => setScheduledAt("")}
+                    >
+                      Clear
+                    </Button>
+                  )}
+                </div>
+                <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
+                  <Clock className="h-3 w-3" />
+                  {scheduledAt
+                    ? `Will be sent on ${new Date(scheduledAt).toLocaleString()}`
+                    : "Leave empty to send right now."}
+                </p>
               </div>
               <div className="flex flex-wrap gap-2 pt-1">
                 <Button
@@ -584,7 +645,11 @@ export default function SchoolSmsPage() {
                   disabled={sending || !body.trim() || !canSend || selected.size === 0}
                 >
                   <Send className="mr-2 h-4 w-4" />
-                  {sending ? "Sending…" : `Send SMS (${selected.size})`}
+                  {sending
+                    ? "Sending…"
+                    : scheduledAt
+                      ? `Schedule SMS (${selected.size})`
+                      : `Send SMS (${selected.size})`}
                 </Button>
                 {audience === "OUTSTANDING" && (
                   <Button
@@ -675,19 +740,40 @@ export default function SchoolSmsPage() {
             </div>
             <div>
               <Label>Schedule (optional)</Label>
-              <Input
-                type="datetime-local"
-                className="mt-1.5"
-                value={bulkScheduledAt}
-                onChange={(e) => setBulkScheduledAt(e.target.value)}
-              />
+              <div className="mt-1.5 flex items-center gap-2">
+                <Input
+                  type="datetime-local"
+                  min={toLocalInputValue(new Date())}
+                  value={bulkScheduledAt}
+                  onChange={(e) => setBulkScheduledAt(e.target.value)}
+                />
+                {bulkScheduledAt && (
+                  <Button
+                    variant="outline"
+                    className="h-8 shrink-0 px-3 text-xs"
+                    onClick={() => setBulkScheduledAt("")}
+                  >
+                    Clear
+                  </Button>
+                )}
+              </div>
+              <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
+                <Clock className="h-3 w-3" />
+                {bulkScheduledAt
+                  ? `Will be sent on ${new Date(bulkScheduledAt).toLocaleString()}`
+                  : "Leave empty to send right now."}
+              </p>
             </div>
             <Button
               onClick={() => void handleBulkSend()}
               disabled={sending || !bulkBody.trim() || bulkRecipients.length === 0 || !canSend}
             >
               <Send className="mr-2 h-4 w-4" />
-              {sending ? "Sending…" : `Send SMS (${bulkRecipients.length})`}
+              {sending
+                ? "Sending…"
+                : bulkScheduledAt
+                  ? `Schedule SMS (${bulkRecipients.length})`
+                  : `Send SMS (${bulkRecipients.length})`}
             </Button>
           </div>
 

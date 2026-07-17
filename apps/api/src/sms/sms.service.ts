@@ -2,9 +2,11 @@ import {
   BadRequestException,
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
   ServiceUnavailableException,
 } from "@nestjs/common";
+import { Cron, CronExpression } from "@nestjs/schedule";
 import type {
   AssignSmsPackageInput,
   CreateSmsCampaignInput,
@@ -41,6 +43,10 @@ type Recipient = {
 
 @Injectable()
 export class SmsService {
+  private readonly logger = new Logger(SmsService.name);
+  /** Guards against a slow batch overlapping with the next cron tick. */
+  private scheduledRunning = false;
+
   constructor(private readonly prisma: PrismaService) {}
 
   // ── Platform: global config ──────────────────────────────────────────────
@@ -917,7 +923,35 @@ export class SmsService {
     });
   }
 
-  /** Process due scheduled messages (call from cron / queue). */
+  /**
+   * Deliver any scheduled message whose time has come. Runs every minute so a
+   * message goes out within ~60s of the time the school picked.
+   *
+   * Cross-tenant by design: this uses the privileged base client (not
+   * forTenant) because it sweeps queued messages for every school at once,
+   * the same way the daily subscription job does.
+   */
+  @Cron(CronExpression.EVERY_MINUTE)
+  async runScheduledSmsJob(): Promise<void> {
+    if (this.scheduledRunning) return;
+    this.scheduledRunning = true;
+    try {
+      const res = await this.processScheduled();
+      if (res.processed > 0) {
+        this.logger.log(
+          `Scheduled SMS batch — sent=${res.sent}, failed=${res.failed}`,
+        );
+      }
+    } catch (e) {
+      this.logger.error(
+        `Scheduled SMS job failed: ${e instanceof Error ? e.message : e}`,
+      );
+    } finally {
+      this.scheduledRunning = false;
+    }
+  }
+
+  /** Process due scheduled messages (called from the cron above). */
   async processScheduled(limit = 50) {
     const due = await this.prisma.smsMessage.findMany({
       where: {
@@ -927,12 +961,47 @@ export class SmsService {
       take: limit,
       orderBy: { scheduledAt: "asc" },
     });
+    if (due.length === 0) return { processed: 0, sent: 0, failed: 0 };
 
-    const results = [];
-    for (const msg of due) {
-      results.push(await this.deliverStoredMessage(msg.id));
+    // Resolve the provider once per batch. If it is unavailable the messages
+    // stay QUEUED and go out on a later tick, rather than being burned.
+    let provider: Awaited<ReturnType<SmsService["requireProvider"]>>;
+    try {
+      provider = await this.requireProvider();
+    } catch (e) {
+      this.logger.warn(
+        `${due.length} scheduled SMS are due but the provider is unavailable: ${
+          e instanceof Error ? e.message : e
+        }`,
+      );
+      return { processed: 0, sent: 0, failed: 0 };
     }
-    return { processed: results.length, results };
+
+    let sent = 0;
+    let failed = 0;
+    for (const msg of due) {
+      try {
+        const delivered = await this.deliverStoredMessage(msg.id, provider);
+        if (delivered.status === "SENT" || delivered.status === "DELIVERED") {
+          sent++;
+        } else {
+          failed++;
+          // Match the immediate-send path: a hard failure returns the credits.
+          await this.refundCredits(
+            msg.schoolId,
+            msg.id,
+            msg.purchaseId,
+            msg.creditsUsed,
+          );
+        }
+      } catch (e) {
+        failed++;
+        this.logger.error(
+          `Scheduled SMS ${msg.id} failed: ${e instanceof Error ? e.message : e}`,
+        );
+      }
+    }
+    return { processed: due.length, sent, failed };
   }
 
   // ── Internals ────────────────────────────────────────────────────────────
