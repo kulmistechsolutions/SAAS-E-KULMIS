@@ -178,6 +178,19 @@ export async function apiUploadLibraryDocument(input: {
   return (await res.json()) as LibraryDocument;
 }
 
-/** Staff preview URL for a stored PDF. */
-export const libraryDocumentFileUrl = (id: string) =>
-  `${API_URL}/api/library/documents/${id}/file`;
+/**
+ * Fetch the PDF bytes for staff preview. The endpoint requires a Bearer
+ * token, so it can't be a plain <a href> — a bare browser navigation sends
+ * no Authorization header and 401s.
+ */
+export async function fetchLibraryDocumentFile(id: string): Promise<Blob> {
+  const token = getAccessToken();
+  const res = await fetch(`${API_URL}/api/library/documents/${id}/file`, {
+    headers: {
+      "x-tenant-subdomain": TENANT,
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  });
+  if (!res.ok) throw new ApiError(res.status, "Could not load this document.");
+  return res.blob();
+}

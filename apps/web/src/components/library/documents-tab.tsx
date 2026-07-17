@@ -5,6 +5,7 @@ import {
   Download,
   Eye,
   FileText,
+  Loader2,
   Lock,
   Search,
   Trash2,
@@ -21,7 +22,7 @@ import {
   apiLibraryStorageUsage,
   apiListLibraryDocuments,
   apiUploadLibraryDocument,
-  libraryDocumentFileUrl,
+  fetchLibraryDocumentFile,
   type LibraryDocument,
   type LibraryStorageUsage,
 } from "@/lib/library/api";
@@ -58,6 +59,7 @@ export function DocumentsTab() {
   const [classId, setClassId] = useState("");
   const [allowDownload, setAllowDownload] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [previewingId, setPreviewingId] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const classes = useMemo(
@@ -141,6 +143,22 @@ export function DocumentsTab() {
       toast(e instanceof Error ? e.message : "Upload failed", "error");
     } finally {
       setUploading(false);
+    }
+  }
+
+  async function preview(id: string) {
+    setPreviewingId(id);
+    try {
+      const blob = await fetchLibraryDocumentFile(id);
+      const url = URL.createObjectURL(blob);
+      window.open(url, "_blank", "noreferrer");
+      // The new tab holds its own reference once opened; release ours after
+      // giving it a moment to load rather than the instant it's revoked.
+      setTimeout(() => URL.revokeObjectURL(url), 30_000);
+    } catch (e) {
+      toast(e instanceof Error ? e.message : "Could not open the PDF", "error");
+    } finally {
+      setPreviewingId(null);
     }
   }
 
@@ -385,16 +403,20 @@ export function DocumentsTab() {
                     </div>
                   </div>
                   <div className="flex shrink-0 gap-1">
-                    <a
-                      href={libraryDocumentFileUrl(d.id)}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="rounded-md p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground"
+                    <button
+                      type="button"
+                      onClick={() => void preview(d.id)}
+                      disabled={previewingId === d.id}
+                      className="rounded-md p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground disabled:opacity-50"
                       aria-label="Preview"
                       title="Preview"
                     >
-                      <Eye className="h-4 w-4" />
-                    </a>
+                      {previewingId === d.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </button>
                     <button
                       type="button"
                       onClick={() => void remove(d)}
