@@ -694,8 +694,8 @@ export default function SchoolSmsPage() {
           <div className="rounded-2xl border bg-card p-5 shadow-sm">
             <h2 className="font-semibold">How this works</h2>
             <p className="mt-2 text-sm text-muted-foreground">
-              Use this to send one message to many phone numbers that aren't in your student
-              or parent lists — like a WhatsApp broadcast. Paste the numbers, write one
+              Use this to send one message to many phone numbers that aren&apos;t in your
+              student or parent lists — like a WhatsApp broadcast. Paste the numbers, write one
               message, and everyone gets the same message at once.
             </p>
             {bulkRecipients.length > 0 && (
