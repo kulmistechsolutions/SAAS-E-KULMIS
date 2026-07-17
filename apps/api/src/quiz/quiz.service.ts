@@ -6,6 +6,7 @@ import {
   UnauthorizedException,
 } from "@nestjs/common";
 import type {
+  ClearQuizAnswersInput,
   CreateQuizInput,
   GradeQuizAnswerInput,
   QuizLinkOpenedInput,
@@ -274,8 +275,10 @@ export class QuizService {
                     : [q.correctAnswer]
                   : undefined,
               marks: q.marks,
-              // Legacy free-text types still need a human; the new DIRECT type is
-              // auto-graded (exact now, AI in phase 2), MATCH/FILL are exact.
+              // Legacy free-text types always need a human. DIRECT is graded
+              // automatically — by exact match, or by AI when the teacher picks
+              // AI_CONCEPT and a platform OpenAI key is configured. MCQ/MATCH/
+              // FILL are always exact.
               requiresManualGrade:
                 q.questionType === "ESSAY" || q.questionType === "SHORT_ANSWER",
               orderIndex: i,
@@ -1104,6 +1107,30 @@ export class QuizService {
     });
   }
 
+  /**
+   * Delete every saved answer for an in-progress attempt. Used by the
+   * reset-on-minimize anti-cheat: clearing the client alone isn't enough
+   * because startAttempt reloads savedAnswers from the DB on resume, so the
+   * server copy must be wiped too or the "reset" silently comes back.
+   */
+  async clearAnswers(schoolId: string, dto: ClearQuizAnswersInput) {
+    return this.prisma.forTenant(schoolId, async (tx) => {
+      const attempt = await tx.quizAttempt.findFirst({
+        where: {
+          id: dto.attemptId,
+          studentId: dto.studentId,
+          status: "IN_PROGRESS",
+        },
+        select: { id: true },
+      });
+      if (!attempt) return { ok: true, cleared: 0 };
+      const res = await tx.quizAnswer.deleteMany({
+        where: { attemptId: attempt.id },
+      });
+      return { ok: true, cleared: res.count };
+    });
+  }
+
   async getAttemptReview(
     schoolId: string,
     attemptId: string,
@@ -1295,7 +1322,8 @@ export class QuizService {
 
   /**
    * Deterministic (non-AI) grading for MCQ, MATCH, FILL_BLANK and EXACT DIRECT.
-   * AI_CONCEPT DIRECT is deferred to review (phase 2 wires the OpenAI scorer).
+   * AI_CONCEPT DIRECT returns needsReview so submitAttempt hands it to the AI
+   * scorer (or teacher review when AI is unavailable).
    */
   private gradeExact(
     q: {

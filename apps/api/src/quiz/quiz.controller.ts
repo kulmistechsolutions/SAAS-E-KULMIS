@@ -9,6 +9,7 @@ import {
   Query,
 } from "@nestjs/common";
 import {
+  clearQuizAnswersSchema,
   createQuizSchema,
   gradeQuizAnswerSchema,
   quizLinkOpenedSchema,
@@ -120,6 +121,14 @@ export class QuizController {
     const parsed = saveQuizAnswersSchema.safeParse(body);
     if (!parsed.success) throw new BadRequestException(parsed.error.flatten());
     return this.quiz.saveAnswers(tenant.schoolId, parsed.data);
+  }
+
+  @Public()
+  @Post("attempt/clear")
+  clearAnswers(@CurrentTenant() tenant: TenantContext, @Body() body: unknown) {
+    const parsed = clearQuizAnswersSchema.safeParse(body);
+    if (!parsed.success) throw new BadRequestException(parsed.error.flatten());
+    return this.quiz.clearAnswers(tenant.schoolId, parsed.data);
   }
 
   @Public()

@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
+  apiClearQuizAnswers,
   apiQuizAttemptReview,
   apiQuizByCode,
   apiQuizLanding,
@@ -152,6 +153,14 @@ function TakeQuizContent({ code }: { code: string }) {
       if (quiz.resetOnMinimize) {
         setAnswers({});
         setMarked({});
+        // Also wipe the server copy — startAttempt reloads savedAnswers on
+        // resume, so clearing only the client would let the answers reappear.
+        if (attemptId && access) {
+          void apiClearQuizAnswers({
+            attemptId,
+            studentId: access.studentId,
+          }).catch(() => undefined);
+        }
       }
     };
     const onBeforeUnload = (e: BeforeUnloadEvent) => {
@@ -166,7 +175,7 @@ function TakeQuizContent({ code }: { code: string }) {
       window.removeEventListener("blur", onLeave);
       window.removeEventListener("beforeunload", onBeforeUnload);
     };
-  }, [step, submitted, quiz]);
+  }, [step, submitted, quiz, attemptId, access]);
 
   useEffect(() => {
     if (step !== "quiz" || submitted || !quiz?.disableCopyPaste) return;

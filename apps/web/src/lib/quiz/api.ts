@@ -424,6 +424,16 @@ export const apiSaveQuizAnswers = (body: {
     auth: false,
   });
 
+export const apiClearQuizAnswers = (body: {
+  attemptId: string;
+  studentId: string;
+}) =>
+  api<{ ok: boolean; cleared: number }>("/quiz/attempt/clear", {
+    method: "POST",
+    body,
+    auth: false,
+  });
+
 export const apiSubmitQuizAttempt = (body: {
   quizCode: string;
   studentId: string;

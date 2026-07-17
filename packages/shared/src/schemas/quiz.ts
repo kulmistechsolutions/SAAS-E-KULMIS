@@ -140,6 +140,14 @@ export const saveQuizAnswersSchema = z.object({
 
 export type SaveQuizAnswersInput = z.infer<typeof saveQuizAnswersSchema>;
 
+/** Wipe every saved answer for an in-progress attempt (reset-on-minimize). */
+export const clearQuizAnswersSchema = z.object({
+  attemptId: z.string().min(1),
+  studentId: z.string().min(1),
+});
+
+export type ClearQuizAnswersInput = z.infer<typeof clearQuizAnswersSchema>;
+
 export const submitQuizAttemptSchema = z.object({
   quizCode: z.string().min(1),
   studentId: z.string().min(1),
