@@ -99,6 +99,7 @@ function TakeQuizContent({ code }: { code: string }) {
   const [mounted, setMounted] = useState(false);
   const [step, setStep] = useState<Step>("landing");
   const [landing, setLanding] = useState<QuizLandingResponse | null>(null);
+  const [landingError, setLandingError] = useState<string | null>(null);
   const [studentCode, setStudentCode] = useState("");
   const [password, setPassword] = useState("");
   const [access, setAccess] = useState<QuizAccessResponse | null>(null);
@@ -126,7 +127,9 @@ function TakeQuizContent({ code }: { code: string }) {
       })
       .catch((err) => {
         if (!cancelled) {
-          toast(err instanceof Error ? err.message : "Quiz not available", "error");
+          const message = err instanceof Error ? err.message : "Quiz not available";
+          setLandingError(message);
+          toast(message, "error");
         }
       });
     return () => {
@@ -388,6 +391,17 @@ function TakeQuizContent({ code }: { code: string }) {
 
   // ── Landing ──
   if (step === "landing") {
+    if (landingError) {
+      return (
+        <div className="flex min-h-[60vh] items-center justify-center p-8">
+          <div className="max-w-sm text-center">
+            <AlertTriangle className="mx-auto h-8 w-8 text-amber-500" />
+            <h1 className="mt-3 text-lg font-semibold">Examination unavailable</h1>
+            <p className="mt-1.5 text-sm text-muted-foreground">{landingError}</p>
+          </div>
+        </div>
+      );
+    }
     if (!landing) {
       return (
         <div className="flex min-h-[60vh] items-center justify-center gap-2 text-muted-foreground">
