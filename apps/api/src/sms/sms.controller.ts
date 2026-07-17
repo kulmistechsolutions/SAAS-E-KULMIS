@@ -63,6 +63,12 @@ export class SmsController {
     return this.sms.ensureDefaultTemplates(me.schoolId);
   }
 
+  @Post("templates/reset")
+  @Roles(UserRole.ADMINISTRATOR, UserRole.SUPER_ADMINISTRATOR)
+  resetTemplates(@CurrentUser() me: AuthUser) {
+    return this.sms.resetTemplatesToDefaults(me.schoolId);
+  }
+
   @Post("templates")
   createTemplate(@CurrentUser() me: AuthUser, @Body() body: unknown) {
     const parsed = createSmsTemplateSchema.safeParse(body);

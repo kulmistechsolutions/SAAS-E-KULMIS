@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Pencil, Plus, Trash2, X } from "lucide-react";
+import { Pencil, Plus, RotateCcw, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   apiCreateSmsTemplate,
   apiDeleteSmsTemplate,
+  apiResetSmsTemplates,
   apiUpdateSmsTemplate,
   type SmsCategory,
   type SmsTemplate,
@@ -28,6 +29,7 @@ export function TemplateManager({ templates, onChanged }: Props) {
   const [editingId, setEditingId] = useState<string | "new" | null>(null);
   const [form, setForm] = useState(EMPTY);
   const [saving, setSaving] = useState(false);
+  const [resetting, setResetting] = useState(false);
 
   function startCreate() {
     setForm(EMPTY);
@@ -78,14 +80,51 @@ export function TemplateManager({ templates, onChanged }: Props) {
     }
   }
 
+  async function resetToDefaults() {
+    if (
+      !confirm(
+        "This deletes ALL your current templates (including any you customized) and replaces them with the built-in Somali defaults. Continue?",
+      )
+    ) {
+      return;
+    }
+    setResetting(true);
+    try {
+      await apiResetSmsTemplates();
+      toast("Templates reset to the built-in defaults", "success");
+      cancel();
+      await onChanged();
+    } catch (e) {
+      toast(e instanceof Error ? e.message : "Reset failed", "error");
+    } finally {
+      setResetting(false);
+    }
+  }
+
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="font-semibold">Templates</h2>
+      <div className="flex items-center justify-between gap-2">
+        <div>
+          <h2 className="font-semibold">Templates</h2>
+          <p className="text-xs text-muted-foreground">
+            Built-in defaults are in Somali. Select one when composing to send that wording.
+          </p>
+        </div>
         {editingId === null && (
-          <Button className="h-8 px-3 text-xs" onClick={startCreate}>
-            <Plus className="mr-1.5 h-4 w-4" /> New template
-          </Button>
+          <div className="flex shrink-0 gap-2">
+            <Button
+              variant="outline"
+              className="h-8 px-3 text-xs"
+              onClick={() => void resetToDefaults()}
+              disabled={resetting}
+            >
+              <RotateCcw className="mr-1.5 h-3.5 w-3.5" />
+              {resetting ? "Resetting…" : "Reset to Somali defaults"}
+            </Button>
+            <Button className="h-8 px-3 text-xs" onClick={startCreate}>
+              <Plus className="mr-1.5 h-4 w-4" /> New template
+            </Button>
+          </div>
         )}
       </div>
 

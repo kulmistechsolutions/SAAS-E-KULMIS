@@ -660,6 +660,31 @@ export class SmsService {
     });
   }
 
+  /**
+   * Delete all of this school's templates and reseed the built-in defaults.
+   * Used when the built-in wording changes (e.g. a translation fix) after a
+   * school already seeded templates, since ensureDefaultTemplates only seeds
+   * once. This is a destructive, explicit admin action — it also removes any
+   * custom templates the school created.
+   */
+  async resetTemplatesToDefaults(schoolId: string) {
+    return this.prisma.forTenant(schoolId, async (tx) => {
+      await tx.smsTemplate.deleteMany({ where: { schoolId } });
+      await tx.smsTemplate.createMany({
+        data: DEFAULT_TEMPLATES.map((t) => ({
+          schoolId,
+          name: t.name,
+          category: t.category as never,
+          body: t.body,
+        })),
+      });
+      return tx.smsTemplate.findMany({
+        where: { schoolId },
+        orderBy: { name: "asc" },
+      });
+    });
+  }
+
   createTemplate(schoolId: string, input: CreateSmsTemplateInput) {
     return this.prisma.forTenant(schoolId, (tx) =>
       tx.smsTemplate.create({

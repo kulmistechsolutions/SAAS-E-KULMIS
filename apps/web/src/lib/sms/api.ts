@@ -95,6 +95,11 @@ export async function apiSeedSmsTemplates() {
   return api<SmsTemplate[]>("/sms/templates/seed", { method: "POST" });
 }
 
+/** Deletes all templates for this school and reseeds the built-in defaults. */
+export async function apiResetSmsTemplates() {
+  return api<SmsTemplate[]>("/sms/templates/reset", { method: "POST" });
+}
+
 export async function apiCreateSmsTemplate(body: {
   name: string;
   category: SmsCategory;
