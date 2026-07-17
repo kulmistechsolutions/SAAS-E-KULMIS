@@ -6,7 +6,6 @@ const ALIASES: Record<string, string[]> = {
     "studentName",
     "StudentName",
     "Magaca Ardayga",
-    "Magaca Cunuga",
   ],
   parentName: [
     "Parent Name",
@@ -21,7 +20,6 @@ const ALIASES: Record<string, string[]> = {
     "schoolName",
     "SchoolName",
     "Magaca Dugsiga",
-    "Magaca Iskuulka",
   ],
   className: [
     "Class",
@@ -30,7 +28,7 @@ const ALIASES: Record<string, string[]> = {
     "Class Name",
     "Fasalka",
   ],
-  section: ["Section", "section", "Xarunta"],
+  section: ["Section", "section", "Qaybta"],
   outstandingBalance: [
     "Outstanding Balance",
     "Balance",
@@ -39,7 +37,7 @@ const ALIASES: Record<string, string[]> = {
     "Lacagta Hadhaysa",
     "Deynta",
   ],
-  dueDate: ["Due Date", "dueDate", "DueDate", "Taariikhda Dhammaadka"],
+  dueDate: ["Due Date", "dueDate", "DueDate", "Taariikhda Ugu Dambeysa"],
   academicYear: [
     "Academic Year",
     "academicYear",
@@ -93,27 +91,27 @@ export const DEFAULT_TEMPLATES: {
   {
     name: "Xasuusin Lacag (Fee Reminder)",
     category: "FEE_REMINDER",
-    body: "Salaan {{Magaca Waalidka}}, {{Magaca Ardayga}} ({{Fasalka}}) wuxuu leeyahay lacag hadhaysa oo dhan {{Lacagta Hadhaysa}} oo lagu leeyahay {{Magaca Dugsiga}}. Fadlan dib u bixi. Mahadsanid.",
+    body: "Salaan {{Magaca Waalidka}}, {{Magaca Ardayga}} ee {{Fasalka}} wuxuu ku leeyahay {{Magaca Dugsiga}} lacag hadhaysa oo dhan {{Lacagta Hadhaysa}}. Fadlan dib u bixi lacagta. Mahadsanid.",
   },
   {
     name: "Xaqiijinta Lacag (Payment Confirmation)",
     category: "PAYMENT_CONFIRMATION",
-    body: "Salaan {{Magaca Waalidka}}, waxaan helnay {{Lacagta}} ee {{Magaca Ardayga}}. Rasiidhka: {{Lambarka Rasiidhka}}. Mahadsanid — {{Magaca Dugsiga}}.",
+    body: "Salaan {{Magaca Waalidka}}, waxaan si buuxda u helnay {{Lacagta}} ee aad u bixisay {{Magaca Ardayga}}. Lambarka Rasiidhka: {{Lambarka Rasiidhka}}. Mahadsanid — {{Magaca Dugsiga}}.",
   },
   {
     name: "Digniin Xaadirin (Attendance Alert)",
     category: "ATTENDANCE",
-    body: "Salaan {{Magaca Waalidka}}, {{Magaca Ardayga}} ma joogin dugsiga {{Taariikhda}}. — {{Magaca Dugsiga}}",
+    body: "Salaan {{Magaca Waalidka}}, {{Magaca Ardayga}} kama uu iman dugsiga taariikhda {{Taariikhda}}. — {{Magaca Dugsiga}}",
   },
   {
     name: "Ogeysiis Imtixaan (Exam Announcement)",
     category: "EXAM_ANNOUNCEMENT",
-    body: "Salaan {{Magaca Waalidka}}, {{Imtixaanka}} ee {{Fasalka}} wuxuu bilaabmayaa {{Taariikhda}}. — {{Magaca Dugsiga}}",
+    body: "Salaan {{Magaca Waalidka}}, {{Imtixaanka}} ee {{Fasalka}} wuxuu bilaabanayaa {{Taariikhda}}. — {{Magaca Dugsiga}}",
   },
   {
     name: "Natiijada Imtixaanka (Exam Result)",
     category: "EXAM_RESULT",
-    body: "Salaan {{Magaca Waalidka}}, {{Magaca Ardayga}} wuxuu ku dhacay {{Dhibcaha}} imtixaankii {{Imtixaanka}}. — {{Magaca Dugsiga}}",
+    body: "Salaan {{Magaca Waalidka}}, {{Magaca Ardayga}} wuxuu ka helay {{Dhibcaha}} dhibcood imtixaankii {{Imtixaanka}}. — {{Magaca Dugsiga}}",
   },
   {
     name: "Xasuusin Diiwaan Dhibco (Exam Submission Reminder)",
@@ -123,11 +121,11 @@ export const DEFAULT_TEMPLATES: {
   {
     name: "Xaqiijinta Diiwaangelinta (Registration Confirmation)",
     category: "REGISTRATION",
-    body: "Soo dhawoow! {{Magaca Ardayga}} ({{Lambarka Ardayga}}) waa la diiwaan geliyay {{Magaca Dugsiga}} sanadka {{Sanad Dugsiyeedka}}.",
+    body: "Soo dhawoow {{Magaca Dugsiga}}! {{Magaca Ardayga}} (Lambarka: {{Lambarka Ardayga}}) waa lagu diiwaan geliyay sanad-dugsiyeedka {{Sanad Dugsiyeedka}}.",
   },
   {
     name: "Ogeysiis Degdeg ah (Emergency Notice)",
     category: "EMERGENCY",
-    body: "OGEYSIIS DEGDEG AH oo ka socda {{Magaca Dugsiga}}: {{Fariinta}}. Fadlan degdeg ula soo xiriir dugsiga.",
+    body: "OGEYSIIS DEGDEG AH — {{Magaca Dugsiga}}: {{Fariinta}}. Fadlan isla markiiba nala soo xiriir.",
   },
 ];
