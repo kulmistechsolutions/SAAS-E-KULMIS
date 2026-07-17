@@ -93,6 +93,7 @@ export interface ApiQuizAttemptResult {
 export interface QuizAccessResponse {
   schoolName: string;
   logoUrl: string | null;
+  logoKey: string | null;
   studentId: string;
   studentCode: string;
   studentName: string;
@@ -125,6 +126,7 @@ export interface QuizAccessResponse {
 export interface QuizLandingResponse {
   schoolName: string;
   logoUrl: string | null;
+  logoKey: string | null;
   quiz: {
     id: string;
     title: string;
@@ -150,6 +152,7 @@ export interface QuizLandingResponse {
 export interface QuizAttemptReview {
   schoolName: string;
   logoUrl: string | null;
+  logoKey: string | null;
   resultFooter: string | null;
   attemptId: string;
   status: string;
@@ -389,7 +392,6 @@ export const apiQuizLinkOpened = (body: { quizCode: string; studentCode: string 
 export const apiVerifyQuizAccess = (body: {
   quizCode: string;
   studentCode: string;
-  password: string;
 }) =>
   api<QuizAccessResponse>("/quiz/verify-access", {
     method: "POST",

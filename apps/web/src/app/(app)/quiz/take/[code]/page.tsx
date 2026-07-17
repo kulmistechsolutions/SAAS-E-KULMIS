@@ -31,6 +31,7 @@ import {
 } from "@/lib/quiz/api";
 import { formatDuration } from "@/lib/quiz/format";
 import { printAttemptReviewPdf } from "@/lib/quiz/print";
+import { resolveLogoUrl } from "@/lib/settings/api";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 
@@ -101,7 +102,6 @@ function TakeQuizContent({ code }: { code: string }) {
   const [landing, setLanding] = useState<QuizLandingResponse | null>(null);
   const [landingError, setLandingError] = useState<string | null>(null);
   const [studentCode, setStudentCode] = useState("");
-  const [password, setPassword] = useState("");
   const [access, setAccess] = useState<QuizAccessResponse | null>(null);
   const [quiz, setQuiz] = useState<PublicQuiz | null>(null);
   const [loading, setLoading] = useState(false);
@@ -274,7 +274,6 @@ function TakeQuizContent({ code }: { code: string }) {
       const res = await apiVerifyQuizAccess({
         quizCode: code,
         studentCode: studentCode.trim(),
-        password,
       });
       setAccess(res);
       setStep("instructions");
@@ -415,7 +414,7 @@ function TakeQuizContent({ code }: { code: string }) {
         <div className="mx-auto max-w-2xl animate-in fade-in duration-500">
           <div className="overflow-hidden rounded-2xl border bg-card shadow-lg shadow-slate-200/60 dark:shadow-none">
             <div className="border-b bg-secondary/40 px-6 py-5 sm:px-8">
-              <SchoolHeader schoolName={landing.schoolName} logoUrl={landing.logoUrl} />
+              <SchoolHeader schoolName={landing.schoolName} logoUrl={resolveLogoUrl(landing.logoUrl, landing.logoKey)} />
             </div>
             <div className="space-y-6 px-6 py-7 sm:px-8">
               <div>
@@ -477,7 +476,7 @@ function TakeQuizContent({ code }: { code: string }) {
       <div className="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100/80 px-4 py-10 dark:from-slate-950 dark:to-slate-900">
         <div className="mx-auto max-w-md space-y-6">
           {landing && (
-            <SchoolHeader schoolName={landing.schoolName} logoUrl={landing.logoUrl} />
+            <SchoolHeader schoolName={landing.schoolName} logoUrl={resolveLogoUrl(landing.logoUrl, landing.logoKey)} />
           )}
           <form
             onSubmit={(e) => void handleLogin(e)}
@@ -486,7 +485,7 @@ function TakeQuizContent({ code }: { code: string }) {
             <div>
               <h1 className="text-xl font-bold">Student Sign-In</h1>
               <p className="mt-1 text-sm text-muted-foreground">
-                Enter your Student ID and password to continue.
+                Enter your Student ID to continue.
               </p>
             </div>
             <div>
@@ -500,20 +499,6 @@ function TakeQuizContent({ code }: { code: string }) {
                 autoFocus
                 required
               />
-            </div>
-            <div>
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                className="mt-1.5"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-              <p className="mt-1 text-xs text-muted-foreground">
-                Default password is usually your Student ID.
-              </p>
             </div>
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? "Verifying…" : "Continue"}
@@ -539,7 +524,7 @@ function TakeQuizContent({ code }: { code: string }) {
         <div className="mx-auto max-w-2xl">
           <div className="overflow-hidden rounded-2xl border bg-card shadow-lg">
             <div className="border-b bg-secondary/40 px-6 py-5 sm:px-8">
-              <SchoolHeader schoolName={access.schoolName} logoUrl={access.logoUrl} />
+              <SchoolHeader schoolName={access.schoolName} logoUrl={resolveLogoUrl(access.logoUrl, access.logoKey)} />
             </div>
             <div className="space-y-5 px-6 py-7 sm:px-8">
               <div>
@@ -588,7 +573,13 @@ function TakeQuizContent({ code }: { code: string }) {
             <div className="border-b bg-secondary/40 px-6 py-5">
               <SchoolHeader
                 schoolName={result?.schoolName ?? access?.schoolName ?? "School"}
-                logoUrl={result?.logoUrl ?? access?.logoUrl ?? null}
+                logoUrl={
+                  result
+                    ? resolveLogoUrl(result.logoUrl, result.logoKey)
+                    : access
+                      ? resolveLogoUrl(access.logoUrl, access.logoKey)
+                      : null
+                }
               />
             </div>
             <div className="space-y-6 px-6 py-8 text-center sm:px-10">
@@ -693,7 +684,7 @@ function TakeQuizContent({ code }: { code: string }) {
       <div className="min-h-screen bg-slate-50 px-4 py-8 dark:bg-slate-950">
         <div className="mx-auto max-w-3xl space-y-4">
           <div className="flex items-center justify-between gap-3">
-            <SchoolHeader schoolName={result.schoolName} logoUrl={result.logoUrl} />
+            <SchoolHeader schoolName={result.schoolName} logoUrl={resolveLogoUrl(result.logoUrl, result.logoKey)} />
             <Button variant="outline" onClick={() => setStep("done")}>
               Back to result
             </Button>

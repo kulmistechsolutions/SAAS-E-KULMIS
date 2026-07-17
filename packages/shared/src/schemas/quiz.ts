@@ -108,7 +108,6 @@ export type UpdateQuizBuilderInput = z.infer<typeof updateQuizBuilderSchema>;
 export const verifyQuizAccessSchema = z.object({
   quizCode: z.string().min(1),
   studentCode: z.string().min(1),
-  password: z.string().min(1),
 });
 
 export type VerifyQuizAccessInput = z.infer<typeof verifyQuizAccessSchema>;

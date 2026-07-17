@@ -21,7 +21,6 @@ import { TeachersService } from "../teachers/teachers.service";
 import { AiService } from "../ai/ai.service";
 import { SubscriptionsService } from "../subscriptions/subscriptions.service";
 import { StorageService } from "../storage/storage.service";
-import { verifyPassword } from "../auth/password.util";
 
 function padQuizSeq(n: number): string {
   return String(n).padStart(6, "0");
@@ -423,6 +422,13 @@ export class QuizService {
     }
   }
 
+  /**
+   * Resolve the school name/logo for the public quiz pages. `logoKey` is
+   * always included alongside `logoUrl` so the frontend can fall back to the
+   * public byte-proxy endpoint when the storage backend can't produce a
+   * direct URL (local filesystem — see settings/school-logo.util.ts and
+   * resolveLogoUrl on the web side).
+   */
   private async schoolBranding(schoolId: string) {
     const school = await this.prisma.school.findUnique({
       where: { id: schoolId },
@@ -443,6 +449,7 @@ export class QuizService {
     return {
       schoolName: school?.name ?? "School",
       logoUrl,
+      logoKey: school?.logoKey ?? null,
       resultFooter: school?.resultFooter ?? null,
     };
   }
@@ -575,21 +582,10 @@ export class QuizService {
           status: true,
           classId: true,
           sectionId: true,
-          portalPasswordHash: true,
           photoKey: true,
         },
       });
-      if (!student) throw new UnauthorizedException("Invalid student ID or password");
-      if (!student.portalPasswordHash) {
-        throw new UnauthorizedException("Invalid student ID or password");
-      }
-      const passwordOk = await verifyPassword(
-        dto.password,
-        student.portalPasswordHash,
-      );
-      if (!passwordOk) {
-        throw new UnauthorizedException("Invalid student ID or password");
-      }
+      if (!student) throw new UnauthorizedException("Invalid Student ID");
       this.assertStudentEligible(student, quiz);
 
       const prior = await tx.quizAttempt.count({
