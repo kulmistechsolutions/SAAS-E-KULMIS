@@ -12,6 +12,11 @@ export interface ApiFeeCharge {
   amount: number;
   paidAmount: number;
   status: "UNPAID" | "PARTIAL" | "PAID" | "INACTIVE";
+  /** MONTHLY = the regular fee; EXTRA = an added charge such as an exam fee. */
+  kind?: "MONTHLY" | "EXTRA";
+  /** Name shown on the invoice for EXTRA rows, e.g. "Exam Fee". */
+  label?: string | null;
+  extraFeeId?: string | null;
   student?: {
     code: string;
     fullName: string;
@@ -93,6 +98,8 @@ export function mapApiCharge(
     status,
     paymentDate: c.paidAmount > 0 ? new Date().toISOString().slice(0, 10) : null,
     advanceCovered,
+    kind: c.kind ?? "MONTHLY",
+    label: c.label ?? null,
   };
 }
 
@@ -203,3 +210,73 @@ export async function apiSetupAcademicYear(body: {
     chargesCreated: number;
   }>("/fees/setup-academic-year", { method: "POST", body });
 }
+
+// ── Extra fees ─────────────────────────────────────────────────────────────
+
+export interface ApiExtraFeeClassAmount {
+  id: string;
+  classId: string;
+  amount: number;
+  class: { id: string; name: string };
+}
+
+export interface ApiExtraFee {
+  id: string;
+  name: string;
+  description: string | null;
+  year: number;
+  month: number;
+  appliesToAllClasses: boolean;
+  defaultAmount: number | null;
+  status: "ACTIVE" | "INACTIVE";
+  appliedAt: string | null;
+  createdAt: string;
+  classAmounts: ApiExtraFeeClassAmount[];
+  appliedCount: number;
+  appliedTotal: number;
+  collectedTotal: number;
+}
+
+export interface ExtraFeeBody {
+  name: string;
+  description?: string | null;
+  year: number;
+  month: number;
+  appliesToAllClasses: boolean;
+  defaultAmount?: number | null;
+  classAmounts: { classId: string; amount: number }[];
+}
+
+export const apiListExtraFees = () => api<ApiExtraFee[]>("/fees/extra");
+
+export const apiCreateExtraFee = (body: ExtraFeeBody) =>
+  api<ApiExtraFee>("/fees/extra", { method: "POST", body });
+
+export const apiUpdateExtraFee = (id: string, body: ExtraFeeBody) =>
+  api<ApiExtraFee>(`/fees/extra/${id}`, { method: "PATCH", body });
+
+export const apiDeleteExtraFee = (id: string) =>
+  api<{ ok: boolean }>(`/fees/extra/${id}`, { method: "DELETE" });
+
+export interface ExtraFeePreview {
+  studentCount: number;
+  pendingCount: number;
+  totalAmount: number;
+  targets: {
+    studentId: string;
+    code: string;
+    fullName: string;
+    className: string;
+    amount: number;
+    alreadyCharged: boolean;
+  }[];
+}
+
+export const apiPreviewExtraFee = (id: string) =>
+  api<ExtraFeePreview>(`/fees/extra/${id}/preview`);
+
+export const apiApplyExtraFee = (id: string) =>
+  api<{ applied: number; skipped: number; totalAmount: number }>(
+    `/fees/extra/${id}/apply`,
+    { method: "POST" },
+  );

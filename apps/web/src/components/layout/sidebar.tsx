@@ -56,6 +56,7 @@ const FEE_CHILDREN: NavChild[] = [
   { label: "Fee History", href: "/finance/history" },
   { label: "Monthly Setup", href: "/finance/monthly-setup" },
   { label: "Academic Year Setup", href: "/finance/academic-year-setup" },
+  { label: "Extra Fees", href: "/finance/extra-fees" },
   { label: "Reports", href: "/finance/reports" },
   { label: "Receipts", href: "/finance/receipts" },
 ];

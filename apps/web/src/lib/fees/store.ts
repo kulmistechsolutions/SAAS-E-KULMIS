@@ -593,13 +593,20 @@ export function listStudentFees(opts: {
 export function studentLedger(studentId: string): StudentLedgerRow[] {
   return studentCharges(studentId).map((c) => ({
     monthKey: c.monthKey,
-    monthLabel: monthLabel(c.monthKey),
+    monthLabel:
+      // An extra charge shares its month with the regular fee, so the row is
+      // labelled by what it is rather than just the month it lands in.
+      c.kind === "EXTRA" && c.label
+        ? `${c.label} · ${monthLabel(c.monthKey)}`
+        : monthLabel(c.monthKey),
     monthlyCharge: c.monthlyFee,
     amountPaid: c.amountPaid,
     remainingBalance: c.balance,
     status: c.status,
     paymentDate: c.paymentDate,
     chargeId: c.id,
+    kind: c.kind,
+    label: c.label,
   }));
 }
 

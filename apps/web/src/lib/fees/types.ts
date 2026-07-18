@@ -14,6 +14,10 @@ export interface FeeCharge {
   paymentDate: string | null;
   /** Covered by an advance payment — no new charge due. */
   advanceCovered?: boolean;
+  /** MONTHLY = the regular fee; EXTRA = an added charge such as an exam fee. */
+  kind?: "MONTHLY" | "EXTRA";
+  /** Name shown on the invoice for EXTRA rows, e.g. "Exam Fee". */
+  label?: string | null;
 }
 
 export interface FeePayment {
@@ -99,6 +103,10 @@ export interface StudentLedgerRow {
   status: FeeChargeStatus;
   paymentDate: string | null;
   chargeId: string;
+  /** MONTHLY = the regular fee; EXTRA = an added charge such as an exam fee. */
+  kind?: "MONTHLY" | "EXTRA";
+  /** Name shown on the invoice for EXTRA rows, e.g. "Exam Fee". */
+  label?: string | null;
 }
 
 export interface PaymentSummarySlice {

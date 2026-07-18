@@ -109,6 +109,7 @@ model AcademicYear {
   quizzes       Quiz[]
   feeSetups     AcademicYearFeeSetup[]
   feeCharges    FeeCharge[]
+  extraFees     ExtraFee[]
 
   @@unique([schoolId, name])
   @@index([schoolId])
@@ -136,6 +137,7 @@ model Class {
   exams            Exam[]
   quizzes          Quiz[]
   libraryDocuments LibraryDocument[]
+  extraFeeAmounts  ExtraFeeClassAmount[]
 
   @@unique([schoolId, academicYearId, name])
   @@index([schoolId])
@@ -464,28 +466,91 @@ model TeacherAttendance {
   @@map("teacher_attendance")
 }
 
-/// Monthly fee charge per student (Module 7). One per student per year+month.
+/// A fee charge on a student's account (Module 7).
+///
+/// MONTHLY rows are the regular school fee — still exactly one per student per
+/// year+month, enforced by a PARTIAL unique index (`kind = 'MONTHLY'`) created
+/// in the migration rather than a plain @@unique here, so that EXTRA rows can
+/// sit alongside them in the same month.
 model FeeCharge {
-  id             String    @id @default(cuid())
+  id             String        @id @default(cuid())
   schoolId       String
   studentId      String
   academicYearId String?
   year           Int
   month          Int
   amount         Int
-  paidAmount     Int       @default(0)
-  status         FeeStatus @default(UNPAID)
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  paidAmount     Int           @default(0)
+  status         FeeStatus     @default(UNPAID)
+  kind           FeeChargeKind @default(MONTHLY)
+  /// Shown on the invoice/history for EXTRA rows, e.g. "Exam Fee". Denormalised
+  /// from ExtraFee.name so a receipt still reads correctly if the setup is renamed.
+  label          String?
+  extraFeeId     String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
 
   student      Student       @relation(fields: [studentId], references: [id], onDelete: Cascade)
   academicYear AcademicYear? @relation(fields: [academicYearId], references: [id], onDelete: SetNull)
+  extraFee     ExtraFee?     @relation(fields: [extraFeeId], references: [id], onDelete: SetNull)
 
-  @@unique([schoolId, studentId, year, month])
   @@index([schoolId])
   @@index([studentId])
   @@index([academicYearId])
+  @@index([extraFeeId])
+  @@index([schoolId, studentId, year, month])
   @@map("fee_charges")
+}
+
+/// An additional, one-off charge the school sets up separately from the regular
+/// monthly fee — e.g. an exam fee billed into a particular month. Applying it
+/// creates EXTRA FeeCharge rows on top of that month's normal fee.
+model ExtraFee {
+  id             String @id @default(cuid())
+  schoolId       String
+  academicYearId String?
+  name           String
+  description    String?
+  /// The month this is billed into, alongside that month's regular fee.
+  year           Int
+  month          Int
+  /// Used when appliesToAllClasses is true. Ignored otherwise.
+  defaultAmount  Int?
+  /// true = every active class at `defaultAmount`; false = only the classes in
+  /// classAmounts, each at its own price.
+  appliesToAllClasses Boolean @default(true)
+
+  status          EntityStatus @default(ACTIVE)
+  /// Set the first time it is pushed onto students; used to show "applied" state.
+  appliedAt       DateTime?
+  createdByUserId String?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  academicYear AcademicYear?         @relation(fields: [academicYearId], references: [id], onDelete: SetNull)
+  classAmounts ExtraFeeClassAmount[]
+  charges      FeeCharge[]
+
+  @@index([schoolId])
+  @@index([academicYearId])
+  @@map("extra_fees")
+}
+
+/// Per-class price for an ExtraFee when it isn't a single flat amount.
+model ExtraFeeClassAmount {
+  id         String @id @default(cuid())
+  schoolId   String
+  extraFeeId String
+  classId    String
+  amount     Int
+
+  extraFee ExtraFee @relation(fields: [extraFeeId], references: [id], onDelete: Cascade)
+  class    Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+
+  @@unique([extraFeeId, classId])
+  @@index([schoolId])
+  @@index([classId])
+  @@map("extra_fee_class_amounts")
 }
 
 /// One-time academic year fee activation per school year (Academic Year billing mode).
@@ -992,6 +1057,13 @@ enum FeeStatus {
   PARTIAL
   PAID
   INACTIVE
+}
+
+/// MONTHLY = the regular school fee. EXTRA = an additional charge (exam fee etc.)
+/// billed into the same month on top of it.
+enum FeeChargeKind {
+  MONTHLY
+  EXTRA
 }
 
 enum BillingMode {

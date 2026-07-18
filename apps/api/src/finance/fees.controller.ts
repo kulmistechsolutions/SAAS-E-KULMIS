@@ -2,12 +2,21 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Delete,
   Get,
   Param,
+  Patch,
   Post,
   Query,
 } from "@nestjs/common";
-import { chargeMonthSchema, payFeeSchema, setupAcademicYearFeesSchema, UserRole } from "@ekulmis/shared";
+import {
+  chargeMonthSchema,
+  createExtraFeeSchema,
+  payFeeSchema,
+  setupAcademicYearFeesSchema,
+  updateExtraFeeSchema,
+  UserRole,
+} from "@ekulmis/shared";
 import { FeesService } from "./fees.service";
 import { Roles } from "../auth/roles.decorator";
 import { CurrentUser } from "../auth/current-user.decorator";
@@ -74,5 +83,45 @@ export class FeesController {
       year ? Number(year) : undefined,
       month ? Number(month) : undefined,
     );
+  }
+
+  // ── Extra fees ──
+  @Get("extra")
+  listExtraFees(@CurrentUser() me: AuthUser) {
+    return this.fees.listExtraFees(me.schoolId);
+  }
+
+  @Post("extra")
+  createExtraFee(@CurrentUser() me: AuthUser, @Body() body: unknown) {
+    const parsed = createExtraFeeSchema.safeParse(body);
+    if (!parsed.success) throw new BadRequestException(parsed.error.flatten());
+    return this.fees.createExtraFee(me.schoolId, parsed.data, me.userId);
+  }
+
+  @Patch("extra/:id")
+  updateExtraFee(
+    @CurrentUser() me: AuthUser,
+    @Param("id") id: string,
+    @Body() body: unknown,
+  ) {
+    const parsed = updateExtraFeeSchema.safeParse(body);
+    if (!parsed.success) throw new BadRequestException(parsed.error.flatten());
+    return this.fees.updateExtraFee(me.schoolId, id, parsed.data);
+  }
+
+  @Delete("extra/:id")
+  deleteExtraFee(@CurrentUser() me: AuthUser, @Param("id") id: string) {
+    return this.fees.deleteExtraFee(me.schoolId, id);
+  }
+
+  /** Who would be charged and how much, before actually billing it. */
+  @Get("extra/:id/preview")
+  previewExtraFee(@CurrentUser() me: AuthUser, @Param("id") id: string) {
+    return this.fees.previewExtraFee(me.schoolId, id);
+  }
+
+  @Post("extra/:id/apply")
+  applyExtraFee(@CurrentUser() me: AuthUser, @Param("id") id: string) {
+    return this.fees.applyExtraFee(me.schoolId, id);
   }
 }

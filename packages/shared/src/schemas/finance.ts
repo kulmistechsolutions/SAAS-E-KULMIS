@@ -95,6 +95,54 @@ export const updateSalarySchema = z
   .refine((o) => Object.keys(o).length > 0, { message: "Nothing to update" });
 export type UpdateSalaryInput = z.infer<typeof updateSalarySchema>;
 
+// ── Extra fees (additional charges billed on top of the monthly fee) ──
+
+const extraFeeClassAmountSchema = z.object({
+  classId: z.string().min(1),
+  amount: z.number().int().nonnegative(),
+});
+
+const extraFeeBase = z.object({
+  name: z.string().trim().min(1, "Name is required").max(120),
+  description: z.string().trim().max(500).nullable().optional(),
+  year,
+  month,
+  /** true = one price for every class; false = per-class prices. */
+  appliesToAllClasses: z.boolean().default(true),
+  /** Required when appliesToAllClasses is true. */
+  defaultAmount: z.number().int().nonnegative().nullable().optional(),
+  /** Required (non-empty) when appliesToAllClasses is false. */
+  classAmounts: z.array(extraFeeClassAmountSchema).default([]),
+});
+
+/** Whichever targeting mode is picked must carry its amounts. */
+const refineExtraFee = (
+  val: z.infer<typeof extraFeeBase>,
+  ctx: z.RefinementCtx,
+) => {
+  if (val.appliesToAllClasses) {
+    if (val.defaultAmount == null) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["defaultAmount"],
+        message: "Enter the amount to charge every class",
+      });
+    }
+  } else if (!val.classAmounts.length) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["classAmounts"],
+      message: "Pick at least one class and set its amount",
+    });
+  }
+};
+
+export const createExtraFeeSchema = extraFeeBase.superRefine(refineExtraFee);
+export type CreateExtraFeeInput = z.infer<typeof createExtraFeeSchema>;
+
+export const updateExtraFeeSchema = extraFeeBase.superRefine(refineExtraFee);
+export type UpdateExtraFeeInput = z.infer<typeof updateExtraFeeSchema>;
+
 // ── Expense (Module 9) ──
 export const createExpenseCategorySchema = z.object({
   name: z.string().min(1),

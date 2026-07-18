@@ -6,9 +6,11 @@ import {
 } from "@nestjs/common";
 import type {
   ChargeMonthInput,
+  CreateExtraFeeInput,
   PayFeeInput,
   SetupAcademicYearFeesInput,
   StudentFeeStartInput,
+  UpdateExtraFeeInput,
 } from "@ekulmis/shared";
 import type { Prisma } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
@@ -112,15 +114,14 @@ export class FeesService {
       let charged = 0;
       let skipped = 0;
       for (const s of students) {
-        const existing = await tx.feeCharge.findUnique({
+        const existing = await tx.feeCharge.findFirst({
           where: {
-            schoolId_studentId_year_month: {
-              schoolId,
-              studentId: s.id,
-              year: dto.year,
-              month: dto.month,
-            },
+            studentId: s.id,
+            year: dto.year,
+            month: dto.month,
+            kind: "MONTHLY",
           },
+          select: { id: true },
         });
         if (existing) {
           skipped++;
@@ -329,15 +330,14 @@ export class FeesService {
         ? (student.feeAgreementAmount ?? student.monthlyFee)
         : student.monthlyFee;
 
-    const existing = await tx.feeCharge.findUnique({
+    const existing = await tx.feeCharge.findFirst({
       where: {
-        schoolId_studentId_year_month: {
-          schoolId,
-          studentId: student.id,
-          year: now.year,
-          month: now.month,
-        },
+        studentId: student.id,
+        year: now.year,
+        month: now.month,
+        kind: "MONTHLY",
       },
+      select: { id: true },
     });
     if (existing) return 0;
 
@@ -401,15 +401,14 @@ export class FeesService {
 
       if (!isInactive) activeCount++;
 
-      const existing = await tx.feeCharge.findUnique({
+      const existing = await tx.feeCharge.findFirst({
         where: {
-          schoolId_studentId_year_month: {
-            schoolId,
-            studentId: ctx.student.id,
-            year: slot.year,
-            month: slot.month,
-          },
+          studentId: ctx.student.id,
+          year: slot.year,
+          month: slot.month,
+          kind: "MONTHLY",
         },
+        select: { id: true },
       });
       if (existing) continue;
 
@@ -470,6 +469,9 @@ export class FeesService {
         studentId: { in: studentIds },
         year: { in: slotYears },
         month: { in: slotMonths },
+        // An EXTRA charge in a month must not make us think the regular fee
+        // for that month already exists.
+        kind: "MONTHLY",
       },
       select: { studentId: true, year: true, month: true },
     });
@@ -612,7 +614,15 @@ export class FeesService {
           studentId: student.id,
           status: { in: ["UNPAID", "PARTIAL"] },
         },
-        orderBy: [{ year: "asc" }, { month: "asc" }],
+        // A month can now hold both the regular fee and extra charges, so
+        // year+month alone is no longer a total order — settle the regular fee
+        // first, then extras by age, so allocation is deterministic.
+        orderBy: [
+          { year: "asc" },
+          { month: "asc" },
+          { kind: "asc" },
+          { createdAt: "asc" },
+        ],
       });
 
       if (dto.type === "ADVANCE" && outstanding.length > 0) {
@@ -644,7 +654,12 @@ export class FeesService {
             studentId: student.id,
             status: { in: ["UNPAID", "PARTIAL"] },
           },
-          orderBy: [{ year: "asc" }, { month: "asc" }],
+          orderBy: [
+            { year: "asc" },
+            { month: "asc" },
+            { kind: "asc" },
+            { createdAt: "asc" },
+          ],
         });
         for (const charge of unpaidFuture) {
           if (remaining <= 0) break;
@@ -666,7 +681,13 @@ export class FeesService {
 
         if (remaining > 0) {
           const last = await tx.feeCharge.findFirst({
-            where: { studentId: student.id, status: { not: "INACTIVE" } },
+            where: {
+              studentId: student.id,
+              status: { not: "INACTIVE" },
+              // Advance months continue the regular fee schedule; an extra
+              // charge billed into a later month must not shift it forward.
+              kind: "MONTHLY",
+            },
             orderBy: [{ year: "desc" }, { month: "desc" }],
             select: { year: true, month: true },
           });
@@ -676,14 +697,12 @@ export class FeesService {
             const next = nextCalendarMonth(y, m);
             y = next.year;
             m = next.month;
-            const dup = await tx.feeCharge.findUnique({
+            const dup = await tx.feeCharge.findFirst({
               where: {
-                schoolId_studentId_year_month: {
-                  schoolId,
-                  studentId: student.id,
-                  year: y,
-                  month: m,
-                },
+                studentId: student.id,
+                year: y,
+                month: m,
+                kind: "MONTHLY",
               },
             });
             if (dup?.status === "PAID") continue;
@@ -763,7 +782,12 @@ export class FeesService {
       if (!student) throw new NotFoundException("Student not found");
       const charges = await tx.feeCharge.findMany({
         where: { studentId },
-        orderBy: [{ year: "asc" }, { month: "asc" }],
+        orderBy: [
+          { year: "asc" },
+          { month: "asc" },
+          { kind: "asc" },
+          { createdAt: "asc" },
+        ],
       });
       const payments = await tx.payment.findMany({
         where: { studentId },
@@ -777,11 +801,20 @@ export class FeesService {
         (s, c) => s + Math.max(0, c.amount - c.paidAmount),
         0,
       );
-      const paidMonths = billable.filter((c) => c.status === "PAID").length;
-      const unpaidMonths = billable.filter(
+
+      // Month counts describe the regular fee schedule, so they only count
+      // MONTHLY rows — an exam fee is not "a month" and would otherwise
+      // inflate totalMonths and skew the progress bar.
+      const billableMonthly = billable.filter((c) => c.kind === "MONTHLY");
+      const paidMonths = billableMonthly.filter((c) => c.status === "PAID").length;
+      const unpaidMonths = billableMonthly.filter(
         (c) => c.status === "UNPAID" || c.status === "PARTIAL",
       ).length;
       const inactiveMonths = charges.filter((c) => c.status === "INACTIVE").length;
+
+      const extras = billable.filter((c) => c.kind === "EXTRA");
+      const extraTotal = extras.reduce((s, c) => s + c.amount, 0);
+      const monthlyTotal = billableMonthly.reduce((s, c) => s + c.amount, 0);
 
       return {
         student,
@@ -791,16 +824,21 @@ export class FeesService {
         summary: {
           billingMode: config.billingMode,
           monthlyFee: student.monthlyFee,
-          totalAcademicFee: student.annualFeeAmount ?? totalDue,
+          // annualFeeAmount only covers the monthly schedule, so extras are
+          // added on top — otherwise the headline total under-reports what the
+          // student actually owes.
+          totalAcademicFee:
+            (student.annualFeeAmount ?? monthlyTotal) + extraTotal,
+          extraFeesTotal: extraTotal,
           amountPaid: totalPaid,
           outstandingBalance: outstanding,
           paidMonths,
           unpaidMonths,
           inactiveMonths,
-          totalMonths: billable.length,
+          totalMonths: billableMonthly.length,
           progressPercent:
-            billable.length > 0
-              ? Math.round((paidMonths / billable.length) * 1000) / 10
+            billableMonthly.length > 0
+              ? Math.round((paidMonths / billableMonthly.length) * 1000) / 10
               : 0,
         },
       };
@@ -859,6 +897,286 @@ export class FeesService {
         },
         orderBy: [{ year: "desc" }, { month: "desc" }],
       }),
+    );
+  }
+
+  // ── Extra fees ───────────────────────────────────────────────────────────
+
+  /** Extra fee setups with their class prices and how much has been applied. */
+  async listExtraFees(schoolId: string) {
+    return this.prisma.forTenant(schoolId, async (tx) => {
+      const fees = await tx.extraFee.findMany({
+        include: {
+          classAmounts: {
+            include: { class: { select: { id: true, name: true } } },
+          },
+        },
+        orderBy: [{ year: "desc" }, { month: "desc" }, { createdAt: "desc" }],
+      });
+
+      // One grouped query rather than a count per fee.
+      const grouped = await tx.feeCharge.groupBy({
+        by: ["extraFeeId"],
+        where: { kind: "EXTRA", extraFeeId: { not: null } },
+        _count: { _all: true },
+        _sum: { amount: true, paidAmount: true },
+      });
+      const stats = new Map(grouped.map((g) => [g.extraFeeId, g]));
+
+      return fees.map((f) => {
+        const s = stats.get(f.id);
+        return {
+          ...f,
+          appliedCount: s?._count._all ?? 0,
+          appliedTotal: s?._sum.amount ?? 0,
+          collectedTotal: s?._sum.paidAmount ?? 0,
+        };
+      });
+    });
+  }
+
+  private async assertClassesExist(
+    tx: TenantTx,
+    classIds: string[],
+  ): Promise<void> {
+    if (classIds.length === 0) return;
+    const found = await tx.class.findMany({
+      where: { id: { in: classIds } },
+      select: { id: true },
+    });
+    if (found.length !== new Set(classIds).size) {
+      throw new BadRequestException("One or more selected classes are invalid");
+    }
+  }
+
+  async createExtraFee(
+    schoolId: string,
+    dto: CreateExtraFeeInput,
+    userId?: string,
+  ) {
+    return this.prisma.forTenant(schoolId, async (tx) => {
+      const classAmounts = dto.appliesToAllClasses ? [] : dto.classAmounts;
+      await this.assertClassesExist(
+        tx,
+        classAmounts.map((c) => c.classId),
+      );
+      const activeYear = await tx.academicYear.findFirst({
+        where: { isActive: true },
+        select: { id: true },
+      });
+
+      return tx.extraFee.create({
+        data: {
+          schoolId,
+          academicYearId: activeYear?.id ?? null,
+          name: dto.name,
+          description: dto.description ?? null,
+          year: dto.year,
+          month: dto.month,
+          appliesToAllClasses: dto.appliesToAllClasses,
+          defaultAmount: dto.appliesToAllClasses
+            ? (dto.defaultAmount ?? 0)
+            : null,
+          createdByUserId: userId ?? null,
+          classAmounts: {
+            create: classAmounts.map((c) => ({
+              schoolId,
+              classId: c.classId,
+              amount: c.amount,
+            })),
+          },
+        },
+        include: {
+          classAmounts: {
+            include: { class: { select: { id: true, name: true } } },
+          },
+        },
+      });
+    });
+  }
+
+  async updateExtraFee(
+    schoolId: string,
+    id: string,
+    dto: UpdateExtraFeeInput,
+  ) {
+    return this.prisma.forTenant(schoolId, async (tx) => {
+      const existing = await tx.extraFee.findFirst({
+        where: { id },
+        select: { id: true, appliedAt: true },
+      });
+      if (!existing) throw new NotFoundException("Extra fee not found");
+      // Editing after it has been billed would silently disagree with the
+      // charges already sitting on students' accounts.
+      if (existing.appliedAt) {
+        throw new BadRequestException(
+          "This extra fee has already been applied to students. Delete it and create a new one instead.",
+        );
+      }
+
+      const classAmounts = dto.appliesToAllClasses ? [] : dto.classAmounts;
+      await this.assertClassesExist(
+        tx,
+        classAmounts.map((c) => c.classId),
+      );
+
+      await tx.extraFeeClassAmount.deleteMany({ where: { extraFeeId: id } });
+      return tx.extraFee.update({
+        where: { id },
+        data: {
+          name: dto.name,
+          description: dto.description ?? null,
+          year: dto.year,
+          month: dto.month,
+          appliesToAllClasses: dto.appliesToAllClasses,
+          defaultAmount: dto.appliesToAllClasses
+            ? (dto.defaultAmount ?? 0)
+            : null,
+          classAmounts: {
+            create: classAmounts.map((c) => ({
+              schoolId,
+              classId: c.classId,
+              amount: c.amount,
+            })),
+          },
+        },
+        include: {
+          classAmounts: {
+            include: { class: { select: { id: true, name: true } } },
+          },
+        },
+      });
+    });
+  }
+
+  async deleteExtraFee(schoolId: string, id: string) {
+    return this.prisma.forTenant(schoolId, async (tx) => {
+      const existing = await tx.extraFee.findFirst({
+        where: { id },
+        select: { id: true },
+      });
+      if (!existing) throw new NotFoundException("Extra fee not found");
+
+      // Money already collected against it must not silently disappear.
+      const paid = await tx.feeCharge.aggregate({
+        where: { extraFeeId: id, kind: "EXTRA" },
+        _sum: { paidAmount: true },
+      });
+      if ((paid._sum.paidAmount ?? 0) > 0) {
+        throw new BadRequestException(
+          "Payments have already been collected against this extra fee, so it cannot be deleted.",
+        );
+      }
+
+      await tx.feeCharge.deleteMany({ where: { extraFeeId: id, kind: "EXTRA" } });
+      await tx.extraFee.delete({ where: { id } });
+      return { ok: true };
+    });
+  }
+
+  /** Which students an extra fee would hit, and for how much — without billing. */
+  async previewExtraFee(schoolId: string, id: string) {
+    return this.prisma.forTenant(schoolId, (tx) =>
+      this.resolveExtraFeeTargets(tx, id),
+    );
+  }
+
+  private async resolveExtraFeeTargets(tx: TenantTx, id: string) {
+    const fee = await tx.extraFee.findFirst({
+      where: { id },
+      include: { classAmounts: true },
+    });
+    if (!fee) throw new NotFoundException("Extra fee not found");
+
+    const amountByClass = new Map(
+      fee.classAmounts.map((c) => [c.classId, c.amount]),
+    );
+    const students = await tx.student.findMany({
+      where: {
+        status: "ACTIVE",
+        ...(fee.appliesToAllClasses
+          ? {}
+          : { classId: { in: [...amountByClass.keys()] } }),
+      },
+      select: {
+        id: true,
+        code: true,
+        fullName: true,
+        classId: true,
+        class: { select: { name: true } },
+      },
+      orderBy: { fullName: "asc" },
+    });
+
+    const already = await tx.feeCharge.findMany({
+      where: { extraFeeId: id, kind: "EXTRA" },
+      select: { studentId: true },
+    });
+    const alreadyCharged = new Set(already.map((a) => a.studentId));
+
+    const targets = students.map((s) => ({
+      studentId: s.id,
+      code: s.code,
+      fullName: s.fullName,
+      className: s.class.name,
+      amount: fee.appliesToAllClasses
+        ? (fee.defaultAmount ?? 0)
+        : (amountByClass.get(s.classId) ?? 0),
+      alreadyCharged: alreadyCharged.has(s.id),
+    }));
+
+    const pending = targets.filter((t) => !t.alreadyCharged);
+    return {
+      fee,
+      targets,
+      studentCount: targets.length,
+      pendingCount: pending.length,
+      totalAmount: pending.reduce((s, t) => s + t.amount, 0),
+    };
+  }
+
+  /**
+   * Bill the extra fee onto every matching active student as an EXTRA charge
+   * in its month. Safe to run twice: students already charged are skipped, so
+   * a retry after a partial failure tops up the rest instead of double-billing.
+   */
+  async applyExtraFee(schoolId: string, id: string) {
+    return this.prisma.forTenant(
+      schoolId,
+      async (tx) => {
+        const { fee, targets } = await this.resolveExtraFeeTargets(tx, id);
+        const pending = targets.filter((t) => !t.alreadyCharged && t.amount > 0);
+
+        if (pending.length > 0) {
+          await tx.feeCharge.createMany({
+            data: pending.map((t) => ({
+              schoolId,
+              studentId: t.studentId,
+              academicYearId: fee.academicYearId,
+              year: fee.year,
+              month: fee.month,
+              amount: t.amount,
+              paidAmount: 0,
+              status: "UNPAID" as const,
+              kind: "EXTRA" as const,
+              label: fee.name,
+              extraFeeId: fee.id,
+            })),
+          });
+        }
+
+        await tx.extraFee.update({
+          where: { id },
+          data: { appliedAt: fee.appliedAt ?? new Date() },
+        });
+
+        return {
+          applied: pending.length,
+          skipped: targets.length - pending.length,
+          totalAmount: pending.reduce((s, t) => s + t.amount, 0),
+        };
+      },
+      { timeout: 120_000, maxWait: 30_000 },
     );
   }
 }
