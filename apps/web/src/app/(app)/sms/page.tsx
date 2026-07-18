@@ -11,6 +11,7 @@ import {
   Bell,
   Users,
   Clock,
+  PlugZap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,6 +20,7 @@ import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { RecipientPickerDialog } from "@/components/sms/recipient-picker";
 import { TemplateManager } from "@/components/sms/template-manager";
+import { GatewaySettings } from "@/components/sms/gateway-settings";
 import { CATEGORIES } from "@/components/sms/categories";
 import { VariablePicker, VariableWarning } from "@/components/sms/variables";
 import {
@@ -47,7 +49,7 @@ import {
 import { activeAcademicYear } from "@/lib/academics/store";
 import { toast } from "@/lib/toast";
 
-type Tab = "send" | "custom" | "templates" | "logs" | "settings";
+type Tab = "send" | "custom" | "templates" | "logs" | "settings" | "gateway";
 
 const AUDIENCES: { value: SmsAudience; label: string; hint: string }[] = [
   { value: "ALL_PARENTS", label: "All parents", hint: "Every active student's parent" },
@@ -355,6 +357,7 @@ export default function SchoolSmsPage() {
     { id: "templates", label: "Templates", icon: FileText },
     { id: "logs", label: "Logs", icon: Bell },
     { id: "settings", label: "Settings", icon: Wallet },
+    { id: "gateway", label: "My SMS Account", icon: PlugZap },
   ];
 
   const canSend = !!balance?.provider.canSend && (balance?.creditsRemaining ?? 0) > 0;
@@ -387,10 +390,23 @@ export default function SchoolSmsPage() {
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <div className="rounded-2xl border bg-card p-4 shadow-sm">
-          <p className="text-xs text-muted-foreground">Credits remaining</p>
-          <p className="mt-1 text-3xl font-bold">
-            {loading ? "…" : (balance?.creditsRemaining ?? 0)}
+          <p className="text-xs text-muted-foreground">
+            {balance?.gateway?.active ? "Billing" : "Credits remaining"}
           </p>
+          {balance?.gateway?.active ? (
+            <>
+              <p className="mt-1 text-lg font-semibold text-emerald-600">
+                Own account
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Platform credits are not used.
+              </p>
+            </>
+          ) : (
+            <p className="mt-1 text-3xl font-bold">
+              {loading ? "…" : (balance?.creditsRemaining ?? 0)}
+            </p>
+          )}
         </div>
         <div className="rounded-2xl border bg-card p-4 shadow-sm">
           <p className="text-xs text-muted-foreground">Hormuud SMS</p>
@@ -892,6 +908,8 @@ export default function SchoolSmsPage() {
           <Button onClick={() => void saveSettings()}>Save settings</Button>
         </div>
       )}
+
+      {tab === "gateway" && <GatewaySettings />}
 
       <RecipientPickerDialog
         open={pickerOpen}

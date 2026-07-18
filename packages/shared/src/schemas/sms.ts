@@ -101,6 +101,33 @@ export const sendAudienceSmsSchema = z.object({
   campaignName: z.string().max(120).optional(),
 });
 
+// ── School's own SMS gateway (paid add-on) ─────────────────────────────────
+
+/** School saves/tests its own Hormuud credentials. */
+export const schoolSmsGatewaySchema = z.object({
+  baseUrl: z.string().url().optional(),
+  username: z.string().trim().min(1).optional(),
+  /** Blank = keep the stored password (the API never sends it back). */
+  password: z.string().optional(),
+  senderId: z.string().trim().max(20).nullable().optional(),
+  /** Persist the credentials only if the test succeeds. */
+  saveOnSuccess: z.boolean().optional(),
+  enabled: z.boolean().optional(),
+});
+export type SchoolSmsGatewayInput = z.infer<typeof schoolSmsGatewaySchema>;
+
+/** Super Admin grants/renews a school's gateway licence. */
+export const grantSmsGatewayLicenseSchema = z.object({
+  schoolId: z.string().min(1),
+  durationMonths: z.number().int().positive().max(60),
+  price: z.number().nonnegative().nullable().optional(),
+  currency: z.string().min(3).max(8).optional(),
+  note: z.string().max(500).nullable().optional(),
+});
+export type GrantSmsGatewayLicenseInput = z.infer<
+  typeof grantSmsGatewayLicenseSchema
+>;
+
 export const previewAudienceSchema = z.object({
   audience: z.enum([
     "ALL_PARENTS",

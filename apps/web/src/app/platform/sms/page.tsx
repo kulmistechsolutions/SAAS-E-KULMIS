@@ -17,9 +17,13 @@ import { Select } from "@/components/ui/select";
 import {
   assignPlatformSmsPackage,
   createPlatformSmsPackage,
+  fetchPlatformSmsGatewayLicenses,
   fetchPlatformSmsMessages,
   fetchPlatformSmsOverview,
+  grantPlatformSmsGatewayLicense,
+  revokePlatformSmsGatewayLicense,
   setPlatformSmsPackageActive,
+  type PlatformSmsGatewayLicense,
   type PlatformSmsOverview,
 } from "@/lib/platform/api";
 import { toast } from "@/lib/toast";
@@ -30,7 +34,9 @@ export default function PlatformSmsPackagesPage() {
     Awaited<ReturnType<typeof fetchPlatformSmsMessages>>
   >([]);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<"packages" | "assign" | "logs">("packages");
+  const [tab, setTab] = useState<
+    "packages" | "assign" | "gateways" | "logs"
+  >("packages");
 
   const [pkgName, setPkgName] = useState("");
   const [pkgCredits, setPkgCredits] = useState("100");
@@ -40,17 +46,27 @@ export default function PlatformSmsPackagesPage() {
   const [assignSchool, setAssignSchool] = useState("");
   const [assignPkg, setAssignPkg] = useState("");
 
+  const [gwLicenses, setGwLicenses] = useState<PlatformSmsGatewayLicense[]>([]);
+  const [gwSchool, setGwSchool] = useState("");
+  const [gwMonths, setGwMonths] = useState(12);
+  const [gwPrice, setGwPrice] = useState("");
+  const [gwNote, setGwNote] = useState("");
+
   const unlocked = Boolean(data?.config.packagesUnlocked);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [ov, msgs] = await Promise.all([
+      const [ov, msgs, licenses] = await Promise.all([
         fetchPlatformSmsOverview(),
         fetchPlatformSmsMessages(),
+        fetchPlatformSmsGatewayLicenses().catch(
+          () => [] as PlatformSmsGatewayLicense[],
+        ),
       ]);
       setData(ov);
       setMessages(msgs);
+      setGwLicenses(licenses);
       setAssignSchool((prev) => prev || ov.schools[0]?.id || "");
       setAssignPkg(
         (prev) => prev || ov.packages.find((p) => p.isActive)?.id || "",
@@ -61,6 +77,36 @@ export default function PlatformSmsPackagesPage() {
       setLoading(false);
     }
   }, []);
+
+  async function grantGateway() {
+    if (!gwSchool) return;
+    try {
+      await grantPlatformSmsGatewayLicense({
+        schoolId: gwSchool,
+        durationMonths: gwMonths,
+        price: gwPrice.trim() === "" ? null : Number(gwPrice),
+        note: gwNote.trim() || null,
+      });
+      toast("Own-gateway licence activated", "success");
+      setGwPrice("");
+      setGwNote("");
+      await load();
+    } catch (e) {
+      toast(e instanceof Error ? e.message : "Could not activate", "error");
+    }
+  }
+
+  async function revokeGateway(id: string) {
+    if (!confirm("Revoke this licence? The school falls back to platform credits."))
+      return;
+    try {
+      await revokePlatformSmsGatewayLicense(id);
+      toast("Licence revoked", "success");
+      await load();
+    } catch (e) {
+      toast(e instanceof Error ? e.message : "Could not revoke", "error");
+    }
+  }
 
   useEffect(() => {
     void load();
@@ -189,6 +235,7 @@ export default function PlatformSmsPackagesPage() {
           [
             ["packages", "Packages"],
             ["assign", "Assign"],
+            ["gateways", "Own gateways"],
             ["logs", "Delivery logs"],
           ] as const
         ).map(([id, label]) => (
@@ -364,6 +411,127 @@ export default function PlatformSmsPackagesPage() {
                 </li>
               ))}
             </ul>
+          </div>
+        </div>
+      )}
+
+      {tab === "gateways" && data && (
+        <div className="grid gap-4 lg:grid-cols-2">
+          <div className="rounded-2xl border border-white/10 bg-[#0f172a] p-5">
+            <h2 className="font-semibold text-white">
+              Sell &quot;use your own SMS account&quot;
+            </h2>
+            <p className="mt-1 text-sm text-slate-400">
+              Lets a school connect its own Hormuud credentials. Their SMS is
+              then billed by Hormuud directly and stops consuming platform
+              credits, for as long as the licence runs.
+            </p>
+            <div className="mt-4 space-y-3">
+              <div>
+                <Label className="text-slate-400">School</Label>
+                <Select
+                  className="mt-1 border-white/10 bg-[#0b1120] text-white"
+                  value={gwSchool}
+                  onChange={(e) => setGwSchool(e.target.value)}
+                >
+                  <option value="">Select a school…</option>
+                  {data.schools.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name}
+                    </option>
+                  ))}
+                </Select>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-slate-400">Duration</Label>
+                  <Select
+                    className="mt-1 border-white/10 bg-[#0b1120] text-white"
+                    value={String(gwMonths)}
+                    onChange={(e) => setGwMonths(Number(e.target.value))}
+                  >
+                    <option value="1">1 month</option>
+                    <option value="3">3 months</option>
+                    <option value="6">6 months</option>
+                    <option value="12">12 months (yearly)</option>
+                    <option value="24">24 months</option>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-slate-400">Price (optional)</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    className="mt-1 border-white/10 bg-[#0b1120] text-white"
+                    value={gwPrice}
+                    onChange={(e) => setGwPrice(e.target.value)}
+                  />
+                </div>
+              </div>
+              <div>
+                <Label className="text-slate-400">Note (optional)</Label>
+                <Input
+                  className="mt-1 border-white/10 bg-[#0b1120] text-white"
+                  value={gwNote}
+                  onChange={(e) => setGwNote(e.target.value)}
+                />
+              </div>
+              <Button onClick={() => void grantGateway()} disabled={!gwSchool}>
+                Activate for this school
+              </Button>
+              <p className="text-xs text-slate-500">
+                Renewing a school that still has time left extends from its
+                current expiry, so nothing already paid for is lost.
+              </p>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-white/10 bg-[#0f172a] p-5">
+            <h3 className="text-sm font-medium text-slate-300">Licences</h3>
+            {gwLicenses.length === 0 ? (
+              <p className="mt-3 text-sm text-slate-500">
+                No school is using its own gateway yet.
+              </p>
+            ) : (
+              <ul className="mt-3 space-y-2 text-sm">
+                {gwLicenses.map((l) => (
+                  <li
+                    key={l.id}
+                    className="flex items-start justify-between gap-3 rounded-lg border border-white/5 px-3 py-2"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate text-white">{l.school.name}</p>
+                      <p className="text-xs text-slate-400">
+                        {l.durationMonths} month(s) ·{" "}
+                        {new Date(l.startDate).toLocaleDateString()} →{" "}
+                        {new Date(l.endDate).toLocaleDateString()}
+                        {l.price != null ? ` · ${l.currency} ${l.price}` : ""}
+                      </p>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-2">
+                      <span
+                        className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${
+                          l.status === "ACTIVE"
+                            ? "bg-emerald-500/15 text-emerald-300"
+                            : "bg-white/5 text-slate-400"
+                        }`}
+                      >
+                        {l.status}
+                      </span>
+                      {l.status === "ACTIVE" && (
+                        <button
+                          type="button"
+                          onClick={() => void revokeGateway(l.id)}
+                          className="text-xs text-rose-300 hover:text-rose-200"
+                        >
+                          Revoke
+                        </button>
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         </div>
       )}

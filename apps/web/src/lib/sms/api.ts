@@ -37,8 +37,74 @@ export interface SmsBalance {
     purchasedAt: string;
     package: { id: string; name: string; credits: number; price: string | number };
   }[];
+  /** Own-gateway state; when active, credits are not consumed. */
+  gateway?: {
+    licensed: boolean;
+    active: boolean;
+    enabled: boolean;
+    connectionStatus: string;
+    expiresAt: string | null;
+  };
   deliveryStats: { status: string; count: number; credits: number }[];
 }
+
+// ── School's own SMS gateway (paid add-on) ─────────────────────────────────
+
+export interface SmsGatewayLicense {
+  id: string;
+  startDate: string;
+  endDate: string;
+  status: "ACTIVE" | "EXPIRED" | "CANCELLED";
+  durationMonths: number;
+  price: string | number | null;
+  currency: string;
+  note: string | null;
+  createdAt: string;
+}
+
+export interface SchoolSmsGateway {
+  /** A live licence from the platform admin exists. */
+  licensed: boolean;
+  license: SmsGatewayLicense | null;
+  history: SmsGatewayLicense[];
+  enabled: boolean;
+  baseUrl: string;
+  username: string;
+  hasPassword: boolean;
+  senderId: string | null;
+  connectionStatus: "CONNECTED" | "DISCONNECTED" | "ERROR";
+  connectionMessage: string | null;
+  connectionVerified: boolean;
+  lastTestedAt: string | null;
+  lastSuccessAt: string | null;
+  providerBalance: string | null;
+  /** True when SMS actually routes through the school's own account. */
+  active: boolean;
+}
+
+export interface SmsGatewayTestResult {
+  ok: boolean;
+  status: string;
+  message: string;
+  providerBalance?: string | null;
+}
+
+export const apiSmsGateway = () => api<SchoolSmsGateway>("/sms/gateway");
+
+export const apiTestSmsGateway = (body: {
+  baseUrl?: string;
+  username?: string;
+  password?: string;
+  senderId?: string | null;
+  enabled?: boolean;
+}) =>
+  api<{ gateway: SchoolSmsGateway; test: SmsGatewayTestResult }>(
+    "/sms/gateway/test",
+    { method: "POST", body },
+  );
+
+export const apiToggleSmsGateway = (enabled: boolean) =>
+  api<SchoolSmsGateway>("/sms/gateway", { method: "PATCH", body: { enabled } });
 
 export interface SmsTemplate {
   id: string;

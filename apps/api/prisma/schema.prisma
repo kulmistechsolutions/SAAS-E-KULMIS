@@ -85,6 +85,8 @@ model School {
   smsCampaigns  SmsCampaign[]
   smsTransactions SmsTransaction[]
   smsPaymentOrders SmsPaymentOrder[]
+  smsGateway       SchoolSmsGateway?
+  smsGatewayLicenses SmsGatewayLicense[]
 
   @@map("schools")
 }
@@ -1298,6 +1300,66 @@ model SmsConnectionLog {
 
   @@index([createdAt])
   @@map("sms_connection_logs")
+}
+
+/// A school's OWN Hormuud credentials, so its SMS goes out through its own
+/// provider account instead of the platform's shared one (and off the
+/// platform credit system). Gated by an SmsGatewayLicense sold by Super Admin.
+/// Not tenant-scoped/RLS: like `schools`, it is keyed by schoolId and only
+/// ever read through the authenticated school's own id.
+model SchoolSmsGateway {
+  id       String @id @default(cuid())
+  schoolId String @unique
+
+  /// School's switch. Only takes effect while a license is active.
+  enabled  Boolean @default(false)
+  baseUrl  String  @default("https://smsapi.hormuud.com")
+  username String  @default("")
+  /// API password (Hormuud portal "API PASSWORD"). Never returned by the API.
+  password String  @default("")
+  senderId String?
+
+  /// CONNECTED | DISCONNECTED | ERROR
+  connectionStatus   String    @default("DISCONNECTED")
+  connectionMessage  String?
+  lastTestedAt       DateTime?
+  lastSuccessAt      DateTime?
+  providerBalance    String?
+  /// Must be true (successful Test Connection) before sending through it.
+  connectionVerified Boolean   @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@map("school_sms_gateways")
+}
+
+/// Super Admin grant letting a school use its own SMS gateway for a period.
+/// Kept as a history table (like SmsPurchase) rather than a column so renewals
+/// and pricing stay auditable.
+model SmsGatewayLicense {
+  id        String   @id @default(cuid())
+  schoolId  String
+  startDate DateTime @default(now())
+  endDate   DateTime
+  /// ACTIVE | EXPIRED | CANCELLED
+  status    String   @default("ACTIVE")
+  /// Billing period sold, e.g. 6 or 12 months.
+  durationMonths Int
+  price     Decimal? @db.Decimal(12, 2)
+  currency  String   @default("USD")
+  note      String?
+  createdByAdminId String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@index([schoolId])
+  @@index([status, endDate])
+  @@map("sms_gateway_licenses")
 }
 
 /// Sellable SMS credit packages managed by Super Admin.

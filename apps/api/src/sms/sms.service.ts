@@ -12,7 +12,9 @@ import type {
   CreateSmsCampaignInput,
   CreateSmsPackageInput,
   CreateSmsTemplateInput,
+  GrantSmsGatewayLicenseInput,
   PreviewAudienceInput,
+  SchoolSmsGatewayInput,
   SendAudienceSmsInput,
   SendSmsInput,
   TestSmsConnectionInput,
@@ -27,6 +29,7 @@ import {
   hormuudSendSms,
   hormuudTestConnection,
   normalizeSomaliPhone,
+  type HormuudConfig,
   type HormuudConnectionTestResult,
 } from "./hormuud.client";
 import { DEFAULT_TEMPLATES, renderSmsTemplate } from "./sms-template.util";
@@ -286,6 +289,281 @@ export class SmsService {
       );
     }
     return cfg;
+  }
+
+  // ── School's own gateway (paid add-on) ───────────────────────────────────
+
+  private async ensureSchoolGateway(schoolId: string) {
+    const existing = await this.prisma.schoolSmsGateway.findUnique({
+      where: { schoolId },
+    });
+    if (existing) return existing;
+    return this.prisma.schoolSmsGateway.create({ data: { schoolId } });
+  }
+
+  /**
+   * The school's current gateway licence, or null. Expired ACTIVE rows are
+   * flipped to EXPIRED here so the status is correct without a cron.
+   */
+  private async activeGatewayLicense(schoolId: string) {
+    const now = new Date();
+    const license = await this.prisma.smsGatewayLicense.findFirst({
+      where: { schoolId, status: "ACTIVE" },
+      orderBy: { endDate: "desc" },
+    });
+    if (!license) return null;
+    if (license.endDate < now) {
+      await this.prisma.smsGatewayLicense.update({
+        where: { id: license.id },
+        data: { status: "EXPIRED" },
+      });
+      return null;
+    }
+    return license;
+  }
+
+  /**
+   * Decide which Hormuud account a school's SMS goes through.
+   *
+   * Own gateway requires all three: a live licence, the school switched it on,
+   * and a verified connection. If any is missing we fall back to the platform
+   * account + credit system rather than failing — an expired licence should
+   * never silently stop a school's SMS.
+   */
+  private async resolveGateway(schoolId: string): Promise<{
+    ownGateway: boolean;
+    config: { baseUrl: string; username: string; password: string };
+    senderId: string | null;
+    /** Why own-gateway was not used, for the settings UI. */
+    reason?: string;
+  }> {
+    const gateway = await this.prisma.schoolSmsGateway.findUnique({
+      where: { schoolId },
+    });
+
+    if (gateway?.enabled) {
+      const license = await this.activeGatewayLicense(schoolId);
+      if (!license) {
+        // fall through to platform
+      } else if (
+        gateway.connectionVerified &&
+        gateway.connectionStatus === "CONNECTED" &&
+        gateway.username &&
+        gateway.password
+      ) {
+        return {
+          ownGateway: true,
+          config: {
+            baseUrl: gateway.baseUrl,
+            username: gateway.username,
+            password: gateway.password,
+          },
+          senderId: gateway.senderId,
+        };
+      }
+    }
+
+    const cfg = await this.requireProvider();
+    return {
+      ownGateway: false,
+      config: {
+        baseUrl: cfg.baseUrl,
+        username: cfg.username,
+        password: cfg.password,
+      },
+      senderId: cfg.defaultSenderId,
+    };
+  }
+
+  /** School-facing gateway state. Never returns the stored password. */
+  async getSchoolGateway(schoolId: string) {
+    const gateway = await this.ensureSchoolGateway(schoolId);
+    const license = await this.activeGatewayLicense(schoolId);
+    const history = await this.prisma.smsGatewayLicense.findMany({
+      where: { schoolId },
+      orderBy: { createdAt: "desc" },
+      take: 10,
+    });
+    return {
+      licensed: !!license,
+      license,
+      history,
+      enabled: gateway.enabled,
+      baseUrl: gateway.baseUrl,
+      username: gateway.username,
+      hasPassword: Boolean(gateway.password),
+      senderId: gateway.senderId,
+      connectionStatus: gateway.connectionStatus as
+        | "CONNECTED"
+        | "DISCONNECTED"
+        | "ERROR",
+      connectionMessage: gateway.connectionMessage,
+      connectionVerified: gateway.connectionVerified,
+      lastTestedAt: gateway.lastTestedAt,
+      lastSuccessAt: gateway.lastSuccessAt,
+      providerBalance: gateway.providerBalance,
+      /** True when SMS actually routes through the school's own account. */
+      active:
+        !!license &&
+        gateway.enabled &&
+        gateway.connectionVerified &&
+        gateway.connectionStatus === "CONNECTED",
+    };
+  }
+
+  /**
+   * Test the school's own credentials and, on success, persist them. Mirrors
+   * the platform testConnection: credentials are only ever saved through a
+   * successful test, so a broken config can't be stored.
+   */
+  async testSchoolGateway(schoolId: string, input: SchoolSmsGatewayInput) {
+    const license = await this.activeGatewayLicense(schoolId);
+    if (!license) {
+      throw new ForbiddenException(
+        "Your own SMS gateway is not licensed. Contact the platform administrator to activate it.",
+      );
+    }
+
+    const existing = await this.ensureSchoolGateway(schoolId);
+    const baseUrl = input.baseUrl?.trim() || existing.baseUrl;
+    const username = input.username?.trim() || existing.username;
+    const password =
+      input.password && input.password.length > 0
+        ? input.password
+        : existing.password;
+
+    if (!username || !password) {
+      throw new BadRequestException(
+        "Enter your Hormuud username and API password.",
+      );
+    }
+
+    const test = await hormuudTestConnection({ baseUrl, username, password });
+
+    if (!test.ok) {
+      const updated = await this.prisma.schoolSmsGateway.update({
+        where: { schoolId },
+        data: {
+          connectionStatus: test.status,
+          connectionMessage: test.message,
+          lastTestedAt: new Date(test.testedAt),
+          connectionVerified: false,
+        },
+      });
+      return { gateway: await this.getSchoolGateway(updated.schoolId), test };
+    }
+
+    const saveOnSuccess = input.saveOnSuccess !== false;
+    const data: Prisma.SchoolSmsGatewayUpdateInput = {
+      connectionStatus: "CONNECTED",
+      connectionMessage: test.message,
+      lastTestedAt: new Date(test.testedAt),
+      lastSuccessAt: new Date(test.testedAt),
+      providerBalance: test.providerBalance ?? null,
+      connectionVerified: true,
+    };
+    if (saveOnSuccess) {
+      data.baseUrl = baseUrl;
+      data.username = username;
+      if (input.password && input.password.length > 0) {
+        data.password = input.password;
+      }
+      if (input.senderId !== undefined) data.senderId = input.senderId;
+      // First successful verification turns it on, matching the platform flow.
+      data.enabled = input.enabled ?? (existing.enabled || true);
+    }
+
+    await this.prisma.schoolSmsGateway.update({ where: { schoolId }, data });
+    return { gateway: await this.getSchoolGateway(schoolId), test };
+  }
+
+  /** Toggle own-gateway on/off without re-testing. */
+  async setSchoolGatewayEnabled(schoolId: string, enabled: boolean) {
+    const gateway = await this.ensureSchoolGateway(schoolId);
+    if (enabled) {
+      const license = await this.activeGatewayLicense(schoolId);
+      if (!license) {
+        throw new ForbiddenException(
+          "Your own SMS gateway is not licensed. Contact the platform administrator.",
+        );
+      }
+      if (!gateway.connectionVerified) {
+        throw new BadRequestException(
+          "Test the connection successfully before switching it on.",
+        );
+      }
+    }
+    await this.prisma.schoolSmsGateway.update({
+      where: { schoolId },
+      data: { enabled },
+    });
+    return this.getSchoolGateway(schoolId);
+  }
+
+  // ── Platform: gateway licences ───────────────────────────────────────────
+
+  async grantGatewayLicense(
+    input: GrantSmsGatewayLicenseInput,
+    adminId?: string,
+  ) {
+    const school = await this.prisma.school.findUnique({
+      where: { id: input.schoolId },
+      select: { id: true },
+    });
+    if (!school) throw new NotFoundException("School not found.");
+
+    // A renewal extends from the current expiry, not from today, so a school
+    // renewing early doesn't lose the time it already paid for.
+    const current = await this.activeGatewayLicense(input.schoolId);
+    const startDate = current ? current.endDate : new Date();
+    const endDate = new Date(startDate);
+    endDate.setMonth(endDate.getMonth() + input.durationMonths);
+
+    if (current) {
+      await this.prisma.smsGatewayLicense.update({
+        where: { id: current.id },
+        data: { status: "CANCELLED", note: "Superseded by renewal" },
+      });
+    }
+
+    return this.prisma.smsGatewayLicense.create({
+      data: {
+        schoolId: input.schoolId,
+        startDate,
+        endDate,
+        durationMonths: input.durationMonths,
+        price: input.price != null ? new Prisma.Decimal(input.price) : null,
+        currency: input.currency ?? "USD",
+        note: input.note ?? null,
+        createdByAdminId: adminId ?? null,
+      },
+    });
+  }
+
+  async revokeGatewayLicense(id: string) {
+    const existing = await this.prisma.smsGatewayLicense.findUnique({
+      where: { id },
+    });
+    if (!existing) throw new NotFoundException("Licence not found.");
+    const license = await this.prisma.smsGatewayLicense.update({
+      where: { id },
+      data: { status: "CANCELLED" },
+    });
+    // Revoking must actually stop the routing, not just mark the row.
+    await this.prisma.schoolSmsGateway
+      .update({ where: { schoolId: existing.schoolId }, data: { enabled: false } })
+      .catch(() => undefined);
+    return license;
+  }
+
+  listGatewayLicenses() {
+    return this.prisma.smsGatewayLicense.findMany({
+      include: {
+        school: { select: { id: true, name: true, subdomain: true } },
+      },
+      orderBy: { createdAt: "desc" },
+      take: 200,
+    });
   }
 
   /** Packages / assign / adjust require a verified + enabled Hormuud connection. */
@@ -571,22 +849,37 @@ export class SmsService {
     });
     if (!school) throw new NotFoundException("School not found.");
 
+    const gateway = await this.getSchoolGateway(schoolId);
     const providerCfg = await this.ensureGlobalConfig();
-    const provider = {
-      enabled: providerCfg.enabled,
-      connected: providerCfg.connectionVerified && providerCfg.connectionStatus === "CONNECTED",
-      status: providerCfg.connectionStatus,
-      message: providerCfg.connectionVerified
-        ? providerCfg.connectionStatus === "CONNECTED"
-          ? "Hormuud SMS is ready. You can send messages."
-          : providerCfg.connectionMessage ?? "Hormuud connection needs attention."
-        : "Platform admin must verify Hormuud SMS in Platform → SMS Settings.",
-      canSend:
-        providerCfg.enabled &&
-        providerCfg.connectionVerified &&
-        providerCfg.connectionStatus === "CONNECTED" &&
-        school.smsEnabled,
-    };
+
+    // On its own gateway the school's readiness depends on its own connection,
+    // not the platform's — and it spends its own Hormuud balance, not credits.
+    const provider = gateway.active
+      ? {
+          enabled: true,
+          connected: true,
+          status: "CONNECTED",
+          message: "Sending through your own Hormuud account.",
+          canSend: school.smsEnabled,
+        }
+      : {
+          enabled: providerCfg.enabled,
+          connected:
+            providerCfg.connectionVerified &&
+            providerCfg.connectionStatus === "CONNECTED",
+          status: providerCfg.connectionStatus,
+          message: providerCfg.connectionVerified
+            ? providerCfg.connectionStatus === "CONNECTED"
+              ? "Hormuud SMS is ready. You can send messages."
+              : (providerCfg.connectionMessage ??
+                "Hormuud connection needs attention.")
+            : "Platform admin must verify Hormuud SMS in Platform → SMS Settings.",
+          canSend:
+            providerCfg.enabled &&
+            providerCfg.connectionVerified &&
+            providerCfg.connectionStatus === "CONNECTED" &&
+            school.smsEnabled,
+        };
 
     return this.prisma.forTenant(schoolId, async (tx) => {
       const purchases = await tx.smsPurchase.findMany({
@@ -608,6 +901,13 @@ export class SmsService {
         provider,
         creditsRemaining: remaining,
         purchases,
+        gateway: {
+          licensed: gateway.licensed,
+          active: gateway.active,
+          enabled: gateway.enabled,
+          connectionStatus: gateway.connectionStatus,
+          expiresAt: gateway.license?.endDate ?? null,
+        },
         deliveryStats: stats.map((s) => ({
           status: s.status,
           count: s._count._all,
@@ -963,25 +1263,38 @@ export class SmsService {
     });
     if (due.length === 0) return { processed: 0, sent: 0, failed: 0 };
 
-    // Resolve the provider once per batch. If it is unavailable the messages
-    // stay QUEUED and go out on a later tick, rather than being burned.
-    let provider: Awaited<ReturnType<SmsService["requireProvider"]>>;
-    try {
-      provider = await this.requireProvider();
-    } catch (e) {
-      this.logger.warn(
-        `${due.length} scheduled SMS are due but the provider is unavailable: ${
-          e instanceof Error ? e.message : e
-        }`,
-      );
-      return { processed: 0, sent: 0, failed: 0 };
-    }
+    // Resolved per school (and cached for the batch) rather than once overall,
+    // because a school on its own gateway must not go out through the
+    // platform account. If a school's provider is unavailable its messages
+    // stay QUEUED for a later tick instead of being burned.
+    const gatewayCache = new Map<
+      string,
+      Awaited<ReturnType<SmsService["resolveGateway"]>> | null
+    >();
+    const gatewayFor = async (schoolId: string) => {
+      if (gatewayCache.has(schoolId)) return gatewayCache.get(schoolId)!;
+      try {
+        const g = await this.resolveGateway(schoolId);
+        gatewayCache.set(schoolId, g);
+        return g;
+      } catch (e) {
+        this.logger.warn(
+          `Scheduled SMS for school ${schoolId} deferred — provider unavailable: ${
+            e instanceof Error ? e.message : e
+          }`,
+        );
+        gatewayCache.set(schoolId, null);
+        return null;
+      }
+    };
 
     let sent = 0;
     let failed = 0;
     for (const msg of due) {
       try {
-        const delivered = await this.deliverStoredMessage(msg.id, provider);
+        const gateway = await gatewayFor(msg.schoolId);
+        if (!gateway) continue; // stays QUEUED for a later tick
+        const delivered = await this.deliverStoredMessage(msg.id, gateway.config);
         if (delivered.status === "SENT" || delivered.status === "DELIVERED") {
           sent++;
         } else {
@@ -1186,7 +1499,7 @@ export class SmsService {
       campaignId?: string;
     },
   ) {
-    const provider = await this.requireProvider();
+    const gateway = await this.resolveGateway(schoolId);
 
     const school = await this.prisma.school.findUnique({
       where: { id: schoolId },
@@ -1198,8 +1511,8 @@ export class SmsService {
 
     const senderId = (
       school.smsSenderName?.trim() ||
+      gateway.senderId ||
       school.name ||
-      provider.defaultSenderId ||
       "eKulmis"
     ).slice(0, 20);
 
@@ -1230,13 +1543,17 @@ export class SmsService {
       return { ...r, body, credits };
     });
 
-    const balance = await this.prisma.forTenant(schoolId, (tx) =>
-      this.sumRemaining(tx, schoolId),
-    );
-    if (balance < estimatedCredits) {
-      throw new BadRequestException(
-        `Insufficient SMS credits. Need ${estimatedCredits}, have ${balance}. Purchase a package from the platform administrator.`,
+    // On its own gateway the school pays Hormuud directly, so the platform
+    // credit wallet is bypassed entirely — no balance check, no reservation.
+    if (!gateway.ownGateway) {
+      const balance = await this.prisma.forTenant(schoolId, (tx) =>
+        this.sumRemaining(tx, schoolId),
       );
+      if (balance < estimatedCredits) {
+        throw new BadRequestException(
+          `Insufficient SMS credits. Need ${estimatedCredits}, have ${balance}. Purchase a package from the platform administrator.`,
+        );
+      }
     }
 
     let sent = 0;
@@ -1247,46 +1564,51 @@ export class SmsService {
 
     for (const r of prepared) {
       const created = await this.prisma.forTenant(schoolId, async (tx) => {
-        const purchase = await tx.smsPurchase.findFirst({
-          where: {
-            schoolId,
-            status: "ACTIVE",
-            creditsRemaining: { gte: r.credits },
-          },
-          orderBy: { purchasedAt: "asc" },
-        });
-        if (!purchase) {
-          throw new BadRequestException(
-            "Insufficient SMS credits on an active package.",
-          );
-        }
+        let purchaseId: string | null = null;
 
-        // Reserve credits up-front
-        const remaining = purchase.creditsRemaining - r.credits;
-        await tx.smsPurchase.update({
-          where: { id: purchase.id },
-          data: {
-            creditsRemaining: remaining,
-            status: remaining === 0 ? "EXHAUSTED" : "ACTIVE",
-          },
-        });
-        const bal = await this.sumRemaining(tx, schoolId);
-        await tx.smsTransaction.create({
-          data: {
-            schoolId,
-            purchaseId: purchase.id,
-            type: "DEDUCTION",
-            credits: -r.credits,
-            balanceAfter: bal,
-            description: `Reserved for SMS to ${r.phone}`,
-            createdByUserId: userId ?? null,
-          },
-        });
+        if (!gateway.ownGateway) {
+          const purchase = await tx.smsPurchase.findFirst({
+            where: {
+              schoolId,
+              status: "ACTIVE",
+              creditsRemaining: { gte: r.credits },
+            },
+            orderBy: { purchasedAt: "asc" },
+          });
+          if (!purchase) {
+            throw new BadRequestException(
+              "Insufficient SMS credits on an active package.",
+            );
+          }
+          purchaseId = purchase.id;
+
+          // Reserve credits up-front
+          const remaining = purchase.creditsRemaining - r.credits;
+          await tx.smsPurchase.update({
+            where: { id: purchase.id },
+            data: {
+              creditsRemaining: remaining,
+              status: remaining === 0 ? "EXHAUSTED" : "ACTIVE",
+            },
+          });
+          const bal = await this.sumRemaining(tx, schoolId);
+          await tx.smsTransaction.create({
+            data: {
+              schoolId,
+              purchaseId: purchase.id,
+              type: "DEDUCTION",
+              credits: -r.credits,
+              balanceAfter: bal,
+              description: `Reserved for SMS to ${r.phone}`,
+              createdByUserId: userId ?? null,
+            },
+          });
+        }
 
         return tx.smsMessage.create({
           data: {
             schoolId,
-            purchaseId: purchase.id,
+            purchaseId,
             campaignId: opts.campaignId ?? null,
             category: opts.category as never,
             recipientPhone: normalizeSomaliPhone(r.phone),
@@ -1310,13 +1632,17 @@ export class SmsService {
         continue;
       }
 
-      const delivered = await this.deliverStoredMessage(created.id, provider);
+      const delivered = await this.deliverStoredMessage(
+        created.id,
+        gateway.config,
+      );
       if (delivered.status === "SENT" || delivered.status === "DELIVERED") {
         sent++;
         creditsUsed += delivered.creditsUsed;
       } else {
         failed++;
-        // Refund on hard failure
+        // Refund on hard failure. No-ops on own gateway — purchaseId is null
+        // because nothing was reserved in the first place.
         await this.refundCredits(schoolId, created.id, created.purchaseId, created.creditsUsed);
       }
       messages.push(delivered);
@@ -1326,8 +1652,10 @@ export class SmsService {
       sent,
       failed,
       queued,
-      creditsUsed: isScheduled ? 0 : creditsUsed,
-      estimatedCredits,
+      // Own-gateway sends are billed by Hormuud, not from the wallet.
+      creditsUsed: isScheduled || gateway.ownGateway ? 0 : creditsUsed,
+      estimatedCredits: gateway.ownGateway ? 0 : estimatedCredits,
+      ownGateway: gateway.ownGateway,
       messages,
     };
   }
@@ -1372,14 +1700,17 @@ export class SmsService {
 
   private async deliverStoredMessage(
     messageId: string,
-    providerCfg?: Awaited<ReturnType<SmsService["requireProvider"]>>,
+    providerCfg?: HormuudConfig,
   ) {
-    const provider = providerCfg ?? (await this.requireProvider());
     const msg = await this.prisma.smsMessage.findUnique({
       where: { id: messageId },
     });
     if (!msg) throw new NotFoundException("SMS message not found.");
     if (msg.status === "SENT" || msg.status === "DELIVERED") return msg;
+
+    // Resolve per-message when not supplied (the scheduled-SMS cron sweeps
+    // rows across schools, so each must use its own school's gateway).
+    const provider = providerCfg ?? (await this.resolveGateway(msg.schoolId)).config;
 
     let lastError = "";
     let result = await hormuudSendSms(

@@ -374,6 +374,43 @@ export async function assignPlatformSmsPackage(body: {
   return platformFetch("/platform/sms/assign", { method: "POST", body });
 }
 
+// ── Own-gateway licences (paid add-on sold to schools) ──
+
+export interface PlatformSmsGatewayLicense {
+  id: string;
+  schoolId: string;
+  startDate: string;
+  endDate: string;
+  status: "ACTIVE" | "EXPIRED" | "CANCELLED";
+  durationMonths: number;
+  price: string | number | null;
+  currency: string;
+  note: string | null;
+  createdAt: string;
+  school: { id: string; name: string; subdomain: string };
+}
+
+export const fetchPlatformSmsGatewayLicenses = () =>
+  platformFetch<PlatformSmsGatewayLicense[]>("/platform/sms/gateway-licenses");
+
+export const grantPlatformSmsGatewayLicense = (body: {
+  schoolId: string;
+  durationMonths: number;
+  price?: number | null;
+  currency?: string;
+  note?: string | null;
+}) =>
+  platformFetch<PlatformSmsGatewayLicense>("/platform/sms/gateway-licenses", {
+    method: "POST",
+    body,
+  });
+
+export const revokePlatformSmsGatewayLicense = (id: string) =>
+  platformFetch<PlatformSmsGatewayLicense>(
+    `/platform/sms/gateway-licenses/${id}`,
+    { method: "DELETE" },
+  );
+
 export async function fetchPlatformSmsMessages(params?: {
   schoolId?: string;
   status?: string;

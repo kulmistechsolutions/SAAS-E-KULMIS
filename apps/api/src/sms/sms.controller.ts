@@ -13,6 +13,7 @@ import {
   createSmsCampaignSchema,
   createSmsTemplateSchema,
   previewAudienceSchema,
+  schoolSmsGatewaySchema,
   sendAudienceSmsSchema,
   sendSmsSchema,
   updateSchoolSmsSettingsSchema,
@@ -67,6 +68,34 @@ export class SmsController {
   @Roles(UserRole.ADMINISTRATOR, UserRole.SUPER_ADMINISTRATOR)
   resetTemplates(@CurrentUser() me: AuthUser) {
     return this.sms.resetTemplatesToDefaults(me.schoolId);
+  }
+
+  // ── School's own SMS gateway (paid add-on) ──
+  @Get("gateway")
+  @Roles(UserRole.ADMINISTRATOR, UserRole.SUPER_ADMINISTRATOR)
+  gateway(@CurrentUser() me: AuthUser) {
+    return this.sms.getSchoolGateway(me.schoolId);
+  }
+
+  /** Test the school's own credentials; saves them only when the test passes. */
+  @Post("gateway/test")
+  @Roles(UserRole.ADMINISTRATOR, UserRole.SUPER_ADMINISTRATOR)
+  testGateway(@CurrentUser() me: AuthUser, @Body() body: unknown) {
+    const parsed = schoolSmsGatewaySchema.safeParse(body);
+    if (!parsed.success) throw new BadRequestException(parsed.error.flatten());
+    return this.sms.testSchoolGateway(me.schoolId, parsed.data);
+  }
+
+  @Patch("gateway")
+  @Roles(UserRole.ADMINISTRATOR, UserRole.SUPER_ADMINISTRATOR)
+  toggleGateway(
+    @CurrentUser() me: AuthUser,
+    @Body() body: { enabled?: boolean },
+  ) {
+    if (typeof body?.enabled !== "boolean") {
+      throw new BadRequestException("enabled must be true or false");
+    }
+    return this.sms.setSchoolGatewayEnabled(me.schoolId, body.enabled);
   }
 
   @Post("templates")

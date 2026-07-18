@@ -15,6 +15,7 @@ import {
   adjustSmsCreditsSchema,
   assignSmsPackageSchema,
   createSmsPackageSchema,
+  grantSmsGatewayLicenseSchema,
   testSmsConnectionSchema,
   testWaafiConnectionSchema,
   updateSmsGlobalConfigSchema,
@@ -159,6 +160,27 @@ export class PlatformSmsController {
     const parsed = assignSmsPackageSchema.safeParse(body);
     if (!parsed.success) throw new BadRequestException(parsed.error.flatten());
     return this.sms.assignPackage(parsed.data, req.platformAdmin?.adminId);
+  }
+
+  // ── Own-gateway licences (paid add-on sold to schools) ──
+  @Get("gateway-licenses")
+  listGatewayLicenses() {
+    return this.sms.listGatewayLicenses();
+  }
+
+  @Post("gateway-licenses")
+  grantGatewayLicense(
+    @Body() body: unknown,
+    @Req() req: { platformAdmin?: PlatformAdminCtx },
+  ) {
+    const parsed = grantSmsGatewayLicenseSchema.safeParse(body);
+    if (!parsed.success) throw new BadRequestException(parsed.error.flatten());
+    return this.sms.grantGatewayLicense(parsed.data, req.platformAdmin?.adminId);
+  }
+
+  @Delete("gateway-licenses/:id")
+  revokeGatewayLicense(@Param("id") id: string) {
+    return this.sms.revokeGatewayLicense(id);
   }
 
   @Post("adjust")
