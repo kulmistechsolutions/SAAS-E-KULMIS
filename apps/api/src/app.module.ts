@@ -29,6 +29,7 @@ import { PromotionsModule } from "./promotions/promotions.module";
 import { QuizModule } from "./quiz/quiz.module";
 import { AiModule } from "./ai/ai.module";
 import { LibraryModule } from "./library/library.module";
+import { TimetableModule } from "./timetable/timetable.module";
 import { LibraryPortalModule } from "./library-portal/library-portal.module";
 import { ReportsModule } from "./reports/reports.module";
 import { NotificationsModule } from "./notifications/notifications.module";
@@ -77,6 +78,7 @@ import { TenantModule } from "./tenant/tenant.module";
     QuizModule,
     AiModule,
     LibraryModule,
+    TimetableModule,
     LibraryPortalModule,
     ReportsModule,
     NotificationsModule,

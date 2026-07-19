@@ -7,6 +7,7 @@ import {
   BarChart3,
   BookOpen,
   CalendarCheck,
+  CalendarClock,
   CalendarDays,
   ChevronDown,
   ChevronRight,
@@ -67,6 +68,10 @@ const ACADEMICS_CHILDREN: NavChild[] = [
   { label: "Sections", href: "/academics/sections" },
   { label: "Subjects", href: "/academics/subjects" },
   { label: "Academic Years", href: "/academics/years" },
+];
+
+const TIMETABLE_CHILDREN: NavChild[] = [
+  { label: "Setup", href: "/timetable/setup" },
 ];
 
 const PROMOTION_CHILDREN: NavChild[] = [
@@ -139,6 +144,7 @@ const ADMIN_NAV: NavItem[] = [
   { label: "Teacher Portal", icon: BookOpen, href: "/teacher-portal/login" },
   { label: "Classes & Sections", icon: Library, children: ACADEMICS_CHILDREN },
   { label: "Attendance", icon: CalendarCheck, href: "/attendance" },
+  { label: "Timetable", icon: CalendarClock, children: TIMETABLE_CHILDREN },
   { label: "Fee Management", icon: Wallet, children: FEE_CHILDREN },
   { label: "Salary Management", icon: Receipt, children: SALARY_CHILDREN },
   { label: "Expense Management", icon: TrendingDown, children: EXPENSE_CHILDREN },

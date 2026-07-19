@@ -21,6 +21,7 @@ export * from "./schemas/sms";
 export * from "./schemas/library";
 export * from "./schemas/ai";
 export * from "./schemas/subscriptions";
+export * from "./schemas/timetable";
 
 /** Multi-tenant primitives (MASTER_PRD scope decision: multi-tenant SaaS). */
 export interface TenantContext {
