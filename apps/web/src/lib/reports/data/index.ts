@@ -52,6 +52,9 @@ export async function fetchReportAsync(
   if (category === "teachers" && slug === "attendance") {
     return fetchTeacherAttendanceReportAsync(filters);
   }
+  if (category === "teachers") {
+    return fetchTeacherReportAsync(slug, filters);
+  }
   if (category === "fees") {
     return fetchFeeReportAsync(slug, filters);
   }
@@ -70,7 +73,7 @@ export function fetchReport(
     case "students":
       return emptyReport("Loading student data…");
     case "teachers":
-      return fetchTeacherReport(slug, filters);
+      return emptyReport("Loading teacher data…");
     case "attendance":
       return emptyReport("Loading attendance data…");
     case "fees":
@@ -100,119 +103,6 @@ function emptyReport(msg: string): ReportData {
     rows: [{ message: msg }],
     summary: [{ label: "Total", value: "0" }],
   };
-}
-
-function fetchTeacherReport(slug: string, filters: ReportFilters): ReportData {
-  const tt = getTeachersState();
-  const q = filters.search?.trim().toLowerCase() ?? "";
-  const year = yearOf(filters);
-
-  switch (slug) {
-    case "list": {
-      const teachers = tt.teachers.filter((t) => {
-        if (filters.shift && t.shift !== filters.shift) return false;
-        if (filters.status && t.status !== filters.status) return false;
-        if (q && !`${t.code} ${t.fullName} ${t.phone}`.toLowerCase().includes(q)) return false;
-        return true;
-      });
-      const sum = summarize(tt);
-      return {
-        columns: [
-          { key: "code", label: "Teacher ID", mono: true },
-          { key: "name", label: "Name" },
-          { key: "phone", label: "Phone" },
-          { key: "shift", label: "Shift" },
-          { key: "salary", label: "Salary", align: "right" },
-          { key: "status", label: "Status" },
-        ],
-        rows: teachers.map((t) => ({
-          code: t.code,
-          name: t.fullName,
-          phone: t.phone,
-          shift: t.shift.charAt(0) + t.shift.slice(1).toLowerCase(),
-          salary: money(t.salary),
-          status: t.status,
-        })),
-        summary: [
-          { label: "Total", value: String(teachers.length) },
-          { label: "Active", value: String(sum.active) },
-        ],
-      };
-    }
-    case "assignments": {
-      let assigns = tt.assignments.filter((a) => a.status === "ACTIVE");
-      if (filters.academicYear) assigns = assigns.filter((a) => a.academicYear === filters.academicYear);
-      if (filters.className) assigns = assigns.filter((a) => a.className === filters.className);
-      if (filters.subject) assigns = assigns.filter((a) => a.subject === filters.subject);
-      return {
-        columns: [
-          { key: "teacher", label: "Teacher" },
-          { key: "subject", label: "Subject" },
-          { key: "className", label: "Class" },
-          { key: "section", label: "Section" },
-          { key: "year", label: "Academic Year" },
-        ],
-        rows: assigns.map((a) => ({
-          teacher: tt.teachers.find((t) => t.id === a.teacherId)?.fullName ?? "—",
-          subject: a.subject,
-          className: a.className,
-          section: a.section ? `Section ${a.section}` : "All",
-          year: a.academicYear,
-        })),
-        summary: [{ label: "Assignments", value: String(assigns.length) }],
-      };
-    }
-    case "attendance":
-      return emptyReport("Use async report loader for attendance data.");
-    case "salary": {
-      const teachers = tt.teachers.filter((t) => t.status === "ACTIVE");
-      const total = teachers.reduce((s, t) => s + t.salary, 0);
-      return {
-        columns: [
-          { key: "code", label: "ID", mono: true },
-          { key: "name", label: "Teacher" },
-          { key: "shift", label: "Shift" },
-          { key: "salary", label: "Monthly Salary", align: "right" },
-        ],
-        rows: teachers.map((t) => ({
-          code: t.code,
-          name: t.fullName,
-          shift: t.shift,
-          salary: money(t.salary),
-        })),
-        summary: [
-          { label: "Teachers", value: String(teachers.length) },
-          { label: "Monthly Total", value: money(total) },
-        ],
-      };
-    }
-    case "subjects":
-    case "classes":
-    case "sections": {
-      let assigns = tt.assignments.filter(
-        (a) => a.status === "ACTIVE" && a.academicYear === (filters.academicYear || year),
-      );
-      if (filters.className) assigns = assigns.filter((a) => a.className === filters.className);
-      if (filters.section) assigns = assigns.filter((a) => a.section === filters.section);
-      if (filters.subject) assigns = assigns.filter((a) => a.subject === filters.subject);
-      const key = slug === "subjects" ? "subject" : slug === "classes" ? "className" : "section";
-      const map = new Map<string, number>();
-      for (const a of assigns) {
-        const val = key === "section" ? `${a.className} ${a.section ?? "All"}` : a[key as "subject" | "className"];
-        map.set(String(val), (map.get(String(val)) ?? 0) + 1);
-      }
-      return {
-        columns: [
-          { key: "name", label: slug === "subjects" ? "Subject" : slug === "classes" ? "Class" : "Section" },
-          { key: "count", label: "Assignments", align: "right" },
-        ],
-        rows: [...map.entries()].map(([name, count]) => ({ name, count })),
-        summary: [{ label: "Total", value: String(assigns.length) }],
-      };
-    }
-    default:
-      return emptyReport("Unknown teacher report");
-  }
 }
 
 async function fetchTeacherAttendanceReportAsync(
@@ -332,6 +222,26 @@ async function fetchAttendanceReportAsync(
  * Student and parent reports, from the API rather than the browser'''s student
  * store which only ever held the pages someone had scrolled through.
  */
+/** Teacher list, salary and assignment reports, from the API. */
+async function fetchTeacherReportAsync(
+  slug: string,
+  filters: ReportFilters,
+): Promise<ReportData> {
+  const params = new URLSearchParams();
+  for (const key of ["shift", "status", "className", "section", "subject", "search"] as const) {
+    const value = filters[key];
+    if (value) params.set(key, String(value));
+  }
+  const query = params.toString();
+  try {
+    return await api<ReportData>(
+      `/reports/teacher-reports/${encodeURIComponent(slug)}${query ? `?${query}` : ""}`,
+    );
+  } catch {
+    return emptyReport("Could not load teacher data.");
+  }
+}
+
 async function fetchStudentReportAsync(
   slug: string,
   filters: ReportFilters,

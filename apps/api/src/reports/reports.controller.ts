@@ -11,6 +11,7 @@ import { UserRole } from "@ekulmis/shared";
 import { ReportsService } from "./reports.service";
 import { FeeReportsService } from "./fee-reports.service";
 import { StudentReportsService } from "./student-reports.service";
+import { TeacherReportsService } from "./teacher-reports.service";
 import { Roles } from "../auth/roles.decorator";
 import { CurrentUser } from "../auth/current-user.decorator";
 import type { AuthUser } from "../auth/auth.types";
@@ -21,7 +22,31 @@ export class ReportsController {
     private readonly reports: ReportsService,
     private readonly feeReports: FeeReportsService,
     private readonly studentReports: StudentReportsService,
+    private readonly teacherReports: TeacherReportsService,
   ) {}
+
+  /** Teacher list, salary and assignment reports, from the database. */
+  @Roles(UserRole.ADMINISTRATOR, UserRole.FINANCE_OFFICER, UserRole.EXAM_MANAGER)
+  @Get("teacher-reports/:slug")
+  teacherReportsBySlug(
+    @CurrentUser() me: AuthUser,
+    @Param("slug") slug: string,
+    @Query("shift") shift?: string,
+    @Query("status") status?: string,
+    @Query("className") className?: string,
+    @Query("section") section?: string,
+    @Query("subject") subject?: string,
+    @Query("search") search?: string,
+  ) {
+    return this.teacherReports.build(me.schoolId, slug, {
+      shift,
+      status,
+      className,
+      section,
+      subject,
+      search,
+    });
+  }
 
   /** Student and parent reports, computed from the database. */
   @Roles(UserRole.ADMINISTRATOR, UserRole.FINANCE_OFFICER, UserRole.EXAM_MANAGER)

@@ -4,10 +4,16 @@ import { ReportsController } from "./reports.controller";
 import { ReportsService } from "./reports.service";
 import { FeeReportsService } from "./fee-reports.service";
 import { StudentReportsService } from "./student-reports.service";
+import { TeacherReportsService } from "./teacher-reports.service";
 
 @Module({
   imports: [ExaminationsModule],
   controllers: [ReportsController],
-  providers: [ReportsService, FeeReportsService, StudentReportsService],
+  providers: [
+    ReportsService,
+    FeeReportsService,
+    StudentReportsService,
+    TeacherReportsService,
+  ],
 })
 export class ReportsModule {}
