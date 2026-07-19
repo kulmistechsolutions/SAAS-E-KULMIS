@@ -79,6 +79,9 @@ export function createPreviewSchool(
     subdomain: payload.subdomain.toLowerCase(),
     status: "ACTIVE",
     createdAt: new Date().toISOString(),
+    trialEndsAt: new Date(
+      Date.now() + (payload.trialDays ?? 7) * 86400000,
+    ).toISOString(),
     userCount: 1,
   };
   persist([school, ...st]);

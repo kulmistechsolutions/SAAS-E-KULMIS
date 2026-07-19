@@ -80,6 +80,7 @@ type ApiSchool = {
   subdomain: string;
   status: "ACTIVE" | "SUSPENDED";
   createdAt: string;
+  trialEndsAt?: string | null;
   _count?: { users: number };
 };
 
@@ -90,9 +91,17 @@ function mapSchool(row: ApiSchool): PlatformSchool {
     subdomain: row.subdomain,
     status: row.status,
     createdAt: row.createdAt,
+    trialEndsAt: row.trialEndsAt ?? null,
     userCount: row._count?.users ?? 0,
   };
 }
+
+/** Grant, extend or (with 0 days) end a school's free trial. Counts from now. */
+export const setPlatformSchoolTrial = (schoolId: string, trialDays: number) =>
+  platformFetch<{ id: string; name: string; trialEndsAt: string | null }>(
+    `/platform/schools/${schoolId}/trial`,
+    { method: "POST", body: { trialDays } },
+  );
 
 export async function platformLogin(
   identifier: string,

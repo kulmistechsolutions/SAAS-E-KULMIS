@@ -59,6 +59,11 @@ model School {
   invoicePrefix     String @default("INV")
   certificatePrefix String @default("CRT")
 
+  /// Free-trial deadline set when Super Admin creates the school. The school
+  /// works normally until this passes; after it, sign-in is blocked until a
+  /// subscription is assigned. Null = no trial was granted.
+  trialEndsAt DateTime?
+
   /// Hormuud sender ID shown to recipients (defaults to school name when empty).
   smsSenderName String?
   smsEnabled    Boolean @default(true)

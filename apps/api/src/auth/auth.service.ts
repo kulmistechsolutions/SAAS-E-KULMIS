@@ -8,6 +8,7 @@ import { JwtService } from "@nestjs/jwt";
 import { createHash, randomBytes } from "node:crypto";
 import type { User } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
+import { SubscriptionsService } from "../subscriptions/subscriptions.service";
 import { hashPassword, verifyPassword } from "./password.util";
 import type { JwtPayload } from "./auth.types";
 
@@ -26,6 +27,7 @@ export class AuthService {
     private readonly prisma: PrismaService,
     private readonly jwt: JwtService,
     private readonly config: ConfigService,
+    private readonly subscriptions: SubscriptionsService,
   ) {}
 
   /** Authenticate within a tenant (schoolId) by username + password. */
@@ -41,6 +43,10 @@ export class AuthService {
     if (!ok) {
       throw new UnauthorizedException("Invalid credentials");
     }
+    // Checked after the password so a wrong password can never reveal a
+    // school's billing state. Throws ForbiddenException (403), which the web
+    // app shows as an upgrade prompt rather than a credentials error.
+    await this.subscriptions.assertSchoolAccess(schoolId);
     await this.prisma.user.update({
       where: { id: user.id },
       data: { lastLoginAt: new Date() },

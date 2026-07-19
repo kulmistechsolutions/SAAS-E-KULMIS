@@ -12,6 +12,7 @@ import {
 import {
   createSchoolSchema,
   resetPasswordSchema,
+  setSchoolTrialSchema,
   updateSchoolSchema,
 } from "@ekulmis/shared";
 import { SchoolsService } from "./schools.service";
@@ -52,6 +53,14 @@ export class SchoolsController {
   @Delete(":id")
   remove(@Param("id") id: string) {
     return this.schools.remove(id);
+  }
+
+  /** Grant, extend or end a free trial. Days count from now. */
+  @Post(":id/trial")
+  setTrial(@Param("id") id: string, @Body() body: unknown) {
+    const parsed = setSchoolTrialSchema.safeParse(body);
+    if (!parsed.success) throw new BadRequestException(parsed.error.flatten());
+    return this.schools.setTrial(id, parsed.data.trialDays);
   }
 
   /** The school's staff logins — used to pick who to reset. */

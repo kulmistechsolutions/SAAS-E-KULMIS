@@ -2,6 +2,7 @@ import { Module } from "@nestjs/common";
 import { APP_GUARD } from "@nestjs/core";
 import { ConfigService } from "@nestjs/config";
 import { JwtModule } from "@nestjs/jwt";
+import { SubscriptionsModule } from "../subscriptions/subscriptions.module";
 import { AuthController } from "./auth.controller";
 import { AuthService } from "./auth.service";
 import { JwtAuthGuard } from "./jwt-auth.guard";
@@ -9,6 +10,8 @@ import { RolesGuard } from "./roles.guard";
 
 @Module({
   imports: [
+    // Login checks the school's trial/subscription state before issuing tokens.
+    SubscriptionsModule,
     JwtModule.registerAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({

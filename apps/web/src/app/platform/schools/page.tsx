@@ -6,6 +6,10 @@ import { Plus, Search } from "lucide-react";
 import { SchoolFormDialog } from "@/components/platform/school-form-dialog";
 import { SchoolLoginsDialog } from "@/components/platform/school-logins-dialog";
 import { SchoolStatusBadge } from "@/components/platform/school-status-badge";
+import {
+  SchoolTrialDialog,
+  TrialCell,
+} from "@/components/platform/school-trial-dialog";
 import { createSchool, loadSchools } from "@/lib/platform/data";
 import { shortDate, tenantUrl } from "@/lib/platform/format";
 import { usePlatformSchoolsState } from "@/lib/platform/store";
@@ -24,6 +28,11 @@ export default function PlatformSchoolsPage() {
   const [loginsFor, setLoginsFor] = useState<{ id: string; name: string } | null>(
     null,
   );
+  const [trialFor, setTrialFor] = useState<{
+    id: string;
+    name: string;
+    trialEndsAt: string | null;
+  } | null>(null);
 
   useEffect(() => setMounted(true), []);
 
@@ -89,6 +98,7 @@ export default function PlatformSchoolsPage() {
               <th className="px-4 py-3">Subdomain</th>
               <th className="px-4 py-3">Status</th>
               <th className="px-4 py-3">Users</th>
+              <th className="px-4 py-3">Trial</th>
               <th className="px-4 py-3">Created</th>
               <th className="px-4 py-3">Tenant URL</th>
             </tr>
@@ -104,6 +114,7 @@ export default function PlatformSchoolsPage() {
                 <td className="px-4 py-3 font-mono text-slate-300">{s.subdomain}</td>
                 <td className="px-4 py-3"><SchoolStatusBadge status={s.status} /></td>
                 <td className="px-4 py-3 text-slate-300">{s.userCount}</td>
+                <td className="px-4 py-3"><TrialCell trialEndsAt={s.trialEndsAt} /></td>
                 <td className="px-4 py-3 text-slate-400">{shortDate(s.createdAt)}</td>
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-3">
@@ -122,13 +133,26 @@ export default function PlatformSchoolsPage() {
                     >
                       Logins
                     </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setTrialFor({
+                          id: s.id,
+                          name: s.name,
+                          trialEndsAt: s.trialEndsAt,
+                        })
+                      }
+                      className="text-xs text-slate-400 hover:text-white hover:underline"
+                    >
+                      Trial
+                    </button>
                   </div>
                 </td>
               </tr>
             ))}
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-4 py-12 text-center text-slate-500">
+                <td colSpan={7} className="px-4 py-12 text-center text-slate-500">
                   No schools match your search.
                 </td>
               </tr>
@@ -148,6 +172,16 @@ export default function PlatformSchoolsPage() {
         onClose={() => setLoginsFor(null)}
         school={loginsFor}
       />
+
+      {trialFor && (
+        <SchoolTrialDialog
+          school={trialFor}
+          onClose={() => setTrialFor(null)}
+          onSaved={() => {
+            loadSchools().then(setSchools).catch(() => undefined);
+          }}
+        />
+      )}
     </div>
   );
 }

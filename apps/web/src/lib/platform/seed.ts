@@ -9,6 +9,7 @@ export function buildPlatformSeed(): PlatformSchool[] {
       subdomain: "demo",
       status: "ACTIVE",
       createdAt: new Date(now - 90 * 86400000).toISOString(),
+      trialEndsAt: null,
       userCount: 12,
     },
     {
@@ -17,6 +18,7 @@ export function buildPlatformSeed(): PlatformSchool[] {
       subdomain: "alnoor",
       status: "ACTIVE",
       createdAt: new Date(now - 60 * 86400000).toISOString(),
+      trialEndsAt: new Date(now + 3 * 86400000).toISOString(),
       userCount: 8,
     },
     {
@@ -25,6 +27,7 @@ export function buildPlatformSeed(): PlatformSchool[] {
       subdomain: "hope",
       status: "SUSPENDED",
       createdAt: new Date(now - 120 * 86400000).toISOString(),
+      trialEndsAt: new Date(now - 5 * 86400000).toISOString(),
       userCount: 3,
     },
   ];

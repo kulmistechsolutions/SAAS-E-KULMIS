@@ -8,6 +8,12 @@ import type { CreateSchoolInput, UpdateSchoolInput } from "@ekulmis/shared";
 import { PrismaService } from "../prisma/prisma.service";
 import { hashPassword } from "../auth/password.util";
 
+function addDays(from: Date, days: number): Date {
+  const d = new Date(from);
+  d.setDate(d.getDate() + days);
+  return d;
+}
+
 /**
  * School (tenant) management for the platform Super Admin. Runs on the
  * privileged connection (bypasses RLS) because the Super Admin operates across
@@ -27,6 +33,7 @@ export class SchoolsService {
         subdomain: true,
         status: true,
         createdAt: true,
+        trialEndsAt: true,
         _count: { select: { users: true } },
       },
     });
@@ -41,6 +48,7 @@ export class SchoolsService {
         subdomain: true,
         status: true,
         createdAt: true,
+        trialEndsAt: true,
         _count: { select: { users: true } },
       },
     });
@@ -51,10 +59,18 @@ export class SchoolsService {
   /** Provision a new school (tenant) together with its first Administrator. */
   async create(dto: CreateSchoolInput) {
     const passwordHash = await hashPassword(dto.adminPassword);
+    // Default to a 7-day trial so a new school can start immediately; an
+    // explicit 0 means "no trial — blocked until a plan is assigned".
+    const trialDays = dto.trialDays ?? 7;
+    const trialEndsAt = trialDays > 0 ? addDays(new Date(), trialDays) : null;
     try {
       return await this.prisma.$transaction(async (tx) => {
         const school = await tx.school.create({
-          data: { name: dto.name, subdomain: dto.subdomain.toLowerCase() },
+          data: {
+            name: dto.name,
+            subdomain: dto.subdomain.toLowerCase(),
+            trialEndsAt,
+          },
         });
         await tx.user.create({
           data: {
@@ -70,6 +86,7 @@ export class SchoolsService {
             name: school.name,
             subdomain: school.subdomain,
             status: school.status,
+            trialEndsAt: school.trialEndsAt,
           },
           admin: { username: dto.adminUsername },
         };
@@ -123,6 +140,21 @@ export class SchoolsService {
       await tx.school.delete({ where: { id } });
     });
     return { success: true };
+  }
+
+  /**
+   * Extend or end a school's free trial. Counts from now, so this doubles as
+   * "give them a few more days" after a trial has already lapsed.
+   */
+  async setTrial(schoolId: string, trialDays: number) {
+    await this.findOne(schoolId);
+    const trialEndsAt = trialDays > 0 ? addDays(new Date(), trialDays) : null;
+    const school = await this.prisma.school.update({
+      where: { id: schoolId },
+      data: { trialEndsAt },
+      select: { id: true, name: true, trialEndsAt: true },
+    });
+    return school;
   }
 
   /**

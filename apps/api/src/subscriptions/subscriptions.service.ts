@@ -49,6 +49,10 @@ function isSameMonth(a: Date, b: Date): boolean {
 
 const MSG_EXPIRED =
   "Your school subscription has expired. Please contact Platform Administrator.";
+const MSG_TRIAL_ENDED =
+  "Your free trial has ended. Please contact the Platform Administrator to upgrade and continue.";
+const MSG_NO_SUBSCRIPTION =
+  "No subscription assigned. Please contact Platform Administrator.";
 const MSG_STUDENT_LIMIT = "Maximum student limit reached.";
 const MSG_TEACHER_LIMIT = "Maximum teacher limit reached.";
 const MSG_AI_LIMIT = "Monthly AI grading quota exhausted.";
@@ -676,6 +680,71 @@ export class SubscriptionsService {
   // ── School-scoped enforcement (called from Students/Quiz services) ───
 
   /** Fetch (and lazily expire) the school's subscription. Null = unassigned. */
+  /**
+   * Whether the school may be used at all. A school is allowed in on either an
+   * ACTIVE subscription or a free trial that hasn't lapsed. Used by sign-in and
+   * by the banner so both agree on the same rule.
+   */
+  async schoolAccess(schoolId: string): Promise<{
+    allowed: boolean;
+    reason: "SUBSCRIPTION" | "TRIAL" | "TRIAL_ENDED" | "EXPIRED" | "NONE";
+    trialEndsAt: Date | null;
+    trialDaysLeft: number | null;
+    message: string | null;
+  }> {
+    const sub = await this.getSubscription(schoolId);
+    if (sub && sub.status === "ACTIVE") {
+      return {
+        allowed: true,
+        reason: "SUBSCRIPTION",
+        trialEndsAt: null,
+        trialDaysLeft: null,
+        message: null,
+      };
+    }
+
+    const school = await this.prisma.school.findUnique({
+      where: { id: schoolId },
+      select: { trialEndsAt: true },
+    });
+    const trialEndsAt = school?.trialEndsAt ?? null;
+
+    if (trialEndsAt && trialEndsAt.getTime() > Date.now()) {
+      return {
+        allowed: true,
+        reason: "TRIAL",
+        trialEndsAt,
+        trialDaysLeft: daysUntil(trialEndsAt),
+        message: null,
+      };
+    }
+
+    // A lapsed trial and an expired plan are different situations to the
+    // school, so they get different wording.
+    const reason = trialEndsAt ? "TRIAL_ENDED" : sub ? "EXPIRED" : "NONE";
+    const message =
+      reason === "TRIAL_ENDED"
+        ? MSG_TRIAL_ENDED
+        : reason === "EXPIRED"
+          ? MSG_EXPIRED
+          : MSG_NO_SUBSCRIPTION;
+    return {
+      allowed: false,
+      reason,
+      trialEndsAt,
+      trialDaysLeft: trialEndsAt ? 0 : null,
+      message,
+    };
+  }
+
+  /** Throws when the school can no longer be used (blocks sign-in). */
+  async assertSchoolAccess(schoolId: string): Promise<void> {
+    const access = await this.schoolAccess(schoolId);
+    if (!access.allowed) {
+      throw new ForbiddenException(access.message ?? MSG_EXPIRED);
+    }
+  }
+
   private async getSubscription(schoolId: string) {
     const sub = await this.prisma.schoolSubscription.findUnique({
       where: { schoolId },
@@ -853,16 +922,31 @@ export class SubscriptionsService {
   async getMySubscription(schoolId: string) {
     const sub = await this.getSubscription(schoolId);
     if (!sub) {
+      // No plan yet — but a school on a live trial should see its countdown,
+      // not a flat "no subscription" error.
+      const access = await this.schoolAccess(schoolId);
+      const onTrial = access.reason === "TRIAL";
+      const left = access.trialDaysLeft ?? 0;
       return {
-        status: "UNASSIGNED" as const,
+        status: (onTrial ? "TRIAL" : "UNASSIGNED") as "TRIAL" | "UNASSIGNED",
+        isTrial: onTrial,
+        trialEndsAt: access.trialEndsAt,
         banner: {
-          tone: "red" as const,
-          message:
-            "No subscription assigned. Please contact Platform Administrator.",
+          // Nudge harder as the trial runs out: quiet at first, orange in the
+          // last 2 days, red once it has lapsed.
+          tone: (onTrial
+            ? left <= 2
+              ? "orange"
+              : "green"
+            : "red") as "green" | "orange" | "red",
+          // The banner appends the day count itself, so don't repeat it here.
+          message: onTrial
+            ? "Free trial — upgrade now to keep your access."
+            : (access.message ?? MSG_NO_SUBSCRIPTION),
         },
         startDate: null,
-        endDate: null,
-        daysRemaining: null,
+        endDate: access.trialEndsAt,
+        daysRemaining: onTrial ? left : null,
         studentCount: await this.prisma.student.count({ where: { schoolId } }),
         studentLimit: null,
         studentsRemaining: null,

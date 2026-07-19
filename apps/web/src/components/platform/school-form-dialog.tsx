@@ -68,9 +68,27 @@ export function SchoolFormDialog({ open, onClose, onSubmit }: Props) {
             {errors.adminPassword && <p className="mt-1 text-xs text-destructive">{errors.adminPassword.message}</p>}
           </div>
         </div>
-        <div>
-          <Label>Admin Name (optional)</Label>
-          <Input {...register("adminName")} placeholder="School Administrator" />
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <Label>Admin Name (optional)</Label>
+            <Input {...register("adminName")} placeholder="School Administrator" />
+          </div>
+          <div>
+            <Label>Free Trial (days)</Label>
+            <Input
+              type="number"
+              min={0}
+              max={365}
+              defaultValue={7}
+              {...register("trialDays", { valueAsNumber: true })}
+            />
+            <p className="mt-1 text-xs text-muted-foreground">
+              The school works without a plan until this runs out. 0 = no trial.
+            </p>
+            {errors.trialDays && (
+              <p className="mt-1 text-xs text-destructive">{errors.trialDays.message}</p>
+            )}
+          </div>
         </div>
       </form>
     </Dialog>

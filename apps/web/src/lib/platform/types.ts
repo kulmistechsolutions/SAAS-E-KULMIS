@@ -22,6 +22,8 @@ export interface PlatformSchool {
   subdomain: string;
   status: SchoolStatus;
   createdAt: string;
+  /** Free-trial deadline; null when no trial was granted. */
+  trialEndsAt: string | null;
   userCount: number;
 }
 
@@ -31,6 +33,8 @@ export interface CreateSchoolPayload {
   adminUsername: string;
   adminPassword: string;
   adminName?: string;
+  /** Free-trial length in days. Omitted = server default (7). 0 = no trial. */
+  trialDays?: number;
 }
 
 export interface UpdateSchoolPayload {

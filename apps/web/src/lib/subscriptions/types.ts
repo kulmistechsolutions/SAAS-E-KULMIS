@@ -1,5 +1,8 @@
 export interface SchoolSubscriptionMe {
   status: string;
+  /** True while the school is running on its free trial (no plan assigned yet). */
+  isTrial?: boolean;
+  trialEndsAt?: string | null;
   banner: {
     tone: "green" | "orange" | "red";
     message: string;
