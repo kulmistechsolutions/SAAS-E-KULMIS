@@ -123,3 +123,19 @@ export const teacherLockSchema = z.object({
 export const studentPortalPublishSchema = z.object({
   published: z.boolean(),
 });
+
+// ── Bulk marks import ──────────────────────────────────────────────────────
+
+/** Build a template for one or more exams (one worksheet each). */
+export const marksTemplateSchema = z.object({
+  examIds: z.array(z.string().min(1)).min(1, "Pick at least one exam"),
+});
+export type MarksTemplateInput = z.infer<typeof marksTemplateSchema>;
+
+/** Validate a filled-in workbook. Read-only — nothing is written. */
+export const validateMarksSchema = z.object({
+  examIds: z.array(z.string().min(1)).min(1),
+  /** The .xlsx as base64, matching how student imports are posted. */
+  file: z.string().min(1),
+});
+export type ValidateMarksInput = z.infer<typeof validateMarksSchema>;
