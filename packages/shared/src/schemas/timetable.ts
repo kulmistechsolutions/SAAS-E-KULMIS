@@ -216,3 +216,11 @@ export interface FeasibilityReport {
   classes: ClassFeasibility[];
   teachers: TeacherFeasibility[];
 }
+
+// ── Generation ─────────────────────────────────────────────────────────────
+
+export const generateTimetableSchema = z.object({
+  academicYearId: z.string().min(1),
+  shiftId: z.string().min(1),
+});
+export type GenerateTimetableInput = z.infer<typeof generateTimetableSchema>;

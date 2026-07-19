@@ -91,3 +91,60 @@ export const fetchFeasibility = (academicYearId: string) =>
   api<FeasibilityReport>(
     `/timetable/feasibility?academicYearId=${q(academicYearId)}`,
   );
+
+// ── Generated timetables ───────────────────────────────────────────────────
+
+export interface TimetableSummary {
+  id: string;
+  name: string;
+  status: "DRAFT" | "PUBLISHED" | "ARCHIVED";
+  generatedAt: string | null;
+  notes: string | null;
+  shift: { id: string; name: string };
+  _count: { entries: number };
+}
+
+export interface TimetableEntryDto {
+  id: string;
+  classId: string;
+  sectionId: string | null;
+  dayOfWeek: number;
+  startMinute: number;
+  endMinute: number;
+  shiftPeriodId: string;
+  subject: { id: string; name: string };
+  teacher: { id: string; fullName: string } | null;
+  class: { id: string; name: string };
+  section: { id: string; name: string } | null;
+}
+
+export interface TimetableDetail {
+  id: string;
+  name: string;
+  status: "DRAFT" | "PUBLISHED" | "ARCHIVED";
+  notes: string | null;
+  shift: ShiftDto;
+  entries: TimetableEntryDto[];
+}
+
+export const fetchTimetables = (academicYearId: string) =>
+  api<TimetableSummary[]>(
+    `/timetable/generated?academicYearId=${q(academicYearId)}`,
+  );
+
+export const fetchTimetable = (id: string) =>
+  api<TimetableDetail>(`/timetable/generated/${id}`);
+
+export const generateTimetable = (academicYearId: string, shiftId: string) =>
+  api<{ timetableId: string; lessons: number; notes: string[] }>(
+    "/timetable/generate",
+    { method: "POST", body: { academicYearId, shiftId } },
+  );
+
+export const publishTimetable = (id: string) =>
+  api<{ success: boolean }>(`/timetable/generated/${id}/publish`, {
+    method: "POST",
+  });
+
+export const deleteTimetable = (id: string) =>
+  api<{ success: boolean }>(`/timetable/generated/${id}`, { method: "DELETE" });

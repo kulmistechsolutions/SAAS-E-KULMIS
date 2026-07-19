@@ -71,6 +71,7 @@ const ACADEMICS_CHILDREN: NavChild[] = [
 ];
 
 const TIMETABLE_CHILDREN: NavChild[] = [
+  { label: "Timetables", href: "/timetable" },
   { label: "Setup", href: "/timetable/setup" },
 ];
 

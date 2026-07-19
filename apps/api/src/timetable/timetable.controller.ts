@@ -11,12 +11,14 @@ import {
 } from "@nestjs/common";
 import {
   assignShiftSchema,
+  generateTimetableSchema,
   saveShiftSchema,
   saveSubjectLoadsSchema,
   saveTeacherUnavailabilitySchema,
   UserRole,
 } from "@ekulmis/shared";
 import { TimetableSetupService } from "./timetable-setup.service";
+import { TimetableGeneratorService } from "./timetable-generator.service";
 import { Roles } from "../auth/roles.decorator";
 import { CurrentUser } from "../auth/current-user.decorator";
 import type { AuthUser } from "../auth/auth.types";
@@ -25,7 +27,10 @@ import type { AuthUser } from "../auth/auth.types";
 @Roles(UserRole.ADMINISTRATOR)
 @Controller("timetable")
 export class TimetableController {
-  constructor(private readonly setup: TimetableSetupService) {}
+  constructor(
+    private readonly setup: TimetableSetupService,
+    private readonly generator: TimetableGeneratorService,
+  ) {}
 
   // ── Shifts ───────────────────────────────────────────────────────────────
 
@@ -105,5 +110,42 @@ export class TimetableController {
   feasibility(@CurrentUser() me: AuthUser, @Query("academicYearId") yearId: string) {
     if (!yearId) throw new BadRequestException("academicYearId is required");
     return this.setup.checkFeasibility(me.schoolId, yearId);
+  }
+
+  // ── Generated timetables ─────────────────────────────────────────────────
+
+  @Get("generated")
+  listGenerated(
+    @CurrentUser() me: AuthUser,
+    @Query("academicYearId") yearId: string,
+  ) {
+    if (!yearId) throw new BadRequestException("academicYearId is required");
+    return this.generator.list(me.schoolId, yearId);
+  }
+
+  @Get("generated/:id")
+  getGenerated(@CurrentUser() me: AuthUser, @Param("id") id: string) {
+    return this.generator.get(me.schoolId, id);
+  }
+
+  @Post("generate")
+  generate(@CurrentUser() me: AuthUser, @Body() body: unknown) {
+    const parsed = generateTimetableSchema.safeParse(body);
+    if (!parsed.success) throw new BadRequestException(parsed.error.flatten());
+    return this.generator.generate(
+      me.schoolId,
+      parsed.data.academicYearId,
+      parsed.data.shiftId,
+    );
+  }
+
+  @Post("generated/:id/publish")
+  publish(@CurrentUser() me: AuthUser, @Param("id") id: string) {
+    return this.generator.publish(me.schoolId, id);
+  }
+
+  @Delete("generated/:id")
+  removeGenerated(@CurrentUser() me: AuthUser, @Param("id") id: string) {
+    return this.generator.remove(me.schoolId, id);
   }
 }
