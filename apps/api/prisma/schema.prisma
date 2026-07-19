@@ -15,24 +15,24 @@ datasource db {
 
 /// The tenant. One row per school. Root of all tenant-scoped data.
 model School {
-  id        String   @id @default(cuid())
+  id        String       @id @default(cuid())
   /// Subdomain used for tenant resolution, e.g. "iskuul1" -> iskuul1.app.com
-  subdomain String   @unique
+  subdomain String       @unique
   name      String
   status    SchoolStatus @default(ACTIVE)
 
   // ── Settings & branding (Module 16 / §7) ──
-  motto         String?
-  address       String?
-  phone         String?
-  email         String?
-  website       String?
-  principalName String?
-  logoKey       String? // MinIO object key (uploaded separately)
-  stampKey      String?
-  currency      String  @default("USD")
-  timezone      String  @default("UTC")
-  language      String  @default("en")
+  motto                String?
+  address              String?
+  phone                String?
+  email                String?
+  website              String?
+  principalName        String?
+  logoKey              String? // MinIO object key (uploaded separately)
+  stampKey             String?
+  currency             String  @default("USD")
+  timezone             String  @default("UTC")
+  language             String  @default("en")
   /// "LEFT" (logo beside name) or "CENTERED" (logo above name) on every printed document.
   documentHeaderLayout String  @default("LEFT")
   receiptHeader        String?
@@ -81,16 +81,16 @@ model School {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  users         User[]
-  academicYears AcademicYear[]
-  subjects      Subject[]
-  smsPurchases  SmsPurchase[]
-  smsMessages   SmsMessage[]
-  smsTemplates  SmsTemplate[]
-  smsCampaigns  SmsCampaign[]
-  smsTransactions SmsTransaction[]
-  smsPaymentOrders SmsPaymentOrder[]
-  smsGateway       SchoolSmsGateway?
+  users              User[]
+  academicYears      AcademicYear[]
+  subjects           Subject[]
+  smsPurchases       SmsPurchase[]
+  smsMessages        SmsMessage[]
+  smsTemplates       SmsTemplate[]
+  smsCampaigns       SmsCampaign[]
+  smsTransactions    SmsTransaction[]
+  smsPaymentOrders   SmsPaymentOrder[]
+  smsGateway         SchoolSmsGateway?
   smsGatewayLicenses SmsGatewayLicense[]
 
   @@map("schools")
@@ -107,7 +107,7 @@ model AcademicYear {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 
-  school        School              @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  school        School                 @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   classes       Class[]
   assignments   TeacherAssignment[]
   classSubjects ClassSubject[]
@@ -117,6 +117,9 @@ model AcademicYear {
   feeSetups     AcademicYearFeeSetup[]
   feeCharges    FeeCharge[]
   extraFees     ExtraFee[]
+  shifts        SchoolShift[]
+  subjectLoads  SubjectLoad[]
+  timetables    Timetable[]
 
   @@unique([schoolId, name])
   @@index([schoolId])
@@ -136,7 +139,7 @@ model Class {
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
-  academicYear     AcademicYear        @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
+  academicYear     AcademicYear          @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
   sections         Section[]
   students         Student[]
   assignments      TeacherAssignment[]
@@ -145,6 +148,11 @@ model Class {
   quizzes          Quiz[]
   libraryDocuments LibraryDocument[]
   extraFeeAmounts  ExtraFeeClassAmount[]
+  subjectLoads     SubjectLoad[]
+  timetableEntries TimetableEntry[]
+  /// Which part of the day this class attends. A section may override it.
+  shift            SchoolShift?          @relation(fields: [shiftId], references: [id], onDelete: SetNull)
+  shiftId          String?
 
   @@unique([schoolId, academicYearId, name])
   @@index([schoolId])
@@ -162,12 +170,17 @@ model Section {
   createdAt DateTime     @default(now())
   updatedAt DateTime     @updatedAt
 
-  class         Class               @relation(fields: [classId], references: [id], onDelete: Cascade)
-  students      Student[]
-  assignments   TeacherAssignment[]
-  classSubjects ClassSubject[]
-  exams         Exam[]
-  quizzes       Quiz[]
+  class            Class               @relation(fields: [classId], references: [id], onDelete: Cascade)
+  students         Student[]
+  assignments      TeacherAssignment[]
+  classSubjects    ClassSubject[]
+  exams            Exam[]
+  quizzes          Quiz[]
+  subjectLoads     SubjectLoad[]
+  timetableEntries TimetableEntry[]
+  /// Overrides the class shift, so 8A can be a morning group and 8B afternoon.
+  shift            SchoolShift?        @relation(fields: [shiftId], references: [id], onDelete: SetNull)
+  shiftId          String?
 
   @@unique([schoolId, classId, name])
   @@index([schoolId])
@@ -185,12 +198,14 @@ model Subject {
   createdAt DateTime     @default(now())
   updatedAt DateTime     @updatedAt
 
-  school        School              @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  assignments   TeacherAssignment[]
-  classSubjects ClassSubject[]
-  examSubjects  ExamSubject[]
-  examMarks     ExamMark[]
-  quizzes       Quiz[]
+  school           School              @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  assignments      TeacherAssignment[]
+  classSubjects    ClassSubject[]
+  examSubjects     ExamSubject[]
+  examMarks        ExamMark[]
+  quizzes          Quiz[]
+  subjectLoads     SubjectLoad[]
+  timetableEntries TimetableEntry[]
 
   @@unique([schoolId, name])
   @@index([schoolId])
@@ -321,39 +336,39 @@ model Parent {
 
 /// Student — foundation of the ERP. Belongs to one Class + (optional) Section.
 model Student {
-  id               String        @id @default(cuid())
-  schoolId         String
-  code             String
-  fullName         String
-  gender           Gender
-  dob              DateTime?
-  phone            String?
-  notes            String?
-  photoKey         String?
-  portalPasswordHash String?
-  parentId         String
-  classId          String
-  sectionId        String?
-  monthlyFee       Int           @default(0)
-  annualFeeAmount  Int?
-  feeStartMode     FeeStartMode?
-  feeAgreementAmount Int?
-  feeBillingStartYear Int?
+  id                   String        @id @default(cuid())
+  schoolId             String
+  code                 String
+  fullName             String
+  gender               Gender
+  dob                  DateTime?
+  phone                String?
+  notes                String?
+  photoKey             String?
+  portalPasswordHash   String?
+  parentId             String
+  classId              String
+  sectionId            String?
+  monthlyFee           Int           @default(0)
+  annualFeeAmount      Int?
+  feeStartMode         FeeStartMode?
+  feeAgreementAmount   Int?
+  feeBillingStartYear  Int?
   feeBillingStartMonth Int?
-  status           StudentStatus @default(ACTIVE)
-  registrationDate DateTime      @default(now())
-  createdAt        DateTime      @default(now())
-  updatedAt        DateTime      @updatedAt
+  status               StudentStatus @default(ACTIVE)
+  registrationDate     DateTime      @default(now())
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
 
-  parent     Parent              @relation(fields: [parentId], references: [id], onDelete: Cascade)
-  class      Class               @relation(fields: [classId], references: [id], onDelete: Restrict)
-  section    Section?            @relation(fields: [sectionId], references: [id], onDelete: Restrict)
-  attendance StudentAttendance[]
-  feeCharges FeeCharge[]
-  payments   Payment[]
-  examMarks  ExamMark[]
-  blocked    BlockedStudent[]
-  promotions PromotionRecord[]
+  parent       Parent              @relation(fields: [parentId], references: [id], onDelete: Cascade)
+  class        Class               @relation(fields: [classId], references: [id], onDelete: Restrict)
+  section      Section?            @relation(fields: [sectionId], references: [id], onDelete: Restrict)
+  attendance   StudentAttendance[]
+  feeCharges   FeeCharge[]
+  payments     Payment[]
+  examMarks    ExamMark[]
+  blocked      BlockedStudent[]
+  promotions   PromotionRecord[]
   quizAttempts QuizAttempt[]
   bookLoans    BookLoan[]
 
@@ -385,10 +400,12 @@ model Teacher {
   createdAt        DateTime         @default(now())
   updatedAt        DateTime         @updatedAt
 
-  user        User                @relation(fields: [userId], references: [id], onDelete: Cascade)
-  assignments TeacherAssignment[]
-  attendance  TeacherAttendance[]
-  quizzes     Quiz[]
+  user             User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  assignments      TeacherAssignment[]
+  attendance       TeacherAttendance[]
+  quizzes          Quiz[]
+  unavailability   TeacherUnavailability[]
+  timetableEntries TimetableEntry[]
 
   @@unique([schoolId, code])
   @@index([schoolId])
@@ -513,16 +530,16 @@ model FeeCharge {
 /// monthly fee — e.g. an exam fee billed into a particular month. Applying it
 /// creates EXTRA FeeCharge rows on top of that month's normal fee.
 model ExtraFee {
-  id             String @id @default(cuid())
-  schoolId       String
-  academicYearId String?
-  name           String
-  description    String?
+  id                  String  @id @default(cuid())
+  schoolId            String
+  academicYearId      String?
+  name                String
+  description         String?
   /// The month this is billed into, alongside that month's regular fee.
-  year           Int
-  month          Int
+  year                Int
+  month               Int
   /// Used when appliesToAllClasses is true. Ignored otherwise.
-  defaultAmount  Int?
+  defaultAmount       Int?
   /// true = every active class at `defaultAmount`; false = only the classes in
   /// classAmounts, each at its own price.
   appliesToAllClasses Boolean @default(true)
@@ -694,10 +711,10 @@ model Exam {
   createdAt       DateTime   @default(now())
   updatedAt       DateTime   @updatedAt
 
-  academicYear AcademicYear  @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
-  examGroup    ExamGroup?    @relation(fields: [examGroupId], references: [id], onDelete: SetNull)
-  class        Class         @relation(fields: [classId], references: [id], onDelete: Cascade)
-  section      Section?      @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  academicYear AcademicYear     @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
+  examGroup    ExamGroup?       @relation(fields: [examGroupId], references: [id], onDelete: SetNull)
+  class        Class            @relation(fields: [classId], references: [id], onDelete: Cascade)
+  section      Section?         @relation(fields: [sectionId], references: [id], onDelete: Cascade)
   subjects     ExamSubject[]
   marks        ExamMark[]
   blocked      BlockedStudent[]
@@ -768,7 +785,7 @@ model BlockedStudent {
 // ── Promotions (Module 13) ──────────────────────────────────────────────────
 
 model PromotionRecord {
-  id               String         @id @default(cuid())
+  id               String        @id @default(cuid())
   schoolId         String
   studentId        String
   academicYearId   String
@@ -777,8 +794,8 @@ model PromotionRecord {
   fromSectionId    String?
   toClassId        String?
   toSectionId      String?
-  graduated        Boolean        @default(false)
-  promotedAt       DateTime       @default(now())
+  graduated        Boolean       @default(false)
+  promotedAt       DateTime      @default(now())
   promotedByUserId String?
 
   student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
@@ -821,11 +838,11 @@ model Quiz {
   createdAt              DateTime   @default(now())
   updatedAt              DateTime   @updatedAt
 
-  academicYear AcademicYear   @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
-  class        Class          @relation(fields: [classId], references: [id], onDelete: Cascade)
-  section      Section?       @relation(fields: [sectionId], references: [id], onDelete: Cascade)
-  subject      Subject?       @relation(fields: [subjectId], references: [id], onDelete: SetNull)
-  teacher      Teacher        @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  academicYear AcademicYear        @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
+  class        Class               @relation(fields: [classId], references: [id], onDelete: Cascade)
+  section      Section?            @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  subject      Subject?            @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+  teacher      Teacher             @relation(fields: [teacherId], references: [id], onDelete: Cascade)
   questions    QuizQuestion[]
   attempts     QuizAttempt[]
   activities   QuizActivityEvent[]
@@ -862,18 +879,18 @@ model QuizQuestion {
 }
 
 model QuizAttempt {
-  id          String            @id @default(cuid())
-  schoolId    String
-  quizId      String
-  studentId   String
-  status      QuizAttemptStatus @default(IN_PROGRESS)
-  score       Int?
-  percentage  Float?
-  result      String?
-  grade       String?
+  id             String            @id @default(cuid())
+  schoolId       String
+  quizId         String
+  studentId      String
+  status         QuizAttemptStatus @default(IN_PROGRESS)
+  score          Int?
+  percentage     Float?
+  result         String?
+  grade          String?
   teacherComment String?
-  startedAt   DateTime          @default(now())
-  submittedAt DateTime?
+  startedAt      DateTime          @default(now())
+  submittedAt    DateTime?
 
   quiz    Quiz         @relation(fields: [quizId], references: [id], onDelete: Cascade)
   student Student      @relation(fields: [studentId], references: [id], onDelete: Cascade)
@@ -885,13 +902,13 @@ model QuizAttempt {
 }
 
 model QuizAnswer {
-  id         String  @id @default(cuid())
-  schoolId   String
-  attemptId  String
-  questionId String
-  answer     String?
-  isCorrect  Boolean @default(false)
-  marks      Int     @default(0)
+  id                String  @id @default(cuid())
+  schoolId          String
+  attemptId         String
+  questionId        String
+  answer            String?
+  isCorrect         Boolean @default(false)
+  marks             Int     @default(0)
   // 0-100 similarity for AI-graded DIRECT answers; null for exact-graded types.
   awardedPercentage Float?
   aiFeedback        String?
@@ -957,13 +974,13 @@ model Notification {
 // ── Backup & Import jobs (Modules 19, 22) ─────────────────────────────────
 
 model BackupJob {
-  id          String       @id @default(cuid())
+  id          String    @id @default(cuid())
   schoolId    String
-  status      JobStatus    @default(PENDING)
+  status      JobStatus @default(PENDING)
   storageKey  String?
   sizeBytes   Int?
   error       String?
-  createdAt   DateTime     @default(now())
+  createdAt   DateTime  @default(now())
   completedAt DateTime?
 
   @@index([schoolId])
@@ -1270,24 +1287,24 @@ model AiGlobalConfig {
 }
 
 model SmsGlobalConfig {
-  id              String   @id @default(cuid())
-  enabled         Boolean  @default(false)
-  baseUrl         String   @default("https://smsapi.hormuud.com")
-  username        String   @default("")
+  id                 String    @id @default(cuid())
+  enabled            Boolean   @default(false)
+  baseUrl            String    @default("https://smsapi.hormuud.com")
+  username           String    @default("")
   /// API password (Hormuud portal "API PASSWORD")
-  password        String   @default("")
+  password           String    @default("")
   /// Optional default sender if a school has none configured
-  defaultSenderId String?
+  defaultSenderId    String?
   /// CONNECTED | DISCONNECTED | ERROR
-  connectionStatus    String    @default("DISCONNECTED")
-  connectionMessage   String?
-  lastTestedAt        DateTime?
-  lastSuccessAt       DateTime?
-  providerBalance     String?
+  connectionStatus   String    @default("DISCONNECTED")
+  connectionMessage  String?
+  lastTestedAt       DateTime?
+  lastSuccessAt      DateTime?
+  providerBalance    String?
   /// Must be true (successful Test Connection) before packages can be managed.
-  connectionVerified  Boolean   @default(false)
-  updatedAt       DateTime @updatedAt
-  createdAt       DateTime @default(now())
+  connectionVerified Boolean   @default(false)
+  updatedAt          DateTime  @updatedAt
+  createdAt          DateTime  @default(now())
 
   @@map("sms_global_config")
 }
@@ -1295,9 +1312,9 @@ model SmsGlobalConfig {
 /// Platform-only audit trail for Hormuud connection tests and config changes.
 model SmsConnectionLog {
   id        String   @id @default(cuid())
-  action    String   // TEST | SAVE | ENABLE | DISABLE | ERROR
+  action    String // TEST | SAVE | ENABLE | DISABLE | ERROR
   success   Boolean  @default(false)
-  status    String   // CONNECTED | DISCONNECTED | ERROR
+  status    String // CONNECTED | DISCONNECTED | ERROR
   message   String
   details   Json?
   adminId   String?
@@ -1345,20 +1362,20 @@ model SchoolSmsGateway {
 /// Kept as a history table (like SmsPurchase) rather than a column so renewals
 /// and pricing stay auditable.
 model SmsGatewayLicense {
-  id        String   @id @default(cuid())
-  schoolId  String
-  startDate DateTime @default(now())
-  endDate   DateTime
+  id               String   @id @default(cuid())
+  schoolId         String
+  startDate        DateTime @default(now())
+  endDate          DateTime
   /// ACTIVE | EXPIRED | CANCELLED
-  status    String   @default("ACTIVE")
+  status           String   @default("ACTIVE")
   /// Billing period sold, e.g. 6 or 12 months.
-  durationMonths Int
-  price     Decimal? @db.Decimal(12, 2)
-  currency  String   @default("USD")
-  note      String?
+  durationMonths   Int
+  price            Decimal? @db.Decimal(12, 2)
+  currency         String   @default("USD")
+  note             String?
   createdByAdminId String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
   school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
 
@@ -1382,7 +1399,7 @@ model SmsPackage {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  purchases SmsPurchase[]
+  purchases     SmsPurchase[]
   paymentOrders SmsPaymentOrder[]
 
   @@map("sms_packages")
@@ -1390,25 +1407,25 @@ model SmsPackage {
 
 /// A school's purchased package / credit wallet.
 model SmsPurchase {
-  id              String            @id @default(cuid())
-  schoolId        String
-  packageId       String
-  creditsTotal    Int
+  id               String            @id @default(cuid())
+  schoolId         String
+  packageId        String
+  creditsTotal     Int
   creditsRemaining Int
-  amountPaid      Decimal           @db.Decimal(12, 2)
-  currency        String            @default("USD")
-  status          SmsPurchaseStatus @default(ACTIVE)
-  purchasedAt     DateTime          @default(now())
-  expiresAt       DateTime?
-  note            String?
+  amountPaid       Decimal           @db.Decimal(12, 2)
+  currency         String            @default("USD")
+  status           SmsPurchaseStatus @default(ACTIVE)
+  purchasedAt      DateTime          @default(now())
+  expiresAt        DateTime?
+  note             String?
   createdByAdminId String?
   /// Linked Waafi payment order when purchased via gateway (null = admin assign).
-  paymentOrderId  String?           @unique
+  paymentOrderId   String?           @unique
 
-  school  School     @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  package SmsPackage @relation(fields: [packageId], references: [id])
+  school       School           @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  package      SmsPackage       @relation(fields: [packageId], references: [id])
   paymentOrder SmsPaymentOrder? @relation(fields: [paymentOrderId], references: [id], onDelete: SetNull)
-  messages SmsMessage[]
+  messages     SmsMessage[]
   transactions SmsTransaction[]
 
   @@index([schoolId])
@@ -1419,72 +1436,72 @@ model SmsPurchase {
 /// Platform-only Hormuud WaafiPay gateway credentials (Super Admin).
 /// Single-row table; never exposed to school tenants.
 model WaafiPaymentConfig {
-  id                 String   @id @default(cuid())
-  enabled            Boolean  @default(false)
+  id                 String    @id @default(cuid())
+  enabled            Boolean   @default(false)
   /// Sandbox: https://sandbox.waafipay.net/asm  Live: https://api.waafipay.net/asm
-  baseUrl            String   @default("https://sandbox.waafipay.net/asm")
-  merchantUid        String   @default("")
+  baseUrl            String    @default("https://sandbox.waafipay.net/asm")
+  merchantUid        String    @default("")
   /// Direct API purchase credentials
-  apiUserId          String   @default("")
-  apiKey             String   @default("")
+  apiUserId          String    @default("")
+  apiKey             String    @default("")
   /// Hosted Payment Page credentials
-  storeId            String   @default("")
-  hppKey             String   @default("")
+  storeId            String    @default("")
+  hppKey             String    @default("")
   /// API_PURCHASE | HPP_PURCHASE
-  defaultMethod      String   @default("API_PURCHASE")
-  currency           String   @default("USD")
+  defaultMethod      String    @default("API_PURCHASE")
+  currency           String    @default("USD")
   /// Public HTTPS base for Waafi callbacks (e.g. https://api.example.com)
   callbackBaseUrl    String?
-  connectionStatus   String   @default("DISCONNECTED") // CONNECTED | DISCONNECTED | ERROR
+  connectionStatus   String    @default("DISCONNECTED") // CONNECTED | DISCONNECTED | ERROR
   connectionMessage  String?
   lastTestedAt       DateTime?
   lastSuccessAt      DateTime?
-  connectionVerified Boolean  @default(false)
+  connectionVerified Boolean   @default(false)
   /// When true, purchases succeed without calling Waafi (dev / demo only).
-  simulationMode     Boolean  @default(false)
-  updatedAt          DateTime @updatedAt
-  createdAt          DateTime @default(now())
+  simulationMode     Boolean   @default(false)
+  updatedAt          DateTime  @updatedAt
+  createdAt          DateTime  @default(now())
 
   @@map("waafi_payment_config")
 }
 
 /// SMS package payment order via WaafiPay (tenant-scoped).
 model SmsPaymentOrder {
-  id                   String             @id @default(cuid())
-  schoolId             String
-  packageId            String
+  id                 String           @id @default(cuid())
+  schoolId           String
+  packageId          String
   /// Merchant reference sent to Waafi (unique). Used for reconciliation.
-  referenceId          String             @unique
-  invoiceId            String
-  amount               Decimal            @db.Decimal(12, 2)
-  currency             String             @default("USD")
-  credits              Int
-  status               SmsPaymentStatus   @default(PENDING)
-  paymentMethod        String             @default("MWALLET_ACCOUNT")
+  referenceId        String           @unique
+  invoiceId          String
+  amount             Decimal          @db.Decimal(12, 2)
+  currency           String           @default("USD")
+  credits            Int
+  status             SmsPaymentStatus @default(PENDING)
+  paymentMethod      String           @default("MWALLET_ACCOUNT")
   /// API_PURCHASE | HPP_PURCHASE
-  channel              String             @default("API_PURCHASE")
-  payerAccount         String?
-  receiptNumber        String?            @unique
-  waafiRequestId       String?
-  waafiOrderId         String?
-  waafiTransactionId   String?            @unique
-  waafiIssuerTxnId     String?
-  hppUrl               String?
-  requestPayload       Json?
-  responsePayload      Json?
-  callbackPayload      Json?
-  verifyPayload        Json?
-  failureReason        String?
-  initiatedByUserId    String?
-  paidAt               DateTime?
-  expiresAt            DateTime?
-  activatedAt          DateTime?
-  createdAt            DateTime           @default(now())
-  updatedAt            DateTime           @updatedAt
+  channel            String           @default("API_PURCHASE")
+  payerAccount       String?
+  receiptNumber      String?          @unique
+  waafiRequestId     String?
+  waafiOrderId       String?
+  waafiTransactionId String?          @unique
+  waafiIssuerTxnId   String?
+  hppUrl             String?
+  requestPayload     Json?
+  responsePayload    Json?
+  callbackPayload    Json?
+  verifyPayload      Json?
+  failureReason      String?
+  initiatedByUserId  String?
+  paidAt             DateTime?
+  expiresAt          DateTime?
+  activatedAt        DateTime?
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
 
-  school   School      @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  package  SmsPackage  @relation(fields: [packageId], references: [id])
-  purchase SmsPurchase?
+  school    School               @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  package   SmsPackage           @relation(fields: [packageId], references: [id])
+  purchase  SmsPurchase?
   auditLogs SmsPaymentAuditLog[]
 
   @@index([schoolId])
@@ -1498,7 +1515,7 @@ model SmsPaymentAuditLog {
   id        String   @id @default(cuid())
   schoolId  String
   orderId   String
-  action    String   // CREATED | WAAFI_REQUEST | WAAFI_RESPONSE | CALLBACK | VERIFY | ACTIVATED | FAILED | EXPIRED | REFUND
+  action    String // CREATED | WAAFI_REQUEST | WAAFI_RESPONSE | CALLBACK | VERIFY | ACTIVATED | FAILED | EXPIRED | REFUND
   success   Boolean  @default(false)
   message   String
   details   Json?
@@ -1514,31 +1531,31 @@ model SmsPaymentAuditLog {
 
 /// Per-message log (every outbound SMS).
 model SmsMessage {
-  id              String         @id @default(cuid())
-  schoolId        String
-  purchaseId      String?
-  campaignId      String?
-  category        SmsCategory    @default(CUSTOM)
-  recipientPhone  String
-  recipientName   String?
-  recipientType   String?        // PARENT | STUDENT | TEACHER | STAFF | OTHER
-  recipientRefId  String?        // parentId / studentId / teacherId
-  senderId        String
-  body            String
-  creditsUsed     Int            @default(1)
-  status          SmsDeliveryStatus @default(PENDING)
+  id                String            @id @default(cuid())
+  schoolId          String
+  purchaseId        String?
+  campaignId        String?
+  category          SmsCategory       @default(CUSTOM)
+  recipientPhone    String
+  recipientName     String?
+  recipientType     String? // PARENT | STUDENT | TEACHER | STAFF | OTHER
+  recipientRefId    String? // parentId / studentId / teacherId
+  senderId          String
+  body              String
+  creditsUsed       Int               @default(1)
+  status            SmsDeliveryStatus @default(PENDING)
   providerMessageId String?
-  providerRefId   String?
-  providerCode    String?
-  providerMessage String?
-  error           String?
-  retryCount      Int            @default(0)
-  scheduledAt     DateTime?
-  sentAt          DateTime?
-  deliveredAt     DateTime?
-  createdByUserId String?
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
+  providerRefId     String?
+  providerCode      String?
+  providerMessage   String?
+  error             String?
+  retryCount        Int               @default(0)
+  scheduledAt       DateTime?
+  sentAt            DateTime?
+  deliveredAt       DateTime?
+  createdByUserId   String?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
 
   school   School       @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   purchase SmsPurchase? @relation(fields: [purchaseId], references: [id], onDelete: SetNull)
@@ -1571,28 +1588,28 @@ model SmsTemplate {
 
 /// Batch / scheduled / automated campaigns (fee reminders, announcements, etc.).
 model SmsCampaign {
-  id              String           @id @default(cuid())
-  schoolId        String
-  name            String
-  category        SmsCategory      @default(CUSTOM)
-  body            String
-  status          SmsCampaignStatus @default(DRAFT)
-  audience        String           @default("CUSTOM") // ALL_PARENTS | CLASS | SECTION | CUSTOM | OUTSTANDING
-  classId         String?
-  sectionId       String?
-  scheduledAt     DateTime?
-  startedAt       DateTime?
-  completedAt     DateTime?
-  totalRecipients Int              @default(0)
-  sentCount       Int              @default(0)
-  failedCount     Int              @default(0)
-  creditsUsed     Int              @default(0)
+  id                   String            @id @default(cuid())
+  schoolId             String
+  name                 String
+  category             SmsCategory       @default(CUSTOM)
+  body                 String
+  status               SmsCampaignStatus @default(DRAFT)
+  audience             String            @default("CUSTOM") // ALL_PARENTS | CLASS | SECTION | CUSTOM | OUTSTANDING
+  classId              String?
+  sectionId            String?
+  scheduledAt          DateTime?
+  startedAt            DateTime?
+  completedAt          DateTime?
+  totalRecipients      Int               @default(0)
+  sentCount            Int               @default(0)
+  failedCount          Int               @default(0)
+  creditsUsed          Int               @default(0)
   /// Automation: fee reminder interval in days (null = one-shot)
   reminderIntervalDays Int?
-  lastRunAt       DateTime?
-  createdByUserId String?
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
+  lastRunAt            DateTime?
+  createdByUserId      String?
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
 
   school   School       @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   messages SmsMessage[]
@@ -1604,17 +1621,17 @@ model SmsCampaign {
 
 /// Credit ledger (purchase, deduction, adjustment, refund).
 model SmsTransaction {
-  id          String              @id @default(cuid())
-  schoolId    String
-  purchaseId  String?
-  type        SmsTransactionType
-  credits     Int
+  id              String             @id @default(cuid())
+  schoolId        String
+  purchaseId      String?
+  type            SmsTransactionType
+  credits         Int
   /// Positive = credit added; negative = deducted
-  balanceAfter Int
-  description String?
-  messageId   String?
+  balanceAfter    Int
+  description     String?
+  messageId       String?
   createdByUserId String?
-  createdAt   DateTime            @default(now())
+  createdAt       DateTime           @default(now())
 
   school   School       @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   purchase SmsPurchase? @relation(fields: [purchaseId], references: [id], onDelete: SetNull)
@@ -1839,4 +1856,187 @@ model SubscriptionPaymentAuditLog {
   @@index([orderId, createdAt])
   @@index([schoolId, createdAt])
   @@map("subscription_payment_audit_logs")
+}
+
+// ───────────────────────────────────────────────────────────────────────────
+// Timetable (Module 12). Phase 1: data model + database-level anti-clash rules.
+//
+// Times are stored as MINUTES FROM MIDNIGHT (07:50 = 470) rather than DateTime.
+// A timetable slot is a wall-clock position in a weekday, not an instant, so
+// minutes keep the maths exact, timezone-free, and directly comparable ACROSS
+// shifts — which is what makes it possible to prove one teacher is never in two
+// rooms at once when a school runs a morning and an afternoon shift.
+//
+// Weekdays use the JavaScript getDay() convention: 0 = Sunday … 6 = Saturday.
+// ───────────────────────────────────────────────────────────────────────────
+
+/// A block of the school day (Morning / Afternoon). A school runs one or two.
+/// Each shift owns its own daily grid, so the afternoon can be shorter than the
+/// morning and have its break somewhere else.
+model SchoolShift {
+  id             String       @id @default(cuid())
+  schoolId       String
+  academicYearId String
+  name           String
+  orderIndex     Int          @default(0)
+  /// Working days for this shift, e.g. [6,0,1,2,3] = Saturday–Wednesday.
+  days           Int[]
+  status         EntityStatus @default(ACTIVE)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  academicYear AcademicYear  @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
+  periods      ShiftPeriod[]
+  classes      Class[]
+  sections     Section[]
+  timetables   Timetable[]
+
+  @@unique([schoolId, academicYearId, name])
+  @@index([schoolId])
+  @@index([academicYearId])
+  @@map("school_shifts")
+}
+
+/// One row of a shift's daily grid — either a lesson slot or a break.
+/// Lengths are deliberately per-period: real schools run 43-minute periods
+/// before the break and 30-minute ones after it.
+model ShiftPeriod {
+  id          String   @id @default(cuid())
+  schoolId    String
+  shiftId     String
+  name        String
+  orderIndex  Int
+  startMinute Int
+  endMinute   Int
+  /// Breaks occupy the grid but are never filled with a lesson.
+  isBreak     Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  shift   SchoolShift      @relation(fields: [shiftId], references: [id], onDelete: Cascade)
+  entries TimetableEntry[]
+
+  @@unique([schoolId, shiftId, orderIndex])
+  @@index([schoolId])
+  @@index([shiftId])
+  @@map("shift_periods")
+}
+
+/// How many periods a subject must get per week in one classroom — the
+/// generator's source data (the "Lesson Allocation" grid).
+///
+/// Deliberately does NOT store a teacher: who teaches a subject in a class is
+/// already TeacherAssignment's job, and duplicating it here would let the two
+/// disagree. This table answers "how much", that one answers "by whom".
+model SubjectLoad {
+  id             String   @id @default(cuid())
+  schoolId       String
+  academicYearId String
+  classId        String
+  sectionId      String?
+  subjectId      String
+  periodsPerWeek Int
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  academicYear AcademicYear @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
+  class        Class        @relation(fields: [classId], references: [id], onDelete: Cascade)
+  section      Section?     @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  subject      Subject      @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+  @@index([schoolId])
+  @@index([schoolId, academicYearId, classId])
+  @@map("subject_loads")
+}
+
+/// A window in which a teacher must not be scheduled ("never period 1 or 2",
+/// "off Tuesday afternoon").
+///
+/// Stored as a wall-clock range on a weekday rather than a pointer to a period,
+/// so a single rule automatically covers BOTH shifts a teacher works in.
+model TeacherUnavailability {
+  id          String   @id @default(cuid())
+  schoolId    String
+  teacherId   String
+  dayOfWeek   Int
+  startMinute Int
+  endMinute   Int
+  reason      String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  teacher Teacher @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+
+  @@index([schoolId])
+  @@index([schoolId, teacherId])
+  @@map("teacher_unavailability")
+}
+
+enum TimetableStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+/// One generated timetable for one shift. Kept as a version so a school can
+/// regenerate, compare, and publish only when satisfied.
+model Timetable {
+  id             String          @id @default(cuid())
+  schoolId       String
+  academicYearId String
+  shiftId        String
+  name           String
+  status         TimetableStatus @default(DRAFT)
+  generatedAt    DateTime?
+  /// Solver report: unmet soft rules and why, mirroring the validation summary
+  /// a school expects to see printed on the timetable itself.
+  notes          String?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  academicYear AcademicYear     @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
+  shift        SchoolShift      @relation(fields: [shiftId], references: [id], onDelete: Cascade)
+  entries      TimetableEntry[]
+
+  @@index([schoolId])
+  @@index([schoolId, academicYearId, shiftId])
+  @@map("timetables")
+}
+
+/// A single lesson: this classroom, this weekday, this period.
+model TimetableEntry {
+  id            String  @id @default(cuid())
+  schoolId      String
+  timetableId   String
+  classId       String
+  sectionId     String?
+  subjectId     String
+  teacherId     String?
+  shiftPeriodId String
+  dayOfWeek     Int
+  /// Copied from the period on write. Denormalised on purpose: the exclusion
+  /// constraints below need the range on this row, and it is what lets the
+  /// database — not just the solver — guarantee no double-booking.
+  startMinute   Int
+  endMinute     Int
+  /// True only while the parent timetable is PUBLISHED. The exclusion
+  /// constraints apply to active rows only, so several drafts can coexist
+  /// without fighting each other or the live schedule.
+  isActive      Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  timetable   Timetable   @relation(fields: [timetableId], references: [id], onDelete: Cascade)
+  class       Class       @relation(fields: [classId], references: [id], onDelete: Cascade)
+  section     Section?    @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  subject     Subject     @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  teacher     Teacher?    @relation(fields: [teacherId], references: [id], onDelete: SetNull)
+  shiftPeriod ShiftPeriod @relation(fields: [shiftPeriodId], references: [id], onDelete: Cascade)
+
+  @@index([schoolId])
+  @@index([timetableId])
+  @@index([schoolId, teacherId, dayOfWeek])
+  @@index([timetableId, classId, sectionId, dayOfWeek])
+  @@map("timetable_entries")
 }
