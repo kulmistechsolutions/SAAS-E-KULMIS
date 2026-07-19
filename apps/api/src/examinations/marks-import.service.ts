@@ -1,4 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
+import { randomUUID } from "node:crypto";
 import ExcelJS from "exceljs";
 import { PrismaService } from "../prisma/prisma.service";
 
@@ -43,6 +44,14 @@ export interface ImportPreview {
   totalMarks: number;
 }
 
+/** One validated mark, ready to write. */
+interface ResolvedMark {
+  examId: string;
+  studentId: string;
+  subjectId: string;
+  marks: number;
+}
+
 /**
  * Bulk exam-marks import.
  *
@@ -51,10 +60,10 @@ export interface ImportPreview {
  * from an exam group rather than a single exam, and why each sheet carries only
  * the subjects that class actually sits.
  *
- * Nothing here writes. Validation is a separate, complete pass so a school sees
- * every problem at once and never ends up with half a class imported: marks
- * that go in wrong are close to impossible to spot later, and the damage is
- * measured in a student's reported result.
+ * Validation is a separate, complete pass and importing refuses to run unless
+ * it came back clean, so a school never ends up with half a class imported:
+ * marks that go in wrong are close to impossible to spot later, and the damage
+ * is measured in a student's reported result.
  */
 @Injectable()
 export class MarksImportService {
@@ -249,6 +258,20 @@ export class MarksImportService {
     examIds: string[],
     file: Buffer,
   ): Promise<ImportPreview> {
+    const { preview } = await this.read(schoolId, examIds, file);
+    return preview;
+  }
+
+  /**
+   * The single pass that both validation and importing use, so what a school
+   * approves on screen is exactly what gets written — there is no second,
+   * subtly different reading of the file.
+   */
+  private async read(
+    schoolId: string,
+    examIds: string[],
+    file: Buffer,
+  ): Promise<{ preview: ImportPreview; resolved: ResolvedMark[] }> {
     const loaded = await this.loadExams(schoolId, examIds);
     const names = this.sheetNames(loaded);
 
@@ -263,6 +286,7 @@ export class MarksImportService {
 
     const issues: ImportIssue[] = [];
     const sheets: SheetPreview[] = [];
+    const resolved: ResolvedMark[] = [];
     let totalMarks = 0;
 
     for (const { exam, students } of loaded) {
@@ -416,6 +440,12 @@ export class MarksImportService {
               continue;
             }
             marks += 1;
+            resolved.push({
+              examId: exam.id,
+              studentId: student.id,
+              subjectId: subject.id,
+              marks: value,
+            });
           }
         }
       }
@@ -451,7 +481,85 @@ export class MarksImportService {
       });
     }
 
-    return { ok: issues.length === 0, sheets, issues, totalMarks };
+    return {
+      preview: { ok: issues.length === 0, sheets, issues, totalMarks },
+      resolved,
+    };
+  }
+
+  /**
+   * Write the marks.
+   *
+   * Refuses outright if validation found anything wrong: a school must never
+   * end up with two classes imported and the third silently skipped, because
+   * nobody discovers that until results are published.
+   *
+   * The write is one bulk statement per exam, not a loop. Per-row queries
+   * inside a transaction have repeatedly hit the remote pooler's timeout on
+   * this database, and a whole school's marks is thousands of rows.
+   */
+  async commit(
+    schoolId: string,
+    examIds: string[],
+    file: Buffer,
+    userId?: string,
+  ): Promise<{ imported: number; sheets: SheetPreview[] }> {
+    const { preview, resolved } = await this.read(schoolId, examIds, file);
+    if (!preview.ok) {
+      throw new BadRequestException(
+        `The file still has ${preview.issues.length} problem(s). Fix them and upload again — nothing was imported.`,
+      );
+    }
+    if (resolved.length === 0) {
+      throw new BadRequestException("There are no marks to import in that file.");
+    }
+
+    const byExam = new Map<string, ResolvedMark[]>();
+    for (const r of resolved) {
+      const list = byExam.get(r.examId);
+      if (list) list.push(r);
+      else byExam.set(r.examId, [r]);
+    }
+
+    await this.prisma.forTenant(
+      schoolId,
+      async (tx) => {
+        const now = new Date();
+        for (const [examId, rows] of byExam) {
+          // UNNEST turns the whole class into a single statement; ON CONFLICT
+          // makes re-importing a corrected file an update rather than a
+          // duplicate-key failure.
+          await tx.$executeRawUnsafe(
+            `INSERT INTO "exam_marks"
+               ("id","schoolId","examId","studentId","subjectId","marks",
+                "enteredByUserId","enteredAt","createdAt","updatedAt")
+             SELECT * FROM UNNEST(
+               $1::text[], $2::text[], $3::text[], $4::text[], $5::text[],
+               $6::int[], $7::text[], $8::timestamp[], $9::timestamp[], $10::timestamp[]
+             )
+             ON CONFLICT ("schoolId","examId","studentId","subjectId")
+             DO UPDATE SET
+               "marks" = EXCLUDED."marks",
+               "enteredByUserId" = EXCLUDED."enteredByUserId",
+               "enteredAt" = EXCLUDED."enteredAt",
+               "updatedAt" = EXCLUDED."updatedAt"`,
+            rows.map(() => randomUUID()),
+            rows.map(() => schoolId),
+            rows.map(() => examId),
+            rows.map((r) => r.studentId),
+            rows.map((r) => r.subjectId),
+            rows.map((r) => r.marks),
+            rows.map(() => userId ?? null),
+            rows.map(() => now),
+            rows.map(() => now),
+            rows.map(() => now),
+          );
+        }
+      },
+      { timeout: 60_000, maxWait: 30_000 },
+    );
+
+    return { imported: resolved.length, sheets: preview.sheets };
   }
 
   /** Exposed so the eventual import writes the same grade the sheet showed. */

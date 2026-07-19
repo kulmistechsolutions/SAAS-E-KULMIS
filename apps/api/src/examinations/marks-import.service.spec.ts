@@ -46,9 +46,16 @@ const STUDENTS: Record<string, { id: string; code: string; fullName: string }[]>
   sB: [{ id: "st3", code: "S003", fullName: "Caasho Xasan" }],
 };
 
+/** Captures the bulk statements commit() issues, so they can be asserted. */
+const writes: { sql: string; params: unknown[] }[] = [];
+
 /** Minimal stand-in for the tenant client the service asks for. */
 function fakePrisma() {
   const tx = {
+    $executeRawUnsafe: (sql: string, ...params: unknown[]) => {
+      writes.push({ sql, params });
+      return Promise.resolve(params[0] ? (params[0] as unknown[]).length : 0);
+    },
     exam: {
       findMany: ({ where }: { where: { id: { in: string[] } } }) =>
         Promise.resolve(EXAMS.filter((e) => where.id.in.includes(e.id))),
@@ -212,5 +219,72 @@ describe("marks validation", () => {
     await expect(
       service.validate("s1", EXAM_IDS, Buffer.from("this is not xlsx")),
     ).rejects.toThrow(/could not be opened/i);
+  });
+});
+
+describe("marks import", () => {
+  function put(ws: ExcelJS.Worksheet, row: number, header: string, value: unknown) {
+    let col = 0;
+    ws.getRow(4).eachCell((cell, c) => {
+      if (String(cell.value ?? "").trim() === header) col = c;
+    });
+    ws.getCell(row, col).value = value as never;
+  }
+
+  beforeEach(() => {
+    writes.length = 0;
+  });
+
+  it("writes nothing at all when the file still has a problem", async () => {
+    const wb = await openTemplate();
+    const a = wb.getWorksheet("8th A")!;
+    put(a, 5, "Mathematics", 80); // this row is fine …
+    put(a, 6, "Mathematics", 500); // … but this one is not
+    put(wb.getWorksheet("8th B")!, 5, "Saynis", 70);
+
+    await expect(service.commit("s1", EXAM_IDS, await toBuffer(wb))).rejects.toThrow(
+      /nothing was imported/i,
+    );
+    // The valid rows must not have been written either — all or nothing.
+    expect(writes).toHaveLength(0);
+  });
+
+  it("writes one bulk statement per class, not one per mark", async () => {
+    const wb = await openTemplate();
+    const a = wb.getWorksheet("8th A")!;
+    put(a, 5, "Mathematics", 85);
+    put(a, 5, "English", 72);
+    put(a, 6, "Mathematics", 64);
+    put(a, 6, "English", 58);
+    put(wb.getWorksheet("8th B")!, 5, "Saynis", 91);
+
+    const res = await service.commit("s1", EXAM_IDS, await toBuffer(wb), "u1");
+    expect(res.imported).toBe(5);
+    expect(writes).toHaveLength(2); // two exams, two statements
+
+    const a8 = writes.find((w) => (w.params[2] as string[])[0] === "ex8A")!;
+    expect((a8.params[3] as string[]).sort()).toEqual(["st1", "st1", "st2", "st2"]);
+    expect(a8.params[5]).toEqual([85, 72, 64, 58]);
+    expect(a8.params[6]).toEqual(["u1", "u1", "u1", "u1"]);
+    // Re-importing a corrected file must update rather than fail on the key.
+    expect(a8.sql).toContain("ON CONFLICT");
+    expect(a8.sql).toContain("DO UPDATE SET");
+  });
+
+  it("never writes a blank cell as a zero", async () => {
+    const wb = await openTemplate();
+    put(wb.getWorksheet("8th A")!, 5, "Mathematics", 55);
+    put(wb.getWorksheet("8th B")!, 5, "Saynis", 60);
+    const res = await service.commit("s1", EXAM_IDS, await toBuffer(wb));
+    expect(res.imported).toBe(2);
+    const marks = writes.flatMap((w) => w.params[5] as number[]);
+    expect(marks).toEqual([55, 60]);
+  });
+
+  it("refuses an empty sheet rather than importing nothing silently", async () => {
+    const wb = await openTemplate();
+    await expect(service.commit("s1", EXAM_IDS, await toBuffer(wb))).rejects.toThrow(
+      /no marks to import/i,
+    );
   });
 });

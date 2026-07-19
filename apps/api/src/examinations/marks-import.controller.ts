@@ -69,4 +69,21 @@ export class MarksImportController {
     }
     return this.marks.validate(me.schoolId, parsed.data.examIds, file);
   }
+
+  /**
+   * Write the marks. Re-validates server-side rather than trusting that the
+   * preview the browser showed was the file it is now sending.
+   */
+  @Post("commit")
+  commit(@CurrentUser() me: AuthUser, @Body() body: unknown) {
+    const parsed = validateMarksSchema.safeParse(body);
+    if (!parsed.success) throw new BadRequestException(parsed.error.flatten());
+    let file: Buffer;
+    try {
+      file = Buffer.from(parsed.data.file, "base64");
+    } catch {
+      throw new BadRequestException("The uploaded file could not be read.");
+    }
+    return this.marks.commit(me.schoolId, parsed.data.examIds, file, me.userId);
+  }
 }

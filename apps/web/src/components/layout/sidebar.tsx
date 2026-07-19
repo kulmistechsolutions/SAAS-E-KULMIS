@@ -124,6 +124,7 @@ const EXAM_CHILDREN: NavChild[] = [
   { label: "Dashboard", href: "/examinations" },
   { label: "Create Exam", href: "/examinations/create" },
   { label: "Enter Marks", href: "/examinations/marks" },
+  { label: "Import Marks", href: "/examinations/marks-import" },
   { label: "Monitoring", href: "/examinations/monitoring" },
   { label: "Exam Groups", href: "/examinations/groups" },
   { label: "Results", href: "/examinations/results" },

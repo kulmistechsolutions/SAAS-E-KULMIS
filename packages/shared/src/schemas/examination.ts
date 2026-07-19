@@ -139,3 +139,7 @@ export const validateMarksSchema = z.object({
   file: z.string().min(1),
 });
 export type ValidateMarksInput = z.infer<typeof validateMarksSchema>;
+
+/** Write the marks. Runs the same validation first and refuses if it fails. */
+export const commitMarksSchema = validateMarksSchema;
+export type CommitMarksInput = ValidateMarksInput;
