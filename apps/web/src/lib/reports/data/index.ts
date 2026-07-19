@@ -1,3 +1,4 @@
+import { api } from "@/lib/api";
 import { filterStudentRecords, filterTeacherRecords } from "@/lib/attendance/store";
 import { activeAcademicYear } from "@/lib/academics/store";
 import {
@@ -51,6 +52,9 @@ export async function fetchReportAsync(
   if (category === "teachers" && slug === "attendance") {
     return fetchTeacherAttendanceReportAsync(filters);
   }
+  if (category === "fees") {
+    return fetchFeeReportAsync(slug, filters);
+  }
   return fetchReport(category, slug, filters);
 }
 
@@ -67,7 +71,9 @@ export function fetchReport(
     case "attendance":
       return emptyReport("Loading attendance data…");
     case "fees":
-      return fetchFeeReport(slug, filters);
+      // Fee reports come from the API; this branch is only reached before the
+      // first response lands.
+      return emptyReport("Loading fee data…");
     case "examinations":
       return fetchExamReport(slug, filters);
     case "promotions":
@@ -450,416 +456,30 @@ async function fetchAttendanceReportAsync(
   return fetchTeacherAttendanceReportAsync(filters);
 }
 
-function fetchFeeReport(slug: string, filters: ReportFilters): ReportData {
-  const year = yearOf(filters);
-  const fees = getFeesState();
-
-  switch (slug) {
-    case "monthly-collections":
-    case "daily-collections": {
-      let payments = [...fees.payments];
-      const st = getStudentsState();
-      const smap = new Map(st.students.map((s) => [s.id, s]));
-      if (filters.className) {
-        const ids = new Set(
-          st.students.filter((s) => s.className === filters.className).map((s) => s.id),
-        );
-        payments = payments.filter((p) => ids.has(p.studentId));
-      }
-      if (slug === "daily-collections" && filters.dateFrom) {
-        payments = payments.filter((p) => p.collectedAt >= filters.dateFrom!);
-      }
-      return {
-        columns: [
-          { key: "receipt", label: "Receipt", mono: true },
-          { key: "student", label: "Student" },
-          { key: "amount", label: "Amount", align: "right" },
-          { key: "type", label: "Type" },
-          { key: "date", label: "Date" },
-        ],
-        rows: payments.map((p) => ({
-          receipt: p.receiptNo,
-          student: smap.get(p.studentId)?.fullName ?? p.studentId,
-          amount: money(p.amount),
-          type: p.paymentType,
-          date: shortDate(p.collectedAt),
-        })),
-        summary: [
-          { label: "Payments", value: String(payments.length) },
-          { label: "Total", value: money(payments.reduce((s, p) => s + p.amount, 0)) },
-        ],
-      };
-    }
-    case "outstanding":
-    case "partial":
-    case "advance": {
-      const rows = listStudentFees({
-        academicYear: year,
-        className: filters.className,
-        section: filters.section,
-        search: filters.search,
-      });
-      const filtered = rows.filter((r) => {
-        if (slug === "outstanding") return r.outstandingBalance > 0;
-        if (slug === "partial") return r.status === "PARTIAL";
-        if (slug === "advance") return r.status === "ADVANCE" || r.status === "ADVANCE_MULTI";
-        return true;
-      });
-      return {
-        columns: [
-          { key: "code", label: "Student ID", mono: true },
-          { key: "name", label: "Name" },
-          { key: "className", label: "Class" },
-          { key: "outstanding", label: "Outstanding", align: "right" },
-          { key: "status", label: "Status" },
-        ],
-        rows: filtered.map((r) => ({
-          code: r.code,
-          name: r.fullName,
-          className: r.className,
-          outstanding: money(r.outstandingBalance),
-          status: r.status,
-        })),
-        summary: [
-          { label: "Students", value: String(filtered.length) },
-          { label: "Total Due", value: money(filtered.reduce((s, r) => s + r.outstandingBalance, 0)) },
-        ],
-      };
-    }
-    case "ledger": {
-      const students = filterStudents({ ...filters, academicYear: year }, "ACTIVE");
-      return {
-        columns: [
-          { key: "code", label: "Student ID", mono: true },
-          { key: "name", label: "Name" },
-          { key: "className", label: "Class" },
-          { key: "monthlyFee", label: "Monthly Fee", align: "right" },
-          { key: "outstanding", label: "Balance", align: "right" },
-        ],
-        rows: students.map((s) => ({
-          code: s.code,
-          name: s.fullName,
-          className: s.className,
-          monthlyFee: money(s.monthlyFee),
-          outstanding: money(outstandingBalance(s.id)),
-        })),
-        summary: [{ label: "Students", value: String(students.length) }],
-      };
-    }
-    case "by-class":
-    case "by-section": {
-      const rows = listStudentFees({ academicYear: year, className: filters.className });
-      const map = new Map<string, { collected: number; due: number }>();
-      for (const r of rows) {
-        const key = slug === "by-section" ? `${r.className} — ${r.section ?? "—"}` : r.className;
-        const cur = map.get(key) ?? { collected: 0, due: 0 };
-        cur.due += r.monthlyFee;
-        if (r.status === "PAID") cur.collected += r.monthlyFee;
-        map.set(key, cur);
-      }
-      return {
-        columns: [
-          { key: "group", label: slug === "by-section" ? "Class / Section" : "Class" },
-          { key: "collected", label: "Collected", align: "right" },
-          { key: "due", label: "Expected", align: "right" },
-        ],
-        rows: [...map.entries()].map(([group, v]) => ({
-          group,
-          collected: money(v.collected),
-          due: money(v.due),
-        })),
-        summary: [{ label: "Groups", value: String(map.size) }],
-      };
-    }
-    case "academic-year-summary": {
-      const students = filterStudents({ ...filters, academicYear: year }, "ACTIVE");
-      const rows = students.map((s) => {
-        const sum = studentAnnualSummary(s.id);
-        return {
-          code: s.code,
-          name: s.fullName,
-          className: s.className,
-          monthlyFee: money(s.monthlyFee),
-          annualFee: money(sum.totalDue),
-          paid: money(sum.totalPaid),
-          outstanding: money(sum.outstanding),
-          progress: `${sum.paidMonths}/${sum.totalMonths} (${sum.progressPercent}%)`,
-        };
-      });
-      return {
-        columns: [
-          { key: "code", label: "Student ID", mono: true },
-          { key: "name", label: "Name" },
-          { key: "className", label: "Class" },
-          { key: "monthlyFee", label: "Monthly Fee", align: "right" },
-          { key: "annualFee", label: "Annual Fee", align: "right" },
-          { key: "paid", label: "Paid", align: "right" },
-          { key: "outstanding", label: "Outstanding", align: "right" },
-          { key: "progress", label: "Progress" },
-        ],
-        rows,
-        summary: [
-          { label: "Students", value: String(rows.length) },
-          {
-            label: "Total Outstanding",
-            value: money(
-              students.reduce((n, s) => n + studentAnnualSummary(s.id).outstanding, 0),
-            ),
-          },
-        ],
-      };
-    }
-    case "monthly-progress": {
-      const students = filterStudents({ ...filters, academicYear: year }, "ACTIVE");
-      const monthFilter = filters.month;
-      const rows: Record<string, string>[] = [];
-      for (const s of students) {
-        const charges = studentCharges(s.id).filter((c) => {
-          if (monthFilter && c.monthKey !== monthFilter) return false;
-          return true;
-        });
-        for (const c of charges) {
-          rows.push({
-            code: s.code,
-            name: s.fullName,
-            className: s.className,
-            month: monthLabel(c.monthKey),
-            charge: money(c.monthlyFee),
-            paid: money(c.amountPaid),
-            balance: money(c.balance),
-            status: c.status,
-          });
-        }
-      }
-      return {
-        columns: [
-          { key: "code", label: "Student ID", mono: true },
-          { key: "name", label: "Name" },
-          { key: "className", label: "Class" },
-          { key: "month", label: "Month" },
-          { key: "charge", label: "Charge", align: "right" },
-          { key: "paid", label: "Paid", align: "right" },
-          { key: "balance", label: "Balance", align: "right" },
-          { key: "status", label: "Status" },
-        ],
-        rows,
-        summary: [{ label: "Records", value: String(rows.length) }],
-      };
-    }
-    case "paid-months": {
-      const students = filterStudents({ ...filters, academicYear: year }, "ACTIVE");
-      const monthFilter = filters.month;
-      const rows: Record<string, string>[] = [];
-      let totalPaid = 0;
-      for (const s of students) {
-        for (const c of studentCharges(s.id)) {
-          if (c.status !== "PAID") continue;
-          if (monthFilter && c.monthKey !== monthFilter) continue;
-          totalPaid += c.monthlyFee;
-          rows.push({
-            code: s.code,
-            name: s.fullName,
-            className: s.className,
-            month: monthLabel(c.monthKey),
-            amount: money(c.monthlyFee),
-          });
-        }
-      }
-      return {
-        columns: [
-          { key: "code", label: "Student ID", mono: true },
-          { key: "name", label: "Name" },
-          { key: "className", label: "Class" },
-          { key: "month", label: "Month" },
-          { key: "amount", label: "Amount", align: "right" },
-        ],
-        rows,
-        summary: [
-          { label: "Paid Months", value: String(rows.length) },
-          { label: "Total", value: money(totalPaid) },
-        ],
-      };
-    }
-    case "outstanding-months": {
-      const students = filterStudents({ ...filters, academicYear: year }, "ACTIVE");
-      const monthFilter = filters.month;
-      const rows: Record<string, string>[] = [];
-      let totalDue = 0;
-      for (const s of students) {
-        for (const c of studentCharges(s.id)) {
-          if (c.status === "INACTIVE" || c.status === "PAID") continue;
-          if (monthFilter && c.monthKey !== monthFilter) continue;
-          totalDue += c.balance;
-          rows.push({
-            code: s.code,
-            name: s.fullName,
-            className: s.className,
-            month: monthLabel(c.monthKey),
-            charge: money(c.monthlyFee),
-            paid: money(c.amountPaid),
-            balance: money(c.balance),
-            status: c.status,
-          });
-        }
-      }
-      return {
-        columns: [
-          { key: "code", label: "Student ID", mono: true },
-          { key: "name", label: "Name" },
-          { key: "className", label: "Class" },
-          { key: "month", label: "Month" },
-          { key: "charge", label: "Charge", align: "right" },
-          { key: "paid", label: "Paid", align: "right" },
-          { key: "balance", label: "Balance", align: "right" },
-          { key: "status", label: "Status" },
-        ],
-        rows,
-        summary: [
-          { label: "Outstanding Months", value: String(rows.length) },
-          { label: "Total Due", value: money(totalDue) },
-        ],
-      };
-    }
-    case "agreement-fee": {
-      const students = filterStudents({ ...filters, academicYear: year }, "ACTIVE");
-      const rows: Record<string, string>[] = [];
-      for (const s of students) {
-        if (s.feeStartMode !== "AGREEMENT") {
-          const agreementCharge = studentCharges(s.id).find(
-            (c) =>
-              c.status !== "INACTIVE" &&
-              c.monthlyFee < s.monthlyFee &&
-              (c.status === "PARTIAL" || c.status === "UNPAID"),
-          );
-          if (!agreementCharge) continue;
-          rows.push({
-            code: s.code,
-            name: s.fullName,
-            className: s.className,
-            standardFee: money(s.monthlyFee),
-            agreementFee: money(agreementCharge.monthlyFee),
-            month: monthLabel(agreementCharge.monthKey),
-            balance: money(agreementCharge.balance),
-          });
-          continue;
-        }
-        const agreementCharge = studentCharges(s.id).find(
-          (c) => c.status !== "INACTIVE" && c.monthlyFee <= (s.feeAgreementAmount ?? s.monthlyFee),
-        );
-        rows.push({
-          code: s.code,
-          name: s.fullName,
-          className: s.className,
-          standardFee: money(s.monthlyFee),
-          agreementFee: money(s.feeAgreementAmount ?? agreementCharge?.monthlyFee ?? 0),
-          month: agreementCharge ? monthLabel(agreementCharge.monthKey) : "—",
-          balance: money(agreementCharge?.balance ?? 0),
-        });
-      }
-      return {
-        columns: [
-          { key: "code", label: "Student ID", mono: true },
-          { key: "name", label: "Name" },
-          { key: "className", label: "Class" },
-          { key: "month", label: "Month" },
-          { key: "standardFee", label: "Standard Fee", align: "right" },
-          { key: "agreementFee", label: "Agreement", align: "right" },
-          { key: "balance", label: "Balance", align: "right" },
-        ],
-        rows,
-        summary: [{ label: "Students", value: String(rows.length) }],
-      };
-    }
-    case "new-student-adjustment": {
-      const students = filterStudents({ ...filters, academicYear: year }, "ACTIVE");
-      const rows: Record<string, string>[] = [];
-      for (const s of students) {
-        const charges = studentCharges(s.id);
-        const inactive = charges.filter((c) => c.status === "INACTIVE").length;
-        const hasAdjustment =
-          inactive > 0 ||
-          s.feeStartMode === "AGREEMENT" ||
-          s.feeStartMode === "NEXT_MONTH";
-        if (!hasAdjustment) continue;
-        const firstActive = charges.find((c) => c.status !== "INACTIVE");
-        const modeLabel =
-          s.feeStartMode === "FULL_CURRENT"
-            ? "Full current month"
-            : s.feeStartMode === "AGREEMENT"
-              ? `Agreement (${money(s.feeAgreementAmount ?? 0)})`
-              : s.feeStartMode === "NEXT_MONTH"
-                ? "Starts next month"
-                : inactive > 0
-                  ? `${inactive} inactive month(s)`
-                  : "Adjusted";
-        rows.push({
-          code: s.code,
-          name: s.fullName,
-          className: s.className,
-          registered: shortDate(s.registrationDate),
-          inactiveMonths: String(inactive),
-          billingStarts: firstActive ? monthLabel(firstActive.monthKey) : "—",
-          annualFee: money(s.annualFeeAmount ?? studentAnnualSummary(s.id).totalDue),
-          adjustment: modeLabel,
-        });
-      }
-      return {
-        columns: [
-          { key: "code", label: "Student ID", mono: true },
-          { key: "name", label: "Name" },
-          { key: "className", label: "Class" },
-          { key: "registered", label: "Registered" },
-          { key: "billingStarts", label: "Billing Starts" },
-          { key: "inactiveMonths", label: "Inactive", align: "right" },
-          { key: "annualFee", label: "Adjusted Annual", align: "right" },
-          { key: "adjustment", label: "Adjustment" },
-        ],
-        rows,
-        summary: [{ label: "Adjusted Students", value: String(rows.length) }],
-      };
-    }
-    case "carry-forward": {
-      const students = filterStudents({ ...filters, academicYear: year }, "ACTIVE");
-      const rows: Record<string, string>[] = [];
-      let totalCarried = 0;
-      for (const s of students) {
-        for (const c of studentCharges(s.id)) {
-          if (c.status === "INACTIVE") continue;
-          const carried = c.monthlyFee - s.monthlyFee;
-          if (carried <= 0) continue;
-          totalCarried += carried;
-          rows.push({
-            code: s.code,
-            name: s.fullName,
-            className: s.className,
-            month: monthLabel(c.monthKey),
-            standardFee: money(s.monthlyFee),
-            charged: money(c.monthlyFee),
-            carried: money(carried),
-            balance: money(c.balance),
-          });
-        }
-      }
-      return {
-        columns: [
-          { key: "code", label: "Student ID", mono: true },
-          { key: "name", label: "Name" },
-          { key: "className", label: "Class" },
-          { key: "month", label: "Month" },
-          { key: "standardFee", label: "Standard", align: "right" },
-          { key: "charged", label: "Charged", align: "right" },
-          { key: "carried", label: "Carried", align: "right" },
-          { key: "balance", label: "Balance", align: "right" },
-        ],
-        rows,
-        summary: [
-          { label: "Records", value: String(rows.length) },
-          { label: "Total Carried", value: money(totalCarried) },
-        ],
-      };
-    }
-    default:
-      return emptyReport("Unknown fee report");
+/**
+ * Fee reports are computed by the API from the database.
+ *
+ * They used to be built here from the browser's fee store, which only ever held
+ * what the fee PAGES had loaded — so opening a report directly showed an empty
+ * or half-complete list. A report has to be a question asked of the school's
+ * real data, not of one browser tab's memory.
+ */
+async function fetchFeeReportAsync(
+  slug: string,
+  filters: ReportFilters,
+): Promise<ReportData> {
+  const params = new URLSearchParams();
+  for (const key of ["className", "section", "month", "dateFrom", "dateTo", "search"] as const) {
+    const value = filters[key];
+    if (value) params.set(key, String(value));
+  }
+  const query = params.toString();
+  try {
+    return await api<ReportData>(
+      `/reports/fees/${encodeURIComponent(slug)}${query ? `?${query}` : ""}`,
+    );
+  } catch {
+    return emptyReport("Could not load fee data.");
   }
 }
 

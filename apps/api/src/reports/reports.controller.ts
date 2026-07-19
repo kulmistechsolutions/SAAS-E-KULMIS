@@ -9,13 +9,43 @@ import {
 import type { Response } from "express";
 import { UserRole } from "@ekulmis/shared";
 import { ReportsService } from "./reports.service";
+import { FeeReportsService } from "./fee-reports.service";
 import { Roles } from "../auth/roles.decorator";
 import { CurrentUser } from "../auth/current-user.decorator";
 import type { AuthUser } from "../auth/auth.types";
 
 @Controller("reports")
 export class ReportsController {
-  constructor(private readonly reports: ReportsService) {}
+  constructor(
+    private readonly reports: ReportsService,
+    private readonly feeReports: FeeReportsService,
+  ) {}
+
+  /**
+   * Fee reports, computed from the database rather than from whatever the fee
+   * pages happened to leave in the browser's store.
+   */
+  @Roles(UserRole.ADMINISTRATOR, UserRole.FINANCE_OFFICER)
+  @Get("fees/:slug")
+  fees(
+    @CurrentUser() me: AuthUser,
+    @Param("slug") slug: string,
+    @Query("className") className?: string,
+    @Query("section") section?: string,
+    @Query("month") month?: string,
+    @Query("dateFrom") dateFrom?: string,
+    @Query("dateTo") dateTo?: string,
+    @Query("search") search?: string,
+  ) {
+    return this.feeReports.build(me.schoolId, slug, {
+      className,
+      section,
+      month,
+      dateFrom,
+      dateTo,
+      search,
+    });
+  }
 
   @Roles(UserRole.ADMINISTRATOR, UserRole.FINANCE_OFFICER, UserRole.EXAM_MANAGER)
   @Get("students")

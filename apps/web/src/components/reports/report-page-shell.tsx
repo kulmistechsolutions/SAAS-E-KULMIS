@@ -84,8 +84,10 @@ export function ReportPageShell({ categoryId, categoryLabel, report }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mounted, categoryLabel, report.title]);
 
+  // Categories whose data comes from the API rather than a browser store.
   const needsAsync =
     categoryId === "attendance" ||
+    categoryId === "fees" ||
     (categoryId === "teachers" && report.slug === "attendance");
 
   const [data, setData] = useState<ReturnType<typeof fetchReport>>({
