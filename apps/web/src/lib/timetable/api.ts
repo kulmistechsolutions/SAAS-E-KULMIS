@@ -1,7 +1,9 @@
 import { api, API_URL, ApiError, getAccessToken, TENANT } from "@/lib/api";
 import type {
+  AiProposal,
   AssignShiftInput,
   FeasibilityReport,
+  InterpretResult,
   SaveShiftInput,
   SaveSubjectLoadsInput,
   SaveTeacherUnavailabilityInput,
@@ -172,3 +174,49 @@ export async function downloadTimetablePdf(id: string, filename: string) {
   a.click();
   URL.revokeObjectURL(url);
 }
+
+// ── Typed rules ────────────────────────────────────────────────────────────
+
+export interface RulesResponse {
+  unavailability: {
+    id: string;
+    teacherId: string;
+    dayOfWeek: number;
+    startMinute: number;
+    endMinute: number;
+    reason: string | null;
+    teacher: { fullName: string };
+  }[];
+  preferences: {
+    id: string;
+    startMinute: number;
+    endMinute: number;
+    note: string | null;
+    subject: { name: string };
+    class: { name: string } | null;
+  }[];
+}
+
+export const interpretRule = (
+  academicYearId: string,
+  shiftId: string,
+  text: string,
+) =>
+  api<InterpretResult>("/timetable/rules/interpret", {
+    method: "POST",
+    body: { academicYearId, shiftId, text },
+  });
+
+export const applyRules = (academicYearId: string, proposals: AiProposal[]) =>
+  api<{ success: boolean; teacherRules: number; subjectRules: number }>(
+    "/timetable/rules/apply",
+    { method: "POST", body: { academicYearId, proposals } },
+  );
+
+export const fetchRules = (academicYearId: string) =>
+  api<RulesResponse>(`/timetable/rules?academicYearId=${q(academicYearId)}`);
+
+export const deletePreference = (id: string) =>
+  api<{ success: boolean }>(`/timetable/rules/preferences/${id}`, {
+    method: "DELETE",
+  });

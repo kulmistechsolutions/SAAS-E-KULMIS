@@ -242,6 +242,50 @@ describe("solveTimetable", () => {
     expect(result.notes.filter((n) => n.includes("unavoidable"))).toHaveLength(0);
   });
 
+  it("honours a time preference when it can", () => {
+    const wanted = baseInput();
+    // "Put Physics in the morning" — P1–P3, before the break.
+    wanted.preferences = [
+      {
+        subjectId: "Physics",
+        roomKey: null,
+        startMinute: PERIODS[0]!.startMinute,
+        endMinute: PERIODS[2]!.endMinute,
+      },
+    ];
+    const solved = solveTimetable(wanted);
+    expect(solved.ok).toBe(true);
+
+    const physics = solved.lessons.filter((l) => l.subjectId === "Physics");
+    const morning = physics.filter((l) => l.periodIndex <= 2).length;
+    const plain = solveTimetable(baseInput()).lessons.filter(
+      (l) => l.subjectId === "Physics" && l.periodIndex <= 2,
+    ).length;
+    // Physics is taught by Qadar, who is blocked from P1 and P2 entirely, so
+    // only P3 is actually "morning" for them — the point is that asking moves
+    // the needle, not that every wish can be granted.
+    expect(morning).toBeGreaterThanOrEqual(plain);
+    expect(solved.notes.some((n) => n.includes("Physics"))).toBe(true);
+  });
+
+  it("never lets a preference make the week unsolvable", () => {
+    const impossibleWish = baseInput();
+    // Ask for EVERY subject in one single period. Nothing could satisfy this,
+    // so the only acceptable behaviour is to ignore it and still solve.
+    impossibleWish.preferences = [
+      ...new Set(impossibleWish.demands.map((d) => d.subjectId)),
+    ].map((subjectId) => ({
+      subjectId,
+      roomKey: null,
+      startMinute: PERIODS[0]!.startMinute,
+      endMinute: PERIODS[0]!.endMinute,
+    }));
+    const solved = solveTimetable(impossibleWish);
+    expect(solved.failure).toBeNull();
+    expect(solved.ok).toBe(true);
+    expect(solved.lessons).toHaveLength(180);
+  });
+
   it("reports failure instead of dropping lessons when asked for the impossible", () => {
     const impossible = baseInput();
     // One teacher, every class, far more lessons than the week can hold.

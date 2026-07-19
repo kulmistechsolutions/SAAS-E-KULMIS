@@ -13,8 +13,10 @@ import {
 } from "@nestjs/common";
 import type { Response } from "express";
 import {
+  applyConstraintsSchema,
   assignShiftSchema,
   generateTimetableSchema,
+  interpretConstraintSchema,
   saveShiftSchema,
   saveSubjectLoadsSchema,
   saveTeacherUnavailabilitySchema,
@@ -23,6 +25,7 @@ import {
 import { TimetableSetupService } from "./timetable-setup.service";
 import { TimetableGeneratorService } from "./timetable-generator.service";
 import { TimetablePdfService } from "./timetable-pdf.service";
+import { TimetableAiService } from "./timetable-ai.service";
 import { Roles } from "../auth/roles.decorator";
 import { CurrentUser } from "../auth/current-user.decorator";
 import type { AuthUser } from "../auth/auth.types";
@@ -35,6 +38,7 @@ export class TimetableController {
     private readonly setup: TimetableSetupService,
     private readonly generator: TimetableGeneratorService,
     private readonly pdf: TimetablePdfService,
+    private readonly aiRules: TimetableAiService,
   ) {}
 
   // ── Shifts ───────────────────────────────────────────────────────────────
@@ -115,6 +119,38 @@ export class TimetableController {
   feasibility(@CurrentUser() me: AuthUser, @Query("academicYearId") yearId: string) {
     if (!yearId) throw new BadRequestException("academicYearId is required");
     return this.setup.checkFeasibility(me.schoolId, yearId);
+  }
+
+  // ── Typed rules ("Cali cannot teach on Monday") ──────────────────────────
+
+  /**
+   * Read-only: turns a sentence into proposed rules and shows them back. It
+   * writes nothing, so a misunderstood sentence costs a click, not a week.
+   */
+  @Post("rules/interpret")
+  interpretRule(@CurrentUser() me: AuthUser, @Body() body: unknown) {
+    const parsed = interpretConstraintSchema.safeParse(body);
+    if (!parsed.success) throw new BadRequestException(parsed.error.flatten());
+    return this.aiRules.interpret(me.schoolId, parsed.data);
+  }
+
+  /** Saves proposals the admin confirmed — structured, never the raw sentence. */
+  @Post("rules/apply")
+  applyRules(@CurrentUser() me: AuthUser, @Body() body: unknown) {
+    const parsed = applyConstraintsSchema.safeParse(body);
+    if (!parsed.success) throw new BadRequestException(parsed.error.flatten());
+    return this.aiRules.apply(me.schoolId, parsed.data);
+  }
+
+  @Get("rules")
+  listRules(@CurrentUser() me: AuthUser, @Query("academicYearId") yearId: string) {
+    if (!yearId) throw new BadRequestException("academicYearId is required");
+    return this.aiRules.listRules(me.schoolId, yearId);
+  }
+
+  @Delete("rules/preferences/:id")
+  deletePreference(@CurrentUser() me: AuthUser, @Param("id") id: string) {
+    return this.aiRules.deletePreference(me.schoolId, id);
   }
 
   // ── Generated timetables ─────────────────────────────────────────────────

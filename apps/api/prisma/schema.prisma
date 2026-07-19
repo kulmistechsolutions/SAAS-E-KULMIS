@@ -107,7 +107,7 @@ model AcademicYear {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 
-  school        School                 @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  school        School                  @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   classes       Class[]
   assignments   TeacherAssignment[]
   classSubjects ClassSubject[]
@@ -120,6 +120,7 @@ model AcademicYear {
   shifts        SchoolShift[]
   subjectLoads  SubjectLoad[]
   timetables    Timetable[]
+  subjectPrefs  SubjectTimePreference[]
 
   @@unique([schoolId, name])
   @@index([schoolId])
@@ -139,7 +140,7 @@ model Class {
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
-  academicYear     AcademicYear          @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
+  academicYear     AcademicYear            @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
   sections         Section[]
   students         Student[]
   assignments      TeacherAssignment[]
@@ -150,8 +151,9 @@ model Class {
   extraFeeAmounts  ExtraFeeClassAmount[]
   subjectLoads     SubjectLoad[]
   timetableEntries TimetableEntry[]
+  subjectPrefs     SubjectTimePreference[]
   /// Which part of the day this class attends. A section may override it.
-  shift            SchoolShift?          @relation(fields: [shiftId], references: [id], onDelete: SetNull)
+  shift            SchoolShift?            @relation(fields: [shiftId], references: [id], onDelete: SetNull)
   shiftId          String?
 
   @@unique([schoolId, academicYearId, name])
@@ -198,14 +200,15 @@ model Subject {
   createdAt DateTime     @default(now())
   updatedAt DateTime     @updatedAt
 
-  school           School              @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  assignments      TeacherAssignment[]
-  classSubjects    ClassSubject[]
-  examSubjects     ExamSubject[]
-  examMarks        ExamMark[]
-  quizzes          Quiz[]
-  subjectLoads     SubjectLoad[]
-  timetableEntries TimetableEntry[]
+  school                 School                  @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  assignments            TeacherAssignment[]
+  classSubjects          ClassSubject[]
+  examSubjects           ExamSubject[]
+  examMarks              ExamMark[]
+  quizzes                Quiz[]
+  subjectLoads           SubjectLoad[]
+  timetableEntries       TimetableEntry[]
+  subjectTimePreferences SubjectTimePreference[]
 
   @@unique([schoolId, name])
   @@index([schoolId])
@@ -2039,4 +2042,32 @@ model TimetableEntry {
   @@index([schoolId, teacherId, dayOfWeek])
   @@index([timetableId, classId, sectionId, dayOfWeek])
   @@map("timetable_entries")
+}
+
+/// A soft wish about WHEN a subject should fall — "Maths in the morning".
+///
+/// Deliberately separate from TeacherUnavailability, which is a hard rule. A
+/// preference only reorders the solver's choices; it can never make a timetable
+/// unsolvable, because a school should not lose its whole week to a nice-to-have.
+model SubjectTimePreference {
+  id             String   @id @default(cuid())
+  schoolId       String
+  academicYearId String
+  subjectId      String
+  /// Null means the preference applies to every class taking this subject.
+  classId        String?
+  startMinute    Int
+  endMinute      Int
+  /// The sentence the admin approved, kept so the rule stays explainable.
+  note           String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  academicYear AcademicYear @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
+  subject      Subject      @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  class        Class?       @relation(fields: [classId], references: [id], onDelete: Cascade)
+
+  @@index([schoolId])
+  @@index([schoolId, academicYearId])
+  @@map("subject_time_preferences")
 }

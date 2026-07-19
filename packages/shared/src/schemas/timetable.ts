@@ -224,3 +224,63 @@ export const generateTimetableSchema = z.object({
   shiftId: z.string().min(1),
 });
 export type GenerateTimetableInput = z.infer<typeof generateTimetableSchema>;
+
+// ── Natural-language constraints ───────────────────────────────────────────
+
+/**
+ * The AI layer translates a sentence into one of these, and nothing else. It
+ * never produces a timetable: scheduling stays with the solver, which can prove
+ * its answer, while the model only does the part it is actually good at —
+ * understanding what a person meant.
+ */
+export const aiProposalSchema = z.discriminatedUnion("kind", [
+  z.object({
+    kind: z.literal("TEACHER_UNAVAILABLE"),
+    teacherId: z.string().min(1),
+    teacherName: z.string(),
+    windows: z
+      .array(
+        z.object({
+          dayOfWeek: z.number().int().min(0).max(6),
+          startMinute: minuteOfDay,
+          endMinute: minuteOfDay,
+        }),
+      )
+      .min(1),
+  }),
+  z.object({
+    kind: z.literal("SUBJECT_TIME"),
+    subjectId: z.string().min(1),
+    subjectName: z.string(),
+    /** Null means every class taking the subject. */
+    classId: z.string().min(1).nullable(),
+    className: z.string().nullable(),
+    startMinute: minuteOfDay,
+    endMinute: minuteOfDay,
+  }),
+]);
+export type AiProposal = z.infer<typeof aiProposalSchema>;
+
+export const interpretConstraintSchema = z.object({
+  academicYearId: z.string().min(1),
+  shiftId: z.string().min(1),
+  text: z.string().min(3).max(500),
+});
+export type InterpretConstraintInput = z.infer<typeof interpretConstraintSchema>;
+
+/** Applying takes STRUCTURED proposals the admin has already seen — never the
+ *  raw sentence. Whatever a model was talked into saying, nothing reaches the
+ *  database that was not shown and confirmed first. */
+export const applyConstraintsSchema = z.object({
+  academicYearId: z.string().min(1),
+  proposals: z.array(aiProposalSchema).min(1),
+});
+export type ApplyConstraintsInput = z.infer<typeof applyConstraintsSchema>;
+
+export interface InterpretResult {
+  proposals: AiProposal[];
+  /** Plain-language restatement, so the admin confirms meaning, not JSON. */
+  summaries: string[];
+  /** Names the model used that no record matched — reported, never guessed. */
+  unresolved: string[];
+}

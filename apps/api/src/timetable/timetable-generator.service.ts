@@ -78,7 +78,7 @@ export class TimetableGeneratorService {
       });
       if (!shift) throw new NotFoundException("Shift not found");
 
-      const [classes, loads, assignments, unavailable, otherEntries] =
+      const [classes, loads, assignments, unavailable, preferences, otherEntries] =
         await Promise.all([
           tx.class.findMany({
             where: { academicYearId, status: "ACTIVE" },
@@ -96,6 +96,7 @@ export class TimetableGeneratorService {
             include: { teacher: { select: { id: true, fullName: true } } },
           }),
           tx.teacherUnavailability.findMany(),
+          tx.subjectTimePreference.findMany({ where: { academicYearId } }),
           // Published lessons from the school's OTHER shifts. A teacher who
           // works both must not be booked twice, and the only sound way to
           // compare a morning slot with an afternoon one is wall-clock time.
@@ -110,10 +111,26 @@ export class TimetableGeneratorService {
           }),
         ]);
 
-      return { shift, classes, loads, assignments, unavailable, otherEntries };
+      return {
+        shift,
+        classes,
+        loads,
+        assignments,
+        unavailable,
+        preferences,
+        otherEntries,
+      };
     });
 
-    const { shift, classes, loads, assignments, unavailable, otherEntries } = data;
+    const {
+      shift,
+      classes,
+      loads,
+      assignments,
+      unavailable,
+      preferences,
+      otherEntries,
+    } = data;
 
     const teaching = shift.periods.filter((p) => !p.isBreak);
     if (teaching.length === 0 || shift.days.length === 0) {
@@ -218,6 +235,22 @@ export class TimetableGeneratorService {
       rooms,
       demands,
       blocks,
+      // Wishes only reorder the solver's choices, so an unsatisfiable one costs
+      // the school nothing but a note explaining it could not be honoured.
+      //
+      // A class-scoped wish expands to one entry per section, since a class may
+      // have several classrooms and the solver works in rooms, not classes.
+      preferences: preferences.flatMap((p) => {
+        const scope = p.classId
+          ? rooms.filter((r) => r.classId === p.classId).map((r) => r.key)
+          : [null];
+        return scope.map((roomKey) => ({
+          subjectId: p.subjectId,
+          roomKey,
+          startMinute: p.startMinute,
+          endMinute: p.endMinute,
+        }));
+      }),
       timeLimitMs: 20000,
     });
 

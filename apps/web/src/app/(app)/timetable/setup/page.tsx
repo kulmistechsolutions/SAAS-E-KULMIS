@@ -14,15 +14,19 @@ import { Dialog } from "@/components/ui/dialog";
 import { ShiftEditor } from "@/components/timetable/shift-editor";
 import { AllocationGrid } from "@/components/timetable/allocation-grid";
 import { FeasibilityView } from "@/components/timetable/feasibility-report";
+import { RuleComposer } from "@/components/timetable/rule-composer";
 import {
   createShift,
   deleteShift,
   fetchAllocation,
   fetchFeasibility,
+  deletePreference,
+  fetchRules,
   fetchShifts,
   saveAllocation,
   updateShift,
   type AllocationRoom,
+  type RulesResponse,
   type ShiftDto,
 } from "@/lib/timetable/api";
 import { ensureAcademicsLoaded, useAcademicsState } from "@/lib/academics/store";
@@ -32,7 +36,8 @@ import { cn } from "@/lib/utils";
 const STEPS = [
   { id: 1, label: "Shifts & periods" },
   { id: 2, label: "Lesson allocation" },
-  { id: 3, label: "Check" },
+  { id: 3, label: "Rules" },
+  { id: 4, label: "Check" },
 ] as const;
 
 export default function TimetableSetupPage() {
@@ -43,6 +48,7 @@ export default function TimetableSetupPage() {
   const [shifts, setShifts] = useState<ShiftDto[]>([]);
   const [rooms, setRooms] = useState<AllocationRoom[]>([]);
   const [report, setReport] = useState<FeasibilityReport | null>(null);
+  const [rules, setRules] = useState<RulesResponse | null>(null);
 
   const [loading, setLoading] = useState(true);
   const [checking, setChecking] = useState(false);
@@ -152,10 +158,23 @@ export default function TimetableSetupPage() {
     }
   }
 
-  // Step 3 is the whole point of the wizard, so run the check on arrival
-  // instead of making the school press another button.
+  const loadRules = useCallback(async () => {
+    if (!yearId) return;
+    try {
+      setRules(await fetchRules(yearId));
+    } catch {
+      /* a school with no rules yet is the normal case */
+    }
+  }, [yearId]);
+
   useEffect(() => {
-    if (step === 3 && yearId && !checking) void runCheck();
+    if (step === 3) void loadRules();
+  }, [step, loadRules]);
+
+  // The check is the whole point of the wizard, so run it on arrival instead of
+  // making the school press another button.
+  useEffect(() => {
+    if (step === 4 && yearId && !checking) void runCheck();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step, yearId]);
 
@@ -298,6 +317,84 @@ export default function TimetableSetupPage() {
           )}
 
           {step === 3 && (
+            <div className="space-y-4">
+              {shifts.length === 0 ? (
+                <p className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
+                  Add a shift first — rules are expressed in terms of its periods.
+                </p>
+              ) : (
+                <RuleComposer
+                  academicYearId={yearId}
+                  shiftId={shifts[0]!.id}
+                  onApplied={loadRules}
+                />
+              )}
+
+              {rules && (rules.unavailability.length > 0 || rules.preferences.length > 0) && (
+                <div className="space-y-3">
+                  {rules.unavailability.length > 0 && (
+                    <div className="overflow-hidden rounded-lg border">
+                      <h3 className="border-b bg-secondary/40 px-4 py-2 text-sm font-semibold">
+                        Teacher unavailable times
+                      </h3>
+                      <ul className="divide-y">
+                        {rules.unavailability.map((u) => (
+                          <li key={u.id} className="px-4 py-2 text-sm">
+                            <span className="font-medium">{u.teacher.fullName}</span>
+                            <span className="text-muted-foreground">
+                              {" "}
+                              — {WEEKDAY_NAMES[u.dayOfWeek]}{" "}
+                              {formatMinutes(u.startMinute)}–{formatMinutes(u.endMinute)}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {rules.preferences.length > 0 && (
+                    <div className="overflow-hidden rounded-lg border">
+                      <h3 className="border-b bg-secondary/40 px-4 py-2 text-sm font-semibold">
+                        Time preferences
+                        <span className="ml-2 font-normal text-muted-foreground">
+                          kept where possible, never at the cost of a valid week
+                        </span>
+                      </h3>
+                      <ul className="divide-y">
+                        {rules.preferences.map((p) => (
+                          <li
+                            key={p.id}
+                            className="flex items-center justify-between gap-2 px-4 py-2 text-sm"
+                          >
+                            <span>
+                              <span className="font-medium">{p.subject.name}</span>
+                              <span className="text-muted-foreground">
+                                {" "}
+                                in {p.class?.name ?? "every class"} —{" "}
+                                {formatMinutes(p.startMinute)}–{formatMinutes(p.endMinute)}
+                              </span>
+                            </span>
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                await deletePreference(p.id);
+                                await loadRules();
+                              }}
+                              className="text-xs text-muted-foreground hover:text-destructive"
+                            >
+                              Remove
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {step === 4 && (
             <div className="space-y-4">
               {dirty && (
                 <p className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm">

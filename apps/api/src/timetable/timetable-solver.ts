@@ -69,6 +69,21 @@ export interface SolverBlock {
   endMinute: number;
 }
 
+/**
+ * A wish about when a subject should fall.
+ *
+ * Applied ONLY as a tie-break when ordering candidate lessons — never as a
+ * filter. A preference that could remove the last feasible slot would let a
+ * nice-to-have cost a school its entire week, so by construction it cannot.
+ */
+export interface SolverPreference {
+  subjectId: string;
+  /** Null applies the wish to every class taking the subject. */
+  roomKey: string | null;
+  startMinute: number;
+  endMinute: number;
+}
+
 export interface SolverInput {
   days: number[];
   periods: SolverPeriod[];
@@ -76,6 +91,7 @@ export interface SolverInput {
   demands: SolverDemand[];
   /** Unavailability windows AND lessons already published in another shift. */
   blocks: SolverBlock[];
+  preferences?: SolverPreference[];
   /** Wall-clock budget. Search stops and reports rather than hanging. */
   timeLimitMs?: number;
   /** Deterministic runs in tests; omit for a different attempt each time. */
@@ -210,6 +226,37 @@ export function solveTimetable(input: SolverInput): SolverResult {
     }
   }
 
+  // Which slots each demand would LIKE, precomputed once. A demand with no
+  // matching preference wants every slot equally, which is the same as having
+  // no opinion at all.
+  const prefs = input.preferences ?? [];
+  const wishSlots: (Set<number> | null)[] = live.map((d) => {
+    const mine = prefs.filter(
+      (p) =>
+        p.subjectId === d.subjectId &&
+        (p.roomKey === null || p.roomKey === d.roomKey),
+    );
+    if (mine.length === 0) return null;
+    const set = new Set<number>();
+    for (let dd = 0; dd < D; dd += 1) {
+      for (let pp = 0; pp < P; pp += 1) {
+        const period = periods[pp]!;
+        if (
+          mine.some(
+            (w) => w.startMinute < period.endMinute && period.startMinute < w.endMinute,
+          )
+        ) {
+          set.add(dd * P + pp);
+        }
+      }
+    }
+    return set;
+  });
+  const wanted = (demandIndex: number, slot: number): boolean => {
+    const set = wishSlots[demandIndex];
+    return set === null || set === undefined ? false : set.has(slot);
+  };
+
   let attempts = 0;
   // Abandoning a doomed attempt is cheap, so restarts are bounded by the clock
   // rather than by a count — a fixed cap would give up in a couple of seconds
@@ -221,7 +268,13 @@ export function solveTimetable(input: SolverInput): SolverResult {
     const rand = makeRandom((input.seed ?? 1) + attempt * 7919);
     const run = fillWeek(rand, attempt);
     if (run.lessons) {
-      return { ok: true, lessons: run.lessons, notes, failure: null, attempts };
+      return {
+        ok: true,
+        lessons: run.lessons,
+        notes: [...notes, ...describeWishes(run.lessons)],
+        failure: null,
+        attempts,
+      };
     }
     const total = run.remaining.reduce((a, b) => a + b, 0);
     if (!best || total < best.total) best = { unplaced: run.remaining, total };
@@ -250,6 +303,34 @@ export function solveTimetable(input: SolverInput): SolverResult {
       "The allocation is very tight — free up one of those teachers, or move a period to another class.",
     attempts,
   };
+
+  /**
+   * How well each wish was honoured. A preference is a wish, so a school is
+   * told the score rather than being left to count cells and wonder whether
+   * the request was even understood.
+   */
+  function describeWishes(lessons: SolvedLesson[]): string[] {
+    const out: string[] = [];
+    for (let i = 0; i < live.length; i += 1) {
+      const set = wishSlots[i];
+      if (!set) continue;
+      const dem = live[i]!;
+      const mine = lessons.filter(
+        (l) => l.roomKey === dem.roomKey && l.subjectId === dem.subjectId,
+      );
+      if (mine.length === 0) continue;
+      const hit = mine.filter((l) => set.has(l.dayIndex * P + l.periodIndex)).length;
+      const label = rooms[roomIndex.get(dem.roomKey)!]!.label;
+      if (hit === mine.length) {
+        out.push(`${label} · ${dem.subjectName}: every lesson landed in the requested time.`);
+      } else {
+        out.push(
+          `${label} · ${dem.subjectName}: ${hit} of ${mine.length} lessons landed in the requested time — the rest would not fit without a clash.`,
+        );
+      }
+    }
+    return out;
+  }
 
   /**
    * One full attempt: walk every slot of the week and, at each, decide what
@@ -329,6 +410,11 @@ export function solveTimetable(input: SolverInput): SolverResult {
           const slackX = teacherFreeAhead[tx]! - teacherLoad[tx]!;
           const slackY = teacherFreeAhead[ty]! - teacherLoad[ty]!;
           if (slackX !== slackY) return slackX - slackY;
+          // Wishes rank below teacher urgency but above everything else: they
+          // shape a solvable week rather than deciding whether one exists.
+          const wantX = wanted(x, slot) ? 0 : 1;
+          const wantY = wanted(y, slot) ? 0 : 1;
+          if (wantX !== wantY) return wantX - wantY;
           if (remaining[y]! !== remaining[x]!) return remaining[y]! - remaining[x]!;
           return rand() - 0.5;
         });
