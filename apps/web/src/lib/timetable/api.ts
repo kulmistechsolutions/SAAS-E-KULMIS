@@ -1,4 +1,4 @@
-import { api } from "@/lib/api";
+import { api, API_URL, ApiError, getAccessToken, TENANT } from "@/lib/api";
 import type {
   AssignShiftInput,
   FeasibilityReport,
@@ -148,3 +148,27 @@ export const publishTimetable = (id: string) =>
 
 export const deleteTimetable = (id: string) =>
   api<{ success: boolean }>(`/timetable/generated/${id}`, { method: "DELETE" });
+
+/**
+ * Downloads the printable timetable.
+ *
+ * A plain <a href> would 401: the endpoint needs a bearer token and an anchor
+ * cannot send one. So fetch it as a blob and hand the browser an object URL.
+ */
+export async function downloadTimetablePdf(id: string, filename: string) {
+  const token = getAccessToken();
+  const res = await fetch(`${API_URL}/api/timetable/generated/${id}/pdf`, {
+    headers: {
+      "x-tenant-subdomain": TENANT,
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  });
+  if (!res.ok) throw new ApiError(res.status, "Could not build the PDF.");
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}

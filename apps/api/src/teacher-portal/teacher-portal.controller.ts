@@ -12,6 +12,7 @@ import { CurrentUser } from "../auth/current-user.decorator";
 import type { AuthUser } from "../auth/auth.types";
 import { TeacherPortalService } from "./teacher-portal.service";
 import { TeachersService } from "../teachers/teachers.service";
+import { TimetableViewService } from "../timetable/timetable-view.service";
 
 @Roles(UserRole.TEACHER)
 @Controller("teacher-portal")
@@ -19,11 +20,18 @@ export class TeacherPortalController {
   constructor(
     private readonly portal: TeacherPortalService,
     private readonly teachers: TeachersService,
+    private readonly timetable: TimetableViewService,
   ) {}
 
   @Get("profile")
   profile(@CurrentUser() me: AuthUser) {
     return this.portal.profile(me.schoolId, me.userId);
+  }
+
+  /** Published lessons only — a draft is the school still deciding. */
+  @Get("timetable")
+  timetableForMe(@CurrentUser() me: AuthUser) {
+    return this.timetable.forTeacher(me.schoolId, me.userId);
   }
 
   @Get("dashboard")

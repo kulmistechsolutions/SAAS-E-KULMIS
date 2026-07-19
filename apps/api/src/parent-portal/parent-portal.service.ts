@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { ExaminationsService } from "../examinations/examinations.service";
 import { FeesService } from "../finance/fees.service";
+import { TimetableViewService } from "../timetable/timetable-view.service";
 
 @Injectable()
 export class ParentPortalService {
@@ -9,6 +10,7 @@ export class ParentPortalService {
     private readonly prisma: PrismaService,
     private readonly exams: ExaminationsService,
     private readonly fees: FeesService,
+    private readonly timetable: TimetableViewService,
   ) {}
 
   private async parentIdForUser(schoolId: string, userId: string) {
@@ -55,6 +57,21 @@ export class ParentPortalService {
         },
       }),
     );
+  }
+
+  /**
+   * The child's published class timetable.
+   *
+   * Ownership is re-checked here, exactly like every other child endpoint: a
+   * studentId in the URL must never be enough to read another family's data.
+   */
+  async childTimetable(schoolId: string, studentId: string, userId: string) {
+    const parentId = await this.parentIdForUser(schoolId, userId);
+    const owned = await this.prisma.forTenant(schoolId, (tx) =>
+      tx.student.findFirst({ where: { id: studentId, parentId }, select: { id: true } }),
+    );
+    if (!owned) throw new NotFoundException("Child not found");
+    return this.timetable.forStudent(schoolId, studentId);
   }
 
   async childAttendance(schoolId: string, studentId: string, userId: string) {

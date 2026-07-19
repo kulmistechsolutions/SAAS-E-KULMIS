@@ -4,6 +4,7 @@
 export const TEACHER_PORTAL_NAV = [
   { href: "/teacher-portal", label: "Dashboard", exact: true },
   { href: "/teacher-portal/profile", label: "My Profile" },
+  { href: "/teacher-portal/schedule", label: "My Timetable" },
   { href: "/teacher-portal/assignments", label: "My Assignments" },
   { href: "/teacher-portal/students", label: "My Students", requiresStudents: true },
   { href: "/teacher-portal/attendance", label: "Attendance" },

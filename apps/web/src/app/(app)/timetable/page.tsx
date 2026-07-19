@@ -5,6 +5,7 @@ import Link from "next/link";
 import {
   CalendarClock,
   CheckCircle2,
+  Download,
   Info,
   Loader2,
   Settings2,
@@ -16,6 +17,7 @@ import { Select } from "@/components/ui/select";
 import { TimetableGrid } from "@/components/timetable/timetable-grid";
 import {
   deleteTimetable,
+  downloadTimetablePdf,
   fetchShifts,
   fetchTimetable,
   fetchTimetables,
@@ -107,6 +109,17 @@ export default function TimetablePage() {
       await reload();
     } catch (e) {
       toast(e instanceof Error ? e.message : "Could not publish", "error");
+    }
+  }
+
+  async function handleDownload(t: TimetableSummary) {
+    try {
+      await downloadTimetablePdf(
+        t.id,
+        `timetable-${t.shift.name.toLowerCase()}.pdf`,
+      );
+    } catch (e) {
+      toast(e instanceof Error ? e.message : "Could not download", "error");
     }
   }
 
@@ -234,6 +247,15 @@ export default function TimetablePage() {
                           Publish
                         </Button>
                       )}
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="h-8 px-3 text-xs"
+                        onClick={() => handleDownload(t)}
+                      >
+                        <Download className="mr-1 h-3.5 w-3.5" />
+                        PDF
+                      </Button>
                       <Button
                         type="button"
                         variant="outline"

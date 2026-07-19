@@ -4,11 +4,14 @@ import {
   Controller,
   Delete,
   Get,
+  Header,
   Param,
   Patch,
   Post,
   Query,
+  Res,
 } from "@nestjs/common";
+import type { Response } from "express";
 import {
   assignShiftSchema,
   generateTimetableSchema,
@@ -19,6 +22,7 @@ import {
 } from "@ekulmis/shared";
 import { TimetableSetupService } from "./timetable-setup.service";
 import { TimetableGeneratorService } from "./timetable-generator.service";
+import { TimetablePdfService } from "./timetable-pdf.service";
 import { Roles } from "../auth/roles.decorator";
 import { CurrentUser } from "../auth/current-user.decorator";
 import type { AuthUser } from "../auth/auth.types";
@@ -30,6 +34,7 @@ export class TimetableController {
   constructor(
     private readonly setup: TimetableSetupService,
     private readonly generator: TimetableGeneratorService,
+    private readonly pdf: TimetablePdfService,
   ) {}
 
   // ── Shifts ───────────────────────────────────────────────────────────────
@@ -147,5 +152,18 @@ export class TimetableController {
   @Delete("generated/:id")
   removeGenerated(@CurrentUser() me: AuthUser, @Param("id") id: string) {
     return this.generator.remove(me.schoolId, id);
+  }
+
+  /** Printable timetable: summary sheet, class grids, then teacher grids. */
+  @Get("generated/:id/pdf")
+  @Header("Content-Type", "application/pdf")
+  async exportPdf(
+    @CurrentUser() me: AuthUser,
+    @Param("id") id: string,
+    @Res() res: Response,
+  ) {
+    const { buffer, filename } = await this.pdf.build(me.schoolId, id);
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+    res.send(buffer);
   }
 }

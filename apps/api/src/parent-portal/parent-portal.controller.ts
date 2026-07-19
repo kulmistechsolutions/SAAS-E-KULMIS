@@ -24,6 +24,11 @@ export class ParentPortalController {
     return this.portal.children(me.schoolId, me.userId);
   }
 
+  @Get("children/:studentId/timetable")
+  timetable(@CurrentUser() me: AuthUser, @Param("studentId") studentId: string) {
+    return this.portal.childTimetable(me.schoolId, studentId, me.userId);
+  }
+
   @Get("children/:studentId/attendance")
   attendance(@CurrentUser() me: AuthUser, @Param("studentId") studentId: string) {
     return this.portal.childAttendance(me.schoolId, studentId, me.userId);

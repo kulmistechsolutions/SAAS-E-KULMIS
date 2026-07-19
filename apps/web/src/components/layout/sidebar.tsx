@@ -166,6 +166,7 @@ const TEACHER_NAV: NavItem[] = [
   { label: "Dashboard", icon: LayoutDashboard, href: "/dashboard" },
   { label: "My Profile", icon: UserCircle, href: "/profile" },
   { label: "My Students", icon: UsersRound, href: "/my-students" },
+  { label: "My Timetable", icon: CalendarClock, href: "/my-schedule" },
   { label: "My Assignments", icon: CalendarDays, href: "/my-assignments" },
   { label: "Attendance", icon: CalendarCheck, href: "/attendance/students" },
   { label: "Examinations", icon: FileText, children: TEACHER_EXAM_CHILDREN },
