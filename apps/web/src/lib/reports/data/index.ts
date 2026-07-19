@@ -55,6 +55,9 @@ export async function fetchReportAsync(
   if (category === "fees") {
     return fetchFeeReportAsync(slug, filters);
   }
+  if (category === "students") {
+    return fetchStudentReportAsync(slug, filters);
+  }
   return fetchReport(category, slug, filters);
 }
 
@@ -65,7 +68,7 @@ export function fetchReport(
 ): ReportData {
   switch (category) {
     case "students":
-      return fetchStudentReport(slug, filters);
+      return emptyReport("Loading student data…");
     case "teachers":
       return fetchTeacherReport(slug, filters);
     case "attendance":
@@ -97,145 +100,6 @@ function emptyReport(msg: string): ReportData {
     rows: [{ message: msg }],
     summary: [{ label: "Total", value: "0" }],
   };
-}
-
-function fetchStudentReport(slug: string, filters: ReportFilters): ReportData {
-  switch (slug) {
-    case "list":
-      return studentListData(filters);
-    case "active":
-      return studentListData(filters, "ACTIVE");
-    case "inactive":
-      return studentListData(filters, "INACTIVE");
-    case "graduated":
-      return studentListData(filters, "GRADUATED");
-    case "male": {
-      const f = { ...filters, gender: "MALE" };
-      return studentListData(f, "ACTIVE");
-    }
-    case "female": {
-      const f = { ...filters, gender: "FEMALE" };
-      return studentListData(f, "ACTIVE");
-    }
-    case "registration": {
-      const rows = filterStudents(filters).sort(
-        (a, b) => new Date(b.registrationDate).getTime() - new Date(a.registrationDate).getTime(),
-      );
-      return {
-        columns: [
-          { key: "code", label: "Student ID", mono: true },
-          { key: "name", label: "Name" },
-          { key: "className", label: "Class" },
-          { key: "section", label: "Section" },
-          { key: "registered", label: "Registration Date" },
-          { key: "status", label: "Status" },
-        ],
-        rows: rows.map((s) => ({
-          code: s.code,
-          name: s.fullName,
-          className: s.className,
-          section: s.section ?? "—",
-          registered: shortDate(s.registrationDate),
-          status: s.status,
-        })),
-        summary: [
-          { label: "Total", value: String(rows.length) },
-          { label: "This Month", value: String(rows.filter((s) => {
-            const d = new Date(s.registrationDate);
-            const n = new Date();
-            return d.getMonth() === n.getMonth() && d.getFullYear() === n.getFullYear();
-          }).length) },
-        ],
-      };
-    }
-    case "by-class": {
-      const rows = filterStudents(filters);
-      const map = new Map<string, number>();
-      for (const s of rows) map.set(s.className, (map.get(s.className) ?? 0) + 1);
-      const data = [...map.entries()].sort((a, b) => a[0].localeCompare(b[0], undefined, { numeric: true }));
-      return {
-        columns: [
-          { key: "className", label: "Class" },
-          { key: "count", label: "Students", align: "right" },
-        ],
-        rows: data.map(([className, count]) => ({ className, count })),
-        summary: [
-          { label: "Classes", value: String(data.length) },
-          { label: "Total Students", value: String(rows.length) },
-        ],
-      };
-    }
-    case "by-section": {
-      const rows = filterStudents(filters);
-      const map = new Map<string, number>();
-      for (const s of rows) {
-        const key = `${s.className} — ${s.section ?? "No Section"}`;
-        map.set(key, (map.get(key) ?? 0) + 1);
-      }
-      const data = [...map.entries()].sort((a, b) => a[0].localeCompare(b[0]));
-      return {
-        columns: [
-          { key: "group", label: "Class / Section" },
-          { key: "count", label: "Students", align: "right" },
-        ],
-        rows: data.map(([group, count]) => ({ group, count })),
-        summary: [{ label: "Total Students", value: String(rows.length) }],
-      };
-    }
-    case "parent-list": {
-      const st = getStudentsState();
-      const parents = listParents(st).filter((p) => {
-        if (filters.status && p.status !== filters.status) return false;
-        const q = filters.search?.trim().toLowerCase();
-        if (q && !`${p.code} ${p.name} ${p.phone}`.toLowerCase().includes(q)) return false;
-        return true;
-      });
-      return {
-        columns: [
-          { key: "code", label: "Parent ID", mono: true },
-          { key: "name", label: "Name" },
-          { key: "phone", label: "Phone" },
-          { key: "children", label: "Children", align: "right" },
-          { key: "status", label: "Status" },
-        ],
-        rows: parents.map((p) => ({
-          code: p.code,
-          name: p.name,
-          phone: p.phone,
-          children: p.childCount,
-          status: p.status,
-        })),
-        summary: [
-          { label: "Total Parents", value: String(parents.length) },
-          { label: "Multi-Child", value: String(parents.filter((p) => p.childCount > 1).length) },
-        ],
-      };
-    }
-    case "parent-relationships": {
-      const rows = filterStudents(filters);
-      return {
-        columns: [
-          { key: "student", label: "Student" },
-          { key: "studentId", label: "Student ID", mono: true },
-          { key: "parent", label: "Parent" },
-          { key: "parentId", label: "Parent ID", mono: true },
-          { key: "phone", label: "Phone" },
-          { key: "className", label: "Class" },
-        ],
-        rows: rows.map((s) => ({
-          student: s.fullName,
-          studentId: s.code,
-          parent: s.parent.name,
-          parentId: s.parent.code,
-          phone: s.parent.phone,
-          className: s.className,
-        })),
-        summary: [{ label: "Relationships", value: String(rows.length) }],
-      };
-    }
-    default:
-      return emptyReport("Unknown student report");
-  }
 }
 
 function fetchTeacherReport(slug: string, filters: ReportFilters): ReportData {
@@ -464,6 +328,29 @@ async function fetchAttendanceReportAsync(
  * or half-complete list. A report has to be a question asked of the school's
  * real data, not of one browser tab's memory.
  */
+/**
+ * Student and parent reports, from the API rather than the browser'''s student
+ * store which only ever held the pages someone had scrolled through.
+ */
+async function fetchStudentReportAsync(
+  slug: string,
+  filters: ReportFilters,
+): Promise<ReportData> {
+  const params = new URLSearchParams();
+  for (const key of ["className", "section", "gender", "status", "dateFrom", "dateTo", "search"] as const) {
+    const value = filters[key];
+    if (value) params.set(key, String(value));
+  }
+  const query = params.toString();
+  try {
+    return await api<ReportData>(
+      `/reports/student-reports/${encodeURIComponent(slug)}${query ? `?${query}` : ""}`,
+    );
+  } catch {
+    return emptyReport("Could not load student data.");
+  }
+}
+
 async function fetchFeeReportAsync(
   slug: string,
   filters: ReportFilters,

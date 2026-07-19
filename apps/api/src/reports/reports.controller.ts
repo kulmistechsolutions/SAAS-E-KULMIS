@@ -10,6 +10,7 @@ import type { Response } from "express";
 import { UserRole } from "@ekulmis/shared";
 import { ReportsService } from "./reports.service";
 import { FeeReportsService } from "./fee-reports.service";
+import { StudentReportsService } from "./student-reports.service";
 import { Roles } from "../auth/roles.decorator";
 import { CurrentUser } from "../auth/current-user.decorator";
 import type { AuthUser } from "../auth/auth.types";
@@ -19,7 +20,33 @@ export class ReportsController {
   constructor(
     private readonly reports: ReportsService,
     private readonly feeReports: FeeReportsService,
+    private readonly studentReports: StudentReportsService,
   ) {}
+
+  /** Student and parent reports, computed from the database. */
+  @Roles(UserRole.ADMINISTRATOR, UserRole.FINANCE_OFFICER, UserRole.EXAM_MANAGER)
+  @Get("student-reports/:slug")
+  studentReportsBySlug(
+    @CurrentUser() me: AuthUser,
+    @Param("slug") slug: string,
+    @Query("className") className?: string,
+    @Query("section") section?: string,
+    @Query("gender") gender?: string,
+    @Query("status") status?: string,
+    @Query("dateFrom") dateFrom?: string,
+    @Query("dateTo") dateTo?: string,
+    @Query("search") search?: string,
+  ) {
+    return this.studentReports.build(me.schoolId, slug, {
+      className,
+      section,
+      gender,
+      status,
+      dateFrom,
+      dateTo,
+      search,
+    });
+  }
 
   /**
    * Fee reports, computed from the database rather than from whatever the fee

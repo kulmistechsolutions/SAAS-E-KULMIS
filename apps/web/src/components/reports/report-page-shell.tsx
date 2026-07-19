@@ -88,6 +88,7 @@ export function ReportPageShell({ categoryId, categoryLabel, report }: Props) {
   const needsAsync =
     categoryId === "attendance" ||
     categoryId === "fees" ||
+    categoryId === "students" ||
     (categoryId === "teachers" && report.slug === "attendance");
 
   const [data, setData] = useState<ReturnType<typeof fetchReport>>({
