@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Plus, Search } from "lucide-react";
 import { SchoolFormDialog } from "@/components/platform/school-form-dialog";
+import { SchoolLoginsDialog } from "@/components/platform/school-logins-dialog";
 import { SchoolStatusBadge } from "@/components/platform/school-status-badge";
 import { createSchool, loadSchools } from "@/lib/platform/data";
 import { shortDate, tenantUrl } from "@/lib/platform/format";
@@ -20,6 +21,9 @@ export default function PlatformSchoolsPage() {
   const [schools, setSchools] = useState<PlatformSchool[]>([]);
   const [search, setSearch] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
+  const [loginsFor, setLoginsFor] = useState<{ id: string; name: string } | null>(
+    null,
+  );
 
   useEffect(() => setMounted(true), []);
 
@@ -102,14 +106,23 @@ export default function PlatformSchoolsPage() {
                 <td className="px-4 py-3 text-slate-300">{s.userCount}</td>
                 <td className="px-4 py-3 text-slate-400">{shortDate(s.createdAt)}</td>
                 <td className="px-4 py-3">
-                  <a
-                    href={tenantUrl(s.subdomain)}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-xs text-violet-400 hover:underline"
-                  >
-                    Open →
-                  </a>
+                  <div className="flex items-center gap-3">
+                    <a
+                      href={tenantUrl(s.subdomain)}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-xs text-violet-400 hover:underline"
+                    >
+                      Open →
+                    </a>
+                    <button
+                      type="button"
+                      onClick={() => setLoginsFor({ id: s.id, name: s.name })}
+                      className="text-xs text-slate-400 hover:text-white hover:underline"
+                    >
+                      Logins
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}
@@ -128,6 +141,12 @@ export default function PlatformSchoolsPage() {
         open={createOpen}
         onClose={() => setCreateOpen(false)}
         onSubmit={handleCreate}
+      />
+
+      <SchoolLoginsDialog
+        open={!!loginsFor}
+        onClose={() => setLoginsFor(null)}
+        school={loginsFor}
       />
     </div>
   );

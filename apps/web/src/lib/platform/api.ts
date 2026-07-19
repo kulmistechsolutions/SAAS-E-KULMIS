@@ -203,6 +203,33 @@ export async function deletePlatformSchool(id: string): Promise<void> {
   await platformFetch(`/platform/schools/${id}`, { method: "DELETE" });
 }
 
+// ── School logins (Super Admin password recovery) ───────────────────────────
+
+export interface PlatformSchoolUser {
+  id: string;
+  username: string;
+  role: string;
+  status: string;
+  lastLoginAt: string | null;
+  createdAt: string;
+}
+
+export const fetchPlatformSchoolUsers = (schoolId: string) =>
+  platformFetch<{
+    school: { id: string; name: string };
+    users: PlatformSchoolUser[];
+  }>(`/platform/schools/${schoolId}/users`);
+
+export const resetPlatformSchoolUserPassword = (
+  schoolId: string,
+  userId: string,
+  newPassword: string,
+) =>
+  platformFetch<{ success: boolean; username: string; role: string }>(
+    `/platform/schools/${schoolId}/users/${userId}/reset-password`,
+    { method: "POST", body: { newPassword } },
+  );
+
 // ── Platform SMS ────────────────────────────────────────────────────────────
 
 export interface PlatformSmsConfig {

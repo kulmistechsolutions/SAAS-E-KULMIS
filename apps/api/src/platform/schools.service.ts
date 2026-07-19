@@ -124,4 +124,60 @@ export class SchoolsService {
     });
     return { success: true };
   }
+
+  /**
+   * The school's own staff logins, so Super Admin can help when an admin is
+   * locked out. Password hashes are never returned.
+   */
+  async listSchoolUsers(schoolId: string) {
+    const school = await this.prisma.school.findUnique({
+      where: { id: schoolId },
+      select: { id: true, name: true },
+    });
+    if (!school) throw new NotFoundException("School not found");
+
+    const users = await this.prisma.user.findMany({
+      where: { schoolId },
+      select: {
+        id: true,
+        username: true,
+        role: true,
+        status: true,
+        lastLoginAt: true,
+        createdAt: true,
+      },
+      orderBy: [{ role: "asc" }, { username: "asc" }],
+    });
+    return { school, users };
+  }
+
+  /**
+   * Set a new password for one of the school's users. Only the password hash
+   * is touched — no school data is read, changed or removed — and the user's
+   * existing sessions are revoked so an old session can't outlive the reset.
+   */
+  async resetSchoolUserPassword(
+    schoolId: string,
+    userId: string,
+    newPassword: string,
+  ) {
+    const user = await this.prisma.user.findFirst({
+      where: { id: userId, schoolId },
+      select: { id: true, username: true, role: true },
+    });
+    // Scoped by schoolId too, so a userId from another tenant can't be hit.
+    if (!user) throw new NotFoundException("User not found in this school");
+
+    const passwordHash = await hashPassword(newPassword);
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { passwordHash },
+    });
+    await this.prisma.refreshToken.updateMany({
+      where: { userId: user.id, revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
+
+    return { success: true, username: user.username, role: user.role };
+  }
 }
