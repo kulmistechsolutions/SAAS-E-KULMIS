@@ -83,6 +83,50 @@ export class TeacherAssignmentsService {
     }
   }
 
+  /**
+   * A "whole class" assignment (no section chosen) implicitly covers every
+   * section of that class. When a class's own sections span more than one
+   * shift — a school running one class as a morning group and an afternoon
+   * group — that single row would silently attach one teacher to both
+   * groups, even though only one shift's group is really theirs.
+   *
+   * Timetable generation and exam teacher-resolution both trust
+   * TeacherAssignment's section scoping to tell the two shifts apart, so this
+   * has to be caught here, at the source, not downstream.
+   */
+  private async assertClassesNotMultiShift(
+    tx: Tx,
+    classIds: string[],
+  ): Promise<void> {
+    if (classIds.length === 0) return;
+    const [classes, sections] = await Promise.all([
+      tx.class.findMany({
+        where: { id: { in: classIds } },
+        select: { id: true, name: true, shiftId: true },
+      }),
+      tx.section.findMany({
+        where: { classId: { in: classIds }, status: "ACTIVE" },
+        select: { classId: true, shiftId: true },
+      }),
+    ]);
+    const classById = new Map(classes.map((c) => [c.id, c]));
+    const shiftsByClass = new Map<string, Set<string | null>>();
+    for (const s of sections) {
+      const effective = s.shiftId ?? classById.get(s.classId)?.shiftId ?? null;
+      const set = shiftsByClass.get(s.classId) ?? new Set<string | null>();
+      set.add(effective);
+      shiftsByClass.set(s.classId, set);
+    }
+    for (const [classId, shifts] of shiftsByClass) {
+      if (shifts.size > 1) {
+        const name = classById.get(classId)?.name ?? "This class";
+        throw new BadRequestException(
+          `${name} has sections in different shifts. Pick a specific section rather than assigning the whole class, so the assignment applies to one shift only.`,
+        );
+      }
+    }
+  }
+
   async create(schoolId: string, dto: CreateAssignmentInput) {
     return this.prisma.forTenant(schoolId, async (tx) => {
       const sectionId = dto.sectionId ?? null;
@@ -93,6 +137,9 @@ export class TeacherAssignmentsService {
         subjectId: dto.subjectId,
         sectionId,
       });
+      if (!sectionId) {
+        await this.assertClassesNotMultiShift(tx, [dto.classId]);
+      }
 
       const dup = await tx.teacherAssignment.findFirst({
         where: {
@@ -229,6 +276,13 @@ export class TeacherAssignmentsService {
           }
         }
       }
+
+      const wholeClassIds = [
+        ...new Set(
+          uniqueItems.filter((i) => !i.sectionId).map((i) => i.classId),
+        ),
+      ];
+      await this.assertClassesNotMultiShift(tx, wholeClassIds);
 
       const existing = await tx.teacherAssignment.findMany({
         where: {
