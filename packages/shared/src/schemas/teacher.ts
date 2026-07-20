@@ -1,9 +1,20 @@
 import { z } from "zod";
 import { genderSchema } from "./student";
 
-export const Shift = { MORNING: "MORNING", AFTERNOON: "AFTERNOON" } as const;
+export const Shift = {
+  MORNING: "MORNING",
+  AFTERNOON: "AFTERNOON",
+  /// A teacher who works both shifts. Only valid on the teacher's own
+  /// profile — never on a single assignment row, which is one class in one
+  /// shift. See assignmentShiftSchema below.
+  BOTH: "BOTH",
+} as const;
 export type Shift = (typeof Shift)[keyof typeof Shift];
 export const shiftSchema = z.nativeEnum(Shift);
+
+/** The shift ONE assignment row is taught in — never BOTH. */
+export const assignmentShiftSchema = z.enum(["MORNING", "AFTERNOON"]);
+export type AssignmentShift = z.infer<typeof assignmentShiftSchema>;
 
 export const EmploymentStatus = { ACTIVE: "ACTIVE", INACTIVE: "INACTIVE" } as const;
 export type EmploymentStatus =
@@ -58,6 +69,9 @@ export const createAssignmentSchema = z.object({
   classId: z.string().min(1),
   sectionId: z.string().min(1).nullable().optional(), // null = all sections
   subjectId: z.string().min(1),
+  /** Which shift this slot is in. Only meaningful for a BOTH-shift teacher;
+   *  omit it for a single-shift teacher and the row simply has no shift tag. */
+  shift: assignmentShiftSchema.nullable().optional(),
 });
 export type CreateAssignmentInput = z.infer<typeof createAssignmentSchema>;
 
@@ -66,6 +80,7 @@ export const assignmentItemSchema = z.object({
   classId: z.string().min(1),
   sectionId: z.string().min(1).nullable().optional(),
   subjectId: z.string().min(1),
+  shift: assignmentShiftSchema.nullable().optional(),
 });
 export type AssignmentItemInput = z.infer<typeof assignmentItemSchema>;
 

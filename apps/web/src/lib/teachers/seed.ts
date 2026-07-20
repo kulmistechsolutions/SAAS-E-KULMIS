@@ -93,6 +93,7 @@ export function buildSeed(): TeachersState {
         section: allSections ? null : pick(SECTIONS, assignId),
         subject: pick(SUBJECTS, idx + a),
         status: "ACTIVE",
+        shift: null,
       });
     }
   });

@@ -20,7 +20,7 @@ import {
   useTeachersState,
   type TeacherAssignment,
 } from "@/lib/teachers/store";
-import type { AssignmentSlotInput } from "@/lib/teachers/types";
+import type { AssignmentShift, AssignmentSlotInput } from "@/lib/teachers/types";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -37,6 +37,8 @@ type SlotDraft = {
   /** "" = all sections */
   section: string;
   subjects: string[];
+  /** Only asked for — and only ever set — when the teacher is BOTH. */
+  shift: AssignmentShift | null;
 };
 
 function toggleValue(list: string[], value: string): string[] {
@@ -112,11 +114,18 @@ export function AssignmentFormDialog({
   const [teacher, setTeacher] = useState(teacherId ?? "");
   const [year, setYear] = useState("");
 
+  // A teacher whose own profile is BOTH works both shifts, so each
+  // assignment row for them needs to say which one; a single-shift teacher's
+  // assignments simply inherit their one shift without being asked.
+  const selectedTeacher = teachers.find((t) => t.id === teacher);
+  const isBoth = selectedTeacher?.shift === "BOTH";
+
   // Edit (single row)
   const [klass, setKlass] = useState("");
   const [sectionMode, setSectionMode] = useState<"one" | "all">("one");
   const [section, setSection] = useState("");
   const [subject, setSubject] = useState("");
+  const [editShift, setEditShift] = useState<AssignmentShift | null>(null);
 
   // Create (multi-slot)
   const [slots, setSlots] = useState<SlotDraft[]>([]);
@@ -158,6 +167,7 @@ export function AssignmentFormDialog({
       className: firstClass,
       section: secs[0] ?? "",
       subjects: subjects[0] ? [subjects[0]] : [],
+      shift: null,
     };
   }
 
@@ -174,6 +184,7 @@ export function AssignmentFormDialog({
       setSectionMode(assignment.section ? "one" : "all");
       setSection(assignment.section ?? "");
       setSubject(assignment.subject);
+      setEditShift(assignment.shift ?? null);
       setSlots([]);
     } else {
       setTeacher(teacherId ?? teachers[0]?.id ?? "");
@@ -200,6 +211,12 @@ export function AssignmentFormDialog({
   async function handleSubmit() {
     setError(null);
     if (!teacher) return setError("Select a teacher.");
+    if (isBoth && isEdit && !editShift) {
+      return setError("Select which shift this assignment is taught in.");
+    }
+    if (isBoth && !isEdit && slots.some((s) => s.subjects.length > 0 && !s.shift)) {
+      return setError("Select a shift for every slot — this teacher works both.");
+    }
     setSaving(true);
     try {
       if (isEdit && assignment) {
@@ -208,6 +225,7 @@ export function AssignmentFormDialog({
           className: klass,
           section: sectionMode === "all" ? null : section,
           subject,
+          shift: isBoth ? editShift : null,
         });
         if (!res.ok) return setError(res.error ?? "Update failed.");
         onSaved?.("Assignment updated.");
@@ -219,6 +237,7 @@ export function AssignmentFormDialog({
         className: s.className,
         section: s.section ? s.section : null,
         subjects: s.subjects,
+        shift: isBoth ? s.shift : null,
       }));
 
       const res = await createBulkAssignments({
@@ -394,6 +413,21 @@ export function AssignmentFormDialog({
                 ))}
               </Select>
             </div>
+            {isBoth && (
+              <div>
+                <Label required>Shift</Label>
+                <Select
+                  value={editShift ?? ""}
+                  onChange={(e) =>
+                    setEditShift((e.target.value || null) as AssignmentShift | null)
+                  }
+                >
+                  <option value="">Select shift…</option>
+                  <option value="MORNING">Morning</option>
+                  <option value="AFTERNOON">Afternoon</option>
+                </Select>
+              </div>
+            )}
           </div>
         ) : (
           <div className="space-y-3">
@@ -427,7 +461,12 @@ export function AssignmentFormDialog({
                     </button>
                   </div>
 
-                  <div className="grid gap-3 sm:grid-cols-2">
+                  <div
+                    className={cn(
+                      "grid gap-3 sm:grid-cols-2",
+                      isBoth && "sm:grid-cols-3",
+                    )}
+                  >
                     <div>
                       <Label required>Class / Grade</Label>
                       <Select
@@ -466,6 +505,23 @@ export function AssignmentFormDialog({
                         ))}
                       </Select>
                     </div>
+                    {isBoth && (
+                      <div>
+                        <Label required>Shift</Label>
+                        <Select
+                          value={slot.shift ?? ""}
+                          onChange={(e) =>
+                            updateSlot(slot.key, {
+                              shift: (e.target.value || null) as AssignmentShift | null,
+                            })
+                          }
+                        >
+                          <option value="">Select shift…</option>
+                          <option value="MORNING">Morning</option>
+                          <option value="AFTERNOON">Afternoon</option>
+                        </Select>
+                      </div>
+                    )}
                   </div>
 
                   <div className="mt-3">
@@ -500,7 +556,10 @@ export function AssignmentFormDialog({
                         {slot.className}
                         {slot.section
                           ? ` · Section ${slot.section}`
-                          : " · All sections"}{" "}
+                          : " · All sections"}
+                        {isBoth && slot.shift
+                          ? ` · ${slot.shift === "MORNING" ? "Morning" : "Afternoon"}`
+                          : ""}{" "}
                         → {slot.subjects.join(", ")}
                       </p>
                     ) : null}

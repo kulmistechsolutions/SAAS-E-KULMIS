@@ -2,6 +2,7 @@
 
 import { api } from "@/lib/api";
 import type {
+  AssignmentShift,
   EmploymentStatus,
   Gender,
   Shift,
@@ -32,6 +33,7 @@ interface ApiAssignment {
   class: { name: string };
   section: { name: string } | null;
   subject: { name: string };
+  shift: AssignmentShift | null;
 }
 
 export function mapApiTeacher(t: ApiTeacher): Teacher {
@@ -63,6 +65,7 @@ export function mapApiAssignment(a: ApiAssignment): TeacherAssignment {
     section: a.section?.name ?? null,
     subject: a.subject.name,
     status: "ACTIVE",
+    shift: a.shift,
   };
 }
 
@@ -129,6 +132,7 @@ export async function apiCreateAssignment(body: {
   classId: string;
   sectionId?: string | null;
   subjectId: string;
+  shift?: AssignmentShift | null;
 }): Promise<TeacherAssignment> {
   const row = await api<ApiAssignment>("/teacher-assignments", {
     method: "POST",
@@ -144,6 +148,7 @@ export async function apiBulkCreateAssignments(body: {
     classId: string;
     sectionId?: string | null;
     subjectId: string;
+    shift?: AssignmentShift | null;
   }[];
 }): Promise<{
   created: TeacherAssignment[];

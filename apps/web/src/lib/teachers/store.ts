@@ -20,6 +20,7 @@ import type { TeacherMe } from "./api";
 import { DEFAULT_TEACHER_PASSWORD } from "./constants";
 import type {
   AssignmentInput,
+  AssignmentShift,
   AssignmentStatus,
   BulkAssignmentInput,
   EmploymentStatus,
@@ -212,6 +213,7 @@ export function hydrateTeacherSelf(me: TeacherMe): void {
     id: a.id,
     teacherId: me.id,
     academicYear: a.academicYear.name,
+    shift: null,
     className: a.class.name,
     section: a.section?.name ?? null,
     subject: a.subject.name,
@@ -378,8 +380,9 @@ export function summarize(st: TeachersState): TeacherSummary {
   for (const t of st.teachers) {
     if (t.status === "ACTIVE") out.active++;
     else out.inactive++;
-    if (t.shift === "MORNING") out.morning++;
-    else out.afternoon++;
+    // A BOTH-shift teacher counts toward both totals.
+    if (t.shift === "MORNING" || t.shift === "BOTH") out.morning++;
+    if (t.shift === "AFTERNOON" || t.shift === "BOTH") out.afternoon++;
     if (!assignedIds.has(t.id)) out.withoutAssignments++;
   }
   return out;
@@ -519,6 +522,7 @@ function resolveAssignmentInput(input: AssignmentInput): {
     classId: string;
     sectionId: string | null;
     subjectId: string;
+    shift?: AssignmentShift | null;
   };
   error?: string;
 } {
@@ -537,6 +541,7 @@ function resolveAssignmentInput(input: AssignmentInput): {
       classId: cls.classId,
       sectionId: sec.sectionId,
       subjectId: sub.subjectId,
+      shift: input.shift ?? null,
     },
   };
 }
@@ -596,6 +601,7 @@ export async function createBulkAssignments(
     classId: string;
     sectionId: string | null;
     subjectId: string;
+    shift?: AssignmentShift | null;
   }[] = [];
   const seen = new Set<string>();
 
@@ -626,16 +632,20 @@ export async function createBulkAssignments(
       sectionId = sec.sectionId;
     }
 
+    const shift = slot.shift ?? null;
     for (const subjectName of slot.subjects) {
       const sub = resolveSubjectId(subjectName);
       if (!sub.subjectId) return { ok: false, error: sub.error };
-      const key = `${cls.classId}|${sectionId ?? ""}|${sub.subjectId}`;
+      // shift included: it's the only thing telling apart a BOTH-shift
+      // teacher's morning row from their afternoon one on the same class.
+      const key = `${cls.classId}|${sectionId ?? ""}|${sub.subjectId}|${shift ?? ""}`;
       if (seen.has(key)) continue;
       seen.add(key);
       items.push({
         classId: cls.classId,
         sectionId,
         subjectId: sub.subjectId,
+        shift,
       });
     }
   }
@@ -665,7 +675,10 @@ export async function createBulkAssignments(
 export async function updateAssignment(
   id: string,
   patch: Partial<
-    Pick<TeacherAssignment, "section" | "subject" | "status" | "className" | "academicYear">
+    Pick<
+      TeacherAssignment,
+      "section" | "subject" | "status" | "className" | "academicYear" | "shift"
+    >
   >,
 ): Promise<AssignmentResult> {
   await ensureAcademicsLoaded();
@@ -679,6 +692,7 @@ export async function updateAssignment(
     className: patch.className ?? existing.className,
     section: patch.section !== undefined ? patch.section : existing.section,
     subject: patch.subject ?? existing.subject,
+    shift: patch.shift !== undefined ? patch.shift : existing.shift,
   };
 
   try {

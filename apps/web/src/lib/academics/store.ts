@@ -23,6 +23,7 @@ import {
   apiUpdateClass,
   apiUpdateSection,
   apiUpdateSubject,
+  apiUpdateYear,
 } from "./api";
 import type {
   AcademicsDashboardSummary,
@@ -615,6 +616,41 @@ export async function createAcademicYear(
     return { ok: true, year };
   } catch (e) {
     return { ok: false, error: apiErr(e, "Failed to create academic year.") };
+  }
+}
+
+/**
+ * Fix a year's name or dates in place. Deliberately not a delete-and-recreate:
+ * an academic year is the root every class, student fee, exam and attendance
+ * record hangs off — deleting one to "rename" it would cascade-destroy all of
+ * that, just to fix a typo.
+ */
+export async function updateAcademicYear(
+  id: string,
+  patch: { name?: string; startDate?: string; endDate?: string },
+): Promise<{ ok: boolean; error?: string; year?: AcademicYear }> {
+  const s = ensure();
+  if (
+    patch.name &&
+    s.academicYears.some((y) => y.id !== id && y.name === patch.name)
+  ) {
+    return { ok: false, error: "Another academic year already has that name." };
+  }
+  try {
+    const updated = await apiUpdateYear(id, patch);
+    await refreshAcademics();
+    await broadcastAcademicYearChange();
+    logAudit("Academic Year Updated", updated.name);
+    const year: AcademicYear = {
+      id: updated.id,
+      name: updated.name,
+      startDate: updated.startDate ? updated.startDate.slice(0, 10) : "",
+      endDate: updated.endDate ? updated.endDate.slice(0, 10) : "",
+      status: updated.isActive ? "ACTIVE" : "CLOSED",
+    };
+    return { ok: true, year };
+  } catch (e) {
+    return { ok: false, error: apiErr(e, "Failed to update academic year.") };
   }
 }
 

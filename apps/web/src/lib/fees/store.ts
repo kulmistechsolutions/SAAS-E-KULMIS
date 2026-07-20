@@ -277,8 +277,62 @@ export function nextActivatableMonth(): string {
   return nextMonthKey(ensure().activeMonthKey);
 }
 
+export interface MonthSetupClassGroup {
+  /** classId:sectionId — the same key used to exclude it from activation. */
+  key: string;
+  classId: string;
+  sectionId: string | null;
+  className: string;
+  sectionName: string | null;
+  studentCount: number;
+}
+
+/**
+ * Every class/section that would be charged if the next month is activated
+ * right now — for the setup screen to show as a checklist, so a class on
+ * break (fasax) this month can be unticked before charging.
+ */
+export function pendingMonthClasses(): MonthSetupClassGroup[] {
+  const s = ensure();
+  const students = activeStudents(s.academicYear);
+  const groups = new Map<string, MonthSetupClassGroup>();
+
+  for (const st of students) {
+    const r = resolveClassSectionIds(st.className, st.section);
+    if (!r.classId) continue;
+    const key = `${r.classId}:${r.sectionId ?? ""}`;
+    const existing = groups.get(key);
+    if (existing) {
+      existing.studentCount += 1;
+    } else {
+      groups.set(key, {
+        key,
+        classId: r.classId,
+        sectionId: r.sectionId ?? null,
+        className: st.className,
+        sectionName: st.section ?? null,
+        studentCount: 1,
+      });
+    }
+  }
+
+  return [...groups.values()].sort(
+    (a, b) =>
+      a.className.localeCompare(b.className) ||
+      (a.sectionName ?? "").localeCompare(b.sectionName ?? ""),
+  );
+}
+
+/**
+ * Charge every class for the next month, except the ones in `excludedKeys`
+ * (each a `pendingMonthClasses()` group's `key`). A class left out this run
+ * is simply not billed for the month — nothing is created for it, and it
+ * picks back up normally whenever it's included again. There is no sequence
+ * dependency between months in this billing mode, so skipping one is safe.
+ */
 export async function activateNextMonth(
   user = "Admin User",
+  excludedKeys: string[] = [],
 ): Promise<{ ok: boolean; error?: string }> {
   if (feeSettingsCache.billingMode === "ACADEMIC_YEAR") {
     return {
@@ -301,26 +355,28 @@ export async function activateNextMonth(
   }
 
   const { year, month } = parseMonthKey(nextKey);
-  const students = activeStudents(s.academicYear);
-  const pairs = new Map<string, { classId: string; sectionId: string | null }>();
-
-  for (const st of students) {
-    const r = resolveClassSectionIds(st.className, st.section);
-    if (!r.classId) continue;
-    const key = `${r.classId}:${r.sectionId ?? ""}`;
-    pairs.set(key, { classId: r.classId, sectionId: r.sectionId ?? null });
-  }
-
-  if (pairs.size === 0) {
+  const groups = pendingMonthClasses();
+  if (groups.length === 0) {
     return { ok: false, error: "No classes found for active students." };
   }
 
+  const excluded = new Set(excludedKeys);
+  const included = groups.filter((g) => !excluded.has(g.key));
+  if (included.length === 0) {
+    return { ok: false, error: "Every class was excluded — nothing to charge." };
+  }
+
   try {
-    for (const { classId, sectionId } of pairs.values()) {
-      await apiChargeMonth({ classId, sectionId, year, month });
+    for (const g of included) {
+      await apiChargeMonth({ classId: g.classId, sectionId: g.sectionId, year, month });
     }
     await refreshFees();
-    logAudit("Month Setup", user, `Activated ${monthLabel(nextKey)}`);
+    logAudit(
+      "Month Setup",
+      user,
+      `Activated ${monthLabel(nextKey)}` +
+        (excluded.size > 0 ? ` — ${excluded.size} class(es) excluded` : ""),
+    );
     return { ok: true };
   } catch (e) {
     return { ok: false, error: apiErr(e, "Failed to activate next month.") };

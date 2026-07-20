@@ -65,6 +65,12 @@ export const apiCreateYear = (body: {
 export const apiActivateYear = (id: string) =>
   api<ApiYear>(`/academic-years/${id}/activate`, { method: "POST" });
 
+/** In-place edit — the name or dates only, never a delete-and-recreate. */
+export const apiUpdateYear = (
+  id: string,
+  body: { name?: string; startDate?: string; endDate?: string },
+) => api<ApiYear>(`/academic-years/${id}`, { method: "PATCH", body });
+
 // ── Classes ──
 export const apiCreateClass = (body: {
   academicYearId: string;

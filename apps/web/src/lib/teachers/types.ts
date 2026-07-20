@@ -1,5 +1,9 @@
 export type Gender = "MALE" | "FEMALE";
-export type Shift = "MORNING" | "AFTERNOON";
+/** BOTH is only ever valid on the teacher's own profile, never on one
+ *  assignment row — see AssignmentShift below. */
+export type Shift = "MORNING" | "AFTERNOON" | "BOTH";
+/** The shift ONE assignment slot is taught in. */
+export type AssignmentShift = "MORNING" | "AFTERNOON";
 export type EmploymentStatus = "ACTIVE" | "INACTIVE";
 export type AssignmentStatus = "ACTIVE" | "INACTIVE";
 
@@ -31,6 +35,9 @@ export interface TeacherAssignment {
   section: string | null;
   subject: string;
   status: AssignmentStatus;
+  /** Which shift this slot is taught in. Set for a BOTH-shift teacher, null
+   *  for a single-shift teacher whose one shift is already implied. */
+  shift: AssignmentShift | null;
 }
 
 export interface TeacherInput {
@@ -52,6 +59,7 @@ export interface AssignmentInput {
   className: string;
   section: string | null;
   subject: string;
+  shift?: AssignmentShift | null;
 }
 
 /**
@@ -64,6 +72,8 @@ export interface AssignmentSlotInput {
   /** null = all sections of the class */
   section: string | null;
   subjects: string[];
+  /** Required only when the teacher's own profile is BOTH. */
+  shift?: AssignmentShift | null;
 }
 
 /** Bulk create from explicit class/section/subject slots (not a full cartesian product). */

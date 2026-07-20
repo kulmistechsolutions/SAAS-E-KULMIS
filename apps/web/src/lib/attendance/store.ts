@@ -433,7 +433,10 @@ export async function loadTeacherMarkingRows(
 
     const tt = getTeachersState();
     const rows = tt.teachers
-      .filter((t) => t.shift === shift)
+      // A BOTH-shift teacher belongs on both the morning and afternoon
+      // sheets — excluding them (the old `=== shift` check) would leave
+      // their attendance unrecorded on either one.
+      .filter((t) => t.shift === shift || t.shift === "BOTH")
       .sort((a, b) => a.fullName.localeCompare(b.fullName))
       .map((t) => {
         const eligible = t.status === "ACTIVE";
@@ -441,7 +444,9 @@ export async function loadTeacherMarkingRows(
           teacherId: t.id,
           code: t.code,
           fullName: t.fullName,
-          shift: t.shift,
+          // The sheet's own shift, not the teacher's range — a BOTH-shift
+          // teacher's morning mark must say MORNING, not BOTH.
+          shift,
           status: statusById.get(t.id) ?? "PRESENT",
           eligible,
           reason: !eligible ? "Inactive" : undefined,
@@ -491,11 +496,13 @@ export async function saveTeacherAttendance(
 export async function teacherDashboardToday(date = todayISO()) {
   const tt = getTeachersState();
   const active = tt.teachers.filter((t) => t.status === "ACTIVE").length;
+  // A BOTH-shift teacher counts toward both totals — they really do work
+  // both, not neither.
   const morning = tt.teachers.filter(
-    (t) => t.shift === "MORNING" && t.status === "ACTIVE",
+    (t) => (t.shift === "MORNING" || t.shift === "BOTH") && t.status === "ACTIVE",
   ).length;
   const afternoon = tt.teachers.filter(
-    (t) => t.shift === "AFTERNOON" && t.status === "ACTIVE",
+    (t) => (t.shift === "AFTERNOON" || t.shift === "BOTH") && t.status === "ACTIVE",
   ).length;
 
   try {

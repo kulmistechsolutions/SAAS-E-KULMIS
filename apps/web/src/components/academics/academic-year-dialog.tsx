@@ -7,57 +7,89 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { toast } from "@/lib/toast";
-import { createAcademicYear } from "@/lib/academics/store";
+import { createAcademicYear, updateAcademicYear } from "@/lib/academics/store";
+import type { AcademicYear } from "@/lib/academics/types";
 
 interface Props {
   open: boolean;
   onClose: () => void;
+  /** Present = editing this year in place; absent = creating a new one. */
+  year?: AcademicYear | null;
 }
 
-export function AcademicYearDialog({ open, onClose }: Props) {
+export function AcademicYearDialog({ open, onClose, year }: Props) {
+  const isEdit = !!year;
+
   const [name, setName] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [makeActive, setMakeActive] = useState("no");
   const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (!open) return;
     setError(null);
-    setName("");
-    setStartDate("");
-    setEndDate("");
-    setMakeActive("no");
-  }, [open]);
+    setSaving(false);
+    if (year) {
+      setName(year.name);
+      setStartDate(year.startDate);
+      setEndDate(year.endDate);
+    } else {
+      setName("");
+      setStartDate("");
+      setEndDate("");
+      setMakeActive("no");
+    }
+  }, [open, year]);
 
   async function submit() {
     setError(null);
     if (!name.trim()) return setError("Academic year name is required.");
     if (!startDate || !endDate) return setError("Start and end dates are required.");
-    const res = await createAcademicYear({
-      name,
-      startDate,
-      endDate,
-      status: makeActive === "yes" ? "ACTIVE" : "CLOSED",
-    });
-    if (!res.ok) return setError(res.error ?? "Operation failed.");
-    toast("Academic year created.", "success");
-    onClose();
+    setSaving(true);
+    try {
+      if (isEdit && year) {
+        const res = await updateAcademicYear(year.id, { name, startDate, endDate });
+        if (!res.ok) return setError(res.error ?? "Update failed.");
+        toast("Academic year updated.", "success");
+        onClose();
+        return;
+      }
+
+      const res = await createAcademicYear({
+        name,
+        startDate,
+        endDate,
+        status: makeActive === "yes" ? "ACTIVE" : "CLOSED",
+      });
+      if (!res.ok) return setError(res.error ?? "Operation failed.");
+      toast("Academic year created.", "success");
+      onClose();
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
     <Dialog
       open={open}
       onClose={onClose}
-      title="Add Academic Year"
-      description="Only one academic year can be active at a time."
+      title={isEdit ? `Edit ${year?.name ?? "Academic Year"}` : "Add Academic Year"}
+      description={
+        isEdit
+          ? "Fix the name or dates. This never touches the year's classes, students, or records."
+          : "Only one academic year can be active at a time."
+      }
       className="max-w-md"
       footer={
         <>
-          <Button variant="outline" onClick={onClose}>
+          <Button variant="outline" onClick={onClose} disabled={saving}>
             Cancel
           </Button>
-          <Button onClick={submit}>Create</Button>
+          <Button onClick={submit} disabled={saving}>
+            {saving ? "Saving…" : isEdit ? "Save" : "Create"}
+          </Button>
         </>
       }
     >
@@ -85,13 +117,15 @@ export function AcademicYearDialog({ open, onClose }: Props) {
             <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
           </div>
         </div>
-        <div>
-          <Label required>Set as Active</Label>
-          <Select value={makeActive} onChange={(e) => setMakeActive(e.target.value)}>
-            <option value="no">No — keep current active year</option>
-            <option value="yes">Yes — activate this year</option>
-          </Select>
-        </div>
+        {!isEdit && (
+          <div>
+            <Label required>Set as Active</Label>
+            <Select value={makeActive} onChange={(e) => setMakeActive(e.target.value)}>
+              <option value="no">No — keep current active year</option>
+              <option value="yes">Yes — activate this year</option>
+            </Select>
+          </div>
+        )}
       </div>
     </Dialog>
   );

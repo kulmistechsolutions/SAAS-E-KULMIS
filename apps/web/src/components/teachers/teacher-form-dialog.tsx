@@ -191,6 +191,7 @@ export function TeacherFormDialog({ open, onClose, teacher, onSaved }: Props) {
           <Select value={form.shift} onChange={(e) => set("shift", e.target.value as Shift)}>
             <option value="MORNING">Morning</option>
             <option value="AFTERNOON">Afternoon</option>
+            <option value="BOTH">Both — morning and afternoon</option>
           </Select>
         </div>
         <div>

@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CalendarCheck, Plus } from "lucide-react";
+import { CalendarCheck, Pencil, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/academics/status-badge";
 import { AcademicYearDialog } from "@/components/academics/academic-year-dialog";
 import { setActiveAcademicYear, useAcademicsState } from "@/lib/academics/store";
+import type { AcademicYear } from "@/lib/academics/types";
 import { shortDate } from "@/lib/academics/format";
 import { toast } from "@/lib/toast";
 
@@ -14,6 +15,7 @@ export default function AcademicYearsPage() {
   useEffect(() => setMounted(true), []);
   const state = useAcademicsState();
   const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState<AcademicYear | null>(null);
 
   if (!mounted) {
     return (
@@ -31,7 +33,9 @@ export default function AcademicYearsPage() {
         <div>
           <h1 className="text-2xl font-bold">Academic Years</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Only one academic year can be active at a time. Closed years are read-only.
+            Only one academic year can be active at a time. Fix a typo any time
+            with Edit — years are never deleted, since classes, students, and
+            records all hang off them.
           </p>
         </div>
         <Button onClick={() => setOpen(true)}>
@@ -55,7 +59,18 @@ export default function AcademicYearsPage() {
                   <p className="text-xs text-muted-foreground">Academic Year</p>
                 </div>
               </div>
-              <StatusBadge status={y.status} />
+              <div className="flex items-center gap-1.5">
+                <StatusBadge status={y.status} />
+                <button
+                  type="button"
+                  onClick={() => setEditing(y)}
+                  className="rounded-md p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground"
+                  aria-label={`Edit ${y.name}`}
+                  title="Edit name or dates"
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                </button>
+              </div>
             </div>
             <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
               <div>
@@ -89,6 +104,11 @@ export default function AcademicYearsPage() {
       </div>
 
       <AcademicYearDialog open={open} onClose={() => setOpen(false)} />
+      <AcademicYearDialog
+        open={!!editing}
+        onClose={() => setEditing(null)}
+        year={editing}
+      />
     </div>
   );
 }

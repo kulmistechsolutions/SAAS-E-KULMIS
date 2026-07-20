@@ -494,10 +494,19 @@ export class DashboardService {
         },
         teachers: {
           total: teachersTotal,
-          morning: teachersActiveByShift.find((s) => s.shift === "MORNING")
-            ?._count._all ?? 0,
-          afternoon: teachersActiveByShift.find((s) => s.shift === "AFTERNOON")
-            ?._count._all ?? 0,
+          // A BOTH-shift teacher counts toward both totals — they really do
+          // work both, not neither, so it is added to each bucket rather than
+          // sitting in a group of its own.
+          morning:
+            (teachersActiveByShift.find((s) => s.shift === "MORNING")
+              ?._count._all ?? 0) +
+            (teachersActiveByShift.find((s) => s.shift === "BOTH")
+              ?._count._all ?? 0),
+          afternoon:
+            (teachersActiveByShift.find((s) => s.shift === "AFTERNOON")
+              ?._count._all ?? 0) +
+            (teachersActiveByShift.find((s) => s.shift === "BOTH")
+              ?._count._all ?? 0),
         },
         parents: { total: parentsTotal },
         academics: {

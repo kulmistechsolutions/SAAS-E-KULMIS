@@ -26,7 +26,7 @@ export function longDate(iso: string | null | undefined): string {
 export const genderLabel = (g: string) => (g === "MALE" ? "Male" : "Female");
 
 export const shiftLabel = (s: string) =>
-  s === "MORNING" ? "Morning" : "Afternoon";
+  s === "MORNING" ? "Morning" : s === "AFTERNOON" ? "Afternoon" : "Both";
 
 export const statusLabel = (s: string) =>
   s.charAt(0) + s.slice(1).toLowerCase();

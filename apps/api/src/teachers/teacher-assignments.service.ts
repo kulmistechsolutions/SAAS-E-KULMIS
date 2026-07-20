@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
-import { Prisma } from "@prisma/client";
+import { Prisma, type Shift } from "@prisma/client";
 import type {
   BulkCreateAssignmentsInput,
   CreateAssignmentInput,
@@ -34,8 +34,12 @@ function assignmentKey(
   sectionId: string | null,
   subjectId: string,
   academicYearId: string,
+  shift: string | null,
 ): string {
-  return `${teacherId}|${classId}|${sectionId ?? ""}|${subjectId}|${academicYearId}`;
+  // Mirrors the database's exact-duplicate index: shift only distinguishes a
+  // BOTH-shift teacher's morning row from their afternoon one; two rows that
+  // agree on everything else INCLUDING an absent shift are true duplicates.
+  return `${teacherId}|${classId}|${sectionId ?? ""}|${subjectId}|${academicYearId}|${shift ?? ""}`;
 }
 
 @Injectable()
@@ -141,6 +145,7 @@ export class TeacherAssignmentsService {
         await this.assertClassesNotMultiShift(tx, [dto.classId]);
       }
 
+      const shift = dto.shift ?? null;
       const dup = await tx.teacherAssignment.findFirst({
         where: {
           teacherId: dto.teacherId,
@@ -148,12 +153,13 @@ export class TeacherAssignmentsService {
           sectionId,
           subjectId: dto.subjectId,
           academicYearId: dto.academicYearId,
+          shift,
         },
         select: { id: true },
       });
       if (dup) {
         throw new ConflictException(
-          "Exact duplicate: this teacher already has this subject for the same class, section, and academic year",
+          "Exact duplicate: this teacher already has this subject for the same class, section, shift, and academic year",
         );
       }
 
@@ -166,6 +172,7 @@ export class TeacherAssignmentsService {
             classId: dto.classId,
             sectionId,
             subjectId: dto.subjectId,
+            shift,
           },
           include: assignmentInclude,
         });
@@ -175,7 +182,7 @@ export class TeacherAssignmentsService {
         // exact_dup_key) is the source of truth. Surface a clean 409.
         if (isUniqueViolation(e)) {
           throw new ConflictException(
-            "Exact duplicate: this teacher already has this subject for the same class, section, and academic year",
+            "Exact duplicate: this teacher already has this subject for the same class, section, shift, and academic year",
           );
         }
         throw e;
@@ -210,15 +217,18 @@ export class TeacherAssignmentsService {
         classId: string;
         sectionId: string | null;
         subjectId: string;
+        shift: Shift | null;
       }[] = [];
       for (const item of dto.items) {
         const sectionId = item.sectionId ?? null;
+        const shift = (item.shift ?? null) as Shift | null;
         const key = assignmentKey(
           dto.teacherId,
           item.classId,
           sectionId,
           item.subjectId,
           dto.academicYearId,
+          shift,
         );
         if (seen.has(key)) continue;
         seen.add(key);
@@ -226,6 +236,7 @@ export class TeacherAssignmentsService {
           classId: item.classId,
           sectionId,
           subjectId: item.subjectId,
+          shift,
         });
       }
 
@@ -292,12 +303,14 @@ export class TeacherAssignmentsService {
             classId: i.classId,
             sectionId: i.sectionId,
             subjectId: i.subjectId,
+            shift: i.shift,
           })),
         },
         select: {
           classId: true,
           sectionId: true,
           subjectId: true,
+          shift: true,
         },
       });
       const existingKeys = new Set(
@@ -308,6 +321,7 @@ export class TeacherAssignmentsService {
             e.sectionId,
             e.subjectId,
             dto.academicYearId,
+            e.shift,
           ),
         ),
       );
@@ -321,6 +335,7 @@ export class TeacherAssignmentsService {
               i.sectionId,
               i.subjectId,
               dto.academicYearId,
+              i.shift,
             ),
           ),
       );
@@ -340,6 +355,7 @@ export class TeacherAssignmentsService {
             classId: item.classId,
             sectionId: item.sectionId,
             subjectId: item.subjectId,
+            shift: item.shift,
           })),
           skipDuplicates: true,
         });
@@ -356,6 +372,7 @@ export class TeacherAssignmentsService {
                 classId: i.classId,
                 sectionId: i.sectionId,
                 subjectId: i.subjectId,
+                shift: i.shift,
               })),
             },
             include: assignmentInclude,

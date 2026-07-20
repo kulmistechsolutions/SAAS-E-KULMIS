@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Calendar, CheckCircle2, GraduationCap } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,9 @@ import {
   activateNextMonth,
   canActivateNextMonth,
   getFeeMonthSetupDay,
+  pendingMonthClasses,
   useFeesState,
+  type MonthSetupClassGroup,
 } from "@/lib/fees/store";
 import { toast } from "@/lib/toast";
 
@@ -23,6 +25,10 @@ export default function MonthlySetupPage() {
   const [billingMode, setBillingMode] = useState<"MONTHLY" | "ACADEMIC_YEAR" | null>(
     null,
   );
+  const [saving, setSaving] = useState(false);
+  // Every class starts ticked (charged). Unticking one — e.g. it's on break
+  // this month — leaves it out of this run without touching anything else.
+  const [excluded, setExcluded] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     void apiFeeSettings()
@@ -30,10 +36,41 @@ export default function MonthlySetupPage() {
       .catch(() => setBillingMode("MONTHLY"));
   }, []);
 
+  const classGroups = useMemo<MonthSetupClassGroup[]>(
+    () => pendingMonthClasses(),
+    // Recomputed each time the fees store refreshes (new active month, etc).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [fees],
+  );
+  const includedCount = classGroups.length - excluded.size;
+
+  function toggleClass(key: string) {
+    setExcluded((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }
+
   async function handleSetup() {
-    const res = await activateNextMonth();
-    if (!res.ok) toast(res.error ?? "Failed", "error");
-    else toast(`Activated ${monthLabel(nextKey)}`, "success");
+    setSaving(true);
+    try {
+      const res = await activateNextMonth(undefined, [...excluded]);
+      if (!res.ok) {
+        toast(res.error ?? "Failed", "error");
+        return;
+      }
+      toast(
+        excluded.size > 0
+          ? `Activated ${monthLabel(nextKey)} for ${includedCount} class(es) — ${excluded.size} excluded.`
+          : `Activated ${monthLabel(nextKey)}`,
+        "success",
+      );
+      setExcluded(new Set());
+    } finally {
+      setSaving(false);
+    }
   }
 
   if (billingMode === "ACADEMIC_YEAR") {
@@ -110,19 +147,75 @@ export default function MonthlySetupPage() {
         </div>
         <p className="mt-2 text-sm text-muted-foreground">
           A new month can only be activated after the {setupDay}th of the current billing
-          month. When activated, the system creates fee records for all active students,
-          carries forward unpaid balances, and skips months covered by advance payments.
+          month. When activated, the system creates fee records for every ticked
+          class, carries forward unpaid balances, and skips months covered by
+          advance payments.
         </p>
         <div className="mt-4 rounded-xl bg-secondary/30 p-4">
           <p className="text-xs text-muted-foreground">Next Month</p>
           <p className="text-lg font-semibold">{monthLabel(nextKey)}</p>
         </div>
-        <Button className="mt-4 w-full" disabled={!canActivate} onClick={handleSetup}>
-          Setup Next Month — {monthLabel(nextKey)}
+
+        {classGroups.length > 0 && (
+          <div className="mt-4">
+            <div className="mb-2 flex items-center justify-between">
+              <p className="text-xs font-medium text-muted-foreground">
+                Classes to charge this month
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {includedCount} of {classGroups.length} selected
+              </p>
+            </div>
+            <p className="mb-2 text-xs text-muted-foreground">
+              Untick a class that&apos;s on break this month — it will be skipped
+              and picks back up normally once ticked again next time.
+            </p>
+            <div className="max-h-64 overflow-y-auto rounded-xl border">
+              {classGroups.map((g) => {
+                const checked = !excluded.has(g.key);
+                return (
+                  <label
+                    key={g.key}
+                    className="flex cursor-pointer items-center justify-between gap-2 border-b px-3 py-2 text-sm last:border-0 hover:bg-secondary/40"
+                  >
+                    <span className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => toggleClass(g.key)}
+                      />
+                      <span>
+                        {g.className}
+                        {g.sectionName ? ` — Section ${g.sectionName}` : ""}
+                      </span>
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      {g.studentCount} student{g.studentCount === 1 ? "" : "s"}
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        <Button
+          className="mt-4 w-full"
+          disabled={!canActivate || saving || includedCount === 0}
+          onClick={handleSetup}
+        >
+          {saving
+            ? "Setting up…"
+            : `Setup Next Month — ${monthLabel(nextKey)} (${includedCount})`}
         </Button>
         {!canActivate && (
           <p className="mt-2 text-center text-xs text-amber-600">
             Available after the {setupDay}th of {monthLabel(fees.activeMonthKey)}
+          </p>
+        )}
+        {canActivate && includedCount === 0 && classGroups.length > 0 && (
+          <p className="mt-2 text-center text-xs text-amber-600">
+            Every class is unticked — tick at least one to continue.
           </p>
         )}
       </div>
