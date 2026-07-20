@@ -13,6 +13,11 @@ import { FeeReportsService } from "./fee-reports.service";
 import { StudentReportsService } from "./student-reports.service";
 import { TeacherReportsService } from "./teacher-reports.service";
 import { ExamReportsService } from "./exam-reports.service";
+import { PromotionReportsService } from "./promotion-reports.service";
+import { SalaryReportsService } from "./salary-reports.service";
+import { ExpenseReportsService } from "./expense-reports.service";
+import { FinancialReportsService } from "./financial-reports.service";
+import { QuizReportsService } from "./quiz-reports.service";
 import { Roles } from "../auth/roles.decorator";
 import { CurrentUser } from "../auth/current-user.decorator";
 import type { AuthUser } from "../auth/auth.types";
@@ -25,7 +30,80 @@ export class ReportsController {
     private readonly studentReports: StudentReportsService,
     private readonly teacherReports: TeacherReportsService,
     private readonly examReports: ExamReportsService,
+    private readonly promotionReports: PromotionReportsService,
+    private readonly salaryReports: SalaryReportsService,
+    private readonly expenseReports: ExpenseReportsService,
+    private readonly financialReports: FinancialReportsService,
+    private readonly quizReports: QuizReportsService,
   ) {}
+
+  /** Promotion and graduation reports, computed from the database. */
+  @Roles(UserRole.ADMINISTRATOR, UserRole.FINANCE_OFFICER, UserRole.EXAM_MANAGER)
+  @Get("promotion-reports/:slug")
+  promotionReportsBySlug(
+    @CurrentUser() me: AuthUser,
+    @Param("slug") slug: string,
+    @Query("className") className?: string,
+    @Query("section") section?: string,
+    @Query("search") search?: string,
+  ) {
+    return this.promotionReports.build(me.schoolId, slug, { className, section, search });
+  }
+
+  /** Staff salary reports, computed from the database. */
+  @Roles(UserRole.ADMINISTRATOR, UserRole.FINANCE_OFFICER)
+  @Get("salary-reports/:slug")
+  salaryReportsBySlug(
+    @CurrentUser() me: AuthUser,
+    @Param("slug") slug: string,
+    @Query("month") month?: string,
+    @Query("shift") shift?: string,
+    @Query("status") status?: string,
+  ) {
+    return this.salaryReports.build(me.schoolId, slug, { month, shift, status });
+  }
+
+  /** Operational expense reports, computed from the database. */
+  @Roles(UserRole.ADMINISTRATOR, UserRole.FINANCE_OFFICER)
+  @Get("expense-reports/:slug")
+  expenseReportsBySlug(
+    @CurrentUser() me: AuthUser,
+    @Param("slug") slug: string,
+    @Query("dateFrom") dateFrom?: string,
+    @Query("dateTo") dateTo?: string,
+    @Query("month") month?: string,
+    @Query("category") category?: string,
+  ) {
+    return this.expenseReports.build(me.schoolId, slug, {
+      dateFrom,
+      dateTo,
+      month,
+      category,
+    });
+  }
+
+  /** Income vs. expenses vs. salaries, computed from the database. */
+  @Roles(UserRole.ADMINISTRATOR, UserRole.FINANCE_OFFICER)
+  @Get("financial-reports/:slug")
+  financialReportsBySlug(
+    @CurrentUser() me: AuthUser,
+    @Param("slug") slug: string,
+    @Query("month") month?: string,
+  ) {
+    return this.financialReports.build(me.schoolId, slug, { month });
+  }
+
+  /** Quiz performance and activity reports, computed from the database. */
+  @Roles(UserRole.ADMINISTRATOR, UserRole.FINANCE_OFFICER, UserRole.EXAM_MANAGER)
+  @Get("quiz-reports/:slug")
+  quizReportsBySlug(
+    @CurrentUser() me: AuthUser,
+    @Param("slug") slug: string,
+    @Query("className") className?: string,
+    @Query("section") section?: string,
+  ) {
+    return this.quizReports.build(me.schoolId, slug, { className, section });
+  }
 
   /** Exams for the report picker, so it stops depending on a browser store. */
   @Roles(UserRole.ADMINISTRATOR, UserRole.FINANCE_OFFICER, UserRole.EXAM_MANAGER)

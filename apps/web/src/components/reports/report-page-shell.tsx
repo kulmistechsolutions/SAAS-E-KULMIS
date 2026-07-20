@@ -90,7 +90,12 @@ export function ReportPageShell({ categoryId, categoryLabel, report }: Props) {
     categoryId === "fees" ||
     categoryId === "students" ||
     categoryId === "teachers" ||
-    categoryId === "examinations";
+    categoryId === "examinations" ||
+    categoryId === "promotions" ||
+    categoryId === "salary" ||
+    categoryId === "expenses" ||
+    categoryId === "financial" ||
+    categoryId === "quiz";
 
   const [data, setData] = useState<ReturnType<typeof fetchReport>>({
     columns: [],

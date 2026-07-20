@@ -6,6 +6,11 @@ import { FeeReportsService } from "./fee-reports.service";
 import { StudentReportsService } from "./student-reports.service";
 import { TeacherReportsService } from "./teacher-reports.service";
 import { ExamReportsService } from "./exam-reports.service";
+import { PromotionReportsService } from "./promotion-reports.service";
+import { SalaryReportsService } from "./salary-reports.service";
+import { ExpenseReportsService } from "./expense-reports.service";
+import { FinancialReportsService } from "./financial-reports.service";
+import { QuizReportsService } from "./quiz-reports.service";
 
 @Module({
   imports: [ExaminationsModule],
@@ -16,6 +21,11 @@ import { ExamReportsService } from "./exam-reports.service";
     StudentReportsService,
     TeacherReportsService,
     ExamReportsService,
+    PromotionReportsService,
+    SalaryReportsService,
+    ExpenseReportsService,
+    FinancialReportsService,
+    QuizReportsService,
   ],
 })
 export class ReportsModule {}
