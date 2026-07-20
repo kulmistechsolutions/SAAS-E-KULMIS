@@ -127,13 +127,19 @@ export class FeesService {
           skipped++;
           continue;
         }
+        const amount = dto.amount ?? s.monthlyFee;
         await tx.feeCharge.create({
           data: {
             schoolId,
             studentId: s.id,
             year: dto.year,
             month: dto.month,
-            amount: dto.amount ?? s.monthlyFee,
+            amount,
+            // A 0-amount month (fee waived/exempt) is settled by definition —
+            // it must never sit in the ledger as UNPAID, which would show a
+            // free student as owing money and pull them into outstanding
+            // reports and reminder SMS runs.
+            status: amount === 0 ? "PAID" : "UNPAID",
           },
         });
         charged++;
@@ -349,10 +355,14 @@ export class FeesService {
         month: now.month,
         amount,
         paidAmount: 0,
+        // A 0-amount month (fee waived/exempt) is settled by definition — it
+        // must never sit in the ledger as UNPAID.
         status:
-          mode === "AGREEMENT" && amount < student.monthlyFee
-            ? "PARTIAL"
-            : "UNPAID",
+          amount === 0
+            ? "PAID"
+            : mode === "AGREEMENT" && amount < student.monthlyFee
+              ? "PARTIAL"
+              : "UNPAID",
       },
     });
     return 1;
@@ -386,18 +396,23 @@ export class FeesService {
       const isInactive = slot.sequenceIndex < billingStart.sequenceIndex;
 
       let amount = monthlyFee;
-      let status: "INACTIVE" | "UNPAID" | "PARTIAL" = isInactive
-        ? "INACTIVE"
-        : "UNPAID";
-
       if (
         !isInactive &&
         slot.sequenceIndex === billingStart.sequenceIndex &&
         ctx.student.feeStartMode === "AGREEMENT"
       ) {
         amount = ctx.student.feeAgreementAmount ?? monthlyFee;
-        if (amount < monthlyFee) status = "PARTIAL";
       }
+
+      // A 0-amount month (fee waived/exempt) is settled by definition — it
+      // must never sit in the ledger as UNPAID.
+      const status: "INACTIVE" | "UNPAID" | "PARTIAL" | "PAID" = isInactive
+        ? "INACTIVE"
+        : amount === 0
+          ? "PAID"
+          : amount < monthlyFee
+            ? "PARTIAL"
+            : "UNPAID";
 
       if (!isInactive) activeCount++;
 
@@ -496,18 +511,23 @@ export class FeesService {
         const isInactive = slot.sequenceIndex < billingStart.sequenceIndex;
 
         let amount = monthlyFee;
-        let status: "INACTIVE" | "UNPAID" | "PARTIAL" = isInactive
-          ? "INACTIVE"
-          : "UNPAID";
-
         if (
           !isInactive &&
           slot.sequenceIndex === billingStart.sequenceIndex &&
           student.feeStartMode === "AGREEMENT"
         ) {
           amount = student.feeAgreementAmount ?? monthlyFee;
-          if (amount < monthlyFee) status = "PARTIAL";
         }
+
+        // A 0-amount month (fee waived/exempt) is settled by definition — it
+        // must never sit in the ledger as UNPAID.
+        const status: "INACTIVE" | "UNPAID" | "PARTIAL" | "PAID" = isInactive
+          ? "INACTIVE"
+          : amount === 0
+            ? "PAID"
+            : amount < monthlyFee
+              ? "PARTIAL"
+              : "UNPAID";
 
         if (!isInactive) activeCount++;
 
