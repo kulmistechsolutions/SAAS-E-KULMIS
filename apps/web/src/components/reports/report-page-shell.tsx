@@ -16,7 +16,7 @@ import { Select } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Pagination } from "@/components/ui/pagination";
 import { activeAcademicYear, classNamesForYear, getAcademicsState, sectionNamesForClass, useAcademicsState } from "@/lib/academics/store";
-import { getExaminationsState } from "@/lib/examinations/store";
+import { api } from "@/lib/api";
 import { logReportAction } from "@/lib/reports/audit";
 import { fetchReport, fetchReportAsync } from "@/lib/reports/data";
 import { downloadReportPdf, exportReportCsv, printReport } from "@/lib/reports/print";
@@ -89,7 +89,8 @@ export function ReportPageShell({ categoryId, categoryLabel, report }: Props) {
     categoryId === "attendance" ||
     categoryId === "fees" ||
     categoryId === "students" ||
-    categoryId === "teachers";
+    categoryId === "teachers" ||
+    categoryId === "examinations";
 
   const [data, setData] = useState<ReturnType<typeof fetchReport>>({
     columns: [],
@@ -97,6 +98,35 @@ export function ReportPageShell({ categoryId, categoryLabel, report }: Props) {
     summary: [],
   });
   const [dataLoading, setDataLoading] = useState(false);
+
+  // The exam picker used to read from the browser's examinations store, which
+  // only ever held whatever the exams pages had loaded — so the dropdown could
+  // be empty even when exams existed. It now comes from the same API the report
+  // itself queries.
+  const [exams, setExams] = useState<{ id: string; name: string }[]>([]);
+  useEffect(() => {
+    if (!mounted || categoryId !== "examinations") return;
+    const yearId = academics.academicYears.find(
+      (y) => y.name === (filters.academicYear || year),
+    )?.id;
+    if (!yearId) {
+      setExams([]);
+      return;
+    }
+    let cancelled = false;
+    void api<{ id: string; name: string }[]>(
+      `/reports/exam-list?academicYearId=${encodeURIComponent(yearId)}`,
+    )
+      .then((res) => {
+        if (!cancelled) setExams(res);
+      })
+      .catch(() => {
+        if (!cancelled) setExams([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [mounted, categoryId, academics.academicYears, filters.academicYear, year]);
 
   useEffect(() => {
     if (!mounted) return;
@@ -167,7 +197,6 @@ export function ReportPageShell({ categoryId, categoryLabel, report }: Props) {
   }
 
   const years = getAcademicsState().academicYears;
-  const exams = getExaminationsState().exams.filter((e) => e.academicYear === (filters.academicYear ?? year));
 
   return (
     <div className="space-y-6">

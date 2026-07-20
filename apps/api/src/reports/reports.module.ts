@@ -5,6 +5,7 @@ import { ReportsService } from "./reports.service";
 import { FeeReportsService } from "./fee-reports.service";
 import { StudentReportsService } from "./student-reports.service";
 import { TeacherReportsService } from "./teacher-reports.service";
+import { ExamReportsService } from "./exam-reports.service";
 
 @Module({
   imports: [ExaminationsModule],
@@ -14,6 +15,7 @@ import { TeacherReportsService } from "./teacher-reports.service";
     FeeReportsService,
     StudentReportsService,
     TeacherReportsService,
+    ExamReportsService,
   ],
 })
 export class ReportsModule {}

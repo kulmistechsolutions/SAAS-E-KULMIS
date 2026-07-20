@@ -1,20 +1,6 @@
 import { api } from "@/lib/api";
 import { filterStudentRecords, filterTeacherRecords } from "@/lib/attendance/store";
-import { activeAcademicYear } from "@/lib/academics/store";
-import {
-  getExaminationsState,
-  monitoringRows,
-  studentFinalResult,
-} from "@/lib/examinations/store";
-import {
-  dashboardSummary as feeDashboard,
-  getFeesState,
-  listStudentFees,
-  outstandingBalance,
-  studentAnnualSummary,
-  studentCharges,
-} from "@/lib/fees/store";
-import { monthLabel } from "@/lib/fees/format";
+import { dashboardSummary as feeDashboard } from "@/lib/fees/store";
 import {
   graduatedStudents,
   promotionHistory,
@@ -28,11 +14,9 @@ import {
   listQuizzes,
   getQuizState,
 } from "@/lib/quiz/store";
-import { getState as getStudentsState, listParents } from "@/lib/students/store";
-import { getTeachersState, summarize } from "@/lib/teachers/store";
 import { incomeVsExpense } from "@/lib/dashboard-data";
 import type { ReportData, ReportFilters } from "../types";
-import { filterStudents, money, shortDate, studentListData, yearOf } from "./utils";
+import { money, shortDate, yearOf } from "./utils";
 
 import {
   expensesByCategory,
@@ -61,6 +45,9 @@ export async function fetchReportAsync(
   if (category === "students") {
     return fetchStudentReportAsync(slug, filters);
   }
+  if (category === "examinations") {
+    return fetchExamReportAsync(slug, filters);
+  }
   return fetchReport(category, slug, filters);
 }
 
@@ -81,7 +68,7 @@ export function fetchReport(
       // first response lands.
       return emptyReport("Loading fee data…");
     case "examinations":
-      return fetchExamReport(slug, filters);
+      return emptyReport("Loading exam data…");
     case "promotions":
       return fetchPromotionReport(slug, filters);
     case "salary":
@@ -280,134 +267,28 @@ async function fetchFeeReportAsync(
   }
 }
 
-function fetchExamReport(slug: string, filters: ReportFilters): ReportData {
-  const year = yearOf(filters);
-  const ex = getExaminationsState();
-  const students = getStudentsState().students.filter((s) => s.academicYear === year && s.status === "ACTIVE");
-
-  if (slug === "submission-status") {
-    const rows = monitoringRows().filter((r) => {
-      if (filters.examId && r.examId !== filters.examId) return false;
-      if (filters.className && r.className !== filters.className) return false;
-      return true;
-    });
-    return {
-      columns: [
-        { key: "exam", label: "Exam" },
-        { key: "className", label: "Class" },
-        { key: "subject", label: "Subject" },
-        { key: "teacher", label: "Teacher" },
-        { key: "status", label: "Status" },
-      ],
-      rows: rows.map((r) => ({
-        exam: r.examName,
-        className: r.className,
-        subject: r.subject,
-        teacher: r.teacherName,
-        status: r.status,
-      })),
-      summary: [{ label: "Rows", value: String(rows.length) }],
-    };
+/**
+ * Examination reports, from the API. They reuse the same results engine behind
+ * the on-screen results and the results PDF, so a report can never disagree
+ * with what a teacher or parent already sees.
+ */
+async function fetchExamReportAsync(
+  slug: string,
+  filters: ReportFilters,
+): Promise<ReportData> {
+  const params = new URLSearchParams();
+  for (const key of ["examId", "className", "section", "subject", "term", "search"] as const) {
+    const value = filters[key];
+    if (value) params.set(key, String(value));
   }
-
-  const classFilter = filters.className;
-  const sectionFilter = filters.section;
-  const results: { student: string; code: string; className: string; average: string; grade: string; passed: string }[] = [];
-
-  for (const s of students) {
-    if (classFilter && s.className !== classFilter) continue;
-    if (sectionFilter && (s.section ?? "") !== sectionFilter) continue;
-    const fr = studentFinalResult(s.id, undefined, year);
-    if (!fr) continue;
-    results.push({
-      student: s.fullName,
-      code: s.code,
-      className: s.className,
-      average: fr.finalAverage.toFixed(1),
-      grade: fr.finalGrade,
-      passed: fr.passed ? "Pass" : "Fail",
-    });
+  const query = params.toString();
+  try {
+    return await api<ReportData>(
+      `/reports/exam-reports/${encodeURIComponent(slug)}${query ? `?${query}` : ""}`,
+    );
+  } catch {
+    return emptyReport("Could not load exam data.");
   }
-
-  if (slug === "rankings") {
-    results.sort((a, b) => Number(b.average) - Number(a.average));
-    return {
-      columns: [
-        { key: "rank", label: "#", align: "right" },
-        { key: "student", label: "Student" },
-        { key: "code", label: "ID", mono: true },
-        { key: "average", label: "Average", align: "right" },
-        { key: "grade", label: "Grade" },
-      ],
-      rows: results.map((r, i) => ({ rank: i + 1, ...r })),
-      summary: [{ label: "Students", value: String(results.length) }],
-    };
-  }
-
-  if (slug === "grade-distribution") {
-    const map = new Map<string, number>();
-    for (const r of results) map.set(r.grade, (map.get(r.grade) ?? 0) + 1);
-    return {
-      columns: [
-        { key: "grade", label: "Grade" },
-        { key: "count", label: "Students", align: "right" },
-      ],
-      rows: [...map.entries()].sort((a, b) => a[0].localeCompare(b[0])).map(([grade, count]) => ({ grade, count })),
-      summary: [{ label: "Total", value: String(results.length) }],
-    };
-  }
-
-  if (slug === "pass-fail") {
-    const pass = results.filter((r) => r.passed === "Pass").length;
-    const fail = results.length - pass;
-    return {
-      columns: [
-        { key: "outcome", label: "Outcome" },
-        { key: "count", label: "Students", align: "right" },
-        { key: "percent", label: "%", align: "right" },
-      ],
-      rows: [
-        { outcome: "Pass", count: pass, percent: results.length ? `${((pass / results.length) * 100).toFixed(1)}%` : "0%" },
-        { outcome: "Fail", count: fail, percent: results.length ? `${((fail / results.length) * 100).toFixed(1)}%` : "0%" },
-      ],
-      summary: [{ label: "Total", value: String(results.length) }],
-    };
-  }
-
-  if (slug === "term-results") {
-    const exams = ex.exams.filter((e) => e.academicYear === year && (!filters.term || e.term === filters.term));
-    return {
-      columns: [
-        { key: "exam", label: "Exam" },
-        { key: "term", label: "Term" },
-        { key: "className", label: "Class" },
-        { key: "status", label: "Status" },
-      ],
-      rows: exams.map((e) => ({
-        exam: e.name,
-        term: e.term,
-        className: e.className,
-        status: e.status,
-      })),
-      summary: [{ label: "Exams", value: String(exams.length) }],
-    };
-  }
-
-  return {
-    columns: [
-      { key: "student", label: "Student" },
-      { key: "code", label: "ID", mono: true },
-      { key: "className", label: "Class" },
-      { key: "average", label: "Average", align: "right" },
-      { key: "grade", label: "Grade" },
-      { key: "passed", label: "Result" },
-    ],
-    rows: results,
-    summary: [
-      { label: "Students", value: String(results.length) },
-      { label: "Pass Rate", value: results.length ? `${((results.filter((r) => r.passed === "Pass").length / results.length) * 100).toFixed(1)}%` : "0%" },
-    ],
-  };
 }
 
 function fetchPromotionReport(slug: string, filters: ReportFilters): ReportData {

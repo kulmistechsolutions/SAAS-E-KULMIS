@@ -12,6 +12,7 @@ import { ReportsService } from "./reports.service";
 import { FeeReportsService } from "./fee-reports.service";
 import { StudentReportsService } from "./student-reports.service";
 import { TeacherReportsService } from "./teacher-reports.service";
+import { ExamReportsService } from "./exam-reports.service";
 import { Roles } from "../auth/roles.decorator";
 import { CurrentUser } from "../auth/current-user.decorator";
 import type { AuthUser } from "../auth/auth.types";
@@ -23,7 +24,39 @@ export class ReportsController {
     private readonly feeReports: FeeReportsService,
     private readonly studentReports: StudentReportsService,
     private readonly teacherReports: TeacherReportsService,
+    private readonly examReports: ExamReportsService,
   ) {}
+
+  /** Exams for the report picker, so it stops depending on a browser store. */
+  @Roles(UserRole.ADMINISTRATOR, UserRole.FINANCE_OFFICER, UserRole.EXAM_MANAGER)
+  @Get("exam-list")
+  examList(@CurrentUser() me: AuthUser, @Query("academicYearId") yearId: string) {
+    if (!yearId) return [];
+    return this.examReports.listExams(me.schoolId, yearId);
+  }
+
+  /** Examination reports: results, rankings, distribution, submission status. */
+  @Roles(UserRole.ADMINISTRATOR, UserRole.FINANCE_OFFICER, UserRole.EXAM_MANAGER)
+  @Get("exam-reports/:slug")
+  examReportsBySlug(
+    @CurrentUser() me: AuthUser,
+    @Param("slug") slug: string,
+    @Query("examId") examId?: string,
+    @Query("className") className?: string,
+    @Query("section") section?: string,
+    @Query("subject") subject?: string,
+    @Query("term") term?: string,
+    @Query("search") search?: string,
+  ) {
+    return this.examReports.build(me.schoolId, slug, {
+      examId,
+      className,
+      section,
+      subject,
+      term,
+      search,
+    });
+  }
 
   /** Teacher list, salary and assignment reports, from the database. */
   @Roles(UserRole.ADMINISTRATOR, UserRole.FINANCE_OFFICER, UserRole.EXAM_MANAGER)
