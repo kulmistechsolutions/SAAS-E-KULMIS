@@ -130,14 +130,30 @@ export function ReportPageShell({ categoryId, categoryLabel, report }: Props) {
 
   useEffect(() => {
     if (!mounted) return;
+    // Guards against a race: switching reports before a slower fetch for the
+    // PREVIOUS report has resolved must not let that stale response land on
+    // top of the new report's data — the title says one report while the
+    // table quietly shows another's columns and rows. Clearing to empty first
+    // also means stale columns never sit under the new title while a fetch
+    // is in flight.
+    let cancelled = false;
+    setData({ columns: [], rows: [], summary: [] });
     if (needsAsync) {
       setDataLoading(true);
       void fetchReportAsync(categoryId, report.slug, { ...filters, search })
-        .then(setData)
-        .finally(() => setDataLoading(false));
-      return;
+        .then((res) => {
+          if (!cancelled) setData(res);
+        })
+        .finally(() => {
+          if (!cancelled) setDataLoading(false);
+        });
+    } else {
+      const res = fetchReport(categoryId, report.slug, { ...filters, search });
+      if (!cancelled) setData(res);
     }
-    setData(fetchReport(categoryId, report.slug, { ...filters, search }));
+    return () => {
+      cancelled = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mounted, categoryId, report.slug, filters, search, refreshKey, needsAsync]);
 
