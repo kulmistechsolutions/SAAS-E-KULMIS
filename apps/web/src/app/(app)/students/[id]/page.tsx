@@ -31,7 +31,12 @@ import {
   isStudentBlocked,
   useExaminationsState,
 } from "@/lib/examinations/store";
-import type { StudentFinalResult } from "@/lib/examinations/types";
+import type {
+  StudentExamResult,
+  StudentFinalResult,
+} from "@/lib/examinations/types";
+import { Dialog } from "@/components/ui/dialog";
+import { ExamResultCard } from "@/components/examinations/exam-result-card";
 import { attendanceHistory, loadAttendanceHistory, type AttendanceSummary } from "@/lib/students/history";
 import { studentQuizHistory } from "@/lib/quiz/store";
 import { studentPromotionHistory } from "@/lib/promotions/store";
@@ -519,6 +524,7 @@ function ExamsTab({ student }: { student: StudentWithParent }) {
   const blocked = isStudentBlocked(student.id);
   const [result, setResult] = useState<StudentFinalResult | null>(null);
   const [loading, setLoading] = useState(true);
+  const [viewing, setViewing] = useState<StudentExamResult | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -547,7 +553,7 @@ function ExamsTab({ student }: { student: StudentWithParent }) {
 
   return (
     <div className="space-y-4">
-      <div className="overflow-hidden rounded-xl border">
+      <div className="overflow-x-auto rounded-xl border">
         <table className="w-full text-sm">
           <thead className="bg-secondary text-left text-xs text-muted-foreground">
             <tr>
@@ -557,6 +563,7 @@ function ExamsTab({ student }: { student: StudentWithParent }) {
               <th className="px-4 py-2.5 font-medium">Average</th>
               <th className="px-4 py-2.5 font-medium">Grade</th>
               <th className="px-4 py-2.5 font-medium">Result</th>
+              <th className="px-4 py-2.5 text-right font-medium">Card</th>
             </tr>
           </thead>
           <tbody>
@@ -572,11 +579,21 @@ function ExamsTab({ student }: { student: StudentWithParent }) {
                     {r.passed ? "Pass" : "Fail"}
                   </Badge>
                 </td>
+                <td className="px-4 py-2.5 text-right">
+                  <button
+                    type="button"
+                    onClick={() => setViewing(r)}
+                    className="inline-flex items-center gap-1 rounded-lg border px-2.5 py-1 text-xs font-medium hover:bg-secondary"
+                  >
+                    <FileText className="h-3.5 w-3.5" />
+                    View
+                  </button>
+                </td>
               </tr>
             ))}
             {rows.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
+                <td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">
                   {loading ? "Loading results…" : "No published exam results yet."}
                 </td>
               </tr>
@@ -595,6 +612,33 @@ function ExamsTab({ student }: { student: StudentWithParent }) {
           </Badge>
         </div>
       )}
+
+      <Dialog
+        open={!!viewing}
+        onClose={() => setViewing(null)}
+        title="Exam Result Card"
+        className="sm:max-w-2xl"
+      >
+        {viewing && result ? (
+          <ExamResultCard
+            data={{
+              studentName: result.studentName,
+              studentCode: result.studentCode,
+              className: result.className,
+              section: result.section,
+              academicYear: result.academicYear,
+              examName: viewing.examName,
+              term: viewing.term,
+              subjects: viewing.subjects,
+              totalObtained: viewing.totalObtained,
+              totalMax: viewing.totalMax,
+              average: viewing.average,
+              grade: viewing.grade,
+              passed: viewing.passed,
+            }}
+          />
+        ) : null}
+      </Dialog>
     </div>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { GraduationCap, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,8 +20,8 @@ export default function PublicResultsPage() {
   const [searched, setSearched] = useState(false);
   const [notFound, setNotFound] = useState(false);
 
-  async function handleSearch() {
-    if (!code.trim()) return;
+  const runSearch = useCallback(async (raw: string) => {
+    if (!raw.trim()) return;
     setLoading(true);
     setSearched(true);
     setNotFound(false);
@@ -29,7 +29,7 @@ export default function PublicResultsPage() {
     setTermResults([]);
     setFinalResult(null);
 
-    const res = await lookupPublicResults(code.trim());
+    const res = await lookupPublicResults(raw.trim());
     setLoading(false);
 
     if (!res.ok) {
@@ -45,7 +45,19 @@ export default function PublicResultsPage() {
       setTermResults(res.result.termResults);
       setFinalResult(res.result);
     }
+  }, []);
+
+  function handleSearch() {
+    void runSearch(code);
   }
+
+  // A scanned result-card QR lands here as /results?code=STU-123 — look it up right away.
+  useEffect(() => {
+    const fromQr = new URLSearchParams(window.location.search).get("code");
+    if (!fromQr) return;
+    setCode(fromQr);
+    void runSearch(fromQr);
+  }, [runSearch]);
 
   const student = finalResult;
 

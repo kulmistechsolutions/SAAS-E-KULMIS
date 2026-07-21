@@ -5,6 +5,7 @@ import Link from "next/link";
 import {
   ArrowLeft,
   Download,
+  FileText,
   Lock,
   Pencil,
   Printer,
@@ -16,6 +17,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Dialog } from "@/components/ui/dialog";
+import {
+  ExamResultCard,
+  subjectGrade,
+} from "@/components/examinations/exam-result-card";
 import {
   apiClassResultsMatrix,
   apiDownloadClassResultsExcel,
@@ -72,6 +78,7 @@ function ClassResultsContent() {
   const [saving, setSaving] = useState(false);
   const [actionBusy, setActionBusy] = useState(false);
   const [exportBusy, setExportBusy] = useState(false);
+  const [cardStudentId, setCardStudentId] = useState<string | null>(null);
 
   const yearId = useMemo(() => {
     return getAcademicsState().academicYears.find((y) => y.name === yearName)?.id;
@@ -123,6 +130,35 @@ function ClassResultsContent() {
     () => data?.rows.filter((r) => !r.complete) ?? [],
     [data],
   );
+
+  /** The selected row, normalized into the shared result-card shape. */
+  const cardData = useMemo(() => {
+    if (!data || !cardStudentId) return null;
+    const row = data.rows.find((r) => r.studentId === cardStudentId);
+    if (!row) return null;
+    return {
+      studentName: row.studentName,
+      studentCode: row.studentCode,
+      className: data.exam.className,
+      section: data.exam.sectionName,
+      academicYear: data.exam.academicYear,
+      examName: data.exam.name,
+      subjects: data.subjects.map((s) => {
+        const marks = row.subjectMarks[s.subjectId] ?? null;
+        return {
+          subject: s.name,
+          maxMarks: data.exam.maxMarks,
+          marksObtained: marks,
+          grade: subjectGrade(marks, data.exam.maxMarks),
+        };
+      }),
+      totalObtained: row.totalObtained,
+      totalMax: row.totalMax,
+      average: row.average,
+      grade: row.grade,
+      passed: row.passed,
+    };
+  }, [data, cardStudentId]);
 
   function handleMarkDraft(studentId: string, subjectId: string, raw: string) {
     if (raw !== "" && !/^\d*\.?\d*$/.test(raw)) return;
@@ -499,6 +535,9 @@ function ClassResultsContent() {
                   <th className="px-3 py-2.5 font-medium">Average</th>
                   <th className="px-3 py-2.5 font-medium">Grade</th>
                   <th className="px-3 py-2.5 font-medium">Remark</th>
+                  <th className="px-3 py-2.5 text-right font-medium print:hidden">
+                    Card
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -537,6 +576,16 @@ function ClassResultsContent() {
                         {r.remark}
                       </Badge>
                     </td>
+                    <td className="px-3 py-2 text-right print:hidden">
+                      <button
+                        type="button"
+                        onClick={() => setCardStudentId(r.studentId)}
+                        className="inline-flex items-center gap-1 rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors hover:bg-secondary"
+                      >
+                        <FileText className="h-3.5 w-3.5" />
+                        View
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -546,6 +595,15 @@ function ClassResultsContent() {
       ) : (
         <p className="text-center text-muted-foreground">Select an exam to view results.</p>
       )}
+
+      <Dialog
+        open={!!cardData}
+        onClose={() => setCardStudentId(null)}
+        title="Exam Result Card"
+        className="sm:max-w-3xl"
+      >
+        {cardData ? <ExamResultCard data={cardData} /> : null}
+      </Dialog>
     </div>
   );
 }
