@@ -32,6 +32,7 @@ import {
   useTeachersState,
 } from "@/lib/teachers/store";
 import {
+  assignmentShiftLabel,
   genderLabel,
   longDate,
   money,
@@ -342,6 +343,7 @@ function TeacherProfileContent({ id }: { id: string }) {
                         <th className="px-4 py-2.5 font-medium">Year</th>
                         <th className="px-4 py-2.5 font-medium">Class</th>
                         <th className="px-4 py-2.5 font-medium">Section</th>
+                        <th className="px-4 py-2.5 font-medium">Shift</th>
                         <th className="px-4 py-2.5 font-medium">Subject</th>
                         <th className="px-4 py-2.5 text-right font-medium">
                           Actions
@@ -355,6 +357,9 @@ function TeacherProfileContent({ id }: { id: string }) {
                           <td className="px-4 py-2.5">{a.className}</td>
                           <td className="px-4 py-2.5">
                             {sectionLabel(a.section)}
+                          </td>
+                          <td className="px-4 py-2.5">
+                            {assignmentShiftLabel(a.shift, teacher.shift)}
                           </td>
                           <td className="px-4 py-2.5">{a.subject}</td>
                           <td className="px-4 py-2.5">

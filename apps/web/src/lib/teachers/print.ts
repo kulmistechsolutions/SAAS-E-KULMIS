@@ -2,6 +2,7 @@
 
 import { getSettings, schoolBranding } from "@/lib/settings/store";
 import {
+  assignmentShiftLabel,
   genderLabel,
   money,
   sectionLabel,
@@ -134,7 +135,7 @@ export function printTeacherProfile(
   const assignRows = assignments
     .map(
       (a) =>
-        `<tr><td>${a.academicYear}</td><td>${escapeHtml(a.className)}</td><td>${sectionLabel(a.section)}</td><td>${escapeHtml(a.subject)}</td></tr>`,
+        `<tr><td>${a.academicYear}</td><td>${escapeHtml(a.className)}</td><td>${sectionLabel(a.section)}</td><td>${escapeHtml(assignmentShiftLabel(a.shift, teacher.shift))}</td><td>${escapeHtml(a.subject)}</td></tr>`,
     )
     .join("");
   w.document.write(`<!DOCTYPE html><html><head><title>${escapeHtml(teacher.fullName)}</title>
@@ -169,8 +170,8 @@ export function printTeacherProfile(
   </table>
   <h2>Assignments</h2>
   <table>
-    <thead><tr><th>Academic Year</th><th>Class</th><th>Section</th><th>Subject</th></tr></thead>
-    <tbody>${assignRows || '<tr><td colspan="4">No assignments</td></tr>'}</tbody>
+    <thead><tr><th>Academic Year</th><th>Class</th><th>Section</th><th>Shift</th><th>Subject</th></tr></thead>
+    <tbody>${assignRows || '<tr><td colspan="5">No assignments</td></tr>'}</tbody>
   </table>
   ${teacherFooter ? `<div class="foot">${escapeHtml(teacherFooter)}</div>` : ""}
   <script>window.onload=function(){window.print()}</script>

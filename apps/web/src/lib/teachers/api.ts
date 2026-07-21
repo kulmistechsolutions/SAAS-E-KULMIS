@@ -185,6 +185,8 @@ export interface TeacherMeAssignment {
   class: { id: string; name: string };
   section: { id: string; name: string } | null;
   subject: { id: string; name: string };
+  /** Which shift this row is taught in — set when the teacher is BOTH. */
+  shift: AssignmentShift | null;
 }
 
 export interface TeacherMe extends ApiTeacher {

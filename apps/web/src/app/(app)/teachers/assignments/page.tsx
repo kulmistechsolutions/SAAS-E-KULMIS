@@ -15,7 +15,7 @@ import {
 } from "@/lib/teachers/store";
 import { AcademicYearSelect } from "@/components/academics/academic-year-select";
 import { classNamesForYear, useAcademicsState } from "@/lib/academics/store";
-import { sectionLabel, statusLabel } from "@/lib/teachers/format";
+import { assignmentShiftLabel, sectionLabel, statusLabel } from "@/lib/teachers/format";
 import type { TeacherAssignment } from "@/lib/teachers/types";
 import { toast } from "@/lib/toast";
 
@@ -125,6 +125,7 @@ export default function TeacherAssignmentsPage() {
                 <th className="px-4 py-3 font-medium">Teacher</th>
                 <th className="px-4 py-3 font-medium">Class</th>
                 <th className="px-4 py-3 font-medium">Section</th>
+                <th className="px-4 py-3 font-medium">Shift</th>
                 <th className="px-4 py-3 font-medium">Subject</th>
                 <th className="px-4 py-3 font-medium">Academic Year</th>
                 <th className="px-4 py-3 font-medium">Status</th>
@@ -134,7 +135,7 @@ export default function TeacherAssignmentsPage() {
             <tbody>
               {pageRows.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-4 py-16 text-center text-muted-foreground">
+                  <td colSpan={9} className="px-4 py-16 text-center text-muted-foreground">
                     No assignments found.
                   </td>
                 </tr>
@@ -152,6 +153,9 @@ export default function TeacherAssignmentsPage() {
                       </td>
                       <td className="px-4 py-3">{a.className}</td>
                       <td className="px-4 py-3">{sectionLabel(a.section)}</td>
+                      <td className="px-4 py-3">
+                        {assignmentShiftLabel(a.shift, t?.shift ?? "")}
+                      </td>
                       <td className="px-4 py-3">{a.subject}</td>
                       <td className="px-4 py-3">{a.academicYear}</td>
                       <td className="px-4 py-3">

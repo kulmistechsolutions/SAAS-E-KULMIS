@@ -7,11 +7,16 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import type { TeacherMe, TeacherMeAssignment } from "@/lib/teachers/api";
 import { loadTeacherMe } from "@/lib/teachers/session";
+import { assignmentShiftLabel } from "@/lib/teachers/format";
 import { useSchoolBranding } from "@/lib/settings/use-school-branding";
 import { toast } from "@/lib/toast";
 
-function downloadCsv(rows: TeacherMeAssignment[], fileName: string) {
-  const headers = ["Academic Year", "Class", "Section", "Subject"];
+function downloadCsv(
+  rows: TeacherMeAssignment[],
+  teacherShift: string,
+  fileName: string,
+) {
+  const headers = ["Academic Year", "Class", "Section", "Shift", "Subject"];
   const esc = (v: string) =>
     /[",\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v;
   const lines = rows.map((a) =>
@@ -19,6 +24,7 @@ function downloadCsv(rows: TeacherMeAssignment[], fileName: string) {
       a.academicYear.name,
       a.class.name,
       a.section?.name ?? "All",
+      assignmentShiftLabel(a.shift, teacherShift),
       a.subject.name,
     ]
       .map(esc)
@@ -49,6 +55,7 @@ function printAssignments(
       <td>${a.academicYear.name}</td>
       <td>${a.class.name}</td>
       <td>${a.section?.name ?? "All"}</td>
+      <td>${assignmentShiftLabel(a.shift, teacher.shift)}</td>
       <td>${a.subject.name}</td>
     </tr>`,
     )
@@ -65,7 +72,7 @@ function printAssignments(
   <h1>${schoolName} — Teaching Assignments</h1>
   <p>${teacher.fullName} (${teacher.code})</p>
   <table><thead><tr>
-    <th>#</th><th>Year</th><th>Class</th><th>Section</th><th>Subject</th>
+    <th>#</th><th>Year</th><th>Class</th><th>Section</th><th>Shift</th><th>Subject</th>
   </tr></thead><tbody>${body}</tbody></table>
   <script>window.onload=()=>window.print()</script>
   </body></html>`);
@@ -80,6 +87,7 @@ export default function MyAssignmentsPage() {
   const [year, setYear] = useState("");
   const [klass, setKlass] = useState("");
   const [subject, setSubject] = useState("");
+  const [shiftF, setShiftF] = useState("");
 
   useEffect(() => {
     void loadTeacherMe()
@@ -118,6 +126,7 @@ export default function MyAssignmentsPage() {
         if (year && a.academicYear.name !== year) return false;
         if (klass && a.class.name !== klass) return false;
         if (subject && a.subject.name !== subject) return false;
+        if (shiftF && (a.shift ?? "") !== shiftF) return false;
         if (!needle) return true;
         const hay = [
           a.academicYear.name,
@@ -136,7 +145,7 @@ export default function MyAssignmentsPage() {
         if (c) return c;
         return a.subject.name.localeCompare(b.subject.name);
       });
-  }, [me, q, year, klass, subject]);
+  }, [me, q, year, klass, subject, shiftF]);
 
   return (
     <div className="space-y-6">
@@ -153,7 +162,9 @@ export default function MyAssignmentsPage() {
           <Button
             variant="outline"
             disabled={!me || filtered.length === 0}
-            onClick={() => downloadCsv(filtered, "my-assignments.csv")}
+            onClick={() =>
+              me && downloadCsv(filtered, me.shift, "my-assignments.csv")
+            }
           >
             <Download className="mr-2 h-4 w-4" />
             CSV / PDF data
@@ -205,6 +216,13 @@ export default function MyAssignmentsPage() {
             </option>
           ))}
         </Select>
+        {me?.shift === "BOTH" && (
+          <Select value={shiftF} onChange={(e) => setShiftF(e.target.value)}>
+            <option value="">Both shifts</option>
+            <option value="MORNING">Morning</option>
+            <option value="AFTERNOON">Afternoon</option>
+          </Select>
+        )}
       </div>
 
       {loading ? (
@@ -223,6 +241,7 @@ export default function MyAssignmentsPage() {
                 <th className="px-4 py-3 font-medium">Academic Year</th>
                 <th className="px-4 py-3 font-medium">Class</th>
                 <th className="px-4 py-3 font-medium">Section</th>
+                <th className="px-4 py-3 font-medium">Shift</th>
                 <th className="px-4 py-3 font-medium">Subject</th>
               </tr>
             </thead>
@@ -237,6 +256,9 @@ export default function MyAssignmentsPage() {
                         All sections
                       </span>
                     )}
+                  </td>
+                  <td className="px-4 py-3">
+                    {assignmentShiftLabel(a.shift, me?.shift ?? "")}
                   </td>
                   <td className="px-4 py-3 font-medium">{a.subject.name}</td>
                 </tr>

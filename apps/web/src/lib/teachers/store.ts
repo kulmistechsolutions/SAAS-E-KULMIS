@@ -213,7 +213,7 @@ export function hydrateTeacherSelf(me: TeacherMe): void {
     id: a.id,
     teacherId: me.id,
     academicYear: a.academicYear.name,
-    shift: null,
+    shift: a.shift,
     className: a.class.name,
     section: a.section?.name ?? null,
     subject: a.subject.name,
