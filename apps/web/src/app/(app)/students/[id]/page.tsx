@@ -27,11 +27,11 @@ import { FeeStatusBadge } from "@/components/fees/fee-status-badge";
 import { apiStudentLedger, type ApiStudentLedger } from "@/lib/fees/api";
 import { monthKey, monthLabel, money as feeMoney } from "@/lib/fees/format";
 import {
+  fetchStudentFinalResult,
   isStudentBlocked,
-  studentFinalResult,
-  studentPublishedResults,
   useExaminationsState,
 } from "@/lib/examinations/store";
+import type { StudentFinalResult } from "@/lib/examinations/types";
 import { attendanceHistory, loadAttendanceHistory, type AttendanceSummary } from "@/lib/students/history";
 import { studentQuizHistory } from "@/lib/quiz/store";
 import { studentPromotionHistory } from "@/lib/promotions/store";
@@ -511,16 +511,31 @@ function FeesTab({ student }: { student: StudentWithParent }) {
 }
 
 function ExamsTab({ student }: { student: StudentWithParent }) {
+  // Blocked status still comes from the exam store, but the published results
+  // themselves are read straight from the API — the student profile never
+  // hydrates the full exams+marks store, so the old store-only lookup always
+  // came back empty even when results were published (see class Results page).
   useExaminationsState();
   const blocked = isStudentBlocked(student.id);
-  const rows = useMemo(
-    () => studentPublishedResults(student.id),
-    [student.id],
-  );
-  const finalResult = useMemo(
-    () => studentFinalResult(student.id),
-    [student.id],
-  );
+  const [result, setResult] = useState<StudentFinalResult | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+    setLoading(true);
+    void fetchStudentFinalResult(student.id, student.academicYear)
+      .then((r) => {
+        if (active) setResult(r);
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [student.id, student.academicYear]);
+
+  const rows = result?.termResults ?? [];
 
   if (blocked) {
     return (
@@ -562,21 +577,21 @@ function ExamsTab({ student }: { student: StudentWithParent }) {
             {rows.length === 0 && (
               <tr>
                 <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
-                  No published exam results yet.
+                  {loading ? "Loading results…" : "No published exam results yet."}
                 </td>
               </tr>
             )}
           </tbody>
         </table>
       </div>
-      {finalResult && (
+      {result && rows.length > 0 && (
         <div className="rounded-xl border bg-primary/5 p-4">
           <p className="text-sm font-medium text-muted-foreground">Final Academic Result</p>
           <p className="mt-1 text-xl font-bold">
-            {finalResult.finalGrade} · {finalResult.finalAverage.toFixed(1)}%
+            {result.finalGrade} · {result.finalAverage.toFixed(1)}%
           </p>
-          <Badge tone={finalResult.passed ? "success" : "danger"} className="mt-2">
-            {finalResult.passed ? "Pass" : "Fail"}
+          <Badge tone={result.passed ? "success" : "danger"} className="mt-2">
+            {result.passed ? "Pass" : "Fail"}
           </Badge>
         </div>
       )}
