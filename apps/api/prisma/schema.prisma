@@ -756,7 +756,9 @@ model ExamMark {
   examId          String
   studentId       String
   subjectId       String
-  marks           Int?
+  /// Stored as a float so a subject can be marked to one or two decimals
+  /// (e.g. 15.8 / 20). Totals and averages are computed from these.
+  marks           Float?
   enteredByUserId String?
   enteredAt       DateTime?
   createdAt       DateTime  @default(now())

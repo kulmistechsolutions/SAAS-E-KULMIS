@@ -10,6 +10,7 @@ import {
   ClipboardList,
   GraduationCap,
   Layers,
+  Loader2,
   Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -84,9 +85,9 @@ export function ExamCreationWizard({
   const [teacherMe, setTeacherMe] = useState<TeacherMe | null>(null);
   const [classes, setClasses] = useState<ApiClass[]>([]);
   const [sections, setSections] = useState<ApiSection[]>([]);
-  const [examGroups, setExamGroups] = useState<
-    { id: string; name: string }[]
-  >([]);
+  const [examGroups, setExamGroups] = useState<{ id: string; name: string }[]>(
+    [],
+  );
   const [loadingData, setLoadingData] = useState(true);
   const [classesLoadedForYear, setClassesLoadedForYear] = useState("");
 
@@ -103,7 +104,9 @@ export function ExamCreationWizard({
   const [allClasses, setAllClasses] = useState(false);
   const [selectedClassIds, setSelectedClassIds] = useState<string[]>([]);
   /** Per-class section picks: classId -> section ids (empty = all sections) */
-  const [sectionPicks, setSectionPicks] = useState<Record<string, string[]>>({});
+  const [sectionPicks, setSectionPicks] = useState<Record<string, string[]>>(
+    {},
+  );
   const [sectionModeAll, setSectionModeAll] = useState<Record<string, boolean>>(
     {},
   );
@@ -344,13 +347,16 @@ export function ExamCreationWizard({
   const waitingForYear = !!academicYear && !yearId;
   const waitingForClasses = !!yearId && classesLoadedForYear !== yearId;
 
-  if (loadingData || waitingForYear || waitingForClasses) {
-    return (
-      <div className="flex justify-center py-20 text-muted-foreground">
-        Loading wizard…
-      </div>
-    );
-  }
+  // Only the class/section/preview steps need the academic data. The info step
+  // is pure form, so the wizard renders immediately (like every other page) and
+  // the class data hydrates in the background — no full-screen "Loading…" gate.
+  const dataReady = !loadingData && !waitingForYear && !waitingForClasses;
+  const DataLoading = (
+    <div className="flex items-center justify-center gap-2 py-16 text-muted-foreground">
+      <Loader2 className="h-4 w-4 animate-spin" />
+      Loading classes…
+    </div>
+  );
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
@@ -365,8 +371,11 @@ export function ExamCreationWizard({
               key={s.id}
               className={cn(
                 "flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm transition-colors",
-                active && "border-primary bg-primary/10 text-primary font-medium",
-                done && !active && "border-emerald-500/40 bg-emerald-500/5 text-emerald-700",
+                active &&
+                  "border-primary bg-primary/10 text-primary font-medium",
+                done &&
+                  !active &&
+                  "border-emerald-500/40 bg-emerald-500/5 text-emerald-700",
                 !active && !done && "text-muted-foreground",
               )}
             >
@@ -516,7 +525,8 @@ export function ExamCreationWizard({
           </div>
         )}
 
-        {step === "classes" && (
+        {step === "classes" && !dataReady && DataLoading}
+        {step === "classes" && dataReady && (
           <div className="space-y-5">
             <div>
               <h2 className="text-lg font-semibold">Class selection</h2>
@@ -574,7 +584,8 @@ export function ExamCreationWizard({
           </div>
         )}
 
-        {step === "sections" && (
+        {step === "sections" && !dataReady && DataLoading}
+        {step === "sections" && dataReady && (
           <div className="space-y-5">
             <div>
               <h2 className="text-lg font-semibold">Section selection</h2>
@@ -662,14 +673,20 @@ export function ExamCreationWizard({
             ) : preview ? (
               <>
                 <div className="grid gap-3 rounded-xl bg-muted/30 p-4 text-sm sm:grid-cols-2">
-                  <PreviewRow label="Academic Year" value={preview.academicYear} />
+                  <PreviewRow
+                    label="Academic Year"
+                    value={preview.academicYear}
+                  />
                   <PreviewRow label="Exam Name" value={preview.name} />
                   <PreviewRow
                     label="Exam Type"
                     value={examTypeLabel(preview.examType)}
                   />
                   <PreviewRow label="Term" value={preview.term} />
-                  <PreviewRow label="Maximum Marks" value={String(preview.maxMarks)} />
+                  <PreviewRow
+                    label="Maximum Marks"
+                    value={String(preview.maxMarks)}
+                  />
                   <PreviewRow
                     label="Weight"
                     value={`${preview.weightPercent}%`}
@@ -737,8 +754,14 @@ export function ExamCreationWizard({
               </>
             ) : (
               <div className="space-y-3 text-muted-foreground">
-                <p>Could not load preview. Go back and check your selections.</p>
-                <Button variant="outline" className="h-8 px-3 text-xs" onClick={() => void loadPreview()}>
+                <p>
+                  Could not load preview. Go back and check your selections.
+                </p>
+                <Button
+                  variant="outline"
+                  className="h-8 px-3 text-xs"
+                  onClick={() => void loadPreview()}
+                >
                   Retry preview
                 </Button>
               </div>

@@ -66,22 +66,31 @@ function ClassResultsContent() {
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState<SortKey>("name");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  const [topN, setTopN] = useState<"all" | "3" | "5" | "10">("all");
   const [data, setData] = useState<ApiClassResultsMatrix | null>(null);
   const [classMeta, setClassMeta] = useState<{
     className: string;
-    exams: { id: string; name: string; status: string; section: string | null }[];
+    exams: {
+      id: string;
+      name: string;
+      status: string;
+      section: string | null;
+    }[];
   } | null>(null);
   const [sections, setSections] = useState<{ id: string; name: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [editMode, setEditMode] = useState(false);
-  const [draft, setDraft] = useState<Record<string, Record<string, string>>>({});
+  const [draft, setDraft] = useState<Record<string, Record<string, string>>>(
+    {},
+  );
   const [saving, setSaving] = useState(false);
   const [actionBusy, setActionBusy] = useState(false);
   const [exportBusy, setExportBusy] = useState(false);
   const [cardStudentId, setCardStudentId] = useState<string | null>(null);
 
   const yearId = useMemo(() => {
-    return getAcademicsState().academicYears.find((y) => y.name === yearName)?.id;
+    return getAcademicsState().academicYears.find((y) => y.name === yearName)
+      ?.id;
   }, [yearName]);
 
   useEffect(() => {
@@ -130,6 +139,34 @@ function ClassResultsContent() {
     () => data?.rows.filter((r) => !r.complete) ?? [],
     [data],
   );
+
+  // Rank is the class position by total marks, highest first, and it stays put
+  // no matter how the table is sorted — a student is 1st in the class whether
+  // you're viewing A→Z or by grade. Equal totals share a rank (1,2,2,4).
+  const rankByStudent = useMemo(() => {
+    const map = new Map<string, number>();
+    if (!data) return map;
+    const ordered = [...data.rows].sort(
+      (a, b) => b.totalObtained - a.totalObtained,
+    );
+    let rank = 0;
+    let prevTotal: number | null = null;
+    ordered.forEach((r, i) => {
+      if (prevTotal === null || r.totalObtained !== prevTotal) rank = i + 1;
+      map.set(r.studentId, rank);
+      prevTotal = r.totalObtained;
+    });
+    return map;
+  }, [data]);
+
+  // The rows actually shown: the server already sorted/searched them; "Top N"
+  // narrows to the best performers by rank without disturbing that order.
+  const visibleRows = useMemo(() => {
+    const rows = data?.rows ?? [];
+    if (topN === "all") return rows;
+    const limit = Number(topN);
+    return rows.filter((r) => (rankByStudent.get(r.studentId) ?? 999) <= limit);
+  }, [data, topN, rankByStudent]);
 
   /** The selected row, normalized into the shared result-card shape. */
   const cardData = useMemo(() => {
@@ -188,7 +225,11 @@ function ClassResultsContent() {
     }[] = [];
     for (const row of data.rows) {
       for (const sub of data.subjects) {
-        const raw = markValue(row.studentId, sub.subjectId, row.subjectMarks[sub.subjectId] ?? null);
+        const raw = markValue(
+          row.studentId,
+          sub.subjectId,
+          row.subjectMarks[sub.subjectId] ?? null,
+        );
         if (draft[row.studentId]?.[sub.subjectId] === undefined) continue;
         records.push({
           studentId: row.studentId,
@@ -218,7 +259,10 @@ function ClassResultsContent() {
     setActionBusy(true);
     try {
       await apiSetTeacherLock(data.exam.id, !data.exam.teacherLocked);
-      toast(data.exam.teacherLocked ? "Teachers unlocked" : "Teacher lock enabled", "success");
+      toast(
+        data.exam.teacherLocked ? "Teachers unlocked" : "Teacher lock enabled",
+        "success",
+      );
       loadMatrix();
     } catch (err) {
       toast(err instanceof Error ? err.message : "Action failed", "error");
@@ -327,7 +371,8 @@ function ClassResultsContent() {
         <div className="flex-1">
           <h1 className="text-2xl font-bold">{className} — Results</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            View, edit, publish, and export class results. Sections are never mixed.
+            View, edit, publish, and export class results. Sections are never
+            mixed.
           </p>
         </div>
         {data && (
@@ -356,18 +401,24 @@ function ClassResultsContent() {
               onClick={() => void toggleStudentPortal()}
             >
               <Send className="mr-2 h-4 w-4" />
-              {data.exam.studentPortalOpen ? "Unpublish Portal" : "Publish Portal"}
+              {data.exam.studentPortalOpen
+                ? "Unpublish Portal"
+                : "Publish Portal"}
             </Button>
           </div>
         )}
       </div>
 
-      <div className="grid gap-3 rounded-xl border bg-card p-4 print:hidden sm:grid-cols-2 lg:grid-cols-5">
+      <div className="grid gap-3 rounded-xl border bg-card p-4 print:hidden sm:grid-cols-2 lg:grid-cols-6">
         <div>
           <label className="mb-1 block text-xs font-medium text-muted-foreground">
             Academic Year
           </label>
-          <Input value={yearName || (data?.exam.academicYear ?? "")} readOnly className="h-9" />
+          <Input
+            value={yearName || (data?.exam.academicYear ?? "")}
+            readOnly
+            className="h-9"
+          />
         </div>
         <div>
           <label className="mb-1 block text-xs font-medium text-muted-foreground">
@@ -386,7 +437,10 @@ function ClassResultsContent() {
           <label className="mb-1 block text-xs font-medium text-muted-foreground">
             Section
           </label>
-          <Select value={sectionId} onChange={(e) => setSectionId(e.target.value)}>
+          <Select
+            value={sectionId}
+            onChange={(e) => setSectionId(e.target.value)}
+          >
             <option value="">All / exam default</option>
             {sections.map((s) => (
               <option key={s.id} value={s.id}>
@@ -431,15 +485,41 @@ function ClassResultsContent() {
             </Select>
           </div>
         </div>
+        <div>
+          <label className="mb-1 block text-xs font-medium text-muted-foreground">
+            Show
+          </label>
+          <Select
+            value={topN}
+            onChange={(e) => setTopN(e.target.value as typeof topN)}
+            className="h-9"
+          >
+            <option value="all">All students</option>
+            <option value="3">Top 3</option>
+            <option value="5">Top 5</option>
+            <option value="10">Top 10</option>
+          </Select>
+        </div>
       </div>
 
       {data && (
         <>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <Stat label="Total Students" value={data.summary.totalStudents} />
-            <Stat label="Completed" value={data.summary.completed} tone="success" />
-            <Stat label="Incomplete" value={data.summary.incomplete} tone="warning" />
-            <Stat label="Completion" value={`${data.summary.completionPercent}%`} />
+            <Stat
+              label="Completed"
+              value={data.summary.completed}
+              tone="success"
+            />
+            <Stat
+              label="Incomplete"
+              value={data.summary.incomplete}
+              tone="warning"
+            />
+            <Stat
+              label="Completion"
+              value={`${data.summary.completionPercent}%`}
+            />
           </div>
 
           {incompleteRows.length > 0 && (
@@ -469,7 +549,11 @@ function ClassResultsContent() {
               {editMode ? "Edit Mode On" : "Enable Edit Mode"}
             </Button>
             {editMode && (
-              <Button className="h-9" disabled={saving} onClick={() => void handleSaveEdits()}>
+              <Button
+                className="h-9"
+                disabled={saving}
+                onClick={() => void handleSaveEdits()}
+              >
                 {saving ? "Saving…" : "Save Changes"}
               </Button>
             )}
@@ -504,7 +588,9 @@ function ClassResultsContent() {
           <div className="hidden print:block">
             <h2 className="text-lg font-bold">
               {data.exam.name} — {data.exam.className}
-              {data.exam.sectionName ? ` · Section ${data.exam.sectionName}` : ""}
+              {data.exam.sectionName
+                ? ` · Section ${data.exam.sectionName}`
+                : ""}
             </h2>
             <p className="text-sm text-muted-foreground">
               {data.exam.academicYear} · {new Date().toLocaleDateString()}
@@ -523,7 +609,7 @@ function ClassResultsContent() {
             <table className="w-full min-w-[800px] text-sm">
               <thead className="sticky top-0 bg-secondary/90 text-left text-xs text-muted-foreground backdrop-blur">
                 <tr>
-                  <th className="px-3 py-2.5 font-medium">#</th>
+                  <th className="px-3 py-2.5 font-medium">Rank</th>
                   <th className="px-3 py-2.5 font-medium">Student ID</th>
                   <th className="px-3 py-2.5 font-medium">Student Name</th>
                   {data.subjects.map((s) => (
@@ -541,13 +627,17 @@ function ClassResultsContent() {
                 </tr>
               </thead>
               <tbody>
-                {data.rows.map((r, i) => (
+                {visibleRows.map((r) => (
                   <tr
                     key={r.studentId}
                     className={`border-t ${!r.complete ? "bg-amber-50/50" : ""}`}
                   >
-                    <td className="px-3 py-2 text-muted-foreground">{i + 1}</td>
-                    <td className="px-3 py-2 font-mono text-xs">{r.studentCode}</td>
+                    <td className="px-3 py-2">
+                      <RankBadge rank={rankByStudent.get(r.studentId)} />
+                    </td>
+                    <td className="px-3 py-2 font-mono text-xs">
+                      {r.studentCode}
+                    </td>
                     <td className="px-3 py-2 font-medium">{r.studentName}</td>
                     {data.subjects.map((s) => (
                       <td key={s.subjectId} className="px-3 py-2 tabular-nums">
@@ -560,7 +650,11 @@ function ClassResultsContent() {
                               r.subjectMarks[s.subjectId] ?? null,
                             )}
                             onChange={(e) =>
-                              handleMarkDraft(r.studentId, s.subjectId, e.target.value)
+                              handleMarkDraft(
+                                r.studentId,
+                                s.subjectId,
+                                e.target.value,
+                              )
                             }
                           />
                         ) : (
@@ -568,11 +662,23 @@ function ClassResultsContent() {
                         )}
                       </td>
                     ))}
-                    <td className="px-3 py-2 tabular-nums font-medium">{r.totalObtained}</td>
-                    <td className="px-3 py-2 tabular-nums">{r.average.toFixed(1)}</td>
+                    <td className="px-3 py-2 tabular-nums font-medium">
+                      {r.totalObtained}
+                    </td>
+                    <td className="px-3 py-2 tabular-nums">
+                      {r.average.toFixed(1)}
+                    </td>
                     <td className="px-3 py-2 font-semibold">{r.grade}</td>
                     <td className="px-3 py-2">
-                      <Badge tone={r.passed ? "success" : r.remark === "—" ? "muted" : "danger"}>
+                      <Badge
+                        tone={
+                          r.passed
+                            ? "success"
+                            : r.remark === "—"
+                              ? "muted"
+                              : "danger"
+                        }
+                      >
                         {r.remark}
                       </Badge>
                     </td>
@@ -588,12 +694,24 @@ function ClassResultsContent() {
                     </td>
                   </tr>
                 ))}
+                {visibleRows.length === 0 && (
+                  <tr>
+                    <td
+                      colSpan={data.subjects.length + 7}
+                      className="px-3 py-8 text-center text-muted-foreground"
+                    >
+                      No students match the current filter.
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
         </div>
       ) : (
-        <p className="text-center text-muted-foreground">Select an exam to view results.</p>
+        <p className="text-center text-muted-foreground">
+          Select an exam to view results.
+        </p>
       )}
 
       <Dialog
@@ -605,6 +723,29 @@ function ClassResultsContent() {
         {cardData ? <ExamResultCard data={cardData} /> : null}
       </Dialog>
     </div>
+  );
+}
+
+/** Class position. Top three get a medal tint; everyone else a plain number. */
+function RankBadge({ rank }: { rank: number | undefined }) {
+  if (!rank) return <span className="text-muted-foreground">—</span>;
+  const medal =
+    rank === 1
+      ? "bg-amber-100 text-amber-800 ring-amber-300"
+      : rank === 2
+        ? "bg-slate-100 text-slate-700 ring-slate-300"
+        : rank === 3
+          ? "bg-orange-100 text-orange-800 ring-orange-300"
+          : "";
+  if (!medal) {
+    return <span className="tabular-nums text-muted-foreground">{rank}</span>;
+  }
+  return (
+    <span
+      className={`inline-flex h-6 min-w-6 items-center justify-center rounded-full px-1.5 text-xs font-bold tabular-nums ring-1 ${medal}`}
+    >
+      {rank}
+    </span>
   );
 }
 
@@ -622,7 +763,11 @@ function Stat({
       <p className="text-xs text-muted-foreground">{label}</p>
       <p
         className={`mt-1 text-2xl font-bold tabular-nums ${
-          tone === "success" ? "text-emerald-600" : tone === "warning" ? "text-amber-600" : ""
+          tone === "success"
+            ? "text-emerald-600"
+            : tone === "warning"
+              ? "text-amber-600"
+              : ""
         }`}
       >
         {value}

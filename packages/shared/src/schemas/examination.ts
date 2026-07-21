@@ -61,7 +61,9 @@ export const examCreationBulkSchema = z
     weightPercent: z.number().int().min(1).max(100),
     startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
     endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-    targets: z.array(examCreationTargetSchema).min(1, "Select at least one class"),
+    targets: z
+      .array(examCreationTargetSchema)
+      .min(1, "Select at least one class"),
   })
   .refine((o) => o.endDate >= o.startDate, {
     message: "End date must be on or after start date",
@@ -81,7 +83,13 @@ export const upsertExamMarksSchema = z.object({
       z.object({
         studentId: z.string().min(1),
         subjectId: z.string().min(1),
-        marks: z.number().int().min(0).nullable(),
+        // A mark may carry up to two decimals (e.g. 15.8). Anything finer is
+        // rounded so a stray 15.799999 can't slip in.
+        marks: z
+          .number()
+          .min(0)
+          .nullable()
+          .transform((v) => (v === null ? null : Math.round(v * 100) / 100)),
       }),
     )
     .min(1),

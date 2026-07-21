@@ -162,17 +162,15 @@ describe("marks validation", () => {
     );
   });
 
-  it("rejects a half mark, which the marks column cannot hold", async () => {
-    // A real school's sheet had one 27.5 in it. Validation waved it through and
-    // the bulk insert died on `improper binary format in array element 76`,
-    // with nothing on screen to say which cell was at fault.
+  it("accepts a half mark — subjects can be marked to one decimal", async () => {
+    // A real school marks Saynis out of 20 with halves (15.8, 17.4). This used
+    // to fail: the column was an integer and the bulk insert died on
+    // `improper binary format`. Marks are floats now, so it must pass.
     const wb = await openTemplate();
     put(wb.getWorksheet("8th A")!, 5, "Mathematics", 27.5);
     const res = await service.validate("s1", EXAM_IDS, await toBuffer(wb));
-    expect(res.ok).toBe(false);
-    expect(
-      res.issues.some((i) => i.message.includes("is not a whole number")),
-    ).toBe(true);
+    expect(res.ok).toBe(true);
+    expect(res.totalMarks).toBe(1);
   });
 
   it("rejects text where a mark should be", async () => {

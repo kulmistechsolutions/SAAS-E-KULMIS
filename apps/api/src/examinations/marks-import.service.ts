@@ -462,25 +462,15 @@ export class MarksImportService {
               });
               continue;
             }
-            // Marks are stored as whole numbers. A half mark used to sail past
-            // the preview and then blow up the bulk insert ("improper binary
-            // format"), so it has to be caught here where the school can see
-            // which cell to fix.
-            if (!Number.isInteger(value)) {
-              sheetIssues.push({
-                sheet: sheetName,
-                row: r,
-                studentCode: code,
-                message: `${student.fullName} · ${subject.name}: ${value} is not a whole number — enter ${Math.round(value)} instead.`,
-              });
-              continue;
-            }
+            // A mark may carry up to two decimals; round anything finer so a
+            // stray 15.799999 from the spreadsheet can't reach the database.
+            const rounded = Math.round(value * 100) / 100;
             marks += 1;
             resolved.push({
               examId: exam.id,
               studentId: student.id,
               subjectId: subject.id,
-              marks: value,
+              marks: rounded,
             });
           }
         }
@@ -551,16 +541,6 @@ export class MarksImportService {
         "There are no marks to import in that file.",
       );
     }
-    // The bulk insert binds an int[]; anything else fails deep inside Postgres
-    // with a message no school can act on. The reader already rejects these —
-    // this is the last gate before the raw statement.
-    const fractional = resolved.find((r) => !Number.isInteger(r.marks));
-    if (fractional) {
-      throw new BadRequestException(
-        `Marks must be whole numbers — found ${fractional.marks}. Nothing was imported.`,
-      );
-    }
-
     const byExam = new Map<string, ResolvedMark[]>();
     for (const r of resolved) {
       const list = byExam.get(r.examId);
@@ -582,7 +562,7 @@ export class MarksImportService {
                 "enteredByUserId","enteredAt","createdAt","updatedAt")
              SELECT * FROM UNNEST(
                $1::text[], $2::text[], $3::text[], $4::text[], $5::text[],
-               $6::int[], $7::text[], $8::timestamp[], $9::timestamp[], $10::timestamp[]
+               $6::float8[], $7::text[], $8::timestamp[], $9::timestamp[], $10::timestamp[]
              )
              ON CONFLICT ("schoolId","examId","studentId","subjectId")
              DO UPDATE SET
