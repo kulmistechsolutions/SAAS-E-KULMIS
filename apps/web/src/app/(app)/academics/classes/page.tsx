@@ -6,6 +6,7 @@ import {
   ArrowDownUp,
   Eye,
   FileDown,
+  Flame,
   Layers,
   Pencil,
   Plus,
@@ -26,8 +27,10 @@ import {
   deleteClass,
   exportClassesCsv,
   getAcademicsState,
+  refreshAcademics,
   useAcademicsState,
 } from "@/lib/academics/store";
+import { ClassPurgeDialog } from "@/components/academics/class-purge-dialog";
 import { printTable } from "@/lib/academics/print";
 import type { ClassRow, SchoolClass } from "@/lib/academics/types";
 import { toast } from "@/lib/toast";
@@ -52,6 +55,7 @@ export default function ClassesPage() {
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<SchoolClass | null>(null);
   const [deleting, setDeleting] = useState<ClassRow | null>(null);
+  const [purging, setPurging] = useState<ClassRow | null>(null);
 
   const years = getAcademicsState().academicYears;
   const activeYearName =
@@ -231,6 +235,12 @@ export default function ClassesPage() {
                           }}
                         />
                         <Action title="Delete" icon={Trash2} danger onClick={() => setDeleting(r)} />
+                        <Action
+                          title="Erase class and all its students"
+                          icon={Flame}
+                          danger
+                          onClick={() => setPurging(r)}
+                        />
                       </div>
                     </td>
                   </tr>
@@ -251,6 +261,13 @@ export default function ClassesPage() {
         message={deleting ? `Delete ${deleting.name}? Classes with enrolled students cannot be deleted.` : ""}
         onConfirm={handleDelete}
         onClose={() => setDeleting(null)}
+      />
+      <ClassPurgeDialog
+        open={!!purging}
+        classId={purging?.id ?? null}
+        className={purging?.name ?? ""}
+        onClose={() => setPurging(null)}
+        onPurged={() => void refreshAcademics()}
       />
     </div>
   );

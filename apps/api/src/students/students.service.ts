@@ -8,10 +8,7 @@ import {
 } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import type { Prisma } from "@prisma/client";
-import type {
-  RegisterStudentInput,
-  UpdateStudentInput,
-} from "@ekulmis/shared";
+import type { RegisterStudentInput, UpdateStudentInput } from "@ekulmis/shared";
 import { PrismaService } from "../prisma/prisma.service";
 import { StorageService } from "../storage/storage.service";
 import { FeesService } from "../finance/fees.service";
@@ -25,11 +22,29 @@ import {
   studentPhotoKey,
 } from "./student-photo.util";
 
-function pad(n: number): string {
-  return String(n).padStart(4, "0");
-}
+import { nextParentCode, nextStudentCode, syncCounter } from "./code-allocator";
 
 const DEFAULT_PARENT_PASSWORD = "12345";
+
+/** True for "unique constraint failed" on a student/parent code. */
+function isCodeCollision(err: unknown): boolean {
+  const code = (err as { code?: string } | null)?.code;
+  return code === "P2002";
+}
+
+/** Run `fn`, retrying while a concurrent registration steals the code. */
+async function retryOnCodeCollision<T>(fn: () => Promise<T>): Promise<T> {
+  let lastError: unknown;
+  for (let attempt = 0; attempt < 5; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      if (!isCodeCollision(err)) throw err;
+      lastError = err;
+    }
+  }
+  throw lastError;
+}
 
 const studentInclude = {
   parent: {
@@ -82,7 +97,9 @@ export class StudentsService {
       "ekulmis";
   }
 
-  private async attachPhotoMeta(student: StudentRow): Promise<StudentWithPhoto> {
+  private async attachPhotoMeta(
+    student: StudentRow,
+  ): Promise<StudentWithPhoto> {
     const hasPhoto = !!student.photoKey;
     if (!hasPhoto || !student.photoKey) {
       return { ...student, hasPhoto: false, photoUrl: null };
@@ -112,14 +129,20 @@ export class StudentsService {
     return Promise.all(students.map((s) => this.attachPhotoMeta(s)));
   }
 
-  private async removePhotoObject(key: string | null | undefined): Promise<void> {
+  private async removePhotoObject(
+    key: string | null | undefined,
+  ): Promise<void> {
     if (!key) return;
     try {
       await this.storage.removeObject(this.bucket, key);
-      this.logger.log(`Removed storage object bucket=${this.bucket} key=${key}`);
+      this.logger.log(
+        `Removed storage object bucket=${this.bucket} key=${key}`,
+      );
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      this.logger.warn(`Failed to remove storage object key=${key}: ${message}`);
+      this.logger.warn(
+        `Failed to remove storage object key=${key}: ${message}`,
+      );
     }
   }
 
@@ -130,110 +153,112 @@ export class StudentsService {
    */
   async register(schoolId: string, dto: RegisterStudentInput) {
     await this.subscriptions.assertCanAddStudent(schoolId);
-    const result = await this.prisma.forTenant(schoolId, async (tx) => {
-      const school = await tx.school.findUnique({
-        where: { id: schoolId },
-        select: { studentPrefix: true, parentPrefix: true },
-      });
-      if (!school) throw new NotFoundException("School not found");
+    const registerOnce = () =>
+      this.prisma.forTenant(schoolId, async (tx) => {
+        const school = await tx.school.findUnique({
+          where: { id: schoolId },
+          select: { studentPrefix: true, parentPrefix: true },
+        });
+        if (!school) throw new NotFoundException("School not found");
 
-      const cls = await tx.class.findFirst({
-        where: { id: dto.classId },
-        select: { id: true },
-      });
-      if (!cls) throw new BadRequestException("Invalid class");
-
-      const sectionId = dto.sectionId ?? null;
-      if (sectionId) {
-        const sec = await tx.section.findFirst({
-          where: { id: sectionId, classId: dto.classId },
+        const cls = await tx.class.findFirst({
+          where: { id: dto.classId },
           select: { id: true },
         });
-        if (!sec) {
-          throw new BadRequestException("Invalid section for this class");
+        if (!cls) throw new BadRequestException("Invalid class");
+
+        const sectionId = dto.sectionId ?? null;
+        if (sectionId) {
+          const sec = await tx.section.findFirst({
+            where: { id: sectionId, classId: dto.classId },
+            select: { id: true },
+          });
+          if (!sec) {
+            throw new BadRequestException("Invalid section for this class");
+          }
         }
-      }
 
-      let parent = await tx.parent.findFirst({
-        where: { phone: dto.parentPhone },
-      });
-      let initialParentPassword: string | undefined;
-      if (!parent) {
-        const seq = await tx.counter.upsert({
-          where: { schoolId_name: { schoolId, name: "parent" } },
-          create: { schoolId, name: "parent", value: 1 },
-          update: { value: { increment: 1 } },
+        let parent = await tx.parent.findFirst({
+          where: { phone: dto.parentPhone },
         });
-        const parentCode = `${school.parentPrefix}${pad(seq.value)}`;
-        initialParentPassword = DEFAULT_PARENT_PASSWORD;
-        const user = await tx.user.create({
-          data: {
-            schoolId,
-            username: parentCode,
-            role: "PARENT",
-            passwordHash: await hashPassword(initialParentPassword),
-          },
-        });
-        parent = await tx.parent.create({
-          data: {
-            schoolId,
-            code: parentCode,
-            name: dto.parentName,
-            phone: dto.parentPhone,
-            userId: user.id,
-          },
-        });
-      }
+        let initialParentPassword: string | undefined;
+        if (!parent) {
+          const { code: parentCode, sequence: parentSeq } =
+            await nextParentCode(tx, school.parentPrefix);
+          await syncCounter(tx, schoolId, "parent", parentSeq);
+          initialParentPassword = DEFAULT_PARENT_PASSWORD;
+          const user = await tx.user.create({
+            data: {
+              schoolId,
+              username: parentCode,
+              role: "PARENT",
+              passwordHash: await hashPassword(initialParentPassword),
+            },
+          });
+          parent = await tx.parent.create({
+            data: {
+              schoolId,
+              code: parentCode,
+              name: dto.parentName,
+              phone: dto.parentPhone,
+              userId: user.id,
+            },
+          });
+        }
 
-      const dup = await tx.student.findFirst({
-        where: {
-          fullName: dto.fullName,
-          parentId: parent.id,
-          classId: dto.classId,
-          sectionId,
-        },
-        select: { id: true },
-      });
-      if (dup) {
-        throw new ConflictException(
-          "A student with the same name, parent, class and section already exists",
+        const dup = await tx.student.findFirst({
+          where: {
+            fullName: dto.fullName,
+            parentId: parent.id,
+            classId: dto.classId,
+            sectionId,
+          },
+          select: { id: true },
+        });
+        if (dup) {
+          throw new ConflictException(
+            "A student with the same name, parent, class and section already exists",
+          );
+        }
+
+        const { code, sequence } = await nextStudentCode(
+          tx,
+          school.studentPrefix,
         );
-      }
+        await syncCounter(tx, schoolId, "student", sequence);
+        const portalPasswordHash = await hashPassword(code);
 
-      const seq = await tx.counter.upsert({
-        where: { schoolId_name: { schoolId, name: "student" } },
-        create: { schoolId, name: "student", value: 1 },
-        update: { value: { increment: 1 } },
+        const student = await tx.student.create({
+          data: {
+            schoolId,
+            code,
+            fullName: dto.fullName,
+            gender: dto.gender,
+            dob: dto.dob ?? null,
+            phone: dto.phone ?? null,
+            notes: dto.notes ?? null,
+            portalPasswordHash,
+            parentId: parent.id,
+            classId: dto.classId,
+            sectionId,
+            monthlyFee: dto.monthlyFee ?? 0,
+            feeStartMode: dto.feeStartMode ?? null,
+            feeAgreementAmount: dto.agreementAmount ?? null,
+          },
+          include: studentInclude,
+        });
+
+        return {
+          student,
+          parentCreated: initialParentPassword !== undefined,
+          initialParentPassword,
+        };
       });
-      const code = `${school.studentPrefix}${pad(seq.value)}`;
-      const portalPasswordHash = await hashPassword(code);
 
-      const student = await tx.student.create({
-        data: {
-          schoolId,
-          code,
-          fullName: dto.fullName,
-          gender: dto.gender,
-          dob: dto.dob ?? null,
-          phone: dto.phone ?? null,
-          notes: dto.notes ?? null,
-          portalPasswordHash,
-          parentId: parent.id,
-          classId: dto.classId,
-          sectionId,
-          monthlyFee: dto.monthlyFee ?? 0,
-          feeStartMode: dto.feeStartMode ?? null,
-          feeAgreementAmount: dto.agreementAmount ?? null,
-        },
-        include: studentInclude,
-      });
-
-      return {
-        student,
-        parentCreated: initialParentPassword !== undefined,
-        initialParentPassword,
-      };
-    });
+    // Codes are the lowest free number, so two registrations landing at the
+    // same instant can pick the same one. The unique index catches it; retry
+    // and the loser simply takes the next free number.
+    const result = await retryOnCodeCollision(registerOnce);
 
     const student = await this.attachPhotoMeta(result.student);
     try {

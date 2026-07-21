@@ -9,15 +9,23 @@ import {
   Post,
   Query,
 } from "@nestjs/common";
-import { createClassSchema, updateClassSchema, UserRole } from "@ekulmis/shared";
+import {
+  createClassSchema,
+  updateClassSchema,
+  UserRole,
+} from "@ekulmis/shared";
 import { ClassService } from "./class.service";
+import { ClassPurgeService } from "./class-purge.service";
 import { Roles } from "../auth/roles.decorator";
 import { CurrentUser } from "../auth/current-user.decorator";
 import type { AuthUser } from "../auth/auth.types";
 
 @Controller("classes")
 export class ClassController {
-  constructor(private readonly service: ClassService) {}
+  constructor(
+    private readonly service: ClassService,
+    private readonly purgeService: ClassPurgeService,
+  ) {}
 
   @Get()
   findAll(
@@ -65,5 +73,29 @@ export class ClassController {
   @Delete(":id")
   remove(@CurrentUser() me: AuthUser, @Param("id") id: string) {
     return this.service.remove(me.schoolId, id);
+  }
+
+  /** What a full purge would destroy — shown before the admin confirms. */
+  @Roles(UserRole.ADMINISTRATOR)
+  @Get(":id/purge-preview")
+  purgePreview(@CurrentUser() me: AuthUser, @Param("id") id: string) {
+    return this.purgeService.preview(me.schoolId, id);
+  }
+
+  /** Erase the class, its students, and everything hanging off them. */
+  @Roles(UserRole.ADMINISTRATOR)
+  @Post(":id/purge")
+  purge(
+    @CurrentUser() me: AuthUser,
+    @Param("id") id: string,
+    @Body() body: unknown,
+  ) {
+    const confirm = (body as { confirmName?: unknown } | null)?.confirmName;
+    if (typeof confirm !== "string" || !confirm.trim()) {
+      throw new BadRequestException(
+        "confirmName is required — type the class name to confirm",
+      );
+    }
+    return this.purgeService.purge(me.schoolId, id, confirm);
   }
 }
