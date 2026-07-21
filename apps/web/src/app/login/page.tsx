@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Eye, EyeOff } from "lucide-react";
 import { loginSchema, type LoginInput } from "@ekulmis/shared";
 import { useSchoolBranding } from "@/lib/settings/use-school-branding";
 import { useAuth } from "@/lib/auth";
@@ -12,11 +13,32 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 
+/**
+ * Turn raw API errors into a message the person signing in can act on.
+ * "Invalid credentials" is deliberately shown as one combined message —
+ * never revealing whether it was the username or the password that was
+ * wrong — but phrased so they know to re-check both.
+ */
+function friendlyLoginError(e: unknown): string {
+  if (e instanceof ApiError) {
+    const m = e.message.toLowerCase();
+    if (m.includes("invalid credentials")) {
+      return "Wrong username or password. Please check both and try again.";
+    }
+    if (m.includes("no tenant") || m.includes("unknown tenant")) {
+      return "This sign-in page isn't linked to a school. Open your school's own address (e.g. yourschool.ekulmis.com) and sign in there.";
+    }
+    return e.message;
+  }
+  return "Login failed. Please try again.";
+}
+
 export default function LoginPage() {
   const router = useRouter();
   const { login } = useAuth();
   const branding = useSchoolBranding();
   const [error, setError] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
   const {
     register,
     handleSubmit,
@@ -29,9 +51,7 @@ export default function LoginPage() {
       const me = await login(values.identifier, values.password);
       router.push(me.role === "TEACHER" ? "/teacher-portal" : "/dashboard");
     } catch (e) {
-      setError(
-        e instanceof ApiError ? e.message : "Login failed. Please try again.",
-      );
+      setError(friendlyLoginError(e));
     }
   }
 
@@ -74,19 +94,42 @@ export default function LoginPage() {
             </div>
             <div>
               <label className="mb-1 block text-sm font-medium">Password</label>
-              <Input
-                type="password"
-                {...register("password")}
-                placeholder="••••••••"
-                autoComplete="current-password"
-              />
+              <div className="relative">
+                <Input
+                  type={showPassword ? "text" : "password"}
+                  {...register("password")}
+                  placeholder="••••••••"
+                  autoComplete="current-password"
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  title={showPassword ? "Hide password" : "Show password"}
+                  className="absolute inset-y-0 right-0 flex items-center px-3 text-muted-foreground hover:text-foreground"
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
               {errors.password && (
                 <p className="mt-1 text-xs text-destructive">
                   {errors.password.message}
                 </p>
               )}
             </div>
-            {error && <p className="text-sm text-destructive">{error}</p>}
+            {error && (
+              <div
+                role="alert"
+                className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2.5 text-sm font-medium text-destructive"
+              >
+                {error}
+              </div>
+            )}
             <Button type="submit" className="w-full" disabled={isSubmitting}>
               {isSubmitting ? "Signing in…" : "Sign in"}
             </Button>
