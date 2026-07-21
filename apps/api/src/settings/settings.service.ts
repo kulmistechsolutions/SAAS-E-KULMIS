@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import type { UpdateSettingsInput } from "@ekulmis/shared";
 import { PrismaService } from "../prisma/prisma.service";
@@ -54,13 +58,28 @@ export class SettingsService {
   }
 
   /** Stream the raw logo bytes — used when the storage backend has no direct URL. */
-  async getLogoFile(schoolId: string): Promise<{ buffer: Buffer; contentType: string }> {
+  async getLogoFile(
+    schoolId: string,
+  ): Promise<{ buffer: Buffer; contentType: string }> {
     const school = await this.prisma.school.findUnique({
       where: { id: schoolId },
       select: { logoKey: true },
     });
     if (!school?.logoKey) throw new NotFoundException("No logo set");
-    const buffer = await this.storage.getObject(this.bucket, school.logoKey);
+    // A school row can point at a file the storage backend no longer has (the
+    // backend was switched, or the volume was replaced). That is a missing
+    // logo, not a broken server — every page header asks for this, so a 500
+    // here fills the log and shows an error where a blank crest belongs.
+    let buffer: Buffer;
+    try {
+      buffer = await this.storage.getObject(this.bucket, school.logoKey);
+    } catch (err) {
+      const code = (err as { code?: string } | null)?.code;
+      if (code === "ENOENT" || code === "NoSuchKey") {
+        throw new NotFoundException("No logo set");
+      }
+      throw err;
+    }
     return { buffer, contentType: logoContentTypeFromKey(school.logoKey) };
   }
 
@@ -115,7 +134,9 @@ export class SettingsService {
     const key = schoolLogoKey(schoolId, logoExtension(mime));
     await this.storage.putObject(this.bucket, key, buffer, mime);
     if (existing.logoKey && existing.logoKey !== key) {
-      await this.storage.removeObject(this.bucket, existing.logoKey).catch(() => undefined);
+      await this.storage
+        .removeObject(this.bucket, existing.logoKey)
+        .catch(() => undefined);
     }
     const school = await this.prisma.school.update({
       where: { id: schoolId },
@@ -131,7 +152,9 @@ export class SettingsService {
     });
     if (!existing) throw new NotFoundException("School not found");
     if (existing.logoKey) {
-      await this.storage.removeObject(this.bucket, existing.logoKey).catch(() => undefined);
+      await this.storage
+        .removeObject(this.bucket, existing.logoKey)
+        .catch(() => undefined);
     }
     const school = await this.prisma.school.update({
       where: { id: schoolId },

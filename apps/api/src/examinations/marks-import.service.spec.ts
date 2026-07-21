@@ -38,7 +38,10 @@ const EXAMS = [
   },
 ];
 
-const STUDENTS: Record<string, { id: string; code: string; fullName: string }[]> = {
+const STUDENTS: Record<
+  string,
+  { id: string; code: string; fullName: string }[]
+> = {
   sA: [
     { id: "st1", code: "S001", fullName: "Amina Cali" },
     { id: "st2", code: "S002", fullName: "Bashir Nuur" },
@@ -91,27 +94,41 @@ describe("marks template", () => {
 
     const a = wb.getWorksheet("8th A")!;
     expect(a.getRow(4).values).toEqual(
-      expect.arrayContaining(["Student ID", "Student Name", "Mathematics", "English"]),
+      expect.arrayContaining([
+        "Student ID",
+        "Student Name",
+        "Mathematics",
+        "English",
+      ]),
     );
     expect(String(a.getCell("A5").value)).toBe("S001");
     expect(String(a.getCell("B6").value)).toBe("Bashir Nuur");
 
     // 8B sits Saynis and must NOT be offered 8A's subjects.
     const b = wb.getWorksheet("8th B")!;
-    const bHeaders = (b.getRow(4).values as unknown[]).map((v) => String(v ?? ""));
+    const bHeaders = (b.getRow(4).values as unknown[]).map((v) =>
+      String(v ?? ""),
+    );
     expect(bHeaders).toContain("Saynis");
     expect(bHeaders).not.toContain("Mathematics");
   });
 
   it("stamps the exam id so a renamed tab cannot go to the wrong class", async () => {
     const wb = await openTemplate();
-    expect(String(wb.getWorksheet("8th A")!.getCell("A2").value)).toBe("EXAM_ID:ex8A");
+    expect(String(wb.getWorksheet("8th A")!.getCell("A2").value)).toBe(
+      "EXAM_ID:ex8A",
+    );
   });
 });
 
 describe("marks validation", () => {
   /** Fill a subject cell for a student row. */
-  function put(ws: ExcelJS.Worksheet, row: number, header: string, value: unknown) {
+  function put(
+    ws: ExcelJS.Worksheet,
+    row: number,
+    header: string,
+    value: unknown,
+  ) {
     let col = 0;
     ws.getRow(4).eachCell((cell, c) => {
       if (String(cell.value ?? "").trim() === header) col = c;
@@ -140,14 +157,31 @@ describe("marks validation", () => {
     put(wb.getWorksheet("8th A")!, 5, "Mathematics", 140);
     const res = await service.validate("s1", EXAM_IDS, await toBuffer(wb));
     expect(res.ok).toBe(false);
-    expect(res.issues.some((i) => i.message.includes("outside 0–100"))).toBe(true);
+    expect(res.issues.some((i) => i.message.includes("outside 0–100"))).toBe(
+      true,
+    );
+  });
+
+  it("rejects a half mark, which the marks column cannot hold", async () => {
+    // A real school's sheet had one 27.5 in it. Validation waved it through and
+    // the bulk insert died on `improper binary format in array element 76`,
+    // with nothing on screen to say which cell was at fault.
+    const wb = await openTemplate();
+    put(wb.getWorksheet("8th A")!, 5, "Mathematics", 27.5);
+    const res = await service.validate("s1", EXAM_IDS, await toBuffer(wb));
+    expect(res.ok).toBe(false);
+    expect(
+      res.issues.some((i) => i.message.includes("is not a whole number")),
+    ).toBe(true);
   });
 
   it("rejects text where a mark should be", async () => {
     const wb = await openTemplate();
     put(wb.getWorksheet("8th A")!, 5, "Mathematics", "eighty");
     const res = await service.validate("s1", EXAM_IDS, await toBuffer(wb));
-    expect(res.issues.some((i) => i.message.includes("is not a number"))).toBe(true);
+    expect(res.issues.some((i) => i.message.includes("is not a number"))).toBe(
+      true,
+    );
   });
 
   it("rejects a student id that is not in that class", async () => {
@@ -157,7 +191,9 @@ describe("marks validation", () => {
     const res = await service.validate("s1", EXAM_IDS, await toBuffer(wb));
     expect(res.ok).toBe(false);
     expect(
-      res.issues.some((i) => i.message.includes('No active student "S003" in 8th A')),
+      res.issues.some((i) =>
+        i.message.includes('No active student "S003" in 8th A'),
+      ),
     ).toBe(true);
   });
 
@@ -165,7 +201,9 @@ describe("marks validation", () => {
     const wb = await openTemplate();
     wb.getWorksheet("8th A")!.getCell("A6").value = "S001";
     const res = await service.validate("s1", EXAM_IDS, await toBuffer(wb));
-    expect(res.issues.some((i) => i.message.includes("more than once"))).toBe(true);
+    expect(res.issues.some((i) => i.message.includes("more than once"))).toBe(
+      true,
+    );
   });
 
   it("flags a subject column that does not belong to the exam", async () => {
@@ -173,7 +211,9 @@ describe("marks validation", () => {
     wb.getWorksheet("8th A")!.getCell(4, 9).value = "Chemistry";
     const res = await service.validate("s1", EXAM_IDS, await toBuffer(wb));
     expect(
-      res.issues.some((i) => i.message.includes('Column "Chemistry" is not a subject')),
+      res.issues.some((i) =>
+        i.message.includes('Column "Chemistry" is not a subject'),
+      ),
     ).toBe(true);
   });
 
@@ -182,9 +222,9 @@ describe("marks validation", () => {
     wb.removeWorksheet(wb.getWorksheet("8th B")!.id);
     const res = await service.validate("s1", EXAM_IDS, await toBuffer(wb));
     expect(res.ok).toBe(false);
-    expect(res.issues.some((i) => i.message.includes("No sheet found for 8th B"))).toBe(
-      true,
-    );
+    expect(
+      res.issues.some((i) => i.message.includes("No sheet found for 8th B")),
+    ).toBe(true);
   });
 
   it("still finds a sheet the school renamed, via the stamped exam id", async () => {
@@ -192,7 +232,9 @@ describe("marks validation", () => {
     wb.getWorksheet("8th A")!.name = "Fasalka 8A";
     put(wb.getWorksheet("Fasalka 8A")!, 5, "Mathematics", 70);
     const res = await service.validate("s1", EXAM_IDS, await toBuffer(wb));
-    expect(res.issues.some((i) => i.message.includes("No sheet found"))).toBe(false);
+    expect(res.issues.some((i) => i.message.includes("No sheet found"))).toBe(
+      false,
+    );
     expect(res.totalMarks).toBe(1);
   });
 
@@ -223,7 +265,12 @@ describe("marks validation", () => {
 });
 
 describe("marks import", () => {
-  function put(ws: ExcelJS.Worksheet, row: number, header: string, value: unknown) {
+  function put(
+    ws: ExcelJS.Worksheet,
+    row: number,
+    header: string,
+    value: unknown,
+  ) {
     let col = 0;
     ws.getRow(4).eachCell((cell, c) => {
       if (String(cell.value ?? "").trim() === header) col = c;
@@ -242,9 +289,9 @@ describe("marks import", () => {
     put(a, 6, "Mathematics", 500); // … but this one is not
     put(wb.getWorksheet("8th B")!, 5, "Saynis", 70);
 
-    await expect(service.commit("s1", EXAM_IDS, await toBuffer(wb))).rejects.toThrow(
-      /nothing was imported/i,
-    );
+    await expect(
+      service.commit("s1", EXAM_IDS, await toBuffer(wb)),
+    ).rejects.toThrow(/nothing was imported/i);
     // The valid rows must not have been written either — all or nothing.
     expect(writes).toHaveLength(0);
   });
@@ -263,7 +310,12 @@ describe("marks import", () => {
     expect(writes).toHaveLength(2); // two exams, two statements
 
     const a8 = writes.find((w) => (w.params[2] as string[])[0] === "ex8A")!;
-    expect((a8.params[3] as string[]).sort()).toEqual(["st1", "st1", "st2", "st2"]);
+    expect((a8.params[3] as string[]).sort()).toEqual([
+      "st1",
+      "st1",
+      "st2",
+      "st2",
+    ]);
     expect(a8.params[5]).toEqual([85, 72, 64, 58]);
     expect(a8.params[6]).toEqual(["u1", "u1", "u1", "u1"]);
     // Re-importing a corrected file must update rather than fail on the key.
@@ -283,8 +335,8 @@ describe("marks import", () => {
 
   it("refuses an empty sheet rather than importing nothing silently", async () => {
     const wb = await openTemplate();
-    await expect(service.commit("s1", EXAM_IDS, await toBuffer(wb))).rejects.toThrow(
-      /no marks to import/i,
-    );
+    await expect(
+      service.commit("s1", EXAM_IDS, await toBuffer(wb)),
+    ).rejects.toThrow(/no marks to import/i);
   });
 });

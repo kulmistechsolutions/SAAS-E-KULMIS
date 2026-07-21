@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
 import { randomUUID } from "node:crypto";
 import ExcelJS from "exceljs";
 import { PrismaService } from "../prisma/prisma.service";
@@ -102,7 +106,9 @@ export class MarksImportService {
         include: {
           class: { select: { id: true, name: true } },
           section: { select: { id: true, name: true } },
-          subjects: { include: { subject: { select: { id: true, name: true } } } },
+          subjects: {
+            include: { subject: { select: { id: true, name: true } } },
+          },
         },
       }),
     );
@@ -134,13 +140,21 @@ export class MarksImportService {
    * de-duplicated rather than trusted.
    */
   private sheetNames(
-    exams: { exam: { id: string; class: { name: string }; section: { name: string } | null } }[],
+    exams: {
+      exam: {
+        id: string;
+        class: { name: string };
+        section: { name: string } | null;
+      };
+    }[],
   ): Map<string, string> {
     const used = new Set<string>();
     const out = new Map<string, string>();
     for (const { exam } of exams) {
       const base = (
-        exam.section ? `${exam.class.name} ${exam.section.name}` : exam.class.name
+        exam.section
+          ? `${exam.class.name} ${exam.section.name}`
+          : exam.class.name
       )
         .replace(/[\\/*?:[\]]/g, "-")
         .slice(0, 28)
@@ -183,12 +197,18 @@ export class MarksImportService {
 
       // Row 1 identifies the exam so a returned file can be checked against the
       // exam it was meant for, not just the sheet name.
-      ws.getCell("A1").value = `${exam.name} — ${exam.class.name}${exam.section ? ` ${exam.section.name}` : ""} · out of ${exam.maxMarks}`;
+      ws.getCell("A1").value =
+        `${exam.name} — ${exam.class.name}${exam.section ? ` ${exam.section.name}` : ""} · out of ${exam.maxMarks}`;
       ws.getCell("A1").font = { bold: true, size: 12 };
       ws.getCell("A2").value = `EXAM_ID:${exam.id}`;
       ws.getCell("A2").font = { size: 8, color: { argb: "FF999999" } };
 
-      const header = [ID_HEADER, NAME_HEADER, ...subjects.map((s) => s.name), ...COMPUTED];
+      const header = [
+        ID_HEADER,
+        NAME_HEADER,
+        ...subjects.map((s) => s.name),
+        ...COMPUTED,
+      ];
       const headerRow = ws.getRow(4);
       header.forEach((h, i) => {
         const cell = headerRow.getCell(i + 1);
@@ -221,7 +241,9 @@ export class MarksImportService {
         if (subjects.length > 0) {
           const from = ws.getCell(r, firstSubjectCol).address;
           const to = ws.getCell(r, lastSubjectCol).address;
-          row.getCell(lastSubjectCol + 1).value = { formula: `SUM(${from}:${to})` };
+          row.getCell(lastSubjectCol + 1).value = {
+            formula: `SUM(${from}:${to})`,
+          };
           row.getCell(lastSubjectCol + 2).value = {
             formula: `IF(COUNT(${from}:${to})=0,"",ROUND(AVERAGE(${from}:${to}),1))`,
           };
@@ -300,7 +322,8 @@ export class MarksImportService {
       // into a different class.
       const ws =
         wb.worksheets.find(
-          (w) => String(w.getCell("A2").value ?? "").trim() === `EXAM_ID:${exam.id}`,
+          (w) =>
+            String(w.getCell("A2").value ?? "").trim() === `EXAM_ID:${exam.id}`,
         ) ??
         wb.worksheets.find(
           (w) => w.name.trim().toLowerCase() === sheetName.toLowerCase(),
@@ -413,7 +436,7 @@ export class MarksImportService {
             const raw = row.getCell(col).value;
             const text = String(
               raw !== null && typeof raw === "object" && "result" in raw
-                ? (raw as { result?: unknown }).result ?? ""
+                ? ((raw as { result?: unknown }).result ?? "")
                 : (raw ?? ""),
             ).trim();
             if (text === "") {
@@ -436,6 +459,19 @@ export class MarksImportService {
                 row: r,
                 studentCode: code,
                 message: `${student.fullName} · ${subject.name}: ${value} is outside 0–${exam.maxMarks}.`,
+              });
+              continue;
+            }
+            // Marks are stored as whole numbers. A half mark used to sail past
+            // the preview and then blow up the bulk insert ("improper binary
+            // format"), so it has to be caught here where the school can see
+            // which cell to fix.
+            if (!Number.isInteger(value)) {
+              sheetIssues.push({
+                sheet: sheetName,
+                row: r,
+                studentCode: code,
+                message: `${student.fullName} · ${subject.name}: ${value} is not a whole number — enter ${Math.round(value)} instead.`,
               });
               continue;
             }
@@ -511,7 +547,18 @@ export class MarksImportService {
       );
     }
     if (resolved.length === 0) {
-      throw new BadRequestException("There are no marks to import in that file.");
+      throw new BadRequestException(
+        "There are no marks to import in that file.",
+      );
+    }
+    // The bulk insert binds an int[]; anything else fails deep inside Postgres
+    // with a message no school can act on. The reader already rejects these —
+    // this is the last gate before the raw statement.
+    const fractional = resolved.find((r) => !Number.isInteger(r.marks));
+    if (fractional) {
+      throw new BadRequestException(
+        `Marks must be whole numbers — found ${fractional.marks}. Nothing was imported.`,
+      );
     }
 
     const byExam = new Map<string, ResolvedMark[]>();
