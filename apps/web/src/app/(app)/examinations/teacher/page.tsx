@@ -5,7 +5,11 @@ import { Select } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { MarkEntryTable } from "@/components/examinations/mark-entry-table";
 import { ExamStatusBadge } from "@/components/examinations/exam-status-badge";
-import { apiListExams, apiSubmitExamSubject, type ApiExam } from "@/lib/examinations/api";
+import {
+  apiListExams,
+  apiSubmitExamSubject,
+  type ApiExam,
+} from "@/lib/examinations/api";
 import {
   getExam,
   loadExamMarks,
@@ -90,14 +94,23 @@ export default function TeacherExamPortalPage() {
     if (hasAll) {
       const cls = academics.classes.find((c) => c.id === classId);
       if (cls) {
-        return sectionsForClass(cls.id).map((s) => ({ id: s.id, name: s.name }));
+        return sectionsForClass(cls.id).map((s) => ({
+          id: s.id,
+          name: s.name,
+        }));
       }
     }
     return named;
   }, [classId, me, yearAssignments, academics.classes]);
 
+  // A grade can legitimately have no sections. When it doesn't, section is not
+  // required — the teacher moves straight on to Exam → Subject, and everything
+  // downstream treats the section as null.
+  const classHasSections = sectionOptions.length > 0;
+
   const examOptions = useMemo(() => {
-    if (!classId || !sectionId) return [];
+    if (!classId) return [];
+    if (classHasSections && !sectionId) return [];
     return exams.filter((e) => {
       if (year && e.academicYear.name !== year) return false;
       if (e.classId !== classId) return false;
@@ -108,10 +121,13 @@ export default function TeacherExamPortalPage() {
         (a) =>
           a.classId === classId &&
           (a.sectionId === null || a.sectionId === sectionId) &&
-          e.subjects.some((s) => s.subjectId === a.subjectId || s.subject.name === a.subject.name),
+          e.subjects.some(
+            (s) =>
+              s.subjectId === a.subjectId || s.subject.name === a.subject.name,
+          ),
       );
     });
-  }, [exams, classId, sectionId, year, yearAssignments]);
+  }, [exams, classId, sectionId, classHasSections, year, yearAssignments]);
 
   const storeExam = examId ? getExam(examId) : undefined;
 
@@ -125,7 +141,8 @@ export default function TeacherExamPortalPage() {
           (a) =>
             a.classId === classId &&
             (a.sectionId === null || a.sectionId === sectionId) &&
-            (a.subjectId === es.subjectId || a.subject.name === es.subject.name),
+            (a.subjectId === es.subjectId ||
+              a.subject.name === es.subject.name),
         ),
       )
       .map((es) => ({ id: es.subjectId, name: es.subject.name }));
@@ -159,7 +176,10 @@ export default function TeacherExamPortalPage() {
   }, [examOptions, examId]);
 
   useEffect(() => {
-    if (subjectOptions.length && !subjectOptions.some((s) => s.name === subjectName)) {
+    if (
+      subjectOptions.length &&
+      !subjectOptions.some((s) => s.name === subjectName)
+    ) {
       setSubjectName(subjectOptions[0]!.name);
       setSubjectId(subjectOptions[0]!.id);
     }
@@ -173,7 +193,8 @@ export default function TeacherExamPortalPage() {
   const markExam = useMemo(() => {
     if (storeExam) {
       const secName =
-        sectionOptions.find((s) => s.id === sectionId)?.name ?? storeExam.section;
+        sectionOptions.find((s) => s.id === sectionId)?.name ??
+        storeExam.section;
       return { ...storeExam, section: secName };
     }
     const apiExam = exams.find((e) => e.id === examId);
@@ -234,7 +255,9 @@ export default function TeacherExamPortalPage() {
                 .then((teacher) => {
                   setMe(teacher);
                   const years = [
-                    ...new Set(teacher.assignments.map((a) => a.academicYear.name)),
+                    ...new Set(
+                      teacher.assignments.map((a) => a.academicYear.name),
+                    ),
                   ];
                   if (years[0]) setYear(years[0]);
                 })
@@ -276,13 +299,13 @@ export default function TeacherExamPortalPage() {
             }}
           >
             <option value="">Select year…</option>
-            {[...new Set(me?.assignments.map((a) => a.academicYear.name) ?? [])].map(
-              (y) => (
-                <option key={y} value={y}>
-                  {y}
-                </option>
-              ),
-            )}
+            {[
+              ...new Set(me?.assignments.map((a) => a.academicYear.name) ?? []),
+            ].map((y) => (
+              <option key={y} value={y}>
+                {y}
+              </option>
+            ))}
           </Select>
         </div>
         <div>
@@ -308,7 +331,12 @@ export default function TeacherExamPortalPage() {
         </div>
         <div>
           <label className="mb-1 block text-xs font-medium text-muted-foreground">
-            Section <span className="text-rose-500">*</span>
+            Section{" "}
+            {classId && !classHasSections ? (
+              <span className="text-muted-foreground">(optional)</span>
+            ) : (
+              <span className="text-rose-500">*</span>
+            )}
           </label>
           <Select
             value={sectionId}
@@ -316,18 +344,20 @@ export default function TeacherExamPortalPage() {
               setSectionId(e.target.value);
               setExamId("");
             }}
-            disabled={!classId}
+            disabled={!classId || !classHasSections}
           >
-            <option value="">Select section…</option>
+            <option value="">
+              {classId && !classHasSections ? "No section" : "Select section…"}
+            </option>
             {sectionOptions.map((s) => (
               <option key={s.id} value={s.id}>
                 {s.name}
               </option>
             ))}
           </Select>
-          {classId && sectionOptions.length === 0 && (
-            <p className="mt-1 text-[11px] text-amber-600">
-              No sections available for this class assignment.
+          {classId && !classHasSections && (
+            <p className="mt-1 text-[11px] text-muted-foreground">
+              This grade has no sections — continue to Exam.
             </p>
           )}
         </div>
@@ -338,7 +368,7 @@ export default function TeacherExamPortalPage() {
           <Select
             value={examId}
             onChange={(e) => setExamId(e.target.value)}
-            disabled={!sectionId}
+            disabled={!classId || (classHasSections && !sectionId)}
           >
             <option value="">Select exam…</option>
             {examOptions.map((e) => (
@@ -377,8 +407,11 @@ export default function TeacherExamPortalPage() {
         <div className="flex flex-wrap items-center gap-3 text-sm">
           <ExamStatusBadge status={markExam.status} />
           <span className="text-muted-foreground">
-            {selectedClass?.name} · Section{" "}
-            {sectionOptions.find((s) => s.id === sectionId)?.name} · {subjectName}
+            {selectedClass?.name}
+            {sectionId
+              ? ` · Section ${sectionOptions.find((s) => s.id === sectionId)?.name}`
+              : ""}{" "}
+            · {subjectName}
             {me ? ` · ${me.fullName}` : ""}
           </span>
           <Button
@@ -404,11 +437,13 @@ export default function TeacherExamPortalPage() {
         />
       )}
 
-      {sectionId && examOptions.length === 0 && (
-        <p className="text-center text-muted-foreground">
-          No examinations for this class and section.
-        </p>
-      )}
+      {classId &&
+        (sectionId || !classHasSections) &&
+        examOptions.length === 0 && (
+          <p className="text-center text-muted-foreground">
+            No examinations for this class{sectionId ? " and section" : ""}.
+          </p>
+        )}
     </div>
   );
 }
