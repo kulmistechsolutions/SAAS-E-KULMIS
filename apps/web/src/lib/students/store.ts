@@ -3,7 +3,10 @@
 import { useSyncExternalStore } from "react";
 import { ApiError, getAccessToken } from "@/lib/api";
 import { getCachedAuthUser } from "@/lib/auth";
-import { ensureAcademicsLoaded, getAcademicsState } from "@/lib/academics/store";
+import {
+  ensureAcademicsLoaded,
+  getAcademicsState,
+} from "@/lib/academics/store";
 import {
   apiDeleteStudent,
   apiDeleteStudentPhoto,
@@ -143,10 +146,7 @@ export async function refreshStudents(): Promise<boolean> {
 
 function mergeStudentIntoState(student: Student, parent?: Parent): void {
   const st = ensure();
-  const students = [
-    ...st.students.filter((s) => s.id !== student.id),
-    student,
-  ];
+  const students = [...st.students.filter((s) => s.id !== student.id), student];
   let parents = st.parents;
   if (parent) {
     parents = [...st.parents.filter((p) => p.id !== parent.id), parent];
@@ -193,8 +193,9 @@ function resolveClassId(
 ): { classId?: string; error?: string } {
   const a = getAcademicsState();
   const cls =
-    a.classes.find((c) => c.name === className && c.academicYear === academicYear) ??
-    null;
+    a.classes.find(
+      (c) => c.name === className && c.academicYear === academicYear,
+    ) ?? null;
   if (!cls) {
     return {
       error: `Class "${className}" was not found. Create it under Academics first.`,
@@ -213,7 +214,10 @@ function resolveSectionId(
     (s) => s.classId === classId && s.name === sectionName,
   );
   if (!sec) {
-    return { sectionId: null, error: `Section "${sectionName}" was not found.` };
+    return {
+      sectionId: null,
+      error: `Section "${sectionName}" was not found.`,
+    };
   }
   return { sectionId: sec.id };
 }
@@ -303,7 +307,8 @@ export function summarize(students: Student[]): StudentSummary {
     else if (s.status === "GRADUATED") out.graduated++;
     if (s.gender === "MALE") out.male++;
     else out.female++;
-    if (new Date(s.registrationDate).getTime() >= monthStart) out.newThisMonth++;
+    if (new Date(s.registrationDate).getTime() >= monthStart)
+      out.newThisMonth++;
   }
   return out;
 }
@@ -379,16 +384,30 @@ export async function registerStudent(
 ): Promise<RegisterResult> {
   await ensureAcademicsLoaded();
   const st = ensure();
-  const { classId, error } = resolveClassId(input.className, input.academicYear);
+  const { classId, error } = resolveClassId(
+    input.className,
+    input.academicYear,
+  );
   if (!classId) return { ok: false, error };
   const sec = resolveSectionId(classId, input.section);
   if (sec.error) return { ok: false, error: sec.error };
 
   if (!isValidPhone(input.parentPhone)) {
-    return { ok: false, error: "Invalid parent phone number (at least 6 digits)." };
+    return {
+      ok: false,
+      error: "Invalid parent phone number (at least 6 digits).",
+    };
   }
 
-  if (isDuplicate(st, input.parentPhone, input.fullName, input.className, input.section)) {
+  if (
+    isDuplicate(
+      st,
+      input.parentPhone,
+      input.fullName,
+      input.className,
+      input.section,
+    )
+  ) {
     return {
       ok: false,
       error:
@@ -508,8 +527,10 @@ export async function updateStudent(
       fullName: patch.fullName?.trim(),
       gender: patch.gender,
       dob: patch.dob !== undefined ? patch.dob : undefined,
-      phone: patch.phone !== undefined ? patch.phone?.trim() || null : undefined,
-      notes: patch.notes !== undefined ? patch.notes?.trim() || null : undefined,
+      phone:
+        patch.phone !== undefined ? patch.phone?.trim() || null : undefined,
+      notes:
+        patch.notes !== undefined ? patch.notes?.trim() || null : undefined,
       classId,
       sectionId,
       monthlyFee: patch.monthlyFee,
@@ -553,7 +574,11 @@ export async function deleteStudent(id: string): Promise<DeleteResult> {
     await refreshStudents();
     return { ok: true, parentDeleted: res.parentDeleted };
   } catch (e) {
-    return { ok: false, parentDeleted: false, error: apiErr(e, "Failed to delete student.") };
+    return {
+      ok: false,
+      parentDeleted: false,
+      error: apiErr(e, "Failed to delete student."),
+    };
   }
 }
 
@@ -692,7 +717,12 @@ export async function bulkImport(
   academicYear: string,
 ): Promise<ImportResult> {
   await ensureAcademicsLoaded();
-  const result: ImportResult = { imported: 0, skipped: 0, failed: 0, errors: [] };
+  const result: ImportResult = {
+    imported: 0,
+    skipped: 0,
+    failed: 0,
+    errors: [],
+  };
   const seenInFile = new Set<string>();
 
   for (let i = 0; i < rows.length; i++) {
@@ -702,7 +732,10 @@ export async function bulkImport(
 
     if (preview.status === "invalid") {
       result.failed++;
-      result.errors.push({ row: line, message: preview.message ?? "Invalid row." });
+      result.errors.push({
+        row: line,
+        message: preview.message ?? "Invalid row.",
+      });
       continue;
     }
     if (preview.status === "duplicate") {
@@ -862,7 +895,13 @@ export function parentDashboard(
 export type ParentPatch = Partial<
   Pick<
     Parent,
-    "name" | "phone" | "altPhone" | "email" | "address" | "occupation" | "status"
+    | "name"
+    | "phone"
+    | "altPhone"
+    | "email"
+    | "address"
+    | "occupation"
+    | "status"
   >
 >;
 
@@ -878,11 +917,18 @@ export async function updateParent(
     const parent = await apiUpdateParent(id, {
       name: patch.name?.trim(),
       phone: patch.phone?.trim(),
-      altPhone: patch.altPhone !== undefined ? patch.altPhone?.trim() || null : undefined,
-      email: patch.email !== undefined ? patch.email?.trim() || null : undefined,
-      address: patch.address !== undefined ? patch.address?.trim() || null : undefined,
+      altPhone:
+        patch.altPhone !== undefined
+          ? patch.altPhone?.trim() || null
+          : undefined,
+      email:
+        patch.email !== undefined ? patch.email?.trim() || null : undefined,
+      address:
+        patch.address !== undefined ? patch.address?.trim() || null : undefined,
       occupation:
-        patch.occupation !== undefined ? patch.occupation?.trim() || null : undefined,
+        patch.occupation !== undefined
+          ? patch.occupation?.trim() || null
+          : undefined,
       status: patch.status,
     });
     await refreshStudents();
@@ -903,13 +949,14 @@ export async function setParentStatus(id: string, status: ParentStatus) {
  */
 export async function resetParentPassword(
   id: string,
+  customPassword?: string,
 ): Promise<{ ok: boolean; password?: string; error?: string }> {
   const st = ensure();
   if (!st.parents.some((p) => p.id === id)) {
     return { ok: false, error: "Parent not found." };
   }
   try {
-    const { password } = await apiResetParentPassword(id);
+    const { password } = await apiResetParentPassword(id, customPassword);
     setState({
       ...st,
       parents: st.parents.map((p) => (p.id === id ? { ...p, password } : p)),
@@ -934,7 +981,9 @@ export function changeParentPassword(
   }
   setState({
     ...st,
-    parents: st.parents.map((p) => (p.id === id ? { ...p, password: next } : p)),
+    parents: st.parents.map((p) =>
+      p.id === id ? { ...p, password: next } : p,
+    ),
   });
   return { ok: true };
 }
@@ -952,11 +1001,10 @@ export function useStudentsState(): StudentsState {
 }
 
 export function useStudentsRefresh(): { loading: boolean; failed: boolean } {
-  return useSyncExternalStore(
-    subscribe,
-    getRefreshSnapshot,
-    () => ({ loading: false, failed: false }),
-  );
+  return useSyncExternalStore(subscribe, getRefreshSnapshot, () => ({
+    loading: false,
+    failed: false,
+  }));
 }
 
 export type { Gender, Parent, Student, StudentStatus, StudentWithParent };

@@ -1,16 +1,10 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
-import { randomInt } from "node:crypto";
 import type { UpdateParentInput } from "@ekulmis/shared";
 import { PrismaService } from "../prisma/prisma.service";
 import { hashPassword } from "../auth/password.util";
 
-/** Short, readable one-time password for a portal account. */
-function generatePassword(): string {
-  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  let out = "";
-  for (let i = 0; i < 8; i++) out += chars[randomInt(chars.length)];
-  return out;
-}
+/** The password every parent account starts on, and the reset falls back to. */
+const DEFAULT_PARENT_PASSWORD = "12345";
 
 @Injectable()
 export class ParentsService {
@@ -21,13 +15,15 @@ export class ParentsService {
    * parent's User account (previously the UI only generated one locally, so the
    * parent could never actually log in with it) and revokes old sessions.
    */
-  async resetPassword(schoolId: string, id: string) {
+  async resetPassword(schoolId: string, id: string, customPassword?: string) {
     const parent = await this.prisma.forTenant(schoolId, (tx) =>
       tx.parent.findFirst({ where: { id }, select: { userId: true } }),
     );
     if (!parent) throw new NotFoundException("Parent not found");
 
-    const password = generatePassword();
+    // Reset lands the parent on the shared default (12345) so the front desk
+    // can just tell them, unless the admin typed a specific password to set.
+    const password = customPassword?.trim() || DEFAULT_PARENT_PASSWORD;
     const passwordHash = await hashPassword(password);
     await this.prisma.forTenant(schoolId, (tx) =>
       tx.user.update({

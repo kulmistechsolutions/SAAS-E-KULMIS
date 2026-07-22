@@ -125,7 +125,9 @@ export async function apiGetStudent(id: string): Promise<{
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
 const TENANT = process.env.NEXT_PUBLIC_TENANT_SUBDOMAIN ?? "demo";
 
-export async function apiFetchStudentPhotoBlob(studentId: string): Promise<Blob> {
+export async function apiFetchStudentPhotoBlob(
+  studentId: string,
+): Promise<Blob> {
   const token = getAccessToken();
   const headers: Record<string, string> = {
     "x-tenant-subdomain": TENANT,
@@ -136,7 +138,9 @@ export async function apiFetchStudentPhotoBlob(studentId: string): Promise<Blob>
     headers,
   });
   if (!res.ok) {
-    throw new Error(res.status === 404 ? "Photo not found" : "Failed to load photo");
+    throw new Error(
+      res.status === 404 ? "Photo not found" : "Failed to load photo",
+    );
   }
   return res.blob();
 }
@@ -162,7 +166,9 @@ export interface RegisterStudentApiInput {
   agreementAmount?: number;
 }
 
-export async function apiRegisterStudent(input: RegisterStudentApiInput): Promise<{
+export async function apiRegisterStudent(
+  input: RegisterStudentApiInput,
+): Promise<{
   student: Student;
   parent: Parent;
   parentCreated: boolean;
@@ -183,7 +189,10 @@ export async function apiRegisterStudent(input: RegisterStudentApiInput): Promis
   };
 }
 
-export async function apiUploadStudentPhoto(id: string, file: File): Promise<Student> {
+export async function apiUploadStudentPhoto(
+  id: string,
+  file: File,
+): Promise<Student> {
   const { base64, mimeType } = await readStudentPhotoFile(file);
   const row = await api<ApiStudent>(`/students/${id}/photo`, {
     method: "POST",
@@ -251,12 +260,18 @@ export async function apiUpdateParent(
   return mapApiParent(row);
 }
 
-/** Reset the parent's portal password on the server; returns the new one once. */
+/**
+ * Reset the parent's portal password on the server; returns the new one once.
+ * With no argument it resets to the default 12345; pass a string to set a
+ * specific password the admin chose.
+ */
 export async function apiResetParentPassword(
   id: string,
+  password?: string,
 ): Promise<{ password: string }> {
   return api<{ password: string }>(`/parents/${id}/reset-password`, {
     method: "POST",
+    body: password ? { password } : undefined,
   });
 }
 

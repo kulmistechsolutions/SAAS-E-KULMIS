@@ -44,9 +44,32 @@ export class ParentsController {
     return this.parents.update(me.schoolId, id, parsed.data);
   }
 
-  /** Reset the parent's portal password (persisted) — returns the new one once. */
+  /**
+   * Reset the parent's portal password (persisted) — returns the new one once.
+   * With no body it resets to the default 12345; pass `{ password }` to set a
+   * specific one the admin chose.
+   */
   @Post(":id/reset-password")
-  resetPassword(@CurrentUser() me: AuthUser, @Param("id") id: string) {
-    return this.parents.resetPassword(me.schoolId, id);
+  resetPassword(
+    @CurrentUser() me: AuthUser,
+    @Param("id") id: string,
+    @Body() body: unknown,
+  ) {
+    const custom = (body as { password?: unknown } | null)?.password;
+    if (custom !== undefined && typeof custom !== "string") {
+      throw new BadRequestException("password must be a string");
+    }
+    if (
+      typeof custom === "string" &&
+      custom.trim() &&
+      custom.trim().length < 4
+    ) {
+      throw new BadRequestException("Password must be at least 4 characters");
+    }
+    return this.parents.resetPassword(
+      me.schoolId,
+      id,
+      custom as string | undefined,
+    );
   }
 }

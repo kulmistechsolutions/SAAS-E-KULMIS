@@ -17,6 +17,7 @@ import {
   Users,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs } from "@/components/ui/tabs";
 import { ParentDashboardCards } from "@/components/parents/summary-cards";
@@ -28,7 +29,13 @@ import {
   resetParentPassword,
   useStudentsState,
 } from "@/lib/students/store";
-import { genderLabel, longDate, money, shortDate, statusLabel } from "@/lib/students/format";
+import {
+  genderLabel,
+  longDate,
+  money,
+  shortDate,
+  statusLabel,
+} from "@/lib/students/format";
 import {
   attendanceHistory,
   examHistory,
@@ -49,11 +56,23 @@ const STATUS_TONE: Record<ParentStatus, "success" | "muted"> = {
 const TABS = [
   { id: "personal", label: "Personal", icon: <User className="h-4 w-4" /> },
   { id: "children", label: "Children", icon: <Users className="h-4 w-4" /> },
-  { id: "attendance", label: "Attendance", icon: <CalendarCheck className="h-4 w-4" /> },
+  {
+    id: "attendance",
+    label: "Attendance",
+    icon: <CalendarCheck className="h-4 w-4" />,
+  },
   { id: "fees", label: "Fees", icon: <Receipt className="h-4 w-4" /> },
   { id: "exams", label: "Exams", icon: <BookOpen className="h-4 w-4" /> },
-  { id: "quizzes", label: "Quizzes", icon: <ClipboardList className="h-4 w-4" /> },
-  { id: "progress", label: "Progress", icon: <TrendingUp className="h-4 w-4" /> },
+  {
+    id: "quizzes",
+    label: "Quizzes",
+    icon: <ClipboardList className="h-4 w-4" />,
+  },
+  {
+    id: "progress",
+    label: "Progress",
+    icon: <TrendingUp className="h-4 w-4" />,
+  },
 ];
 
 export default function ParentProfilePage({
@@ -75,32 +94,59 @@ export default function ParentProfilePage({
   const [tab, setTab] = useState("personal");
   const [editOpen, setEditOpen] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [customPw, setCustomPw] = useState("");
+  const [resetting, setResetting] = useState(false);
   const [selectedChild, setSelectedChild] = useState<string>("");
+
+  async function handleResetPassword(custom?: string) {
+    if (!parent) return;
+    setResetting(true);
+    const res = await resetParentPassword(parent.id, custom);
+    setResetting(false);
+    if (res.ok && res.password) {
+      setShowPassword(true);
+      setCustomPw("");
+      toast(`New password: ${res.password}`, "info");
+    } else toast(res.error ?? "Reset failed", "error");
+  }
 
   useEffect(() => {
     if (parent?.children[0]) setSelectedChild(parent.children[0].id);
   }, [parent]);
 
-  const child = parent?.children.find((c) => c.id === selectedChild) ?? parent?.children[0];
+  const child =
+    parent?.children.find((c) => c.id === selectedChild) ?? parent?.children[0];
 
   if (!mounted) {
-    return <div className="flex h-64 items-center justify-center text-muted-foreground">Loading profile…</div>;
+    return (
+      <div className="flex h-64 items-center justify-center text-muted-foreground">
+        Loading profile…
+      </div>
+    );
   }
 
   if (!parent) {
     return (
       <div className="space-y-4">
-        <Link href="/parents" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
+        <Link
+          href="/parents"
+          className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
+        >
           <ArrowLeft className="h-4 w-4" /> Back to Parents
         </Link>
-        <div className="rounded-2xl border bg-card p-12 text-center text-muted-foreground">Parent not found.</div>
+        <div className="rounded-2xl border bg-card p-12 text-center text-muted-foreground">
+          Parent not found.
+        </div>
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      <Link href="/parents" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
+      <Link
+        href="/parents"
+        className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
+      >
         <ArrowLeft className="h-4 w-4" /> Back to Parents
       </Link>
 
@@ -111,16 +157,37 @@ export default function ParentProfilePage({
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-3">
             <h1 className="text-2xl font-bold">{parent.name}</h1>
-            <Badge tone={STATUS_TONE[parent.status]} dot>{statusLabel(parent.status)}</Badge>
+            <Badge tone={STATUS_TONE[parent.status]} dot>
+              {statusLabel(parent.status)}
+            </Badge>
           </div>
           <p className="mt-1 text-sm text-muted-foreground">
-            <span className="font-mono">{parent.code}</span> · {parent.children.length} child{parent.children.length !== 1 ? "ren" : ""} · {parent.phone}
+            <span className="font-mono">{parent.code}</span> ·{" "}
+            {parent.children.length} child
+            {parent.children.length !== 1 ? "ren" : ""} · {parent.phone}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" onClick={() => setEditOpen(true)}><Pencil className="mr-2 h-4 w-4" /> Edit</Button>
-          <Button variant="outline" onClick={() => printParentProfile(parent, parent.children)}><Printer className="mr-2 h-4 w-4" /> Print</Button>
-          <Button variant="outline" onClick={() => exportParentsCsv([{ ...parent, childCount: parent.children.length }], `${parent.code}.csv`)}><Download className="mr-2 h-4 w-4" /> Download</Button>
+          <Button variant="outline" onClick={() => setEditOpen(true)}>
+            <Pencil className="mr-2 h-4 w-4" /> Edit
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => printParentProfile(parent, parent.children)}
+          >
+            <Printer className="mr-2 h-4 w-4" /> Print
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() =>
+              exportParentsCsv(
+                [{ ...parent, childCount: parent.children.length }],
+                `${parent.code}.csv`,
+              )
+            }
+          >
+            <Download className="mr-2 h-4 w-4" /> Download
+          </Button>
         </div>
       </div>
 
@@ -131,30 +198,66 @@ export default function ParentProfilePage({
         <div className="p-6">
           {tab === "personal" && (
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              <Field label="Parent ID" value={<span className="font-mono">{parent.code}</span>} />
+              <Field
+                label="Parent ID"
+                value={<span className="font-mono">{parent.code}</span>}
+              />
               <Field label="Full Name" value={parent.name} />
               <Field label="Phone" value={parent.phone} />
               <Field label="Alternative Phone" value={parent.altPhone ?? "—"} />
               <Field label="Email" value={parent.email ?? "—"} />
               <Field label="Address" value={parent.address ?? "—"} />
               <Field label="Occupation" value={parent.occupation ?? "—"} />
-              <Field label="Registration Date" value={longDate(parent.registrationDate)} />
+              <Field
+                label="Registration Date"
+                value={longDate(parent.registrationDate)}
+              />
               <Field label="Status" value={statusLabel(parent.status)} />
-              <Field label="Username" value={<span className="font-mono">{parent.username}</span>} />
-              <Field label="Login ID" value={<span className="font-mono">{parent.code}</span>} />
+              <Field
+                label="Username"
+                value={<span className="font-mono">{parent.username}</span>}
+              />
+              <Field
+                label="Login ID"
+                value={<span className="font-mono">{parent.code}</span>}
+              />
               <div className="rounded-xl border bg-secondary/30 px-4 py-3 sm:col-span-2">
                 <p className="text-xs text-muted-foreground">Password</p>
-                <p className="mt-0.5 font-mono font-medium">{showPassword ? parent.password : "••••••••••"}</p>
-                <Button className="mt-3 h-8 px-3 text-xs" onClick={() => {
-                  void resetParentPassword(parent.id).then((res) => {
-                    if (res.ok && res.password) {
-                      setShowPassword(true);
-                      toast(`New password: ${res.password}`, "info");
-                    } else toast(res.error ?? "Reset failed", "error");
-                  });
-                }}>
-                  <KeyRound className="mr-2 h-4 w-4" /> Reset Password
-                </Button>
+                <p className="mt-0.5 font-mono font-medium">
+                  {showPassword ? parent.password : "••••••••••"}
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Parents start on the default{" "}
+                  <span className="font-mono">12345</span>. Reset returns them
+                  to it, or set a specific password below. The parent can change
+                  it themselves from their portal.
+                </p>
+                <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
+                  <Button
+                    className="h-8 px-3 text-xs"
+                    disabled={resetting}
+                    onClick={() => void handleResetPassword()}
+                  >
+                    <KeyRound className="mr-2 h-4 w-4" />
+                    {resetting ? "Resetting…" : "Reset to 12345"}
+                  </Button>
+                  <div className="flex gap-2">
+                    <Input
+                      className="h-8 w-40 text-sm"
+                      placeholder="Custom password…"
+                      value={customPw}
+                      onChange={(e) => setCustomPw(e.target.value)}
+                    />
+                    <Button
+                      variant="outline"
+                      className="h-8 px-3 text-xs"
+                      disabled={resetting || customPw.trim().length < 4}
+                      onClick={() => void handleResetPassword(customPw.trim())}
+                    >
+                      Set
+                    </Button>
+                  </div>
+                </div>
               </div>
             </div>
           )}
@@ -175,13 +278,20 @@ export default function ParentProfilePage({
                 <tbody>
                   {parent.children.map((c) => (
                     <tr key={c.id} className="border-t">
-                      <td className="px-4 py-2.5 font-mono text-xs">{c.code}</td>
+                      <td className="px-4 py-2.5 font-mono text-xs">
+                        {c.code}
+                      </td>
                       <td className="px-4 py-2.5 font-medium">{c.fullName}</td>
                       <td className="px-4 py-2.5">{c.className}</td>
                       <td className="px-4 py-2.5">{c.section ?? "—"}</td>
                       <td className="px-4 py-2.5">{statusLabel(c.status)}</td>
                       <td className="px-4 py-2.5">
-                        <Link href={`/students/${c.id}`} className="text-primary hover:underline">View Student Profile</Link>
+                        <Link
+                          href={`/students/${c.id}`}
+                          className="text-primary hover:underline"
+                        >
+                          View Student Profile
+                        </Link>
                       </td>
                     </tr>
                   ))}
@@ -201,20 +311,29 @@ export default function ParentProfilePage({
               {child ? (
                 <>
                   {tab === "attendance" && <AttendanceTab child={child} />}
-                  {tab === "fees" && <FeesTab child={child} allChildren={parent.children} />}
+                  {tab === "fees" && (
+                    <FeesTab child={child} allChildren={parent.children} />
+                  )}
                   {tab === "exams" && <ExamsTab child={child} />}
                   {tab === "quizzes" && <QuizzesTab child={child} />}
                   {tab === "progress" && <ProgressTab child={child} />}
                 </>
               ) : (
-                <p className="py-8 text-center text-muted-foreground">No children linked.</p>
+                <p className="py-8 text-center text-muted-foreground">
+                  No children linked.
+                </p>
               )}
             </>
           )}
         </div>
       </div>
 
-      <ParentFormDialog open={editOpen} onClose={() => setEditOpen(false)} parent={parent} onSaved={(m) => toast(m)} />
+      <ParentFormDialog
+        open={editOpen}
+        onClose={() => setEditOpen(false)}
+        parent={parent}
+        onSaved={(m) => toast(m)}
+      />
     </div>
   );
 }
@@ -238,14 +357,26 @@ function AttendanceTab({ child }: { child: Student }) {
         <Stat label="Late" value={a.late} />
         <Stat label="Attendance %" value={`${a.percentage}%`} />
       </div>
-      <DataTable headers={["Date", "Status"]} rows={a.rows.map((r) => [shortDate(r.date), statusLabel(r.status)])} />
+      <DataTable
+        headers={["Date", "Status"]}
+        rows={a.rows.map((r) => [shortDate(r.date), statusLabel(r.status)])}
+      />
     </div>
   );
 }
 
-function FeesTab({ child, allChildren }: { child: Student; allChildren: Student[] }) {
+function FeesTab({
+  child,
+  allChildren,
+}: {
+  child: Student;
+  allChildren: Student[];
+}) {
   const fees = useMemo(() => feeHistory(child), [child]);
-  const payments = useMemo(() => parentPaymentHistory(allChildren), [allChildren]);
+  const payments = useMemo(
+    () => parentPaymentHistory(allChildren),
+    [allChildren],
+  );
   const outstanding = fees.reduce((s, f) => s + f.balance, 0);
   const paid = fees.reduce((s, f) => s + f.paid, 0);
   return (
@@ -259,12 +390,24 @@ function FeesTab({ child, allChildren }: { child: Student; allChildren: Student[
       <h3 className="text-sm font-semibold">Fee Ledger — {child.fullName}</h3>
       <DataTable
         headers={["Month", "Charged", "Paid", "Balance", "Status"]}
-        rows={fees.map((f) => [f.month, money(f.charged), money(f.paid), money(f.balance), statusLabel(f.status)])}
+        rows={fees.map((f) => [
+          f.month,
+          money(f.charged),
+          money(f.paid),
+          money(f.balance),
+          statusLabel(f.status),
+        ])}
       />
       <h3 className="text-sm font-semibold">Payment History (all children)</h3>
       <DataTable
         headers={["Receipt", "Student", "Amount", "Type", "Date"]}
-        rows={payments.map((p) => [p.receiptNumber, p.studentName, money(p.amount), p.type, shortDate(p.paidAt)])}
+        rows={payments.map((p) => [
+          p.receiptNumber,
+          p.studentName,
+          money(p.amount),
+          p.type,
+          shortDate(p.paidAt),
+        ])}
       />
     </div>
   );
@@ -275,7 +418,14 @@ function ExamsTab({ child }: { child: Student }) {
   return (
     <DataTable
       headers={["Exam", "Term", "Total", "Average", "Grade", "Result"]}
-      rows={rows.map((r) => [r.name, r.term, r.totalMarks, r.average, r.grade, r.passed ? "Pass" : "Fail"])}
+      rows={rows.map((r) => [
+        r.name,
+        r.term,
+        r.totalMarks,
+        r.average,
+        r.grade,
+        r.passed ? "Pass" : "Fail",
+      ])}
     />
   );
 }
@@ -285,7 +435,13 @@ function QuizzesTab({ child }: { child: Student }) {
   return (
     <DataTable
       headers={["Quiz", "Score", "Percentage", "Status", "Date"]}
-      rows={rows.map((r) => [r.name, `${r.score}/${r.total}`, `${r.percentage}%`, statusLabel(r.status), shortDate(r.date)])}
+      rows={rows.map((r) => [
+        r.name,
+        `${r.score}/${r.total}`,
+        `${r.percentage}%`,
+        statusLabel(r.status),
+        shortDate(r.date),
+      ])}
     />
   );
 }
@@ -295,17 +451,27 @@ function ProgressTab({ child }: { child: Student }) {
   return (
     <div className="space-y-4">
       <div className="grid gap-3 sm:grid-cols-3">
-        <Field label="Current Class" value={`${child.className}${child.section ? ` - ${child.section}` : ""}`} />
+        <Field
+          label="Current Class"
+          value={`${child.className}${child.section ? ` - ${child.section}` : ""}`}
+        />
         <Field label="Gender" value={genderLabel(child.gender)} />
         <Field label="Status" value={statusLabel(child.status)} />
       </div>
       <h3 className="text-sm font-semibold">Promotion History</h3>
       {promos.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No promotion history yet.</p>
+        <p className="text-sm text-muted-foreground">
+          No promotion history yet.
+        </p>
       ) : (
         <DataTable
           headers={["Academic Year", "From", "To", "Date"]}
-          rows={promos.map((p) => [p.academicYear, p.fromClass, p.toClass, shortDate(p.date)])}
+          rows={promos.map((p) => [
+            p.academicYear,
+            p.fromClass,
+            p.toClass,
+            shortDate(p.date),
+          ])}
         />
       )}
     </div>
@@ -321,17 +487,33 @@ function Stat({ label, value }: { label: string; value: string | number }) {
   );
 }
 
-function DataTable({ headers, rows }: { headers: string[]; rows: (string | number)[][] }) {
+function DataTable({
+  headers,
+  rows,
+}: {
+  headers: string[];
+  rows: (string | number)[][];
+}) {
   return (
     <div className="overflow-hidden rounded-xl border">
       <table className="w-full text-sm">
         <thead className="bg-secondary text-left text-xs text-muted-foreground">
-          <tr>{headers.map((h) => <th key={h} className="px-4 py-2.5 font-medium">{h}</th>)}</tr>
+          <tr>
+            {headers.map((h) => (
+              <th key={h} className="px-4 py-2.5 font-medium">
+                {h}
+              </th>
+            ))}
+          </tr>
         </thead>
         <tbody>
           {rows.map((row, i) => (
             <tr key={i} className="border-t">
-              {row.map((cell, j) => <td key={j} className="px-4 py-2.5">{cell}</td>)}
+              {row.map((cell, j) => (
+                <td key={j} className="px-4 py-2.5">
+                  {cell}
+                </td>
+              ))}
             </tr>
           ))}
         </tbody>
