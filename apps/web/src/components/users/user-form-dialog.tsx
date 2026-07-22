@@ -6,7 +6,7 @@ import { Dialog } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
-import { BUILT_IN_ROLES, roleLabel } from "@/lib/users/format";
+import { ASSIGNABLE_ROLES, roleLabel } from "@/lib/users/format";
 import { createUser, getUsersState, updateUser } from "@/lib/users/store";
 import type { AccountStatus, SystemRole, SystemUser } from "@/lib/users/types";
 import { toast } from "@/lib/toast";
@@ -18,7 +18,12 @@ interface UserFormDialogProps {
   onSuccess?: () => void;
 }
 
-export function UserFormDialog({ open, user, onClose, onSuccess }: UserFormDialogProps) {
+export function UserFormDialog({
+  open,
+  user,
+  onClose,
+  onSuccess,
+}: UserFormDialogProps) {
   const isEdit = !!user;
   const roles = getUsersState().roles;
 
@@ -61,9 +66,13 @@ export function UserFormDialog({ open, user, onClose, onSuccess }: UserFormDialo
     onClose();
   }
 
+  // Parent/Student logins come with student registration and Super
+  // Administrator is the owner's own account — none of them are handed out here.
   const roleOptions = [
-    ...BUILT_IN_ROLES.map((r) => ({ id: r, label: roleLabel(r) })),
-    ...roles.filter((r) => !r.builtIn).map((r) => ({ id: r.name, label: r.label })),
+    ...ASSIGNABLE_ROLES.map((r) => ({ id: r, label: roleLabel(r) })),
+    ...roles
+      .filter((r) => !r.builtIn)
+      .map((r) => ({ id: r.name, label: r.label })),
   ];
 
   return (
@@ -74,7 +83,9 @@ export function UserFormDialog({ open, user, onClose, onSuccess }: UserFormDialo
       className="max-w-md"
       footer={
         <>
-          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
           <Button onClick={handleSubmit} disabled={submitting}>
             {submitting ? "Saving…" : isEdit ? "Update" : "Create User"}
           </Button>
@@ -84,30 +95,53 @@ export function UserFormDialog({ open, user, onClose, onSuccess }: UserFormDialo
       <div className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="u-name">Full Name</Label>
-          <Input id="u-name" value={fullName} onChange={(e) => setFullName(e.target.value)} />
+          <Input
+            id="u-name"
+            value={fullName}
+            onChange={(e) => setFullName(e.target.value)}
+          />
         </div>
         <div className="space-y-2">
           <Label htmlFor="u-username">Username</Label>
-          <Input id="u-username" value={username} onChange={(e) => setUsername(e.target.value)} />
+          <Input
+            id="u-username"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+          />
         </div>
         {!isEdit && (
           <div className="space-y-2">
             <Label htmlFor="u-pass">Password</Label>
-            <Input id="u-pass" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+            <Input
+              id="u-pass"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
           </div>
         )}
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-2">
             <Label htmlFor="u-role">Role</Label>
-            <Select id="u-role" value={role} onChange={(e) => setRole(e.target.value)}>
+            <Select
+              id="u-role"
+              value={role}
+              onChange={(e) => setRole(e.target.value)}
+            >
               {roleOptions.map((r) => (
-                <option key={r.id} value={r.id}>{r.label}</option>
+                <option key={r.id} value={r.id}>
+                  {r.label}
+                </option>
               ))}
             </Select>
           </div>
           <div className="space-y-2">
             <Label htmlFor="u-status">Status</Label>
-            <Select id="u-status" value={status} onChange={(e) => setStatus(e.target.value as AccountStatus)}>
+            <Select
+              id="u-status"
+              value={status}
+              onChange={(e) => setStatus(e.target.value as AccountStatus)}
+            >
               <option value="ACTIVE">Active</option>
               <option value="INACTIVE">Inactive</option>
               <option value="LOCKED">Locked</option>

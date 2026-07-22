@@ -7,11 +7,20 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { createCustomRole, useUsersState } from "@/lib/users/store";
+import { OWNER_ONLY_ROLES } from "@/lib/users/format";
+import { useIsSchoolSuperAdmin } from "@/lib/users/super-admin";
 import { toast } from "@/lib/toast";
 
 export default function RolesPage() {
   const state = useUsersState();
+  const isSuper = useIsSchoolSuperAdmin();
   const [name, setName] = useState("");
+
+  // The school manages its own roles; Super Administrator is the owner's own
+  // account and is not one of them, so it only shows to a super admin.
+  const visibleRoles = state.roles.filter(
+    (r) => isSuper || !OWNER_ONLY_ROLES.includes(r.name as never),
+  );
 
   function handleCreate() {
     const res = createCustomRole(name);
@@ -46,7 +55,7 @@ export default function RolesPage() {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {state.roles.map((role) => (
+        {visibleRoles.map((role) => (
           <Link
             key={role.id}
             href={`/users/roles/${role.id}`}
@@ -59,7 +68,9 @@ export default function RolesPage() {
               <ChevronRight className="h-5 w-5 text-muted-foreground opacity-0 transition group-hover:opacity-100" />
             </div>
             <p className="mt-3 font-semibold">{role.label}</p>
-            <p className="mt-1 text-sm text-muted-foreground line-clamp-2">{role.description}</p>
+            <p className="mt-1 text-sm text-muted-foreground line-clamp-2">
+              {role.description}
+            </p>
             <div className="mt-3">
               <Badge tone={role.builtIn ? "info" : "default"}>
                 {role.builtIn ? "Built-in" : "Custom"}

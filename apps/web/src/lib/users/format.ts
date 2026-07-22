@@ -66,6 +66,21 @@ export const BUILT_IN_ROLES: BuiltInRole[] = [
   "LIBRARIAN",
 ];
 
+/**
+ * Super Administrator is the school owner's own account, not a role the school
+ * hands out — it is hidden from everyone but a super admin.
+ */
+export const OWNER_ONLY_ROLES: BuiltInRole[] = ["SUPER_ADMINISTRATOR"];
+
+/**
+ * Roles that can be picked when creating a staff user. Parent and Student
+ * accounts are provisioned automatically when a student is registered, so they
+ * are never handed out by hand, and Super Administrator is owner-only.
+ */
+export const ASSIGNABLE_ROLES: BuiltInRole[] = BUILT_IN_ROLES.filter(
+  (r) => r !== "SUPER_ADMINISTRATOR" && r !== "PARENT" && r !== "STUDENT",
+);
+
 export const MODULES: { id: PermissionModule; label: string }[] = [
   { id: "students", label: "Students" },
   { id: "teachers", label: "Teachers" },
@@ -143,10 +158,17 @@ function grant(
   return next;
 }
 
-function grantAll(map: PermissionMap, modules: PermissionModule[]): PermissionMap {
+function grantAll(
+  map: PermissionMap,
+  modules: PermissionModule[],
+): PermissionMap {
   let next = map;
   for (const mod of modules) {
-    next = grant(next, mod, ACTIONS.map((a) => a.id));
+    next = grant(
+      next,
+      mod,
+      ACTIONS.map((a) => a.id),
+    );
   }
   return next;
 }
@@ -168,7 +190,13 @@ export function builtInRolePermissions(role: BuiltInRole): PermissionMap {
       p = grant(p, "sms", ["view", "create", "export"]);
       return p;
     case "ACADEMIC_MANAGER":
-      p = grantAll(p, ["academics", "teachers", "promotions", "reports", "examinations"]);
+      p = grantAll(p, [
+        "academics",
+        "teachers",
+        "promotions",
+        "reports",
+        "examinations",
+      ]);
       p = grant(p, "sms", ["view", "create"]);
       return p;
     case "TEACHER":
