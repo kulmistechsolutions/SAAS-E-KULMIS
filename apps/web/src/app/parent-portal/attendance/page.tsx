@@ -5,9 +5,15 @@ import { Download, Printer, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
-import { usePortal, usePortalAudit } from "@/components/parent-portal/portal-context";
+import {
+  usePortal,
+  usePortalAudit,
+} from "@/components/parent-portal/portal-context";
 import { printAttendanceReport } from "@/lib/parent-portal/print";
-import { attendanceHistory, loadAttendanceHistory, type AttendanceSummary } from "@/lib/students/history";
+import {
+  loadPortalAttendanceHistory,
+  type AttendanceSummary,
+} from "@/lib/students/history";
 import { shortDate } from "@/lib/students/format";
 import { Badge } from "@/components/ui/badge";
 
@@ -33,21 +39,28 @@ export default function ParentAttendancePage() {
       return;
     }
     const days = Number(range) || 30;
-    void loadAttendanceHistory(selectedChild.id, days).then(setAtt);
+    void loadPortalAttendanceHistory(selectedChild.id, days).then(setAtt);
   }, [selectedChild, range]);
 
   const rows = useMemo(() => {
     if (!att) return [];
     return att.rows.filter((r) => {
       if (filter !== "ALL" && r.status !== filter) return false;
-      if (search && !shortDate(r.date).toLowerCase().includes(search.toLowerCase()))
+      if (
+        search &&
+        !shortDate(r.date).toLowerCase().includes(search.toLowerCase())
+      )
         return false;
       return true;
     });
   }, [att, filter, search]);
 
   if (!selectedChild) {
-    return <p className="text-muted-foreground">Select a child to view attendance.</p>;
+    return (
+      <p className="text-muted-foreground">
+        Select a child to view attendance.
+      </p>
+    );
   }
 
   return (
@@ -77,9 +90,16 @@ export default function ParentAttendancePage() {
             { label: "Present", value: att.present, tone: "success" as const },
             { label: "Absent", value: att.absent, tone: "danger" as const },
             { label: "Late", value: att.late, tone: "warning" as const },
-            { label: "Rate", value: `${att.percentage}%`, tone: "info" as const },
+            {
+              label: "Rate",
+              value: `${att.percentage}%`,
+              tone: "info" as const,
+            },
           ].map((c) => (
-            <div key={c.label} className="rounded-xl border bg-card p-4 text-center">
+            <div
+              key={c.label}
+              className="rounded-xl border bg-card p-4 text-center"
+            >
               <p className="text-xs text-muted-foreground">{c.label}</p>
               <p className="text-2xl font-bold">{c.value}</p>
             </div>
@@ -97,13 +117,21 @@ export default function ParentAttendancePage() {
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        <Select value={filter} onChange={(e) => setFilter(e.target.value)} className="h-9 w-36">
+        <Select
+          value={filter}
+          onChange={(e) => setFilter(e.target.value)}
+          className="h-9 w-36"
+        >
           <option value="ALL">All statuses</option>
           <option value="PRESENT">Present</option>
           <option value="ABSENT">Absent</option>
           <option value="LATE">Late</option>
         </Select>
-        <Select value={range} onChange={(e) => setRange(e.target.value)} className="h-9 w-36">
+        <Select
+          value={range}
+          onChange={(e) => setRange(e.target.value)}
+          className="h-9 w-36"
+        >
           <option value="30">Last 30 days</option>
           <option value="60">Last 60 days</option>
           <option value="90">Last 90 days</option>
@@ -129,7 +157,10 @@ export default function ParentAttendancePage() {
             ))}
             {rows.length === 0 && (
               <tr>
-                <td colSpan={2} className="px-4 py-8 text-center text-muted-foreground">
+                <td
+                  colSpan={2}
+                  className="px-4 py-8 text-center text-muted-foreground"
+                >
                   No attendance records match your filters.
                 </td>
               </tr>

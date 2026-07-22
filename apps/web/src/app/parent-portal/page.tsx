@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Megaphone } from "lucide-react";
 import { ParentDashboardCards } from "@/components/parents/summary-cards";
@@ -16,7 +16,10 @@ import {
   listAnnouncements,
   portalDashboardSummary,
 } from "@/lib/parent-portal/store";
-import { attendanceHistory } from "@/lib/students/history";
+import {
+  attendanceHistory,
+  loadPortalAttendanceHistory,
+} from "@/lib/students/history";
 import { money } from "@/lib/students/format";
 import { studentPublishedResults } from "@/lib/examinations/store";
 
@@ -24,12 +27,38 @@ export default function ParentPortalDashboardPage() {
   const { parent, children, selectedChild } = usePortal();
 
   const branding = useSchoolBranding();
-  const summary = useMemo(() => portalDashboardSummary(parent.id), [parent.id]);
+  // Populate the attendance cache (parent endpoint) for every child, then
+  // re-render so the summary card and per-child percentage read real numbers
+  // instead of 0. Cheap: one small request per child, once.
+  const [attReady, setAttReady] = useState(0);
+  useEffect(() => {
+    if (children.length === 0) return;
+    let active = true;
+    void Promise.all(
+      children.map((c) =>
+        loadPortalAttendanceHistory(c.id, 30).catch(() => null),
+      ),
+    ).then(() => {
+      if (active) setAttReady((n) => n + 1);
+    });
+    return () => {
+      active = false;
+    };
+  }, [children]);
+
+  const summary = useMemo(
+    () => portalDashboardSummary(parent.id),
+    // attReady re-runs this once attendance has loaded into the cache.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [parent.id, attReady],
+  );
   const announcements = useMemo(() => listAnnouncements().slice(0, 3), []);
 
   const childAtt = selectedChild ? attendanceHistory(selectedChild, 30) : null;
   const childFees = selectedChild ? childFeeSummary(selectedChild) : null;
-  const childResults = selectedChild ? childExamResults(selectedChild.id) : null;
+  const childResults = selectedChild
+    ? childExamResults(selectedChild.id)
+    : null;
   const latestResult = selectedChild
     ? studentPublishedResults(selectedChild.id).slice(-1)[0]
     : null;
@@ -37,7 +66,9 @@ export default function ParentPortalDashboardPage() {
   return (
     <div className="space-y-6">
       <div className="rounded-2xl border bg-gradient-to-r from-blue-500/10 via-indigo-500/5 to-transparent p-6">
-        <p className="text-sm text-muted-foreground">{branding.name} · Parent Portal</p>
+        <p className="text-sm text-muted-foreground">
+          {branding.name} · Parent Portal
+        </p>
         <h1 className="mt-1 text-2xl font-bold">Welcome, {parent.name}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Monitor attendance, exams, fees, and school updates for your children.
@@ -49,7 +80,9 @@ export default function ParentPortalDashboardPage() {
       {selectedChild && (
         <div className="grid gap-4 lg:grid-cols-3">
           <div className="rounded-xl border bg-card p-5 shadow-sm">
-            <h2 className="font-semibold">Attendance — {selectedChild.fullName}</h2>
+            <h2 className="font-semibold">
+              Attendance — {selectedChild.fullName}
+            </h2>
             {childAtt && (
               <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
                 <div className="rounded-lg bg-emerald-500/10 p-2">
@@ -70,7 +103,10 @@ export default function ParentPortalDashboardPage() {
                 </div>
               </div>
             )}
-            <Link href="/parent-portal/attendance" className="mt-3 inline-block text-sm text-primary hover:underline">
+            <Link
+              href="/parent-portal/attendance"
+              className="mt-3 inline-block text-sm text-primary hover:underline"
+            >
               View full attendance →
             </Link>
           </div>
@@ -85,7 +121,9 @@ export default function ParentPortalDashboardPage() {
                 </div>
                 <div className="flex justify-between">
                   <dt className="text-muted-foreground">Outstanding</dt>
-                  <dd className="font-medium text-rose-600">{money(childFees.outstanding)}</dd>
+                  <dd className="font-medium text-rose-600">
+                    {money(childFees.outstanding)}
+                  </dd>
                 </div>
                 <div className="flex justify-between">
                   <dt className="text-muted-foreground">Paid months</dt>
@@ -93,7 +131,10 @@ export default function ParentPortalDashboardPage() {
                 </div>
               </dl>
             )}
-            <Link href="/parent-portal/fees" className="mt-3 inline-block text-sm text-primary hover:underline">
+            <Link
+              href="/parent-portal/fees"
+              className="mt-3 inline-block text-sm text-primary hover:underline"
+            >
               View fees →
             </Link>
           </div>
@@ -108,13 +149,19 @@ export default function ParentPortalDashboardPage() {
               <div className="mt-3 text-sm">
                 <p className="font-medium">{latestResult.examName}</p>
                 <p className="text-muted-foreground">
-                  Grade {latestResult.grade} · {latestResult.passed ? "Pass" : "Fail"}
+                  Grade {latestResult.grade} ·{" "}
+                  {latestResult.passed ? "Pass" : "Fail"}
                 </p>
               </div>
             ) : (
-              <p className="mt-3 text-sm text-muted-foreground">No published results yet.</p>
+              <p className="mt-3 text-sm text-muted-foreground">
+                No published results yet.
+              </p>
             )}
-            <Link href="/parent-portal/exams" className="mt-3 inline-block text-sm text-primary hover:underline">
+            <Link
+              href="/parent-portal/exams"
+              className="mt-3 inline-block text-sm text-primary hover:underline"
+            >
               View all results →
             </Link>
           </div>
@@ -128,19 +175,29 @@ export default function ParentPortalDashboardPage() {
         </div>
         <ul className="mt-4 divide-y">
           {announcements.map((a) => (
-            <li key={a.id} className="flex flex-wrap items-start justify-between gap-2 py-3 first:pt-0">
+            <li
+              key={a.id}
+              className="flex flex-wrap items-start justify-between gap-2 py-3 first:pt-0"
+            >
               <div>
                 <p className="font-medium">{a.title}</p>
-                <p className="text-sm text-muted-foreground line-clamp-1">{a.body}</p>
+                <p className="text-sm text-muted-foreground line-clamp-1">
+                  {a.body}
+                </p>
                 <span className="mt-1 inline-block text-xs text-primary">
                   {announcementCategoryLabel(a.category)}
                 </span>
               </div>
-              <span className="text-xs text-muted-foreground">{relativeTime(a.publishedAt)}</span>
+              <span className="text-xs text-muted-foreground">
+                {relativeTime(a.publishedAt)}
+              </span>
             </li>
           ))}
         </ul>
-        <Link href="/parent-portal/announcements" className="mt-2 inline-block text-sm text-primary hover:underline">
+        <Link
+          href="/parent-portal/announcements"
+          className="mt-2 inline-block text-sm text-primary hover:underline"
+        >
           All announcements →
         </Link>
       </div>
@@ -153,7 +210,8 @@ export default function ParentPortalDashboardPage() {
               <li key={c.id} className="rounded-lg border p-3 text-sm">
                 <p className="font-medium">{c.fullName}</p>
                 <p className="text-muted-foreground">
-                  {c.className}{c.section ? ` — ${c.section}` : ""}
+                  {c.className}
+                  {c.section ? ` — ${c.section}` : ""}
                 </p>
                 <p className="text-xs text-muted-foreground">{c.code}</p>
               </li>

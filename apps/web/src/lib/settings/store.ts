@@ -2,6 +2,7 @@
 
 import { useSyncExternalStore } from "react";
 import { ApiError, getAccessToken } from "@/lib/api";
+import { getCachedAuthUser } from "@/lib/auth";
 import { activeAcademicYear as getActiveAcademicYear } from "@/lib/academics/store";
 import { updateSecuritySettings } from "@/lib/users/store";
 import {
@@ -48,7 +49,10 @@ export async function refreshSettings(): Promise<void> {
   // call the staff-only /settings endpoint — fetch just the public branding
   // (name + logo) instead so they still show the real school, not the
   // generic product brand.
-  if (!getAccessToken()) {
+  // Portal users (parents) are authenticated but cannot read the staff-only
+  // /settings endpoint — it 403s. They, like unauthenticated pages, get just
+  // the public branding so the header still shows the real school.
+  const brandingOnly = async () => {
     try {
       const b = await apiGetBranding();
       const current = state ?? buildSettingsSeed();
@@ -65,6 +69,10 @@ export async function refreshSettings(): Promise<void> {
     } catch {
       /* keep cache */
     }
+  };
+
+  if (!getAccessToken() || getCachedAuthUser()?.role === "PARENT") {
+    await brandingOnly();
     return;
   }
   try {
@@ -90,7 +98,8 @@ export async function refreshSettings(): Promise<void> {
       system: current.system,
     });
   } catch {
-    /* keep cache */
+    // A non-admin staff role (or any 403) still deserves the school branding.
+    await brandingOnly();
   }
 }
 
@@ -140,15 +149,16 @@ export function logSettingsAudit(
   setState({ ...s, audit: [entry, ...s.audit].slice(0, 300) });
 }
 
-const SECTION_AUDIT: Partial<Record<SettingsSectionKey, SettingsAuditAction>> = {
-  school: "SCHOOL_UPDATED",
-  branding: "BRANDING_CHANGED",
-  academic: "ACADEMIC_UPDATED",
-  fees: "FEE_UPDATED",
-  examinations: "EXAM_UPDATED",
-  security: "SECURITY_UPDATED",
-  email: "SMTP_UPDATED",
-};
+const SECTION_AUDIT: Partial<Record<SettingsSectionKey, SettingsAuditAction>> =
+  {
+    school: "SCHOOL_UPDATED",
+    branding: "BRANDING_CHANGED",
+    academic: "ACADEMIC_UPDATED",
+    fees: "FEE_UPDATED",
+    examinations: "EXAM_UPDATED",
+    security: "SECURITY_UPDATED",
+    email: "SMTP_UPDATED",
+  };
 
 const API_SECTIONS = new Set<SettingsSectionKey>([
   "school",
@@ -197,7 +207,12 @@ export async function updateSettingsSection<K extends SettingsSectionKey>(
     setState(next);
   }
 
-  if (key === "school" && patch && typeof patch === "object" && "logoDataUrl" in patch) {
+  if (
+    key === "school" &&
+    patch &&
+    typeof patch === "object" &&
+    "logoDataUrl" in patch
+  ) {
     logSettingsAudit("LOGO_CHANGED", user, role);
   }
   const auditAction = SECTION_AUDIT[key];
@@ -232,7 +247,10 @@ export async function uploadSchoolLogo(
   }
 }
 
-export async function removeSchoolLogo(): Promise<{ ok: boolean; error?: string }> {
+export async function removeSchoolLogo(): Promise<{
+  ok: boolean;
+  error?: string;
+}> {
   try {
     const remote = await apiRemoveSchoolLogo();
     setState({ ...ensure(), school: remote.school });
@@ -276,9 +294,10 @@ export function exportSettingsJson(): string {
   return JSON.stringify(exportable, null, 2);
 }
 
-export function importSettingsJson(
-  json: string,
-): { ok: boolean; error?: string } {
+export function importSettingsJson(json: string): {
+  ok: boolean;
+  error?: string;
+} {
   try {
     const parsed = JSON.parse(json) as Partial<SettingsState>;
     const merged = {
@@ -297,7 +316,10 @@ export function importSettingsJson(
   }
 }
 
-export function createManualBackup(label?: string): { ok: boolean; id?: string } {
+export function createManualBackup(label?: string): {
+  ok: boolean;
+  id?: string;
+} {
   const s = ensure();
   const id = `bk_${Date.now()}`;
   const backup = {
@@ -311,27 +333,51 @@ export function createManualBackup(label?: string): { ok: boolean; id?: string }
     backups: [backup, ...s.backups].slice(0, 20),
     backup: { ...s.backup, lastBackupAt: backup.createdAt },
   });
-  logSettingsAudit("BACKUP_CREATED", "Admin User", "ADMINISTRATOR", backup.label);
+  logSettingsAudit(
+    "BACKUP_CREATED",
+    "Admin User",
+    "ADMINISTRATOR",
+    backup.label,
+  );
   return { ok: true, id };
 }
 
-export function restoreBackup(backupId: string): { ok: boolean; error?: string } {
+export function restoreBackup(backupId: string): {
+  ok: boolean;
+  error?: string;
+} {
   const s = ensure();
   const backup = s.backups.find((b) => b.id === backupId);
   if (!backup) return { ok: false, error: "Backup not found." };
   const result = importSettingsJson(backup.data);
   if (result.ok)
-    logSettingsAudit("BACKUP_RESTORED", "Admin User", "ADMINISTRATOR", backup.label);
+    logSettingsAudit(
+      "BACKUP_RESTORED",
+      "Admin User",
+      "ADMINISTRATOR",
+      backup.label,
+    );
   return result;
 }
 
 export function sendTestEmail(): { ok: boolean; message: string } {
   const s = ensure();
   if (!s.email.smtpHost || !s.email.senderEmail) {
-    return { ok: false, message: "Configure SMTP host and sender email first." };
+    return {
+      ok: false,
+      message: "Configure SMTP host and sender email first.",
+    };
   }
-  logSettingsAudit("SMTP_UPDATED", "Admin User", "ADMINISTRATOR", "Test email sent");
-  return { ok: true, message: `Test email queued to ${s.email.senderEmail} (demo mode).` };
+  logSettingsAudit(
+    "SMTP_UPDATED",
+    "Admin User",
+    "ADMINISTRATOR",
+    "Test email sent",
+  );
+  return {
+    ok: true,
+    message: `Test email queued to ${s.email.senderEmail} (demo mode).`,
+  };
 }
 
 export function schoolDisplayName(): string {
@@ -365,7 +411,9 @@ export function schoolBranding() {
 }
 
 /** Fetch public branding (login page) without auth. */
-export async function loadPublicBranding(): Promise<ReturnType<typeof schoolBranding>> {
+export async function loadPublicBranding(): Promise<
+  ReturnType<typeof schoolBranding>
+> {
   try {
     const b = await apiGetBranding();
     return {

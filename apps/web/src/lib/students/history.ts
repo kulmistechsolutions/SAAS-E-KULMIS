@@ -1,10 +1,12 @@
 import { CLASSES } from "./constants";
 import type { Student } from "./types";
 import { apiStudentAttendance } from "./api";
+import { apiPortalAttendance } from "@/lib/parent-portal/api";
 
 function seedFrom(code: string): number {
   let h = 0;
-  for (let i = 0; i < code.length; i++) h = (h * 31 + code.charCodeAt(i)) % 100000;
+  for (let i = 0; i < code.length; i++)
+    h = (h * 31 + code.charCodeAt(i)) % 100000;
   return h;
 }
 
@@ -39,8 +41,54 @@ export async function loadAttendanceHistory(
   return data;
 }
 
+/**
+ * Parent-portal attendance loader. Parents cannot hit the staff
+ * `/students/:id/attendance` route (that 403s with "Insufficient role"), so
+ * this uses the parent-scoped `/parent-portal/children/:id/attendance`
+ * endpoint and folds its raw rows into the same summary + cache the dashboard
+ * and print already read from.
+ */
+export async function loadPortalAttendanceHistory(
+  studentId: string,
+  days = 60,
+): Promise<AttendanceSummary> {
+  const rows = await apiPortalAttendance(studentId);
+  let present = 0;
+  let absent = 0;
+  let late = 0;
+  const mapped: AttendanceRow[] = [];
+  for (const r of rows) {
+    if (r.status === "PRESENT") present++;
+    else if (r.status === "ABSENT") absent++;
+    else if (r.status === "LATE") late++;
+    if (
+      r.status === "PRESENT" ||
+      r.status === "ABSENT" ||
+      r.status === "LATE"
+    ) {
+      mapped.push({ date: r.date, status: r.status });
+    }
+  }
+  const total = present + absent + late || 1;
+  const summary: AttendanceSummary = {
+    present,
+    absent,
+    late,
+    percentage: Math.round((present / total) * 1000) / 10,
+    rows: mapped,
+  };
+  attendanceCache.set(`${studentId}:${days}`, summary);
+  // The endpoint always returns the last 60 rows regardless of `days`, so also
+  // cache under :60 — that's the key the printable report reads.
+  attendanceCache.set(`${studentId}:60`, summary);
+  return summary;
+}
+
 /** Returns cached API data or empty summary until loaded. */
-export function attendanceHistory(student: Student, days = 40): AttendanceSummary {
+export function attendanceHistory(
+  student: Student,
+  days = 40,
+): AttendanceSummary {
   return (
     attendanceCache.get(`${student.id}:${days}`) ?? {
       present: 0,
@@ -62,8 +110,18 @@ export interface FeeRow {
 }
 
 const MONTHS = [
-  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
 ];
 
 export function feeHistory(student: Student, count = 8): FeeRow[] {
@@ -140,7 +198,12 @@ export interface QuizRow {
 
 export function quizHistory(student: Student): QuizRow[] {
   const rand = rng(seedFrom(student.code) + 19);
-  const quizzes = ["Mathematics Quiz", "Science Quiz", "English Quiz", "History Quiz"];
+  const quizzes = [
+    "Mathematics Quiz",
+    "Science Quiz",
+    "English Quiz",
+    "History Quiz",
+  ];
   const now = new Date();
   return quizzes.map((name, i) => {
     const total = 20;
