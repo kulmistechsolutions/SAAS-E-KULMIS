@@ -8,6 +8,7 @@ import {
   getAcademicsState,
 } from "@/lib/academics/store";
 import {
+  apiBulkDeleteStudents,
   apiDeleteStudent,
   apiDeleteStudentPhoto,
   apiGetStudent,
@@ -578,6 +579,39 @@ export async function deleteStudent(id: string): Promise<DeleteResult> {
       ok: false,
       parentDeleted: false,
       error: apiErr(e, "Failed to delete student."),
+    };
+  }
+}
+
+/** Delete several students at once (multi-select). IDs are retired, not reused. */
+export async function bulkDeleteStudents(ids: string[]): Promise<{
+  ok: boolean;
+  deletedCount: number;
+  parentsDeleted: number;
+  error?: string;
+}> {
+  if (ids.length === 0) {
+    return {
+      ok: false,
+      deletedCount: 0,
+      parentsDeleted: 0,
+      error: "Nothing selected.",
+    };
+  }
+  try {
+    const res = await apiBulkDeleteStudents(ids);
+    await refreshStudents();
+    return {
+      ok: true,
+      deletedCount: res.deletedCount,
+      parentsDeleted: res.parentsDeleted,
+    };
+  } catch (e) {
+    return {
+      ok: false,
+      deletedCount: 0,
+      parentsDeleted: 0,
+      error: apiErr(e, "Failed to delete students."),
     };
   }
 }

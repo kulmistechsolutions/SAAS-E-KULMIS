@@ -26,6 +26,7 @@ import { StudentAvatar } from "@/components/students/student-avatar";
 import { ImportDialog } from "@/components/students/import-dialog";
 import { ConfirmDialog } from "@/components/students/confirm-dialog";
 import {
+  bulkDeleteStudents,
   deleteStudent,
   refreshStudents,
   resetStudents,
@@ -72,7 +73,8 @@ export default function StudentsPage() {
   }, []);
 
   const state = useStudentsState();
-  const { loading: studentsLoading, failed: studentsFailed } = useStudentsRefresh();
+  const { loading: studentsLoading, failed: studentsFailed } =
+    useStudentsRefresh();
   const academics = useAcademicsState();
 
   const [search, setSearch] = useState("");
@@ -110,6 +112,9 @@ export default function StudentsPage() {
   const [editing, setEditing] = useState<StudentWithParent | null>(null);
   const [importOpen, setImportOpen] = useState(false);
   const [deleting, setDeleting] = useState<StudentWithParent | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkConfirm, setBulkConfirm] = useState(false);
+  const [bulkBusy, setBulkBusy] = useState(false);
 
   // Cards reflect the selected academic year so they always agree with the
   // table below (an all-years total next to an empty year-filtered table reads
@@ -150,8 +155,9 @@ export default function StudentsPage() {
           new Date(a.registrationDate).getTime() -
           new Date(b.registrationDate).getTime();
       else if (sortKey === "className")
-        cmp =
-          a.className.localeCompare(b.className, undefined, { numeric: true });
+        cmp = a.className.localeCompare(b.className, undefined, {
+          numeric: true,
+        });
       return sortDir === "asc" ? cmp : -cmp;
     });
     return rows;
@@ -193,13 +199,58 @@ export default function StudentsPage() {
     if (res.ok) {
       toast(
         `${deleting.fullName} deleted.${
-          res.parentDeleted ? " Parent account removed (no other children)." : ""
+          res.parentDeleted
+            ? " Parent account removed (no other children)."
+            : ""
         }`,
       );
     } else {
       toast(res.error ?? "Delete failed", "error");
     }
     setDeleting(null);
+  }
+
+  function toggleOne(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  const pageAllSelected =
+    pageRows.length > 0 && pageRows.every((s) => selected.has(s.id));
+
+  function togglePage() {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (pageAllSelected) pageRows.forEach((s) => next.delete(s.id));
+      else pageRows.forEach((s) => next.add(s.id));
+      return next;
+    });
+  }
+
+  async function handleBulkDelete() {
+    const ids = [...selected];
+    if (ids.length === 0) return;
+    setBulkBusy(true);
+    const res = await bulkDeleteStudents(ids);
+    setBulkBusy(false);
+    if (res.ok) {
+      toast(
+        `${res.deletedCount} students deleted.${
+          res.parentsDeleted
+            ? ` ${res.parentsDeleted} parent account(s) removed.`
+            : ""
+        } IDs are retired, not reused.`,
+        "success",
+      );
+      setSelected(new Set());
+    } else {
+      toast(res.error ?? "Bulk delete failed", "error");
+    }
+    setBulkConfirm(false);
   }
 
   function handleExport() {
@@ -307,7 +358,11 @@ export default function StudentsPage() {
                 </option>
               ))}
             </Select>
-            <Select value={section} onChange={(e) => setSection(e.target.value)} className="lg:w-32">
+            <Select
+              value={section}
+              onChange={(e) => setSection(e.target.value)}
+              className="lg:w-32"
+            >
               <option value="">All Sections</option>
               {sectionOptions.map((s) => (
                 <option key={s} value={s}>
@@ -315,19 +370,31 @@ export default function StudentsPage() {
                 </option>
               ))}
             </Select>
-            <Select value={gender} onChange={(e) => setGender(e.target.value)} className="lg:w-32">
+            <Select
+              value={gender}
+              onChange={(e) => setGender(e.target.value)}
+              className="lg:w-32"
+            >
               <option value="">All Genders</option>
               <option value="MALE">Male</option>
               <option value="FEMALE">Female</option>
             </Select>
-            <Select value={status} onChange={(e) => setStatus(e.target.value)} className="lg:w-32">
+            <Select
+              value={status}
+              onChange={(e) => setStatus(e.target.value)}
+              className="lg:w-32"
+            >
               <option value="">All Status</option>
               <option value="ACTIVE">Active</option>
               <option value="INACTIVE">Inactive</option>
               <option value="GRADUATED">Graduated</option>
             </Select>
             {hasFilters && (
-              <Button variant="ghost" onClick={clearFilters} className="lg:w-auto">
+              <Button
+                variant="ghost"
+                onClick={clearFilters}
+                className="lg:w-auto"
+              >
                 <X className="mr-1 h-4 w-4" /> Clear
               </Button>
             )}
@@ -335,22 +402,78 @@ export default function StudentsPage() {
         </div>
       </div>
 
+      {/* Bulk action bar — appears when rows are selected */}
+      {selected.size > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/30 bg-primary/5 px-4 py-3">
+          <p className="text-sm font-medium">
+            {selected.size} student{selected.size === 1 ? "" : "s"} selected
+          </p>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              className="h-9"
+              onClick={() => setSelected(new Set())}
+            >
+              Clear
+            </Button>
+            <Button
+              variant="destructive"
+              className="h-9"
+              disabled={bulkBusy}
+              onClick={() => setBulkConfirm(true)}
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Delete selected
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Table */}
       <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
         <div className="max-h-[600px] overflow-auto scrollbar-slim">
           <table className="w-full min-w-[1000px] text-sm">
             <thead className="sticky top-0 z-10 bg-secondary/95 backdrop-blur">
               <tr className="text-left text-xs uppercase tracking-wide text-muted-foreground">
+                <th className="px-3 py-3 font-medium">
+                  <input
+                    type="checkbox"
+                    aria-label="Select all on this page"
+                    checked={pageAllSelected}
+                    onChange={togglePage}
+                    className="h-4 w-4 cursor-pointer accent-primary"
+                  />
+                </th>
                 <th className="px-4 py-3 font-medium">#</th>
-                <SortableTh label="Student ID" active={sortKey === "code"} dir={sortDir} onClick={() => toggleSort("code")} />
-                <SortableTh label="Name" active={sortKey === "fullName"} dir={sortDir} onClick={() => toggleSort("fullName")} />
+                <SortableTh
+                  label="Student ID"
+                  active={sortKey === "code"}
+                  dir={sortDir}
+                  onClick={() => toggleSort("code")}
+                />
+                <SortableTh
+                  label="Name"
+                  active={sortKey === "fullName"}
+                  dir={sortDir}
+                  onClick={() => toggleSort("fullName")}
+                />
                 <th className="px-4 py-3 font-medium">Gender</th>
                 <th className="px-4 py-3 font-medium">Parent</th>
                 <th className="px-4 py-3 font-medium">Parent Phone</th>
-                <SortableTh label="Class" active={sortKey === "className"} dir={sortDir} onClick={() => toggleSort("className")} />
+                <SortableTh
+                  label="Class"
+                  active={sortKey === "className"}
+                  dir={sortDir}
+                  onClick={() => toggleSort("className")}
+                />
                 <th className="px-4 py-3 font-medium">Section</th>
                 <th className="px-4 py-3 font-medium">Monthly Fee</th>
-                <SortableTh label="Reg. Date" active={sortKey === "registrationDate"} dir={sortDir} onClick={() => toggleSort("registrationDate")} />
+                <SortableTh
+                  label="Reg. Date"
+                  active={sortKey === "registrationDate"}
+                  dir={sortDir}
+                  onClick={() => toggleSort("registrationDate")}
+                />
                 <th className="px-4 py-3 font-medium">Status</th>
                 <th className="px-4 py-3 text-right font-medium">Actions</th>
               </tr>
@@ -358,7 +481,10 @@ export default function StudentsPage() {
             <tbody>
               {pageRows.length === 0 ? (
                 <tr>
-                  <td colSpan={12} className="px-4 py-16 text-center text-muted-foreground">
+                  <td
+                    colSpan={13}
+                    className="px-4 py-16 text-center text-muted-foreground"
+                  >
                     {studentsLoading ? (
                       <span className="inline-flex items-center gap-2">
                         <span className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
@@ -373,8 +499,20 @@ export default function StudentsPage() {
                 pageRows.map((s, i) => (
                   <tr
                     key={s.id}
-                    className="border-t transition-colors hover:bg-secondary/40"
+                    className={cn(
+                      "border-t transition-colors hover:bg-secondary/40",
+                      selected.has(s.id) && "bg-primary/5",
+                    )}
                   >
+                    <td className="px-3 py-3">
+                      <input
+                        type="checkbox"
+                        aria-label={`Select ${s.fullName}`}
+                        checked={selected.has(s.id)}
+                        onChange={() => toggleOne(s.id)}
+                        className="h-4 w-4 cursor-pointer accent-primary"
+                      />
+                    </td>
                     <td className="px-4 py-3 text-muted-foreground">
                       {(currentPage - 1) * PAGE_SIZE + i + 1}
                     </td>
@@ -410,7 +548,9 @@ export default function StudentsPage() {
                     <td className="px-4 py-3 text-muted-foreground">
                       {s.section ?? "—"}
                     </td>
-                    <td className="px-4 py-3 tabular-nums">{money(s.monthlyFee)}</td>
+                    <td className="px-4 py-3 tabular-nums">
+                      {money(s.monthlyFee)}
+                    </td>
                     <td className="px-4 py-3 text-muted-foreground">
                       {shortDate(s.registrationDate)}
                     </td>
@@ -421,7 +561,11 @@ export default function StudentsPage() {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-1">
-                        <RowAction href={`/students/${s.id}`} title="View Profile" icon={Eye} />
+                        <RowAction
+                          href={`/students/${s.id}`}
+                          title="View Profile"
+                          icon={Eye}
+                        />
                         <RowAction
                           title="Edit"
                           icon={Pencil}
@@ -506,6 +650,15 @@ export default function StudentsPage() {
         onConfirm={handleDelete}
         onClose={() => setDeleting(null)}
       />
+      <ConfirmDialog
+        open={bulkConfirm}
+        title="Delete selected students"
+        message={`Delete ${selected.size} selected student${
+          selected.size === 1 ? "" : "s"
+        }? Their IDs are retired and never reused. A parent is removed only if none of their children remain. This cannot be undone.`}
+        onConfirm={handleBulkDelete}
+        onClose={() => setBulkConfirm(false)}
+      />
     </div>
   );
 }
@@ -534,7 +687,9 @@ function SortableTh({
         <ArrowDownUp
           className={cn("h-3 w-3", active ? "opacity-100" : "opacity-40")}
         />
-        {active && <span className="text-[10px]">{dir === "asc" ? "▲" : "▼"}</span>}
+        {active && (
+          <span className="text-[10px]">{dir === "asc" ? "▲" : "▼"}</span>
+        )}
       </button>
     </th>
   );
@@ -555,7 +710,9 @@ function RowAction({
 }) {
   const cls = cn(
     "flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors",
-    danger ? "hover:bg-rose-500/10 hover:text-rose-600" : "hover:bg-secondary hover:text-foreground",
+    danger
+      ? "hover:bg-rose-500/10 hover:text-rose-600"
+      : "hover:bg-secondary hover:text-foreground",
   );
   if (href)
     return (

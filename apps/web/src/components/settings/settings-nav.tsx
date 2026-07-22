@@ -21,11 +21,17 @@ import {
   Info,
   Layers,
   Settings,
+  TriangleAlert,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { LucideIcon } from "lucide-react";
 
-const NAV: { href: string; label: string; icon: LucideIcon; exact?: boolean }[] = [
+const NAV: {
+  href: string;
+  label: string;
+  icon: LucideIcon;
+  exact?: boolean;
+}[] = [
   { href: "/settings", label: "Dashboard", icon: Settings, exact: true },
   { href: "/settings/school", label: "School Information", icon: School },
   { href: "/settings/branding", label: "Branding", icon: Palette },
@@ -33,7 +39,11 @@ const NAV: { href: string; label: string; icon: LucideIcon; exact?: boolean }[] 
   { href: "/settings/students", label: "Students", icon: GraduationCap },
   { href: "/settings/teachers", label: "Teachers", icon: Users },
   { href: "/settings/parents", label: "Parents", icon: Users },
-  { href: "/settings/examinations", label: "Examinations", icon: ClipboardList },
+  {
+    href: "/settings/examinations",
+    label: "Examinations",
+    icon: ClipboardList,
+  },
   { href: "/settings/fees", label: "Fees", icon: Wallet },
   { href: "/settings/salary", label: "Salary", icon: Receipt },
   { href: "/settings/expenses", label: "Expenses", icon: Receipt },
@@ -47,6 +57,7 @@ const NAV: { href: string; label: string; icon: LucideIcon; exact?: boolean }[] 
   { href: "/settings/import-export", label: "Import / Export", icon: FileUp },
   { href: "/settings/subscription", label: "Subscription", icon: Layers },
   { href: "/settings/license", label: "License", icon: KeyRound },
+  { href: "/settings/danger-zone", label: "Danger Zone", icon: TriangleAlert },
 ];
 
 export function SettingsNav() {

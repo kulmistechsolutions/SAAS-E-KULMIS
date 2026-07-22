@@ -6,7 +6,6 @@ import {
   ArrowDownUp,
   Eye,
   FileDown,
-  Flame,
   Layers,
   Pencil,
   Plus,
@@ -27,10 +26,8 @@ import {
   deleteClass,
   exportClassesCsv,
   getAcademicsState,
-  refreshAcademics,
   useAcademicsState,
 } from "@/lib/academics/store";
-import { ClassPurgeDialog } from "@/components/academics/class-purge-dialog";
 import { printTable } from "@/lib/academics/print";
 import type { ClassRow, SchoolClass } from "@/lib/academics/types";
 import { toast } from "@/lib/toast";
@@ -55,11 +52,9 @@ export default function ClassesPage() {
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<SchoolClass | null>(null);
   const [deleting, setDeleting] = useState<ClassRow | null>(null);
-  const [purging, setPurging] = useState<ClassRow | null>(null);
 
   const years = getAcademicsState().academicYears;
-  const activeYearName =
-    years.find((y) => y.status === "ACTIVE")?.name ?? "";
+  const activeYearName = years.find((y) => y.status === "ACTIVE")?.name ?? "";
   const filterYear = year || activeYearName;
   const canAddClass = canCreateClassInYear(filterYear);
 
@@ -71,7 +66,8 @@ export default function ClassesPage() {
     });
     list.sort((a, b) => {
       let cmp = 0;
-      if (sortKey === "name") cmp = a.name.localeCompare(b.name, undefined, { numeric: true });
+      if (sortKey === "name")
+        cmp = a.name.localeCompare(b.name, undefined, { numeric: true });
       else cmp = (a[sortKey] as number) - (b[sortKey] as number);
       return sortDir === "asc" ? cmp : -cmp;
     });
@@ -80,7 +76,10 @@ export default function ClassesPage() {
 
   const pageCount = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
   const currentPage = Math.min(page, pageCount);
-  const pageRows = rows.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+  const pageRows = rows.slice(
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE,
+  );
 
   useEffect(() => setPage(1), [search, year, status, sortKey, sortDir]);
 
@@ -116,7 +115,8 @@ export default function ClassesPage() {
         <div>
           <h1 className="text-2xl font-bold">Classes / Grades</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Each academic year has up to 12 grades. Rename grades to match your school&apos;s naming — sections are managed separately.
+            Each academic year has up to 12 grades. Rename grades to match your
+            school&apos;s naming — sections are managed separately.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -125,19 +125,48 @@ export default function ClassesPage() {
             onClick={() =>
               printTable({
                 title: "Classes List",
-                academicYear: year || getAcademicsState().academicYears.find((y) => y.status === "ACTIVE")?.name,
-                columns: ["Class", "Sections", "Students", "Subjects", "Teachers", "Status"],
-                rows: rows.map((r) => [r.name, r.sectionCount, r.studentCount, r.subjectCount, r.teacherCount, r.status]),
+                academicYear:
+                  year ||
+                  getAcademicsState().academicYears.find(
+                    (y) => y.status === "ACTIVE",
+                  )?.name,
+                columns: [
+                  "Class",
+                  "Sections",
+                  "Students",
+                  "Subjects",
+                  "Teachers",
+                  "Status",
+                ],
+                rows: rows.map((r) => [
+                  r.name,
+                  r.sectionCount,
+                  r.studentCount,
+                  r.subjectCount,
+                  r.teacherCount,
+                  r.status,
+                ]),
               })
             }
           >
             <Printer className="mr-2 h-4 w-4" /> Print
           </Button>
-          <Button variant="outline" onClick={() => { exportClassesCsv(); toast(`Exported ${rows.length} classes.`, "info"); }}>
+          <Button
+            variant="outline"
+            onClick={() => {
+              exportClassesCsv();
+              toast(`Exported ${rows.length} classes.`, "info");
+            }}
+          >
             <FileDown className="mr-2 h-4 w-4" /> Export
           </Button>
           {canAddClass ? (
-            <Button onClick={() => { setEditing(null); setFormOpen(true); }}>
+            <Button
+              onClick={() => {
+                setEditing(null);
+                setFormOpen(true);
+              }}
+            >
               <Plus className="mr-2 h-4 w-4" /> Add Class
             </Button>
           ) : null}
@@ -156,19 +185,36 @@ export default function ClassesPage() {
             />
           </div>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:flex">
-            <Select value={year} onChange={(e) => setYear(e.target.value)} className="lg:w-40">
+            <Select
+              value={year}
+              onChange={(e) => setYear(e.target.value)}
+              className="lg:w-40"
+            >
               <option value="">All Years</option>
               {years.map((y) => (
-                <option key={y.id} value={y.name}>{y.name}</option>
+                <option key={y.id} value={y.name}>
+                  {y.name}
+                </option>
               ))}
             </Select>
-            <Select value={status} onChange={(e) => setStatus(e.target.value)} className="lg:w-32">
+            <Select
+              value={status}
+              onChange={(e) => setStatus(e.target.value)}
+              className="lg:w-32"
+            >
               <option value="">All Status</option>
               <option value="ACTIVE">Active</option>
               <option value="INACTIVE">Inactive</option>
             </Select>
             {hasFilters && (
-              <Button variant="ghost" onClick={() => { setSearch(""); setYear(""); setStatus(""); }}>
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setSearch("");
+                  setYear("");
+                  setStatus("");
+                }}
+              >
                 <X className="mr-1 h-4 w-4" /> Clear
               </Button>
             )}
@@ -182,11 +228,26 @@ export default function ClassesPage() {
             <thead className="sticky top-0 z-10 bg-secondary/95 backdrop-blur text-left text-xs uppercase tracking-wide text-muted-foreground">
               <tr>
                 <th className="px-4 py-3 font-medium">#</th>
-                <SortTh label="Class Name" active={sortKey === "name"} dir={sortDir} onClick={() => toggleSort("name")} />
+                <SortTh
+                  label="Class Name"
+                  active={sortKey === "name"}
+                  dir={sortDir}
+                  onClick={() => toggleSort("name")}
+                />
                 <th className="px-4 py-3 font-medium">Academic Year</th>
                 <th className="px-4 py-3 font-medium">Sections</th>
-                <SortTh label="Students" active={sortKey === "studentCount"} dir={sortDir} onClick={() => toggleSort("studentCount")} />
-                <SortTh label="Subjects" active={sortKey === "subjectCount"} dir={sortDir} onClick={() => toggleSort("subjectCount")} />
+                <SortTh
+                  label="Students"
+                  active={sortKey === "studentCount"}
+                  dir={sortDir}
+                  onClick={() => toggleSort("studentCount")}
+                />
+                <SortTh
+                  label="Subjects"
+                  active={sortKey === "subjectCount"}
+                  dir={sortDir}
+                  onClick={() => toggleSort("subjectCount")}
+                />
                 <th className="px-4 py-3 font-medium">Teachers</th>
                 <th className="px-4 py-3 font-medium">Status</th>
                 <th className="px-4 py-3 text-right font-medium">Actions</th>
@@ -195,51 +256,71 @@ export default function ClassesPage() {
             <tbody>
               {pageRows.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="px-4 py-16 text-center text-muted-foreground">
+                  <td
+                    colSpan={9}
+                    className="px-4 py-16 text-center text-muted-foreground"
+                  >
                     No classes match your filters.
                   </td>
                 </tr>
               ) : (
                 pageRows.map((r, i) => (
                   <tr key={r.id} className="border-t hover:bg-secondary/40">
-                    <td className="px-4 py-3 text-muted-foreground">{(currentPage - 1) * PAGE_SIZE + i + 1}</td>
+                    <td className="px-4 py-3 text-muted-foreground">
+                      {(currentPage - 1) * PAGE_SIZE + i + 1}
+                    </td>
                     <td className="px-4 py-3">
-                      <Link href={`/academics/classes/${r.id}`} className="font-medium hover:text-primary hover:underline">
+                      <Link
+                        href={`/academics/classes/${r.id}`}
+                        className="font-medium hover:text-primary hover:underline"
+                      >
                         {r.name}
                       </Link>
                     </td>
-                    <td className="px-4 py-3 text-muted-foreground">{r.academicYear}</td>
+                    <td className="px-4 py-3 text-muted-foreground">
+                      {r.academicYear}
+                    </td>
                     <td className="px-4 py-3">
                       {r.hasSections ? (
                         <span className="inline-flex items-center gap-1 text-muted-foreground">
                           <Layers className="h-3.5 w-3.5" /> {r.sectionCount}
                         </span>
                       ) : (
-                        <span className="text-xs text-muted-foreground">No sections</span>
+                        <span className="text-xs text-muted-foreground">
+                          No sections
+                        </span>
                       )}
                     </td>
                     <td className="px-4 py-3 tabular-nums">{r.studentCount}</td>
                     <td className="px-4 py-3 tabular-nums">{r.subjectCount}</td>
                     <td className="px-4 py-3 tabular-nums">{r.teacherCount}</td>
-                    <td className="px-4 py-3"><StatusBadge status={r.status} /></td>
+                    <td className="px-4 py-3">
+                      <StatusBadge status={r.status} />
+                    </td>
                     <td className="px-4 py-3">
                       <div className="flex justify-end gap-1">
-                        <Action href={`/academics/classes/${r.id}`} title="View Profile" icon={Eye} />
+                        <Action
+                          href={`/academics/classes/${r.id}`}
+                          title="View Profile"
+                          icon={Eye}
+                        />
                         <Action
                           title="Rename"
                           icon={Pencil}
                           onClick={() => {
-                            const cls = getAcademicsState().classes.find((c) => c.id === r.id) ?? null;
+                            const cls =
+                              getAcademicsState().classes.find(
+                                (c) => c.id === r.id,
+                              ) ?? null;
                             setEditing(cls);
                             setFormOpen(true);
                           }}
                         />
-                        <Action title="Delete" icon={Trash2} danger onClick={() => setDeleting(r)} />
                         <Action
-                          title="Erase class and all its students"
-                          icon={Flame}
+                          title="Delete"
+                          icon={Trash2}
                           danger
-                          onClick={() => setPurging(r)}
+                          onClick={() => setDeleting(r)}
                         />
                       </div>
                     </td>
@@ -250,43 +331,96 @@ export default function ClassesPage() {
           </table>
         </div>
         <div className="border-t px-3">
-          <Pagination page={currentPage} pageCount={pageCount} total={rows.length} pageSize={PAGE_SIZE} onPageChange={setPage} />
+          <Pagination
+            page={currentPage}
+            pageCount={pageCount}
+            total={rows.length}
+            pageSize={PAGE_SIZE}
+            onPageChange={setPage}
+          />
         </div>
       </div>
 
-      <ClassFormDialog open={formOpen} onClose={() => setFormOpen(false)} cls={editing} />
+      <ClassFormDialog
+        open={formOpen}
+        onClose={() => setFormOpen(false)}
+        cls={editing}
+      />
       <ConfirmDialog
         open={!!deleting}
         title="Delete Class"
-        message={deleting ? `Delete ${deleting.name}? Classes with enrolled students cannot be deleted.` : ""}
+        message={
+          deleting
+            ? `Delete ${deleting.name}? Classes with enrolled students cannot be deleted.`
+            : ""
+        }
         onConfirm={handleDelete}
         onClose={() => setDeleting(null)}
-      />
-      <ClassPurgeDialog
-        open={!!purging}
-        classId={purging?.id ?? null}
-        className={purging?.name ?? ""}
-        onClose={() => setPurging(null)}
-        onPurged={() => void refreshAcademics()}
       />
     </div>
   );
 }
 
-function SortTh({ label, active, dir, onClick }: { label: string; active: boolean; dir: SortDir; onClick: () => void }) {
+function SortTh({
+  label,
+  active,
+  dir,
+  onClick,
+}: {
+  label: string;
+  active: boolean;
+  dir: SortDir;
+  onClick: () => void;
+}) {
   return (
     <th className="px-4 py-3 font-medium">
-      <button onClick={onClick} className={cn("inline-flex items-center gap-1 hover:text-foreground", active && "text-foreground")}>
+      <button
+        onClick={onClick}
+        className={cn(
+          "inline-flex items-center gap-1 hover:text-foreground",
+          active && "text-foreground",
+        )}
+      >
         {label}
-        <ArrowDownUp className={cn("h-3 w-3", active ? "opacity-100" : "opacity-40")} />
-        {active && <span className="text-[10px]">{dir === "asc" ? "▲" : "▼"}</span>}
+        <ArrowDownUp
+          className={cn("h-3 w-3", active ? "opacity-100" : "opacity-40")}
+        />
+        {active && (
+          <span className="text-[10px]">{dir === "asc" ? "▲" : "▼"}</span>
+        )}
       </button>
     </th>
   );
 }
 
-function Action({ icon: Icon, title, onClick, href, danger }: { icon: typeof Eye; title: string; onClick?: () => void; href?: string; danger?: boolean }) {
-  const cls = cn("flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors", danger ? "hover:bg-rose-500/10 hover:text-rose-600" : "hover:bg-secondary hover:text-foreground");
-  if (href) return <Link href={href} title={title} className={cls}><Icon className="h-4 w-4" /></Link>;
-  return <button onClick={onClick} title={title} className={cls}><Icon className="h-4 w-4" /></button>;
+function Action({
+  icon: Icon,
+  title,
+  onClick,
+  href,
+  danger,
+}: {
+  icon: typeof Eye;
+  title: string;
+  onClick?: () => void;
+  href?: string;
+  danger?: boolean;
+}) {
+  const cls = cn(
+    "flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors",
+    danger
+      ? "hover:bg-rose-500/10 hover:text-rose-600"
+      : "hover:bg-secondary hover:text-foreground",
+  );
+  if (href)
+    return (
+      <Link href={href} title={title} className={cls}>
+        <Icon className="h-4 w-4" />
+      </Link>
+    );
+  return (
+    <button onClick={onClick} title={title} className={cls}>
+      <Icon className="h-4 w-4" />
+    </button>
+  );
 }

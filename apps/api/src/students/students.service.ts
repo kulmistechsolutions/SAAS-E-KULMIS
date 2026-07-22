@@ -22,7 +22,7 @@ import {
   studentPhotoKey,
 } from "./student-photo.util";
 
-import { nextParentCode, nextStudentCode, syncCounter } from "./code-allocator";
+import { nextParentCode, nextStudentCode } from "./code-allocator";
 
 const DEFAULT_PARENT_PASSWORD = "12345";
 
@@ -183,9 +183,11 @@ export class StudentsService {
         });
         let initialParentPassword: string | undefined;
         if (!parent) {
-          const { code: parentCode, sequence: parentSeq } =
-            await nextParentCode(tx, school.parentPrefix);
-          await syncCounter(tx, schoolId, "parent", parentSeq);
+          const { code: parentCode } = await nextParentCode(
+            tx,
+            schoolId,
+            school.parentPrefix,
+          );
           initialParentPassword = DEFAULT_PARENT_PASSWORD;
           const user = await tx.user.create({
             data: {
@@ -221,11 +223,11 @@ export class StudentsService {
           );
         }
 
-        const { code, sequence } = await nextStudentCode(
+        const { code } = await nextStudentCode(
           tx,
+          schoolId,
           school.studentPrefix,
         );
-        await syncCounter(tx, schoolId, "student", sequence);
         const portalPasswordHash = await hashPassword(code);
 
         const student = await tx.student.create({
@@ -508,5 +510,66 @@ export class StudentsService {
       }
       return { success: true, parentDeleted: remaining === 0 };
     });
+  }
+
+  /**
+   * Delete several students at once (multi-select on the students page). Like
+   * single delete, IDs are retired — never reused — and a parent is removed
+   * only once none of their children remain anywhere. Photos are cleared for
+   * the deleted students. Runs in one transaction so a partial failure leaves
+   * nothing half-deleted.
+   */
+  async removeMany(schoolId: string, ids: string[]) {
+    const unique = [...new Set(ids)].filter(Boolean);
+    if (unique.length === 0) {
+      throw new BadRequestException("No students selected");
+    }
+    const { deletedCount, parentsDeleted, photoKeys } =
+      await this.prisma.forTenant(
+        schoolId,
+        async (tx) => {
+          const students = await tx.student.findMany({
+            where: { id: { in: unique } },
+            select: { id: true, parentId: true, photoKey: true },
+          });
+          if (students.length === 0) {
+            throw new NotFoundException("No matching students");
+          }
+          const parentIds = [...new Set(students.map((s) => s.parentId))];
+          const keys = students
+            .map((s) => s.photoKey)
+            .filter((k): k is string => !!k);
+
+          const deleted = await tx.student.deleteMany({
+            where: { id: { in: students.map((s) => s.id) } },
+          });
+
+          // Parents left with no children anywhere go too (User cascades Parent).
+          const orphans = parentIds.length
+            ? await tx.parent.findMany({
+                where: { id: { in: parentIds }, students: { none: {} } },
+                select: { userId: true },
+              })
+            : [];
+          if (orphans.length) {
+            await tx.user.deleteMany({
+              where: { id: { in: orphans.map((o) => o.userId) } },
+            });
+          }
+
+          return {
+            deletedCount: deleted.count,
+            parentsDeleted: orphans.length,
+            photoKeys: keys,
+          };
+        },
+        { timeout: 60_000, maxWait: 30_000 },
+      );
+
+    // Storage cleanup runs outside the transaction — a missing object must not
+    // roll back the delete.
+    for (const key of photoKeys) await this.removePhotoObject(key);
+
+    return { success: true, deletedCount, parentsDeleted };
   }
 }

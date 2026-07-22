@@ -239,6 +239,52 @@ export async function apiDeleteStudent(
   });
 }
 
+/** Delete several students at once (multi-select). IDs are not reused. */
+export async function apiBulkDeleteStudents(
+  ids: string[],
+): Promise<{ deletedCount: number; parentsDeleted: number }> {
+  return api<{
+    success: boolean;
+    deletedCount: number;
+    parentsDeleted: number;
+  }>("/students/bulk-delete", { method: "POST", body: { ids } });
+}
+
+// ── Danger Zone: deliberate resets (admin only) ────────────────────────────
+
+export interface ApiSchoolResetPreview {
+  scope: "school";
+  name: string;
+  counts: { students: number; parents: number };
+}
+
+export interface ApiClassResetPreview {
+  scope: "class";
+  name: string;
+  academicYear: string;
+  counts: { students: number; parents: number; parentsKept: number };
+}
+
+export const apiSchoolResetPreview = () =>
+  api<ApiSchoolResetPreview>("/admin/reset/school/preview");
+
+export const apiClassResetPreview = (classId: string) =>
+  api<ApiClassResetPreview>(`/admin/reset/class/${classId}/preview`);
+
+/** Erase every student in the school and restart numbering at 1. */
+export const apiResetSchool = (confirmName: string) =>
+  api<{ success: true; name: string; studentsDeleted: number }>(
+    "/admin/reset/school",
+    { method: "POST", body: { confirmName } },
+  );
+
+/** Erase every student in one class; the class itself is kept. */
+export const apiResetClass = (classId: string, confirmName: string) =>
+  api<{ success: true; name: string; studentsDeleted: number }>(
+    `/admin/reset/class/${classId}`,
+    { method: "POST", body: { confirmName } },
+  );
+
 export interface UpdateParentApiInput {
   name?: string;
   phone?: string;

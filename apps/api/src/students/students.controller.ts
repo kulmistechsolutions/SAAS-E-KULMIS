@@ -156,6 +156,17 @@ export class StudentsController {
     return this.students.update(me.schoolId, id, parsed.data);
   }
 
+  /** Bulk delete from the students page multi-select. IDs are not reused. */
+  @Roles(UserRole.ADMINISTRATOR)
+  @Post("bulk-delete")
+  removeMany(@CurrentUser() me: AuthUser, @Body() body: unknown) {
+    const ids = (body as { ids?: unknown } | null)?.ids;
+    if (!Array.isArray(ids) || ids.some((x) => typeof x !== "string")) {
+      throw new BadRequestException("ids must be an array of student ids");
+    }
+    return this.students.removeMany(me.schoolId, ids as string[]);
+  }
+
   @Roles(UserRole.ADMINISTRATOR)
   @Delete(":id")
   remove(@CurrentUser() me: AuthUser, @Param("id") id: string) {

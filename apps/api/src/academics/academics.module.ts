@@ -4,7 +4,6 @@ import { AcademicYearService } from "./academic-year.service";
 import { ClassController } from "./class.controller";
 import { ClassService } from "./class.service";
 import { ClassStructureService } from "./class-structure.service";
-import { ClassPurgeService } from "./class-purge.service";
 import { ClassSubjectController } from "./class-subject.controller";
 import { ClassSubjectService } from "./class-subject.service";
 import { SectionController } from "./section.controller";
@@ -25,7 +24,6 @@ import { SubjectService } from "./subject.service";
     AcademicYearService,
     ClassStructureService,
     ClassService,
-    ClassPurgeService,
     SectionService,
     SubjectService,
     ClassSubjectService,

@@ -48,11 +48,14 @@ export interface ApiClassSubject {
 export const apiListYears = () => api<ApiYear[]>("/academic-years");
 export const apiListClasses = (academicYearId?: string) =>
   api<ApiClass[]>(
-    academicYearId ? `/classes?academicYearId=${encodeURIComponent(academicYearId)}` : "/classes",
+    academicYearId
+      ? `/classes?academicYearId=${encodeURIComponent(academicYearId)}`
+      : "/classes",
   );
 export const apiListSections = () => api<ApiSection[]>("/sections");
 export const apiListSubjects = () => api<ApiSubject[]>("/subjects");
-export const apiListClassSubjects = () => api<ApiClassSubject[]>("/class-subjects");
+export const apiListClassSubjects = () =>
+  api<ApiClassSubject[]>("/class-subjects");
 
 // ── Academic years ──
 export const apiCreateYear = (body: {
@@ -93,46 +96,12 @@ export const apiUpdateClass = (
 export const apiDeleteClass = (id: string) =>
   api(`/classes/${id}`, { method: "DELETE" });
 
-/** What erasing a class would destroy. Counted, nothing touched. */
-export interface ApiClassPurgePreview {
-  classId: string;
-  className: string;
-  academicYear: string;
-  counts: {
-    students: number;
-    parentsDeleted: number;
-    parentsKept: number;
-    sections: number;
-    exams: number;
-    examMarks: number;
-    attendance: number;
-    feeCharges: number;
-    payments: number;
-    quizAttempts: number;
-    bookLoans: number;
-    promotions: number;
-    teacherAssignments: number;
-    timetableEntries: number;
-    libraryDocuments: number;
-  };
-}
-
-export const apiClassPurgePreview = (id: string) =>
-  api<ApiClassPurgePreview>(`/classes/${id}/purge-preview`);
-
-/** Irreversible. `confirmName` must equal the class name exactly. */
-export const apiPurgeClass = (id: string, confirmName: string) =>
-  api<{
-    success: true;
-    className: string;
-    studentsDeleted: number;
-    parentsDeleted: number;
-    freedStudentCodes: string[];
-    freedParentCodes: string[];
-  }>(`/classes/${id}/purge`, { method: "POST", body: { confirmName } });
-
 export const apiRepairClassStructure = (academicYearId?: string) =>
-  api<{ academicYearId: string; classesCreated: number; classesMerged: number }>(
+  api<{
+    academicYearId: string;
+    classesCreated: number;
+    classesMerged: number;
+  }>(
     academicYearId
       ? `/classes/structure/repair?academicYearId=${encodeURIComponent(academicYearId)}`
       : "/classes/structure/repair",
