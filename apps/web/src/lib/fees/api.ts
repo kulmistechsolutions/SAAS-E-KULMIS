@@ -96,7 +96,8 @@ export function mapApiCharge(
     amountPaid: c.paidAmount,
     balance,
     status,
-    paymentDate: c.paidAmount > 0 ? new Date().toISOString().slice(0, 10) : null,
+    paymentDate:
+      c.paidAmount > 0 ? new Date().toISOString().slice(0, 10) : null,
     advanceCovered,
     kind: c.kind ?? "MONTHLY",
     label: c.label ?? null,
@@ -144,7 +145,9 @@ export async function apiOutstanding(
   return api<ApiFeeCharge[]>(`/fees/outstanding${q ? `?${q}` : ""}`);
 }
 
-export async function apiStudentLedger(studentId: string): Promise<ApiStudentLedger> {
+export async function apiStudentLedger(
+  studentId: string,
+): Promise<ApiStudentLedger> {
   return api<ApiStudentLedger>(`/fees/ledger/${studentId}`);
 }
 
@@ -164,6 +167,40 @@ export async function apiChargeMonth(input: ChargeMonthApiInput) {
   return api<{ year: number; month: number; charged: number; skipped: number }>(
     "/fees/charge",
     { method: "POST", body: input },
+  );
+}
+
+export interface SetupMonthApiInput {
+  year: number;
+  month: number;
+  scope: "all" | "selected";
+  classIds?: string[];
+  amount?: number;
+}
+
+/** Turn monthly billing on for a month — every class or a chosen set. */
+export async function apiSetupMonth(input: SetupMonthApiInput) {
+  return api<{
+    year: number;
+    month: number;
+    classesActivated: number;
+    charged: number;
+    skipped: number;
+  }>("/fees/setup-month", { method: "POST", body: input });
+}
+
+export interface MonthStatusClass {
+  id: string;
+  name: string;
+  academicYear: string;
+  activeStudents: number;
+  activated: boolean;
+}
+
+/** Which classes are set up (activated) for a given month. */
+export async function apiMonthStatus(year: number, month: number) {
+  return api<{ year: number; month: number; classes: MonthStatusClass[] }>(
+    `/fees/month-status?year=${year}&month=${month}`,
   );
 }
 

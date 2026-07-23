@@ -14,6 +14,7 @@ import {
   createExtraFeeSchema,
   payFeeSchema,
   setupAcademicYearFeesSchema,
+  setupMonthSchema,
   updateExtraFeeSchema,
   UserRole,
 } from "@ekulmis/shared";
@@ -44,6 +45,29 @@ export class FeesController {
     const parsed = chargeMonthSchema.safeParse(body);
     if (!parsed.success) throw new BadRequestException(parsed.error.flatten());
     return this.fees.chargeMonth(me.schoolId, parsed.data);
+  }
+
+  /** Monthly fee setup — turn billing on for a month, all or chosen classes. */
+  @Post("setup-month")
+  setupMonth(@CurrentUser() me: AuthUser, @Body() body: unknown) {
+    const parsed = setupMonthSchema.safeParse(body);
+    if (!parsed.success) throw new BadRequestException(parsed.error.flatten());
+    return this.fees.setupMonth(me.schoolId, parsed.data);
+  }
+
+  /** Which classes are set up (activated) for a given month. */
+  @Get("month-status")
+  monthStatus(
+    @CurrentUser() me: AuthUser,
+    @Query("year") year: string,
+    @Query("month") month: string,
+  ) {
+    const y = Number(year);
+    const m = Number(month);
+    if (!Number.isFinite(y) || !Number.isFinite(m) || m < 1 || m > 12) {
+      throw new BadRequestException("Valid year and month are required");
+    }
+    return this.fees.monthSetupStatus(me.schoolId, y, m);
   }
 
   @Post("pay")

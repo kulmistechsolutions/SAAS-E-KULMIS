@@ -9,6 +9,7 @@ import type {
   CreateExtraFeeInput,
   PayFeeInput,
   SetupAcademicYearFeesInput,
+  SetupMonthInput,
   StudentFeeStartInput,
   UpdateExtraFeeInput,
 } from "@ekulmis/shared";
@@ -106,6 +107,26 @@ export class FeesService {
       });
       if (!cls) throw new BadRequestException("Invalid class");
 
+      // Running the setup for a class-month turns billing on for it: future
+      // registrations into this class will now be charged for this month.
+      await tx.monthlyFeeActivation.upsert({
+        where: {
+          schoolId_year_month_classId: {
+            schoolId,
+            year: dto.year,
+            month: dto.month,
+            classId: dto.classId,
+          },
+        },
+        create: {
+          schoolId,
+          year: dto.year,
+          month: dto.month,
+          classId: dto.classId,
+        },
+        update: {},
+      });
+
       const students = await tx.student.findMany({
         where: { classId: dto.classId, sectionId, status: "ACTIVE" },
         select: { id: true, monthlyFee: true },
@@ -148,6 +169,151 @@ export class FeesService {
     });
   }
 
+  /**
+   * Monthly fee setup for a whole month at once. The school chooses either
+   * every class or a specific set, and this turns billing on for each and
+   * charges the students already enrolled. This is the deliberate act that
+   * starts monthly billing — nothing bills before it.
+   */
+  async setupMonth(schoolId: string, dto: SetupMonthInput) {
+    const config = await this.schoolConfig(schoolId);
+    if (config.billingMode === "ACADEMIC_YEAR") {
+      throw new BadRequestException(
+        "Monthly setup is disabled while Academic Year billing mode is active",
+      );
+    }
+
+    return this.prisma.forTenant(
+      schoolId,
+      async (tx) => {
+        // "all" means every class in the school; otherwise exactly the ones
+        // picked. Unknown ids are ignored rather than failing the whole run.
+        const classes = await tx.class.findMany({
+          where:
+            dto.scope === "all"
+              ? { status: "ACTIVE" }
+              : { id: { in: dto.classIds ?? [] } },
+          select: { id: true, name: true },
+        });
+        if (classes.length === 0) {
+          throw new BadRequestException("No classes selected");
+        }
+
+        let charged = 0;
+        let skipped = 0;
+        for (const cls of classes) {
+          await tx.monthlyFeeActivation.upsert({
+            where: {
+              schoolId_year_month_classId: {
+                schoolId,
+                year: dto.year,
+                month: dto.month,
+                classId: cls.id,
+              },
+            },
+            create: {
+              schoolId,
+              year: dto.year,
+              month: dto.month,
+              classId: cls.id,
+            },
+            update: {},
+          });
+
+          const students = await tx.student.findMany({
+            where: { classId: cls.id, status: "ACTIVE" },
+            select: { id: true, monthlyFee: true },
+          });
+          for (const s of students) {
+            const existing = await tx.feeCharge.findFirst({
+              where: {
+                studentId: s.id,
+                year: dto.year,
+                month: dto.month,
+                kind: "MONTHLY",
+              },
+              select: { id: true },
+            });
+            if (existing) {
+              skipped++;
+              continue;
+            }
+            const amount = dto.amount ?? s.monthlyFee;
+            await tx.feeCharge.create({
+              data: {
+                schoolId,
+                studentId: s.id,
+                year: dto.year,
+                month: dto.month,
+                amount,
+                status: amount === 0 ? "PAID" : "UNPAID",
+              },
+            });
+            charged++;
+          }
+        }
+        return {
+          year: dto.year,
+          month: dto.month,
+          classesActivated: classes.length,
+          charged,
+          skipped,
+        };
+      },
+      { timeout: 180_000, maxWait: 60_000 },
+    );
+  }
+
+  /**
+   * What the school has set up for a given month: which classes are activated
+   * and which are not yet. Drives the setup screen so the school sees at a
+   * glance what still needs turning on.
+   */
+  async monthSetupStatus(schoolId: string, year: number, month: number) {
+    return this.prisma.forTenant(schoolId, async (tx) => {
+      const [classes, activations] = await Promise.all([
+        tx.class.findMany({
+          where: { status: "ACTIVE" },
+          select: {
+            id: true,
+            name: true,
+            academicYear: { select: { name: true } },
+            _count: { select: { students: { where: { status: "ACTIVE" } } } },
+          },
+          orderBy: [{ orderIndex: "asc" }, { name: "asc" }],
+        }),
+        tx.monthlyFeeActivation.findMany({
+          where: { year, month },
+          select: { classId: true },
+        }),
+      ]);
+      const activeSet = new Set(activations.map((a) => a.classId));
+      return {
+        year,
+        month,
+        classes: classes.map((c) => ({
+          id: c.id,
+          name: c.name,
+          academicYear: c.academicYear.name,
+          activeStudents: c._count.students,
+          activated: activeSet.has(c.id),
+        })),
+      };
+    });
+  }
+
+  /**
+   * Whether this school has ever set up billing at all — a monthly activation
+   * or an academic-year setup. Payments are blocked until it has (see pay()).
+   */
+  private async hasAnyFeeSetup(tx: TenantTx): Promise<boolean> {
+    const [monthly, yearly] = await Promise.all([
+      tx.monthlyFeeActivation.count(),
+      tx.academicYearFeeSetup.count(),
+    ]);
+    return monthly > 0 || yearly > 0;
+  }
+
   async setupAcademicYear(schoolId: string, dto: SetupAcademicYearFeesInput) {
     const config = await this.schoolConfig(schoolId);
     if (config.billingMode !== "ACADEMIC_YEAR") {
@@ -159,74 +325,74 @@ export class FeesService {
     return this.prisma.forTenant(
       schoolId,
       async (tx) => {
-      const year = await tx.academicYear.findFirst({
-        where: { id: dto.academicYearId },
-        select: { id: true, name: true },
-      });
-      if (!year) throw new NotFoundException("Academic year not found");
+        const year = await tx.academicYear.findFirst({
+          where: { id: dto.academicYearId },
+          select: { id: true, name: true },
+        });
+        if (!year) throw new NotFoundException("Academic year not found");
 
-      const existing = await tx.academicYearFeeSetup.findUnique({
-        where: {
-          schoolId_academicYearId: {
+        const existing = await tx.academicYearFeeSetup.findUnique({
+          where: {
+            schoolId_academicYearId: {
+              schoolId,
+              academicYearId: dto.academicYearId,
+            },
+          },
+        });
+        if (existing) {
+          throw new ConflictException(
+            "Academic year fees are already activated for this year",
+          );
+        }
+
+        const months = dto.academicMonths ?? config.feeAcademicMonths;
+        const startMonth = dto.billingStartMonth ?? config.feeBillingStartMonth;
+        const endMonth = dto.billingEndMonth ?? config.feeBillingEndMonth;
+        const monthlyFee = dto.monthlyFee ?? null;
+        const totalAnnual = (monthlyFee ?? 0) * months;
+
+        await tx.academicYearFeeSetup.create({
+          data: {
             schoolId,
             academicYearId: dto.academicYearId,
+            academicMonths: months,
+            billingStartMonth: startMonth,
+            billingEndMonth: endMonth,
+            monthlyFee,
+            totalAnnualFee: totalAnnual,
           },
-        },
-      });
-      if (existing) {
-        throw new ConflictException(
-          "Academic year fees are already activated for this year",
-        );
-      }
+        });
 
-      const months = dto.academicMonths ?? config.feeAcademicMonths;
-      const startMonth = dto.billingStartMonth ?? config.feeBillingStartMonth;
-      const endMonth = dto.billingEndMonth ?? config.feeBillingEndMonth;
-      const monthlyFee = dto.monthlyFee ?? null;
-      const totalAnnual = (monthlyFee ?? 0) * months;
+        const students = await tx.student.findMany({
+          where: { status: "ACTIVE" },
+          select: {
+            id: true,
+            monthlyFee: true,
+            feeStartMode: true,
+            feeAgreementAmount: true,
+            feeBillingStartYear: true,
+            feeBillingStartMonth: true,
+            annualFeeAmount: true,
+            status: true,
+          },
+        });
 
-      await tx.academicYearFeeSetup.create({
-        data: {
-          schoolId,
+        const charged = await this.createBulkStudentYearCharges(tx, schoolId, {
+          students,
+          academicYearId: dto.academicYearId,
+          academicYearName: year.name,
+          config,
+          defaultMonthlyFee: monthlyFee,
+        });
+
+        return {
           academicYearId: dto.academicYearId,
           academicMonths: months,
-          billingStartMonth: startMonth,
-          billingEndMonth: endMonth,
-          monthlyFee,
           totalAnnualFee: totalAnnual,
-        },
-      });
-
-      const students = await tx.student.findMany({
-        where: { status: "ACTIVE" },
-        select: {
-          id: true,
-          monthlyFee: true,
-          feeStartMode: true,
-          feeAgreementAmount: true,
-          feeBillingStartYear: true,
-          feeBillingStartMonth: true,
-          annualFeeAmount: true,
-          status: true,
-        },
-      });
-
-      const charged = await this.createBulkStudentYearCharges(tx, schoolId, {
-        students,
-        academicYearId: dto.academicYearId,
-        academicYearName: year.name,
-        config,
-        defaultMonthlyFee: monthlyFee,
-      });
-
-      return {
-        academicYearId: dto.academicYearId,
-        academicMonths: months,
-        totalAnnualFee: totalAnnual,
-        studentsProcessed: students.length,
-        chargesCreated: charged,
-      };
-    },
+          studentsProcessed: students.length,
+          chargesCreated: charged,
+        };
+      },
       { timeout: 180_000, maxWait: 60_000 },
     );
   }
@@ -238,10 +404,11 @@ export class FeesService {
   ) {
     const config = await this.schoolConfig(schoolId);
     return this.prisma.forTenant(schoolId, async (tx) => {
-      const student = await tx.student.findFirst({
+      const studentRow = await tx.student.findFirst({
         where: { id: studentId },
         select: {
           id: true,
+          classId: true,
           monthlyFee: true,
           feeStartMode: true,
           feeAgreementAmount: true,
@@ -251,7 +418,8 @@ export class FeesService {
           status: true,
         },
       });
-      if (!student) throw new NotFoundException("Student not found");
+      if (!studentRow) throw new NotFoundException("Student not found");
+      const { classId, ...student } = studentRow;
 
       if (opts?.feeStartMode) {
         await tx.student.update({
@@ -303,6 +471,7 @@ export class FeesService {
           tx,
           schoolId,
           student,
+          classId,
         );
         return { mode: "MONTHLY", chargesCreated: created };
       }
@@ -315,9 +484,26 @@ export class FeesService {
     tx: TenantTx,
     schoolId: string,
     student: StudentFeeProfile,
+    classId: string,
   ): Promise<number> {
     const mode = student.feeStartMode ?? "FULL_CURRENT";
     const now = currentCalendarMonth();
+
+    // Billing never starts on its own. Unless the school has activated this
+    // class for this month (via the monthly fee setup), a newly registered
+    // student gets no charge at all — not even a scheduled one.
+    const activated = await tx.monthlyFeeActivation.findUnique({
+      where: {
+        schoolId_year_month_classId: {
+          schoolId,
+          year: now.year,
+          month: now.month,
+          classId,
+        },
+      },
+      select: { id: true },
+    });
+    if (!activated) return 0;
 
     if (mode === "NEXT_MONTH") {
       const next = nextCalendarMonth(now.year, now.month);
@@ -616,13 +802,26 @@ export class FeesService {
     const config = await this.schoolConfig(schoolId);
 
     if (dto.type === "PARTIAL" && !config.feeAllowPartial) {
-      throw new BadRequestException("Partial payments are disabled in settings");
+      throw new BadRequestException(
+        "Partial payments are disabled in settings",
+      );
     }
     if (dto.type === "ADVANCE" && !config.feeAllowAdvance) {
-      throw new BadRequestException("Advance payments are disabled in settings");
+      throw new BadRequestException(
+        "Advance payments are disabled in settings",
+      );
     }
 
     return this.prisma.forTenant(schoolId, async (tx) => {
+      // No money can be collected until the school has actually set up billing.
+      // A school with no setup is told to do it first, even if old charges
+      // happen to exist.
+      if (!(await this.hasAnyFeeSetup(tx))) {
+        throw new BadRequestException(
+          "Fee setup required — set up billing (Settings → Fees) before collecting any payment.",
+        );
+      }
+
       const student = await tx.student.findFirst({
         where: { id: dto.studentId, status: "ACTIVE" },
         select: { id: true, monthlyFee: true },
@@ -826,11 +1025,15 @@ export class FeesService {
       // MONTHLY rows — an exam fee is not "a month" and would otherwise
       // inflate totalMonths and skew the progress bar.
       const billableMonthly = billable.filter((c) => c.kind === "MONTHLY");
-      const paidMonths = billableMonthly.filter((c) => c.status === "PAID").length;
+      const paidMonths = billableMonthly.filter(
+        (c) => c.status === "PAID",
+      ).length;
       const unpaidMonths = billableMonthly.filter(
         (c) => c.status === "UNPAID" || c.status === "PARTIAL",
       ).length;
-      const inactiveMonths = charges.filter((c) => c.status === "INACTIVE").length;
+      const inactiveMonths = charges.filter(
+        (c) => c.status === "INACTIVE",
+      ).length;
 
       const extras = billable.filter((c) => c.kind === "EXTRA");
       const extraTotal = extras.reduce((s, c) => s + c.amount, 0);
@@ -1015,11 +1218,7 @@ export class FeesService {
     });
   }
 
-  async updateExtraFee(
-    schoolId: string,
-    id: string,
-    dto: UpdateExtraFeeInput,
-  ) {
+  async updateExtraFee(schoolId: string, id: string, dto: UpdateExtraFeeInput) {
     return this.prisma.forTenant(schoolId, async (tx) => {
       const existing = await tx.extraFee.findFirst({
         where: { id },
@@ -1088,7 +1287,9 @@ export class FeesService {
         );
       }
 
-      await tx.feeCharge.deleteMany({ where: { extraFeeId: id, kind: "EXTRA" } });
+      await tx.feeCharge.deleteMany({
+        where: { extraFeeId: id, kind: "EXTRA" },
+      });
       await tx.extraFee.delete({ where: { id } });
       return { ok: true };
     });
@@ -1165,7 +1366,9 @@ export class FeesService {
       schoolId,
       async (tx) => {
         const { fee, targets } = await this.resolveExtraFeeTargets(tx, id);
-        const pending = targets.filter((t) => !t.alreadyCharged && t.amount > 0);
+        const pending = targets.filter(
+          (t) => !t.alreadyCharged && t.amount > 0,
+        );
 
         if (pending.length > 0) {
           await tx.feeCharge.createMany({

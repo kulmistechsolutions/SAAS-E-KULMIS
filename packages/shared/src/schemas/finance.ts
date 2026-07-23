@@ -30,6 +30,24 @@ export const chargeMonthSchema = z.object({
 });
 export type ChargeMonthInput = z.infer<typeof chargeMonthSchema>;
 
+/**
+ * Monthly fee setup: turn billing on for a month, for every class or a chosen
+ * few. This is the deliberate act that starts monthly billing.
+ */
+export const setupMonthSchema = z
+  .object({
+    year,
+    month,
+    scope: z.enum(["all", "selected"]),
+    classIds: z.array(z.string().min(1)).optional(),
+    amount: z.number().int().nonnegative().optional(),
+  })
+  .refine((o) => o.scope === "all" || (o.classIds && o.classIds.length > 0), {
+    message: "Select at least one class",
+    path: ["classIds"],
+  });
+export type SetupMonthInput = z.infer<typeof setupMonthSchema>;
+
 export const payFeeSchema = z.object({
   studentId: z.string().min(1),
   amount: positiveAmount,

@@ -152,6 +152,7 @@ model Class {
   subjectLoads     SubjectLoad[]
   timetableEntries TimetableEntry[]
   subjectPrefs     SubjectTimePreference[]
+  feeActivations   MonthlyFeeActivation[]
   /// Which part of the day this class attends. A section may override it.
   shift            SchoolShift?            @relation(fields: [shiftId], references: [id], onDelete: SetNull)
   shiftId          String?
@@ -602,6 +603,27 @@ model AcademicYearFeeSetup {
   @@unique([schoolId, academicYearId])
   @@index([schoolId])
   @@map("academic_year_fee_setups")
+}
+
+/// Marks that a class's monthly billing has been deliberately turned on for a
+/// given month (Module 7). Until a class-month is activated here, registering a
+/// student creates NO fee charge — billing never starts on its own. Activation
+/// is created by the monthly fee setup, which also charges the students already
+/// enrolled. The MONTHLY equivalent of AcademicYearFeeSetup.
+model MonthlyFeeActivation {
+  id          String   @id @default(cuid())
+  schoolId    String
+  year        Int
+  month       Int
+  classId     String
+  activatedAt DateTime @default(now())
+
+  class Class @relation(fields: [classId], references: [id], onDelete: Cascade)
+
+  @@unique([schoolId, year, month, classId])
+  @@index([schoolId, year, month])
+  @@index([classId])
+  @@map("monthly_fee_activations")
 }
 
 /// A fee payment with a receipt (Module 7).

@@ -15,6 +15,7 @@ import {
   useFeesState,
   type MonthSetupClassGroup,
 } from "@/lib/fees/store";
+import { MonthBillingSetup } from "@/components/fees/month-billing-setup";
 import { toast } from "@/lib/toast";
 
 export default function MonthlySetupPage() {
@@ -22,9 +23,9 @@ export default function MonthlySetupPage() {
   const nextKey = nextMonthKey(fees.activeMonthKey);
   const canActivate = canActivateNextMonth();
   const setupDay = getFeeMonthSetupDay();
-  const [billingMode, setBillingMode] = useState<"MONTHLY" | "ACADEMIC_YEAR" | null>(
-    null,
-  );
+  const [billingMode, setBillingMode] = useState<
+    "MONTHLY" | "ACADEMIC_YEAR" | null
+  >(null);
   const [saving, setSaving] = useState(false);
   // Every class starts ticked (charged). Unticking one — e.g. it's on break
   // this month — leaves it out of this run without touching anything else.
@@ -88,8 +89,9 @@ export default function MonthlySetupPage() {
             <div>
               <p className="font-semibold">Academic Year Billing is enabled</p>
               <p className="mt-1 text-sm">
-                The school charges the full annual tuition upfront and tracks month-by-month
-                progress. Use Academic Year Setup instead of monthly activation.
+                The school charges the full annual tuition upfront and tracks
+                month-by-month progress. Use Academic Year Setup instead of
+                monthly activation.
               </p>
               <Link href="/finance/academic-year-setup">
                 <Button className="mt-4" variant="outline">
@@ -108,9 +110,12 @@ export default function MonthlySetupPage() {
       <div>
         <h1 className="text-2xl font-bold">Monthly Setup</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Activate billing months. Only one month can be active at a time.
+          Turn billing on for the month. Nothing is charged, and no payment can
+          be collected, until you set it up here.
         </p>
       </div>
+
+      <MonthBillingSetup />
 
       <div className="rounded-2xl border bg-card p-6 shadow-sm">
         <div className="flex items-center gap-3">
@@ -118,7 +123,9 @@ export default function MonthlySetupPage() {
             <CheckCircle2 className="h-6 w-6" />
           </span>
           <div>
-            <p className="text-sm text-muted-foreground">Current Active Month</p>
+            <p className="text-sm text-muted-foreground">
+              Current Active Month
+            </p>
             <p className="text-xl font-bold text-emerald-600">
               {monthLabel(fees.activeMonthKey)}
             </p>
@@ -146,10 +153,10 @@ export default function MonthlySetupPage() {
           Activate Next Month
         </div>
         <p className="mt-2 text-sm text-muted-foreground">
-          A new month can only be activated after the {setupDay}th of the current billing
-          month. When activated, the system creates fee records for every ticked
-          class, carries forward unpaid balances, and skips months covered by
-          advance payments.
+          A new month can only be activated after the {setupDay}th of the
+          current billing month. When activated, the system creates fee records
+          for every ticked class, carries forward unpaid balances, and skips
+          months covered by advance payments.
         </p>
         <div className="mt-4 rounded-xl bg-secondary/30 p-4">
           <p className="text-xs text-muted-foreground">Next Month</p>
@@ -167,8 +174,8 @@ export default function MonthlySetupPage() {
               </p>
             </div>
             <p className="mb-2 text-xs text-muted-foreground">
-              Untick a class that&apos;s on break this month — it will be skipped
-              and picks back up normally once ticked again next time.
+              Untick a class that&apos;s on break this month — it will be
+              skipped and picks back up normally once ticked again next time.
             </p>
             <div className="max-h-64 overflow-y-auto rounded-xl border">
               {classGroups.map((g) => {
@@ -210,7 +217,8 @@ export default function MonthlySetupPage() {
         </Button>
         {!canActivate && (
           <p className="mt-2 text-center text-xs text-amber-600">
-            Available after the {setupDay}th of {monthLabel(fees.activeMonthKey)}
+            Available after the {setupDay}th of{" "}
+            {monthLabel(fees.activeMonthKey)}
           </p>
         )}
         {canActivate && includedCount === 0 && classGroups.length > 0 && (
@@ -221,7 +229,9 @@ export default function MonthlySetupPage() {
       </div>
 
       <div className="rounded-2xl border bg-card shadow-sm">
-        <p className="border-b px-5 py-3 text-sm font-semibold">Billing History</p>
+        <p className="border-b px-5 py-3 text-sm font-semibold">
+          Billing History
+        </p>
         <ul className="divide-y">
           {[...fees.billingPeriods].reverse().map((b) => (
             <li
