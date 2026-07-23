@@ -8,18 +8,21 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { createCustomRole, useUsersState } from "@/lib/users/store";
 import { OWNER_ONLY_ROLES } from "@/lib/users/format";
-import { useIsSchoolSuperAdmin } from "@/lib/users/super-admin";
+import { useIsSuperAdministrator } from "@/lib/users/super-admin";
 import { toast } from "@/lib/toast";
 
 export default function RolesPage() {
   const state = useUsersState();
-  const isSuper = useIsSchoolSuperAdmin();
+  // Strict: only the school's real owner (SUPER_ADMINISTRATOR), not every
+  // Administrator — otherwise every staff Administrator account they create
+  // sees the owner's own role card too.
+  const isOwner = useIsSuperAdministrator();
   const [name, setName] = useState("");
 
   // The school manages its own roles; Super Administrator is the owner's own
-  // account and is not one of them, so it only shows to a super admin.
+  // account and is not one of them, so it only shows to the real owner.
   const visibleRoles = state.roles.filter(
-    (r) => isSuper || !OWNER_ONLY_ROLES.includes(r.name as never),
+    (r) => isOwner || !OWNER_ONLY_ROLES.includes(r.name as never),
   );
 
   function handleCreate() {

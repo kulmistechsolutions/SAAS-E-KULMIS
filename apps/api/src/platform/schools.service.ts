@@ -72,11 +72,16 @@ export class SchoolsService {
             trialEndsAt,
           },
         });
+        // The account provisioned for a new school is that school's OWNER, not
+        // just an administrator — it gets the school-level Super Administrator
+        // role (full access, and the only one that can see/manage that role
+        // and the Danger Zone resets). The owner then creates Administrator
+        // and other staff accounts under themselves.
         await tx.user.create({
           data: {
             schoolId: school.id,
             username: dto.adminUsername,
-            role: "ADMINISTRATOR",
+            role: "SUPER_ADMINISTRATOR",
             passwordHash,
           },
         });

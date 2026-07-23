@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { PermissionMatrix } from "@/components/users/permission-matrix";
 import { getRole, updateRolePermissions } from "@/lib/users/store";
 import { OWNER_ONLY_ROLES } from "@/lib/users/format";
-import { useIsSchoolSuperAdmin } from "@/lib/users/super-admin";
+import { useIsSuperAdministrator } from "@/lib/users/super-admin";
 import type { PermissionMap } from "@/lib/users/types";
 import { toast } from "@/lib/toast";
 
@@ -18,7 +18,9 @@ export default function RolePermissionsPage({
   params: Promise<{ roleId: string }>;
 }) {
   const { roleId } = use(params);
-  const isSuper = useIsSchoolSuperAdmin();
+  // Strict: only the real owner account, not every Administrator (see
+  // useIsSuperAdministrator).
+  const isOwner = useIsSuperAdministrator();
   const role = useMemo(() => getRole(roleId), [roleId]);
   const [permissions, setPermissions] = useState<PermissionMap | null>(null);
   const [dirty, setDirty] = useState(false);
@@ -29,7 +31,7 @@ export default function RolePermissionsPage({
   // The owner's own role is not part of what a school manages — reaching this
   // page by URL should look the same as a role that isn't there.
   const hidden =
-    !!role && !isSuper && OWNER_ONLY_ROLES.includes(role.name as never);
+    !!role && !isOwner && OWNER_ONLY_ROLES.includes(role.name as never);
 
   if (!role || !perms || hidden) {
     return <p className="text-muted-foreground">Role not found.</p>;
