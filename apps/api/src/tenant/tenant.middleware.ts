@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  NestMiddleware,
-  NotFoundException,
-} from "@nestjs/common";
+import { Injectable, NestMiddleware, NotFoundException } from "@nestjs/common";
 import type { NextFunction, Response } from "express";
 import { PrismaService } from "../prisma/prisma.service";
 import type { TenantRequest } from "./tenant-request";
@@ -21,14 +17,32 @@ import type { TenantRequest } from "./tenant-request";
  * subdomain is present (apex domain), the request continues tenant-less and
  * tenant-scoped routes will reject it via `@CurrentTenant()`.
  */
+/**
+ * Hostnames under the root domain that belong to the platform itself, never to
+ * a school. A school can't take one of these as its subdomain either.
+ */
+const RESERVED_SUBDOMAINS = new Set([
+  "api",
+  "www",
+  "admin",
+  "platform",
+  "app",
+  "static",
+  "cdn",
+  "mail",
+]);
+
 @Injectable()
 export class TenantMiddleware implements NestMiddleware {
-  private readonly rootDomain =
-    process.env.APP_ROOT_DOMAIN ?? "ekulmis.local";
+  private readonly rootDomain = process.env.APP_ROOT_DOMAIN ?? "ekulmis.local";
 
   constructor(private readonly prisma: PrismaService) {}
 
-  async use(req: TenantRequest, _res: Response, next: NextFunction): Promise<void> {
+  async use(
+    req: TenantRequest,
+    _res: Response,
+    next: NextFunction,
+  ): Promise<void> {
     const subdomain = this.extractSubdomain(req);
     if (!subdomain) {
       next();
@@ -57,7 +71,13 @@ export class TenantMiddleware implements NestMiddleware {
     const host = (req.headers.host ?? "").split(":")[0].toLowerCase();
     if (host && host !== this.rootDomain && host !== `www.${this.rootDomain}`) {
       if (host.endsWith(`.${this.rootDomain}`)) {
-        return host.slice(0, host.length - this.rootDomain.length - 1);
+        const sub = host.slice(0, host.length - this.rootDomain.length - 1);
+        // The API is itself served from a subdomain of the root domain
+        // (api.example.com). Treating that as a school makes every request
+        // without an explicit tenant header 404 as "Unknown tenant: api" —
+        // which is exactly what broke the platform login. Infrastructure
+        // hostnames are never tenants.
+        return RESERVED_SUBDOMAINS.has(sub) ? null : sub;
       }
     }
 
