@@ -56,16 +56,15 @@ export async function refreshSettings(): Promise<void> {
     try {
       const b = await apiGetBranding();
       const current = state ?? buildSettingsSeed();
-      setState({
-        ...current,
-        school: {
-          ...current.school,
-          name: b.name,
-          motto: b.motto ?? current.school.motto,
-          logoDataUrl: resolveLogoUrl(b.logoUrl, b.logoKey),
-          documentHeaderLayout: b.documentHeaderLayout,
-        },
-      });
+      const school = {
+        ...current.school,
+        name: b.name,
+        motto: b.motto ?? current.school.motto,
+        logoDataUrl: resolveLogoUrl(b.logoUrl, b.logoKey),
+        documentHeaderLayout: b.documentHeaderLayout,
+      };
+      setState({ ...current, school });
+      writeBrandingCache(school);
     } catch {
       /* keep cache */
     }
@@ -80,7 +79,11 @@ export async function refreshSettings(): Promise<void> {
     typeof window !== "undefined" &&
     window.location.pathname.startsWith("/parent-portal");
 
-  if (!getAccessToken() || onParentPortal || getCachedAuthUser()?.role === "PARENT") {
+  if (
+    !getAccessToken() ||
+    onParentPortal ||
+    getCachedAuthUser()?.role === "PARENT"
+  ) {
     await brandingOnly();
     return;
   }
@@ -106,16 +109,74 @@ export async function refreshSettings(): Promise<void> {
       license: current.license,
       system: current.system,
     });
+    if (state) writeBrandingCache(state.school);
   } catch {
     // A non-admin staff role (or any 403) still deserves the school branding.
     await brandingOnly();
   }
 }
 
+/**
+ * A last-known copy of the school's name + logo, kept per subdomain so a hard
+ * refresh paints the real crest instantly instead of the generic product brand
+ * for the second or two the API takes to answer. Only the two visible fields
+ * are cached — never anything sensitive.
+ */
+const BRANDING_CACHE_KEY = "ekulmis_branding_v1";
+
+interface CachedBranding {
+  host: string;
+  name: string;
+  logoDataUrl: string | null;
+  documentHeaderLayout: "LEFT" | "CENTERED";
+}
+
+function readBrandingCache(): CachedBranding | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(BRANDING_CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as CachedBranding;
+    // Tie the cache to the current host so one school's logo never bleeds into
+    // another's tab.
+    if (parsed.host !== window.location.host) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function writeBrandingCache(school: SettingsState["school"]): void {
+  if (typeof window === "undefined") return;
+  try {
+    const payload: CachedBranding = {
+      host: window.location.host,
+      name: school.name,
+      logoDataUrl: school.logoDataUrl,
+      documentHeaderLayout: school.documentHeaderLayout,
+    };
+    localStorage.setItem(BRANDING_CACHE_KEY, JSON.stringify(payload));
+  } catch {
+    /* storage full or blocked — the network fetch still fills it in */
+  }
+}
+
 function ensure(): SettingsState {
   if (state) return state;
   if (typeof window === "undefined") return EMPTY;
-  state = buildSettingsSeed();
+  const seed = buildSettingsSeed();
+  const cached = readBrandingCache();
+  state = cached
+    ? {
+        ...seed,
+        school: {
+          ...seed.school,
+          name: cached.name,
+          logoDataUrl: cached.logoDataUrl,
+          documentHeaderLayout: cached.documentHeaderLayout,
+        },
+      }
+    : seed;
   if (!loaded) {
     loaded = true;
     void refreshSettings();
@@ -249,6 +310,7 @@ export async function uploadSchoolLogo(
   try {
     const remote = await apiUploadSchoolLogo(file, mimeType);
     setState({ ...ensure(), school: remote.school });
+    writeBrandingCache(remote.school);
     logSettingsAudit("LOGO_CHANGED");
     return { ok: true, logoUrl: remote.school.logoDataUrl };
   } catch (e) {
@@ -263,6 +325,7 @@ export async function removeSchoolLogo(): Promise<{
   try {
     const remote = await apiRemoveSchoolLogo();
     setState({ ...ensure(), school: remote.school });
+    writeBrandingCache(remote.school);
     logSettingsAudit("LOGO_CHANGED");
     return { ok: true };
   } catch (e) {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { schoolBranding, useSettingsState } from "@/lib/settings/store";
 import { BRAND } from "@/lib/brand";
 
@@ -15,15 +15,26 @@ const STATIC_BRANDING = {
   headerLayout: "LEFT" as "LEFT" | "CENTERED",
 };
 
-/** Reactive school name/branding from System Settings (SSR-safe). */
+/**
+ * Set once, on the first mount anywhere in the session. The static snapshot is
+ * only needed to keep the very first client paint equal to the server paint
+ * (hydration safety). Every client-side navigation after that remounts the
+ * component with the branding store already populated — gating on per-component
+ * `mounted` state made the logo blink out for one frame on each page change.
+ * A module-level flag survives those remounts, so the logo stays put.
+ */
+let sessionHydrated = false;
+
+/** Reactive school name/branding from System Settings (SSR-safe, flicker-free). */
 export function useSchoolBranding() {
   const settings = useSettingsState();
-  const [mounted, setMounted] = useState(false);
+  const [hydrated, setHydrated] = useState(sessionHydrated);
 
-  useEffect(() => setMounted(true), []);
+  useEffect(() => {
+    if (!sessionHydrated) sessionHydrated = true;
+    if (!hydrated) setHydrated(true);
+  }, [hydrated]);
 
-  return useMemo(() => {
-    if (!mounted) return STATIC_BRANDING;
-    return schoolBranding();
-  }, [settings, mounted]);
+  void settings; // re-render when branding changes in the store
+  return hydrated ? schoolBranding() : STATIC_BRANDING;
 }
