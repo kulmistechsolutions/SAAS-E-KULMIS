@@ -184,6 +184,70 @@ export class SchoolsService {
   }
 
   /**
+   * A school's sign-in trail, newest first — who signed in, when, from where,
+   * and every failed attempt alongside. Lets the platform owner see whether a
+   * school is actually being used, and spot a run of failures against one
+   * account. Runs on the privileged connection with an explicit schoolId.
+   */
+  async schoolLoginActivity(schoolId: string, limit = 100) {
+    const school = await this.prisma.school.findUnique({
+      where: { id: schoolId },
+      select: { id: true, name: true },
+    });
+    if (!school) throw new NotFoundException("School not found");
+
+    const take = Math.min(Math.max(limit, 1), 300);
+    const [rows, totals] = await Promise.all([
+      this.prisma.auditLog.findMany({
+        where: { schoolId, module: "auth" },
+        orderBy: { createdAt: "desc" },
+        take,
+        select: {
+          id: true,
+          username: true,
+          role: true,
+          action: true,
+          ip: true,
+          metadata: true,
+          createdAt: true,
+        },
+      }),
+      this.prisma.auditLog.groupBy({
+        by: ["action"],
+        where: { schoolId, module: "auth" },
+        _count: { _all: true },
+      }),
+    ]);
+
+    const countFor = (action: string) =>
+      totals.find((t) => t.action === action)?._count._all ?? 0;
+
+    // "Active" is measured from real sign-ins, so a school that never logs in
+    // shows an empty trail rather than looking healthy.
+    const lastLogin = rows.find((r) => r.action === "LOGIN")?.createdAt ?? null;
+
+    return {
+      school,
+      summary: {
+        successful: countFor("LOGIN"),
+        failed: countFor("LOGIN_FAILED"),
+        lastLoginAt: lastLogin,
+      },
+      rows: rows.map((r) => ({
+        id: r.id,
+        username: r.username,
+        role: r.role,
+        success: r.action === "LOGIN",
+        ip: r.ip,
+        reason: (r.metadata as { reason?: string } | null)?.reason ?? null,
+        userAgent:
+          (r.metadata as { userAgent?: string } | null)?.userAgent ?? null,
+        at: r.createdAt,
+      })),
+    };
+  }
+
+  /**
    * Set a new password for one of the school's users. Only the password hash
    * is touched — no school data is read, changed or removed — and the user's
    * existing sessions are revoked so an old session can't outlive the reset.

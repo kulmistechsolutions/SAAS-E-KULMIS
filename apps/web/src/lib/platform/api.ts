@@ -25,7 +25,10 @@ export function getPlatformAccessToken(): string | null {
   return window.localStorage.getItem(ACCESS_KEY);
 }
 
-export function setPlatformTokens(access: string | null, refresh?: string | null) {
+export function setPlatformTokens(
+  access: string | null,
+  refresh?: string | null,
+) {
   if (typeof window === "undefined") return;
   if (access) window.localStorage.setItem(ACCESS_KEY, access);
   else window.localStorage.removeItem(ACCESS_KEY);
@@ -45,7 +48,9 @@ async function platformFetch<T>(
   opts: { method?: string; body?: unknown; auth?: boolean } = {},
 ): Promise<T> {
   const token = getPlatformAccessToken();
-  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
   if (opts.auth !== false && token) headers.Authorization = `Bearer ${token}`;
 
   const res = await fetch(`${API_URL}/api${path}`, {
@@ -59,7 +64,9 @@ async function platformFetch<T>(
     try {
       const data = (await res.json()) as { message?: string | string[] };
       if (data.message) {
-        message = Array.isArray(data.message) ? data.message.join(", ") : data.message;
+        message = Array.isArray(data.message)
+          ? data.message.join(", ")
+          : data.message;
       }
     } catch {
       /* keep statusText */
@@ -228,6 +235,32 @@ export const fetchPlatformSchoolUsers = (schoolId: string) =>
     school: { id: string; name: string };
     users: PlatformSchoolUser[];
   }>(`/platform/schools/${schoolId}/users`);
+
+/** One sign-in attempt against a school — successful or not. */
+export interface PlatformLoginActivityRow {
+  id: string;
+  username: string | null;
+  role: string | null;
+  success: boolean;
+  ip: string | null;
+  reason: string | null;
+  userAgent: string | null;
+  at: string;
+}
+
+export const fetchPlatformSchoolLoginActivity = (
+  schoolId: string,
+  limit = 100,
+) =>
+  platformFetch<{
+    school: { id: string; name: string };
+    summary: {
+      successful: number;
+      failed: number;
+      lastLoginAt: string | null;
+    };
+    rows: PlatformLoginActivityRow[];
+  }>(`/platform/schools/${schoolId}/login-activity?limit=${limit}`);
 
 export const resetPlatformSchoolUserPassword = (
   schoolId: string,
@@ -550,10 +583,10 @@ export async function testPlatformWaafiConnection(body: {
   saveOnSuccess?: boolean;
   enabled?: boolean;
 }) {
-  return platformFetch<{ config: PlatformWaafiConfig; test: PlatformWaafiTest }>(
-    "/platform/sms/waafi/test-connection",
-    { method: "POST", body },
-  );
+  return platformFetch<{
+    config: PlatformWaafiConfig;
+    test: PlatformWaafiTest;
+  }>("/platform/sms/waafi/test-connection", { method: "POST", body });
 }
 
 export async function updatePlatformWaafiConfig(body: {
@@ -691,7 +724,9 @@ export interface PlatformSubscriptionAlert {
 }
 
 export const fetchPlatformSubscriptionDashboard = () =>
-  platformFetch<PlatformSubscriptionDashboard>("/platform/subscriptions/dashboard");
+  platformFetch<PlatformSubscriptionDashboard>(
+    "/platform/subscriptions/dashboard",
+  );
 
 export const fetchPlatformSubscriptionAlerts = () =>
   platformFetch<PlatformSubscriptionAlert[]>("/platform/subscriptions/alerts");
@@ -749,16 +784,21 @@ export const updatePlatformSubscriptionPlan = (
     isActive: boolean;
   }>,
 ) =>
-  platformFetch<PlatformSubscriptionPlan>(`/platform/subscriptions/plans/${id}`, {
-    method: "PATCH",
-    body,
-  });
+  platformFetch<PlatformSubscriptionPlan>(
+    `/platform/subscriptions/plans/${id}`,
+    {
+      method: "PATCH",
+      body,
+    },
+  );
 
 export const deletePlatformSubscriptionPlan = (id: string) =>
   platformFetch(`/platform/subscriptions/plans/${id}`, { method: "DELETE" });
 
 export const fetchPlatformSchoolSubscriptions = () =>
-  platformFetch<PlatformSchoolSubscriptionRow[]>("/platform/subscriptions/schools");
+  platformFetch<PlatformSchoolSubscriptionRow[]>(
+    "/platform/subscriptions/schools",
+  );
 
 export const assignPlatformSchoolSubscription = (
   schoolId: string,

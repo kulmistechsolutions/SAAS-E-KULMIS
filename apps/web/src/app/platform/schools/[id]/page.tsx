@@ -3,13 +3,16 @@
 import { use, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Ban, CheckCircle, ExternalLink, Trash2 } from "lucide-react";
-import { SchoolStatusBadge } from "@/components/platform/school-status-badge";
 import {
-  loadSchool,
-  removeSchool,
-  updateSchool,
-} from "@/lib/platform/data";
+  ArrowLeft,
+  Ban,
+  CheckCircle,
+  ExternalLink,
+  Trash2,
+} from "lucide-react";
+import { SchoolStatusBadge } from "@/components/platform/school-status-badge";
+import { SchoolLoginActivity } from "@/components/platform/school-login-activity";
+import { loadSchool, removeSchool, updateSchool } from "@/lib/platform/data";
 import { shortDate, tenantUrl } from "@/lib/platform/format";
 import { usePlatformSchoolsState } from "@/lib/platform/store";
 import type { PlatformSchool } from "@/lib/platform/types";
@@ -160,7 +163,9 @@ export default function PlatformSchoolDetailPage({
             </div>
             <div>
               <dt className="text-slate-500">Expiry Date</dt>
-              <dd className="mt-0.5 text-slate-200">{shortDate(sub.endDate)}</dd>
+              <dd className="mt-0.5 text-slate-200">
+                {shortDate(sub.endDate)}
+              </dd>
             </div>
             <div>
               <dt className="text-slate-500">Student Limit</dt>
@@ -297,6 +302,8 @@ export default function PlatformSchoolDetailPage({
           Delete School
         </Button>
       </div>
+
+      <SchoolLoginActivity schoolId={id} />
     </div>
   );
 }

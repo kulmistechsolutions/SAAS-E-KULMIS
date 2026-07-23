@@ -5,6 +5,8 @@ import {
   RequestMethod,
 } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
+import { APP_GUARD } from "@nestjs/core";
+import { ThrottlerGuard, ThrottlerModule } from "@nestjs/throttler";
 import { LoggerModule } from "nestjs-pino";
 import { validateEnv } from "./config/env.validation";
 import { AuthModule } from "./auth/auth.module";
@@ -58,6 +60,10 @@ import { TenantModule } from "./tenant/tenant.module";
         autoLogging: true,
       },
     }),
+    // Rate limiting. A generous ceiling for ordinary API traffic; the login and
+    // password routes carry their own much tighter @Throttle so a stolen
+    // username cannot be brute-forced.
+    ThrottlerModule.forRoot([{ name: "default", ttl: 60_000, limit: 300 }]),
     PrismaModule,
     QueueModule.forRoot(),
     DocumentsModule,
@@ -92,6 +98,7 @@ import { TenantModule } from "./tenant/tenant.module";
     TenantModule,
     HealthModule,
   ],
+  providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer): void {

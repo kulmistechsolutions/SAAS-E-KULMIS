@@ -5,7 +5,10 @@ import {
   Get,
   HttpCode,
   Post,
+  Req,
 } from "@nestjs/common";
+import { Throttle } from "@nestjs/throttler";
+import type { Request } from "express";
 import {
   changePasswordSchema,
   loginSchema,
@@ -17,16 +20,31 @@ import { Public } from "./public.decorator";
 import { CurrentTenant } from "../tenant/current-tenant.decorator";
 import type { AuthUser } from "./auth.types";
 
+/** Real client address behind Traefik, falling back to the socket address. */
+function clientIp(req: Request): string | null {
+  const fwd = req.headers["x-forwarded-for"];
+  const first = Array.isArray(fwd) ? fwd[0] : fwd?.split(",")[0];
+  return (first ?? req.ip ?? null)?.trim() || null;
+}
+
 @Controller("auth")
 export class AuthController {
   constructor(private readonly auth: AuthService) {}
 
-  /** Login within the tenant resolved from the subdomain. */
+  /**
+   * Login within the tenant resolved from the subdomain.
+   *
+   * Throttled hard: 10 attempts per minute per IP. A real person signing in
+   * never comes close; a script working through a password list is stopped
+   * dead. Every attempt — successful or not — is written to the audit trail.
+   */
   @Public()
+  @Throttle({ default: { ttl: 60_000, limit: 10 } })
   @Post("login")
   async login(
     @CurrentTenant() tenant: TenantContext,
     @Body() body: unknown,
+    @Req() req: Request,
   ) {
     const parsed = loginSchema.safeParse(body);
     if (!parsed.success) {
@@ -36,6 +54,7 @@ export class AuthController {
       tenant.schoolId,
       parsed.data.identifier,
       parsed.data.password,
+      { ip: clientIp(req), userAgent: req.headers["user-agent"] ?? null },
     );
   }
 

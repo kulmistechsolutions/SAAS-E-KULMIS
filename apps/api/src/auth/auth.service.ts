@@ -9,8 +9,20 @@ import { createHash, randomBytes } from "node:crypto";
 import type { User } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { SubscriptionsService } from "../subscriptions/subscriptions.service";
+import { AuditService } from "../audit/audit.service";
 import { hashPassword, verifyPassword } from "./password.util";
 import type { JwtPayload } from "./auth.types";
+
+/** Where a sign-in attempt came from, recorded on every attempt. */
+export interface LoginContext {
+  ip?: string | null;
+  userAgent?: string | null;
+}
+
+/** Audit module/actions for the sign-in trail. */
+const AUTH_MODULE = "auth";
+const LOGIN_OK = "LOGIN";
+const LOGIN_FAILED = "LOGIN_FAILED";
 
 /** Parses simple durations like "15m", "7d", "12h", "30s" into milliseconds. */
 function parseDurationMs(value: string): number {
@@ -28,19 +40,41 @@ export class AuthService {
     private readonly jwt: JwtService,
     private readonly config: ConfigService,
     private readonly subscriptions: SubscriptionsService,
+    private readonly audit: AuditService,
   ) {}
 
-  /** Authenticate within a tenant (schoolId) by username + password. */
-  async login(schoolId: string, username: string, password: string) {
+  /**
+   * Authenticate within a tenant (schoolId) by username + password.
+   *
+   * Every attempt is written to the audit trail — success and failure alike —
+   * so a school owner can see who signed in and when, and a run of failures
+   * against one account is visible rather than silent. The response is the same
+   * "Invalid credentials" either way, so the trail never leaks which usernames
+   * exist.
+   */
+  async login(
+    schoolId: string,
+    username: string,
+    password: string,
+    ctx: LoginContext = {},
+  ) {
     // System-level lookup (runs as the privileged connection, bypassing RLS).
     const user = await this.prisma.user.findUnique({
       where: { schoolId_username: { schoolId, username } },
     });
     if (!user || user.status !== "ACTIVE") {
+      await this.recordLoginFailure(schoolId, username, ctx, {
+        reason: user ? `account ${user.status}` : "unknown user",
+      });
       throw new UnauthorizedException("Invalid credentials");
     }
     const ok = await verifyPassword(password, user.passwordHash);
     if (!ok) {
+      await this.recordLoginFailure(schoolId, username, ctx, {
+        reason: "wrong password",
+        userId: user.id,
+        role: user.role,
+      });
       throw new UnauthorizedException("Invalid credentials");
     }
     // Checked after the password so a wrong password can never reveal a
@@ -51,7 +85,36 @@ export class AuthService {
       where: { id: user.id },
       data: { lastLoginAt: new Date() },
     });
+    await this.audit.record({
+      schoolId,
+      userId: user.id,
+      username: user.username,
+      role: user.role,
+      module: AUTH_MODULE,
+      action: LOGIN_OK,
+      ip: ctx.ip ?? null,
+      metadata: { userAgent: ctx.userAgent ?? null },
+    });
     return this.issueTokens(user);
+  }
+
+  /** One failed sign-in, recorded with why it failed (never shown to callers). */
+  private async recordLoginFailure(
+    schoolId: string,
+    username: string,
+    ctx: LoginContext,
+    detail: { reason: string; userId?: string; role?: User["role"] },
+  ): Promise<void> {
+    await this.audit.record({
+      schoolId,
+      userId: detail.userId ?? null,
+      username,
+      role: detail.role ?? null,
+      module: AUTH_MODULE,
+      action: LOGIN_FAILED,
+      ip: ctx.ip ?? null,
+      metadata: { reason: detail.reason, userAgent: ctx.userAgent ?? null },
+    });
   }
 
   /**
@@ -117,7 +180,9 @@ export class AuthService {
     const accessToken = await this.signAccessToken(user);
 
     const raw = randomBytes(32).toString("hex");
-    const ttlMs = parseDurationMs(this.config.get<string>("JWT_REFRESH_TTL") ?? "7d");
+    const ttlMs = parseDurationMs(
+      this.config.get<string>("JWT_REFRESH_TTL") ?? "7d",
+    );
     await this.prisma.refreshToken.create({
       data: {
         schoolId: user.schoolId,

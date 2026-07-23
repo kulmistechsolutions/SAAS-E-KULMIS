@@ -7,6 +7,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from "@nestjs/common";
 import {
@@ -69,6 +70,16 @@ export class SchoolsController {
     return this.schools.listSchoolUsers(id);
   }
 
+  /** Sign-in trail for one school: who signed in, when, and what failed. */
+  @Get(":id/login-activity")
+  loginActivity(@Param("id") id: string, @Query("limit") limit?: string) {
+    const n = Number(limit);
+    return this.schools.schoolLoginActivity(
+      id,
+      Number.isFinite(n) && n > 0 ? n : 100,
+    );
+  }
+
   /** Recover a locked-out school admin. Touches only the password. */
   @Post(":id/users/:userId/reset-password")
   resetUserPassword(
@@ -78,6 +89,10 @@ export class SchoolsController {
   ) {
     const parsed = resetPasswordSchema.safeParse(body);
     if (!parsed.success) throw new BadRequestException(parsed.error.flatten());
-    return this.schools.resetSchoolUserPassword(id, userId, parsed.data.newPassword);
+    return this.schools.resetSchoolUserPassword(
+      id,
+      userId,
+      parsed.data.newPassword,
+    );
   }
 }
