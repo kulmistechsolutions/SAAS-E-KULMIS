@@ -1,5 +1,14 @@
 import { z } from "zod";
 
+/** A CSS hex colour, `#rgb` or `#rrggbb`, normalised to lowercase. */
+const hexColor = z
+  .string()
+  .regex(
+    /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/,
+    "Use a hex colour like #3b82f6",
+  )
+  .transform((v) => v.toLowerCase());
+
 /** Partial update of a school's settings/branding (Module 16). */
 export const updateSettingsSchema = z
   .object({
@@ -43,6 +52,13 @@ export const updateSettingsSchema = z
     feeAllowAdvance: z.boolean().optional(),
     feeCarryForward: z.boolean().optional(),
     feeMonthSetupDay: z.number().int().min(1).max(28).optional(),
+    // Branding. Colours are hex ("#3b82f6" or "#fff"); null clears the choice
+    // and returns that colour to the app default.
+    primaryColor: hexColor.nullable().optional(),
+    secondaryColor: hexColor.nullable().optional(),
+    accentColor: hexColor.nullable().optional(),
+    brandLoginTitle: z.string().nullable().optional(),
+    brandFooterText: z.string().nullable().optional(),
   })
   .refine((o) => Object.keys(o).length > 0, {
     message: "Provide at least one field to update",

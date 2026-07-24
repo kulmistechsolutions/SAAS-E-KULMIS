@@ -95,7 +95,20 @@ export async function refreshSettings(): Promise<void> {
       audit: current.audit,
       backups: current.backups,
       grades: current.grades,
-      branding: { ...remote.branding, ...current.branding },
+      // The saved branding wins. Merging the other way round meant that on a
+      // fresh load `current` was still the seed, so its default colours
+      // overwrote the school's saved ones and the picker appeared to revert.
+      // Only the two browser-only images are carried over from `current` —
+      // they aren't stored server-side.
+      branding: {
+        ...current.branding,
+        ...remote.branding,
+        faviconDataUrl:
+          current.branding.faviconDataUrl ?? remote.branding.faviconDataUrl,
+        loginBackgroundDataUrl:
+          current.branding.loginBackgroundDataUrl ??
+          remote.branding.loginBackgroundDataUrl,
+      },
       academic: current.academic,
       examinations: current.examinations,
       salary: current.salary,
@@ -232,6 +245,7 @@ const SECTION_AUDIT: Partial<Record<SettingsSectionKey, SettingsAuditAction>> =
 
 const API_SECTIONS = new Set<SettingsSectionKey>([
   "school",
+  "branding",
   "fees",
   "salary",
   "expenses",
@@ -265,7 +279,18 @@ export async function updateSettingsSection<K extends SettingsSectionKey>(
           students: remote.students,
           teachers: remote.teachers,
           parents: remote.parents,
-          branding: { ...next.branding, ...remote.branding },
+          // Same rule as refreshSettings: the server's copy is authoritative,
+          // except the two images it doesn't store — without this, saving any
+          // branding change wiped the favicon the user had just picked.
+          branding: {
+            ...next.branding,
+            ...remote.branding,
+            faviconDataUrl:
+              next.branding.faviconDataUrl ?? remote.branding.faviconDataUrl,
+            loginBackgroundDataUrl:
+              next.branding.loginBackgroundDataUrl ??
+              remote.branding.loginBackgroundDataUrl,
+          },
         });
       } catch (e) {
         return { ok: false, error: apiErr(e, "Failed to save settings.") };

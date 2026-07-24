@@ -25,7 +25,10 @@ export function buildSettingsSeed(): SettingsState {
     },
     branding: {
       primaryColor: "#3b82f6",
-      secondaryColor: "#6366f1",
+      // White by default: the secondary colour is the surface these sit on,
+      // and a coloured default made every school start with a tinted look
+      // nobody asked for.
+      secondaryColor: "#ffffff",
       accentColor: "#0ea5e9",
       faviconDataUrl: null,
       loginBackgroundDataUrl: null,
@@ -102,7 +105,8 @@ export function buildSettingsSeed(): SettingsState {
       currencySymbol: "$",
       receiptPrefix: "RCP",
       receiptHeader: "",
-      receiptFooter: "This is a computer-generated receipt. Thank you for your payment.",
+      receiptFooter:
+        "This is a computer-generated receipt. Thank you for your payment.",
     },
     salary: {
       payrollDay: 28,
@@ -113,7 +117,13 @@ export function buildSettingsSeed(): SettingsState {
     },
     expenses: {
       approvalWorkflow: true,
-      defaultCategories: ["Utilities", "Supplies", "Maintenance", "Transport", "Events"],
+      defaultCategories: [
+        "Utilities",
+        "Supplies",
+        "Maintenance",
+        "Transport",
+        "Events",
+      ],
       attachmentSizeLimitMb: 5,
       expenseHeader: "",
       expenseFooter: "",

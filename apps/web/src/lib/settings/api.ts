@@ -10,7 +10,10 @@ import type { SettingsState } from "./types";
  * endpoint — `<img>` tags can't send the tenant header, so the tenant is
  * passed as a query param instead (see tenant.middleware.ts).
  */
-export function resolveLogoUrl(logoUrl: string | null, logoKey: string | null): string | null {
+export function resolveLogoUrl(
+  logoUrl: string | null,
+  logoKey: string | null,
+): string | null {
   if (logoUrl) return logoUrl;
   if (!logoKey) return null;
   return `${API_URL}/api/settings/logo?tenant=${encodeURIComponent(TENANT)}`;
@@ -63,6 +66,12 @@ export interface ApiSchool {
   feeAllowAdvance?: boolean;
   feeCarryForward?: boolean;
   feeMonthSetupDay?: number;
+  // Branding — null means "not chosen", so the app default applies.
+  primaryColor?: string | null;
+  secondaryColor?: string | null;
+  accentColor?: string | null;
+  brandLoginTitle?: string | null;
+  brandFooterText?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -108,7 +117,8 @@ export function mapApiSchoolToSettings(
       currencySymbol: row.currency === "USD" ? "$" : row.currency,
       billingMode: row.billingMode ?? base.fees.billingMode,
       academicMonths: row.feeAcademicMonths ?? base.fees.academicMonths,
-      billingStartMonth: row.feeBillingStartMonth ?? base.fees.billingStartMonth,
+      billingStartMonth:
+        row.feeBillingStartMonth ?? base.fees.billingStartMonth,
       billingEndMonth: row.feeBillingEndMonth ?? base.fees.billingEndMonth,
       allowPartialPayment: row.feeAllowPartial ?? base.fees.allowPartialPayment,
       allowAdvancePayment: row.feeAllowAdvance ?? base.fees.allowAdvancePayment,
@@ -147,8 +157,15 @@ export function mapApiSchoolToSettings(
     },
     branding: {
       ...base.branding,
-      loginTitle: row.name,
-      footerText: `© ${new Date().getFullYear()} ${row.name}. All rights reserved.`,
+      // A saved colour wins; otherwise the seed default stays. Title and footer
+      // fall back to being derived from the school's own name.
+      primaryColor: row.primaryColor ?? base.branding.primaryColor,
+      secondaryColor: row.secondaryColor ?? base.branding.secondaryColor,
+      accentColor: row.accentColor ?? base.branding.accentColor,
+      loginTitle: row.brandLoginTitle ?? row.name,
+      footerText:
+        row.brandFooterText ??
+        `© ${new Date().getFullYear()} ${row.name}. All rights reserved.`,
     },
   };
 }
@@ -173,6 +190,19 @@ export function mapSettingsSectionToPatch(
       documentHeaderLayout: s.documentHeaderLayout,
       reportHeader: s.reportHeader || null,
       reportFooter: s.reportFooter || null,
+    };
+  }
+  if (key === "branding") {
+    const b = section as SettingsState["branding"];
+    // Colours are persisted so a school's choice survives a reload. The
+    // favicon and login background are data URLs held in the browser only —
+    // they'd bloat the row, and the school logo already covers branded imagery.
+    return {
+      primaryColor: b.primaryColor,
+      secondaryColor: b.secondaryColor,
+      accentColor: b.accentColor,
+      brandLoginTitle: b.loginTitle || null,
+      brandFooterText: b.footerText || null,
     };
   }
   if (key === "fees") {
@@ -260,6 +290,9 @@ export async function apiRemoveSchoolLogo(): Promise<SettingsState> {
 export async function apiPatchSettings(
   patch: Record<string, unknown>,
 ): Promise<SettingsState> {
-  const row = await api<ApiSchool>("/settings", { method: "PATCH", body: patch });
+  const row = await api<ApiSchool>("/settings", {
+    method: "PATCH",
+    body: patch,
+  });
   return mapApiSchoolToSettings(row);
 }

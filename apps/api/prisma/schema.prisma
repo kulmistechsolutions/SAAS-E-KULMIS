@@ -51,6 +51,15 @@ model School {
   reportFooter         String?
   resultFooter         String?
 
+  // ── Branding (Settings → Branding). Colours are hex like "#3b82f6".
+  // Null means "not chosen yet" and the app falls back to its defaults; the
+  // login title and footer fall back to being derived from the school name.
+  primaryColor    String?
+  secondaryColor  String?
+  accentColor     String?
+  brandLoginTitle String?
+  brandFooterText String?
+
   // ── ID prefixes (auto-generated IDs derive from these) ──
   studentPrefix     String @default("STD")
   teacherPrefix     String @default("TCH")
