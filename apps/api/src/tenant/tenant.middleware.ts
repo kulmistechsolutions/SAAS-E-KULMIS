@@ -68,6 +68,17 @@ export class TenantMiddleware implements NestMiddleware {
       return headerSub.trim().toLowerCase();
     }
 
+    // Explicit `?tenant=` wins over the host. Browser `<img>`/`<link>` tags
+    // can't send the tenant header, so the school logo is loaded from
+    // `api.<root>/settings/logo?tenant=<school>`. That host's subdomain is the
+    // reserved `api`, so it must be checked BEFORE the host — otherwise the
+    // reserved-host rule below returns null and the explicit tenant is lost
+    // ("No tenant resolved", 400, blank logo).
+    const querySub = req.query?.tenant;
+    if (typeof querySub === "string" && querySub.trim()) {
+      return querySub.trim().toLowerCase();
+    }
+
     const host = (req.headers.host ?? "").split(":")[0].toLowerCase();
     if (host && host !== this.rootDomain && host !== `www.${this.rootDomain}`) {
       if (host.endsWith(`.${this.rootDomain}`)) {
@@ -79,11 +90,6 @@ export class TenantMiddleware implements NestMiddleware {
         // hostnames are never tenants.
         return RESERVED_SUBDOMAINS.has(sub) ? null : sub;
       }
-    }
-
-    const querySub = req.query?.tenant;
-    if (typeof querySub === "string" && querySub.trim()) {
-      return querySub.trim().toLowerCase();
     }
 
     return null;

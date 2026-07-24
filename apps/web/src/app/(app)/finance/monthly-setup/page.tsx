@@ -44,6 +44,9 @@ export default function MonthlySetupPage() {
     [fees],
   );
   const includedCount = classGroups.length - excluded.size;
+  // A fresh school has no billing periods until it sets a month up — don't
+  // claim a month is "Active" when nothing has been activated.
+  const hasBilling = fees.billingPeriods.length > 0;
 
   function toggleClass(key: string) {
     setExcluded((prev) => {
@@ -119,21 +122,46 @@ export default function MonthlySetupPage() {
 
       <div className="rounded-2xl border bg-card p-6 shadow-sm">
         <div className="flex items-center gap-3">
-          <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-600">
+          <span
+            className={`flex h-12 w-12 items-center justify-center rounded-xl ${
+              hasBilling
+                ? "bg-emerald-500/15 text-emerald-600"
+                : "bg-muted text-muted-foreground"
+            }`}
+          >
             <CheckCircle2 className="h-6 w-6" />
           </span>
           <div>
             <p className="text-sm text-muted-foreground">
               Current Active Month
             </p>
-            <p className="text-xl font-bold text-emerald-600">
-              {monthLabel(fees.activeMonthKey)}
+            <p
+              className={`text-xl font-bold ${
+                hasBilling ? "text-emerald-600" : "text-muted-foreground"
+              }`}
+            >
+              {hasBilling ? monthLabel(fees.activeMonthKey) : "Not set up yet"}
             </p>
           </div>
-          <Badge tone="success" className="ml-auto" dot>
-            Active
+          <Badge
+            tone={hasBilling ? "success" : "muted"}
+            className="ml-auto"
+            dot
+          >
+            {hasBilling ? "Active" : "Inactive"}
           </Badge>
         </div>
+
+        {!hasBilling && (
+          <p className="mt-4 rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:bg-amber-500/10 dark:text-amber-200">
+            No month is active yet. Use{" "}
+            <span className="font-medium">
+              Set up this month&apos;s billing
+            </span>{" "}
+            above to turn billing on — nothing is charged and no payment can be
+            collected until you do.
+          </p>
+        )}
 
         <dl className="mt-6 grid gap-3 text-sm">
           <div className="flex justify-between rounded-lg bg-secondary/40 px-4 py-3">
