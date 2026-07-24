@@ -14,6 +14,7 @@ import { StorageService } from "../storage/storage.service";
 import { FeesService } from "../finance/fees.service";
 import { SubscriptionsService } from "../subscriptions/subscriptions.service";
 import { hashPassword } from "../auth/password.util";
+import { normalizeName } from "../common/person-identity.util";
 import {
   assertStudentPhotoMime,
   photoContentTypeFromKey,
@@ -208,18 +209,24 @@ export class StudentsService {
           });
         }
 
-        const dup = await tx.student.findFirst({
-          where: {
-            fullName: dto.fullName,
-            parentId: parent.id,
-            classId: dto.classId,
-            sectionId,
-          },
-          select: { id: true },
+        // One child, one record. The parent already identifies the family, so
+        // the same name under the same parent is the same child — whatever
+        // class they're being put in. The old check also required a matching
+        // class and section, which let the very same student be registered
+        // again into a different class and collect a second ID, a second fee
+        // ledger and a second set of marks. Promotion moves a student between
+        // classes by updating this row, so nothing legitimate needs a second
+        // one. Names are compared ignoring case and stray spacing.
+        const siblings = await tx.student.findMany({
+          where: { parentId: parent.id },
+          select: { id: true, code: true, fullName: true },
         });
+        const wanted = normalizeName(dto.fullName);
+        const dup = siblings.find((s) => normalizeName(s.fullName) === wanted);
         if (dup) {
           throw new ConflictException(
-            "A student with the same name, parent, class and section already exists",
+            `${dup.fullName} is already registered under this parent (${dup.code}). ` +
+              "Open that student to edit them, or use a different name.",
           );
         }
 
@@ -448,8 +455,25 @@ export class StudentsService {
   }
 
   async update(schoolId: string, id: string, dto: UpdateStudentInput) {
-    await this.findOne(schoolId, id);
+    const current = await this.findOne(schoolId, id);
     const updated = await this.prisma.forTenant(schoolId, async (tx) => {
+      // Renaming must not create the duplicate registration refuses: a second
+      // child with the same name under the same parent.
+      if (dto.fullName !== undefined) {
+        const siblings = await tx.student.findMany({
+          where: { parentId: current.parentId, id: { not: id } },
+          select: { code: true, fullName: true },
+        });
+        const wanted = normalizeName(dto.fullName);
+        const clash = siblings.find(
+          (s) => normalizeName(s.fullName) === wanted,
+        );
+        if (clash) {
+          throw new ConflictException(
+            `${clash.fullName} (${clash.code}) is already registered under this parent.`,
+          );
+        }
+      }
       if (dto.classId) {
         const cls = await tx.class.findFirst({
           where: { id: dto.classId },

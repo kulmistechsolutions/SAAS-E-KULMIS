@@ -1,14 +1,13 @@
 import {
+  ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
-import type {
-  RegisterTeacherInput,
-  UpdateTeacherInput,
-} from "@ekulmis/shared";
+import type { RegisterTeacherInput, UpdateTeacherInput } from "@ekulmis/shared";
 import { PrismaService } from "../prisma/prisma.service";
 import { hashPassword } from "../auth/password.util";
+import { normalizeName, normalizePhone } from "../common/person-identity.util";
 import { SubscriptionsService } from "../subscriptions/subscriptions.service";
 
 const meInclude = {
@@ -45,6 +44,33 @@ export class TeachersService {
         select: { teacherPrefix: true },
       });
       if (!school) throw new NotFoundException("School not found");
+
+      // Registering a teacher had no duplicate check at all, so the same
+      // person could be added over and over — each copy with its own code,
+      // login and salary line. A phone number identifies a person, so it is
+      // the key when one is given (compared as digits, since "+252 61…" and
+      // "0613609678" are the same number). With no phone there is nothing
+      // else to tell two records apart, so an identical name is refused and
+      // the school can add a phone to distinguish genuine namesakes.
+      const existing = await tx.teacher.findMany({
+        select: { id: true, code: true, fullName: true, phone: true },
+      });
+      const wantedPhone = normalizePhone(dto.phone);
+      const wantedName = normalizeName(dto.fullName);
+      const clash = existing.find((t) =>
+        wantedPhone
+          ? normalizePhone(t.phone) === wantedPhone
+          : !normalizePhone(t.phone) &&
+            normalizeName(t.fullName) === wantedName,
+      );
+      if (clash) {
+        throw new ConflictException(
+          wantedPhone
+            ? `${clash.fullName} (${clash.code}) already uses that phone number.`
+            : `A teacher named ${clash.fullName} (${clash.code}) already exists. ` +
+                "Add a phone number to tell them apart.",
+        );
+      }
 
       const seq = await tx.counter.upsert({
         where: { schoolId_name: { schoolId, name: "teacher" } },
@@ -122,9 +148,33 @@ export class TeachersService {
   }
 
   async update(schoolId: string, id: string, dto: UpdateTeacherInput) {
-    await this.findOne(schoolId, id);
-    return this.prisma.forTenant(schoolId, (tx) =>
-      tx.teacher.update({
+    const current = await this.findOne(schoolId, id);
+    return this.prisma.forTenant(schoolId, async (tx) => {
+      // Editing must not create the duplicate that registration refuses —
+      // moving one teacher onto another's phone number, or renaming them onto
+      // a namesake who also has no phone.
+      if (dto.fullName !== undefined || dto.phone !== undefined) {
+        const others = await tx.teacher.findMany({
+          where: { id: { not: id } },
+          select: { id: true, code: true, fullName: true, phone: true },
+        });
+        const wantedPhone = normalizePhone(dto.phone ?? current.phone);
+        const wantedName = normalizeName(dto.fullName ?? current.fullName);
+        const clash = others.find((t) =>
+          wantedPhone
+            ? normalizePhone(t.phone) === wantedPhone
+            : !normalizePhone(t.phone) &&
+              normalizeName(t.fullName) === wantedName,
+        );
+        if (clash) {
+          throw new ConflictException(
+            wantedPhone
+              ? `${clash.fullName} (${clash.code}) already uses that phone number.`
+              : `A teacher named ${clash.fullName} (${clash.code}) already exists.`,
+          );
+        }
+      }
+      return tx.teacher.update({
         where: { id },
         data: {
           fullName: dto.fullName,
@@ -138,8 +188,8 @@ export class TeachersService {
           status: dto.status,
           canViewStudents: dto.canViewStudents,
         },
-      }),
-    );
+      });
+    });
   }
 
   /**
@@ -149,7 +199,11 @@ export class TeachersService {
   async updateSelf(
     schoolId: string,
     userId: string,
-    dto: { phone?: string | null; email?: string | null; address?: string | null },
+    dto: {
+      phone?: string | null;
+      email?: string | null;
+      address?: string | null;
+    },
   ) {
     const teacher = await this.findByUserId(schoolId, userId);
     return this.prisma.forTenant(schoolId, (tx) =>
