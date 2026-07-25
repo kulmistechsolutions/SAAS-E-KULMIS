@@ -31,6 +31,22 @@ export class SchoolResetController {
     return this.reset.previewClass(me.schoolId, classId);
   }
 
+  @Get("teachers/preview")
+  previewTeachers(@CurrentUser() me: AuthUser) {
+    return this.reset.previewTeachers(me.schoolId);
+  }
+
+  @Post("teachers")
+  resetTeachers(@CurrentUser() me: AuthUser, @Body() body: unknown) {
+    const confirm = (body as { confirmName?: unknown } | null)?.confirmName;
+    if (typeof confirm !== "string" || !confirm.trim()) {
+      throw new BadRequestException(
+        "confirmName is required — type the school name to confirm",
+      );
+    }
+    return this.reset.resetTeachers(me.schoolId, confirm);
+  }
+
   @Post("school")
   resetSchool(@CurrentUser() me: AuthUser, @Body() body: unknown) {
     const confirm = (body as { confirmName?: unknown } | null)?.confirmName;

@@ -4,7 +4,11 @@ import { useSyncExternalStore } from "react";
 import { ApiError } from "@/lib/api";
 import { getCachedAuthUser } from "@/lib/auth";
 import { isTeacherPortalRoute } from "@/lib/teacher-portal/routes";
-import { activeAcademicYear, ensureAcademicsLoaded, getAcademicsState } from "@/lib/academics/store";
+import {
+  activeAcademicYear,
+  ensureAcademicsLoaded,
+  getAcademicsState,
+} from "@/lib/academics/store";
 import {
   apiBulkCreateAssignments,
   apiCreateAssignment,
@@ -66,9 +70,7 @@ function patchTeacherPassword(id: string, password: string) {
   const st = ensure();
   setState({
     ...st,
-    teachers: st.teachers.map((t) =>
-      t.id === id ? { ...t, password } : t,
-    ),
+    teachers: st.teachers.map((t) => (t.id === id ? { ...t, password } : t)),
   });
   writePasswordCache(id, password);
 }
@@ -105,7 +107,11 @@ export async function refreshTeachers(): Promise<void> {
       apiListTeachers(),
       apiListAssignments(),
     ]);
-    setState({ teachers: withStoredPasswords(teachers), assignments, teacherSeq: teachers.length });
+    setState({
+      teachers: withStoredPasswords(teachers),
+      assignments,
+      teacherSeq: teachers.length,
+    });
   } catch {
     /* keep cache */
   }
@@ -128,8 +134,9 @@ function resolveClassId(
 ): { classId?: string; error?: string } {
   const a = getAcademicsState();
   const cls =
-    a.classes.find((c) => c.name === className && c.academicYear === academicYear) ??
-    a.classes.find((c) => c.name === className);
+    a.classes.find(
+      (c) => c.name === className && c.academicYear === academicYear,
+    ) ?? a.classes.find((c) => c.name === className);
   if (!cls) {
     return {
       error: `Class "${className}" was not found. Create it under Academics first.`,
@@ -147,23 +154,29 @@ function resolveSectionId(
     (s) => s.classId === classId && s.name === sectionName,
   );
   if (!sec) {
-    return { sectionId: null, error: `Section "${sectionName}" was not found.` };
+    return {
+      sectionId: null,
+      error: `Section "${sectionName}" was not found.`,
+    };
   }
   return { sectionId: sec.id };
 }
 
-function resolveYearId(
-  yearName: string,
-): { yearId?: string; error?: string } {
-  const y = getAcademicsState().academicYears.find((yr) => yr.name === yearName);
+function resolveYearId(yearName: string): { yearId?: string; error?: string } {
+  const y = getAcademicsState().academicYears.find(
+    (yr) => yr.name === yearName,
+  );
   if (!y) return { error: `Academic year "${yearName}" was not found.` };
   return { yearId: y.id };
 }
 
-function resolveSubjectId(
-  subjectName: string,
-): { subjectId?: string; error?: string } {
-  const s = getAcademicsState().subjects.find((sub) => sub.name === subjectName);
+function resolveSubjectId(subjectName: string): {
+  subjectId?: string;
+  error?: string;
+} {
+  const s = getAcademicsState().subjects.find(
+    (sub) => sub.name === subjectName,
+  );
   if (!s) return { error: `Subject "${subjectName}" was not found.` };
   return { subjectId: s.id };
 }
@@ -270,7 +283,9 @@ export function teacherAssignedSections(
     }
   }
   return [
-    ...new Set(rows.map((a) => a.section).filter((s): s is string => Boolean(s))),
+    ...new Set(
+      rows.map((a) => a.section).filter((s): s is string => Boolean(s)),
+    ),
   ].sort();
 }
 
@@ -422,7 +437,10 @@ export async function registerTeacher(
       const st = ensure();
       setState({
         ...st,
-        teachers: withStoredPasswords([...st.teachers, { ...res.teacher, password }]),
+        teachers: withStoredPasswords([
+          ...st.teachers,
+          { ...res.teacher, password },
+        ]),
       });
     }
     return { ok: true, teacher: { ...res.teacher, password }, password };
@@ -456,7 +474,8 @@ export async function updateTeacher(
       fullName: patch.fullName?.trim(),
       gender: patch.gender,
       phone: patch.phone?.trim() ?? patch.phone,
-      email: patch.email !== undefined ? patch.email?.trim() || null : undefined,
+      email:
+        patch.email !== undefined ? patch.email?.trim() || null : undefined,
       address:
         patch.address !== undefined ? patch.address?.trim() || null : undefined,
       qualification:
@@ -475,7 +494,9 @@ export async function updateTeacher(
   }
 }
 
-export async function deleteTeacher(id: string): Promise<{ ok: boolean; error?: string }> {
+export async function deleteTeacher(
+  id: string,
+): Promise<{ ok: boolean; error?: string }> {
   try {
     await apiDeleteTeacher(id);
     await refreshTeachers();
@@ -747,21 +768,40 @@ export interface TeacherImportPreviewRow {
   message?: string;
 }
 
+/**
+ * Whether the server refused a row because that person is already on file.
+ * An import counts these as skipped, not failed. Matching on "already" rather
+ * than one exact phrase keeps this working as the server's wording varies
+ * ("already exists", "already uses that phone number").
+ */
 function isDuplicateError(msg?: string): boolean {
   if (!msg) return false;
   const m = msg.toLowerCase();
-  return m.includes("duplicate") || m.includes("already exists");
+  return m.includes("duplicate") || m.includes("already");
 }
 
 function isValidPhone(phone: string): boolean {
   return phone.replace(/\D/g, "").length >= 6;
 }
 
+/**
+ * Phone as an identity key, matching the server's rule (see
+ * `person-identity.util.ts`): digits only, compared on the last 9 — the
+ * national number — so "+252 61 110 0001" and "0611100001" are one person.
+ * Keeping the two in step means the import preview says what will actually
+ * happen instead of promising a row the server then refuses.
+ */
+function phoneKey(phone: string | null | undefined): string | null {
+  if (!phone) return null;
+  const digits = phone.replace(/\D/g, "");
+  if (!digits) return null;
+  return digits.length > 9 ? digits.slice(-9) : digits;
+}
+
 function teacherPhoneExists(phone: string): boolean {
-  const norm = phone.replace(/\D/g, "");
-  return ensure().teachers.some(
-    (t) => t.phone?.replace(/\D/g, "") === norm,
-  );
+  const norm = phoneKey(phone);
+  if (!norm) return false;
+  return ensure().teachers.some((t) => phoneKey(t.phone) === norm);
 }
 
 function validateTeacherImportRow(
@@ -791,8 +831,10 @@ function validateTeacherImportRow(
       message: "Invalid phone (at least 6 digits).",
     };
   }
-  const phoneKey = phone.replace(/\D/g, "");
-  if (seenPhones.has(phoneKey)) {
+  // Same key as the server, so two spellings of one number inside the file
+  // are caught here rather than half-importing and failing on the second.
+  const key = phoneKey(phone) ?? "";
+  if (seenPhones.has(key)) {
     return {
       row: line,
       data: row,
@@ -800,7 +842,7 @@ function validateTeacherImportRow(
       message: "Duplicate phone in file.",
     };
   }
-  seenPhones.add(phoneKey);
+  seenPhones.add(key);
 
   if (genderRaw !== "MALE" && genderRaw !== "FEMALE") {
     return {
@@ -842,14 +884,17 @@ export async function previewTeacherImport(
 ): Promise<TeacherImportPreviewRow[]> {
   await refreshTeachers();
   const seenPhones = new Set<string>();
-  return rows.map((row, i) =>
-    validateTeacherImportRow(row, i + 2, seenPhones),
-  );
+  return rows.map((row, i) => validateTeacherImportRow(row, i + 2, seenPhones));
 }
 
 export async function bulkImport(rows: ImportRow[]): Promise<ImportResult> {
   await refreshTeachers();
-  const result: ImportResult = { imported: 0, skipped: 0, failed: 0, errors: [] };
+  const result: ImportResult = {
+    imported: 0,
+    skipped: 0,
+    failed: 0,
+    errors: [],
+  };
   const seenPhones = new Set<string>();
 
   for (let i = 0; i < rows.length; i++) {
@@ -859,7 +904,10 @@ export async function bulkImport(rows: ImportRow[]): Promise<ImportResult> {
 
     if (preview.status === "invalid") {
       result.failed++;
-      result.errors.push({ row: line, message: preview.message ?? "Invalid row." });
+      result.errors.push({
+        row: line,
+        message: preview.message ?? "Invalid row.",
+      });
       continue;
     }
     if (preview.status === "duplicate") {

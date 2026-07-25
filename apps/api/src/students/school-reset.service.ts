@@ -55,6 +55,89 @@ export class SchoolResetService {
     });
   }
 
+  /** Counts for a teacher reset — every teacher and what hangs off them. */
+  async previewTeachers(schoolId: string) {
+    return this.prisma.forTenant(schoolId, async (tx) => {
+      const school = await tx.school.findUnique({
+        where: { id: schoolId },
+        select: { name: true },
+      });
+      if (!school) throw new NotFoundException("School not found");
+
+      const [teachers, assignments, attendance, quizzes, timetableEntries] =
+        await Promise.all([
+          tx.teacher.count(),
+          tx.teacherAssignment.count(),
+          tx.teacherAttendance.count(),
+          tx.quiz.count(),
+          tx.timetableEntry.count({ where: { teacherId: { not: null } } }),
+        ]);
+
+      return {
+        scope: "teachers" as const,
+        name: school.name,
+        counts: {
+          teachers,
+          assignments,
+          attendance,
+          quizzes,
+          timetableEntries,
+        },
+      };
+    });
+  }
+
+  /**
+   * Erase every teacher in the school and restart teacher numbering at 1.
+   *
+   * A teacher takes their class/subject assignments, attendance, quizzes and
+   * unavailability with them, and their timetable slots are left unstaffed
+   * rather than deleted, so the week's structure survives a re-import. Salary
+   * records stay: they name the employee in their own right and are the
+   * school's financial history, not the teacher's profile.
+   */
+  async resetTeachers(schoolId: string, confirmName: string) {
+    const result = await this.prisma.forTenant(
+      schoolId,
+      async (tx) => {
+        const school = await tx.school.findUnique({
+          where: { id: schoolId },
+          select: { name: true },
+        });
+        if (!school) throw new NotFoundException("School not found");
+        if (confirmName.trim() !== school.name) {
+          throw new BadRequestException(
+            `Type the school name exactly ("${school.name}") to confirm`,
+          );
+        }
+
+        const teachers = await tx.teacher.findMany({
+          select: { userId: true },
+        });
+
+        // Deleting the teacher cascades assignments, attendance, quizzes and
+        // unavailability; timetable entries keep their slot with no teacher.
+        const deleted = await tx.teacher.deleteMany({ where: {} });
+        if (teachers.length) {
+          await tx.user.deleteMany({
+            where: { id: { in: teachers.map((t) => t.userId) } },
+          });
+        }
+
+        await resetCounter(tx, schoolId, "teacher");
+
+        return { name: school.name, teachersDeleted: deleted.count };
+      },
+      { timeout: 120_000, maxWait: 30_000 },
+    );
+
+    this.logger.warn(
+      `RESET TEACHERS in school ${schoolId} ("${result.name}"): ` +
+        `${result.teachersDeleted} teachers erased, numbering restarted at 1`,
+    );
+    return { success: true, ...result };
+  }
+
   /** Counts for a single-class reset — that class's students only. */
   async previewClass(schoolId: string, classId: string) {
     return this.prisma.forTenant(schoolId, async (tx) => {

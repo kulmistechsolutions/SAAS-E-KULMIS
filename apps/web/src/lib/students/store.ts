@@ -346,10 +346,17 @@ function isDuplicate(
   );
 }
 
+/**
+ * Whether the server refused a row because that person is already on file.
+ * An import counts these as skipped, not failed — the register is correct,
+ * the row was simply redundant. Matching on "already" rather than one exact
+ * phrase keeps this working as the server's wording varies ("already
+ * registered under this parent", "already uses that phone number").
+ */
 function isDuplicateError(msg?: string): boolean {
   if (!msg) return false;
   const m = msg.toLowerCase();
-  return m.includes("duplicate") || m.includes("already exists");
+  return m.includes("duplicate") || m.includes("already");
 }
 
 function isValidPhone(phone: string): boolean {

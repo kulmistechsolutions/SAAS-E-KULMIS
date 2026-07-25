@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { AlertTriangle, Loader2, RotateCcw } from "lucide-react";
+import { AlertTriangle, Loader2, RotateCcw, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
@@ -10,9 +10,12 @@ import {
   apiClassResetPreview,
   apiResetClass,
   apiResetSchool,
+  apiResetTeachers,
   apiSchoolResetPreview,
+  apiTeacherResetPreview,
   type ApiClassResetPreview,
   type ApiSchoolResetPreview,
+  type ApiTeacherResetPreview,
 } from "@/lib/students/api";
 import {
   ensureAcademicsLoaded,
@@ -47,7 +50,143 @@ export default function DangerZonePage() {
       </div>
 
       <ClassResetCard />
+      <TeacherResetCard />
       <SchoolResetCard />
+    </div>
+  );
+}
+
+/** Erase every teacher and restart teacher numbering at 1. */
+function TeacherResetCard() {
+  const [preview, setPreview] = useState<ApiTeacherResetPreview | null>(null);
+  const [open, setOpen] = useState(false);
+  const [typed, setTyped] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  async function loadPreview() {
+    try {
+      setPreview(await apiTeacherResetPreview());
+      setOpen(true);
+    } catch (e) {
+      toast(e instanceof Error ? e.message : "Could not load", "error");
+    }
+  }
+
+  const confirmed = !!preview && typed.trim() === preview.name;
+
+  async function handleReset() {
+    if (!confirmed) return;
+    setBusy(true);
+    try {
+      const res = await apiResetTeachers(typed.trim());
+      toast(
+        `${res.teachersDeleted} teachers erased. Teacher numbering restarts at 1.`,
+        "success",
+      );
+      setOpen(false);
+      setTyped("");
+      setPreview(null);
+    } catch (e) {
+      toast(e instanceof Error ? e.message : "Reset failed", "error");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const c = preview?.counts;
+
+  return (
+    <div className="rounded-xl border border-red-300 bg-red-50/50 p-5 dark:border-red-900/50 dark:bg-red-950/20">
+      <h2 className="flex items-center gap-2 font-semibold text-red-700 dark:text-red-300">
+        <Users className="h-4 w-4" />
+        Reset all teachers
+      </h2>
+      <p className="mt-1 text-sm text-muted-foreground">
+        Delete <strong>every</strong> teacher — their logins, class and subject
+        assignments, attendance and quizzes — and restart teacher IDs from #1,
+        so the school can import its staff again cleanly. Timetable slots keep
+        their place but are left unstaffed. Salary records are kept: they are
+        the school&apos;s financial history and name the employee in their own
+        right.
+      </p>
+
+      {!open ? (
+        <Button
+          variant="destructive"
+          className="mt-4"
+          onClick={() => void loadPreview()}
+        >
+          <Users className="mr-2 h-4 w-4" />
+          Reset all teachers…
+        </Button>
+      ) : c && preview ? (
+        <div className="mt-4 max-w-md space-y-3">
+          <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 rounded-lg border bg-card p-3 text-sm sm:grid-cols-3">
+            <Count label="Teachers" value={c.teachers} strong />
+            <Count label="Assignments" value={c.assignments} />
+            <Count label="Attendance" value={c.attendance} />
+            <Count label="Quizzes" value={c.quizzes} />
+            <Count label="Timetable slots" value={c.timetableEntries} />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium">
+              Type the school name{" "}
+              <span className="font-mono">{preview.name}</span> to confirm
+            </label>
+            <Input
+              value={typed}
+              onChange={(e) => setTyped(e.target.value)}
+              placeholder={preview.name}
+              autoComplete="off"
+              disabled={busy}
+            />
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              disabled={busy}
+              onClick={() => {
+                setOpen(false);
+                setTyped("");
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={!confirmed || busy}
+              onClick={() => void handleReset()}
+            >
+              {busy ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Resetting…
+                </>
+              ) : (
+                "Erase all teachers & restart at 1"
+              )}
+            </Button>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function Count({
+  label,
+  value,
+  strong,
+}: {
+  label: string;
+  value: number;
+  strong?: boolean;
+}) {
+  return (
+    <div className="flex items-baseline justify-between gap-2">
+      <span className="text-muted-foreground">{label}</span>
+      <span className={`tabular-nums ${strong ? "font-bold" : "font-medium"}`}>
+        {value}
+      </span>
     </div>
   );
 }

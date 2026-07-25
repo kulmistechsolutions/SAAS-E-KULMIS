@@ -271,6 +271,28 @@ export const apiSchoolResetPreview = () =>
 export const apiClassResetPreview = (classId: string) =>
   api<ApiClassResetPreview>(`/admin/reset/class/${classId}/preview`);
 
+export interface ApiTeacherResetPreview {
+  scope: "teachers";
+  name: string;
+  counts: {
+    teachers: number;
+    assignments: number;
+    attendance: number;
+    quizzes: number;
+    timetableEntries: number;
+  };
+}
+
+export const apiTeacherResetPreview = () =>
+  api<ApiTeacherResetPreview>("/admin/reset/teachers/preview");
+
+/** Erase every teacher in the school and restart teacher numbering at 1. */
+export const apiResetTeachers = (confirmName: string) =>
+  api<{ success: true; name: string; teachersDeleted: number }>(
+    "/admin/reset/teachers",
+    { method: "POST", body: { confirmName } },
+  );
+
 /** Erase every student in the school and restart numbering at 1. */
 export const apiResetSchool = (confirmName: string) =>
   api<{ success: true; name: string; studentsDeleted: number }>(

@@ -113,7 +113,7 @@ export async function nextParentCode(
 export async function resetCounter(
   tx: PrismaClient,
   schoolId: string,
-  name: "student" | "parent",
+  name: "student" | "parent" | "teacher",
 ): Promise<void> {
   await tx.counter.upsert({
     where: { schoolId_name: { schoolId, name } },
