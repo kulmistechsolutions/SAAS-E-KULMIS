@@ -160,13 +160,58 @@ export const createSmsCampaignSchema = z.object({
   classId: z.string().optional().nullable(),
   sectionId: z.string().optional().nullable(),
   scheduledAt: z.string().datetime().optional().nullable(),
-  reminderIntervalDays: z.number().int().positive().max(90).optional().nullable(),
+  reminderIntervalDays: z
+    .number()
+    .int()
+    .positive()
+    .max(90)
+    .optional()
+    .nullable(),
 });
 
+/**
+ * What a school may change about its own SMS. The sending name is NOT here:
+ * an operator registers a sender ID against a licensed organisation, so it is
+ * applied for and granted by the platform owner (see
+ * `requestSmsSenderIdSchema`), never typed by the school.
+ */
 export const updateSchoolSmsSettingsSchema = z.object({
-  smsSenderName: z.string().min(1).max(20).nullable().optional(),
   smsEnabled: z.boolean().optional(),
 });
+
+/** A sender ID as the operator accepts it: A–Z, digits, space, dash, max 11. */
+const senderIdName = z
+  .string()
+  .trim()
+  .min(3, "Use at least 3 characters")
+  .max(11, "Operators allow at most 11 characters")
+  .regex(
+    /^[A-Za-z0-9][A-Za-z0-9 .-]*$/,
+    "Letters, digits, spaces, dots and dashes only",
+  );
+
+/** A school applying for the name recipients will see on its messages. */
+export const requestSmsSenderIdSchema = z.object({
+  requestedName: senderIdName,
+  contactPerson: z.string().trim().min(1).max(80).optional().nullable(),
+  contactPhone: z.string().trim().min(6).max(20).optional().nullable(),
+  note: z.string().trim().max(500).optional().nullable(),
+  /** Registration / licence document, base64, with its original filename. */
+  licenseDoc: z.string().min(1).optional().nullable(),
+  licenseDocName: z.string().trim().min(1).max(200).optional().nullable(),
+  licenseDocMime: z.string().trim().min(1).max(120).optional().nullable(),
+});
+export type RequestSmsSenderIdInput = z.infer<typeof requestSmsSenderIdSchema>;
+
+/**
+ * The platform owner's decision. On approval they type the name actually
+ * registered with the operator, which may differ from what was asked for.
+ */
+export const reviewSmsSenderIdSchema = z.object({
+  approvedName: senderIdName.optional(),
+  reviewNote: z.string().trim().max(500).optional().nullable(),
+});
+export type ReviewSmsSenderIdInput = z.infer<typeof reviewSmsSenderIdSchema>;
 
 // ── WaafiPay payment gateway (Super Admin) ─────────────────────────────────
 
@@ -213,7 +258,9 @@ export const purchaseSmsPackageSchema = z.object({
   paymentMethod: z.string().min(3).max(40).optional(),
 });
 
-export type UpdateSmsGlobalConfigInput = z.infer<typeof updateSmsGlobalConfigSchema>;
+export type UpdateSmsGlobalConfigInput = z.infer<
+  typeof updateSmsGlobalConfigSchema
+>;
 export type CreateSmsPackageInput = z.infer<typeof createSmsPackageSchema>;
 export type UpdateSmsPackageInput = z.infer<typeof updateSmsPackageSchema>;
 export type AssignSmsPackageInput = z.infer<typeof assignSmsPackageSchema>;
@@ -223,5 +270,7 @@ export type PreviewAudienceInput = z.infer<typeof previewAudienceSchema>;
 export type CreateSmsTemplateInput = z.infer<typeof createSmsTemplateSchema>;
 export type CreateSmsCampaignInput = z.infer<typeof createSmsCampaignSchema>;
 export type UpdateWaafiConfigInput = z.infer<typeof updateWaafiConfigSchema>;
-export type TestWaafiConnectionInput = z.infer<typeof testWaafiConnectionSchema>;
+export type TestWaafiConnectionInput = z.infer<
+  typeof testWaafiConnectionSchema
+>;
 export type PurchaseSmsPackageInput = z.infer<typeof purchaseSmsPackageSchema>;

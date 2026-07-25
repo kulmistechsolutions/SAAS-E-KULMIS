@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
+import { SenderIdReview } from "@/components/platform/sender-id-review";
 import {
   assignPlatformSmsPackage,
   createPlatformSmsPackage,
@@ -35,7 +36,7 @@ export default function PlatformSmsPackagesPage() {
   >([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<
-    "packages" | "assign" | "gateways" | "logs"
+    "packages" | "assign" | "gateways" | "sender-ids" | "logs"
   >("packages");
 
   const [pkgName, setPkgName] = useState("");
@@ -72,7 +73,10 @@ export default function PlatformSmsPackagesPage() {
         (prev) => prev || ov.packages.find((p) => p.isActive)?.id || "",
       );
     } catch (e) {
-      toast(e instanceof Error ? e.message : "Failed to load SMS data", "error");
+      toast(
+        e instanceof Error ? e.message : "Failed to load SMS data",
+        "error",
+      );
     } finally {
       setLoading(false);
     }
@@ -97,7 +101,11 @@ export default function PlatformSmsPackagesPage() {
   }
 
   async function revokeGateway(id: string) {
-    if (!confirm("Revoke this licence? The school falls back to platform credits."))
+    if (
+      !confirm(
+        "Revoke this licence? The school falls back to platform credits.",
+      )
+    )
       return;
     try {
       await revokePlatformSmsGatewayLicense(id);
@@ -163,7 +171,8 @@ export default function PlatformSmsPackagesPage() {
             SMS Packages
           </h1>
           <p className="mt-1 text-sm text-slate-400">
-            Create packages and assign credits to schools after Hormuud is verified.
+            Create packages and assign credits to schools after Hormuud is
+            verified.
           </p>
         </div>
         <div className="flex gap-2">
@@ -236,6 +245,7 @@ export default function PlatformSmsPackagesPage() {
             ["packages", "Packages"],
             ["assign", "Assign"],
             ["gateways", "Own gateways"],
+            ["sender-ids", "Sender IDs"],
             ["logs", "Delivery logs"],
           ] as const
         ).map(([id, label]) => (
@@ -260,7 +270,8 @@ export default function PlatformSmsPackagesPage() {
             <h2 className="font-semibold text-white">Create package</h2>
             {!unlocked && (
               <p className="mt-2 flex items-center gap-2 text-sm text-amber-300">
-                <AlertTriangle className="h-4 w-4" /> Locked until connection verified
+                <AlertTriangle className="h-4 w-4" /> Locked until connection
+                verified
               </p>
             )}
             <div className="mt-4 space-y-3">
@@ -398,7 +409,9 @@ export default function PlatformSmsPackagesPage() {
             </Button>
           </div>
           <div className="mt-6">
-            <h3 className="text-sm font-medium text-slate-300">Recent purchases</h3>
+            <h3 className="text-sm font-medium text-slate-300">
+              Recent purchases
+            </h3>
             <ul className="mt-2 space-y-2 text-sm">
               {data.recentPurchases.slice(0, 10).map((p) => (
                 <li
@@ -535,6 +548,8 @@ export default function PlatformSmsPackagesPage() {
           </div>
         </div>
       )}
+
+      {tab === "sender-ids" && <SenderIdReview />}
 
       {tab === "logs" && (
         <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#0f172a]">

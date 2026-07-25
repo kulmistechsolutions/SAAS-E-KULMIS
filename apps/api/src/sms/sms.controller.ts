@@ -16,6 +16,7 @@ import {
   schoolSmsGatewaySchema,
   sendAudienceSmsSchema,
   sendSmsSchema,
+  requestSmsSenderIdSchema,
   updateSchoolSmsSettingsSchema,
   updateSmsTemplateSchema,
   UserRole,
@@ -24,6 +25,7 @@ import { Roles } from "../auth/roles.decorator";
 import { CurrentUser } from "../auth/current-user.decorator";
 import type { AuthUser } from "../auth/auth.types";
 import { SmsService } from "./sms.service";
+import { SmsSenderIdService } from "./sms-sender-id.service";
 
 @Roles(
   UserRole.ADMINISTRATOR,
@@ -34,7 +36,10 @@ import { SmsService } from "./sms.service";
 )
 @Controller("sms")
 export class SmsController {
-  constructor(private readonly sms: SmsService) {}
+  constructor(
+    private readonly sms: SmsService,
+    private readonly senderIds: SmsSenderIdService,
+  ) {}
 
   @Get("balance")
   balance(@CurrentUser() me: AuthUser) {
@@ -47,6 +52,21 @@ export class SmsController {
     const parsed = updateSchoolSmsSettingsSchema.safeParse(body);
     if (!parsed.success) throw new BadRequestException(parsed.error.flatten());
     return this.sms.updateSchoolSettings(me.schoolId, parsed.data);
+  }
+
+  /** The school's sending name and any application in flight. */
+  @Get("sender-id")
+  senderId(@CurrentUser() me: AuthUser) {
+    return this.senderIds.mySenderId(me.schoolId);
+  }
+
+  /** Apply for a sending name. Granting it is the platform owner's call. */
+  @Post("sender-id/request")
+  @Roles(UserRole.ADMINISTRATOR, UserRole.SUPER_ADMINISTRATOR)
+  requestSenderId(@CurrentUser() me: AuthUser, @Body() body: unknown) {
+    const parsed = requestSmsSenderIdSchema.safeParse(body);
+    if (!parsed.success) throw new BadRequestException(parsed.error.flatten());
+    return this.senderIds.request(me.schoolId, parsed.data);
   }
 
   @Get("packages")

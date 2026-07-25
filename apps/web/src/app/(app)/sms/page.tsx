@@ -21,6 +21,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { RecipientPickerDialog } from "@/components/sms/recipient-picker";
 import { TemplateManager } from "@/components/sms/template-manager";
 import { GatewaySettings } from "@/components/sms/gateway-settings";
+import { SenderIdCard } from "@/components/sms/sender-id-card";
 import { CATEGORIES } from "@/components/sms/categories";
 import { VariablePicker, VariableWarning } from "@/components/sms/variables";
 import {
@@ -52,10 +53,18 @@ import { toast } from "@/lib/toast";
 type Tab = "send" | "custom" | "templates" | "logs" | "settings" | "gateway";
 
 const AUDIENCES: { value: SmsAudience; label: string; hint: string }[] = [
-  { value: "ALL_PARENTS", label: "All parents", hint: "Every active student's parent" },
+  {
+    value: "ALL_PARENTS",
+    label: "All parents",
+    hint: "Every active student's parent",
+  },
   { value: "CLASS", label: "A class", hint: "Choose a class" },
   { value: "SECTION", label: "A section", hint: "Choose a class and section" },
-  { value: "OUTSTANDING", label: "Outstanding fees", hint: "Parents who owe a balance" },
+  {
+    value: "OUTSTANDING",
+    label: "Outstanding fees",
+    hint: "Parents who owe a balance",
+  },
   { value: "TEACHERS", label: "Teachers", hint: "Every active teacher" },
 ];
 
@@ -90,7 +99,10 @@ function parseBulkNumbers(raw: string): { phone: string; name?: string }[] {
 export default function SchoolSmsPage() {
   const academics = useAcademicsState();
   const year = activeAcademicYear();
-  const classes = useMemo(() => classNamesForYear(year), [year, academics.classes]);
+  const classes = useMemo(
+    () => classNamesForYear(year),
+    [year, academics.classes],
+  );
 
   const [tab, setTab] = useState<Tab>("send");
   const [balance, setBalance] = useState<SmsBalance | null>(null);
@@ -119,9 +131,11 @@ export default function SchoolSmsPage() {
   const [bulkCategory, setBulkCategory] = useState<SmsCategory>("CUSTOM");
   const [bulkBody, setBulkBody] = useState("");
   const [bulkScheduledAt, setBulkScheduledAt] = useState("");
-  const bulkRecipients = useMemo(() => parseBulkNumbers(bulkNumbers), [bulkNumbers]);
+  const bulkRecipients = useMemo(
+    () => parseBulkNumbers(bulkNumbers),
+    [bulkNumbers],
+  );
 
-  const [senderName, setSenderName] = useState("");
   const [smsEnabled, setSmsEnabled] = useState(true);
 
   const sections = useMemo(
@@ -155,7 +169,6 @@ export default function SchoolSmsPage() {
       setBalance(b);
       setTemplates(t);
       setMessages(m);
-      setSenderName(b.school.smsSenderName ?? b.school.name);
       setSmsEnabled(b.school.smsEnabled);
       if (t.length === 0) {
         const seeded = await apiSeedSmsTemplates();
@@ -186,17 +199,22 @@ export default function SchoolSmsPage() {
     setPreviewLoading(true);
     try {
       const usesClass =
-        audience === "CLASS" || audience === "SECTION" || audience === "OUTSTANDING";
+        audience === "CLASS" ||
+        audience === "SECTION" ||
+        audience === "OUTSTANDING";
       const usesSection = audience === "SECTION" || audience === "OUTSTANDING";
       const list = await apiPreviewAudience({
         audience,
-        classId: usesClass ? classId ?? null : null,
-        sectionId: usesSection ? sectionId ?? null : null,
+        classId: usesClass ? (classId ?? null) : null,
+        sectionId: usesSection ? (sectionId ?? null) : null,
       });
       setRecipients(list);
       setSelected(new Set(list.map((r) => r.recordId)));
     } catch (e) {
-      toast(e instanceof Error ? e.message : "Could not load recipients", "error");
+      toast(
+        e instanceof Error ? e.message : "Could not load recipients",
+        "error",
+      );
       setRecipients([]);
       setSelected(new Set());
     } finally {
@@ -219,7 +237,9 @@ export default function SchoolSmsPage() {
   }
 
   function toggleAllRecipients(checked: boolean) {
-    setSelected(checked ? new Set(recipients.map((r) => r.recordId)) : new Set());
+    setSelected(
+      checked ? new Set(recipients.map((r) => r.recordId)) : new Set(),
+    );
   }
 
   async function handleSend() {
@@ -237,7 +257,9 @@ export default function SchoolSmsPage() {
     }
     setSending(true);
     try {
-      const scheduleIso = scheduledAt ? new Date(scheduledAt).toISOString() : null;
+      const scheduleIso = scheduledAt
+        ? new Date(scheduledAt).toISOString()
+        : null;
       const excludedCount = recipients.length - selected.size;
       const payload: Parameters<typeof apiSendAudienceSms>[0] = {
         category,
@@ -308,11 +330,17 @@ export default function SchoolSmsPage() {
     }
     setSending(true);
     try {
-      const scheduleIso = bulkScheduledAt ? new Date(bulkScheduledAt).toISOString() : null;
+      const scheduleIso = bulkScheduledAt
+        ? new Date(bulkScheduledAt).toISOString()
+        : null;
       const res = await apiSendSms({
         category: bulkCategory,
         body: bulkBody,
-        recipients: bulkRecipients.map((r) => ({ phone: r.phone, name: r.name, type: "OTHER" })),
+        recipients: bulkRecipients.map((r) => ({
+          phone: r.phone,
+          name: r.name,
+          type: "OTHER",
+        })),
         scheduledAt: scheduleIso,
       });
       if (scheduleIso) {
@@ -340,10 +368,9 @@ export default function SchoolSmsPage() {
 
   async function saveSettings() {
     try {
-      await apiSmsSettings({
-        smsSenderName: senderName || null,
-        smsEnabled,
-      });
+      // The sending name is granted through a sender ID application, not typed
+      // here — see SenderIdCard.
+      await apiSmsSettings({ smsEnabled });
       toast("SMS settings saved", "success");
       await load();
     } catch (e) {
@@ -360,7 +387,8 @@ export default function SchoolSmsPage() {
     { id: "gateway", label: "My SMS Account", icon: PlugZap },
   ];
 
-  const canSend = !!balance?.provider.canSend && (balance?.creditsRemaining ?? 0) > 0;
+  const canSend =
+    !!balance?.provider.canSend && (balance?.creditsRemaining ?? 0) > 0;
   const excludedCount = recipients.length - selected.size;
 
   return (
@@ -372,7 +400,8 @@ export default function SchoolSmsPage() {
             SMS
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Send announcements, fee reminders, and notifications via Hormuud SMS.
+            Send announcements, fee reminders, and notifications via Hormuud
+            SMS.
           </p>
         </div>
         <div className="flex gap-2">
@@ -412,7 +441,9 @@ export default function SchoolSmsPage() {
           <p className="text-xs text-muted-foreground">Hormuud SMS</p>
           <p
             className={`mt-1 text-lg font-semibold ${
-              balance?.provider?.connected ? "text-emerald-600" : "text-amber-600"
+              balance?.provider?.connected
+                ? "text-emerald-600"
+                : "text-amber-600"
             }`}
           >
             {loading
@@ -445,8 +476,8 @@ export default function SchoolSmsPage() {
           <p className="mt-1">{balance.provider.message}</p>
           {!balance.provider.connected && (
             <p className="mt-1 text-xs">
-              The platform administrator must connect Hormuud SMS under Platform → SMS
-              Settings. Then purchase an SMS package for your school.
+              The platform administrator must connect Hormuud SMS under Platform
+              → SMS Settings. Then purchase an SMS package for your school.
             </p>
           )}
           {balance.provider.connected && balance.creditsRemaining === 0 && (
@@ -505,7 +536,9 @@ export default function SchoolSmsPage() {
                   {AUDIENCES.find((a) => a.value === audience)?.hint}
                 </p>
               </div>
-              {(audience === "CLASS" || audience === "SECTION" || audience === "OUTSTANDING") && (
+              {(audience === "CLASS" ||
+                audience === "SECTION" ||
+                audience === "OUTSTANDING") && (
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <Label>Class</Label>
@@ -658,7 +691,9 @@ export default function SchoolSmsPage() {
               <div className="flex flex-wrap gap-2 pt-1">
                 <Button
                   onClick={() => void handleSend()}
-                  disabled={sending || !body.trim() || !canSend || selected.size === 0}
+                  disabled={
+                    sending || !body.trim() || !canSend || selected.size === 0
+                  }
                 >
                   <Send className="mr-2 h-4 w-4" />
                   {sending
@@ -696,7 +731,8 @@ export default function SchoolSmsPage() {
               {(balance?.purchases ?? []).filter((p) => p.status === "ACTIVE")
                 .length === 0 && (
                 <p className="text-muted-foreground">
-                  No active SMS package. Ask the platform administrator to assign one.
+                  No active SMS package. Ask the platform administrator to
+                  assign one.
                 </p>
               )}
             </ul>
@@ -724,11 +760,14 @@ export default function SchoolSmsPage() {
                 className="mt-1.5 min-h-[140px] font-mono text-sm"
                 value={bulkNumbers}
                 onChange={(e) => setBulkNumbers(e.target.value)}
-                placeholder={"25261xxxxxxx, Name (optional)\n25263xxxxxxx\n25265xxxxxxx"}
+                placeholder={
+                  "25261xxxxxxx, Name (optional)\n25263xxxxxxx\n25265xxxxxxx"
+                }
               />
               <p className="mt-1 text-xs text-muted-foreground">
-                Add one number per line, or separate with a comma. You can add a name after
-                a comma. {bulkRecipients.length} number{bulkRecipients.length === 1 ? "" : "s"} detected.
+                Add one number per line, or separate with a comma. You can add a
+                name after a comma. {bulkRecipients.length} number
+                {bulkRecipients.length === 1 ? "" : "s"} detected.
               </p>
             </div>
             <div>
@@ -782,7 +821,12 @@ export default function SchoolSmsPage() {
             </div>
             <Button
               onClick={() => void handleBulkSend()}
-              disabled={sending || !bulkBody.trim() || bulkRecipients.length === 0 || !canSend}
+              disabled={
+                sending ||
+                !bulkBody.trim() ||
+                bulkRecipients.length === 0 ||
+                !canSend
+              }
             >
               <Send className="mr-2 h-4 w-4" />
               {sending
@@ -796,17 +840,23 @@ export default function SchoolSmsPage() {
           <div className="rounded-2xl border bg-card p-5 shadow-sm">
             <h2 className="font-semibold">How this works</h2>
             <p className="mt-2 text-sm text-muted-foreground">
-              Use this to send one message to many phone numbers that aren&apos;t in your
-              student or parent lists — like a WhatsApp broadcast. Paste the numbers, write one
-              message, and everyone gets the same message at once.
+              Use this to send one message to many phone numbers that
+              aren&apos;t in your student or parent lists — like a WhatsApp
+              broadcast. Paste the numbers, write one message, and everyone gets
+              the same message at once.
             </p>
             {bulkRecipients.length > 0 && (
               <div className="mt-4 max-h-[280px] overflow-auto rounded-lg border">
                 <ul className="divide-y text-sm">
                   {bulkRecipients.map((r) => (
-                    <li key={r.phone} className="flex justify-between px-3 py-1.5">
+                    <li
+                      key={r.phone}
+                      className="flex justify-between px-3 py-1.5"
+                    >
                       <span className="font-mono">{r.phone}</span>
-                      {r.name && <span className="text-muted-foreground">{r.name}</span>}
+                      {r.name && (
+                        <span className="text-muted-foreground">{r.name}</span>
+                      )}
                     </li>
                   ))}
                 </ul>
@@ -873,7 +923,10 @@ export default function SchoolSmsPage() {
               ))}
               {messages.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">
+                  <td
+                    colSpan={5}
+                    className="px-4 py-8 text-center text-muted-foreground"
+                  >
                     No SMS logs yet.
                   </td>
                 </tr>
@@ -884,28 +937,19 @@ export default function SchoolSmsPage() {
       )}
 
       {tab === "settings" && (
-        <div className="max-w-md space-y-4 rounded-2xl border bg-card p-5 shadow-sm">
-          <div>
-            <Label>Sender name (shown to recipients)</Label>
-            <Input
-              className="mt-1.5"
-              value={senderName}
-              onChange={(e) => setSenderName(e.target.value)}
-              maxLength={20}
-            />
-            <p className="mt-1 text-xs text-muted-foreground">
-              Max 20 characters. Defaults to the school name.
-            </p>
+        <div className="space-y-4">
+          <SenderIdCard />
+          <div className="max-w-md space-y-4 rounded-2xl border bg-card p-5 shadow-sm">
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={smsEnabled}
+                onChange={(e) => setSmsEnabled(e.target.checked)}
+              />
+              Enable SMS for this school
+            </label>
+            <Button onClick={() => void saveSettings()}>Save settings</Button>
           </div>
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={smsEnabled}
-              onChange={(e) => setSmsEnabled(e.target.checked)}
-            />
-            Enable SMS for this school
-          </label>
-          <Button onClick={() => void saveSettings()}>Save settings</Button>
         </div>
       )}
 

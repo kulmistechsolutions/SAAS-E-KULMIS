@@ -72,9 +72,7 @@ export class SmsPaymentService {
       currency: row.currency,
       callbackBaseUrl: row.callbackBaseUrl,
       connectionStatus: row.connectionStatus as
-        | "CONNECTED"
-        | "DISCONNECTED"
-        | "ERROR",
+        "CONNECTED" | "DISCONNECTED" | "ERROR",
       connectionMessage: row.connectionMessage,
       lastTestedAt: row.lastTestedAt,
       lastSuccessAt: row.lastSuccessAt,
@@ -127,10 +125,14 @@ export class SmsPaymentService {
       merchantUid: input.merchantUid?.trim() || existing.merchantUid,
       apiUserId: input.apiUserId?.trim() || existing.apiUserId,
       apiKey:
-        input.apiKey && input.apiKey.length > 0 ? input.apiKey : existing.apiKey,
+        input.apiKey && input.apiKey.length > 0
+          ? input.apiKey
+          : existing.apiKey,
       storeId: input.storeId?.trim() || existing.storeId,
       hppKey:
-        input.hppKey && input.hppKey.length > 0 ? input.hppKey : existing.hppKey,
+        input.hppKey && input.hppKey.length > 0
+          ? input.hppKey
+          : existing.hppKey,
     };
 
     const test = await waafiTestConnection(merged);
@@ -216,9 +218,7 @@ export class SmsPaymentService {
       defaultMethod: input.defaultMethod,
       currency: input.currency,
       callbackBaseUrl:
-        input.callbackBaseUrl === undefined
-          ? undefined
-          : input.callbackBaseUrl,
+        input.callbackBaseUrl === undefined ? undefined : input.callbackBaseUrl,
     };
 
     if (input.simulationMode !== undefined) {
@@ -232,7 +232,11 @@ export class SmsPaymentService {
         data.connectionVerified = true;
         data.lastTestedAt = new Date();
         data.lastSuccessAt = new Date();
-      } else if (!existing.merchantUid && !existing.apiKey && !existing.hppKey) {
+      } else if (
+        !existing.merchantUid &&
+        !existing.apiKey &&
+        !existing.hppKey
+      ) {
         data.connectionStatus = "DISCONNECTED";
         data.connectionMessage =
           "Simulation mode off. Enter Waafi credentials and Test Connection.";
@@ -280,8 +284,7 @@ export class SmsPaymentService {
     }
 
     const channel =
-      input.channel ??
-      (cfg.defaultMethod as "API_PURCHASE" | "HPP_PURCHASE");
+      input.channel ?? (cfg.defaultMethod as "API_PURCHASE" | "HPP_PURCHASE");
     const paymentMethod = input.paymentMethod ?? "MWALLET_ACCOUNT";
 
     let payerAccount: string | null = null;
@@ -325,13 +328,21 @@ export class SmsPaymentService {
       },
     });
 
-    await this.audit(order.id, schoolId, "CREATED", true, "Payment order created", {
-      packageId: pkg.id,
-      amount,
-      channel,
-      referenceId,
-      simulation: cfg.simulationMode,
-    }, userId);
+    await this.audit(
+      order.id,
+      schoolId,
+      "CREATED",
+      true,
+      "Payment order created",
+      {
+        packageId: pkg.id,
+        amount,
+        channel,
+        referenceId,
+        simulation: cfg.simulationMode,
+      },
+      userId,
+    );
 
     // Simulation / demo: skip Waafi and activate credits immediately
     if (cfg.simulationMode) {
@@ -417,7 +428,8 @@ export class SmsPaymentService {
 
       if (!result.ok) {
         throw new BadRequestException(
-          result.responseMsg || "Failed to create Waafi hosted payment session.",
+          result.responseMsg ||
+            "Failed to create Waafi hosted payment session.",
         );
       }
 
@@ -534,9 +546,7 @@ export class SmsPaymentService {
       payload.state ??
       payload.Status;
     const transactionId =
-      payload.transactionId ??
-      payload.TransactionId ??
-      payload.transaction_id;
+      payload.transactionId ?? payload.TransactionId ?? payload.transaction_id;
 
     if (!isApprovedCallbackStatus(status) && !transactionId) {
       // Still try verify against Waafi
@@ -555,7 +565,9 @@ export class SmsPaymentService {
     });
     if (!order) throw new NotFoundException("Payment order not found.");
     if (schoolId && order.schoolId !== schoolId) {
-      throw new ForbiddenException("Payment order does not belong to this school.");
+      throw new ForbiddenException(
+        "Payment order does not belong to this school.",
+      );
     }
     if (order.status === "SUCCESS") {
       return this.getOrderReceipt(order.schoolId, order.id);
@@ -564,8 +576,17 @@ export class SmsPaymentService {
       throw new ConflictException(`Payment is ${order.status}.`);
     }
 
-    if (order.expiresAt && order.expiresAt < new Date() && order.status === "PENDING") {
-      await this.failOrder(order.id, order.schoolId, "Payment order expired.", "EXPIRED");
+    if (
+      order.expiresAt &&
+      order.expiresAt < new Date() &&
+      order.status === "PENDING"
+    ) {
+      await this.failOrder(
+        order.id,
+        order.schoolId,
+        "Payment order expired.",
+        "EXPIRED",
+      );
       throw new BadRequestException("Payment order expired.");
     }
 
@@ -750,9 +771,17 @@ export class SmsPaymentService {
       expiresAt: { lt: new Date() },
       ...(schoolId ? { schoolId } : {}),
     };
-    const stale = await this.prisma.smsPaymentOrder.findMany({ where, take: 100 });
+    const stale = await this.prisma.smsPaymentOrder.findMany({
+      where,
+      take: 100,
+    });
     for (const o of stale) {
-      await this.failOrder(o.id, o.schoolId, "Payment order timed out.", "EXPIRED");
+      await this.failOrder(
+        o.id,
+        o.schoolId,
+        "Payment order timed out.",
+        "EXPIRED",
+      );
     }
     return { expired: stale.length };
   }
@@ -898,9 +927,7 @@ export class SmsPaymentService {
     return `SMS-${ts}-${rnd}`;
   }
 
-  private async nextReceipt(
-    tx: Prisma.TransactionClient,
-  ): Promise<string> {
+  private async nextReceipt(tx: Prisma.TransactionClient): Promise<string> {
     const count = await tx.smsPaymentOrder.count({
       where: { receiptNumber: { not: null } },
     });
@@ -923,9 +950,7 @@ export class SmsPaymentService {
         action,
         success,
         message,
-        details: details
-          ? (details as Prisma.InputJsonValue)
-          : undefined,
+        details: details ? (details as Prisma.InputJsonValue) : undefined,
         actorId: actorId ?? null,
       },
     });

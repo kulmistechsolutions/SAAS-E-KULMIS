@@ -813,3 +813,66 @@ export const cancelPlatformSchoolSubscription = (schoolId: string) =>
   platformFetch<unknown>(`/platform/subscriptions/schools/${schoolId}/cancel`, {
     method: "POST",
   });
+
+// ── SMS sender ID applications ─────────────────────────────────────────────
+
+/** A school's application for the name recipients see on its SMS. */
+export interface PlatformSenderIdRequest {
+  id: string;
+  school: { id: string; name: string; subdomain: string };
+  requestedName: string;
+  approvedName: string | null;
+  status: "PENDING" | "APPROVED" | "REJECTED";
+  hasDocument: boolean;
+  licenseDocName: string | null;
+  contactPerson: string | null;
+  contactPhone: string | null;
+  note: string | null;
+  reviewNote: string | null;
+  reviewedByUsername: string | null;
+  reviewedAt: string | null;
+  createdAt: string;
+}
+
+export const fetchPlatformSenderIdRequests = (status?: string) =>
+  platformFetch<PlatformSenderIdRequest[]>(
+    `/platform/sms/sender-id-requests${status ? `?status=${status}` : ""}`,
+  );
+
+/**
+ * Grant the sender ID. `approvedName` is the name actually registered with the
+ * operator — it may differ from what the school asked for. Omit it to accept
+ * their request as-is.
+ */
+export const approvePlatformSenderId = (
+  id: string,
+  body: { approvedName?: string; reviewNote?: string | null },
+) =>
+  platformFetch<{ id: string; approvedName: string; status: string }>(
+    `/platform/sms/sender-id-requests/${id}/approve`,
+    { method: "POST", body },
+  );
+
+export const rejectPlatformSenderId = (id: string, reviewNote: string) =>
+  platformFetch<{ id: string; status: string }>(
+    `/platform/sms/sender-id-requests/${id}/reject`,
+    { method: "POST", body: { reviewNote } },
+  );
+
+/**
+ * Open the school's licence document. The endpoint streams bytes and needs the
+ * bearer token, so it is fetched and handed to the browser as a blob URL rather
+ * than linked directly.
+ */
+export async function openPlatformSenderIdDocument(id: string): Promise<void> {
+  const token = getPlatformAccessToken();
+  const res = await fetch(
+    `${API_URL}/api/platform/sms/sender-id-requests/${id}/document`,
+    { headers: token ? { Authorization: `Bearer ${token}` } : {} },
+  );
+  if (!res.ok) throw new Error("Could not open the document");
+  const url = URL.createObjectURL(await res.blob());
+  window.open(url, "_blank", "noopener");
+  // Give the new tab time to take the blob before releasing it.
+  setTimeout(() => URL.revokeObjectURL(url), 60_000);
+}

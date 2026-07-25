@@ -101,8 +101,55 @@ model School {
   smsPaymentOrders   SmsPaymentOrder[]
   smsGateway         SchoolSmsGateway?
   smsGatewayLicenses SmsGatewayLicense[]
+  smsSenderRequests  SmsSenderIdRequest[]
 
   @@map("schools")
+}
+
+/// A school's application for the name recipients see on its SMS (Module 17).
+///
+/// A sender ID is not something a school can simply type for itself: the
+/// operator has to register the name against a real, licensed organisation, so
+/// the school applies with the name it wants and its registration document,
+/// and the platform owner approves it. The approved name is written to
+/// `School.smsSenderName`, which is the only thing the sending path reads —
+/// the school can never set that field itself.
+model SmsSenderIdRequest {
+  id       String @id @default(cuid())
+  schoolId String
+
+  /// The name the school asked for, e.g. "AL-NUUR".
+  requestedName String
+  /// What the platform owner actually registered. Set on approval, and it is
+  /// what goes out on the school's messages.
+  approvedName  String?
+
+  /// PENDING | APPROVED | REJECTED
+  status String @default("PENDING")
+
+  /// Storage key for the licence / registration document the school uploaded.
+  licenseDocKey  String?
+  licenseDocName String?
+  /// Someone the operator can call to verify the application.
+  contactPhone   String?
+  contactPerson  String?
+  /// The school's own note — what the name stands for.
+  note           String?
+
+  /// The platform owner's decision note, shown to the school (a rejection
+  /// reason has to be readable by the person who has to fix it).
+  reviewNote         String?
+  reviewedByUsername String?
+  reviewedAt         DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@index([schoolId])
+  @@index([status])
+  @@map("sms_sender_id_requests")
 }
 
 /// Academic year (Module 13). At most one active per school (partial unique).

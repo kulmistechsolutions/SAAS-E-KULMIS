@@ -77,7 +77,11 @@ async function postAsm(
   creds: WaafiCredentials,
   serviceName: string,
   serviceParams: Record<string, unknown>,
-): Promise<{ requestId: string; requestBody: Record<string, unknown>; raw: WaafiEnvelope }> {
+): Promise<{
+  requestId: string;
+  requestBody: Record<string, unknown>;
+  raw: WaafiEnvelope;
+}> {
   const requestId = randomUUID();
   const requestBody = {
     schemaVersion: "1.0",
@@ -95,7 +99,10 @@ async function postAsm(
   try {
     const res = await fetch(base, {
       method: "POST",
-      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
       body: JSON.stringify(requestBody),
       signal: controller.signal,
     });
@@ -171,13 +178,15 @@ function mapPurchase(
     errorCode: String(raw.errorCode ?? ""),
     responseMsg: String(raw.responseMsg ?? ""),
     state: state || undefined,
-    transactionId: params.transactionId != null ? String(params.transactionId) : undefined,
+    transactionId:
+      params.transactionId != null ? String(params.transactionId) : undefined,
     issuerTransactionId:
       params.issuerTransactionId != null
         ? String(params.issuerTransactionId)
         : undefined,
     orderId: params.orderId != null ? String(params.orderId) : undefined,
-    referenceId: params.referenceId != null ? String(params.referenceId) : undefined,
+    referenceId:
+      params.referenceId != null ? String(params.referenceId) : undefined,
     hppUrl: params.hppUrl != null ? String(params.hppUrl) : undefined,
     directPaymentLink:
       params.directPaymentLink != null
@@ -279,7 +288,9 @@ export async function waafiGetTranInfo(
   });
 
   const params = raw.params ?? {};
-  const status = String(params.status ?? params.tranStatusDesc ?? "").toUpperCase();
+  const status = String(
+    params.status ?? params.tranStatusDesc ?? "",
+  ).toUpperCase();
   const ok =
     isSuccess(raw) &&
     (status.includes("APPROVED") ||
@@ -295,7 +306,12 @@ export async function waafiGetTranInfo(
       params.transactionId != null ? String(params.transactionId) : undefined,
     referenceId:
       params.referenceId != null ? String(params.referenceId) : undefined,
-    amount: params.amount != null ? String(params.amount) : params.tranAmount != null ? String(params.tranAmount) : undefined,
+    amount:
+      params.amount != null
+        ? String(params.amount)
+        : params.tranAmount != null
+          ? String(params.tranAmount)
+          : undefined,
     currency: params.currency != null ? String(params.currency) : undefined,
     payerId: params.payerId != null ? String(params.payerId) : undefined,
     paymentMethod:
@@ -305,9 +321,7 @@ export async function waafiGetTranInfo(
 }
 
 /** Lightweight credential check: inquire a synthetic reference (expects a clean auth response). */
-export async function waafiTestConnection(
-  creds: WaafiCredentials,
-): Promise<{
+export async function waafiTestConnection(creds: WaafiCredentials): Promise<{
   ok: boolean;
   status: "CONNECTED" | "DISCONNECTED" | "ERROR";
   message: string;
@@ -322,7 +336,9 @@ export async function waafiTestConnection(
       ok: false,
       status: "DISCONNECTED",
       message: "Merchant UID is required.",
-      steps: [{ step: "credentials", ok: false, message: "Missing merchantUid" }],
+      steps: [
+        { step: "credentials", ok: false, message: "Missing merchantUid" },
+      ],
       testedAt,
     };
   }
@@ -333,8 +349,11 @@ export async function waafiTestConnection(
     return {
       ok: false,
       status: "DISCONNECTED",
-      message: "Provide either API credentials (apiUserId + apiKey) or HPP credentials (storeId + hppKey).",
-      steps: [{ step: "credentials", ok: false, message: "Incomplete credentials" }],
+      message:
+        "Provide either API credentials (apiUserId + apiKey) or HPP credentials (storeId + hppKey).",
+      steps: [
+        { step: "credentials", ok: false, message: "Incomplete credentials" },
+      ],
       testedAt,
     };
   }
@@ -342,7 +361,12 @@ export async function waafiTestConnection(
   steps.push({
     step: "credentials",
     ok: true,
-    message: hasApi && hasHpp ? "API + HPP credentials present" : hasApi ? "API credentials present" : "HPP credentials present",
+    message:
+      hasApi && hasHpp
+        ? "API + HPP credentials present"
+        : hasApi
+          ? "API credentials present"
+          : "HPP credentials present",
   });
 
   // Probe with GETTRANINFO when HPP is configured; otherwise a tiny API purchase against sandbox test wallet is too invasive —
@@ -356,7 +380,10 @@ export async function waafiTestConnection(
         info.raw.errorCode !== "PARSE_ERROR" &&
         String(info.raw.responseCode ?? "") !== "0";
       // Missing transaction is fine — means auth reached Waafi
-      const msg = info.raw.responseMsg || info.tranStatusDesc || `HTTP response ${info.raw.responseCode}`;
+      const msg =
+        info.raw.responseMsg ||
+        info.tranStatusDesc ||
+        `HTTP response ${info.raw.responseCode}`;
       steps.push({
         step: "hpp_probe",
         ok: authOk,
@@ -411,7 +438,8 @@ export async function waafiTestConnection(
       testedAt,
     };
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Connection test failed";
+    const message =
+      err instanceof Error ? err.message : "Connection test failed";
     steps.push({ step: "probe", ok: false, message });
     return { ok: false, status: "ERROR", message, steps, testedAt };
   }

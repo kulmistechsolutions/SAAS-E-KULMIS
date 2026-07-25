@@ -21,13 +21,7 @@ const ALIASES: Record<string, string[]> = {
     "SchoolName",
     "Magaca Dugsiga",
   ],
-  className: [
-    "Class",
-    "class",
-    "className",
-    "Class Name",
-    "Fasalka",
-  ],
+  className: ["Class", "class", "className", "Class Name", "Fasalka"],
   section: ["Section", "section", "Qaybta"],
   outstandingBalance: [
     "Outstanding Balance",
@@ -53,7 +47,12 @@ const ALIASES: Record<string, string[]> = {
     "Receipt",
     "Lambarka Rasiidhka",
   ],
-  studentCode: ["Student ID", "studentCode", "Student Code", "Lambarka Ardayga"],
+  studentCode: [
+    "Student ID",
+    "studentCode",
+    "Student Code",
+    "Lambarka Ardayga",
+  ],
   examName: ["Exam Name", "examName", "Exam", "Imtixaanka"],
   marks: ["Marks", "marks", "Score", "Dhibcaha"],
   date: ["Date", "date", "Taariikhda"],

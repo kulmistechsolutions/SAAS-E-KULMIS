@@ -117,11 +117,7 @@ export async function hormuudFetchToken(
   raw: unknown;
 }> {
   const now = Date.now();
-  if (
-    !opts.forceRefresh &&
-    tokenCache &&
-    tokenCache.expiresAt > now + 30_000
-  ) {
+  if (!opts.forceRefresh && tokenCache && tokenCache.expiresAt > now + 30_000) {
     return {
       accessToken: tokenCache.accessToken,
       expiresIn: tokenCache.expiresIn ?? 3600,
@@ -405,9 +401,10 @@ export async function hormuudTestConnection(
   return {
     ok: true,
     status: "CONNECTED",
-    message: balance.ok && balance.balance
-      ? `Connected to Hormuud SMS API. Provider balance: ${balance.balance}`
-      : "Connected to Hormuud SMS API. Authentication successful.",
+    message:
+      balance.ok && balance.balance
+        ? `Connected to Hormuud SMS API. Provider balance: ${balance.balance}`
+        : "Connected to Hormuud SMS API. Authentication successful.",
     providerBalance: balance.balance,
     tokenExpiresIn: tokenResult.expiresIn,
     steps,
@@ -435,7 +432,8 @@ export async function hormuudSendSms(
   } catch (e) {
     return {
       ok: false,
-      error: e instanceof Error ? e.message : "Failed to authenticate with Hormuud.",
+      error:
+        e instanceof Error ? e.message : "Failed to authenticate with Hormuud.",
     };
   }
 
@@ -482,7 +480,8 @@ export async function hormuudSendSms(
     const responseMessage = String(
       json.ResponseMessage ?? json.responseMessage ?? "",
     );
-    const data = (json.Data ?? json.data) as Record<string, unknown> | undefined;
+    const data = (json.Data ?? json.data) as
+      Record<string, unknown> | undefined;
     const messageId = data
       ? String(data.MessageID ?? data.messageId ?? "")
       : undefined;

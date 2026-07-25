@@ -9,13 +9,16 @@ import {
   Post,
   Query,
   Req,
+  Res,
   UseGuards,
 } from "@nestjs/common";
+import type { Response } from "express";
 import {
   adjustSmsCreditsSchema,
   assignSmsPackageSchema,
   createSmsPackageSchema,
   grantSmsGatewayLicenseSchema,
+  reviewSmsSenderIdSchema,
   testSmsConnectionSchema,
   testWaafiConnectionSchema,
   updateSmsGlobalConfigSchema,
@@ -27,6 +30,7 @@ import { PlatformGuard } from "../platform/platform.guard";
 import type { PlatformAdminCtx } from "../platform/platform.types";
 import { SmsService } from "./sms.service";
 import { SmsPaymentService } from "./sms-payment.service";
+import { SmsSenderIdService } from "./sms-sender-id.service";
 
 @Public()
 @UseGuards(PlatformGuard)
@@ -35,6 +39,7 @@ export class PlatformSmsController {
   constructor(
     private readonly sms: SmsService,
     private readonly payments: SmsPaymentService,
+    private readonly senderIds: SmsSenderIdService,
   ) {}
 
   @Get("overview")
@@ -175,12 +180,66 @@ export class PlatformSmsController {
   ) {
     const parsed = grantSmsGatewayLicenseSchema.safeParse(body);
     if (!parsed.success) throw new BadRequestException(parsed.error.flatten());
-    return this.sms.grantGatewayLicense(parsed.data, req.platformAdmin?.adminId);
+    return this.sms.grantGatewayLicense(
+      parsed.data,
+      req.platformAdmin?.adminId,
+    );
   }
 
   @Delete("gateway-licenses/:id")
   revokeGatewayLicense(@Param("id") id: string) {
     return this.sms.revokeGatewayLicense(id);
+  }
+
+  // ── Sender ID applications ──
+  // A school applies for the name recipients see; only the platform owner,
+  // who registers it with the operator, can grant it.
+
+  @Get("sender-id-requests")
+  listSenderIdRequests(@Query("status") status?: string) {
+    return this.senderIds.listRequests(status);
+  }
+
+  /** The school's licence document, for the reviewer to read. */
+  @Get("sender-id-requests/:id/document")
+  async senderIdDocument(@Param("id") id: string, @Res() res: Response) {
+    const doc = await this.senderIds.requestDocument(id);
+    res.setHeader("Content-Type", doc.contentType);
+    res.setHeader(
+      "Content-Disposition",
+      `inline; filename="${doc.filename.replace(/"/g, "")}"`,
+    );
+    res.send(doc.buffer);
+  }
+
+  @Post("sender-id-requests/:id/approve")
+  approveSenderId(
+    @Param("id") id: string,
+    @Body() body: unknown,
+    @Req() req: { platformAdmin?: PlatformAdminCtx },
+  ) {
+    const parsed = reviewSmsSenderIdSchema.safeParse(body ?? {});
+    if (!parsed.success) throw new BadRequestException(parsed.error.flatten());
+    return this.senderIds.approve(
+      id,
+      parsed.data,
+      req.platformAdmin?.username ?? "platform",
+    );
+  }
+
+  @Post("sender-id-requests/:id/reject")
+  rejectSenderId(
+    @Param("id") id: string,
+    @Body() body: unknown,
+    @Req() req: { platformAdmin?: PlatformAdminCtx },
+  ) {
+    const parsed = reviewSmsSenderIdSchema.safeParse(body ?? {});
+    if (!parsed.success) throw new BadRequestException(parsed.error.flatten());
+    return this.senderIds.reject(
+      id,
+      parsed.data,
+      req.platformAdmin?.username ?? "platform",
+    );
   }
 
   @Post("adjust")

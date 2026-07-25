@@ -82,9 +82,7 @@ export class SmsService {
       hasPassword: Boolean(row.password),
       defaultSenderId: row.defaultSenderId,
       connectionStatus: row.connectionStatus as
-        | "CONNECTED"
-        | "DISCONNECTED"
-        | "ERROR",
+        "CONNECTED" | "DISCONNECTED" | "ERROR",
       connectionMessage: row.connectionMessage,
       lastTestedAt: row.lastTestedAt,
       lastSuccessAt: row.lastSuccessAt,
@@ -234,7 +232,12 @@ export class SmsService {
 
     await this.prisma.smsConnectionLog.create({
       data: {
-        action: input.enabled === false ? "DISABLE" : input.enabled === true ? "ENABLE" : "SAVE",
+        action:
+          input.enabled === false
+            ? "DISABLE"
+            : input.enabled === true
+              ? "ENABLE"
+              : "SAVE",
         success: true,
         status: updated.connectionStatus,
         message:
@@ -394,9 +397,7 @@ export class SmsService {
       hasPassword: Boolean(gateway.password),
       senderId: gateway.senderId,
       connectionStatus: gateway.connectionStatus as
-        | "CONNECTED"
-        | "DISCONNECTED"
-        | "ERROR",
+        "CONNECTED" | "DISCONNECTED" | "ERROR",
       connectionMessage: gateway.connectionMessage,
       connectionVerified: gateway.connectionVerified,
       lastTestedAt: gateway.lastTestedAt,
@@ -551,7 +552,10 @@ export class SmsService {
     });
     // Revoking must actually stop the routing, not just mark the row.
     await this.prisma.schoolSmsGateway
-      .update({ where: { schoolId: existing.schoolId }, data: { enabled: false } })
+      .update({
+        where: { schoolId: existing.schoolId },
+        data: { enabled: false },
+      })
       .catch(() => undefined);
     return license;
   }
@@ -614,9 +618,13 @@ export class SmsService {
       where: { id },
       data: {
         name: input.name,
-        description: input.description === undefined ? undefined : input.description,
+        description:
+          input.description === undefined ? undefined : input.description,
         credits: input.credits,
-        price: input.price !== undefined ? new Prisma.Decimal(input.price) : undefined,
+        price:
+          input.price !== undefined
+            ? new Prisma.Decimal(input.price)
+            : undefined,
         currency: input.currency,
         isActive: input.isActive,
         sortOrder: input.sortOrder,
@@ -678,7 +686,10 @@ export class SmsService {
           note: input.note ?? null,
           createdByAdminId: adminId ?? null,
         },
-        include: { package: true, school: { select: { id: true, name: true, subdomain: true } } },
+        include: {
+          package: true,
+          school: { select: { id: true, name: true, subdomain: true } },
+        },
       });
 
       const balance = await this.sumRemaining(tx, school.id);
@@ -698,28 +709,30 @@ export class SmsService {
   }
 
   async platformOverview() {
-    const [config, packages, purchases, messages, bySchool] = await Promise.all([
-      this.getGlobalConfig(),
-      this.listPackages(),
-      this.prisma.smsPurchase.findMany({
-        include: {
-          school: { select: { id: true, name: true, subdomain: true } },
-          package: true,
-        },
-        orderBy: { purchasedAt: "desc" },
-        take: 50,
-      }),
-      this.prisma.smsMessage.groupBy({
-        by: ["status"],
-        _count: { _all: true },
-        _sum: { creditsUsed: true },
-      }),
-      this.prisma.smsPurchase.groupBy({
-        by: ["schoolId"],
-        where: { status: "ACTIVE" },
-        _sum: { creditsRemaining: true, creditsTotal: true },
-      }),
-    ]);
+    const [config, packages, purchases, messages, bySchool] = await Promise.all(
+      [
+        this.getGlobalConfig(),
+        this.listPackages(),
+        this.prisma.smsPurchase.findMany({
+          include: {
+            school: { select: { id: true, name: true, subdomain: true } },
+            package: true,
+          },
+          orderBy: { purchasedAt: "desc" },
+          take: 50,
+        }),
+        this.prisma.smsMessage.groupBy({
+          by: ["status"],
+          _count: { _all: true },
+          _sum: { creditsUsed: true },
+        }),
+        this.prisma.smsPurchase.groupBy({
+          by: ["schoolId"],
+          where: { status: "ACTIVE" },
+          _sum: { creditsRemaining: true, creditsTotal: true },
+        }),
+      ],
+    );
 
     const schools = await this.prisma.school.findMany({
       select: {
@@ -786,7 +799,8 @@ export class SmsService {
     purchaseId?: string,
   ) {
     await this.requirePackagesUnlocked();
-    if (credits === 0) throw new BadRequestException("Credits delta cannot be zero.");
+    if (credits === 0)
+      throw new BadRequestException("Credits delta cannot be zero.");
     return this.prisma.$transaction(async (tx) => {
       let purchase = purchaseId
         ? await tx.smsPurchase.findFirst({
@@ -808,7 +822,9 @@ export class SmsService {
 
       const next = purchase.creditsRemaining + credits;
       if (next < 0) {
-        throw new BadRequestException("Adjustment would make balance negative.");
+        throw new BadRequestException(
+          "Adjustment would make balance negative.",
+        );
       }
 
       purchase = await tx.smsPurchase.update({
@@ -917,14 +933,19 @@ export class SmsService {
     });
   }
 
+  /**
+   * What a school may change about its own SMS. `smsSenderName` is absent on
+   * purpose — the sending name is registered with the operator against a
+   * licensed organisation, so it is granted through a sender ID application
+   * (see SmsSenderIdService) and written only on approval.
+   */
   async updateSchoolSettings(
     schoolId: string,
-    input: { smsSenderName?: string | null; smsEnabled?: boolean },
+    input: { smsEnabled?: boolean },
   ) {
     return this.prisma.school.update({
       where: { id: schoolId },
       data: {
-        smsSenderName: input.smsSenderName,
         smsEnabled: input.smsEnabled,
       },
       select: {
@@ -1042,7 +1063,12 @@ export class SmsService {
 
   listMessages(
     schoolId: string,
-    opts: { status?: string; category?: string; q?: string; take?: number } = {},
+    opts: {
+      status?: string;
+      category?: string;
+      q?: string;
+      take?: number;
+    } = {},
   ) {
     return this.prisma.forTenant(schoolId, (tx) =>
       tx.smsMessage.findMany({
@@ -1122,7 +1148,9 @@ export class SmsService {
   ) {
     const recipients = await this.resolveAudience(schoolId, input);
     if (recipients.length === 0) {
-      throw new BadRequestException("No recipients matched the selected audience.");
+      throw new BadRequestException(
+        "No recipients matched the selected audience.",
+      );
     }
 
     let campaignId: string | undefined;
@@ -1294,7 +1322,10 @@ export class SmsService {
       try {
         const gateway = await gatewayFor(msg.schoolId);
         if (!gateway) continue; // stays QUEUED for a later tick
-        const delivered = await this.deliverStoredMessage(msg.id, gateway.config);
+        const delivered = await this.deliverStoredMessage(
+          msg.id,
+          gateway.config,
+        );
         if (delivered.status === "SENT" || delivered.status === "DELIVERED") {
           sent++;
         } else {
@@ -1334,7 +1365,9 @@ export class SmsService {
     schoolId: string,
     input: SendAudienceSmsInput,
   ): Promise<Recipient[]> {
-    const school = await this.prisma.school.findUnique({ where: { id: schoolId } });
+    const school = await this.prisma.school.findUnique({
+      where: { id: schoolId },
+    });
     const schoolName = school?.name ?? "School";
 
     return this.prisma.forTenant(schoolId, async (tx) => {
@@ -1391,7 +1424,10 @@ export class SmsService {
           },
         });
 
-        const byParentStudent = new Map<string, { studentId: string; recipient: Recipient }>();
+        const byParentStudent = new Map<
+          string,
+          { studentId: string; recipient: Recipient }
+        >();
         for (const c of charges) {
           const st = c.student;
           const parent = st.parent;
@@ -1399,9 +1435,10 @@ export class SmsService {
           const key = `${parent.id}:${st.id}`;
           const outstanding = Number(c.amount) - Number(c.paidAmount);
           const prev = byParentStudent.get(key);
-          const total = (prev
-            ? Number(prev.recipient.variables?.outstandingBalance ?? 0)
-            : 0) + outstanding;
+          const total =
+            (prev
+              ? Number(prev.recipient.variables?.outstandingBalance ?? 0)
+              : 0) + outstanding;
           byParentStudent.set(key, {
             studentId: st.id,
             recipient: {
@@ -1447,9 +1484,7 @@ export class SmsService {
           ...(input.audience === "SECTION" && input.sectionId
             ? { sectionId: input.sectionId }
             : {}),
-          ...(input.studentIds?.length
-            ? { id: { in: input.studentIds } }
-            : {}),
+          ...(input.studentIds?.length ? { id: { in: input.studentIds } } : {}),
           ...(input.parentIds?.length
             ? { parentId: { in: input.parentIds } }
             : {}),
@@ -1643,7 +1678,12 @@ export class SmsService {
         failed++;
         // Refund on hard failure. No-ops on own gateway — purchaseId is null
         // because nothing was reserved in the first place.
-        await this.refundCredits(schoolId, created.id, created.purchaseId, created.creditsUsed);
+        await this.refundCredits(
+          schoolId,
+          created.id,
+          created.purchaseId,
+          created.creditsUsed,
+        );
       }
       messages.push(delivered);
     }
@@ -1710,7 +1750,8 @@ export class SmsService {
 
     // Resolve per-message when not supplied (the scheduled-SMS cron sweeps
     // rows across schools, so each must use its own school's gateway).
-    const provider = providerCfg ?? (await this.resolveGateway(msg.schoolId)).config;
+    const provider =
+      providerCfg ?? (await this.resolveGateway(msg.schoolId)).config;
 
     let lastError = "";
     let result = await hormuudSendSms(

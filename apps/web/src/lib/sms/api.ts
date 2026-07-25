@@ -35,7 +35,12 @@ export interface SmsBalance {
     currency: string;
     status: string;
     purchasedAt: string;
-    package: { id: string; name: string; credits: number; price: string | number };
+    package: {
+      id: string;
+      name: string;
+      credits: number;
+      price: string | number;
+    };
   }[];
   /** Own-gateway state; when active, credits are not consumed. */
   gateway?: {
@@ -142,11 +147,55 @@ export async function apiSmsBalance() {
   return api<SmsBalance>("/sms/balance");
 }
 
-export async function apiSmsSettings(body: {
-  smsSenderName?: string | null;
-  smsEnabled?: boolean;
-}) {
+/**
+ * The school's own SMS switches. The sending name is NOT here — it is
+ * registered with the operator against a licensed organisation, so the school
+ * applies for it and the platform owner grants it (see apiSmsSenderId below).
+ */
+export async function apiSmsSettings(body: { smsEnabled?: boolean }) {
   return api("/sms/settings", { method: "PATCH", body });
+}
+
+/** One sender ID application. */
+export interface SmsSenderIdRequest {
+  id: string;
+  requestedName: string;
+  approvedName: string | null;
+  status: "PENDING" | "APPROVED" | "REJECTED";
+  licenseDocName: string | null;
+  contactPerson: string | null;
+  contactPhone: string | null;
+  note: string | null;
+  reviewNote: string | null;
+  reviewedAt: string | null;
+  createdAt: string;
+}
+
+export interface SmsSenderIdState {
+  schoolName: string;
+  /** The live sending name. Null until an application is approved. */
+  activeSenderId: string | null;
+  pending: SmsSenderIdRequest | null;
+  history: SmsSenderIdRequest[];
+}
+
+export async function apiSmsSenderId() {
+  return api<SmsSenderIdState>("/sms/sender-id");
+}
+
+export async function apiRequestSmsSenderId(body: {
+  requestedName: string;
+  contactPerson?: string | null;
+  contactPhone?: string | null;
+  note?: string | null;
+  licenseDoc?: string | null;
+  licenseDocName?: string | null;
+  licenseDocMime?: string | null;
+}) {
+  return api<{ id: string; requestedName: string; status: string }>(
+    "/sms/sender-id/request",
+    { method: "POST", body },
+  );
 }
 
 export async function apiSmsPackages() {
@@ -176,7 +225,12 @@ export async function apiCreateSmsTemplate(body: {
 
 export async function apiUpdateSmsTemplate(
   id: string,
-  body: Partial<{ name: string; category: SmsCategory; body: string; isActive: boolean }>,
+  body: Partial<{
+    name: string;
+    category: SmsCategory;
+    body: string;
+    isActive: boolean;
+  }>,
 ) {
   return api<SmsTemplate>(`/sms/templates/${id}`, { method: "PATCH", body });
 }
@@ -222,12 +276,7 @@ export async function apiSendSms(body: {
 }
 
 export type SmsAudience =
-  | "ALL_PARENTS"
-  | "CLASS"
-  | "SECTION"
-  | "TEACHERS"
-  | "OUTSTANDING"
-  | "CUSTOM";
+  "ALL_PARENTS" | "CLASS" | "SECTION" | "TEACHERS" | "OUTSTANDING" | "CUSTOM";
 
 export interface SmsAudienceRecipient {
   recordId: string;
@@ -345,7 +394,12 @@ export interface SmsPaymentOrderRow {
   failureReason: string | null;
   paidAt: string | null;
   createdAt: string;
-  package: { id: string; name: string; credits: number; price: string | number };
+  package: {
+    id: string;
+    name: string;
+    credits: number;
+    price: string | number;
+  };
   purchase: {
     id: string;
     creditsTotal: number;

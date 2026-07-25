@@ -43,7 +43,11 @@ export class SmsPaymentController {
     return this.payments.handleCallback("failure", query ?? {});
   }
 
-  @Roles(UserRole.ADMINISTRATOR, UserRole.SUPER_ADMINISTRATOR, UserRole.FINANCE_OFFICER)
+  @Roles(
+    UserRole.ADMINISTRATOR,
+    UserRole.SUPER_ADMINISTRATOR,
+    UserRole.FINANCE_OFFICER,
+  )
   @Post("purchase")
   purchase(@CurrentUser() me: AuthUser, @Body() body: unknown) {
     const parsed = purchaseSmsPackageSchema.safeParse(body);
@@ -51,19 +55,31 @@ export class SmsPaymentController {
     return this.payments.initiatePurchase(me.schoolId, me.userId, parsed.data);
   }
 
-  @Roles(UserRole.ADMINISTRATOR, UserRole.SUPER_ADMINISTRATOR, UserRole.FINANCE_OFFICER)
+  @Roles(
+    UserRole.ADMINISTRATOR,
+    UserRole.SUPER_ADMINISTRATOR,
+    UserRole.FINANCE_OFFICER,
+  )
   @Get()
   list(@CurrentUser() me: AuthUser) {
     return this.payments.listSchoolOrders(me.schoolId);
   }
 
-  @Roles(UserRole.ADMINISTRATOR, UserRole.SUPER_ADMINISTRATOR, UserRole.FINANCE_OFFICER)
+  @Roles(
+    UserRole.ADMINISTRATOR,
+    UserRole.SUPER_ADMINISTRATOR,
+    UserRole.FINANCE_OFFICER,
+  )
   @Post(":id/verify")
   verify(@CurrentUser() me: AuthUser, @Param("id") id: string) {
     return this.payments.verifyAndActivate(id, me.schoolId);
   }
 
-  @Roles(UserRole.ADMINISTRATOR, UserRole.SUPER_ADMINISTRATOR, UserRole.FINANCE_OFFICER)
+  @Roles(
+    UserRole.ADMINISTRATOR,
+    UserRole.SUPER_ADMINISTRATOR,
+    UserRole.FINANCE_OFFICER,
+  )
   @Get(":id")
   receipt(@CurrentUser() me: AuthUser, @Param("id") id: string) {
     return this.payments.getOrderReceipt(me.schoolId, id);
