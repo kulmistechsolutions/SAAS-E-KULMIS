@@ -57,6 +57,66 @@ interface TokenCache {
 
 let tokenCache: TokenCache | null = null;
 
+/**
+ * Values Hormuud puts in `Data.MessageID` when there is no message — including
+ * the literal four-letter string "null", which reads as a perfectly good id to
+ * anything that only checks for truthiness.
+ */
+const NON_IDS = new Set(["", "null", "undefined", "0", "none", "n/a"]);
+
+/** The provider's message id, or undefined when it is one of the non-ids. */
+export function realMessageId(raw: string | undefined): string | undefined {
+  const trimmed = raw?.trim();
+  return trimmed && !NON_IDS.has(trimmed.toLowerCase()) ? trimmed : undefined;
+}
+
+/**
+ * Did Hormuud accept the message?
+ *
+ * When the provider states a response code, that code decides — a failure code
+ * is a failure however encouraging the rest of the body looks. Only when no
+ * code comes back at all does a real message id stand in for one. Getting this
+ * wrong is expensive in a way that is invisible: the school sees "Sent", the
+ * parent never receives anything, and nobody finds out.
+ */
+export function isSendAccepted(input: {
+  httpOk: boolean;
+  responseCode: string;
+  messageId?: string;
+}): boolean {
+  if (!input.httpOk) return false;
+  const code = input.responseCode.trim().toLowerCase();
+  if (code) return code === "200" || code === "0" || code === "success";
+  return Boolean(realMessageId(input.messageId));
+}
+
+/**
+ * Hormuud's failure text is usually the single word "Failed.", which tells a
+ * school nothing it can act on. Where the code has a known meaning, say it.
+ */
+const CODE_EXPLANATIONS: Record<string, string> = {
+  "203":
+    "Rejected by Hormuud — the sender name is not registered with the operator for this account.",
+  "204": "Rejected by Hormuud — invalid or unreachable recipient number.",
+  "205": "Rejected by Hormuud — insufficient balance on the operator account.",
+};
+
+export function explainSendFailure(
+  responseCode: string,
+  responseMessage: string,
+  httpStatus: number,
+): string {
+  const known = CODE_EXPLANATIONS[responseCode.trim()];
+  if (known) return known;
+  if (responseMessage.trim())
+    return responseCode
+      ? `${responseMessage.trim()} (code ${responseCode})`
+      : responseMessage.trim();
+  return `Hormuud send failed (HTTP ${httpStatus}${
+    responseCode ? `, code ${responseCode}` : ""
+  })`;
+}
+
 function normalizeBaseUrl(url: string): string {
   return url.replace(/\/+$/, "");
 }
@@ -490,12 +550,8 @@ export async function hormuudSendSms(
       ? Number(details.TotalSMS ?? details.totalSMS ?? 1)
       : estimateSmsCredits(req.message);
 
-    const ok =
-      res.ok &&
-      (responseCode === "200" ||
-        responseCode === "0" ||
-        responseCode.toLowerCase() === "success" ||
-        Boolean(messageId));
+    const sentId = realMessageId(messageId);
+    const ok = isSendAccepted({ httpOk: res.ok, responseCode, messageId });
 
     if (!ok) {
       if (res.status === 401) clearHormuudTokenCache();
@@ -503,7 +559,7 @@ export async function hormuudSendSms(
         ok: false,
         responseCode,
         responseMessage,
-        error: responseMessage || `Hormuud send failed (HTTP ${res.status})`,
+        error: explainSendFailure(responseCode, responseMessage, res.status),
         raw: json,
         totalSms,
       };
@@ -513,7 +569,7 @@ export async function hormuudSendSms(
       ok: true,
       responseCode,
       responseMessage,
-      messageId: messageId || undefined,
+      messageId: sentId,
       totalSms: Number.isFinite(totalSms) && totalSms > 0 ? totalSms : 1,
       raw: json,
     };
