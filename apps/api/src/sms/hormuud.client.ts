@@ -91,24 +91,20 @@ export function isSendAccepted(input: {
 }
 
 /**
- * Hormuud's failure text is usually the single word "Failed.", which tells a
- * school nothing it can act on. So name the code and say where to look —
- * without naming a cause the response does not state.
+ * Fallback text for when `Data.Description` is missing. Hormuud normally
+ * explains itself there and those words are preferred — see
+ * explainSendFailure.
  *
- * Two confident guesses have already been wrong here. 203 was first read as
- * "the sender name is not registered"; a send under a name that had worked
- * ten times was refused anyway. It was then read as a bad recipient; a second
- * number that had worked was refused too. Both times the wording sent someone
- * to fix the wrong thing. What is actually established is only that the
- * operator refused it, so that is all this says.
+ * 203 is "Invalid Sender ID!!", confirmed by probing four names against the
+ * live account, every one refused. Only a name registered with Hormuud is
+ * accepted, and a name that worked last week can stop being accepted.
  */
 const CODE_EXPLANATIONS: Record<string, string> = {
   "203":
-    "Hormuud refused this message (code 203) and gave no reason. " +
-    "If messages to every number are failing, sending on the Hormuud " +
-    "account is the thing to check — authentication and balance can still " +
-    "look healthy while sending is refused. Contact Hormuud with the date, " +
-    "the sending name and a refused number.",
+    "Hormuud rejected the sending name (code 203 — Invalid Sender ID). " +
+    "The name messages go out under must be registered with Hormuud for " +
+    "this account. A name that worked before can stop being accepted, so " +
+    "confirm the registration with Hormuud.",
 };
 
 /** Provider text that names no reason, so it is worth nothing to a school. */

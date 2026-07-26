@@ -16,3 +16,31 @@ export function senderIdFeatureEnabled(
 ): boolean {
   return String(env.SMS_SENDER_ID_ENABLED ?? "").trim().toLowerCase() === "true";
 }
+
+/** Longest sender the provider accepts on the wire. */
+const SENDER_MAX = 20;
+
+/**
+ * The name a message will actually go out under.
+ *
+ * The SMS page used to show `smsSenderName` while the send path ignored it,
+ * so a school was told it sent as one name and sent as another. Both read
+ * this now, so what is displayed is what is used — which matters, because
+ * Hormuud rejects an unregistered name outright (code 203, "Invalid Sender
+ * ID!!") and the name is the first thing to check.
+ */
+export function resolveSendingName(
+  school: { name: string; smsSenderName?: string | null },
+  gatewaySenderId?: string | null,
+  env: NodeJS.ProcessEnv = process.env,
+): string {
+  const own = senderIdFeatureEnabled(env)
+    ? school.smsSenderName?.trim()
+    : undefined;
+  return (
+    own ||
+    gatewaySenderId?.trim() ||
+    school.name ||
+    "eKulmis"
+  ).slice(0, SENDER_MAX);
+}

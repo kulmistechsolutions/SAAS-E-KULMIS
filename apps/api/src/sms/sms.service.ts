@@ -23,7 +23,7 @@ import type {
 } from "@ekulmis/shared";
 import { Prisma } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
-import { senderIdFeatureEnabled } from "./sender-id-feature";
+import { resolveSendingName } from "./sender-id-feature";
 import {
   clearHormuudTokenCache,
   estimateSmsCredits,
@@ -914,7 +914,13 @@ export class SmsService {
         _sum: { creditsUsed: true },
       });
       return {
-        school,
+        // sendingName is the name messages actually go out under. The page
+        // used to show smsSenderName, which the send path may ignore, so a
+        // school could be told one name and send under another.
+        school: {
+          ...school,
+          sendingName: resolveSendingName(school, gateway.senderId),
+        },
         provider,
         creditsRemaining: remaining,
         purchases,
@@ -1545,18 +1551,7 @@ export class SmsService {
       throw new ForbiddenException("SMS is disabled for this school.");
     }
 
-    // A school-held sending name is only consulted while the sender ID feature
-    // is on. It is off by default: approving a name here never registered it
-    // with the operator, and an unregistered one is refused.
-    const schoolSender = senderIdFeatureEnabled()
-      ? school.smsSenderName?.trim()
-      : undefined;
-    const senderId = (
-      schoolSender ||
-      gateway.senderId ||
-      school.name ||
-      "eKulmis"
-    ).slice(0, 20);
+    const senderId = resolveSendingName(school, gateway.senderId);
 
     let templateBody = opts.body;
     if (opts.templateId) {

@@ -459,7 +459,7 @@ export default function SchoolSmsPage() {
         <div className="rounded-2xl border bg-card p-4 shadow-sm">
           <p className="text-xs text-muted-foreground">Sender name</p>
           <p className="mt-1 truncate text-lg font-semibold">
-            {balance?.school.smsSenderName || balance?.school.name || "—"}
+            {balance?.school.sendingName || balance?.school.name || "—"}
           </p>
         </div>
         <div className="rounded-2xl border bg-card p-4 shadow-sm">

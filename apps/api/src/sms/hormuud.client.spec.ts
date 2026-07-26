@@ -28,20 +28,20 @@ describe("explainSendFailure", () => {
 
   it("ignores provider text that names no reason", () => {
     for (const empty of ["Failed.", "failed", "ERROR", "-", "null", "  "]) {
-      const msg = explainSendFailure("203", empty, 200);
-      expect(msg).toContain("gave no reason");
+      expect(explainSendFailure("203", empty, 200)).toContain(
+        "Invalid Sender ID",
+      );
     }
   });
 
-  // Two confident causes have been asserted here and both were disproved by
-  // a later send: the sender name (a name that had worked ten times was
-  // refused) and the recipient (a second working number was refused too).
-  // The text must describe the refusal, not diagnose it.
-  it("asserts no cause the provider did not state", () => {
+  // 203 is "Invalid Sender ID!!" -- established by probing four names against
+  // the live account, every one refused, after two earlier guesses (the
+  // sender name, then the recipient) had each been disproved by the next
+  // send. This fallback only shows when Data.Description is missing.
+  it("says what 203 means when the provider omits the description", () => {
     const msg = explainSendFailure("203", "Failed.", 200);
-    expect(msg).not.toMatch(/the sender name is not registered/);
-    expect(msg).not.toMatch(/It is usually the number/);
-    expect(msg).toContain("gave no reason");
+    expect(msg).toContain("Invalid Sender ID");
+    expect(msg).toContain("registered with Hormuud");
   });
 
   it("keeps an unknown code's own message and shows the code", () => {

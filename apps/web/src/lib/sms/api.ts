@@ -17,6 +17,8 @@ export interface SmsBalance {
     id: string;
     name: string;
     smsSenderName: string | null;
+    /** The name messages actually go out under — show this, not the above. */
+    sendingName?: string;
     smsEnabled: boolean;
   };
   provider: {
