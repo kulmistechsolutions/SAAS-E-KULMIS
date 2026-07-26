@@ -23,6 +23,7 @@ import type {
 } from "@ekulmis/shared";
 import { Prisma } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
+import { senderIdFeatureEnabled } from "./sender-id-feature";
 import {
   clearHormuudTokenCache,
   estimateSmsCredits,
@@ -1544,8 +1545,14 @@ export class SmsService {
       throw new ForbiddenException("SMS is disabled for this school.");
     }
 
+    // A school-held sending name is only consulted while the sender ID feature
+    // is on. It is off by default: approving a name here never registered it
+    // with the operator, and an unregistered one is refused.
+    const schoolSender = senderIdFeatureEnabled()
+      ? school.smsSenderName?.trim()
+      : undefined;
     const senderId = (
-      school.smsSenderName?.trim() ||
+      schoolSender ||
       gateway.senderId ||
       school.name ||
       "eKulmis"

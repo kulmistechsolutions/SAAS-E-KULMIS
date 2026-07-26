@@ -834,8 +834,17 @@ export interface PlatformSenderIdRequest {
   createdAt: string;
 }
 
+export interface PlatformSenderIdList {
+  /**
+   * False while the sender ID feature is switched off. Granting a name then
+   * changes nothing recipients see — sends use the gateway's own name.
+   */
+  featureEnabled: boolean;
+  requests: PlatformSenderIdRequest[];
+}
+
 export const fetchPlatformSenderIdRequests = (status?: string) =>
-  platformFetch<PlatformSenderIdRequest[]>(
+  platformFetch<PlatformSenderIdList>(
     `/platform/sms/sender-id-requests${status ? `?status=${status}` : ""}`,
   );
 

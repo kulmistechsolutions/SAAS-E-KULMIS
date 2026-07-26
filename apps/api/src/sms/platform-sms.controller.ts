@@ -31,6 +31,7 @@ import type { PlatformAdminCtx } from "../platform/platform.types";
 import { SmsService } from "./sms.service";
 import { SmsPaymentService } from "./sms-payment.service";
 import { SmsSenderIdService } from "./sms-sender-id.service";
+import { senderIdFeatureEnabled } from "./sender-id-feature";
 
 @Public()
 @UseGuards(PlatformGuard)
@@ -196,8 +197,15 @@ export class PlatformSmsController {
   // who registers it with the operator, can grant it.
 
   @Get("sender-id-requests")
-  listSenderIdRequests(@Query("status") status?: string) {
-    return this.senderIds.listRequests(status);
+  async listSenderIdRequests(@Query("status") status?: string) {
+    // `featureEnabled: false` warns the reviewer that granting a name will
+    // not change what recipients see — the sending path is ignoring school
+    // names entirely. Approving into that silently is how the wrong name went
+    // live in the first place.
+    return {
+      featureEnabled: senderIdFeatureEnabled(),
+      requests: await this.senderIds.listRequests(status),
+    };
   }
 
   /** The school's licence document, for the reviewer to read. */

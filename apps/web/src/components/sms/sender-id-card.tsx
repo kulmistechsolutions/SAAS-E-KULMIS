@@ -142,6 +142,11 @@ export function SenderIdCard() {
     );
   }
 
+  // The feature is switched off platform-wide. Schools see nothing at all
+  // rather than an application they cannot use — messages go out under the
+  // name the gateway is configured with.
+  if (state?.available === false) return null;
+
   const rejected = state?.history.find((h) => h.status === "REJECTED");
   const showRejection =
     rejected && !state?.activeSenderId && !state?.pending ? rejected : null;

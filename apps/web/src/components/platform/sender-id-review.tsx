@@ -33,6 +33,7 @@ function when(iso: string | null): string {
  */
 export function SenderIdReview() {
   const [rows, setRows] = useState<PlatformSenderIdRequest[]>([]);
+  const [featureEnabled, setFeatureEnabled] = useState(true);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
   /** Per-row editable approved name, seeded from what the school asked for. */
@@ -42,11 +43,12 @@ export function SenderIdReview() {
   const load = useCallback(() => {
     setLoading(true);
     void fetchPlatformSenderIdRequests()
-      .then((list) => {
-        setRows(list);
+      .then((res) => {
+        setFeatureEnabled(res.featureEnabled);
+        setRows(res.requests);
         setNames(
           Object.fromEntries(
-            list
+            res.requests
               .filter((r) => r.status === "PENDING")
               .map((r) => [r.id, r.requestedName]),
           ),
@@ -112,6 +114,21 @@ export function SenderIdReview() {
 
   return (
     <div className="space-y-6">
+      {!featureEnabled && (
+        <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-5 text-sm text-amber-100">
+          <p className="font-semibold">
+            Sender names are switched off — approving one changes nothing.
+          </p>
+          <p className="mt-1 text-amber-200/90">
+            Messages go out under the name configured on the gateway, and
+            schools no longer see this application form. Approving a name here
+            does not register it with Hormuud: register it with the operator
+            first, then set <code>SMS_SENDER_ID_ENABLED=true</code> on the API
+            to turn this back on. An unregistered name is refused with code 203
+            and never reaches the recipient.
+          </p>
+        </div>
+      )}
       <div className="rounded-xl border border-white/10 bg-white/5 p-5">
         <div className="flex items-center gap-2">
           <ShieldCheck className="h-4 w-4 text-violet-400" />

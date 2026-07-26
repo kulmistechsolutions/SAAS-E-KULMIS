@@ -172,6 +172,11 @@ export interface SmsSenderIdRequest {
 }
 
 export interface SmsSenderIdState {
+  /**
+   * False when the sender ID feature is switched off platform-wide, in which
+   * case no other field is sent and the UI shows nothing.
+   */
+  available?: boolean;
   schoolName: string;
   /** The live sending name. Null until an application is approved. */
   activeSenderId: string | null;
