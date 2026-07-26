@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useEffect, useState } from "react";
 import { Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -17,6 +19,7 @@ interface Props {
 }
 
 export function SubjectFormDialog({ open, onClose, subject }: Props) {
+  const t = useT();
   const isEdit = !!subject;
   const [name, setName] = useState("");
   const [code, setCode] = useState("");
@@ -54,12 +57,12 @@ export function SubjectFormDialog({ open, onClose, subject }: Props) {
       open={open}
       onClose={onClose}
       title={isEdit ? "Edit Subject" : "Add Subject"}
-      description="Subject names must be unique across the school."
+      description={t("academicsSubjectFormDialog.subjectNamesMustBeUniqueAcross")}
       className="max-w-md"
       footer={
         <>
           <Button variant="outline" onClick={onClose}>
-            Cancel
+            {t("academicsSubjectFormDialog.cancel")}
           </Button>
           <Button onClick={submit}>{isEdit ? "Save Changes" : "Create Subject"}</Button>
         </>
@@ -72,26 +75,26 @@ export function SubjectFormDialog({ open, onClose, subject }: Props) {
       )}
       <div className="grid gap-4">
         <div>
-          <Label required>Subject Name</Label>
+          <Label required>{t("academicsSubjectFormDialog.subjectName")}</Label>
           <Input
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="e.g. Mathematics"
+            placeholder={t("academicsSubjectFormDialog.eGMathematics")}
           />
         </div>
         <div>
-          <Label>Subject Code</Label>
+          <Label>{t("academicsSubjectFormDialog.subjectCode")}</Label>
           <Input
             value={code}
             onChange={(e) => setCode(e.target.value)}
-            placeholder="e.g. MAT"
+            placeholder={t("academicsSubjectFormDialog.eGMat")}
           />
         </div>
         <div>
-          <Label required>Status</Label>
+          <Label required>{t("academicsSubjectFormDialog.status")}</Label>
           <Select value={status} onChange={(e) => setStatus(e.target.value as EntityStatus)}>
-            <option value="ACTIVE">Active</option>
-            <option value="INACTIVE">Inactive</option>
+            <option value="ACTIVE">{t("academicsSubjectFormDialog.active")}</option>
+            <option value="INACTIVE">{t("academicsSubjectFormDialog.inactive")}</option>
           </Select>
         </div>
       </div>

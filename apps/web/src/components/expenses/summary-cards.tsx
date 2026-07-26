@@ -1,3 +1,5 @@
+
+import { useT } from "@/lib/i18n/provider";
 import type { LucideIcon } from "lucide-react";
 import {
   ArrowRight,
@@ -88,6 +90,7 @@ const CARDS: {
 ];
 
 export function ExpenseSummaryCards({ summary }: { summary: ExpenseDashboardSummary }) {
+  const t = useT();
   return (
     <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
       {CARDS.map((c) => (
@@ -121,7 +124,7 @@ export function ExpenseSummaryCards({ summary }: { summary: ExpenseDashboardSumm
             type="button"
             className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
           >
-            View details
+            {t("expensesSummaryCards.viewDetails")}
             <ArrowRight className="h-3 w-3" />
           </button>
         </div>
@@ -135,6 +138,7 @@ export function FinancialSummaryPanel({
 }: {
   summary: ExpenseDashboardSummary;
 }) {
+  const t = useT();
   const items = [
     { label: "Total Income (Fees)", value: summary.totalIncome, tone: "text-emerald-600" },
     { label: "Total Salaries", value: summary.totalSalaries, tone: "text-violet-600" },
@@ -143,9 +147,9 @@ export function FinancialSummaryPanel({
   ];
   return (
     <div className="rounded-xl border bg-card p-5 shadow-sm">
-      <h2 className="font-semibold">Financial Summary</h2>
+      <h2 className="font-semibold">{t("expensesSummaryCards.financialSummary")}</h2>
       <p className="mt-1 text-xs text-muted-foreground">
-        Net Income = Fee Collection − Salaries − Expenses
+        {t("expensesSummaryCards.netIncomeFeeCollectionSalariesExpenses")}
       </p>
       <dl className="mt-4 space-y-3">
         {items.map((item) => (

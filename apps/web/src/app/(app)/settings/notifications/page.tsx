@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { SettingsSaveBar } from "@/components/settings/settings-save-bar";
 import { SettingsToggle } from "@/components/settings/settings-toggle";
 import { useSettingsSection } from "@/components/settings/use-settings-section";
@@ -22,23 +24,24 @@ const EVENTS: { key: keyof NotificationEventFlags; label: string }[] = [
 ];
 
 export default function NotificationSettingsPage() {
+  const t = useT();
   const { draft, update, dirty, cancel, resetToDefault, save, saving } =
     useSettingsSection("notifications");
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Notification Settings</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Enable channels and event triggers.</p>
+        <h1 className="text-2xl font-bold">{t("settingsNotifications.notificationSettings")}</h1>
+        <p className="mt-1 text-sm text-muted-foreground">{t("settingsNotifications.enableChannelsAndEventTriggers")}</p>
       </div>
       <div className="space-y-2">
-        <h2 className="font-semibold">Channels</h2>
+        <h2 className="font-semibold">{t("settingsNotifications.channels")}</h2>
         {CHANNELS.map((c) => (
           <SettingsToggle key={c.key} label={c.label} checked={draft[c.key]} onChange={(v) => update({ [c.key]: v })} />
         ))}
       </div>
       <div className="space-y-2">
-        <h2 className="font-semibold">Events</h2>
+        <h2 className="font-semibold">{t("settingsNotifications.events")}</h2>
         {EVENTS.map((e) => (
           <SettingsToggle
             key={e.key}

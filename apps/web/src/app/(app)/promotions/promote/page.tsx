@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -37,6 +39,7 @@ const TYPES: { id: PromotionType; label: string; desc: string; icon: typeof User
 ];
 
 export default function PromotePage() {
+  const tr = useT();
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
@@ -110,7 +113,7 @@ export default function PromotePage() {
   if (!mounted) {
     return (
       <div className="flex h-64 items-center justify-center text-muted-foreground">
-        Loading…
+        {tr("promotionsPromote.loading")}
       </div>
     );
   }
@@ -179,12 +182,12 @@ export default function PromotePage() {
   return (
     <div className="space-y-6">
       <Link href="/promotions" className="inline-flex items-center gap-1 text-sm text-primary hover:underline">
-        <ArrowLeft className="h-4 w-4" /> Back to Promotions
+        <ArrowLeft className="h-4 w-4" /> {tr("promotionsPromote.backToPromotions")}
       </Link>
 
       <div>
-        <h1 className="text-2xl font-bold">Promotion Wizard</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Academic Year {year}</p>
+        <h1 className="text-2xl font-bold">{tr("promotionsPromote.promotionWizard")}</h1>
+        <p className="mt-1 text-sm text-muted-foreground">{tr("promotionsPromote.academicYear")} {year}</p>
       </div>
 
       <Stepper step={step} />
@@ -218,39 +221,38 @@ export default function PromotePage() {
             <div className="flex items-start gap-3 rounded-xl border border-sky-500/30 bg-sky-500/10 p-4 text-sm">
               <School className="mt-0.5 h-5 w-5 shrink-0 text-sky-600" />
               <div>
-                <p className="font-medium text-sky-700 dark:text-sky-400">School-Wide Promotion</p>
+                <p className="font-medium text-sky-700 dark:text-sky-400">{tr("promotionsPromote.schoolWidePromotion")}</p>
                 <p className="mt-1 text-muted-foreground">
-                  Every eligible student advances one class. Final-class students graduate automatically.
-                  Review the full preview on the next step before confirming.
+                  {tr("promotionsPromote.everyEligibleStudentAdvancesOneClass")}
                 </p>
               </div>
             </div>
           ) : (
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
-                <Label required>Current Class</Label>
+                <Label required>{tr("promotionsPromote.currentClass")}</Label>
                 <Select value={fromClass} onChange={(e) => setFromClass(e.target.value)}>
-                  <option value="">Select class…</option>
+                  <option value="">{tr("promotionsPromote.selectClass")}</option>
                   {classes.map((c) => (
                     <option key={c} value={c}>{c}</option>
                   ))}
                 </Select>
               </div>
               <div>
-                <Label>Current Section</Label>
+                <Label>{tr("promotionsPromote.currentSection")}</Label>
                 <Select value={fromSection} onChange={(e) => setFromSection(e.target.value)} disabled={fromSections.length === 0}>
                   <option value="">{fromSections.length === 0 ? "No sections" : "All sections"}</option>
                   {fromSections.map((s) => (
-                    <option key={s} value={s}>Section {s}</option>
+                    <option key={s} value={s}>{tr("promotionsPromote.section")} {s}</option>
                   ))}
                 </Select>
               </div>
 
               {type === "INDIVIDUAL" && fromClass && (
                 <div className="sm:col-span-2">
-                  <Label required>Student</Label>
+                  <Label required>{tr("promotionsPromote.student")}</Label>
                   <Select value={studentId} onChange={(e) => setStudentId(e.target.value)}>
-                    <option value="">Select student…</option>
+                    <option value="">{tr("promotionsPromote.selectStudent")}</option>
                     {students.map((s) => (
                       <option key={s.studentId} value={s.studentId}>
                         {s.studentName} ({s.studentCode})
@@ -263,25 +265,25 @@ export default function PromotePage() {
               {fromClass && !suggestedNextClass(fromClass, year) ? (
                 <div className="sm:col-span-2 flex items-center gap-2 rounded-xl border border-sky-500/30 bg-sky-500/10 p-3 text-sm text-sky-700 dark:text-sky-400">
                   <GraduationCap className="h-4 w-4" />
-                  {fromClass} is the final class — eligible students will graduate.
+                  {fromClass} {tr("promotionsPromote.isTheFinalClassEligibleStudents")}
                 </div>
               ) : (
                 <>
                   <div>
-                    <Label required>Destination Class</Label>
+                    <Label required>{tr("promotionsPromote.destinationClass")}</Label>
                     <Select value={toClass} onChange={(e) => setToClass(e.target.value)}>
-                      <option value="">Select class…</option>
+                      <option value="">{tr("promotionsPromote.selectClass")}</option>
                       {classes.filter((c) => c !== fromClass).map((c) => (
                         <option key={c} value={c}>{c}</option>
                       ))}
                     </Select>
                   </div>
                   <div>
-                    <Label>Destination Section</Label>
+                    <Label>{tr("promotionsPromote.destinationSection")}</Label>
                     <Select value={toSection} onChange={(e) => setToSection(e.target.value)} disabled={toSections.length === 0}>
                       <option value="">{toSections.length === 0 ? "No sections" : "Keep / unassigned"}</option>
                       {toSections.map((s) => (
-                        <option key={s} value={s}>Section {s}</option>
+                        <option key={s} value={s}>{tr("promotionsPromote.section")} {s}</option>
                       ))}
                     </Select>
                   </div>
@@ -333,7 +335,7 @@ export default function PromotePage() {
           onClick={() => setStep((s) => Math.max(1, s - 1))}
           disabled={step === 1}
         >
-          <ArrowLeft className="mr-2 h-4 w-4" /> Back
+          <ArrowLeft className="mr-2 h-4 w-4" /> {tr("promotionsPromote.back")}
         </Button>
 
         {step < 3 ? (
@@ -341,27 +343,27 @@ export default function PromotePage() {
             onClick={() => setStep((s) => s + 1)}
             disabled={step === 2 && !canProceedFromStep2()}
           >
-            Next <ArrowRight className="ml-2 h-4 w-4" />
+            {tr("promotionsPromote.next")} <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
         ) : (
           <Button
             onClick={() => setConfirmOpen(true)}
             disabled={type !== "SCHOOL_WIDE" && selected.size === 0}
           >
-            <Sparkles className="mr-2 h-4 w-4" /> Confirm Promotion
+            <Sparkles className="mr-2 h-4 w-4" /> {tr("promotionsPromote.confirmPromotion")}
           </Button>
         )}
       </div>
 
       <ConfirmDialog
         open={confirmOpen}
-        title="Confirm Promotion"
+        title={tr("promotionsPromote.confirmPromotion")}
         message={
           type === "SCHOOL_WIDE"
             ? `Promote all ${schoolWidePreview?.candidates.filter((c) => c.eligible).length ?? 0} eligible students across the school? This preserves all historical records.`
             : `Promote ${selected.size} selected student(s)? This action is recorded and can be rolled back before new activities are logged.`
         }
-        confirmLabel="Confirm"
+        confirmLabel={tr("promotionsPromote.confirm")}
         onConfirm={handleConfirm}
         onClose={() => setConfirmOpen(false)}
       />
@@ -407,12 +409,13 @@ function PreviewSummary({
   graduating: number;
   destination?: string;
 }) {
+  const tr = useT();
   return (
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-      <Stat label="Total Students" value={String(total)} />
-      <Stat label="Selected / Eligible" value={String(eligible)} tone="emerald" />
-      <Stat label="Graduating" value={String(graduating)} tone="sky" />
-      <Stat label="Destination" value={destination ?? "Auto (one grade up)"} />
+      <Stat label={tr("promotionsPromote.totalStudents")} value={String(total)} />
+      <Stat label={tr("promotionsPromote.selectedEligible")} value={String(eligible)} tone="emerald" />
+      <Stat label={tr("promotionsPromote.graduating")} value={String(graduating)} tone="sky" />
+      <Stat label={tr("promotionsPromote.destination")} value={destination ?? "Auto (one grade up)"} />
     </div>
   );
 }

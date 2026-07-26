@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, Bell, Eye } from "lucide-react";
@@ -24,11 +26,12 @@ function formatSubmittedDate(iso: string | null) {
 }
 
 export default function ClassMonitoringPage() {
+  const t = useT();
   return (
     <Suspense
       fallback={
         <div className="flex h-64 items-center justify-center text-muted-foreground">
-          Loading monitoring…
+          {t("examinationsMonitoring.loadingMonitoring")}
         </div>
       }
     >
@@ -38,6 +41,7 @@ export default function ClassMonitoringPage() {
 }
 
 function ClassMonitoringContent() {
+  const t = useT();
   const params = useParams();
   const searchParams = useSearchParams();
   const classId = params.classId as string;
@@ -103,25 +107,24 @@ function ClassMonitoringContent() {
         <Button asChild variant="ghost" className="h-9 px-2">
           <Link href="/examinations/monitoring">
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Back
+            {t("examinationsMonitoring.back")}
           </Link>
         </Button>
         <div className="flex-1">
-          <h1 className="text-2xl font-bold">{className} — Monitoring</h1>
+          <h1 className="text-2xl font-bold">{className} {t("examinationsMonitoring.monitoring")}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Subject-level submission tracking. Filter by section to monitor each
-            group independently.
+            {t("examinationsMonitoring.subjectLevelSubmissionTrackingFilterBy")}
           </p>
         </div>
       </div>
 
       {data && (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <SummaryCard label="Total Subjects" value={data.summary.totalSubjects} />
-          <SummaryCard label="Submitted" value={data.summary.submittedSubjects} tone="success" />
-          <SummaryCard label="Pending" value={data.summary.pendingSubjects} tone="warning" />
+          <SummaryCard label={t("examinationsMonitoring.totalSubjects")} value={data.summary.totalSubjects} />
+          <SummaryCard label={t("examinationsMonitoring.submitted")} value={data.summary.submittedSubjects} tone="success" />
+          <SummaryCard label={t("examinationsMonitoring.pending")} value={data.summary.pendingSubjects} tone="warning" />
           <SummaryCard
-            label="Progress"
+            label={t("examinationsMonitoring.progress")}
             value={`${data.summary.completionPercent}%`}
             tone="info"
           />
@@ -132,16 +135,16 @@ function ClassMonitoringContent() {
         <div className="flex flex-wrap items-center gap-3 rounded-xl border bg-card p-4">
           {data.sections.length > 0 && (
             <>
-              <label className="text-xs font-medium text-muted-foreground">Section</label>
+              <label className="text-xs font-medium text-muted-foreground">{t("examinationsMonitoring.section")}</label>
               <Select
                 value={sectionId}
                 onChange={(e) => setSectionId(e.target.value)}
                 className="max-w-xs"
               >
-                <option value="">All Sections</option>
+                <option value="">{t("examinationsMonitoring.allSections")}</option>
                 {data.sections.map((s) => (
                   <option key={s.id} value={s.id}>
-                    Section {s.name}
+                    {t("examinationsMonitoring.section")} {s.name}
                   </option>
                 ))}
               </Select>
@@ -154,7 +157,7 @@ function ClassMonitoringContent() {
                 checked={sendSms}
                 onChange={(e) => setSendSms(e.target.checked)}
               />
-              Also send SMS
+              {t("examinationsMonitoring.alsoSendSms")}
             </label>
             <label className="flex items-center gap-2">
               <input
@@ -162,7 +165,7 @@ function ClassMonitoringContent() {
                 checked={sendEmail}
                 onChange={(e) => setSendEmail(e.target.checked)}
               />
-              Also notify by email
+              {t("examinationsMonitoring.alsoNotifyByEmail")}
             </label>
           </div>
         </div>
@@ -178,14 +181,14 @@ function ClassMonitoringContent() {
             <table className="w-full min-w-[960px] text-sm">
               <thead className="sticky top-0 bg-secondary/90 text-left text-xs text-muted-foreground backdrop-blur">
                 <tr>
-                  <th className="px-4 py-2.5 font-medium">Subject</th>
-                  <th className="px-4 py-2.5 font-medium">Assigned Teacher</th>
-                  <th className="px-4 py-2.5 font-medium">Class</th>
-                  <th className="px-4 py-2.5 font-medium">Section</th>
-                  <th className="px-4 py-2.5 font-medium">Exam</th>
-                  <th className="px-4 py-2.5 font-medium">Submission Status</th>
-                  <th className="px-4 py-2.5 font-medium">Submitted Date</th>
-                  <th className="px-4 py-2.5 font-medium">Actions</th>
+                  <th className="px-4 py-2.5 font-medium">{t("examinationsMonitoring.subject")}</th>
+                  <th className="px-4 py-2.5 font-medium">{t("examinationsMonitoring.assignedTeacher")}</th>
+                  <th className="px-4 py-2.5 font-medium">{t("examinationsMonitoring.class")}</th>
+                  <th className="px-4 py-2.5 font-medium">{t("examinationsMonitoring.section")}</th>
+                  <th className="px-4 py-2.5 font-medium">{t("examinationsMonitoring.exam")}</th>
+                  <th className="px-4 py-2.5 font-medium">{t("examinationsMonitoring.submissionStatus")}</th>
+                  <th className="px-4 py-2.5 font-medium">{t("examinationsMonitoring.submittedDate")}</th>
+                  <th className="px-4 py-2.5 font-medium">{t("examinationsMonitoring.actions")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -211,7 +214,7 @@ function ClassMonitoringContent() {
                               href={`/examinations/marks?exam=${s.examId}`}
                             >
                               <Eye className="mr-1 h-3.5 w-3.5" />
-                              View
+                              {t("examinationsMonitoring.view")}
                             </Link>
                           </Button>
                           {s.submissionStatus === "PENDING" && (
@@ -238,7 +241,7 @@ function ClassMonitoringContent() {
                       colSpan={8}
                       className="px-4 py-10 text-center text-muted-foreground"
                     >
-                      No subjects to monitor for this class and filter.
+                      {t("examinationsMonitoring.noSubjectsToMonitorForThis")}
                     </td>
                   </tr>
                 )}

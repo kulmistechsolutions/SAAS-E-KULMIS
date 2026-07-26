@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Eye, Plus, Trash2 } from "lucide-react";
@@ -16,6 +18,7 @@ import { toast } from "@/lib/toast";
 const PAGE_SIZE = 15;
 
 export default function QuizListPage() {
+  const t = useT();
   const [mounted, setMounted] = useState(false);
   const state = useQuizState();
   const [search, setSearch] = useState("");
@@ -36,16 +39,16 @@ export default function QuizListPage() {
     <div className="space-y-6">
       <div className="flex justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold">All Quizzes</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Manage quizzes across the school.</p>
+          <h1 className="text-2xl font-bold">{t("quizList.allQuizzes")}</h1>
+          <p className="mt-1 text-sm text-muted-foreground">{t("quizList.manageQuizzesAcrossTheSchool")}</p>
         </div>
-        <Link href="/quiz/create"><Button className="h-9"><Plus className="mr-2 h-4 w-4" />Create</Button></Link>
+        <Link href="/quiz/create"><Button className="h-9"><Plus className="mr-2 h-4 w-4" />{t("quizList.create")}</Button></Link>
       </div>
 
       <div className="flex flex-wrap gap-3">
-        <Input placeholder="Search quiz, teacher, subject…" value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} className="h-9 max-w-xs" />
+        <Input placeholder={t("quizList.searchQuizTeacherSubject")} value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} className="h-9 max-w-xs" />
         <Select value={status} onChange={(e) => { setStatus(e.target.value as QuizStatus | ""); setPage(1); }} className="h-9 min-w-[140px]">
-          <option value="">All statuses</option>
+          <option value="">{t("quizList.allStatuses")}</option>
           {QUIZ_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
         </Select>
       </div>
@@ -54,13 +57,13 @@ export default function QuizListPage() {
         <table className="w-full min-w-[900px] text-sm">
           <thead className="sticky top-0 bg-secondary text-left text-xs text-muted-foreground">
             <tr>
-              <th className="px-4 py-2.5">Code</th>
-              <th className="px-4 py-2.5">Title</th>
-              <th className="px-4 py-2.5">Teacher</th>
-              <th className="px-4 py-2.5">Class</th>
-              <th className="px-4 py-2.5">Subject</th>
-              <th className="px-4 py-2.5">Status</th>
-              <th className="px-4 py-2.5">Actions</th>
+              <th className="px-4 py-2.5">{t("quizList.code")}</th>
+              <th className="px-4 py-2.5">{t("quizList.title")}</th>
+              <th className="px-4 py-2.5">{t("quizList.teacher")}</th>
+              <th className="px-4 py-2.5">{t("quizList.class")}</th>
+              <th className="px-4 py-2.5">{t("quizList.subject")}</th>
+              <th className="px-4 py-2.5">{t("quizList.status")}</th>
+              <th className="px-4 py-2.5">{t("quizList.actions")}</th>
             </tr>
           </thead>
           <tbody>

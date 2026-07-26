@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useEffect, useState } from "react";
 import { Download, FileUp, Upload, ArrowLeft, Eye } from "lucide-react";
 import { Dialog } from "@/components/ui/dialog";
@@ -76,6 +78,7 @@ function parseStudentCsv(text: string): {
 }
 
 export function ImportDialog({ open, onClose, onDone }: Props) {
+  const t = useT();
   const { year: academicYear, setYear, years } = useAcademicYearSelect(
     "student-import-year",
   );
@@ -159,7 +162,7 @@ export function ImportDialog({ open, onClose, onDone }: Props) {
         reset();
         onClose();
       }}
-      title="Bulk Import Students"
+      title={t("studentsImportDialog.bulkImportStudents")}
       description={
         step === "preview"
           ? "Review rows before importing. Only valid rows will be inserted."
@@ -174,7 +177,7 @@ export function ImportDialog({ open, onClose, onDone }: Props) {
               onClose();
             }}
           >
-            Done
+            {t("studentsImportDialog.done")}
           </Button>
         ) : step === "preview" ? (
           <>
@@ -184,14 +187,14 @@ export function ImportDialog({ open, onClose, onDone }: Props) {
               disabled={loading}
             >
               <ArrowLeft className="mr-2 h-4 w-4" />
-              Back
+              {t("studentsImportDialog.back")}
             </Button>
             <Button
               onClick={handleImport}
               disabled={loading || validCount === 0}
             >
               <Upload className="mr-2 h-4 w-4" />
-              Import {validCount} student{validCount === 1 ? "" : "s"}
+              {t("studentsImportDialog.import")} {validCount} {t("studentsImportDialog.student")}{validCount === 1 ? "" : "s"}
             </Button>
           </>
         ) : (
@@ -201,7 +204,7 @@ export function ImportDialog({ open, onClose, onDone }: Props) {
               onClick={() => download("students-template.csv", TEMPLATE)}
             >
               <Download className="mr-2 h-4 w-4" />
-              Template
+              {t("studentsImportDialog.template")}
             </Button>
             <Button
               onClick={handlePreview}
@@ -221,26 +224,26 @@ export function ImportDialog({ open, onClose, onDone }: Props) {
           <div className="grid grid-cols-3 gap-3 text-center text-sm">
             <div className="rounded-xl border bg-emerald-500/10 p-3">
               <p className="text-xl font-bold text-emerald-600">{validCount}</p>
-              <p className="text-xs text-muted-foreground">Ready to import</p>
+              <p className="text-xs text-muted-foreground">{t("studentsImportDialog.readyToImport")}</p>
             </div>
             <div className="rounded-xl border bg-amber-500/10 p-3">
               <p className="text-xl font-bold text-amber-600">{dupeCount}</p>
-              <p className="text-xs text-muted-foreground">Duplicates (skip)</p>
+              <p className="text-xs text-muted-foreground">{t("studentsImportDialog.duplicatesSkip")}</p>
             </div>
             <div className="rounded-xl border bg-rose-500/10 p-3">
               <p className="text-xl font-bold text-rose-600">{invalidCount}</p>
-              <p className="text-xs text-muted-foreground">Invalid (skip)</p>
+              <p className="text-xs text-muted-foreground">{t("studentsImportDialog.invalidSkip")}</p>
             </div>
           </div>
           <div className="max-h-72 overflow-y-auto rounded-lg border">
             <table className="w-full text-sm">
               <thead className="sticky top-0 bg-secondary text-left text-xs text-muted-foreground">
                 <tr>
-                  <th className="px-3 py-2">Row</th>
-                  <th className="px-3 py-2">Name</th>
-                  <th className="px-3 py-2">Class</th>
-                  <th className="px-3 py-2">Status</th>
-                  <th className="px-3 py-2">Note</th>
+                  <th className="px-3 py-2">{t("studentsImportDialog.row")}</th>
+                  <th className="px-3 py-2">{t("studentsImportDialog.name")}</th>
+                  <th className="px-3 py-2">{t("studentsImportDialog.class")}</th>
+                  <th className="px-3 py-2">{t("studentsImportDialog.status")}</th>
+                  <th className="px-3 py-2">{t("studentsImportDialog.note")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -270,13 +273,13 @@ export function ImportDialog({ open, onClose, onDone }: Props) {
           )}
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <Label>Academic Year</Label>
+              <Label>{t("studentsImportDialog.academicYear")}</Label>
               <Select
                 value={academicYear}
                 onChange={(e) => setYear(e.target.value)}
               >
                 {years.length === 0 ? (
-                  <option value="">Loading…</option>
+                  <option value="">{t("studentsImportDialog.loading")}</option>
                 ) : (
                   years.map((y) => (
                     <option key={y} value={y}>
@@ -287,7 +290,7 @@ export function ImportDialog({ open, onClose, onDone }: Props) {
               </Select>
             </div>
             <div>
-              <Label>Upload CSV file</Label>
+              <Label>{t("studentsImportDialog.uploadCsvFile")}</Label>
               <label className="flex h-10 cursor-pointer items-center gap-2 rounded-lg border border-dashed border-input px-3 text-sm text-muted-foreground transition-colors hover:bg-secondary">
                 <FileUp className="h-4 w-4" />
                 {fileName ?? "Choose file…"}
@@ -301,7 +304,7 @@ export function ImportDialog({ open, onClose, onDone }: Props) {
             </div>
           </div>
           <div>
-            <Label>Or paste CSV rows</Label>
+            <Label>{t("studentsImportDialog.orPasteCsvRows")}</Label>
             <textarea
               value={text}
               onChange={(e) => {
@@ -314,7 +317,7 @@ export function ImportDialog({ open, onClose, onDone }: Props) {
               className="w-full rounded-lg border border-input bg-background p-3 font-mono text-xs outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
             />
             <p className="mt-1.5 text-xs text-muted-foreground">
-              Columns: {HEADERS.join(", ")}
+              {t("studentsImportDialog.columns")} {HEADERS.join(", ")}
             </p>
           </div>
         </div>
@@ -338,6 +341,7 @@ function StatusBadge({ status }: { status: ImportPreviewRow["status"] }) {
 }
 
 function ImportSummary({ result }: { result: ImportResult }) {
+  const t = useT();
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-3 gap-3">
@@ -345,19 +349,19 @@ function ImportSummary({ result }: { result: ImportResult }) {
           <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
             {result.imported}
           </p>
-          <p className="text-xs text-muted-foreground">Imported</p>
+          <p className="text-xs text-muted-foreground">{t("studentsImportDialog.imported")}</p>
         </div>
         <div className="rounded-xl border bg-amber-500/10 p-4 text-center">
           <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">
             {result.skipped}
           </p>
-          <p className="text-xs text-muted-foreground">Skipped (dupes)</p>
+          <p className="text-xs text-muted-foreground">{t("studentsImportDialog.skippedDupes")}</p>
         </div>
         <div className="rounded-xl border bg-rose-500/10 p-4 text-center">
           <p className="text-2xl font-bold text-rose-600 dark:text-rose-400">
             {result.failed}
           </p>
-          <p className="text-xs text-muted-foreground">Failed</p>
+          <p className="text-xs text-muted-foreground">{t("studentsImportDialog.failed")}</p>
         </div>
       </div>
       {result.errors.length > 0 && (
@@ -365,8 +369,8 @@ function ImportSummary({ result }: { result: ImportResult }) {
           <table className="w-full text-sm">
             <thead className="sticky top-0 bg-secondary text-left text-xs text-muted-foreground">
               <tr>
-                <th className="px-3 py-2 font-medium">Row</th>
-                <th className="px-3 py-2 font-medium">Issue</th>
+                <th className="px-3 py-2 font-medium">{t("studentsImportDialog.row")}</th>
+                <th className="px-3 py-2 font-medium">{t("studentsImportDialog.issue")}</th>
               </tr>
             </thead>
             <tbody>

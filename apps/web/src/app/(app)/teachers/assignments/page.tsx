@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, Pencil, Plus, Printer, Search, Trash2, X } from "lucide-react";
@@ -22,6 +24,7 @@ import { toast } from "@/lib/toast";
 const PAGE_SIZE = 12;
 
 export default function TeacherAssignmentsPage() {
+  const tr = useT();
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
@@ -63,29 +66,28 @@ export default function TeacherAssignmentsPage() {
   useEffect(() => setPage(1), [search, year, klass]);
 
   if (!mounted) {
-    return <div className="flex h-64 items-center justify-center text-muted-foreground">Loading assignments…</div>;
+    return <div className="flex h-64 items-center justify-center text-muted-foreground">{tr("teachersAssignments.loadingAssignments")}</div>;
   }
 
   return (
     <div className="space-y-6">
       <Link href="/teachers" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
-        <ArrowLeft className="h-4 w-4" /> Back to Teachers
+        <ArrowLeft className="h-4 w-4" /> {tr("teachersAssignments.backToTeachers")}
       </Link>
 
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold">Teacher Assignments</h1>
+          <h1 className="text-2xl font-bold">{tr("teachersAssignments.teacherAssignments")}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Each teacher can hold many independent class, section, and subject
-            assignments. Assign multiple subjects in one step.
+            {tr("teachersAssignments.eachTeacherCanHoldManyIndependent")}
           </p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => window.print()}>
-            <Printer className="mr-2 h-4 w-4" /> Print
+            <Printer className="mr-2 h-4 w-4" /> {tr("teachersAssignments.print")}
           </Button>
           <Button onClick={() => { setEditing(null); setFormOpen(true); }}>
-            <Plus className="mr-2 h-4 w-4" /> Assign Subjects
+            <Plus className="mr-2 h-4 w-4" /> {tr("teachersAssignments.assignSubjects")}
           </Button>
         </div>
       </div>
@@ -97,20 +99,20 @@ export default function TeacherAssignmentsPage() {
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search teacher, class, or subject…"
+              placeholder={tr("teachersAssignments.searchTeacherClassOrSubject")}
               className="h-10 w-full rounded-lg border bg-background pl-9 pr-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
             />
           </div>
           <AcademicYearSelect value={year} onChange={setYear} allowAll className="sm:w-36" />
           <Select value={klass} onChange={(e) => setKlass(e.target.value)} className="sm:w-36">
-            <option value="">All Classes</option>
+            <option value="">{tr("teachersAssignments.allClasses")}</option>
             {classOptions.map((c) => (
               <option key={c} value={c}>{c}</option>
             ))}
           </Select>
           {(search || year || klass) && (
             <Button variant="ghost" onClick={() => { setSearch(""); setYear(""); setKlass(""); }}>
-              <X className="mr-1 h-4 w-4" /> Clear
+              <X className="mr-1 h-4 w-4" /> {tr("teachersAssignments.clear")}
             </Button>
           )}
         </div>
@@ -122,21 +124,21 @@ export default function TeacherAssignmentsPage() {
             <thead className="sticky top-0 z-10 bg-secondary/95 backdrop-blur text-left text-xs uppercase tracking-wide text-muted-foreground">
               <tr>
                 <th className="px-4 py-3 font-medium">#</th>
-                <th className="px-4 py-3 font-medium">Teacher</th>
-                <th className="px-4 py-3 font-medium">Class</th>
-                <th className="px-4 py-3 font-medium">Section</th>
-                <th className="px-4 py-3 font-medium">Shift</th>
-                <th className="px-4 py-3 font-medium">Subject</th>
-                <th className="px-4 py-3 font-medium">Academic Year</th>
-                <th className="px-4 py-3 font-medium">Status</th>
-                <th className="px-4 py-3 text-right font-medium">Actions</th>
+                <th className="px-4 py-3 font-medium">{tr("teachersAssignments.teacher")}</th>
+                <th className="px-4 py-3 font-medium">{tr("teachersAssignments.class")}</th>
+                <th className="px-4 py-3 font-medium">{tr("teachersAssignments.section")}</th>
+                <th className="px-4 py-3 font-medium">{tr("teachersAssignments.shift")}</th>
+                <th className="px-4 py-3 font-medium">{tr("teachersAssignments.subject")}</th>
+                <th className="px-4 py-3 font-medium">{tr("teachersAssignments.academicYear")}</th>
+                <th className="px-4 py-3 font-medium">{tr("teachersAssignments.status")}</th>
+                <th className="px-4 py-3 text-right font-medium">{tr("teachersAssignments.actions")}</th>
               </tr>
             </thead>
             <tbody>
               {pageRows.length === 0 ? (
                 <tr>
                   <td colSpan={9} className="px-4 py-16 text-center text-muted-foreground">
-                    No assignments found.
+                    {tr("teachersAssignments.noAssignmentsFound")}
                   </td>
                 </tr>
               ) : (
@@ -165,10 +167,10 @@ export default function TeacherAssignmentsPage() {
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex justify-end gap-1">
-                          <button onClick={() => { setEditing(a); setFormOpen(true); }} className="flex h-8 w-8 items-center justify-center rounded-lg hover:bg-secondary" title="Edit">
+                          <button onClick={() => { setEditing(a); setFormOpen(true); }} className="flex h-8 w-8 items-center justify-center rounded-lg hover:bg-secondary" title={tr("teachersAssignments.edit")}>
                             <Pencil className="h-4 w-4" />
                           </button>
-                          <button onClick={() => setDeleting(a)} className="flex h-8 w-8 items-center justify-center rounded-lg text-rose-600 hover:bg-rose-500/10" title="Delete">
+                          <button onClick={() => setDeleting(a)} className="flex h-8 w-8 items-center justify-center rounded-lg text-rose-600 hover:bg-rose-500/10" title={tr("teachersAssignments.delete")}>
                             <Trash2 className="h-4 w-4" />
                           </button>
                         </div>
@@ -194,7 +196,7 @@ export default function TeacherAssignmentsPage() {
       />
       <ConfirmDialog
         open={!!deleting}
-        title="Delete Assignment"
+        title={tr("teachersAssignments.deleteAssignment")}
         message={deleting ? `Remove ${deleting.subject} assignment for ${deleting.className}?` : ""}
         onConfirm={async () => {
           if (deleting) {

@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useState } from "react";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -10,6 +12,7 @@ import { createCategory, toggleCategoryStatus, useExpensesState } from "@/lib/ex
 import { toast } from "@/lib/toast";
 
 export default function ExpenseCategoriesPage() {
+  const t = useT();
   const state = useExpensesState();
   const [name, setName] = useState("");
 
@@ -31,22 +34,22 @@ export default function ExpenseCategoriesPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Expense Categories</h1>
+        <h1 className="text-2xl font-bold">{t("expensesCategories.expenseCategories")}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Manage custom categories for school operational expenses.
+          {t("expensesCategories.manageCustomCategoriesForSchoolOperational")}
         </p>
       </div>
 
       <div className="flex max-w-md gap-2">
         <Input
-          placeholder="New category name…"
+          placeholder={t("expensesCategories.newCategoryName")}
           value={name}
           onChange={(e) => setName(e.target.value)}
           className="h-10"
         />
         <Button className="h-10 shrink-0" onClick={handleAdd}>
           <Plus className="mr-2 h-4 w-4" />
-          Add
+          {t("expensesCategories.add")}
         </Button>
       </div>
 
@@ -54,9 +57,9 @@ export default function ExpenseCategoriesPage() {
         <table className="w-full text-sm">
           <thead className="bg-secondary text-left text-xs text-muted-foreground">
             <tr>
-              <th className="px-4 py-2.5 font-medium">Category</th>
-              <th className="px-4 py-2.5 font-medium">Status</th>
-              <th className="px-4 py-2.5 font-medium">Actions</th>
+              <th className="px-4 py-2.5 font-medium">{t("expensesCategories.category")}</th>
+              <th className="px-4 py-2.5 font-medium">{t("expensesCategories.status")}</th>
+              <th className="px-4 py-2.5 font-medium">{t("expensesCategories.actions")}</th>
             </tr>
           </thead>
           <tbody>

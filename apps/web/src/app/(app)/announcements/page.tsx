@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useEffect, useMemo, useState } from "react";
 import { Megaphone, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -26,6 +28,7 @@ const CATEGORIES: PortalAnnouncement["category"][] = [
 ];
 
 export default function AnnouncementsPage() {
+  const t = useT();
   const { user } = useAuth();
   const isTeacher = user?.role === "TEACHER";
   const [mounted, setMounted] = useState(false);
@@ -85,7 +88,7 @@ export default function AnnouncementsPage() {
   if (!mounted) {
     return (
       <div className="flex h-64 items-center justify-center text-muted-foreground">
-        Loading announcements…
+        {t("announcements.loadingAnnouncements")}
       </div>
     );
   }
@@ -106,7 +109,7 @@ export default function AnnouncementsPage() {
         {!isTeacher && (
           <Button onClick={() => setComposeOpen(true)}>
             <Plus className="mr-2 h-4 w-4" />
-            Send Notice
+            {t("announcements.sendNotice")}
           </Button>
         )}
       </div>
@@ -119,7 +122,7 @@ export default function AnnouncementsPage() {
                 <div className="flex items-center gap-2">
                   <Megaphone className="h-4 w-4 text-primary" />
                   <h2 className="font-semibold">{a.title}</h2>
-                  {a.pinned && <Badge tone="info">Pinned</Badge>}
+                  {a.pinned && <Badge tone="info">{t("announcements.pinned")}</Badge>}
                 </div>
                 <Badge tone="muted" className="mt-2">
                   {announcementCategoryLabel(a.category)}
@@ -141,12 +144,12 @@ export default function AnnouncementsPage() {
           setComposeOpen(false);
           resetForm();
         }}
-        title="Send Notice"
-        description="Parents will see this in the portal and receive an in-app notification."
+        title={t("announcements.sendNotice")}
+        description={t("announcements.parentsWillSeeThisInThe")}
         footer={
           <>
             <Button variant="outline" onClick={() => setComposeOpen(false)}>
-              Cancel
+              {t("announcements.cancel")}
             </Button>
             <Button onClick={() => void handlePublish()} disabled={publishing}>
               {publishing ? "Publishing…" : "Publish Notice"}
@@ -156,16 +159,16 @@ export default function AnnouncementsPage() {
       >
         <div className="space-y-4">
           <div>
-            <Label htmlFor="notice-title">Title</Label>
+            <Label htmlFor="notice-title">{t("announcements.title")}</Label>
             <Input
               id="notice-title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g. Parent-Teacher Meeting"
+              placeholder={t("announcements.eGParentTeacherMeeting")}
             />
           </div>
           <div>
-            <Label htmlFor="notice-category">Category</Label>
+            <Label htmlFor="notice-category">{t("announcements.category")}</Label>
             <Select
               id="notice-category"
               value={category}
@@ -181,13 +184,13 @@ export default function AnnouncementsPage() {
             </Select>
           </div>
           <div>
-            <Label htmlFor="notice-body">Message</Label>
+            <Label htmlFor="notice-body">{t("announcements.message")}</Label>
             <Textarea
               id="notice-body"
               rows={5}
               value={body}
               onChange={(e) => setBody(e.target.value)}
-              placeholder="Write the announcement for parents…"
+              placeholder={t("announcements.writeTheAnnouncementForParents")}
             />
           </div>
           <label className="flex items-center gap-2 text-sm">
@@ -196,7 +199,7 @@ export default function AnnouncementsPage() {
               checked={pinned}
               onChange={(e) => setPinned(e.target.checked)}
             />
-            Pin to top of parent portal
+            {t("announcements.pinToTopOfParentPortal")}
           </label>
         </div>
       </Dialog>

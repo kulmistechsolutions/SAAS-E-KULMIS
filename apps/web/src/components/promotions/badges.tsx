@@ -1,18 +1,21 @@
+
+import { useT } from "@/lib/i18n/provider";
 import { Badge } from "@/components/ui/badge";
 import { promotionTypeLabel } from "@/lib/promotions/format";
 import type { PromotionCandidate, PromotionType } from "@/lib/promotions/types";
 
 export function EligibilityBadge({ candidate }: { candidate: PromotionCandidate }) {
+  const t = useT();
   if (candidate.graduating) {
-    return <Badge tone="info">Graduating</Badge>;
+    return <Badge tone="info">{t("promotionsBadges.graduating")}</Badge>;
   }
   return candidate.eligible ? (
     <Badge tone="success" dot>
-      Eligible
+      {t("promotionsBadges.eligible")}
     </Badge>
   ) : (
     <Badge tone="danger" dot>
-      Ineligible
+      {t("promotionsBadges.ineligible")}
     </Badge>
   );
 }

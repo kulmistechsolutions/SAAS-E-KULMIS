@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
@@ -40,6 +42,7 @@ function labelOf(exam: ImportableExam): string {
  * problem, none of them are imported.
  */
 export default function MarksImportPage() {
+  const t = useT();
   const academics = useAcademicsState();
   const [yearId, setYearId] = useState("");
   const [exams, setExams] = useState<ImportableExam[]>([]);
@@ -176,10 +179,10 @@ export default function MarksImportPage() {
         <div>
           <h1 className="flex items-center gap-2 text-2xl font-bold">
             <FileSpreadsheet className="h-6 w-6" />
-            Import Exam Marks
+            {t("examinationsMarksImport.importExamMarks")}
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Download a sheet per class, fill it in, bring it back.
+            {t("examinationsMarksImport.downloadASheetPerClassFill")}
           </p>
         </div>
         <div className="w-44">
@@ -196,21 +199,21 @@ export default function MarksImportPage() {
       {loading ? (
         <div className="flex items-center gap-2 py-12 text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin" />
-          Loading…
+          {t("examinationsMarksImport.loading")}
         </div>
       ) : groups.length === 0 ? (
         <p className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
-          No exams found for this academic year. Create an exam first.
+          {t("examinationsMarksImport.noExamsFoundForThisAcademic")}
         </p>
       ) : (
         <>
           <section className="space-y-3 rounded-lg border p-4">
-            <h2 className="text-sm font-semibold">1 · Choose the exam and classes</h2>
+            <h2 className="text-sm font-semibold">{t("examinationsMarksImport.n1ChooseTheExamAndClasses")}</h2>
             <div className="w-72">
               <Select value={groupId} onChange={(e) => setGroupId(e.target.value)}>
                 {groups.map((g) => (
                   <option key={g.id} value={g.id}>
-                    {g.name} ({g.exams.length} class
+                    {g.name} ({g.exams.length} {t("examinationsMarksImport.class")}
                     {g.exams.length === 1 ? "" : "es"})
                   </option>
                 ))}
@@ -235,7 +238,7 @@ export default function MarksImportPage() {
                   <span>
                     <span className="font-medium">{labelOf(exam)}</span>
                     <span className="block text-xs text-muted-foreground">
-                      {exam._count.subjects} subjects · out of {exam.maxMarks}
+                      {exam._count.subjects} {t("examinationsMarksImport.subjectsOutOf")} {exam.maxMarks}
                     </span>
                   </span>
                 </label>
@@ -243,26 +246,24 @@ export default function MarksImportPage() {
             </div>
 
             <p className="text-xs text-muted-foreground">
-              All classes are selected by default — untick any you want to import
-              separately.
+              {t("examinationsMarksImport.allClassesAreSelectedByDefault")}
             </p>
           </section>
 
           <section className="space-y-3 rounded-lg border p-4">
-            <h2 className="text-sm font-semibold">2 · Download the template</h2>
+            <h2 className="text-sm font-semibold">{t("examinationsMarksImport.n2DownloadTheTemplate")}</h2>
             <p className="text-xs text-muted-foreground">
-              One tab per class, with that class&apos;s own students and subjects.
-              Total, average and grade fill in themselves.
+              {t("examinationsMarksImport.oneTabPerClassWithThat")}
             </p>
             <Button type="button" onClick={handleTemplate} disabled={selected.length === 0}>
               <Download className="mr-2 h-4 w-4" />
-              Download template ({selected.length} class
+              {t("examinationsMarksImport.downloadTemplate")}{selected.length} {t("examinationsMarksImport.class")}
               {selected.length === 1 ? "" : "es"})
             </Button>
           </section>
 
           <section className="space-y-3 rounded-lg border p-4">
-            <h2 className="text-sm font-semibold">3 · Upload the filled-in file</h2>
+            <h2 className="text-sm font-semibold">{t("examinationsMarksImport.n3UploadTheFilledInFile")}</h2>
             <input
               ref={fileInput}
               type="file"
@@ -274,7 +275,7 @@ export default function MarksImportPage() {
             {busy === "checking" && (
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Loader2 className="h-4 w-4 animate-spin" />
-                Checking every sheet…
+                {t("examinationsMarksImport.checkingEverySheet")}
               </div>
             )}
 
@@ -311,11 +312,11 @@ export default function MarksImportPage() {
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b bg-secondary/40 text-left text-xs text-muted-foreground">
-                        <th className="px-3 py-2 font-medium">Class</th>
-                        <th className="px-3 py-2 font-medium">Students</th>
-                        <th className="px-3 py-2 font-medium">Marks</th>
-                        <th className="px-3 py-2 font-medium">Not entered</th>
-                        <th className="px-3 py-2 font-medium">Problems</th>
+                        <th className="px-3 py-2 font-medium">{t("examinationsMarksImport.class")}</th>
+                        <th className="px-3 py-2 font-medium">{t("examinationsMarksImport.students")}</th>
+                        <th className="px-3 py-2 font-medium">{t("examinationsMarksImport.marks")}</th>
+                        <th className="px-3 py-2 font-medium">{t("examinationsMarksImport.notEntered")}</th>
+                        <th className="px-3 py-2 font-medium">{t("examinationsMarksImport.problems")}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -328,7 +329,7 @@ export default function MarksImportPage() {
                           <td className="px-3 py-2">
                             {s.issues.length === 0 ? (
                               <span className="text-emerald-600 dark:text-emerald-400">
-                                none
+                                {t("examinationsMarksImport.none")}
                               </span>
                             ) : (
                               <span className="text-rose-600 dark:text-rose-400">
@@ -353,7 +354,7 @@ export default function MarksImportPage() {
                         <span>
                           <span className="font-medium">{issue.sheet}</span>
                           {issue.row ? (
-                            <span className="text-muted-foreground"> row {issue.row}</span>
+                            <span className="text-muted-foreground"> {t("examinationsMarksImport.row")} {issue.row}</span>
                           ) : null}
                           {" — "}
                           {issue.message}
@@ -374,7 +375,7 @@ export default function MarksImportPage() {
                     ) : (
                       <Upload className="mr-2 h-4 w-4" />
                     )}
-                    Import {preview.totalMarks} marks
+                    {t("examinationsMarksImport.import")} {preview.totalMarks} {t("examinationsMarksImport.marks")}
                   </Button>
                 </div>
               </div>

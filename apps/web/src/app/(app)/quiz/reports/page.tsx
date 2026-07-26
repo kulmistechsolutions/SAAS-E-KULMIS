@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import Link from "next/link";
 import { ChevronRight, FileText } from "lucide-react";
 import { REPORT_CATEGORIES } from "@/lib/reports/catalog";
@@ -7,11 +9,12 @@ import { REPORT_CATEGORIES } from "@/lib/reports/catalog";
 const QUIZ_REPORTS = REPORT_CATEGORIES.find((c) => c.id === "quiz")?.reports ?? [];
 
 export default function QuizReportsPage() {
+  const t = useT();
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Quiz Reports</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Performance and activity reports via Reports Center.</p>
+        <h1 className="text-2xl font-bold">{t("quizReports.quizReports")}</h1>
+        <p className="mt-1 text-sm text-muted-foreground">{t("quizReports.performanceAndActivityReportsViaReports")}</p>
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
         {QUIZ_REPORTS.map((r) => (

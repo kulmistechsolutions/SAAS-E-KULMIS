@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useMemo } from "react";
 import { Download, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -7,6 +9,7 @@ import { printUserListReport } from "@/lib/users/print";
 import { exportUsersCsv, listUsers, useUsersState } from "@/lib/users/store";
 
 export default function UserReportsPage() {
+  const t = useT();
   const state = useUsersState();
 
   const allUsers = useMemo(() => listUsers(), [state]);
@@ -24,9 +27,9 @@ export default function UserReportsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">User Reports</h1>
+        <h1 className="text-2xl font-bold">{t("usersReports.userReports")}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Print or export user and access reports.
+          {t("usersReports.printOrExportUserAndAccess")}
         </p>
       </div>
 
@@ -34,7 +37,7 @@ export default function UserReportsPage() {
         {standardReports.map((report) => (
           <div key={report.title} className="rounded-xl border bg-card p-5 shadow-sm">
             <h2 className="font-semibold">{report.title}</h2>
-            <p className="mt-1 text-sm text-muted-foreground">{report.rows.length} records</p>
+            <p className="mt-1 text-sm text-muted-foreground">{report.rows.length} {t("usersReports.records")}</p>
             <div className="mt-4 flex gap-2">
               <Button
                 variant="outline"
@@ -53,7 +56,7 @@ export default function UserReportsPage() {
                 }
               >
                 <Printer className="mr-2 h-4 w-4" />
-                Print
+                {t("usersReports.print")}
               </Button>
               <Button
                 variant="outline"
@@ -61,21 +64,21 @@ export default function UserReportsPage() {
                 onClick={() => exportUsersCsv(report.rows)}
               >
                 <Download className="mr-2 h-4 w-4" />
-                CSV
+                {t("usersReports.csv")}
               </Button>
             </div>
           </div>
         ))}
 
         <div className="rounded-xl border bg-card p-5 shadow-sm">
-          <h2 className="font-semibold">Role Summary</h2>
-          <p className="mt-1 text-sm text-muted-foreground">{state.roles.length} roles defined</p>
+          <h2 className="font-semibold">{t("usersReports.roleSummary")}</h2>
+          <p className="mt-1 text-sm text-muted-foreground">{state.roles.length} {t("usersReports.rolesDefined")}</p>
           <ul className="mt-3 space-y-2 text-sm">
             {state.roles.map((r) => (
               <li key={r.id} className="flex justify-between">
                 <span>{r.label}</span>
                 <span className="tabular-nums text-muted-foreground">
-                  {listUsers({ role: r.name }).length} users
+                  {listUsers({ role: r.name }).length} {t("usersReports.users")}
                 </span>
               </li>
             ))}
@@ -84,18 +87,18 @@ export default function UserReportsPage() {
       </div>
 
       <div className="rounded-xl border bg-card p-5 shadow-sm">
-        <h2 className="font-semibold">Login History</h2>
+        <h2 className="font-semibold">{t("usersReports.loginHistory")}</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          Recent sessions ({state.sessions.length} records).
+          {t("usersReports.recentSessions")}{state.sessions.length} {t("usersReports.records")}
         </p>
         <div className="mt-4 overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-secondary text-left text-xs text-muted-foreground">
               <tr>
-                <th className="px-3 py-2">User</th>
-                <th className="px-3 py-2">Login</th>
-                <th className="px-3 py-2">Device</th>
-                <th className="px-3 py-2">IP</th>
+                <th className="px-3 py-2">{t("usersReports.user")}</th>
+                <th className="px-3 py-2">{t("usersReports.login")}</th>
+                <th className="px-3 py-2">{t("usersReports.device")}</th>
+                <th className="px-3 py-2">{t("usersReports.ip")}</th>
               </tr>
             </thead>
             <tbody>

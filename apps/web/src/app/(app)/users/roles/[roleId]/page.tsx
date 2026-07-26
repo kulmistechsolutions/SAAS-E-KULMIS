@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { use, useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
@@ -17,6 +19,7 @@ export default function RolePermissionsPage({
 }: {
   params: Promise<{ roleId: string }>;
 }) {
+  const t = useT();
   const { roleId } = use(params);
   // Strict: only the real owner account, not every Administrator (see
   // useIsSuperAdministrator).
@@ -34,7 +37,7 @@ export default function RolePermissionsPage({
     !!role && !isOwner && OWNER_ONLY_ROLES.includes(role.name as never);
 
   if (!role || !perms || hidden) {
-    return <p className="text-muted-foreground">Role not found.</p>;
+    return <p className="text-muted-foreground">{t("usersRoles.roleNotFound")}</p>;
   }
 
   function handleSave() {
@@ -57,7 +60,7 @@ export default function RolePermissionsPage({
             className="inline-flex items-center gap-2 text-sm text-primary"
           >
             <ArrowLeft className="h-4 w-4" />
-            Roles
+            {t("usersRoles.roles")}
           </Link>
           <h1 className="mt-2 text-2xl font-bold">{role.label}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
@@ -69,7 +72,7 @@ export default function RolePermissionsPage({
         </div>
         {!readOnly && dirty && (
           <Button className="h-9" onClick={handleSave}>
-            Save Permissions
+            {t("usersRoles.savePermissions")}
           </Button>
         )}
       </div>

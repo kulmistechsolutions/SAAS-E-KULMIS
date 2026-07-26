@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useEffect, useState } from "react";
 import { Download, X } from "lucide-react";
 import { useSchoolBranding } from "@/lib/settings/use-school-branding";
@@ -21,6 +23,7 @@ const DISMISS_KEY = "ekulmis_pwa_install_dismissed_v1";
  * standalone) we show a short "Add to Home Screen" hint instead.
  */
 export function PwaInstaller() {
+  const t = useT();
   const branding = useSchoolBranding();
   const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(
     null,
@@ -122,7 +125,7 @@ export function PwaInstaller() {
         )}
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-semibold">
-            Install {branding.name}
+            {t("pwaPwaInstaller.install")} {branding.name}
           </p>
           <p className="text-xs text-muted-foreground">
             {iosHint
@@ -136,13 +139,13 @@ export function PwaInstaller() {
             onClick={() => void install()}
             className="shrink-0 rounded-xl bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
           >
-            Install
+            {t("pwaPwaInstaller.install")}
           </button>
         )}
         <button
           type="button"
           onClick={dismiss}
-          aria-label="Dismiss"
+          aria-label={t("pwaPwaInstaller.dismiss")}
           className="shrink-0 rounded-lg p-1.5 text-muted-foreground hover:bg-secondary"
         >
           <X className="h-4 w-4" />

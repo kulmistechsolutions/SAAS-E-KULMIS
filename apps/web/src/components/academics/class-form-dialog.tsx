@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useEffect, useMemo, useState } from "react";
 import { Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -24,6 +26,7 @@ interface Props {
 }
 
 export function ClassFormDialog({ open, onClose, cls }: Props) {
+  const t = useT();
   const isEdit = !!cls;
   const years = getAcademicsState().academicYears;
   const [name, setName] = useState("");
@@ -88,7 +91,7 @@ export function ClassFormDialog({ open, onClose, cls }: Props) {
       footer={
         <>
           <Button variant="outline" onClick={onClose}>
-            Cancel
+            {t("academicsClassFormDialog.cancel")}
           </Button>
           <Button onClick={submit} disabled={!isEdit && !allowCreate}>
             {isEdit ? "Save Name" : "Create Class"}
@@ -103,15 +106,15 @@ export function ClassFormDialog({ open, onClose, cls }: Props) {
       )}
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
-          <Label required>Class Name</Label>
+          <Label required>{t("academicsClassFormDialog.className")}</Label>
           <Input
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="e.g. Grade 7"
+            placeholder={t("academicsClassFormDialog.eGGrade7")}
           />
         </div>
         <div>
-          <Label required>Academic Year</Label>
+          <Label required>{t("academicsClassFormDialog.academicYear")}</Label>
           <Select
             value={academicYear}
             onChange={(e) => setAcademicYear(e.target.value)}
@@ -125,24 +128,24 @@ export function ClassFormDialog({ open, onClose, cls }: Props) {
           </Select>
         </div>
         <div>
-          <Label required>Has Sections</Label>
+          <Label required>{t("academicsClassFormDialog.hasSections")}</Label>
           <Select
             value={hasSections ? "yes" : "no"}
             onChange={(e) => setHasSections(e.target.value === "yes")}
           >
-            <option value="yes">Yes</option>
-            <option value="no">No</option>
+            <option value="yes">{t("academicsClassFormDialog.yes")}</option>
+            <option value="no">{t("academicsClassFormDialog.no")}</option>
           </Select>
         </div>
         <div>
-          <Label required>Status</Label>
+          <Label required>{t("academicsClassFormDialog.status")}</Label>
           <Select value={status} onChange={(e) => setStatus(e.target.value as EntityStatus)}>
-            <option value="ACTIVE">Active</option>
-            <option value="INACTIVE">Inactive</option>
+            <option value="ACTIVE">{t("academicsClassFormDialog.active")}</option>
+            <option value="INACTIVE">{t("academicsClassFormDialog.inactive")}</option>
           </Select>
         </div>
         <div className="sm:col-span-2">
-          <Label>Notes</Label>
+          <Label>{t("academicsClassFormDialog.notes")}</Label>
           <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} />
         </div>
       </div>

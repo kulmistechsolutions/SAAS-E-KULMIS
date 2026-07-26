@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { AlertTriangle, CheckCircle2, XCircle } from "lucide-react";
 import type { FeasibilityReport } from "@ekulmis/shared";
 import { cn } from "@/lib/utils";
@@ -13,6 +15,7 @@ import { cn } from "@/lib/utils";
  * school out of a perfectly good timetable or let it start an impossible one.
  */
 export function FeasibilityView({ report }: { report: FeasibilityReport }) {
+  const tr = useT();
   const blockers = report.issues.filter((i) => i.level === "BLOCKER");
   const warnings = report.issues.filter((i) => i.level === "WARNING");
 
@@ -50,7 +53,7 @@ export function FeasibilityView({ report }: { report: FeasibilityReport }) {
       {blockers.length > 0 && (
         <section>
           <h3 className="mb-2 text-sm font-semibold text-rose-600 dark:text-rose-400">
-            Must fix
+            {tr("timetableFeasibilityReport.mustFix")}
           </h3>
           <ul className="space-y-1.5">
             {blockers.map((issue, i) => (
@@ -69,7 +72,7 @@ export function FeasibilityView({ report }: { report: FeasibilityReport }) {
       {warnings.length > 0 && (
         <section>
           <h3 className="mb-2 text-sm font-semibold text-amber-600 dark:text-amber-400">
-            Worth knowing
+            {tr("timetableFeasibilityReport.worthKnowing")}
           </h3>
           <ul className="space-y-1.5">
             {warnings.map((issue, i) => (
@@ -88,7 +91,7 @@ export function FeasibilityView({ report }: { report: FeasibilityReport }) {
       <div className="grid gap-4 lg:grid-cols-2">
         <section className="overflow-hidden rounded-lg border">
           <h3 className="border-b bg-secondary/40 px-4 py-2 text-sm font-semibold">
-            Classes
+            {tr("timetableFeasibilityReport.classes")}
           </h3>
           <table className="w-full text-sm">
             <tbody>
@@ -117,7 +120,7 @@ export function FeasibilityView({ report }: { report: FeasibilityReport }) {
 
         <section className="overflow-hidden rounded-lg border">
           <h3 className="border-b bg-secondary/40 px-4 py-2 text-sm font-semibold">
-            Teacher load
+            {tr("timetableFeasibilityReport.teacherLoad")}
           </h3>
           <table className="w-full text-sm">
             <tbody>
@@ -139,7 +142,7 @@ export function FeasibilityView({ report }: { report: FeasibilityReport }) {
               {report.teachers.length === 0 && (
                 <tr>
                   <td className="px-4 py-6 text-center text-muted-foreground">
-                    No teacher has any lessons allocated yet.
+                    {tr("timetableFeasibilityReport.noTeacherHasAnyLessonsAllocated")}
                   </td>
                 </tr>
               )}

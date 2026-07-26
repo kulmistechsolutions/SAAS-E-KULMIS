@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
@@ -54,6 +56,7 @@ const TABS = [
 ];
 
 export default function StudentAttendancePage() {
+  const t = useT();
   const { user } = useAuth();
   const isTeacher = user?.role === "TEACHER";
   const [mounted, setMounted] = useState(false);
@@ -254,21 +257,21 @@ export default function StudentAttendancePage() {
   };
 
   if (!mounted) {
-    return <div className="flex h-64 items-center justify-center text-muted-foreground">Loading…</div>;
+    return <div className="flex h-64 items-center justify-center text-muted-foreground">{t("attendanceStudents.loading")}</div>;
   }
 
   return (
     <div className="space-y-6">
       {!isTeacher && (
       <Link href="/attendance" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
-        <ArrowLeft className="h-4 w-4" /> Back to Attendance
+        <ArrowLeft className="h-4 w-4" /> {t("attendanceStudents.backToAttendance")}
       </Link>
       )}
 
       <div>
-        <h1 className="text-2xl font-bold">Student Attendance</h1>
+        <h1 className="text-2xl font-bold">{t("attendanceStudents.studentAttendance")}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Record attendance per class and section. Students are never mixed across sections.
+          {t("attendanceStudents.recordAttendancePerClassAndSection")}
         </p>
       </div>
 
@@ -280,26 +283,26 @@ export default function StudentAttendancePage() {
             <div className="space-y-5">
               <div className="grid gap-3 rounded-xl border bg-secondary/20 p-4 sm:grid-cols-2 lg:grid-cols-5">
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-muted-foreground">Academic Year</label>
+                  <label className="mb-1 block text-xs font-medium text-muted-foreground">{t("attendanceStudents.academicYear")}</label>
                   <Select value={year} onChange={(e) => { setYear(e.target.value); setLoaded(false); }}>
                     {academics.academicYears.map((y) => <option key={y.id} value={y.name}>{y.name}</option>)}
                   </Select>
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-muted-foreground">Date</label>
+                  <label className="mb-1 block text-xs font-medium text-muted-foreground">{t("attendanceStudents.date")}</label>
                   <input type="date" value={date} onChange={(e) => { setDate(e.target.value); setLoaded(false); }}
                     className="h-10 w-full rounded-lg border bg-background px-3 text-sm outline-none focus:border-primary" />
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-muted-foreground">Class *</label>
+                  <label className="mb-1 block text-xs font-medium text-muted-foreground">{t("attendanceStudents.class")}</label>
                   <Select value={klass} onChange={(e) => { setKlass(e.target.value); setSection(""); setLoaded(false); }}>
-                    <option value="">Select class</option>
+                    <option value="">{t("attendanceStudents.selectClass")}</option>
                     {yearClasses.map((c) => <option key={c.id} value={c.name}>{c.name}</option>)}
                   </Select>
                 </div>
                 <div>
                   <label className="mb-1 block text-xs font-medium text-muted-foreground">
-                    Section{markClassNeedsSection ? " *" : ""}
+                    {t("attendanceStudents.section")}{markClassNeedsSection ? " *" : ""}
                   </label>
                   <Select
                     value={section}
@@ -309,13 +312,13 @@ export default function StudentAttendancePage() {
                     <option value="">
                       {markClassNeedsSection ? "Select section" : "— (no sections)"}
                     </option>
-                    {sectionOptions.map((s) => <option key={s.id} value={s.name}>Section {s.name}</option>)}
+                    {sectionOptions.map((s) => <option key={s.id} value={s.name}>{t("attendanceStudents.section")} {s.name}</option>)}
                   </Select>
                 </div>
                 <div className="flex items-end">
                   <Button onClick={() => void loadList()} disabled={loading} className="w-full">
                     {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                    Load Students
+                    {t("attendanceStudents.loadStudents")}
                   </Button>
                 </div>
               </div>
@@ -324,16 +327,16 @@ export default function StudentAttendancePage() {
                 <>
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <p className="text-sm text-muted-foreground">
-                      {formatDisplayDate(date)} · {klass}{section ? ` · Section ${section}` : ""} · {eligibleRows.length} students
+                      {formatDisplayDate(date)} · {klass}{section ? ` · Section ${section}` : ""} · {eligibleRows.length} {t("attendanceStudents.students")}
                     </p>
                     <div className="flex flex-wrap gap-2">
                       <Button variant="outline" onClick={() => markAll("PRESENT")}>
-                        <CheckCheck className="mr-2 h-4 w-4" /> Mark All Present
+                        <CheckCheck className="mr-2 h-4 w-4" /> {t("attendanceStudents.markAllPresent")}
                       </Button>
-                      <Button variant="outline" onClick={() => markAll("ABSENT")}>Mark All Absent</Button>
+                      <Button variant="outline" onClick={() => markAll("ABSENT")}>{t("attendanceStudents.markAllAbsent")}</Button>
                       <Button onClick={() => void handleSave()} disabled={saving}>
                         {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                        Save Attendance
+                        {t("attendanceStudents.saveAttendance")}
                       </Button>
                     </div>
                   </div>
@@ -344,10 +347,10 @@ export default function StudentAttendancePage() {
                         <thead className="sticky top-0 z-10 bg-secondary/95 backdrop-blur text-left text-xs uppercase text-muted-foreground">
                           <tr>
                             <th className="px-4 py-3 font-medium">#</th>
-                            <th className="px-4 py-3 font-medium">Student ID</th>
-                            <th className="px-4 py-3 font-medium">Name</th>
-                            <th className="px-4 py-3 font-medium">Gender</th>
-                            <th className="px-4 py-3 font-medium">Status</th>
+                            <th className="px-4 py-3 font-medium">{t("attendanceStudents.studentId")}</th>
+                            <th className="px-4 py-3 font-medium">{t("attendanceStudents.name")}</th>
+                            <th className="px-4 py-3 font-medium">{t("attendanceStudents.gender")}</th>
+                            <th className="px-4 py-3 font-medium">{t("attendanceStudents.status")}</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -396,10 +399,10 @@ export default function StudentAttendancePage() {
 
           {tab === "dashboard" && (
             <div className="space-y-4">
-              <p className="text-sm text-muted-foreground">Today — {formatDisplayDate(todayISO())}</p>
+              <p className="text-sm text-muted-foreground">{t("attendanceStudents.today")} {formatDisplayDate(todayISO())}</p>
               {dashboardLoading ? (
                 <div className="flex h-32 items-center justify-center text-muted-foreground">
-                  <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Loading dashboard…
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" /> {t("attendanceStudents.loadingDashboard")}
                 </div>
               ) : (
                 <StudentAttendanceSummaryCards summary={dashboard} />
@@ -412,27 +415,27 @@ export default function StudentAttendancePage() {
               <div className="flex flex-wrap gap-2">
                 <div className="relative min-w-[200px] flex-1">
                   <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <input value={rSearch} onChange={(e) => setRSearch(e.target.value)} placeholder="Search student…"
+                  <input value={rSearch} onChange={(e) => setRSearch(e.target.value)} placeholder={t("attendanceStudents.searchStudent")}
                     className="h-10 w-full rounded-lg border bg-background pl-9 pr-3 text-sm outline-none" />
                 </div>
                 <input type="date" value={rDate} onChange={(e) => setRDate(e.target.value)}
                   className="h-10 rounded-lg border bg-background px-3 text-sm" />
                 <Select value={rClass} onChange={(e) => setRClass(e.target.value)} className="w-32">
-                  <option value="">All Classes</option>
+                  <option value="">{t("attendanceStudents.allClasses")}</option>
                   {yearClasses.map((c) => <option key={c.id} value={c.name}>{c.name}</option>)}
                 </Select>
                 <Select value={rSection} onChange={(e) => setRSection(e.target.value)} className="w-32">
-                  <option value="">All Sections</option>
+                  <option value="">{t("attendanceStudents.allSections")}</option>
                   {(rClass ? sectionsForClass(classByName(rClass, year)?.id ?? "") : []).map((s) => (
                     <option key={s.id} value={s.name}>{s.name}</option>
                   ))}
                 </Select>
                 <Select value={rStatus} onChange={(e) => setRStatus(e.target.value)} className="w-32">
-                  <option value="">All Status</option>
-                  <option value="PRESENT">Present</option>
-                  <option value="ABSENT">Absent</option>
-                  <option value="LATE">Late</option>
-                  <option value="EXCUSED">Excused</option>
+                  <option value="">{t("attendanceStudents.allStatus")}</option>
+                  <option value="PRESENT">{t("attendanceStudents.present")}</option>
+                  <option value="ABSENT">{t("attendanceStudents.absent")}</option>
+                  <option value="LATE">{t("attendanceStudents.late")}</option>
+                  <option value="EXCUSED">{t("attendanceStudents.excused")}</option>
                 </Select>
                 <Button variant="outline" onClick={() => {
                   exportStudentAttendanceCsv(reportRows.map((r) => ({
@@ -440,7 +443,7 @@ export default function StudentAttendancePage() {
                     section: r.section, date: r.date, status: r.status,
                   })));
                   toast("Report exported.", "info");
-                }}><FileDown className="mr-2 h-4 w-4" /> CSV</Button>
+                }}><FileDown className="mr-2 h-4 w-4" /> {t("attendanceStudents.csv")}</Button>
                 <Button variant="outline" onClick={() => {
                   if (reportRows.length === 0) return toast("No records to print.", "error");
                   const first = reportRows[0];
@@ -454,27 +457,27 @@ export default function StudentAttendancePage() {
                     })),
                     summary: previewSummary,
                   });
-                }}><Printer className="mr-2 h-4 w-4" /> Print</Button>
+                }}><Printer className="mr-2 h-4 w-4" /> {t("attendanceStudents.print")}</Button>
               </div>
 
               <div className="overflow-hidden rounded-xl border">
                 <table className="w-full text-sm">
                   <thead className="bg-secondary text-left text-xs text-muted-foreground">
                     <tr>
-                      <th className="px-4 py-2.5 font-medium">Date</th>
-                      <th className="px-4 py-2.5 font-medium">Student</th>
-                      <th className="px-4 py-2.5 font-medium">Class</th>
-                      <th className="px-4 py-2.5 font-medium">Section</th>
-                      <th className="px-4 py-2.5 font-medium">Status</th>
+                      <th className="px-4 py-2.5 font-medium">{t("attendanceStudents.date")}</th>
+                      <th className="px-4 py-2.5 font-medium">{t("attendanceStudents.student")}</th>
+                      <th className="px-4 py-2.5 font-medium">{t("attendanceStudents.class")}</th>
+                      <th className="px-4 py-2.5 font-medium">{t("attendanceStudents.section")}</th>
+                      <th className="px-4 py-2.5 font-medium">{t("attendanceStudents.status")}</th>
                     </tr>
                   </thead>
                   <tbody>
                     {reportLoading ? (
                       <tr><td colSpan={5} className="px-4 py-12 text-center text-muted-foreground">
-                        <Loader2 className="mr-2 inline h-4 w-4 animate-spin" /> Loading records…
+                        <Loader2 className="mr-2 inline h-4 w-4 animate-spin" /> {t("attendanceStudents.loadingRecords")}
                       </td></tr>
                     ) : reportRows.length === 0 ? (
-                      <tr><td colSpan={5} className="px-4 py-12 text-center text-muted-foreground">No records for this date.</td></tr>
+                      <tr><td colSpan={5} className="px-4 py-12 text-center text-muted-foreground">{t("attendanceStudents.noRecordsForThisDate")}</td></tr>
                     ) : (
                       reportRows.slice(0, 100).map((r) => (
                         <tr key={r.id} className="border-t">

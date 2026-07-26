@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useEffect, useState } from "react";
 import { Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -25,6 +27,7 @@ export function AssignSubscriptionDialog({
   plans,
   onSubmit,
 }: Props) {
+  const t = useT();
   const [planId, setPlanId] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -55,11 +58,11 @@ export function AssignSubscriptionDialog({
       open={open}
       onClose={onClose}
       title={`Assign Plan — ${row?.school.name ?? ""}`}
-      description="Starts today; renewing resets the AI grading counter and extends the end date by the plan's duration."
+      description={t("platformAssignSubscriptionDialog.startsTodayRenewingResetsTheAi")}
       footer={
         <>
           <Button type="button" variant="outline" onClick={onClose}>
-            Cancel
+            {t("platformAssignSubscriptionDialog.cancel")}
           </Button>
           <Button type="submit" form="assign-subscription-form" disabled={submitting}>
             {submitting ? "Assigning…" : "Assign / Renew"}
@@ -77,21 +80,21 @@ export function AssignSubscriptionDialog({
           </div>
         )}
         <div>
-          <Label>Plan</Label>
+          <Label>{t("platformAssignSubscriptionDialog.plan")}</Label>
           <Select value={planId} onChange={(e) => setPlanId(e.target.value)}>
             <option value="" disabled>
-              Select a plan
+              {t("platformAssignSubscriptionDialog.selectAPlan")}
             </option>
             {plans.map((p) => (
               <option key={p.id} value={p.id}>
-                {p.name} — {p.maxStudents ?? "∞"} students, {p.durationDays}d,{" "}
-                {p.aiGradingMonthlyQuota ?? "∞"} AI/mo
+                {p.name} — {p.maxStudents ?? "∞"} {t("platformAssignSubscriptionDialog.students")} {p.durationDays}{t("platformAssignSubscriptionDialog.d")}{" "}
+                {p.aiGradingMonthlyQuota ?? "∞"} {t("platformAssignSubscriptionDialog.aiMo")}
               </option>
             ))}
           </Select>
           {plans.length === 0 && (
             <p className="mt-1 text-xs text-muted-foreground">
-              No plans yet — create one first.
+              {t("platformAssignSubscriptionDialog.noPlansYetCreateOneFirst")}
             </p>
           )}
         </div>

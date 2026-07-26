@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useEffect, useMemo, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Pagination } from "@/components/ui/pagination";
@@ -18,6 +20,7 @@ import { Badge } from "@/components/ui/badge";
 const PAGE_SIZE = 15;
 
 export default function SalaryEmployeesPage() {
+  const t = useT();
   const [mounted, setMounted] = useState(false);
   const state = useSalaryState();
   const [search, setSearch] = useState("");
@@ -47,7 +50,7 @@ export default function SalaryEmployeesPage() {
   if (!mounted) {
     return (
       <div className="flex h-64 items-center justify-center text-muted-foreground">
-        Loading employees…
+        {t("salaryEmployees.loadingEmployees")}
       </div>
     );
   }
@@ -55,15 +58,15 @@ export default function SalaryEmployeesPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Employees</h1>
+        <h1 className="text-2xl font-bold">{t("salaryEmployees.employees")}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Salary profiles for teachers and school staff.
+          {t("salaryEmployees.salaryProfilesForTeachersAndSchool")}
         </p>
       </div>
 
       <div className="flex flex-wrap gap-3">
         <Input
-          placeholder="Search name or employee ID…"
+          placeholder={t("salaryEmployees.searchNameOrEmployeeId")}
           value={search}
           onChange={(e) => {
             setSearch(e.target.value);
@@ -79,7 +82,7 @@ export default function SalaryEmployeesPage() {
           }}
           className="h-9 min-w-[160px]"
         >
-          <option value="">All positions</option>
+          <option value="">{t("salaryEmployees.allPositions")}</option>
           {POSITIONS.map((p) => (
             <option key={p} value={p}>
               {p}
@@ -94,9 +97,9 @@ export default function SalaryEmployeesPage() {
           }}
           className="h-9 min-w-[140px]"
         >
-          <option value="">All types</option>
-          <option value="TEACHER">Teachers</option>
-          <option value="STAFF">Staff</option>
+          <option value="">{t("salaryEmployees.allTypes")}</option>
+          <option value="TEACHER">{t("salaryEmployees.teachers")}</option>
+          <option value="STAFF">{t("salaryEmployees.staff")}</option>
         </Select>
       </div>
 
@@ -105,16 +108,16 @@ export default function SalaryEmployeesPage() {
           <table className="w-full min-w-[1000px] text-sm">
             <thead className="sticky top-0 bg-secondary text-left text-xs text-muted-foreground">
               <tr>
-                <th className="px-4 py-2.5 font-medium">Employee ID</th>
-                <th className="px-4 py-2.5 font-medium">Name</th>
-                <th className="px-4 py-2.5 font-medium">Position</th>
-                <th className="px-4 py-2.5 font-medium">Basic</th>
-                <th className="px-4 py-2.5 font-medium">Allowances</th>
-                <th className="px-4 py-2.5 font-medium">Bonus</th>
-                <th className="px-4 py-2.5 font-medium">Deductions</th>
-                <th className="px-4 py-2.5 font-medium">Net</th>
-                <th className="px-4 py-2.5 font-medium">Payment</th>
-                <th className="px-4 py-2.5 font-medium">Status</th>
+                <th className="px-4 py-2.5 font-medium">{t("salaryEmployees.employeeId")}</th>
+                <th className="px-4 py-2.5 font-medium">{t("salaryEmployees.name")}</th>
+                <th className="px-4 py-2.5 font-medium">{t("salaryEmployees.position")}</th>
+                <th className="px-4 py-2.5 font-medium">{t("salaryEmployees.basic")}</th>
+                <th className="px-4 py-2.5 font-medium">{t("salaryEmployees.allowances")}</th>
+                <th className="px-4 py-2.5 font-medium">{t("salaryEmployees.bonus")}</th>
+                <th className="px-4 py-2.5 font-medium">{t("salaryEmployees.deductions")}</th>
+                <th className="px-4 py-2.5 font-medium">{t("salaryEmployees.net")}</th>
+                <th className="px-4 py-2.5 font-medium">{t("salaryEmployees.payment")}</th>
+                <th className="px-4 py-2.5 font-medium">{t("salaryEmployees.status")}</th>
               </tr>
             </thead>
             <tbody>
@@ -163,7 +166,7 @@ export default function SalaryEmployeesPage() {
       </div>
 
       <p className="text-xs text-muted-foreground">
-        Joining dates range from {shortDate(pageRows[0]?.joiningDate)} — teachers are synced from Teacher Management.
+        {t("salaryEmployees.joiningDatesRangeFrom")} {shortDate(pageRows[0]?.joiningDate)} {t("salaryEmployees.teachersAreSyncedFromTeacherManagement")}
       </p>
     </div>
   );

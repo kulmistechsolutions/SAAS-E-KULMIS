@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useEffect, type ReactNode } from "react";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -26,6 +28,7 @@ export function Dialog({
   className,
   scrollable = true,
 }: DialogProps) {
+  const t = useT();
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
@@ -89,7 +92,7 @@ export function Dialog({
             <button
               type="button"
               onClick={onClose}
-              aria-label="Close"
+              aria-label={t("uiDialog.close")}
               className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-secondary"
             >
               <X className="h-4 w-4" />

@@ -1,11 +1,14 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useRef } from "react";
 import { exportSettingsJson, importSettingsJson, resetSettingsToDefault } from "@/lib/settings/store";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/lib/toast";
 
 export default function ImportExportSettingsPage() {
+  const t = useT();
   const fileRef = useRef<HTMLInputElement>(null);
 
   function download() {
@@ -39,25 +42,25 @@ export default function ImportExportSettingsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Import / Export</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Backup and restore system configuration.</p>
+        <h1 className="text-2xl font-bold">{t("settingsImportExport.importExport")}</h1>
+        <p className="mt-1 text-sm text-muted-foreground">{t("settingsImportExport.backupAndRestoreSystemConfiguration")}</p>
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="rounded-xl border bg-card p-5">
-          <h2 className="font-semibold">Export Configuration</h2>
-          <p className="mt-2 text-sm text-muted-foreground">Download school info, branding, academic, fee, exam, and security settings.</p>
-          <Button className="mt-4" onClick={download}>Export JSON</Button>
+          <h2 className="font-semibold">{t("settingsImportExport.exportConfiguration")}</h2>
+          <p className="mt-2 text-sm text-muted-foreground">{t("settingsImportExport.downloadSchoolInfoBrandingAcademicFee")}</p>
+          <Button className="mt-4" onClick={download}>{t("settingsImportExport.exportJson")}</Button>
         </div>
         <div className="rounded-xl border bg-card p-5">
-          <h2 className="font-semibold">Import Configuration</h2>
-          <p className="mt-2 text-sm text-muted-foreground">Upload a previously exported settings file.</p>
+          <h2 className="font-semibold">{t("settingsImportExport.importConfiguration")}</h2>
+          <p className="mt-2 text-sm text-muted-foreground">{t("settingsImportExport.uploadAPreviouslyExportedSettingsFile")}</p>
           <input ref={fileRef} type="file" accept="application/json,.json" className="mt-4 text-sm" onChange={(e) => importFile(e.target.files?.[0] ?? null)} />
         </div>
       </div>
       <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-5">
-        <h2 className="font-semibold text-destructive">Reset to Default</h2>
-        <p className="mt-2 text-sm text-muted-foreground">Restore all settings to factory defaults. Audit and backup history are preserved.</p>
-        <Button variant="destructive" className="mt-4" onClick={resetAll}>Reset All Settings</Button>
+        <h2 className="font-semibold text-destructive">{t("settingsImportExport.resetToDefault")}</h2>
+        <p className="mt-2 text-sm text-muted-foreground">{t("settingsImportExport.restoreAllSettingsToFactoryDefaults")}</p>
+        <Button variant="destructive" className="mt-4" onClick={resetAll}>{t("settingsImportExport.resetAllSettings")}</Button>
       </div>
     </div>
   );

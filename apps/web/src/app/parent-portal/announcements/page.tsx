@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useMemo } from "react";
 import { usePortalState, listAnnouncements } from "@/lib/parent-portal/store";
 import {
@@ -9,14 +11,15 @@ import {
 import { Badge } from "@/components/ui/badge";
 
 export default function ParentAnnouncementsPage() {
+  const t = useT();
   const portal = usePortalState();
   const items = useMemo(() => listAnnouncements(), [portal.announcements]);
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">School Announcements</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Newest announcements appear first.</p>
+        <h1 className="text-2xl font-bold">{t("parentPortalAnnouncements.schoolAnnouncements")}</h1>
+        <p className="mt-1 text-sm text-muted-foreground">{t("parentPortalAnnouncements.newestAnnouncementsAppearFirst")}</p>
       </div>
 
       <div className="space-y-4">
@@ -26,7 +29,7 @@ export default function ParentAnnouncementsPage() {
               <div>
                 <div className="flex items-center gap-2">
                   <h2 className="font-semibold">{a.title}</h2>
-                  {a.pinned && <Badge tone="info">Pinned</Badge>}
+                  {a.pinned && <Badge tone="info">{t("parentPortalAnnouncements.pinned")}</Badge>}
                 </div>
                 <Badge tone="muted" className="mt-2">
                   {announcementCategoryLabel(a.category)}

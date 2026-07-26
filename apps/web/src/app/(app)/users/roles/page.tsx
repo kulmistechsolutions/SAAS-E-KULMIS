@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useState } from "react";
 import Link from "next/link";
 import { ChevronRight, Plus, Shield } from "lucide-react";
@@ -12,6 +14,7 @@ import { useIsSuperAdministrator } from "@/lib/users/super-admin";
 import { toast } from "@/lib/toast";
 
 export default function RolesPage() {
+  const t = useT();
   const state = useUsersState();
   // Strict: only the school's real owner (SUPER_ADMINISTRATOR), not every
   // Administrator — otherwise every staff Administrator account they create
@@ -38,22 +41,22 @@ export default function RolesPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Roles & Permissions</h1>
+        <h1 className="text-2xl font-bold">{t("usersRoles.rolesPermissions")}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Built-in and custom roles with configurable module permissions.
+          {t("usersRoles.builtInAndCustomRolesWith")}
         </p>
       </div>
 
       <div className="flex max-w-md gap-2">
         <Input
-          placeholder="Custom role name (e.g. Library Officer)"
+          placeholder={t("usersRoles.customRoleNameEGLibrary")}
           value={name}
           onChange={(e) => setName(e.target.value)}
           className="h-10"
         />
         <Button className="h-10 shrink-0" onClick={handleCreate}>
           <Plus className="mr-2 h-4 w-4" />
-          Add Role
+          {t("usersRoles.addRole")}
         </Button>
       </div>
 

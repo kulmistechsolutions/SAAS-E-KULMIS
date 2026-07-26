@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Plus } from "lucide-react";
@@ -10,6 +12,7 @@ import { QuizStatusBadge } from "@/components/quiz/status-badge";
 import type { QuizStatus } from "@/lib/quiz/types";
 
 export default function TeacherPortalQuizzesPage() {
+  const t = useT();
   const { teacher } = useTeacherPortal();
   const [quizzes, setQuizzes] = useState<
     {
@@ -57,15 +60,15 @@ export default function TeacherPortalQuizzesPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold">My Quizzes</h1>
+          <h1 className="text-2xl font-bold">{t("teacherPortalQuizzes.myQuizzes")}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Instructional online quizzes for your assigned classes — separate from official school examinations.
+            {t("teacherPortalQuizzes.instructionalOnlineQuizzesForYourAssigned")}
           </p>
         </div>
         <Button asChild>
           <Link href="/teacher-portal/quizzes/create">
             <Plus className="mr-2 h-4 w-4" />
-            Create Quiz
+            {t("teacherPortalQuizzes.createQuiz")}
           </Link>
         </Button>
       </div>
@@ -88,19 +91,19 @@ export default function TeacherPortalQuizzesPage() {
       </div>
 
       {loading ? (
-        <p className="text-muted-foreground">Loading quizzes…</p>
+        <p className="text-muted-foreground">{t("teacherPortalQuizzes.loadingQuizzes")}</p>
       ) : quizzes.length === 0 ? (
-        <p className="text-muted-foreground">No quizzes yet. Create your first quiz for an assigned class.</p>
+        <p className="text-muted-foreground">{t("teacherPortalQuizzes.noQuizzesYetCreateYourFirst")}</p>
       ) : (
         <div className="overflow-x-auto rounded-xl border bg-card">
           <table className="w-full min-w-[640px] text-sm">
             <thead className="border-b bg-muted/40 text-left">
               <tr>
-                <th className="px-4 py-3 font-medium">Quiz</th>
-                <th className="px-4 py-3 font-medium">Class / Section</th>
-                <th className="px-4 py-3 font-medium">Subject</th>
-                <th className="px-4 py-3 font-medium">Attempts</th>
-                <th className="px-4 py-3 font-medium">Status</th>
+                <th className="px-4 py-3 font-medium">{t("teacherPortalQuizzes.quiz")}</th>
+                <th className="px-4 py-3 font-medium">{t("teacherPortalQuizzes.classSection")}</th>
+                <th className="px-4 py-3 font-medium">{t("teacherPortalQuizzes.subject")}</th>
+                <th className="px-4 py-3 font-medium">{t("teacherPortalQuizzes.attempts")}</th>
+                <th className="px-4 py-3 font-medium">{t("teacherPortalQuizzes.status")}</th>
                 <th className="px-4 py-3 font-medium" />
               </tr>
             </thead>
@@ -122,7 +125,7 @@ export default function TeacherPortalQuizzesPage() {
                   </td>
                   <td className="px-4 py-3 text-right">
                     <Link href={`/teacher-portal/quizzes/${q.id}`} className="text-primary hover:underline">
-                      Open
+                      {t("teacherPortalQuizzes.open")}
                     </Link>
                   </td>
                 </tr>

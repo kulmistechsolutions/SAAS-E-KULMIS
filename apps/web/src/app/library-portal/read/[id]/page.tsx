@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import {
   use,
   useCallback,
@@ -68,6 +70,7 @@ function PdfPage({
   rootRef: React.RefObject<HTMLDivElement | null>;
   onVisible: (page: number) => void;
 }) {
+  const tr = useT();
   const wrapperRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [rendered, setRendered] = useState(false);
@@ -122,7 +125,7 @@ function PdfPage({
       {!rendered && (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-slate-100 text-slate-400">
           <Loader2 className="h-5 w-5 animate-spin" />
-          <span className="text-xs">Page {pageNumber}</span>
+          <span className="text-xs">{tr("libraryPortalRead.page")} {pageNumber}</span>
         </div>
       )}
       <canvas
@@ -148,6 +151,7 @@ export default function LibraryPortalReadPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const tr = useT();
   const { id } = use(params);
   const router = useRouter();
   const { me, loading: authLoading } = useLibraryPortalAuth();
@@ -257,7 +261,7 @@ export default function LibraryPortalReadPage({
   if (authLoading || !me) {
     return (
       <div className="flex min-h-screen items-center justify-center gap-2 text-muted-foreground">
-        <Loader2 className="h-4 w-4 animate-spin" /> Loading…
+        <Loader2 className="h-4 w-4 animate-spin" /> {tr("libraryPortalRead.loading")}
       </div>
     );
   }
@@ -279,7 +283,7 @@ export default function LibraryPortalReadPage({
           </p>
           {numPages > 0 && (
             <p className="text-xs text-slate-400">
-              Page {visiblePage} of {numPages}
+              {tr("libraryPortalRead.page")} {visiblePage} {tr("libraryPortalRead.of")} {numPages}
             </p>
           )}
         </div>
@@ -290,14 +294,14 @@ export default function LibraryPortalReadPage({
               className="h-8 border-white/20 bg-transparent px-3 text-xs text-white hover:bg-white/10"
               onClick={download}
             >
-              <Download className="mr-1.5 h-3.5 w-3.5" /> Download
+              <Download className="mr-1.5 h-3.5 w-3.5" /> {tr("libraryPortalRead.download")}
             </Button>
           )}
           <button
             type="button"
             onClick={() => router.push("/library-portal")}
             className="rounded-md p-1.5 text-slate-400 hover:bg-white/10 hover:text-white"
-            aria-label="Close"
+            aria-label={tr("libraryPortalRead.close")}
           >
             <X className="h-5 w-5" />
           </button>
@@ -308,7 +312,7 @@ export default function LibraryPortalReadPage({
         {loading ? (
           <div className="flex h-full flex-col items-center justify-center gap-3 text-slate-400">
             <Loader2 className="h-6 w-6 animate-spin" />
-            <p className="text-sm">Opening book…</p>
+            <p className="text-sm">{tr("libraryPortalRead.openingBook")}</p>
           </div>
         ) : error ? (
           <div className="flex h-full items-center justify-center px-4">

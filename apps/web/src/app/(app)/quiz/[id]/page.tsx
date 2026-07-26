@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { use, useCallback, useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { ArrowLeft, Copy, Play, Plus, Save, Trash2 } from "lucide-react";
@@ -95,6 +97,7 @@ function toPayload(qs: BQ[]): QuizBuilderQuestion[] {
 }
 
 export default function QuizBuilderPage({ params }: { params: Promise<{ id: string }> }) {
+  const tr = useT();
   const { id } = use(params);
   const { user } = useAuth();
   const isTeacher = user?.role === "TEACHER";
@@ -141,8 +144,8 @@ export default function QuizBuilderPage({ params }: { params: Promise<{ id: stri
     void load();
   }, [load]);
 
-  if (loading) return <p className="text-muted-foreground">Loading quiz…</p>;
-  if (!quiz) return <p className="text-muted-foreground">Quiz not found.</p>;
+  if (loading) return <p className="text-muted-foreground">{tr("quiz.loadingQuiz")}</p>;
+  if (!quiz) return <p className="text-muted-foreground">{tr("quiz.quizNotFound")}</p>;
 
   const isDraft = quiz.status === "DRAFT";
   const totalMarks = questions.reduce((s, q) => s + (Number(q.marks) || 0), 0);
@@ -206,83 +209,83 @@ export default function QuizBuilderPage({ params }: { params: Promise<{ id: stri
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <Link href={listHref} className="inline-flex items-center gap-2 text-sm text-primary">
-            <ArrowLeft className="h-4 w-4" />All Quizzes
+            <ArrowLeft className="h-4 w-4" />{tr("quiz.allQuizzes")}
           </Link>
           <h1 className="mt-2 text-2xl font-bold">{quiz.title}</h1>
           <p className="mt-1 font-mono text-sm text-muted-foreground">{quiz.code}</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" className="h-9" onClick={copyLink}><Copy className="mr-2 h-4 w-4" />Copy Link</Button>
-          <Link href={`/quiz-take/${quiz.code}`} target="_blank"><Button variant="outline" className="h-9"><Play className="mr-2 h-4 w-4" />Preview</Button></Link>
-          <Link href={`${quizBase}/${quiz.id}/results`}><Button variant="outline" className="h-9">Results</Button></Link>
+          <Button variant="outline" className="h-9" onClick={copyLink}><Copy className="mr-2 h-4 w-4" />{tr("quiz.copyLink")}</Button>
+          <Link href={`/quiz-take/${quiz.code}`} target="_blank"><Button variant="outline" className="h-9"><Play className="mr-2 h-4 w-4" />{tr("quiz.preview")}</Button></Link>
+          <Link href={`${quizBase}/${quiz.id}/results`}><Button variant="outline" className="h-9">{tr("quiz.results")}</Button></Link>
           {!isDraft && (
-            <Link href={`${quizBase}/${quiz.id}/live`}><Button variant="outline" className="h-9">Live Monitor</Button></Link>
+            <Link href={`${quizBase}/${quiz.id}/live`}><Button variant="outline" className="h-9">{tr("quiz.liveMonitor")}</Button></Link>
           )}
         </div>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Stat label="Status" value={<QuizStatusBadge status={quiz.status} />} />
-        <Stat label="Class / Section" value={`${quiz.class?.name ?? ""} — ${quiz.section?.name ?? "All"}`} />
-        <Stat label="Subject" value={quiz.subject?.name ?? "—"} />
-        <Stat label="Total Marks" value={String(totalMarks)} />
+        <Stat label={tr("quiz.status")} value={<QuizStatusBadge status={quiz.status} />} />
+        <Stat label={tr("quiz.classSection")} value={`${quiz.class?.name ?? ""} — ${quiz.section?.name ?? "All"}`} />
+        <Stat label={tr("quiz.subject")} value={quiz.subject?.name ?? "—"} />
+        <Stat label={tr("quiz.totalMarks")} value={String(totalMarks)} />
       </div>
 
       {!isDraft && (
         <p className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
-          This quiz is {quiz.status.toLowerCase()} and can no longer be edited.
+          {tr("quiz.thisQuizIs")} {quiz.status.toLowerCase()} {tr("quiz.andCanNoLongerBeEdited")}
         </p>
       )}
 
       {/* ── Settings ── */}
       <fieldset disabled={!isDraft} className="space-y-4 rounded-xl border bg-card p-5 shadow-sm disabled:opacity-70">
-        <h2 className="font-semibold">Instructions &amp; Rules</h2>
+        <h2 className="font-semibold">{tr("quiz.instructionsAmpRules")}</h2>
         <div className="space-y-2">
-          <Label>Instructions for students (shown before they start)</Label>
-          <Textarea value={instructions} onChange={(e) => setInstructions(e.target.value)} rows={3} placeholder="e.g. Read each question carefully. You have one attempt." />
+          <Label>{tr("quiz.instructionsForStudentsShownBeforeThey")}</Label>
+          <Textarea value={instructions} onChange={(e) => setInstructions(e.target.value)} rows={3} placeholder={tr("quiz.eGReadEachQuestionCarefully")} />
         </div>
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="space-y-2">
-            <Label>Time limit (minutes, blank = none)</Label>
+            <Label>{tr("quiz.timeLimitMinutesBlankNone")}</Label>
             <Input type="number" value={duration} onChange={(e) => setDuration(e.target.value)} />
           </div>
           <div className="space-y-2">
-            <Label>Max attempts</Label>
+            <Label>{tr("quiz.maxAttempts")}</Label>
             <Input type="number" value={maxAttempts} onChange={(e) => setMaxAttempts(e.target.value)} />
           </div>
         </div>
         <div className="space-y-2">
-          <Toggle label="Show result to student immediately after finishing" checked={showResults} onChange={setShowResults} />
-          <Toggle label="Allow students to review answers after finishing" checked={allowReview} onChange={setAllowReview} />
-          <Toggle label="Allow PDF download of result sheet" checked={allowPdf} onChange={setAllowPdf} />
-          <Toggle label="Prevent minimizing / leaving the exam tab" checked={preventMinimize} onChange={setPreventMinimize} />
-          <Toggle label="Reset all answers if the student leaves the tab" checked={resetOnMinimize} onChange={setResetOnMinimize} />
-          <Toggle label="Disable copy &amp; paste" checked={disableCopyPaste} onChange={setDisableCopyPaste} />
+          <Toggle label={tr("quiz.showResultToStudentImmediatelyAfter")} checked={showResults} onChange={setShowResults} />
+          <Toggle label={tr("quiz.allowStudentsToReviewAnswersAfter")} checked={allowReview} onChange={setAllowReview} />
+          <Toggle label={tr("quiz.allowPdfDownloadOfResultSheet")} checked={allowPdf} onChange={setAllowPdf} />
+          <Toggle label={tr("quiz.preventMinimizingLeavingTheExamTab")} checked={preventMinimize} onChange={setPreventMinimize} />
+          <Toggle label={tr("quiz.resetAllAnswersIfTheStudent")} checked={resetOnMinimize} onChange={setResetOnMinimize} />
+          <Toggle label={tr("quiz.disableCopyAmpPaste")} checked={disableCopyPaste} onChange={setDisableCopyPaste} />
         </div>
       </fieldset>
 
       {/* ── Questions ── */}
       <fieldset disabled={!isDraft} className="space-y-4 rounded-xl border bg-card p-5 shadow-sm disabled:opacity-70">
         <div className="flex items-center justify-between">
-          <h2 className="font-semibold">Questions ({questions.length})</h2>
+          <h2 className="font-semibold">{tr("quiz.questions")}{questions.length})</h2>
         </div>
 
         <div className="space-y-4">
           {questions.map((q, i) => (
             <QuestionEditor key={q.key} q={q} index={i} onChange={(n) => patch(q.key, n)} onRemove={() => setQuestions((qs) => qs.filter((x) => x.key !== q.key))} />
           ))}
-          {questions.length === 0 && <p className="text-sm text-muted-foreground">No questions yet — add one below.</p>}
+          {questions.length === 0 && <p className="text-sm text-muted-foreground">{tr("quiz.noQuestionsYetAddOneBelow")}</p>}
         </div>
 
         <div className="flex flex-wrap items-center gap-2 border-t pt-4">
-          <Label className="mb-0">Add:</Label>
+          <Label className="mb-0">{tr("quiz.add")}</Label>
           <Select value={addType} onChange={(e) => setAddType(e.target.value as QType)} className="h-9 w-48">
             {(Object.keys(TYPE_LABEL) as QType[]).map((t) => (
               <option key={t} value={t}>{TYPE_LABEL[t]}</option>
             ))}
           </Select>
           <Button variant="outline" className="h-9" onClick={() => setQuestions((qs) => [...qs, blankQuestion(addType)])}>
-            <Plus className="mr-2 h-4 w-4" />Add question
+            <Plus className="mr-2 h-4 w-4" />{tr("quiz.addQuestion")}
           </Button>
         </div>
       </fieldset>
@@ -302,6 +305,7 @@ export default function QuizBuilderPage({ params }: { params: Promise<{ id: stri
 }
 
 function QuestionEditor({ q, index, onChange, onRemove }: { q: BQ; index: number; onChange: (n: Partial<BQ>) => void; onRemove: () => void }) {
+  const tr = useT();
   return (
     <div className="space-y-3 rounded-lg border bg-secondary/20 p-4">
       <div className="flex items-center justify-between">
@@ -309,7 +313,7 @@ function QuestionEditor({ q, index, onChange, onRemove }: { q: BQ; index: number
           Q{index + 1} · {TYPE_LABEL[q.questionType]}
         </span>
         <div className="flex items-center gap-2">
-          <Input type="number" value={q.marks} onChange={(e) => onChange({ marks: Number(e.target.value) || 1 })} className="h-8 w-16" title="Marks" />
+          <Input type="number" value={q.marks} onChange={(e) => onChange({ marks: Number(e.target.value) || 1 })} className="h-8 w-16" title={tr("quiz.marks")} />
           <Button variant="ghost" className="h-8 w-8 p-0 text-rose-600" onClick={onRemove}><Trash2 className="h-4 w-4" /></Button>
         </div>
       </div>
@@ -318,48 +322,48 @@ function QuestionEditor({ q, index, onChange, onRemove }: { q: BQ; index: number
 
       {q.questionType === "MCQ" && (
         <div className="space-y-2">
-          <Label className="text-xs">Options (pick the correct one)</Label>
+          <Label className="text-xs">{tr("quiz.optionsPickTheCorrectOne")}</Label>
           {q.options.map((opt, oi) => (
             <div key={oi} className="flex items-center gap-2">
-              <input type="radio" name={`correct-${q.key}`} checked={!!opt && q.correctAnswer === opt} onChange={() => onChange({ correctAnswer: opt })} title="Correct answer" />
+              <input type="radio" name={`correct-${q.key}`} checked={!!opt && q.correctAnswer === opt} onChange={() => onChange({ correctAnswer: opt })} title={tr("quiz.correctAnswer")} />
               <Input value={opt} onChange={(e) => { const options = [...q.options]; options[oi] = e.target.value; const next: Partial<BQ> = { options }; if (q.correctAnswer === opt) next.correctAnswer = e.target.value; onChange(next); }} className="h-9" placeholder={`Option ${oi + 1}`} />
               {q.options.length > 2 && <Button variant="ghost" className="h-8 w-8 p-0 text-rose-600" onClick={() => onChange({ options: q.options.filter((_, x) => x !== oi) })}><Trash2 className="h-4 w-4" /></Button>}
             </div>
           ))}
-          <Button variant="outline" className="h-8" onClick={() => onChange({ options: [...q.options, ""] })}><Plus className="mr-1 h-3 w-3" />Option</Button>
+          <Button variant="outline" className="h-8" onClick={() => onChange({ options: [...q.options, ""] })}><Plus className="mr-1 h-3 w-3" />{tr("quiz.option")}</Button>
         </div>
       )}
 
       {q.questionType === "DIRECT" && (
         <div className="space-y-2">
-          <Label className="text-xs">Model answer</Label>
-          <Textarea value={q.correctAnswer} onChange={(e) => onChange({ correctAnswer: e.target.value })} rows={2} placeholder="The correct / expected answer" />
-          <Label className="text-xs">Grading</Label>
+          <Label className="text-xs">{tr("quiz.modelAnswer")}</Label>
+          <Textarea value={q.correctAnswer} onChange={(e) => onChange({ correctAnswer: e.target.value })} rows={2} placeholder={tr("quiz.theCorrectExpectedAnswer")} />
+          <Label className="text-xs">{tr("quiz.grading")}</Label>
           <Select value={q.gradingMode} onChange={(e) => onChange({ gradingMode: e.target.value as BQ["gradingMode"] })} className="h-9">
-            <option value="EXACT">Exact match (answer must match)</option>
-            <option value="AI_CONCEPT">AI concept (AI scores how close the answer is)</option>
+            <option value="EXACT">{tr("quiz.exactMatchAnswerMustMatch")}</option>
+            <option value="AI_CONCEPT">{tr("quiz.aiConceptAiScoresHowClose")}</option>
           </Select>
         </div>
       )}
 
       {q.questionType === "MATCH" && (
         <div className="space-y-2">
-          <Label className="text-xs">Pairs (left ↔ right)</Label>
+          <Label className="text-xs">{tr("quiz.pairsLeftRight")}</Label>
           {q.pairs.map((p, pi) => (
             <div key={pi} className="flex items-center gap-2">
-              <Input value={p.left} onChange={(e) => { const pairs = [...q.pairs]; pairs[pi] = { ...pairs[pi], left: e.target.value }; onChange({ pairs }); }} className="h-9" placeholder="Left" />
+              <Input value={p.left} onChange={(e) => { const pairs = [...q.pairs]; pairs[pi] = { ...pairs[pi], left: e.target.value }; onChange({ pairs }); }} className="h-9" placeholder={tr("quiz.left")} />
               <span className="text-muted-foreground">↔</span>
-              <Input value={p.right} onChange={(e) => { const pairs = [...q.pairs]; pairs[pi] = { ...pairs[pi], right: e.target.value }; onChange({ pairs }); }} className="h-9" placeholder="Right" />
+              <Input value={p.right} onChange={(e) => { const pairs = [...q.pairs]; pairs[pi] = { ...pairs[pi], right: e.target.value }; onChange({ pairs }); }} className="h-9" placeholder={tr("quiz.right")} />
               {q.pairs.length > 2 && <Button variant="ghost" className="h-8 w-8 p-0 text-rose-600" onClick={() => onChange({ pairs: q.pairs.filter((_, x) => x !== pi) })}><Trash2 className="h-4 w-4" /></Button>}
             </div>
           ))}
-          <Button variant="outline" className="h-8" onClick={() => onChange({ pairs: [...q.pairs, { left: "", right: "" }] })}><Plus className="mr-1 h-3 w-3" />Pair</Button>
+          <Button variant="outline" className="h-8" onClick={() => onChange({ pairs: [...q.pairs, { left: "", right: "" }] })}><Plus className="mr-1 h-3 w-3" />{tr("quiz.pair")}</Button>
         </div>
       )}
 
       {q.questionType === "FILL_BLANK" && (
         <div className="space-y-2">
-          <Label className="text-xs">Answer for each blank (in order)</Label>
+          <Label className="text-xs">{tr("quiz.answerForEachBlankInOrder")}</Label>
           {q.blanks.map((b, bi) => (
             <div key={bi} className="flex items-center gap-2">
               <span className="text-xs text-muted-foreground">#{bi + 1}</span>
@@ -367,7 +371,7 @@ function QuestionEditor({ q, index, onChange, onRemove }: { q: BQ; index: number
               {q.blanks.length > 1 && <Button variant="ghost" className="h-8 w-8 p-0 text-rose-600" onClick={() => onChange({ blanks: q.blanks.filter((_, x) => x !== bi) })}><Trash2 className="h-4 w-4" /></Button>}
             </div>
           ))}
-          <Button variant="outline" className="h-8" onClick={() => onChange({ blanks: [...q.blanks, ""] })}><Plus className="mr-1 h-3 w-3" />Blank</Button>
+          <Button variant="outline" className="h-8" onClick={() => onChange({ blanks: [...q.blanks, ""] })}><Plus className="mr-1 h-3 w-3" />{tr("quiz.blank")}</Button>
         </div>
       )}
     </div>

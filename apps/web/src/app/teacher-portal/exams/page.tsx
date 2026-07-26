@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import Link from "next/link";
 import { ClipboardList, FileText, Info } from "lucide-react";
 
@@ -20,24 +22,24 @@ const SECTIONS = [
 ];
 
 export default function TeacherPortalExamsPage() {
+  const t = useT();
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-bold">Official Examinations</h1>
+        <h1 className="text-2xl font-bold">{t("teacherPortalExams.officialExaminations")}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Enter marks for school examinations assigned to you. Official exams are created by
-          administrators — teachers do not create examinations here.
+          {t("teacherPortalExams.enterMarksForSchoolExaminationsAssigned")}
         </p>
       </div>
 
       <div className="flex gap-3 rounded-xl border border-blue-200 bg-blue-50/80 p-4 text-sm text-blue-900 dark:border-blue-900 dark:bg-blue-950/30 dark:text-blue-100">
         <Info className="mt-0.5 h-5 w-5 shrink-0" />
         <p>
-          For teaching assessments, use{" "}
+          {t("teacherPortalExams.forTeachingAssessmentsUse")}{" "}
           <Link href="/teacher-portal/quizzes" className="font-medium underline">
-            My Quizzes
+            {t("teacherPortalExams.myQuizzes")}
           </Link>{" "}
-          to create online quizzes for your assigned classes.
+          {t("teacherPortalExams.toCreateOnlineQuizzesForYour")}
         </p>
       </div>
 
@@ -54,7 +56,7 @@ export default function TeacherPortalExamsPage() {
             <h2 className="text-lg font-semibold">{s.title}</h2>
             <p className="mt-2 flex-1 text-sm text-muted-foreground">{s.description}</p>
             <span className="mt-4 text-sm font-medium text-primary group-hover:underline">
-              Open →
+              {t("teacherPortalExams.open")}
             </span>
           </Link>
         ))}

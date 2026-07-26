@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api";
 import {
@@ -19,6 +21,7 @@ import { toast } from "@/lib/toast";
  * there is still something useful to show.
  */
 export default function MySchedulePage() {
+  const tr = useT();
   const [timetables, setTimetables] = useState<PersonalTimetableDto[]>([]);
   const [me, setMe] = useState<TeacherMe | null>(null);
   const [loading, setLoading] = useState(true);
@@ -62,7 +65,7 @@ export default function MySchedulePage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">My Schedule</h1>
+        <h1 className="text-2xl font-bold">{tr("mySchedule.mySchedule")}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           {hasTimetable
             ? `Your weekly timetable — ${lessonCount} lessons.`
@@ -81,17 +84,17 @@ export default function MySchedulePage() {
         />
       ) : rows.length === 0 ? (
         <p className="rounded-xl border bg-card p-8 text-center text-muted-foreground">
-          No teaching assignments yet.
+          {tr("mySchedule.noTeachingAssignmentsYet")}
         </p>
       ) : (
         <div className="overflow-x-auto rounded-xl border bg-card">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b bg-muted/40 text-left text-muted-foreground">
-                <th className="px-4 py-3 font-medium">Academic year</th>
-                <th className="px-4 py-3 font-medium">Class</th>
-                <th className="px-4 py-3 font-medium">Section</th>
-                <th className="px-4 py-3 font-medium">Subject</th>
+                <th className="px-4 py-3 font-medium">{tr("mySchedule.academicYear")}</th>
+                <th className="px-4 py-3 font-medium">{tr("mySchedule.class")}</th>
+                <th className="px-4 py-3 font-medium">{tr("mySchedule.section")}</th>
+                <th className="px-4 py-3 font-medium">{tr("mySchedule.subject")}</th>
               </tr>
             </thead>
             <tbody>
@@ -106,8 +109,7 @@ export default function MySchedulePage() {
             </tbody>
           </table>
           <p className="border-t px-4 py-2 text-xs text-muted-foreground">
-            Once your school publishes a timetable, this page shows your weekly
-            grid instead.
+            {tr("mySchedule.onceYourSchoolPublishesATimetable")}
           </p>
         </div>
       )}

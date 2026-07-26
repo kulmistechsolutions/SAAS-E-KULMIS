@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useEffect, useState } from "react";
 import { Activity, Loader2, ShieldAlert } from "lucide-react";
 import {
@@ -41,6 +43,7 @@ function device(ua: string | null): string {
  * actually being used and surfaces runs of failed attempts against an account.
  */
 export function SchoolLoginActivity({ schoolId }: { schoolId: string }) {
+  const t = useT();
   const [rows, setRows] = useState<PlatformLoginActivityRow[]>([]);
   const [summary, setSummary] = useState<Summary | null>(null);
   const [loading, setLoading] = useState(true);
@@ -73,16 +76,15 @@ export function SchoolLoginActivity({ schoolId }: { schoolId: string }) {
     <div className="rounded-xl border border-white/10 bg-white/5 p-5">
       <div className="flex items-center gap-2">
         <Activity className="h-4 w-4 text-emerald-400" />
-        <h2 className="font-semibold text-white">Login Activity</h2>
+        <h2 className="font-semibold text-white">{t("platformSchoolLoginActivity.loginActivity")}</h2>
       </div>
       <p className="mt-1 text-sm text-white/60">
-        Every sign-in attempt for this school — who, when, and from where.
-        Failed attempts are shown too.
+        {t("platformSchoolLoginActivity.everySignInAttemptForThis")}
       </p>
 
       {loading ? (
         <p className="mt-4 flex items-center gap-2 text-sm text-white/60">
-          <Loader2 className="h-4 w-4 animate-spin" /> Loading…
+          <Loader2 className="h-4 w-4 animate-spin" /> {t("platformSchoolLoginActivity.loading")}
         </p>
       ) : error ? (
         <p className="mt-4 text-sm text-rose-300">{error}</p>
@@ -90,10 +92,10 @@ export function SchoolLoginActivity({ schoolId }: { schoolId: string }) {
         <>
           {summary && (
             <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
-              <Stat label="Successful" value={summary.successful} tone="ok" />
-              <Stat label="Failed" value={summary.failed} tone="bad" />
+              <Stat label={t("platformSchoolLoginActivity.successful")} value={summary.successful} tone="ok" />
+              <Stat label={t("platformSchoolLoginActivity.failed")} value={summary.failed} tone="bad" />
               <div className="rounded-lg border border-white/10 bg-white/5 p-3">
-                <p className="text-xs text-white/50">Last sign-in</p>
+                <p className="text-xs text-white/50">{t("platformSchoolLoginActivity.lastSignIn")}</p>
                 <p className="mt-1 text-sm font-medium text-white">
                   {summary.lastLoginAt ? when(summary.lastLoginAt) : "Never"}
                 </p>
@@ -104,7 +106,7 @@ export function SchoolLoginActivity({ schoolId }: { schoolId: string }) {
           {summary && summary.successful === 0 && (
             <p className="mt-3 flex items-start gap-2 rounded-lg border border-amber-400/30 bg-amber-400/10 p-3 text-sm text-amber-200">
               <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" />
-              Nobody has ever signed in to this school.
+              {t("platformSchoolLoginActivity.nobodyHasEverSignedInTo")}
             </p>
           )}
 
@@ -112,12 +114,12 @@ export function SchoolLoginActivity({ schoolId }: { schoolId: string }) {
             <table className="w-full min-w-[640px] text-sm">
               <thead className="bg-white/5 text-left text-xs uppercase tracking-wide text-white/50">
                 <tr>
-                  <th className="px-3 py-2.5 font-medium">When</th>
-                  <th className="px-3 py-2.5 font-medium">User</th>
-                  <th className="px-3 py-2.5 font-medium">Role</th>
-                  <th className="px-3 py-2.5 font-medium">Result</th>
-                  <th className="px-3 py-2.5 font-medium">IP</th>
-                  <th className="px-3 py-2.5 font-medium">Device</th>
+                  <th className="px-3 py-2.5 font-medium">{t("platformSchoolLoginActivity.when")}</th>
+                  <th className="px-3 py-2.5 font-medium">{t("platformSchoolLoginActivity.user")}</th>
+                  <th className="px-3 py-2.5 font-medium">{t("platformSchoolLoginActivity.role")}</th>
+                  <th className="px-3 py-2.5 font-medium">{t("platformSchoolLoginActivity.result")}</th>
+                  <th className="px-3 py-2.5 font-medium">{t("platformSchoolLoginActivity.ip")}</th>
+                  <th className="px-3 py-2.5 font-medium">{t("platformSchoolLoginActivity.device")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -135,14 +137,14 @@ export function SchoolLoginActivity({ schoolId }: { schoolId: string }) {
                     <td className="px-3 py-2">
                       {r.success ? (
                         <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-xs font-medium text-emerald-300">
-                          Signed in
+                          {t("platformSchoolLoginActivity.signedIn")}
                         </span>
                       ) : (
                         <span
                           className="rounded-full bg-rose-500/15 px-2 py-0.5 text-xs font-medium text-rose-300"
                           title={r.reason ?? undefined}
                         >
-                          Failed{r.reason ? ` · ${r.reason}` : ""}
+                          {t("platformSchoolLoginActivity.failed")}{r.reason ? ` · ${r.reason}` : ""}
                         </span>
                       )}
                     </td>
@@ -160,7 +162,7 @@ export function SchoolLoginActivity({ schoolId }: { schoolId: string }) {
                       colSpan={6}
                       className="px-3 py-8 text-center text-white/50"
                     >
-                      No sign-in attempts recorded yet.
+                      {t("platformSchoolLoginActivity.noSignInAttemptsRecordedYet")}
                     </td>
                   </tr>
                 )}

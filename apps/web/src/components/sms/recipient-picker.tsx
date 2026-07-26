@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useMemo, useState } from "react";
 import { Search, Users } from "lucide-react";
 import { Dialog } from "@/components/ui/dialog";
@@ -28,6 +30,7 @@ export function RecipientPickerDialog({
   onToggleAll,
   loading,
 }: Props) {
+  const t = useT();
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<FilterMode>("all");
 
@@ -75,11 +78,11 @@ export function RecipientPickerDialog({
     <Dialog
       open={open}
       onClose={onClose}
-      title="Choose recipients"
+      title={t("smsRecipientPicker.chooseRecipients")}
       description={`${selected.size} of ${recipients.length} people will receive this message`}
       className="sm:max-w-2xl"
       footer={
-        <Button onClick={onClose}>Done ({selected.size})</Button>
+        <Button onClick={onClose}>{t("smsRecipientPicker.done")}{selected.size})</Button>
       }
     >
       <div className="space-y-3">
@@ -88,7 +91,7 @@ export function RecipientPickerDialog({
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               className="pl-9"
-              placeholder="Search by name or phone…"
+              placeholder={t("smsRecipientPicker.searchByNameOrPhone")}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
             />
@@ -120,17 +123,17 @@ export function RecipientPickerDialog({
               disabled={filtered.length === 0}
               className="h-4 w-4 rounded border-input"
             />
-            Select all{query.trim() || filter !== "all" ? " shown" : ""}
+            {t("smsRecipientPicker.selectAll")}{query.trim() || filter !== "all" ? " shown" : ""}
           </label>
           <span className="text-muted-foreground">
-            {filtered.length} shown
+            {filtered.length} {t("smsRecipientPicker.shown")}
           </span>
         </div>
 
         <div className="max-h-[46vh] overflow-auto rounded-lg border">
           {loading ? (
             <p className="px-4 py-10 text-center text-sm text-muted-foreground">
-              Loading recipients…
+              {t("smsRecipientPicker.loadingRecipients")}
             </p>
           ) : filtered.length === 0 ? (
             <div className="px-4 py-10 text-center text-sm text-muted-foreground">

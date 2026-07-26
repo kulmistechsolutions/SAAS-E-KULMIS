@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import {
@@ -30,6 +32,7 @@ import {
 import { toast } from "@/lib/toast";
 
 export default function PlatformSmsPackagesPage() {
+  const t = useT();
   const [data, setData] = useState<PlatformSmsOverview | null>(null);
   const [messages, setMessages] = useState<
     Awaited<ReturnType<typeof fetchPlatformSmsMessages>>
@@ -159,7 +162,7 @@ export default function PlatformSmsPackagesPage() {
   }
 
   if (loading && !data) {
-    return <p className="text-slate-400">Loading SMS packages…</p>;
+    return <p className="text-slate-400">{t("platformSms.loadingSmsPackages")}</p>;
   }
 
   return (
@@ -168,11 +171,10 @@ export default function PlatformSmsPackagesPage() {
         <div>
           <h1 className="flex items-center gap-2 text-2xl font-bold text-white">
             <MessageSquare className="h-6 w-6 text-violet-400" />
-            SMS Packages
+            {t("platformSms.smsPackages")}
           </h1>
           <p className="mt-1 text-sm text-slate-400">
-            Create packages and assign credits to schools after Hormuud is
-            verified.
+            {t("platformSms.createPackagesAndAssignCreditsTo")}
           </p>
         </div>
         <div className="flex gap-2">
@@ -181,14 +183,14 @@ export default function PlatformSmsPackagesPage() {
             className="inline-flex h-10 items-center gap-2 rounded-lg border border-white/20 px-4 text-sm text-slate-200 hover:bg-white/5"
           >
             <Settings2 className="h-4 w-4" />
-            SMS Settings
+            {t("platformSms.smsSettings")}
           </Link>
           <Button
             variant="outline"
             onClick={() => void load()}
             className="border-white/20 text-slate-200"
           >
-            <RefreshCw className="mr-2 h-4 w-4" /> Refresh
+            <RefreshCw className="mr-2 h-4 w-4" /> {t("platformSms.refresh")}
           </Button>
         </div>
       </div>
@@ -197,17 +199,17 @@ export default function PlatformSmsPackagesPage() {
         <div className="flex items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
           <Lock className="mt-0.5 h-4 w-4 shrink-0" />
           <div>
-            <p className="font-medium">Packages locked</p>
+            <p className="font-medium">{t("platformSms.packagesLocked")}</p>
             <p className="mt-0.5 text-amber-100/80">
-              Status: {data?.config.connectionStatus ?? "DISCONNECTED"}
+              {t("platformSms.status")} {data?.config.connectionStatus ?? "DISCONNECTED"}
               {data?.config.connectionMessage
                 ? ` — ${data.config.connectionMessage}`
                 : ""}
               .{" "}
               <Link href="/platform/sms/settings" className="underline">
-                Open SMS Settings
+                {t("platformSms.openSmsSettings")}
               </Link>{" "}
-              and run Test Connection & Save first.
+              {t("platformSms.andRunTestConnectionSaveFirst")}
             </p>
           </div>
         </div>
@@ -216,13 +218,13 @@ export default function PlatformSmsPackagesPage() {
       {unlocked && data && (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <div className="rounded-xl border border-white/10 bg-[#0f172a] p-3">
-            <p className="text-xs text-slate-500">Connection</p>
+            <p className="text-xs text-slate-500">{t("platformSms.connection")}</p>
             <p className="font-semibold text-emerald-300">
               {data.config.connectionStatus}
             </p>
           </div>
           <div className="rounded-xl border border-white/10 bg-[#0f172a] p-3">
-            <p className="text-xs text-slate-500">Provider balance</p>
+            <p className="text-xs text-slate-500">{t("platformSms.providerBalance")}</p>
             <p className="font-semibold text-violet-300">
               {data.config.providerBalance ?? "—"}
             </p>
@@ -267,16 +269,15 @@ export default function PlatformSmsPackagesPage() {
       {tab === "packages" && data && (
         <div className="grid gap-4 lg:grid-cols-2">
           <div className="rounded-2xl border border-white/10 bg-[#0f172a] p-5">
-            <h2 className="font-semibold text-white">Create package</h2>
+            <h2 className="font-semibold text-white">{t("platformSms.createPackage")}</h2>
             {!unlocked && (
               <p className="mt-2 flex items-center gap-2 text-sm text-amber-300">
-                <AlertTriangle className="h-4 w-4" /> Locked until connection
-                verified
+                <AlertTriangle className="h-4 w-4" /> {t("platformSms.lockedUntilConnectionVerified")}
               </p>
             )}
             <div className="mt-4 space-y-3">
               <div>
-                <Label className="text-slate-400">Name</Label>
+                <Label className="text-slate-400">{t("platformSms.name")}</Label>
                 <Input
                   className="mt-1 border-white/10 bg-[#0b1120] text-white"
                   value={pkgName}
@@ -286,7 +287,7 @@ export default function PlatformSmsPackagesPage() {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <Label className="text-slate-400">Credits</Label>
+                  <Label className="text-slate-400">{t("platformSms.credits")}</Label>
                   <Input
                     type="number"
                     className="mt-1 border-white/10 bg-[#0b1120] text-white"
@@ -296,7 +297,7 @@ export default function PlatformSmsPackagesPage() {
                   />
                 </div>
                 <div>
-                  <Label className="text-slate-400">Price</Label>
+                  <Label className="text-slate-400">{t("platformSms.price")}</Label>
                   <Input
                     type="number"
                     className="mt-1 border-white/10 bg-[#0b1120] text-white"
@@ -307,7 +308,7 @@ export default function PlatformSmsPackagesPage() {
                 </div>
               </div>
               <div>
-                <Label className="text-slate-400">Description</Label>
+                <Label className="text-slate-400">{t("platformSms.description")}</Label>
                 <Input
                   className="mt-1 border-white/10 bg-[#0b1120] text-white"
                   value={pkgDesc}
@@ -319,12 +320,12 @@ export default function PlatformSmsPackagesPage() {
                 onClick={() => void createPackage()}
                 disabled={!unlocked || !pkgName}
               >
-                <Plus className="mr-2 h-4 w-4" /> Create
+                <Plus className="mr-2 h-4 w-4" /> {t("platformSms.create")}
               </Button>
             </div>
           </div>
           <div className="rounded-2xl border border-white/10 bg-[#0f172a] p-5">
-            <h2 className="font-semibold text-white">Packages</h2>
+            <h2 className="font-semibold text-white">{t("platformSms.packages")}</h2>
             <ul className="mt-3 space-y-2">
               {data.packages.map((p) => (
                 <li
@@ -334,7 +335,7 @@ export default function PlatformSmsPackagesPage() {
                   <div>
                     <p className="font-medium text-white">{p.name}</p>
                     <p className="text-xs text-slate-400">
-                      {p.credits} credits · {p.currency} {String(p.price)}
+                      {p.credits} {t("platformSms.credits")} {p.currency} {String(p.price)}
                       {!p.isActive && " · inactive"}
                     </p>
                   </div>
@@ -353,7 +354,7 @@ export default function PlatformSmsPackagesPage() {
                 </li>
               ))}
               {data.packages.length === 0 && (
-                <p className="text-sm text-slate-500">No packages yet.</p>
+                <p className="text-sm text-slate-500">{t("platformSms.noPackagesYet")}</p>
               )}
             </ul>
           </div>
@@ -362,15 +363,15 @@ export default function PlatformSmsPackagesPage() {
 
       {tab === "assign" && data && (
         <div className="max-w-lg rounded-2xl border border-white/10 bg-[#0f172a] p-5">
-          <h2 className="font-semibold text-white">Assign package to school</h2>
+          <h2 className="font-semibold text-white">{t("platformSms.assignPackageToSchool")}</h2>
           {!unlocked && (
             <p className="mt-2 text-sm text-amber-300">
-              Assignment is locked until Hormuud is verified.
+              {t("platformSms.assignmentIsLockedUntilHormuudIs")}
             </p>
           )}
           <div className="mt-4 space-y-3">
             <div>
-              <Label className="text-slate-400">School</Label>
+              <Label className="text-slate-400">{t("platformSms.school")}</Label>
               <Select
                 className="mt-1 border-white/10 bg-[#0b1120] text-white"
                 value={assignSchool}
@@ -379,13 +380,13 @@ export default function PlatformSmsPackagesPage() {
               >
                 {data.schools.map((s) => (
                   <option key={s.id} value={s.id}>
-                    {s.name} ({s.creditsRemaining} left)
+                    {s.name} ({s.creditsRemaining} {t("platformSms.left")}
                   </option>
                 ))}
               </Select>
             </div>
             <div>
-              <Label className="text-slate-400">Package</Label>
+              <Label className="text-slate-400">{t("platformSms.package")}</Label>
               <Select
                 className="mt-1 border-white/10 bg-[#0b1120] text-white"
                 value={assignPkg}
@@ -396,7 +397,7 @@ export default function PlatformSmsPackagesPage() {
                   .filter((p) => p.isActive)
                   .map((p) => (
                     <option key={p.id} value={p.id}>
-                      {p.name} — {p.credits} credits
+                      {p.name} — {p.credits} {t("platformSms.credits")}
                     </option>
                   ))}
               </Select>
@@ -405,12 +406,12 @@ export default function PlatformSmsPackagesPage() {
               onClick={() => void assign()}
               disabled={!unlocked || !assignSchool || !assignPkg}
             >
-              Assign package
+              {t("platformSms.assignPackage")}
             </Button>
           </div>
           <div className="mt-6">
             <h3 className="text-sm font-medium text-slate-300">
-              Recent purchases
+              {t("platformSms.recentPurchases")}
             </h3>
             <ul className="mt-2 space-y-2 text-sm">
               {data.recentPurchases.slice(0, 10).map((p) => (
@@ -418,7 +419,7 @@ export default function PlatformSmsPackagesPage() {
                   key={p.id}
                   className="rounded-lg border border-white/5 px-3 py-2 text-slate-400"
                 >
-                  <span className="text-white">{p.school.name}</span> bought{" "}
+                  <span className="text-white">{p.school.name}</span> {t("platformSms.bought")}{" "}
                   <span className="text-violet-300">{p.package.name}</span> (
                   {p.creditsRemaining}/{p.creditsTotal})
                 </li>
@@ -432,22 +433,20 @@ export default function PlatformSmsPackagesPage() {
         <div className="grid gap-4 lg:grid-cols-2">
           <div className="rounded-2xl border border-white/10 bg-[#0f172a] p-5">
             <h2 className="font-semibold text-white">
-              Sell &quot;use your own SMS account&quot;
+              {t("platformSms.sellQuotUseYourOwnSms")}
             </h2>
             <p className="mt-1 text-sm text-slate-400">
-              Lets a school connect its own Hormuud credentials. Their SMS is
-              then billed by Hormuud directly and stops consuming platform
-              credits, for as long as the licence runs.
+              {t("platformSms.letsASchoolConnectItsOwn")}
             </p>
             <div className="mt-4 space-y-3">
               <div>
-                <Label className="text-slate-400">School</Label>
+                <Label className="text-slate-400">{t("platformSms.school")}</Label>
                 <Select
                   className="mt-1 border-white/10 bg-[#0b1120] text-white"
                   value={gwSchool}
                   onChange={(e) => setGwSchool(e.target.value)}
                 >
-                  <option value="">Select a school…</option>
+                  <option value="">{t("platformSms.selectASchool")}</option>
                   {data.schools.map((s) => (
                     <option key={s.id} value={s.id}>
                       {s.name}
@@ -457,21 +456,21 @@ export default function PlatformSmsPackagesPage() {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <Label className="text-slate-400">Duration</Label>
+                  <Label className="text-slate-400">{t("platformSms.duration")}</Label>
                   <Select
                     className="mt-1 border-white/10 bg-[#0b1120] text-white"
                     value={String(gwMonths)}
                     onChange={(e) => setGwMonths(Number(e.target.value))}
                   >
-                    <option value="1">1 month</option>
-                    <option value="3">3 months</option>
-                    <option value="6">6 months</option>
-                    <option value="12">12 months (yearly)</option>
-                    <option value="24">24 months</option>
+                    <option value="1">{t("platformSms.n1Month")}</option>
+                    <option value="3">{t("platformSms.n3Months")}</option>
+                    <option value="6">{t("platformSms.n6Months")}</option>
+                    <option value="12">{t("platformSms.n12MonthsYearly")}</option>
+                    <option value="24">{t("platformSms.n24Months")}</option>
                   </Select>
                 </div>
                 <div>
-                  <Label className="text-slate-400">Price (optional)</Label>
+                  <Label className="text-slate-400">{t("platformSms.priceOptional")}</Label>
                   <Input
                     type="number"
                     min={0}
@@ -482,7 +481,7 @@ export default function PlatformSmsPackagesPage() {
                 </div>
               </div>
               <div>
-                <Label className="text-slate-400">Note (optional)</Label>
+                <Label className="text-slate-400">{t("platformSms.noteOptional")}</Label>
                 <Input
                   className="mt-1 border-white/10 bg-[#0b1120] text-white"
                   value={gwNote}
@@ -490,20 +489,19 @@ export default function PlatformSmsPackagesPage() {
                 />
               </div>
               <Button onClick={() => void grantGateway()} disabled={!gwSchool}>
-                Activate for this school
+                {t("platformSms.activateForThisSchool")}
               </Button>
               <p className="text-xs text-slate-500">
-                Renewing a school that still has time left extends from its
-                current expiry, so nothing already paid for is lost.
+                {t("platformSms.renewingASchoolThatStillHas")}
               </p>
             </div>
           </div>
 
           <div className="rounded-2xl border border-white/10 bg-[#0f172a] p-5">
-            <h3 className="text-sm font-medium text-slate-300">Licences</h3>
+            <h3 className="text-sm font-medium text-slate-300">{t("platformSms.licences")}</h3>
             {gwLicenses.length === 0 ? (
               <p className="mt-3 text-sm text-slate-500">
-                No school is using its own gateway yet.
+                {t("platformSms.noSchoolIsUsingItsOwn")}
               </p>
             ) : (
               <ul className="mt-3 space-y-2 text-sm">
@@ -515,7 +513,7 @@ export default function PlatformSmsPackagesPage() {
                     <div className="min-w-0">
                       <p className="truncate text-white">{l.school.name}</p>
                       <p className="text-xs text-slate-400">
-                        {l.durationMonths} month(s) ·{" "}
+                        {l.durationMonths} {t("platformSms.monthS")}{" "}
                         {new Date(l.startDate).toLocaleDateString()} →{" "}
                         {new Date(l.endDate).toLocaleDateString()}
                         {l.price != null ? ` · ${l.currency} ${l.price}` : ""}
@@ -537,7 +535,7 @@ export default function PlatformSmsPackagesPage() {
                           onClick={() => void revokeGateway(l.id)}
                           className="text-xs text-rose-300 hover:text-rose-200"
                         >
-                          Revoke
+                          {t("platformSms.revoke")}
                         </button>
                       )}
                     </div>
@@ -556,12 +554,12 @@ export default function PlatformSmsPackagesPage() {
           <table className="w-full text-sm">
             <thead className="bg-white/5 text-left text-xs uppercase text-slate-500">
               <tr>
-                <th className="px-4 py-3">School</th>
-                <th className="px-4 py-3">To</th>
-                <th className="px-4 py-3">Sender</th>
-                <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3">Credits</th>
-                <th className="px-4 py-3">When</th>
+                <th className="px-4 py-3">{t("platformSms.school")}</th>
+                <th className="px-4 py-3">{t("platformSms.to")}</th>
+                <th className="px-4 py-3">{t("platformSms.sender")}</th>
+                <th className="px-4 py-3">{t("platformSms.status")}</th>
+                <th className="px-4 py-3">{t("platformSms.credits")}</th>
+                <th className="px-4 py-3">{t("platformSms.when")}</th>
               </tr>
             </thead>
             <tbody>
@@ -602,7 +600,7 @@ export default function PlatformSmsPackagesPage() {
                     colSpan={6}
                     className="px-4 py-8 text-center text-slate-500"
                   >
-                    No messages logged yet.
+                    {t("platformSms.noMessagesLoggedYet")}
                   </td>
                 </tr>
               )}

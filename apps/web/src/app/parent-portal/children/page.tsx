@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import Link from "next/link";
 import { usePortal, usePortalAudit } from "@/components/parent-portal/portal-context";
 import { Badge } from "@/components/ui/badge";
@@ -7,15 +9,16 @@ import { Button } from "@/components/ui/button";
 import { genderLabel, statusLabel } from "@/lib/students/format";
 
 export default function ParentChildrenPage() {
+  const t = useT();
   const { children } = usePortal();
   usePortalAudit("STUDENT_VIEWED");
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">My Children</h1>
+        <h1 className="text-2xl font-bold">{t("parentPortalChildren.myChildren")}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          All students linked to your parent account.
+          {t("parentPortalChildren.allStudentsLinkedToYourParent")}
         </p>
       </div>
 
@@ -36,25 +39,25 @@ export default function ParentChildrenPage() {
             </div>
             <dl className="mt-4 space-y-2 text-sm">
               <div className="flex justify-between">
-                <dt className="text-muted-foreground">Class</dt>
+                <dt className="text-muted-foreground">{t("parentPortalChildren.class")}</dt>
                 <dd>{c.className}</dd>
               </div>
               <div className="flex justify-between">
-                <dt className="text-muted-foreground">Section</dt>
+                <dt className="text-muted-foreground">{t("parentPortalChildren.section")}</dt>
                 <dd>{c.section ?? "—"}</dd>
               </div>
               <div className="flex justify-between">
-                <dt className="text-muted-foreground">Academic Year</dt>
+                <dt className="text-muted-foreground">{t("parentPortalChildren.academicYear")}</dt>
                 <dd>{c.academicYear}</dd>
               </div>
               <div className="flex justify-between">
-                <dt className="text-muted-foreground">Gender</dt>
+                <dt className="text-muted-foreground">{t("parentPortalChildren.gender")}</dt>
                 <dd>{genderLabel(c.gender)}</dd>
               </div>
             </dl>
             <div className="mt-4 flex gap-2">
               <Link href={`/parent-portal/attendance?child=${c.id}`} className="flex-1">
-                <Button className="w-full">View details</Button>
+                <Button className="w-full">{t("parentPortalChildren.viewDetails")}</Button>
               </Link>
             </div>
           </div>

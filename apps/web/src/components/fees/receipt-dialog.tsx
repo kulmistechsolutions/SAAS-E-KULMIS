@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { useSchoolBranding } from "@/lib/settings/use-school-branding";
@@ -15,6 +17,7 @@ interface ReceiptDialogProps {
 }
 
 export function ReceiptDialog({ payment, onClose }: ReceiptDialogProps) {
+  const t = useT();
   const branding = useSchoolBranding();
   if (!payment) return null;
   const student = getStudentsState().students.find((s) => s.id === payment.studentId);
@@ -28,9 +31,9 @@ export function ReceiptDialog({ payment, onClose }: ReceiptDialogProps) {
       footer={
         <>
           <Button variant="outline" onClick={onClose}>
-            Close
+            {t("feesReceiptDialog.close")}
           </Button>
-          <Button onClick={() => printReceipt(payment)}>Print Receipt</Button>
+          <Button onClick={() => printReceipt(payment)}>{t("feesReceiptDialog.printReceipt")}</Button>
         </>
       }
     >
@@ -50,28 +53,28 @@ export function ReceiptDialog({ payment, onClose }: ReceiptDialogProps) {
           )}
           <div>
             <p className="font-semibold">{branding.name}</p>
-            <p className="text-xs text-muted-foreground">Fee Receipt</p>
+            <p className="text-xs text-muted-foreground">{t("feesReceiptDialog.feeReceipt")}</p>
           </div>
         </div>
         <dl className="grid gap-2">
-          <Row label="Student" value={student?.fullName ?? "—"} />
-          <Row label="Student ID" value={student?.code ?? "—"} />
+          <Row label={t("feesReceiptDialog.student")} value={student?.fullName ?? "—"} />
+          <Row label={t("feesReceiptDialog.studentId")} value={student?.code ?? "—"} />
           <Row
-            label="Class / Section"
+            label={t("feesReceiptDialog.classSection")}
             value={`${student?.className ?? "—"} — ${student?.section ?? "—"}`}
           />
           <Row
-            label="Payment Type"
+            label={t("feesReceiptDialog.paymentType")}
             value={paymentTypeLabel(payment.paymentType, payment.advanceMonths)}
           />
           <Row
-            label="Month(s)"
+            label={t("feesReceiptDialog.monthS")}
             value={payment.monthKeys.map(monthLabel).join(", ") || "—"}
           />
-          <Row label="Collected By" value={payment.collectedBy} />
-          <Row label="Date" value={receiptDate(payment.collectedAt)} />
+          <Row label={t("feesReceiptDialog.collectedBy")} value={payment.collectedBy} />
+          <Row label={t("feesReceiptDialog.date")} value={receiptDate(payment.collectedAt)} />
           <Row
-            label="Outstanding"
+            label={t("feesReceiptDialog.outstanding")}
             value={money(
               student ? outstandingBalance(student.id) : payment.outstandingAfter,
             )}

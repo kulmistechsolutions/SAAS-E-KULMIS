@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useCallback, useEffect, useState } from "react";
 import { CheckCircle2, CircleDashed, Loader2, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -19,6 +21,7 @@ import { toast } from "@/lib/toast";
  * never starts on its own. The school picks every class or just some.
  */
 export function MonthBillingSetup() {
+  const t = useT();
   const now = new Date();
   const year = now.getFullYear();
   const month = now.getMonth() + 1;
@@ -81,28 +84,26 @@ export function MonthBillingSetup() {
     <div className="rounded-2xl border bg-card p-6 shadow-sm">
       <div className="flex items-center gap-2 text-sm font-semibold">
         <Wallet className="h-4 w-4 text-primary" />
-        Set up this month&apos;s billing — {label}
+        {t("feesMonthBillingSetup.setUpThisMonthAposS")} {label}
       </div>
       <p className="mt-2 text-sm text-muted-foreground">
-        Billing never starts on its own. Turn it on for every class at once, or
-        pick specific classes. Only then are students charged, and only then can
-        payments be collected.
+        {t("feesMonthBillingSetup.billingNeverStartsOnItsOwn")}
       </p>
 
       {loading ? (
         <p className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin" /> Loading classes…
+          <Loader2 className="h-4 w-4 animate-spin" /> {t("feesMonthBillingSetup.loadingClasses")}
         </p>
       ) : classes.length === 0 ? (
         <p className="mt-4 text-sm text-muted-foreground">
-          No active classes yet. Create classes first.
+          {t("feesMonthBillingSetup.noActiveClassesYetCreateClasses")}
         </p>
       ) : (
         <>
           <div className="mt-4 flex flex-wrap items-center gap-2 text-xs">
-            <Badge tone="success">{activatedCount} set up</Badge>
+            <Badge tone="success">{activatedCount} {t("feesMonthBillingSetup.setUp")}</Badge>
             <Badge tone={pending.length ? "warning" : "muted"}>
-              {pending.length} not set up
+              {pending.length} {t("feesMonthBillingSetup.notSetUp")}
             </Badge>
           </div>
 
@@ -125,18 +126,18 @@ export function MonthBillingSetup() {
                   <span>
                     {c.name}
                     <span className="ml-1 text-xs text-muted-foreground">
-                      · {c.activeStudents} student
+                      · {c.activeStudents} {t("feesMonthBillingSetup.student")}
                       {c.activeStudents === 1 ? "" : "s"}
                     </span>
                   </span>
                 </span>
                 {c.activated ? (
                   <span className="flex items-center gap-1 text-xs text-emerald-600">
-                    <CheckCircle2 className="h-3.5 w-3.5" /> Set up
+                    <CheckCircle2 className="h-3.5 w-3.5" /> {t("feesMonthBillingSetup.setUp")}
                   </span>
                 ) : (
                   <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <CircleDashed className="h-3.5 w-3.5" /> Pending
+                    <CircleDashed className="h-3.5 w-3.5" /> {t("feesMonthBillingSetup.pending")}
                   </span>
                 )}
               </label>
@@ -157,7 +158,7 @@ export function MonthBillingSetup() {
               disabled={busy || picked.size === 0}
               onClick={() => void runSetup("selected")}
             >
-              Set up selected ({picked.size})
+              {t("feesMonthBillingSetup.setUpSelected")}{picked.size})
             </Button>
           </div>
         </>

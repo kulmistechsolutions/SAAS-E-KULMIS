@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
@@ -54,6 +56,7 @@ const TABS = [
 ];
 
 export default function ClassProfilePage() {
+  const tr = useT();
   const params = useParams();
   const id = params.id as string;
   const [mounted, setMounted] = useState(false);
@@ -111,7 +114,7 @@ export default function ClassProfilePage() {
   if (!mounted) {
     return (
       <div className="flex h-64 items-center justify-center text-muted-foreground">
-        Loading class…
+        {tr("academicsClasses.loadingClass")}
       </div>
     );
   }
@@ -120,9 +123,9 @@ export default function ClassProfilePage() {
     return (
       <div className="space-y-4">
         <Link href="/academics/classes" className="inline-flex items-center gap-1 text-sm text-primary hover:underline">
-          <ArrowLeft className="h-4 w-4" /> Back to Classes
+          <ArrowLeft className="h-4 w-4" /> {tr("academicsClasses.backToClasses")}
         </Link>
-        <p className="text-muted-foreground">Class not found.</p>
+        <p className="text-muted-foreground">{tr("academicsClasses.classNotFound")}</p>
       </div>
     );
   }
@@ -157,7 +160,7 @@ export default function ClassProfilePage() {
   return (
     <div className="space-y-6">
       <Link href="/academics/classes" className="inline-flex items-center gap-1 text-sm text-primary hover:underline">
-        <ArrowLeft className="h-4 w-4" /> Back to Classes
+        <ArrowLeft className="h-4 w-4" /> {tr("academicsClasses.backToClasses")}
       </Link>
 
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -189,36 +192,36 @@ export default function ClassProfilePage() {
         <div className="p-5">
           {tab === "general" && (
             <dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              <Field label="Class Name" value={cls.name} />
-              <Field label="Academic Year" value={cls.academicYear} />
-              <Field label="Has Sections" value={cls.hasSections ? "Yes" : "No"} />
-              <Field label="Status" value={<StatusBadge status={cls.status} />} />
-              <Field label="Fee Collection" value={`${money(stats.feeCollected)} / ${money(stats.feeExpected)}`} />
-              <Field label="Notes" value={cls.notes || "—"} />
+              <Field label={tr("academicsClasses.className")} value={cls.name} />
+              <Field label={tr("academicsClasses.academicYear")} value={cls.academicYear} />
+              <Field label={tr("academicsClasses.hasSections")} value={cls.hasSections ? "Yes" : "No"} />
+              <Field label={tr("academicsClasses.status")} value={<StatusBadge status={cls.status} />} />
+              <Field label={tr("academicsClasses.feeCollection")} value={`${money(stats.feeCollected)} / ${money(stats.feeExpected)}`} />
+              <Field label={tr("academicsClasses.notes")} value={cls.notes || "—"} />
             </dl>
           )}
 
           {tab === "sections" && (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <p className="text-sm text-muted-foreground">{sections.length} section(s)</p>
+                <p className="text-sm text-muted-foreground">{sections.length} {tr("academicsClasses.sectionS")}</p>
                 <Button onClick={() => { setEditingSection(null); setSectionOpen(true); }}>
-                  <Plus className="mr-2 h-4 w-4" /> Add Section
+                  <Plus className="mr-2 h-4 w-4" /> {tr("academicsClasses.addSection")}
                 </Button>
               </div>
               {sections.length === 0 ? (
-                <p className="py-8 text-center text-sm text-muted-foreground">This class has no sections.</p>
+                <p className="py-8 text-center text-sm text-muted-foreground">{tr("academicsClasses.thisClassHasNoSections")}</p>
               ) : (
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                   {sections.map((s) => (
                     <div key={s.id} className="flex items-center justify-between rounded-xl border p-4">
                       <div>
-                        <p className="font-semibold">Section {s.name}</p>
+                        <p className="font-semibold">{tr("academicsClasses.section")} {s.name}</p>
                         <StatusBadge status={s.status} />
                       </div>
                       <div className="flex gap-1">
-                        <IconBtn title="Edit" icon={Pencil} onClick={() => { setEditingSection(s); setSectionOpen(true); }} />
-                        <IconBtn title="Delete" icon={Trash2} danger onClick={() => setDeletingSection(s)} />
+                        <IconBtn title={tr("academicsClasses.edit")} icon={Pencil} onClick={() => { setEditingSection(s); setSectionOpen(true); }} />
+                        <IconBtn title={tr("academicsClasses.delete")} icon={Trash2} danger onClick={() => setDeletingSection(s)} />
                       </div>
                     </div>
                   ))}
@@ -230,7 +233,7 @@ export default function ClassProfilePage() {
           {tab === "students" && (
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <p className="text-sm text-muted-foreground">{students.length} enrolled student(s)</p>
+                <p className="text-sm text-muted-foreground">{students.length} {tr("academicsClasses.enrolledStudentS")}</p>
                 <Button
                   variant="outline"
                   onClick={() =>
@@ -242,7 +245,7 @@ export default function ClassProfilePage() {
                     })
                   }
                 >
-                  <Printer className="mr-2 h-4 w-4" /> Print
+                  <Printer className="mr-2 h-4 w-4" /> {tr("academicsClasses.print")}
                 </Button>
               </div>
               <div className="overflow-hidden rounded-xl border">
@@ -250,15 +253,15 @@ export default function ClassProfilePage() {
                   <thead className="bg-secondary/60 text-left text-xs uppercase tracking-wide text-muted-foreground">
                     <tr>
                       <th className="px-4 py-2.5 font-medium">#</th>
-                      <th className="px-4 py-2.5 font-medium">Student ID</th>
-                      <th className="px-4 py-2.5 font-medium">Name</th>
-                      <th className="px-4 py-2.5 font-medium">Gender</th>
-                      <th className="px-4 py-2.5 font-medium">Section</th>
+                      <th className="px-4 py-2.5 font-medium">{tr("academicsClasses.studentId")}</th>
+                      <th className="px-4 py-2.5 font-medium">{tr("academicsClasses.name")}</th>
+                      <th className="px-4 py-2.5 font-medium">{tr("academicsClasses.gender")}</th>
+                      <th className="px-4 py-2.5 font-medium">{tr("academicsClasses.section")}</th>
                     </tr>
                   </thead>
                   <tbody>
                     {students.length === 0 ? (
-                      <tr><td colSpan={5} className="px-4 py-10 text-center text-muted-foreground">No students enrolled.</td></tr>
+                      <tr><td colSpan={5} className="px-4 py-10 text-center text-muted-foreground">{tr("academicsClasses.noStudentsEnrolled")}</td></tr>
                     ) : (
                       students.map((s, i) => (
                         <tr key={s.id} className="border-t">
@@ -281,13 +284,13 @@ export default function ClassProfilePage() {
           {tab === "subjects" && (
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <p className="text-sm text-muted-foreground">{subjects.length} assigned subject(s)</p>
+                <p className="text-sm text-muted-foreground">{subjects.length} {tr("academicsClasses.assignedSubjectS")}</p>
                 <Button onClick={() => setAssignOpen(true)}>
-                  <Plus className="mr-2 h-4 w-4" /> Assign Subject
+                  <Plus className="mr-2 h-4 w-4" /> {tr("academicsClasses.assignSubject")}
                 </Button>
               </div>
               {subjects.length === 0 ? (
-                <p className="py-8 text-center text-sm text-muted-foreground">No subjects assigned to this class.</p>
+                <p className="py-8 text-center text-sm text-muted-foreground">{tr("academicsClasses.noSubjectsAssignedToThisClass")}</p>
               ) : (
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                   {subjects.map((s) => (
@@ -296,7 +299,7 @@ export default function ClassProfilePage() {
                         <p className="font-semibold">{s.name}</p>
                         {s.code && <p className="font-mono text-xs text-muted-foreground">{s.code}</p>}
                       </div>
-                      <IconBtn title="Remove" icon={Trash2} danger onClick={() => setRemovingSubject(s)} />
+                      <IconBtn title={tr("academicsClasses.remove")} icon={Trash2} danger onClick={() => setRemovingSubject(s)} />
                     </div>
                   ))}
                 </div>
@@ -309,14 +312,14 @@ export default function ClassProfilePage() {
               <table className="w-full text-sm">
                 <thead className="bg-secondary/60 text-left text-xs uppercase tracking-wide text-muted-foreground">
                   <tr>
-                    <th className="px-4 py-2.5 font-medium">Teacher</th>
-                    <th className="px-4 py-2.5 font-medium">Subject</th>
-                    <th className="px-4 py-2.5 font-medium">Section</th>
+                    <th className="px-4 py-2.5 font-medium">{tr("academicsClasses.teacher")}</th>
+                    <th className="px-4 py-2.5 font-medium">{tr("academicsClasses.subject")}</th>
+                    <th className="px-4 py-2.5 font-medium">{tr("academicsClasses.section")}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {teacherRows.length === 0 ? (
-                    <tr><td colSpan={3} className="px-4 py-10 text-center text-muted-foreground">No teachers assigned to this class.</td></tr>
+                    <tr><td colSpan={3} className="px-4 py-10 text-center text-muted-foreground">{tr("academicsClasses.noTeachersAssignedToThisClass")}</td></tr>
                   ) : (
                     teacherRows.map((a) => (
                       <tr key={a.id} className="border-t">
@@ -335,11 +338,11 @@ export default function ClassProfilePage() {
 
           {tab === "attendance" && (
             <div className="grid gap-4 sm:grid-cols-3">
-              <StatBlock label="Attendance Rate" value={percent(stats.attendancePercentage)} />
-              <StatBlock label="Total Students" value={String(stats.totalStudents)} />
-              <StatBlock label="Sections" value={String(stats.totalSections)} />
+              <StatBlock label={tr("academicsClasses.attendanceRate")} value={percent(stats.attendancePercentage)} />
+              <StatBlock label={tr("academicsClasses.totalStudents")} value={String(stats.totalStudents)} />
+              <StatBlock label={tr("academicsClasses.sections")} value={String(stats.totalSections)} />
               <p className="sm:col-span-3 text-sm text-muted-foreground">
-                Detailed daily attendance is available in the Attendance module.
+                {tr("academicsClasses.detailedDailyAttendanceIsAvailableIn")}
               </p>
             </div>
           )}
@@ -347,22 +350,22 @@ export default function ClassProfilePage() {
           {tab === "exams" && (
             <div className="space-y-3">
               <div className="grid gap-4 sm:grid-cols-3">
-                <StatBlock label="Active Exams" value={String(exams.filter((e) => e.status === "OPEN" || e.status === "IN_PROGRESS").length)} />
-                <StatBlock label="Published Results" value={String(exams.filter((e) => e.status === "PUBLISHED").length)} />
-                <StatBlock label="Exam Average" value={percent(stats.examAverage)} />
+                <StatBlock label={tr("academicsClasses.activeExams")} value={String(exams.filter((e) => e.status === "OPEN" || e.status === "IN_PROGRESS").length)} />
+                <StatBlock label={tr("academicsClasses.publishedResults")} value={String(exams.filter((e) => e.status === "PUBLISHED").length)} />
+                <StatBlock label={tr("academicsClasses.examAverage")} value={percent(stats.examAverage)} />
               </div>
               <div className="overflow-hidden rounded-xl border">
                 <table className="w-full text-sm">
                   <thead className="bg-secondary/60 text-left text-xs uppercase tracking-wide text-muted-foreground">
                     <tr>
-                      <th className="px-4 py-2.5 font-medium">Exam</th>
-                      <th className="px-4 py-2.5 font-medium">Section</th>
-                      <th className="px-4 py-2.5 font-medium">Status</th>
+                      <th className="px-4 py-2.5 font-medium">{tr("academicsClasses.exam")}</th>
+                      <th className="px-4 py-2.5 font-medium">{tr("academicsClasses.section")}</th>
+                      <th className="px-4 py-2.5 font-medium">{tr("academicsClasses.status")}</th>
                     </tr>
                   </thead>
                   <tbody>
                     {exams.length === 0 ? (
-                      <tr><td colSpan={3} className="px-4 py-10 text-center text-muted-foreground">No examinations for this class.</td></tr>
+                      <tr><td colSpan={3} className="px-4 py-10 text-center text-muted-foreground">{tr("academicsClasses.noExaminationsForThisClass")}</td></tr>
                     ) : (
                       exams.map((e) => (
                         <tr key={e.id} className="border-t">
@@ -381,7 +384,7 @@ export default function ClassProfilePage() {
           {tab === "reports" && (
             <div className="grid gap-3 sm:grid-cols-2">
               <ReportBtn
-                label="Student List"
+                label={tr("academicsClasses.studentList")}
                 onClick={() =>
                   printTable({
                     title: `${cls.name} — Student List`,
@@ -392,7 +395,7 @@ export default function ClassProfilePage() {
                 }
               />
               <ReportBtn
-                label="Attendance Report"
+                label={tr("academicsClasses.attendanceReport")}
                 onClick={() =>
                   printTable({
                     title: `${cls.name} — Attendance Summary`,
@@ -407,7 +410,7 @@ export default function ClassProfilePage() {
                 }
               />
               <ReportBtn
-                label="Result Report"
+                label={tr("academicsClasses.resultReport")}
                 onClick={() =>
                   printTable({
                     title: `${cls.name} — Results Overview`,
@@ -418,7 +421,7 @@ export default function ClassProfilePage() {
                 }
               />
               <ReportBtn
-                label="Fee Summary"
+                label={tr("academicsClasses.feeSummary")}
                 onClick={() =>
                   printTable({
                     title: `${cls.name} — Fee Summary`,
@@ -446,16 +449,16 @@ export default function ClassProfilePage() {
       <AssignSubjectDialog open={assignOpen} onClose={() => setAssignOpen(false)} classId={id} />
       <ConfirmDialog
         open={!!deletingSection}
-        title="Delete Section"
+        title={tr("academicsClasses.deleteSection")}
         message={deletingSection ? `Delete Section ${deletingSection.name}? Sections with students cannot be deleted.` : ""}
         onConfirm={handleDeleteSection}
         onClose={() => setDeletingSection(null)}
       />
       <ConfirmDialog
         open={!!removingSubject}
-        title="Remove Subject"
+        title={tr("academicsClasses.removeSubject")}
         message={removingSubject ? `Remove ${removingSubject.name} from ${cls.name}?` : ""}
-        confirmLabel="Remove"
+        confirmLabel={tr("academicsClasses.remove")}
         onConfirm={handleRemoveSubject}
         onClose={() => setRemovingSubject(null)}
       />

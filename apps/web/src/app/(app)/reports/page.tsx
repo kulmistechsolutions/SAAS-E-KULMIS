@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
@@ -40,6 +42,7 @@ const ICONS: Record<string, LucideIcon> = {
 };
 
 export default function ReportsDashboardPage() {
+  const t = useT();
   const { user } = useAuth();
   const isTeacher = user?.role === "TEACHER";
   const [mounted, setMounted] = useState(false);
@@ -60,7 +63,7 @@ export default function ReportsDashboardPage() {
   if (!mounted) {
     return (
       <div className="flex h-64 items-center justify-center text-muted-foreground">
-        Loading reports center…
+        {t("reports.loadingReportsCenter")}
       </div>
     );
   }
@@ -75,7 +78,7 @@ export default function ReportsDashboardPage() {
           {isTeacher
             ? `${count} reports for your assigned classes and subjects.`
             : `Centralized analytics — ${totalReportCount()} reports across ${REPORT_CATEGORIES.length} categories.`}{" "}
-          Academic Year {year}.
+          {t("reports.academicYear")} {year}.
         </p>
       </div>
 
@@ -84,7 +87,7 @@ export default function ReportsDashboardPage() {
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search reports by name or category…"
+          placeholder={t("reports.searchReportsByNameOrCategory")}
           className="h-11 w-full rounded-xl border bg-card pl-10 pr-4 text-sm shadow-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
         />
       </div>
@@ -92,12 +95,12 @@ export default function ReportsDashboardPage() {
       {query.trim() ? (
         <div className="rounded-2xl border bg-card shadow-sm">
           <div className="border-b px-5 py-3 text-sm font-medium">
-            Search Results ({results.length})
+            {t("reports.searchResults")}{results.length})
           </div>
           <ul className="divide-y">
             {results.length === 0 ? (
               <li className="px-5 py-10 text-center text-sm text-muted-foreground">
-                No reports found.
+                {t("reports.noReportsFound")}
               </li>
             ) : (
               results.map(({ category, report }) => (
@@ -135,7 +138,7 @@ export default function ReportsDashboardPage() {
                   <div>
                     <h2 className="font-semibold">{cat.label}</h2>
                     <p className="text-xs text-muted-foreground">
-                      {cat.reports.length} reports
+                      {cat.reports.length} {t("reports.reports")}
                     </p>
                   </div>
                 </div>
@@ -155,7 +158,7 @@ export default function ReportsDashboardPage() {
                   ))}
                   {cat.reports.length > 4 && (
                     <li className="text-xs text-muted-foreground">
-                      +{cat.reports.length - 4} more
+                      +{cat.reports.length - 4} {t("reports.more")}
                     </li>
                   )}
                 </ul>

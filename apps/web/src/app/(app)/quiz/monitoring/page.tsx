@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { apiQuizMonitoring, type QuizMonitoringResponse } from "@/lib/quiz/api";
@@ -15,6 +17,7 @@ const STATUS_MAP: Record<string, QuizStatus> = {
 };
 
 export default function QuizMonitoringPage() {
+  const t = useT();
   const [data, setData] = useState<QuizMonitoringResponse | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -26,11 +29,11 @@ export default function QuizMonitoringPage() {
   }, []);
 
   if (loading) {
-    return <p className="text-muted-foreground">Loading teacher quiz monitoring…</p>;
+    return <p className="text-muted-foreground">{t("quizMonitoring.loadingTeacherQuizMonitoring")}</p>;
   }
 
   if (!data) {
-    return <p className="text-muted-foreground">Could not load monitoring data.</p>;
+    return <p className="text-muted-foreground">{t("quizMonitoring.couldNotLoadMonitoringData")}</p>;
   }
 
   const { summary, quizzes } = data;
@@ -38,9 +41,9 @@ export default function QuizMonitoringPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Teacher Quiz Monitoring</h1>
+        <h1 className="text-2xl font-bold">{t("quizMonitoring.teacherQuizMonitoring")}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Monitor all teacher-created online quizzes. This view is separate from official school examinations.
+          {t("quizMonitoring.monitorAllTeacherCreatedOnlineQuizzes")}
         </p>
       </div>
 
@@ -63,13 +66,13 @@ export default function QuizMonitoringPage() {
         <table className="w-full min-w-[900px] text-sm">
           <thead className="border-b bg-muted/40 text-left">
             <tr>
-              <th className="px-4 py-3 font-medium">Teacher</th>
-              <th className="px-4 py-3 font-medium">Quiz</th>
-              <th className="px-4 py-3 font-medium">Class / Section</th>
-              <th className="px-4 py-3 font-medium">Subject</th>
-              <th className="px-4 py-3 font-medium">Attempts</th>
-              <th className="px-4 py-3 font-medium">Avg Score</th>
-              <th className="px-4 py-3 font-medium">Status</th>
+              <th className="px-4 py-3 font-medium">{t("quizMonitoring.teacher")}</th>
+              <th className="px-4 py-3 font-medium">{t("quizMonitoring.quiz")}</th>
+              <th className="px-4 py-3 font-medium">{t("quizMonitoring.classSection")}</th>
+              <th className="px-4 py-3 font-medium">{t("quizMonitoring.subject")}</th>
+              <th className="px-4 py-3 font-medium">{t("quizMonitoring.attempts")}</th>
+              <th className="px-4 py-3 font-medium">{t("quizMonitoring.avgScore")}</th>
+              <th className="px-4 py-3 font-medium">{t("quizMonitoring.status")}</th>
               <th className="px-4 py-3 font-medium" />
             </tr>
           </thead>
@@ -93,7 +96,7 @@ export default function QuizMonitoringPage() {
                 </td>
                 <td className="px-4 py-3 text-right">
                   <Link href={`/quiz/${q.id}`} className="text-primary hover:underline">
-                    View
+                    {t("quizMonitoring.view")}
                   </Link>
                 </td>
               </tr>

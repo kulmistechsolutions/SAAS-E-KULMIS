@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useEffect, useState } from "react";
 import { Download, FileUp, Upload, ArrowLeft, Eye } from "lucide-react";
 import { Dialog } from "@/components/ui/dialog";
@@ -57,6 +59,7 @@ function parseTeacherCsv(text: string): { rows: ImportRow[]; error?: string } {
 }
 
 export function ImportDialog({ open, onClose, onDone }: Props) {
+  const t = useT();
   const [text, setText] = useState("");
   const [fileName, setFileName] = useState<string | null>(null);
   const [step, setStep] = useState<Step>("upload");
@@ -130,26 +133,26 @@ export function ImportDialog({ open, onClose, onDone }: Props) {
         reset();
         onClose();
       }}
-      title="Bulk Import Teachers"
-      description="Upload or paste CSV. Review before importing."
+      title={t("teachersImportDialog.bulkImportTeachers")}
+      description={t("teachersImportDialog.uploadOrPasteCsvReviewBefore")}
       className="max-w-3xl"
       footer={
         step === "result" ? (
-          <Button onClick={() => { reset(); onClose(); }}>Done</Button>
+          <Button onClick={() => { reset(); onClose(); }}>{t("teachersImportDialog.done")}</Button>
         ) : step === "preview" ? (
           <>
             <Button variant="outline" onClick={() => setStep("upload")} disabled={loading}>
-              <ArrowLeft className="mr-2 h-4 w-4" /> Back
+              <ArrowLeft className="mr-2 h-4 w-4" /> {t("teachersImportDialog.back")}
             </Button>
             <Button onClick={handleImport} disabled={loading || validCount === 0}>
               <Upload className="mr-2 h-4 w-4" />
-              Import {validCount} teacher{validCount === 1 ? "" : "s"}
+              {t("teachersImportDialog.import")} {validCount} {t("teachersImportDialog.teacher")}{validCount === 1 ? "" : "s"}
             </Button>
           </>
         ) : (
           <>
             <Button variant="outline" onClick={() => download("teachers-template.csv", TEMPLATE)}>
-              <Download className="mr-2 h-4 w-4" /> Template
+              <Download className="mr-2 h-4 w-4" /> {t("teachersImportDialog.template")}
             </Button>
             <Button onClick={handlePreview} disabled={!text.trim() || loading}>
               <Eye className="mr-2 h-4 w-4" />
@@ -171,7 +174,7 @@ export function ImportDialog({ open, onClose, onDone }: Props) {
             </p>
           )}
           <div>
-            <Label>Upload CSV</Label>
+            <Label>{t("teachersImportDialog.uploadCsv")}</Label>
             <label className="mt-1.5 flex h-10 cursor-pointer items-center gap-2 rounded-lg border border-dashed px-3 text-sm text-muted-foreground hover:bg-secondary">
               <FileUp className="h-4 w-4" />
               {fileName ?? "Choose file…"}
@@ -179,7 +182,7 @@ export function ImportDialog({ open, onClose, onDone }: Props) {
             </label>
           </div>
           <div>
-            <Label>Or paste CSV</Label>
+            <Label>{t("teachersImportDialog.orPasteCsv")}</Label>
             <textarea
               value={text}
               onChange={(e) => { setText(e.target.value); setParseError(null); }}
@@ -195,16 +198,17 @@ export function ImportDialog({ open, onClose, onDone }: Props) {
 }
 
 function PreviewTable({ preview }: { preview: TeacherImportPreviewRow[] }) {
+  const t = useT();
   return (
     <div className="max-h-72 overflow-y-auto rounded-lg border">
       <table className="w-full text-sm">
         <thead className="sticky top-0 bg-secondary text-left text-xs text-muted-foreground">
           <tr>
-            <th className="px-3 py-2">Row</th>
-            <th className="px-3 py-2">Name</th>
-            <th className="px-3 py-2">Phone</th>
-            <th className="px-3 py-2">Status</th>
-            <th className="px-3 py-2">Note</th>
+            <th className="px-3 py-2">{t("teachersImportDialog.row")}</th>
+            <th className="px-3 py-2">{t("teachersImportDialog.name")}</th>
+            <th className="px-3 py-2">{t("teachersImportDialog.phone")}</th>
+            <th className="px-3 py-2">{t("teachersImportDialog.status")}</th>
+            <th className="px-3 py-2">{t("teachersImportDialog.note")}</th>
           </tr>
         </thead>
         <tbody>
@@ -224,27 +228,28 @@ function PreviewTable({ preview }: { preview: TeacherImportPreviewRow[] }) {
 }
 
 function ResultSummary({ result }: { result: ImportResult }) {
+  const t = useT();
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-3 gap-3">
         <div className="rounded-xl border bg-emerald-500/10 p-4 text-center">
           <p className="text-2xl font-bold text-emerald-600">{result.imported}</p>
-          <p className="text-xs text-muted-foreground">Imported</p>
+          <p className="text-xs text-muted-foreground">{t("teachersImportDialog.imported")}</p>
         </div>
         <div className="rounded-xl border bg-amber-500/10 p-4 text-center">
           <p className="text-2xl font-bold text-amber-600">{result.skipped}</p>
-          <p className="text-xs text-muted-foreground">Skipped</p>
+          <p className="text-xs text-muted-foreground">{t("teachersImportDialog.skipped")}</p>
         </div>
         <div className="rounded-xl border bg-rose-500/10 p-4 text-center">
           <p className="text-2xl font-bold text-rose-600">{result.failed}</p>
-          <p className="text-xs text-muted-foreground">Failed</p>
+          <p className="text-xs text-muted-foreground">{t("teachersImportDialog.failed")}</p>
         </div>
       </div>
       {result.errors.length > 0 && (
         <div className="max-h-48 overflow-y-auto rounded-lg border text-sm">
           {result.errors.map((e, i) => (
             <div key={i} className="border-t px-3 py-2 first:border-t-0">
-              Row {e.row || "—"}: {e.message}
+              {t("teachersImportDialog.row")} {e.row || "—"}: {e.message}
             </div>
           ))}
         </div>

@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Download, Eye, Pencil, Plus, Printer, Trash2 } from "lucide-react";
@@ -26,6 +28,7 @@ import { toast } from "@/lib/toast";
 const PAGE_SIZE = 15;
 
 export default function ExpenseListPage() {
+  const t = useT();
   const [mounted, setMounted] = useState(false);
   const state = useExpensesState();
   const [search, setSearch] = useState("");
@@ -96,7 +99,7 @@ export default function ExpenseListPage() {
   if (!mounted) {
     return (
       <div className="flex h-64 items-center justify-center text-muted-foreground">
-        Loading…
+        {t("expensesList.loading")}
       </div>
     );
   }
@@ -105,26 +108,26 @@ export default function ExpenseListPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Expense List</h1>
+          <h1 className="text-2xl font-bold">{t("expensesList.expenseList")}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            All recorded school operational expenses.
+            {t("expensesList.allRecordedSchoolOperationalExpenses")}
           </p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" className="h-9" onClick={() => exportExpensesCsv(rows)}>
             <Download className="mr-2 h-4 w-4" />
-            Export CSV
+            {t("expensesList.exportCsv")}
           </Button>
           <Button className="h-9" onClick={() => setShowCreate(true)}>
             <Plus className="mr-2 h-4 w-4" />
-            Record Expense
+            {t("expensesList.recordExpense")}
           </Button>
         </div>
       </div>
 
       <div className="flex flex-wrap gap-3">
         <Input
-          placeholder="Search reference, title, category, vendor…"
+          placeholder={t("expensesList.searchReferenceTitleCategoryVendor")}
           value={search}
           onChange={(e) => {
             setSearch(e.target.value);
@@ -148,7 +151,7 @@ export default function ExpenseListPage() {
           }}
           className="h-9 min-w-[160px]"
         >
-          <option value="">All categories</option>
+          <option value="">{t("expensesList.allCategories")}</option>
           {state.categories.map((c) => (
             <option key={c.id} value={c.id}>
               {c.name}
@@ -163,12 +166,12 @@ export default function ExpenseListPage() {
           }}
           className="h-9 min-w-[150px]"
         >
-          <option value="">All methods</option>
-          <option value="CASH">Cash</option>
-          <option value="BANK_TRANSFER">Bank Transfer</option>
-          <option value="MOBILE_MONEY">Mobile Money</option>
-          <option value="CHEQUE">Cheque</option>
-          <option value="OTHER">Other</option>
+          <option value="">{t("expensesList.allMethods")}</option>
+          <option value="CASH">{t("expensesList.cash")}</option>
+          <option value="BANK_TRANSFER">{t("expensesList.bankTransfer")}</option>
+          <option value="MOBILE_MONEY">{t("expensesList.mobileMoney")}</option>
+          <option value="CHEQUE">{t("expensesList.cheque")}</option>
+          <option value="OTHER">{t("expensesList.other")}</option>
         </Select>
         <Input
           type="date"
@@ -197,12 +200,12 @@ export default function ExpenseListPage() {
           }}
           className="h-9 min-w-[150px]"
         >
-          <option value="expenseDate-desc">Date (newest)</option>
-          <option value="expenseDate-asc">Date (oldest)</option>
-          <option value="amount-desc">Amount (high)</option>
-          <option value="amount-asc">Amount (low)</option>
-          <option value="category-asc">Category A–Z</option>
-          <option value="title-asc">Title A–Z</option>
+          <option value="expenseDate-desc">{t("expensesList.dateNewest")}</option>
+          <option value="expenseDate-asc">{t("expensesList.dateOldest")}</option>
+          <option value="amount-desc">{t("expensesList.amountHigh")}</option>
+          <option value="amount-asc">{t("expensesList.amountLow")}</option>
+          <option value="category-asc">{t("expensesList.categoryAZ")}</option>
+          <option value="title-asc">{t("expensesList.titleAZ")}</option>
         </Select>
       </div>
 
@@ -212,14 +215,14 @@ export default function ExpenseListPage() {
             <thead className="sticky top-0 bg-secondary text-left text-xs text-muted-foreground">
               <tr>
                 <th className="px-4 py-2.5 font-medium">#</th>
-                <th className="px-4 py-2.5 font-medium">Reference</th>
-                <th className="px-4 py-2.5 font-medium">Title</th>
-                <th className="px-4 py-2.5 font-medium">Category</th>
-                <th className="px-4 py-2.5 font-medium">Amount</th>
-                <th className="px-4 py-2.5 font-medium">Method</th>
-                <th className="px-4 py-2.5 font-medium">Date</th>
-                <th className="px-4 py-2.5 font-medium">Recorded By</th>
-                <th className="px-4 py-2.5 font-medium">Actions</th>
+                <th className="px-4 py-2.5 font-medium">{t("expensesList.reference")}</th>
+                <th className="px-4 py-2.5 font-medium">{t("expensesList.title")}</th>
+                <th className="px-4 py-2.5 font-medium">{t("expensesList.category")}</th>
+                <th className="px-4 py-2.5 font-medium">{t("expensesList.amount")}</th>
+                <th className="px-4 py-2.5 font-medium">{t("expensesList.method")}</th>
+                <th className="px-4 py-2.5 font-medium">{t("expensesList.date")}</th>
+                <th className="px-4 py-2.5 font-medium">{t("expensesList.recordedBy")}</th>
+                <th className="px-4 py-2.5 font-medium">{t("expensesList.actions")}</th>
               </tr>
             </thead>
             <tbody>
@@ -307,9 +310,9 @@ export default function ExpenseListPage() {
       />
       <ConfirmDialog
         open={!!deleteId}
-        title="Delete Expense"
-        message="This requires administrator authorization. The expense will be permanently marked as deleted and retained in the audit log."
-        confirmLabel="Authorize Delete"
+        title={t("expensesList.deleteExpense")}
+        message={t("expensesList.thisRequiresAdministratorAuthorizationTheExpense")}
+        confirmLabel={t("expensesList.authorizeDelete")}
         onConfirm={handleDelete}
         onClose={() => setDeleteId(null)}
       />

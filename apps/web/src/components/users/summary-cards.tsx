@@ -1,3 +1,5 @@
+
+import { useT } from "@/lib/i18n/provider";
 import type { LucideIcon } from "lucide-react";
 import {
   ArrowRight,
@@ -32,6 +34,7 @@ const CARDS: {
 ];
 
 export function UsersSummaryCards({ summary }: { summary: UsersDashboardSummary }) {
+  const t = useT();
   return (
     <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
       {CARDS.map((c) => (
@@ -46,7 +49,7 @@ export function UsersSummaryCards({ summary }: { summary: UsersDashboardSummary 
             {summary[c.key].toLocaleString()}
           </p>
           <button type="button" className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline">
-            View details
+            {t("usersSummaryCards.viewDetails")}
             <ArrowRight className="h-3 w-3" />
           </button>
         </div>

@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useEffect, useState } from "react";
 import { Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -29,6 +31,7 @@ export function SectionFormDialog({
   section,
   defaultClassId,
 }: Props) {
+  const t = useT();
   const isEdit = !!section;
   const classes = classesForYear(activeAcademicYear());
   const [name, setName] = useState("");
@@ -69,12 +72,12 @@ export function SectionFormDialog({
       open={open}
       onClose={onClose}
       title={isEdit ? "Edit Section" : "Add Section"}
-      description="Section names must be unique within a class."
+      description={t("academicsSectionFormDialog.sectionNamesMustBeUniqueWithin")}
       className="max-w-md"
       footer={
         <>
           <Button variant="outline" onClick={onClose}>
-            Cancel
+            {t("academicsSectionFormDialog.cancel")}
           </Button>
           <Button onClick={submit}>{isEdit ? "Save Changes" : "Create Section"}</Button>
         </>
@@ -87,15 +90,15 @@ export function SectionFormDialog({
       )}
       <div className="grid gap-4">
         <div>
-          <Label required>Section Name</Label>
+          <Label required>{t("academicsSectionFormDialog.sectionName")}</Label>
           <Input
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="e.g. A"
+            placeholder={t("academicsSectionFormDialog.eGA")}
           />
         </div>
         <div>
-          <Label required>Parent Class</Label>
+          <Label required>{t("academicsSectionFormDialog.parentClass")}</Label>
           <Select
             value={classId}
             onChange={(e) => setClassId(e.target.value)}
@@ -109,10 +112,10 @@ export function SectionFormDialog({
           </Select>
         </div>
         <div>
-          <Label required>Status</Label>
+          <Label required>{t("academicsSectionFormDialog.status")}</Label>
           <Select value={status} onChange={(e) => setStatus(e.target.value as EntityStatus)}>
-            <option value="ACTIVE">Active</option>
-            <option value="INACTIVE">Inactive</option>
+            <option value="ACTIVE">{t("academicsSectionFormDialog.active")}</option>
+            <option value="INACTIVE">{t("academicsSectionFormDialog.inactive")}</option>
           </Select>
         </div>
       </div>

@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
@@ -65,6 +67,7 @@ const STATUS_TONE: Record<StudentStatus, "success" | "muted" | "info"> = {
 };
 
 export default function StudentsPage() {
+  const t = useT();
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
   useEffect(() => {
@@ -269,7 +272,7 @@ export default function StudentsPage() {
   if (!mounted) {
     return (
       <div className="flex h-64 items-center justify-center text-muted-foreground">
-        Loading students…
+        {t("students.loadingStudents")}
       </div>
     );
   }
@@ -296,20 +299,20 @@ export default function StudentsPage() {
       {/* Header */}
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Students</h1>
+          <h1 className="text-2xl font-bold text-foreground">{t("students.students")}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Manage student records, registration, and profiles.
+            {t("students.manageStudentRecordsRegistrationAndProfiles")}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Button variant="outline" onClick={handlePrint}>
-            <Printer className="mr-2 h-4 w-4" /> Print
+            <Printer className="mr-2 h-4 w-4" /> {t("students.print")}
           </Button>
           <Button variant="outline" onClick={handleExport}>
-            <FileDown className="mr-2 h-4 w-4" /> Export
+            <FileDown className="mr-2 h-4 w-4" /> {t("students.export")}
           </Button>
           <Button variant="outline" onClick={() => setImportOpen(true)}>
-            <Upload className="mr-2 h-4 w-4" /> Import
+            <Upload className="mr-2 h-4 w-4" /> {t("students.import")}
           </Button>
           <Button
             onClick={() => {
@@ -317,7 +320,7 @@ export default function StudentsPage() {
               setFormOpen(true);
             }}
           >
-            <Plus className="mr-2 h-4 w-4" /> Add Student
+            <Plus className="mr-2 h-4 w-4" /> {t("students.addStudent")}
           </Button>
         </div>
       </div>
@@ -332,7 +335,7 @@ export default function StudentsPage() {
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search by ID, name, parent, or phone…"
+              placeholder={t("students.searchByIdNameParentOr")}
               className="h-10 w-full rounded-lg border border-input bg-background pl-9 pr-3 text-sm outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20"
             />
           </div>
@@ -351,7 +354,7 @@ export default function StudentsPage() {
               }}
               className="lg:w-32"
             >
-              <option value="">All Classes</option>
+              <option value="">{t("students.allClasses")}</option>
               {classOptions.map((c) => (
                 <option key={c} value={c}>
                   {c}
@@ -363,10 +366,10 @@ export default function StudentsPage() {
               onChange={(e) => setSection(e.target.value)}
               className="lg:w-32"
             >
-              <option value="">All Sections</option>
+              <option value="">{t("students.allSections")}</option>
               {sectionOptions.map((s) => (
                 <option key={s} value={s}>
-                  Section {s}
+                  {t("students.section")} {s}
                 </option>
               ))}
             </Select>
@@ -375,19 +378,19 @@ export default function StudentsPage() {
               onChange={(e) => setGender(e.target.value)}
               className="lg:w-32"
             >
-              <option value="">All Genders</option>
-              <option value="MALE">Male</option>
-              <option value="FEMALE">Female</option>
+              <option value="">{t("students.allGenders")}</option>
+              <option value="MALE">{t("students.male")}</option>
+              <option value="FEMALE">{t("students.female")}</option>
             </Select>
             <Select
               value={status}
               onChange={(e) => setStatus(e.target.value)}
               className="lg:w-32"
             >
-              <option value="">All Status</option>
-              <option value="ACTIVE">Active</option>
-              <option value="INACTIVE">Inactive</option>
-              <option value="GRADUATED">Graduated</option>
+              <option value="">{t("students.allStatus")}</option>
+              <option value="ACTIVE">{t("students.active")}</option>
+              <option value="INACTIVE">{t("students.inactive")}</option>
+              <option value="GRADUATED">{t("students.graduated")}</option>
             </Select>
             {hasFilters && (
               <Button
@@ -395,7 +398,7 @@ export default function StudentsPage() {
                 onClick={clearFilters}
                 className="lg:w-auto"
               >
-                <X className="mr-1 h-4 w-4" /> Clear
+                <X className="mr-1 h-4 w-4" /> {t("students.clear")}
               </Button>
             )}
           </div>
@@ -406,7 +409,7 @@ export default function StudentsPage() {
       {selected.size > 0 && (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/30 bg-primary/5 px-4 py-3">
           <p className="text-sm font-medium">
-            {selected.size} student{selected.size === 1 ? "" : "s"} selected
+            {selected.size} {t("students.student")}{selected.size === 1 ? "" : "s"} {t("students.selected")}
           </p>
           <div className="flex gap-2">
             <Button
@@ -414,7 +417,7 @@ export default function StudentsPage() {
               className="h-9"
               onClick={() => setSelected(new Set())}
             >
-              Clear
+              {t("students.clear")}
             </Button>
             <Button
               variant="destructive"
@@ -423,7 +426,7 @@ export default function StudentsPage() {
               onClick={() => setBulkConfirm(true)}
             >
               <Trash2 className="mr-2 h-4 w-4" />
-              Delete selected
+              {t("students.deleteSelected")}
             </Button>
           </div>
         </div>
@@ -438,7 +441,7 @@ export default function StudentsPage() {
                 <th className="px-3 py-3 font-medium">
                   <input
                     type="checkbox"
-                    aria-label="Select all on this page"
+                    aria-label={t("students.selectAllOnThisPage")}
                     checked={pageAllSelected}
                     onChange={togglePage}
                     className="h-4 w-4 cursor-pointer accent-primary"
@@ -446,36 +449,36 @@ export default function StudentsPage() {
                 </th>
                 <th className="px-4 py-3 font-medium">#</th>
                 <SortableTh
-                  label="Student ID"
+                  label={t("students.studentId")}
                   active={sortKey === "code"}
                   dir={sortDir}
                   onClick={() => toggleSort("code")}
                 />
                 <SortableTh
-                  label="Name"
+                  label={t("students.name")}
                   active={sortKey === "fullName"}
                   dir={sortDir}
                   onClick={() => toggleSort("fullName")}
                 />
-                <th className="px-4 py-3 font-medium">Gender</th>
-                <th className="px-4 py-3 font-medium">Parent</th>
-                <th className="px-4 py-3 font-medium">Parent Phone</th>
+                <th className="px-4 py-3 font-medium">{t("students.gender")}</th>
+                <th className="px-4 py-3 font-medium">{t("students.parent")}</th>
+                <th className="px-4 py-3 font-medium">{t("students.parentPhone")}</th>
                 <SortableTh
-                  label="Class"
+                  label={t("students.class")}
                   active={sortKey === "className"}
                   dir={sortDir}
                   onClick={() => toggleSort("className")}
                 />
-                <th className="px-4 py-3 font-medium">Section</th>
-                <th className="px-4 py-3 font-medium">Monthly Fee</th>
+                <th className="px-4 py-3 font-medium">{t("students.section")}</th>
+                <th className="px-4 py-3 font-medium">{t("students.monthlyFee")}</th>
                 <SortableTh
-                  label="Reg. Date"
+                  label={t("students.regDate")}
                   active={sortKey === "registrationDate"}
                   dir={sortDir}
                   onClick={() => toggleSort("registrationDate")}
                 />
-                <th className="px-4 py-3 font-medium">Status</th>
-                <th className="px-4 py-3 text-right font-medium">Actions</th>
+                <th className="px-4 py-3 font-medium">{t("students.status")}</th>
+                <th className="px-4 py-3 text-right font-medium">{t("students.actions")}</th>
               </tr>
             </thead>
             <tbody>
@@ -563,11 +566,11 @@ export default function StudentsPage() {
                       <div className="flex items-center justify-end gap-1">
                         <RowAction
                           href={`/students/${s.id}`}
-                          title="View Profile"
+                          title={t("students.viewProfile")}
                           icon={Eye}
                         />
                         <RowAction
-                          title="Edit"
+                          title={t("students.edit")}
                           icon={Pencil}
                           onClick={() => {
                             setEditing(s);
@@ -575,19 +578,19 @@ export default function StudentsPage() {
                           }}
                         />
                         <RowAction
-                          title="Print Profile"
+                          title={t("students.printProfile")}
                           icon={Printer}
                           onClick={() => printStudentProfile(s)}
                         />
                         <RowAction
-                          title="Download Profile"
+                          title={t("students.downloadProfile")}
                           icon={Download}
                           onClick={() =>
                             exportStudentsCsv([s], `${s.code}.csv`)
                           }
                         />
                         <RowAction
-                          title="Delete"
+                          title={t("students.delete")}
                           icon={Trash2}
                           danger
                           onClick={() => setDeleting(s)}
@@ -619,7 +622,7 @@ export default function StudentsPage() {
           }}
           className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
         >
-          <RotateCcw className="h-3.5 w-3.5" /> Reset demo data
+          <RotateCcw className="h-3.5 w-3.5" /> {t("students.resetDemoData")}
         </button>
       </div>
 
@@ -641,7 +644,7 @@ export default function StudentsPage() {
       />
       <ConfirmDialog
         open={!!deleting}
-        title="Delete Student"
+        title={t("students.deleteStudent")}
         message={
           deleting
             ? `Delete ${deleting.fullName} (${deleting.code})? If this is the parent's only child, the parent account will also be removed. This cannot be undone.`
@@ -652,7 +655,7 @@ export default function StudentsPage() {
       />
       <ConfirmDialog
         open={bulkConfirm}
-        title="Delete selected students"
+        title={t("students.deleteSelectedStudents")}
         message={`Delete ${selected.size} selected student${
           selected.size === 1 ? "" : "s"
         }? Their IDs are retired and never reused. A parent is removed only if none of their children remain. This cannot be undone.`}

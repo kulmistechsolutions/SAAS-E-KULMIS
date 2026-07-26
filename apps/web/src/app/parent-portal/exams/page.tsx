@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useEffect, useState } from "react";
 import { Download, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -10,6 +12,7 @@ import { printResultSlip } from "@/lib/parent-portal/print";
 import type { StudentExamResult } from "@/lib/examinations/types";
 
 export default function ParentExamsPage() {
+  const t = useT();
   const { selectedChild } = usePortal();
   usePortalAudit("RESULT_VIEWED", selectedChild?.id);
 
@@ -35,26 +38,26 @@ export default function ParentExamsPage() {
   }, [selectedChild]);
 
   if (!selectedChild) {
-    return <p className="text-muted-foreground">Select a child to view exam results.</p>;
+    return <p className="text-muted-foreground">{t("parentPortalExams.selectAChildToViewExam")}</p>;
   }
 
   if (loading) {
-    return <p className="text-muted-foreground">Loading results…</p>;
+    return <p className="text-muted-foreground">{t("parentPortalExams.loadingResults")}</p>;
   }
 
   if (blocked) {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold">Exam Results</h1>
+          <h1 className="text-2xl font-bold">{t("parentPortalExams.examResults")}</h1>
           <p className="mt-1 text-sm text-muted-foreground">{selectedChild.fullName}</p>
         </div>
         <div className="rounded-xl border border-amber-200 bg-amber-50 p-8 text-center dark:border-amber-900 dark:bg-amber-950/30">
           <p className="font-medium text-amber-800 dark:text-amber-200">
-            This student&apos;s examination result is currently unavailable.
+            {t("parentPortalExams.thisStudentAposSExaminationResult")}
           </p>
           <p className="mt-2 text-sm text-amber-700 dark:text-amber-300">
-            Please contact the school administration.
+            {t("parentPortalExams.pleaseContactTheSchoolAdministration")}
           </p>
         </div>
       </div>
@@ -64,24 +67,24 @@ export default function ParentExamsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Exam Results</h1>
+        <h1 className="text-2xl font-bold">{t("parentPortalExams.examResults")}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Published results only · {selectedChild.fullName}
+          {t("parentPortalExams.publishedResultsOnly")} {selectedChild.fullName}
         </p>
       </div>
 
       {finalGrade && results.length > 1 && (
         <div className="rounded-xl border bg-card p-5 shadow-sm">
-          <h2 className="font-semibold">Final Academic Result</h2>
+          <h2 className="font-semibold">{t("parentPortalExams.finalAcademicResult")}</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Grade {finalGrade} · {finalPassed ? "Pass" : "Fail"}
+            {t("parentPortalExams.grade")} {finalGrade} · {finalPassed ? "Pass" : "Fail"}
           </p>
         </div>
       )}
 
       {results.length === 0 && (
         <div className="rounded-xl border bg-card p-8 text-center text-muted-foreground">
-          No published examination results yet.
+          {t("parentPortalExams.noPublishedExaminationResultsYet")}
         </div>
       )}
 
@@ -91,21 +94,21 @@ export default function ParentExamsPage() {
             <div>
               <h2 className="text-lg font-semibold">{result.examName}</h2>
               <p className="text-sm text-muted-foreground">
-                {result.term} · Weight {result.weightPercent}%
+                {result.term} {t("parentPortalExams.weight")} {result.weightPercent}%
               </p>
             </div>
             <div className="flex items-center gap-2">
               <Badge tone={result.passed ? "success" : "danger"}>
                 {result.passed ? "Pass" : "Fail"}
               </Badge>
-              <Badge tone="info">Grade {result.grade}</Badge>
+              <Badge tone="info">{t("parentPortalExams.grade")} {result.grade}</Badge>
               <Button onClick={() => printResultSlip(selectedChild, result)}>
                 <Printer className="mr-2 h-4 w-4" />
-                Print
+                {t("parentPortalExams.print")}
               </Button>
               <Button onClick={() => printResultSlip(selectedChild, result)}>
                 <Download className="mr-2 h-4 w-4" />
-                PDF
+                {t("parentPortalExams.pdf")}
               </Button>
             </div>
           </div>
@@ -114,11 +117,11 @@ export default function ParentExamsPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b bg-secondary/50 text-left">
-                  <th className="px-3 py-2">Subject</th>
-                  <th className="px-3 py-2">Max Marks</th>
-                  <th className="px-3 py-2">Obtained</th>
-                  <th className="px-3 py-2">Grade</th>
-                  <th className="px-3 py-2">Result</th>
+                  <th className="px-3 py-2">{t("parentPortalExams.subject")}</th>
+                  <th className="px-3 py-2">{t("parentPortalExams.maxMarks")}</th>
+                  <th className="px-3 py-2">{t("parentPortalExams.obtained")}</th>
+                  <th className="px-3 py-2">{t("parentPortalExams.grade")}</th>
+                  <th className="px-3 py-2">{t("parentPortalExams.result")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -136,7 +139,7 @@ export default function ParentExamsPage() {
               </tbody>
               <tfoot>
                 <tr className="bg-secondary/30 font-medium">
-                  <td className="px-3 py-2">Total</td>
+                  <td className="px-3 py-2">{t("parentPortalExams.total")}</td>
                   <td className="px-3 py-2">{result.totalMax}</td>
                   <td className="px-3 py-2">{result.totalObtained}</td>
                   <td className="px-3 py-2">{result.grade}</td>

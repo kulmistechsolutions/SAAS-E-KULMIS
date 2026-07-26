@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
@@ -34,6 +36,7 @@ export function PaymentDialog({
   onClose,
   onSuccess,
 }: PaymentDialogProps) {
+  const t = useT();
   const [type, setType] = useState<PaymentType>("THIS_MONTH");
   const [amount, setAmount] = useState("");
   const [advanceMonths, setAdvanceMonths] = useState("1");
@@ -104,13 +107,13 @@ export function PaymentDialog({
     <Dialog
       open={open}
       onClose={onClose}
-      title="Collect Payment"
+      title={t("feesPaymentDialog.collectPayment")}
       description={student ? `${student.fullName} (${student.code})` : undefined}
       className="max-w-md"
       footer={
         <>
           <Button variant="outline" onClick={onClose}>
-            Cancel
+            {t("feesPaymentDialog.cancel")}
           </Button>
           <Button onClick={handleSubmit} disabled={submitting || !student}>
             {submitting ? "Processing…" : `Pay ${money(previewAmount)}`}
@@ -122,11 +125,11 @@ export function PaymentDialog({
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-3 rounded-xl bg-secondary/50 p-3 text-sm">
             <div>
-              <p className="text-xs text-muted-foreground">Monthly Fee</p>
+              <p className="text-xs text-muted-foreground">{t("feesPaymentDialog.monthlyFee")}</p>
               <p className="font-semibold tabular-nums">{money(student.monthlyFee)}</p>
             </div>
             <div>
-              <p className="text-xs text-muted-foreground">Outstanding</p>
+              <p className="text-xs text-muted-foreground">{t("feesPaymentDialog.outstanding")}</p>
               <p className="font-semibold tabular-nums text-rose-600">
                 {money(outstanding)}
               </p>
@@ -134,20 +137,20 @@ export function PaymentDialog({
           </div>
 
           <div>
-            <Label required>Payment Type</Label>
+            <Label required>{t("feesPaymentDialog.paymentType")}</Label>
             <Select
               className="mt-1.5"
               value={type}
               onChange={(e) => setType(e.target.value as PaymentType)}
             >
               <option value="THIS_MONTH" disabled={!thisMonthOk}>
-                This Month {!thisMonthOk ? "(unavailable)" : ""}
+                {t("feesPaymentDialog.thisMonth")} {!thisMonthOk ? "(unavailable)" : ""}
               </option>
               <option value="PARTIAL" disabled={!partialOk}>
-                Partial Payment {!partialOk ? "(unavailable)" : ""}
+                {t("feesPaymentDialog.partialPayment")} {!partialOk ? "(unavailable)" : ""}
               </option>
               <option value="ADVANCE" disabled={!advanceOk}>
-                Advance Payment {!advanceOk ? "(unavailable)" : ""}
+                {t("feesPaymentDialog.advancePayment")} {!advanceOk ? "(unavailable)" : ""}
               </option>
             </Select>
           </div>
@@ -157,18 +160,18 @@ export function PaymentDialog({
               {outstandingMonths.length > 0 && (
                 <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm dark:border-amber-900/50 dark:bg-amber-950/30">
                   <p className="text-xs font-medium text-amber-800 dark:text-amber-300">
-                    Outstanding Month(s)
+                    {t("feesPaymentDialog.outstandingMonthS")}
                   </p>
                   <p className="mt-1 text-amber-900 dark:text-amber-200">
                     {outstandingMonths.join(", ")}
                   </p>
                   <p className="mt-2 text-xs text-muted-foreground">
-                    Remaining balance: {money(outstanding)}
+                    {t("feesPaymentDialog.remainingBalance")} {money(outstanding)}
                   </p>
                 </div>
               )}
               <div>
-                <Label required>Payment Amount</Label>
+                <Label required>{t("feesPaymentDialog.paymentAmount")}</Label>
                 <Input
                   className="mt-1.5"
                   type="number"
@@ -184,7 +187,7 @@ export function PaymentDialog({
 
           {type === "ADVANCE" && (
             <div>
-              <Label required>Number of Months</Label>
+              <Label required>{t("feesPaymentDialog.numberOfMonths")}</Label>
               <Select
                 className="mt-1.5"
                 value={advanceMonths}
@@ -192,7 +195,7 @@ export function PaymentDialog({
               >
                 {Array.from({ length: 12 }, (_, i) => i + 1).map((n) => (
                   <option key={n} value={String(n)}>
-                    {n} month{n > 1 ? "s" : ""} — {money(student.monthlyFee * n)}
+                    {n} {t("feesPaymentDialog.month")}{n > 1 ? "s" : ""} — {money(student.monthlyFee * n)}
                   </option>
                 ))}
               </Select>

@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Calendar, ChevronRight, ClipboardList, FileText, GraduationCap, Plus } from "lucide-react";
@@ -18,6 +20,7 @@ const QUICK = [
 ];
 
 export default function QuizDashboardPage() {
+  const t = useT();
   const [mounted, setMounted] = useState(false);
   const state = useQuizState();
   const [teacherId, setTeacherId] = useState("");
@@ -40,27 +43,27 @@ export default function QuizDashboardPage() {
   }, [state.quizzes]);
 
   if (!mounted) {
-    return <div className="flex h-64 items-center justify-center text-muted-foreground">Loading quiz module…</div>;
+    return <div className="flex h-64 items-center justify-center text-muted-foreground">{t("quiz.loadingQuizModule")}</div>;
   }
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Online Quiz</h1>
+          <h1 className="text-2xl font-bold">{t("quiz.onlineQuiz")}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Create, publish, and evaluate digital assessments.
+            {t("quiz.createPublishAndEvaluateDigitalAssessments")}
           </p>
         </div>
         <div className="flex gap-2">
           <Select value={teacherId} onChange={(e) => setTeacherId(e.target.value)} className="h-9 min-w-[180px]">
-            <option value="">All teachers (Admin)</option>
+            <option value="">{t("quiz.allTeachersAdmin")}</option>
             {teachers.map(([id, name]) => (
               <option key={id} value={id}>{name}</option>
             ))}
           </Select>
           <Link href="/quiz/create">
-            <Button className="h-9"><Plus className="mr-2 h-4 w-4" />Create Quiz</Button>
+            <Button className="h-9"><Plus className="mr-2 h-4 w-4" />{t("quiz.createQuiz")}</Button>
           </Link>
         </div>
       </div>
@@ -84,16 +87,16 @@ export default function QuizDashboardPage() {
 
       <div className="rounded-xl border bg-card shadow-sm">
         <div className="flex items-center justify-between border-b px-4 py-3">
-          <h2 className="font-semibold">Recent Quizzes</h2>
-          <Link href="/quiz/list" className="text-xs font-medium text-primary hover:underline">View all</Link>
+          <h2 className="font-semibold">{t("quiz.recentQuizzes")}</h2>
+          <Link href="/quiz/list" className="text-xs font-medium text-primary hover:underline">{t("quiz.viewAll")}</Link>
         </div>
         <table className="w-full text-sm">
           <thead className="bg-secondary text-left text-xs text-muted-foreground">
             <tr>
-              <th className="px-4 py-2 font-medium">Quiz</th>
-              <th className="px-4 py-2 font-medium">Class</th>
-              <th className="px-4 py-2 font-medium">Status</th>
-              <th className="px-4 py-2 font-medium">Attempts</th>
+              <th className="px-4 py-2 font-medium">{t("quiz.quiz")}</th>
+              <th className="px-4 py-2 font-medium">{t("quiz.class")}</th>
+              <th className="px-4 py-2 font-medium">{t("quiz.status")}</th>
+              <th className="px-4 py-2 font-medium">{t("quiz.attempts")}</th>
             </tr>
           </thead>
           <tbody>

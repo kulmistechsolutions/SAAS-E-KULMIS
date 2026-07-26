@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useCallback, useEffect, useState } from "react";
 import { GraduationCap, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -11,6 +13,7 @@ import type { StudentExamResult, StudentFinalResult } from "@/lib/examinations/t
 import { toast } from "@/lib/toast";
 
 export default function PublicResultsPage() {
+  const t = useT();
   const branding = useSchoolBranding();
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
@@ -79,14 +82,14 @@ export default function PublicResultsPage() {
           )}
           <h1 className="text-2xl font-bold">{branding.name}</h1>
           <p className="text-sm text-muted-foreground">{branding.tagline}</p>
-          <p className="mt-2 text-lg font-semibold">Student Results Portal</p>
+          <p className="mt-2 text-lg font-semibold">{t("results.studentResultsPortal")}</p>
         </div>
 
         <div className="rounded-2xl border bg-card p-6 shadow-sm">
-          <label className="mb-2 block text-sm font-medium">Enter Student ID</label>
+          <label className="mb-2 block text-sm font-medium">{t("results.enterStudentId")}</label>
           <div className="flex gap-2">
             <Input
-              placeholder="e.g. SHMM000001"
+              placeholder={t("results.eGShmm000001")}
               value={code}
               onChange={(e) => {
                 setCode(e.target.value);
@@ -102,12 +105,12 @@ export default function PublicResultsPage() {
         </div>
 
         {searched && notFound && (
-          <p className="mt-6 text-center text-rose-600">Student ID not found.</p>
+          <p className="mt-6 text-center text-rose-600">{t("results.studentIdNotFound")}</p>
         )}
 
         {student && blocked && (
           <div className="mt-6 rounded-xl border border-rose-200 bg-rose-50 p-6 text-center text-rose-700 dark:border-rose-900 dark:bg-rose-950/30">
-            Results are blocked. Please contact the school office.
+            {t("results.resultsAreBlockedPleaseContactThe")}
           </div>
         )}
 
@@ -116,10 +119,10 @@ export default function PublicResultsPage() {
             <div className="rounded-2xl border bg-card p-6 shadow-sm">
               <h2 className="text-lg font-bold">{student.studentName}</h2>
               <dl className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
-                <div><dt className="text-muted-foreground">Student ID</dt><dd className="font-medium">{student.studentCode}</dd></div>
-                <div><dt className="text-muted-foreground">Class</dt><dd className="font-medium">{student.className}</dd></div>
-                <div><dt className="text-muted-foreground">Section</dt><dd className="font-medium">{student.section ?? "—"}</dd></div>
-                <div><dt className="text-muted-foreground">Academic Year</dt><dd className="font-medium">{student.academicYear}</dd></div>
+                <div><dt className="text-muted-foreground">{t("results.studentId")}</dt><dd className="font-medium">{student.studentCode}</dd></div>
+                <div><dt className="text-muted-foreground">{t("results.class")}</dt><dd className="font-medium">{student.className}</dd></div>
+                <div><dt className="text-muted-foreground">{t("results.section")}</dt><dd className="font-medium">{student.section ?? "—"}</dd></div>
+                <div><dt className="text-muted-foreground">{t("results.academicYear")}</dt><dd className="font-medium">{student.academicYear}</dd></div>
               </dl>
             </div>
 
@@ -127,15 +130,15 @@ export default function PublicResultsPage() {
               <div key={tr.examId} className="rounded-2xl border bg-card shadow-sm">
                 <div className="border-b px-5 py-3">
                   <h3 className="font-semibold">{tr.examName}</h3>
-                  <p className="text-sm text-muted-foreground">{tr.term} · Weight {tr.weightPercent}%</p>
+                  <p className="text-sm text-muted-foreground">{tr.term} {t("results.weight")} {tr.weightPercent}%</p>
                 </div>
                 <table className="w-full text-sm">
                   <thead className="bg-secondary text-left text-xs text-muted-foreground">
                     <tr>
-                      <th className="px-4 py-2 font-medium">Subject</th>
-                      <th className="px-4 py-2 font-medium">Max</th>
-                      <th className="px-4 py-2 font-medium">Obtained</th>
-                      <th className="px-4 py-2 font-medium">Grade</th>
+                      <th className="px-4 py-2 font-medium">{t("results.subject")}</th>
+                      <th className="px-4 py-2 font-medium">{t("results.max")}</th>
+                      <th className="px-4 py-2 font-medium">{t("results.obtained")}</th>
+                      <th className="px-4 py-2 font-medium">{t("results.grade")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -150,8 +153,8 @@ export default function PublicResultsPage() {
                   </tbody>
                 </table>
                 <div className="flex flex-wrap gap-4 border-t px-5 py-3 text-sm">
-                  <span>Average: <strong>{tr.average.toFixed(1)}</strong></span>
-                  <span>Grade: <strong>{tr.grade}</strong></span>
+                  <span>{t("results.average")} <strong>{tr.average.toFixed(1)}</strong></span>
+                  <span>{t("results.grade")} <strong>{tr.grade}</strong></span>
                   <Badge tone={tr.passed ? "success" : "danger"}>{tr.passed ? "Pass" : "Fail"}</Badge>
                 </div>
               </div>
@@ -159,7 +162,7 @@ export default function PublicResultsPage() {
 
             {finalResult && (
               <div className="rounded-2xl border-2 border-primary/20 bg-primary/5 p-6">
-                <h3 className="font-semibold">Final Academic Result</h3>
+                <h3 className="font-semibold">{t("results.finalAcademicResult")}</h3>
                 <p className="mt-2 text-3xl font-bold text-primary">
                   {finalResult.finalGrade} · {finalResult.finalAverage.toFixed(1)}%
                 </p>
@@ -167,13 +170,13 @@ export default function PublicResultsPage() {
                   {finalResult.passed ? "PASS" : "FAIL"}
                 </Badge>
                 <p className="mt-3 text-xs text-muted-foreground">
-                  Calculated from weighted term marks. Final % = Σ(weighted marks) ÷ Σ(weights).
+                  {t("results.calculatedFromWeightedTermMarksFinal")}
                 </p>
               </div>
             )}
 
             {termResults.length === 0 && (
-              <p className="text-center text-muted-foreground">No published results yet.</p>
+              <p className="text-center text-muted-foreground">{t("results.noPublishedResultsYet")}</p>
             )}
           </div>
         )}

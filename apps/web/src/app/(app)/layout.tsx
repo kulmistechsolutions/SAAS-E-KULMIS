@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useEffect, useState, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth";
@@ -32,6 +34,7 @@ const ROLE_LABEL: Record<string, string> = {
 };
 
 export default function AppLayout({ children }: { children: ReactNode }) {
+  const t = useT();
   const { user, loading } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
@@ -91,7 +94,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         className="flex min-h-screen items-center justify-center bg-muted/40"
         suppressHydrationWarning
         aria-busy="true"
-        aria-label="Loading"
+        aria-label={t("layout.loading")}
       >
         <div
           className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent"
@@ -158,7 +161,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
           {routeBlocked ? (
             <div className="flex flex-col items-center justify-center gap-3 py-20 text-muted-foreground">
               <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-              <p className="text-sm">Redirecting to your dashboard…</p>
+              <p className="text-sm">{t("layout.redirectingToYourDashboard")}</p>
             </div>
           ) : (
             <>

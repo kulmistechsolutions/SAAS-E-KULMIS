@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { Select } from "@/components/ui/select";
 import { useAcademicYearSelect } from "@/lib/academics/year-select";
 
@@ -19,6 +21,7 @@ export function AcademicYearSelect({
   allowAll,
   allLabel = "All years",
 }: Props) {
+  const t = useT();
   const { year: defaultYear, years } = useAcademicYearSelect();
   const selected = value ?? defaultYear;
 
@@ -30,7 +33,7 @@ export function AcademicYearSelect({
     >
       {allowAll && <option value="">{allLabel}</option>}
       {years.length === 0 ? (
-        <option value="">Loading…</option>
+        <option value="">{t("academicsAcademicYearSelect.loading")}</option>
       ) : (
         years.map((y) => (
           <option key={y} value={y}>

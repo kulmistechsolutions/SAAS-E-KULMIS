@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useEffect, useMemo, useState } from "react";
 import { FileDown, Pencil, Plus, Printer, Search, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -24,6 +26,7 @@ import { toast } from "@/lib/toast";
 const PAGE_SIZE = 12;
 
 export default function SectionsPage() {
+  const t = useT();
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
   const state = useAcademicsState();
@@ -74,7 +77,7 @@ export default function SectionsPage() {
   if (!mounted) {
     return (
       <div className="flex h-64 items-center justify-center text-muted-foreground">
-        Loading sections…
+        {t("academicsSections.loadingSections")}
       </div>
     );
   }
@@ -83,9 +86,9 @@ export default function SectionsPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold">Sections</h1>
+          <h1 className="text-2xl font-bold">{t("academicsSections.sections")}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Divide classes into independent classrooms.
+            {t("academicsSections.divideClassesIntoIndependentClassrooms")}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -99,13 +102,13 @@ export default function SectionsPage() {
               })
             }
           >
-            <Printer className="mr-2 h-4 w-4" /> Print
+            <Printer className="mr-2 h-4 w-4" /> {t("academicsSections.print")}
           </Button>
           <Button variant="outline" onClick={() => { exportSectionsCsv(); toast(`Exported ${rows.length} sections.`, "info"); }}>
-            <FileDown className="mr-2 h-4 w-4" /> Export
+            <FileDown className="mr-2 h-4 w-4" /> {t("academicsSections.export")}
           </Button>
           <Button onClick={() => { setEditing(null); setFormOpen(true); }}>
-            <Plus className="mr-2 h-4 w-4" /> Add Section
+            <Plus className="mr-2 h-4 w-4" /> {t("academicsSections.addSection")}
           </Button>
         </div>
       </div>
@@ -117,31 +120,31 @@ export default function SectionsPage() {
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search sections or classes…"
+              placeholder={t("academicsSections.searchSectionsOrClasses")}
               className="h-10 w-full rounded-lg border bg-background pl-9 pr-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
             />
           </div>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:flex">
             <Select value={year} onChange={(e) => { setYear(e.target.value); setClassId(""); }} className="lg:w-40">
-              <option value="">Active Year</option>
+              <option value="">{t("academicsSections.activeYear")}</option>
               {years.map((y) => (
                 <option key={y.id} value={y.name}>{y.name}</option>
               ))}
             </Select>
             <Select value={classId} onChange={(e) => setClassId(e.target.value)} className="lg:w-44">
-              <option value="">All Classes</option>
+              <option value="">{t("academicsSections.allClasses")}</option>
               {classes.map((c) => (
                 <option key={c.id} value={c.id}>{c.name}</option>
               ))}
             </Select>
             <Select value={status} onChange={(e) => setStatus(e.target.value)} className="lg:w-32">
-              <option value="">All Status</option>
-              <option value="ACTIVE">Active</option>
-              <option value="INACTIVE">Inactive</option>
+              <option value="">{t("academicsSections.allStatus")}</option>
+              <option value="ACTIVE">{t("academicsSections.active")}</option>
+              <option value="INACTIVE">{t("academicsSections.inactive")}</option>
             </Select>
             {hasFilters && (
               <Button variant="ghost" onClick={() => { setSearch(""); setYear(""); setClassId(""); setStatus(""); }}>
-                <X className="mr-1 h-4 w-4" /> Clear
+                <X className="mr-1 h-4 w-4" /> {t("academicsSections.clear")}
               </Button>
             )}
           </div>
@@ -154,26 +157,26 @@ export default function SectionsPage() {
             <thead className="sticky top-0 z-10 bg-secondary/95 backdrop-blur text-left text-xs uppercase tracking-wide text-muted-foreground">
               <tr>
                 <th className="px-4 py-3 font-medium">#</th>
-                <th className="px-4 py-3 font-medium">Section</th>
-                <th className="px-4 py-3 font-medium">Class</th>
-                <th className="px-4 py-3 font-medium">Academic Year</th>
-                <th className="px-4 py-3 font-medium">Students</th>
-                <th className="px-4 py-3 font-medium">Status</th>
-                <th className="px-4 py-3 text-right font-medium">Actions</th>
+                <th className="px-4 py-3 font-medium">{t("academicsSections.section")}</th>
+                <th className="px-4 py-3 font-medium">{t("academicsSections.class")}</th>
+                <th className="px-4 py-3 font-medium">{t("academicsSections.academicYear")}</th>
+                <th className="px-4 py-3 font-medium">{t("academicsSections.students")}</th>
+                <th className="px-4 py-3 font-medium">{t("academicsSections.status")}</th>
+                <th className="px-4 py-3 text-right font-medium">{t("academicsSections.actions")}</th>
               </tr>
             </thead>
             <tbody>
               {pageRows.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="px-4 py-16 text-center text-muted-foreground">
-                    No sections match your filters.
+                    {t("academicsSections.noSectionsMatchYourFilters")}
                   </td>
                 </tr>
               ) : (
                 pageRows.map((r, i) => (
                   <tr key={r.id} className="border-t hover:bg-secondary/40">
                     <td className="px-4 py-3 text-muted-foreground">{(currentPage - 1) * PAGE_SIZE + i + 1}</td>
-                    <td className="px-4 py-3 font-medium">Section {r.name}</td>
+                    <td className="px-4 py-3 font-medium">{t("academicsSections.section")} {r.name}</td>
                     <td className="px-4 py-3">{r.className}</td>
                     <td className="px-4 py-3 text-muted-foreground">{r.academicYear}</td>
                     <td className="px-4 py-3 tabular-nums">{r.studentCount}</td>
@@ -181,7 +184,7 @@ export default function SectionsPage() {
                     <td className="px-4 py-3">
                       <div className="flex justify-end gap-1">
                         <button
-                          title="Edit"
+                          title={t("academicsSections.edit")}
                           onClick={() => {
                             const sec = getAcademicsState().sections.find((s) => s.id === r.id) ?? null;
                             setEditing(sec);
@@ -192,7 +195,7 @@ export default function SectionsPage() {
                           <Pencil className="h-4 w-4" />
                         </button>
                         <button
-                          title="Delete"
+                          title={t("academicsSections.delete")}
                           onClick={() => setDeleting(r)}
                           className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-rose-500/10 hover:text-rose-600"
                         >
@@ -214,7 +217,7 @@ export default function SectionsPage() {
       <SectionFormDialog open={formOpen} onClose={() => setFormOpen(false)} section={editing} />
       <ConfirmDialog
         open={!!deleting}
-        title="Delete Section"
+        title={t("academicsSections.deleteSection")}
         message={deleting ? `Delete Section ${deleting.name} of ${deleting.className}? Sections with enrolled students cannot be deleted.` : ""}
         onConfirm={handleDelete}
         onClose={() => setDeleting(null)}

@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, ShieldCheck } from "lucide-react";
@@ -20,6 +22,7 @@ const RULES: { key: keyof PromotionSettings; label: string; desc: string }[] = [
 ];
 
 export default function PromotionSettingsPage() {
+  const t = useT();
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
   usePromotionsState();
@@ -27,7 +30,7 @@ export default function PromotionSettingsPage() {
   if (!mounted) {
     return (
       <div className="flex h-64 items-center justify-center text-muted-foreground">
-        Loading settings…
+        {t("promotionsSettings.loadingSettings")}
       </div>
     );
   }
@@ -42,7 +45,7 @@ export default function PromotionSettingsPage() {
   return (
     <div className="space-y-6">
       <Link href="/promotions" className="inline-flex items-center gap-1 text-sm text-primary hover:underline">
-        <ArrowLeft className="h-4 w-4" /> Back to Promotions
+        <ArrowLeft className="h-4 w-4" /> {t("promotionsSettings.backToPromotions")}
       </Link>
 
       <div className="flex items-center gap-3">
@@ -50,9 +53,9 @@ export default function PromotionSettingsPage() {
           <ShieldCheck className="h-5 w-5" />
         </span>
         <div>
-          <h1 className="text-2xl font-bold">Promotion Eligibility Rules</h1>
+          <h1 className="text-2xl font-bold">{t("promotionsSettings.promotionEligibilityRules")}</h1>
           <p className="mt-0.5 text-sm text-muted-foreground">
-            Configure the requirements a student must meet to be promoted.
+            {t("promotionsSettings.configureTheRequirementsAStudentMust")}
           </p>
         </div>
       </div>
@@ -88,8 +91,7 @@ export default function PromotionSettingsPage() {
       </div>
 
       <p className="text-xs text-muted-foreground">
-        By default all rules are optional so any active student can be promoted. Enable rules to enforce stricter
-        eligibility. Changes apply immediately to new promotions and are recorded in the audit log.
+        {t("promotionsSettings.byDefaultAllRulesAreOptional")}
       </p>
     </div>
   );

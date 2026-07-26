@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Megaphone } from "lucide-react";
@@ -24,6 +26,7 @@ import { money } from "@/lib/students/format";
 import { studentPublishedResults } from "@/lib/examinations/store";
 
 export default function ParentPortalDashboardPage() {
+  const t = useT();
   const { parent, children, selectedChild } = usePortal();
 
   const branding = useSchoolBranding();
@@ -67,11 +70,11 @@ export default function ParentPortalDashboardPage() {
     <div className="space-y-6">
       <div className="rounded-2xl border bg-gradient-to-r from-blue-500/10 via-indigo-500/5 to-transparent p-6">
         <p className="text-sm text-muted-foreground">
-          {branding.name} · Parent Portal
+          {branding.name} {t("parentPortal.parentPortal")}
         </p>
-        <h1 className="mt-1 text-2xl font-bold">Welcome, {parent.name}</h1>
+        <h1 className="mt-1 text-2xl font-bold">{t("parentPortal.welcome")} {parent.name}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Monitor attendance, exams, fees, and school updates for your children.
+          {t("parentPortal.monitorAttendanceExamsFeesAndSchool")}
         </p>
       </div>
 
@@ -81,24 +84,24 @@ export default function ParentPortalDashboardPage() {
         <div className="grid gap-4 lg:grid-cols-3">
           <div className="rounded-xl border bg-card p-5 shadow-sm">
             <h2 className="font-semibold">
-              Attendance — {selectedChild.fullName}
+              {t("parentPortal.attendance")} {selectedChild.fullName}
             </h2>
             {childAtt && (
               <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
                 <div className="rounded-lg bg-emerald-500/10 p-2">
-                  <p className="text-xs text-muted-foreground">Present</p>
+                  <p className="text-xs text-muted-foreground">{t("parentPortal.present")}</p>
                   <p className="text-lg font-bold">{childAtt.present}</p>
                 </div>
                 <div className="rounded-lg bg-rose-500/10 p-2">
-                  <p className="text-xs text-muted-foreground">Absent</p>
+                  <p className="text-xs text-muted-foreground">{t("parentPortal.absent")}</p>
                   <p className="text-lg font-bold">{childAtt.absent}</p>
                 </div>
                 <div className="rounded-lg bg-amber-500/10 p-2">
-                  <p className="text-xs text-muted-foreground">Late</p>
+                  <p className="text-xs text-muted-foreground">{t("parentPortal.late")}</p>
                   <p className="text-lg font-bold">{childAtt.late}</p>
                 </div>
                 <div className="rounded-lg bg-sky-500/10 p-2">
-                  <p className="text-xs text-muted-foreground">Rate</p>
+                  <p className="text-xs text-muted-foreground">{t("parentPortal.rate")}</p>
                   <p className="text-lg font-bold">{childAtt.percentage}%</p>
                 </div>
               </div>
@@ -107,26 +110,26 @@ export default function ParentPortalDashboardPage() {
               href="/parent-portal/attendance"
               className="mt-3 inline-block text-sm text-primary hover:underline"
             >
-              View full attendance →
+              {t("parentPortal.viewFullAttendance")}
             </Link>
           </div>
 
           <div className="rounded-xl border bg-card p-5 shadow-sm">
-            <h2 className="font-semibold">Fee Summary</h2>
+            <h2 className="font-semibold">{t("parentPortal.feeSummary")}</h2>
             {childFees && (
               <dl className="mt-3 space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <dt className="text-muted-foreground">Monthly fee</dt>
+                  <dt className="text-muted-foreground">{t("parentPortal.monthlyFee")}</dt>
                   <dd className="font-medium">{money(childFees.monthlyFee)}</dd>
                 </div>
                 <div className="flex justify-between">
-                  <dt className="text-muted-foreground">Outstanding</dt>
+                  <dt className="text-muted-foreground">{t("parentPortal.outstanding")}</dt>
                   <dd className="font-medium text-rose-600">
                     {money(childFees.outstanding)}
                   </dd>
                 </div>
                 <div className="flex justify-between">
-                  <dt className="text-muted-foreground">Paid months</dt>
+                  <dt className="text-muted-foreground">{t("parentPortal.paidMonths")}</dt>
                   <dd className="font-medium">{childFees.paidMonths}</dd>
                 </div>
               </dl>
@@ -135,34 +138,34 @@ export default function ParentPortalDashboardPage() {
               href="/parent-portal/fees"
               className="mt-3 inline-block text-sm text-primary hover:underline"
             >
-              View fees →
+              {t("parentPortal.viewFees")}
             </Link>
           </div>
 
           <div className="rounded-xl border bg-card p-5 shadow-sm">
-            <h2 className="font-semibold">Latest Result</h2>
+            <h2 className="font-semibold">{t("parentPortal.latestResult")}</h2>
             {childResults?.blocked ? (
               <p className="mt-3 text-sm text-amber-600">
-                Results are currently blocked for this student.
+                {t("parentPortal.resultsAreCurrentlyBlockedForThis")}
               </p>
             ) : latestResult ? (
               <div className="mt-3 text-sm">
                 <p className="font-medium">{latestResult.examName}</p>
                 <p className="text-muted-foreground">
-                  Grade {latestResult.grade} ·{" "}
+                  {t("parentPortal.grade")} {latestResult.grade} ·{" "}
                   {latestResult.passed ? "Pass" : "Fail"}
                 </p>
               </div>
             ) : (
               <p className="mt-3 text-sm text-muted-foreground">
-                No published results yet.
+                {t("parentPortal.noPublishedResultsYet")}
               </p>
             )}
             <Link
               href="/parent-portal/exams"
               className="mt-3 inline-block text-sm text-primary hover:underline"
             >
-              View all results →
+              {t("parentPortal.viewAllResults")}
             </Link>
           </div>
         </div>
@@ -171,7 +174,7 @@ export default function ParentPortalDashboardPage() {
       <div className="rounded-xl border bg-card p-5 shadow-sm">
         <div className="flex items-center gap-2">
           <Megaphone className="h-4 w-4 text-primary" />
-          <h2 className="font-semibold">School Announcements</h2>
+          <h2 className="font-semibold">{t("parentPortal.schoolAnnouncements")}</h2>
         </div>
         <ul className="mt-4 divide-y">
           {announcements.map((a) => (
@@ -198,13 +201,13 @@ export default function ParentPortalDashboardPage() {
           href="/parent-portal/announcements"
           className="mt-2 inline-block text-sm text-primary hover:underline"
         >
-          All announcements →
+          {t("parentPortal.allAnnouncements")}
         </Link>
       </div>
 
       {children.length > 1 && (
         <div className="rounded-xl border bg-card p-5">
-          <h2 className="font-semibold">Your Children</h2>
+          <h2 className="font-semibold">{t("parentPortal.yourChildren")}</h2>
           <ul className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {children.map((c) => (
               <li key={c.id} className="rounded-lg border p-3 text-sm">

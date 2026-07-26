@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { Download, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { usePortal } from "@/components/parent-portal/portal-context";
@@ -18,10 +20,11 @@ import {
 import { studentPublishedResults } from "@/lib/examinations/store";
 
 export default function ParentDownloadsPage() {
+  const t = useT();
   const { parent, selectedChild } = usePortal();
 
   if (!selectedChild) {
-    return <p className="text-muted-foreground">Select a child to access downloads.</p>;
+    return <p className="text-muted-foreground">{t("parentPortalDownloads.selectAChildToAccessDownloads")}</p>;
   }
 
   const fees = childFeeSummary(selectedChild);
@@ -69,9 +72,9 @@ export default function ParentDownloadsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Download Center</h1>
+        <h1 className="text-2xl font-bold">{t("parentPortalDownloads.downloadCenter")}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          PDF documents for {selectedChild.fullName}
+          {t("parentPortalDownloads.pdfDocumentsFor")} {selectedChild.fullName}
         </p>
       </div>
 
@@ -93,7 +96,7 @@ export default function ParentDownloadsPage() {
                 onClick={d.action}
               >
                 <Download className="mr-2 h-4 w-4" />
-                Download PDF
+                {t("parentPortalDownloads.downloadPdf")}
               </Button>
             </div>
           </div>

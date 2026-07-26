@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { useSchoolBranding } from "@/lib/settings/use-school-branding";
@@ -20,6 +22,7 @@ interface PayslipDialogProps {
 }
 
 export function PayslipDialog({ payroll, onClose }: PayslipDialogProps) {
+  const t = useT();
   const branding = useSchoolBranding();
   if (!payroll) return null;
   const emp = getEmployee(payroll.employeeId);
@@ -29,20 +32,20 @@ export function PayslipDialog({ payroll, onClose }: PayslipDialogProps) {
     <Dialog
       open={!!payroll}
       onClose={onClose}
-      title="Salary Payslip"
+      title={t("salaryPayslipDialog.salaryPayslip")}
       className="max-w-lg"
       footer={
         <>
           <Button variant="outline" onClick={onClose}>
-            Close
+            {t("salaryPayslipDialog.close")}
           </Button>
           <Button
             variant="outline"
             onClick={() => downloadPayslipPdf(payroll, payment)}
           >
-            Download PDF
+            {t("salaryPayslipDialog.downloadPdf")}
           </Button>
-          <Button onClick={() => printPayslip(payroll, payment)}>Print Payslip</Button>
+          <Button onClick={() => printPayslip(payroll, payment)}>{t("salaryPayslipDialog.printPayslip")}</Button>
         </>
       }
     >
@@ -62,34 +65,34 @@ export function PayslipDialog({ payroll, onClose }: PayslipDialogProps) {
           )}
           <div className="flex-1">
             <p className="font-semibold">{branding.name}</p>
-            <p className="text-xs text-muted-foreground">Salary Payslip</p>
+            <p className="text-xs text-muted-foreground">{t("salaryPayslipDialog.salaryPayslip")}</p>
           </div>
           <PayrollStatusBadge status={payroll.status} />
         </div>
         <dl className="grid gap-2">
-          <Row label="Employee" value={emp?.fullName ?? "—"} />
-          <Row label="Employee ID" value={emp?.code ?? "—"} />
-          <Row label="Position" value={emp?.position ?? "—"} />
-          <Row label="Payroll Month" value={monthLabel(payroll.payrollMonth)} />
-          <Row label="Basic Salary" value={money(payroll.basicSalary)} />
-          <Row label="Allowances" value={money(payroll.allowances)} />
-          <Row label="Bonus" value={money(payroll.bonus)} />
-          <Row label="Deductions" value={`−${money(payroll.deductions)}`} />
-          <Row label="Amount Paid" value={money(payroll.amountPaid)} />
-          <Row label="Balance" value={money(payroll.remainingBalance)} />
+          <Row label={t("salaryPayslipDialog.employee")} value={emp?.fullName ?? "—"} />
+          <Row label={t("salaryPayslipDialog.employeeId")} value={emp?.code ?? "—"} />
+          <Row label={t("salaryPayslipDialog.position")} value={emp?.position ?? "—"} />
+          <Row label={t("salaryPayslipDialog.payrollMonth")} value={monthLabel(payroll.payrollMonth)} />
+          <Row label={t("salaryPayslipDialog.basicSalary")} value={money(payroll.basicSalary)} />
+          <Row label={t("salaryPayslipDialog.allowances")} value={money(payroll.allowances)} />
+          <Row label={t("salaryPayslipDialog.bonus")} value={money(payroll.bonus)} />
+          <Row label={t("salaryPayslipDialog.deductions")} value={`−${money(payroll.deductions)}`} />
+          <Row label={t("salaryPayslipDialog.amountPaid")} value={money(payroll.amountPaid)} />
+          <Row label={t("salaryPayslipDialog.balance")} value={money(payroll.remainingBalance)} />
           {payment && (
             <>
               <Row
-                label="Payment Method"
+                label={t("salaryPayslipDialog.paymentMethod")}
                 value={paymentMethodLabel(payment.paymentMethod)}
               />
-              <Row label="Payment Date" value={shortDate(payment.paidAt)} />
-              <Row label="Prepared By" value={payment.paidBy} />
+              <Row label={t("salaryPayslipDialog.paymentDate")} value={shortDate(payment.paidAt)} />
+              <Row label={t("salaryPayslipDialog.preparedBy")} value={payment.paidBy} />
             </>
           )}
         </dl>
         <p className="border-t pt-4 text-center text-2xl font-bold text-emerald-600">
-          Net: {money(payroll.netSalary)}
+          {t("salaryPayslipDialog.net")} {money(payroll.netSalary)}
         </p>
       </div>
     </Dialog>

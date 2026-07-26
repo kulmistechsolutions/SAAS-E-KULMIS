@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useEffect, useMemo, useState } from "react";
 import { Download, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -42,6 +44,7 @@ export function MarkEntryTable({
   enteredBy = "Admin User",
   role = "ADMINISTRATOR",
 }: MarkEntryTableProps) {
+  const t = useT();
   const isTeacher = role === "TEACHER";
   const [roster, setRoster] = useState<RosterStudent[]>([]);
   const [rosterLoading, setRosterLoading] = useState(isTeacher);
@@ -202,7 +205,7 @@ export function MarkEntryTable({
         <div>
           <h3 className="font-semibold">{exam.name}</h3>
           <p className="text-sm text-muted-foreground">
-            {exam.className} — Section {exam.section} · {subject} · Max {exam.maxMarks}
+            {exam.className} {t("examinationsMarkEntryTable.section")} {exam.section} · {subject} {t("examinationsMarkEntryTable.max")} {exam.maxMarks}
           </p>
         </div>
         {editable && (
@@ -214,14 +217,14 @@ export function MarkEntryTable({
               disabled={busy || !subjectId}
             >
               <Download className="mr-2 h-4 w-4" />
-              Excel Template
+              {t("examinationsMarkEntryTable.excelTemplate")}
             </Button>
             <label
               className="inline-flex h-9 cursor-pointer items-center rounded-md border border-input bg-background px-4 text-sm font-medium hover:bg-secondary aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
               aria-disabled={busy || !subjectId}
             >
               <Upload className="mr-2 h-4 w-4" />
-              Import Excel
+              {t("examinationsMarkEntryTable.importExcel")}
               <input
                 type="file"
                 accept=".xlsx"
@@ -241,10 +244,10 @@ export function MarkEntryTable({
           <thead className="sticky top-0 bg-secondary/90 text-left text-xs text-muted-foreground backdrop-blur">
             <tr>
               <th className="px-4 py-2.5 font-medium">#</th>
-              <th className="px-4 py-2.5 font-medium">Student ID</th>
-              <th className="px-4 py-2.5 font-medium">Student Name</th>
-              <th className="px-4 py-2.5 font-medium">Subject</th>
-              <th className="px-4 py-2.5 font-medium">Marks</th>
+              <th className="px-4 py-2.5 font-medium">{t("examinationsMarkEntryTable.studentId")}</th>
+              <th className="px-4 py-2.5 font-medium">{t("examinationsMarkEntryTable.studentName")}</th>
+              <th className="px-4 py-2.5 font-medium">{t("examinationsMarkEntryTable.subject")}</th>
+              <th className="px-4 py-2.5 font-medium">{t("examinationsMarkEntryTable.marks")}</th>
             </tr>
           </thead>
           <tbody>

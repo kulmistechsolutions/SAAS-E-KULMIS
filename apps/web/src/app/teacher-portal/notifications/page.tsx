@@ -1,10 +1,13 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useEffect, useState } from "react";
 import { apiTeacherPortalNotifications } from "@/lib/teacher-portal/api";
 import type { TeacherPortalNotification } from "@/lib/teacher-portal/types";
 
 export default function TeacherPortalNotificationsPage() {
+  const t = useT();
   const [items, setItems] = useState<TeacherPortalNotification[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -18,15 +21,15 @@ export default function TeacherPortalNotificationsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Notifications</h1>
+        <h1 className="text-2xl font-bold">{t("teacherPortalNotifications.notifications")}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          School notices and updates for your account.
+          {t("teacherPortalNotifications.schoolNoticesAndUpdatesForYour")}
         </p>
       </div>
       {loading ? (
-        <p className="text-muted-foreground">Loading…</p>
+        <p className="text-muted-foreground">{t("teacherPortalNotifications.loading")}</p>
       ) : items.length === 0 ? (
-        <p className="text-muted-foreground">No notifications.</p>
+        <p className="text-muted-foreground">{t("teacherPortalNotifications.noNotifications")}</p>
       ) : (
         <ul className="divide-y rounded-xl border bg-card">
           {items.map((n) => (

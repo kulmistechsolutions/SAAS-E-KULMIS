@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useEffect, useMemo, useState } from "react";
 import { Download, Printer, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -80,6 +82,7 @@ function printAssignments(
 }
 
 export default function MyAssignmentsPage() {
+  const t = useT();
   const branding = useSchoolBranding();
   const [me, setMe] = useState<TeacherMe | null>(null);
   const [loading, setLoading] = useState(true);
@@ -151,11 +154,9 @@ export default function MyAssignmentsPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold">My Assignments</h1>
+          <h1 className="text-2xl font-bold">{t("myAssignments.myAssignments")}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Classes, sections, and subjects assigned to you. If a row shows
-            &quot;All&quot; sections, pick a specific section before attendance,
-            exams, or quizzes.
+            {t("myAssignments.classesSectionsAndSubjectsAssignedTo")}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -167,7 +168,7 @@ export default function MyAssignmentsPage() {
             }
           >
             <Download className="mr-2 h-4 w-4" />
-            CSV / PDF data
+            {t("myAssignments.csvPdfData")}
           </Button>
           <Button
             variant="outline"
@@ -177,7 +178,7 @@ export default function MyAssignmentsPage() {
             }
           >
             <Printer className="mr-2 h-4 w-4" />
-            Print
+            {t("myAssignments.print")}
           </Button>
         </div>
       </div>
@@ -188,12 +189,12 @@ export default function MyAssignmentsPage() {
           <Input
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Search class, section, subject…"
+            placeholder={t("myAssignments.searchClassSectionSubject")}
             className="pl-9"
           />
         </div>
         <Select value={year} onChange={(e) => setYear(e.target.value)}>
-          <option value="">All years</option>
+          <option value="">{t("myAssignments.allYears")}</option>
           {years.map((y) => (
             <option key={y} value={y}>
               {y}
@@ -201,7 +202,7 @@ export default function MyAssignmentsPage() {
           ))}
         </Select>
         <Select value={klass} onChange={(e) => setKlass(e.target.value)}>
-          <option value="">All classes</option>
+          <option value="">{t("myAssignments.allClasses")}</option>
           {classes.map((c) => (
             <option key={c} value={c}>
               {c}
@@ -209,7 +210,7 @@ export default function MyAssignmentsPage() {
           ))}
         </Select>
         <Select value={subject} onChange={(e) => setSubject(e.target.value)}>
-          <option value="">All subjects</option>
+          <option value="">{t("myAssignments.allSubjects")}</option>
           {subjects.map((s) => (
             <option key={s} value={s}>
               {s}
@@ -218,9 +219,9 @@ export default function MyAssignmentsPage() {
         </Select>
         {me?.shift === "BOTH" && (
           <Select value={shiftF} onChange={(e) => setShiftF(e.target.value)}>
-            <option value="">Both shifts</option>
-            <option value="MORNING">Morning</option>
-            <option value="AFTERNOON">Afternoon</option>
+            <option value="">{t("myAssignments.bothShifts")}</option>
+            <option value="MORNING">{t("myAssignments.morning")}</option>
+            <option value="AFTERNOON">{t("myAssignments.afternoon")}</option>
           </Select>
         )}
       </div>
@@ -231,18 +232,18 @@ export default function MyAssignmentsPage() {
         </div>
       ) : filtered.length === 0 ? (
         <p className="rounded-xl border bg-card p-8 text-center text-muted-foreground">
-          No assignments match your filters.
+          {t("myAssignments.noAssignmentsMatchYourFilters")}
         </p>
       ) : (
         <div className="overflow-x-auto rounded-xl border bg-card">
           <table className="w-full text-sm">
             <thead className="sticky top-0 bg-muted/80 backdrop-blur">
               <tr className="border-b text-left text-muted-foreground">
-                <th className="px-4 py-3 font-medium">Academic Year</th>
-                <th className="px-4 py-3 font-medium">Class</th>
-                <th className="px-4 py-3 font-medium">Section</th>
-                <th className="px-4 py-3 font-medium">Shift</th>
-                <th className="px-4 py-3 font-medium">Subject</th>
+                <th className="px-4 py-3 font-medium">{t("myAssignments.academicYear")}</th>
+                <th className="px-4 py-3 font-medium">{t("myAssignments.class")}</th>
+                <th className="px-4 py-3 font-medium">{t("myAssignments.section")}</th>
+                <th className="px-4 py-3 font-medium">{t("myAssignments.shift")}</th>
+                <th className="px-4 py-3 font-medium">{t("myAssignments.subject")}</th>
               </tr>
             </thead>
             <tbody>
@@ -253,7 +254,7 @@ export default function MyAssignmentsPage() {
                   <td className="px-4 py-3">
                     {a.section?.name ?? (
                       <span className="rounded bg-amber-500/10 px-2 py-0.5 text-xs font-medium text-amber-700">
-                        All sections
+                        {t("myAssignments.allSections")}
                       </span>
                     )}
                   </td>

@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useEffect, useMemo, useState } from "react";
 import { FileDown, Pencil, Plus, Printer, Search, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -22,6 +24,7 @@ import { toast } from "@/lib/toast";
 const PAGE_SIZE = 12;
 
 export default function SubjectsPage() {
+  const t = useT();
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
   const state = useAcademicsState();
@@ -59,7 +62,7 @@ export default function SubjectsPage() {
   if (!mounted) {
     return (
       <div className="flex h-64 items-center justify-center text-muted-foreground">
-        Loading subjects…
+        {t("academicsSubjects.loadingSubjects")}
       </div>
     );
   }
@@ -68,9 +71,9 @@ export default function SubjectsPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold">Subjects</h1>
+          <h1 className="text-2xl font-bold">{t("academicsSubjects.subjects")}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Manage subjects reused across classes.
+            {t("academicsSubjects.manageSubjectsReusedAcrossClasses")}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -84,13 +87,13 @@ export default function SubjectsPage() {
               })
             }
           >
-            <Printer className="mr-2 h-4 w-4" /> Print
+            <Printer className="mr-2 h-4 w-4" /> {t("academicsSubjects.print")}
           </Button>
           <Button variant="outline" onClick={() => { exportSubjectsCsv(); toast(`Exported ${rows.length} subjects.`, "info"); }}>
-            <FileDown className="mr-2 h-4 w-4" /> Export
+            <FileDown className="mr-2 h-4 w-4" /> {t("academicsSubjects.export")}
           </Button>
           <Button onClick={() => { setEditing(null); setFormOpen(true); }}>
-            <Plus className="mr-2 h-4 w-4" /> Add Subject
+            <Plus className="mr-2 h-4 w-4" /> {t("academicsSubjects.addSubject")}
           </Button>
         </div>
       </div>
@@ -102,19 +105,19 @@ export default function SubjectsPage() {
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search subjects…"
+              placeholder={t("academicsSubjects.searchSubjects")}
               className="h-10 w-full rounded-lg border bg-background pl-9 pr-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
             />
           </div>
           <div className="grid grid-cols-2 gap-2 lg:flex">
             <Select value={status} onChange={(e) => setStatus(e.target.value)} className="lg:w-32">
-              <option value="">All Status</option>
-              <option value="ACTIVE">Active</option>
-              <option value="INACTIVE">Inactive</option>
+              <option value="">{t("academicsSubjects.allStatus")}</option>
+              <option value="ACTIVE">{t("academicsSubjects.active")}</option>
+              <option value="INACTIVE">{t("academicsSubjects.inactive")}</option>
             </Select>
             {hasFilters && (
               <Button variant="ghost" onClick={() => { setSearch(""); setStatus(""); }}>
-                <X className="mr-1 h-4 w-4" /> Clear
+                <X className="mr-1 h-4 w-4" /> {t("academicsSubjects.clear")}
               </Button>
             )}
           </div>
@@ -127,19 +130,19 @@ export default function SubjectsPage() {
             <thead className="sticky top-0 z-10 bg-secondary/95 backdrop-blur text-left text-xs uppercase tracking-wide text-muted-foreground">
               <tr>
                 <th className="px-4 py-3 font-medium">#</th>
-                <th className="px-4 py-3 font-medium">Subject</th>
-                <th className="px-4 py-3 font-medium">Code</th>
-                <th className="px-4 py-3 font-medium">Classes</th>
-                <th className="px-4 py-3 font-medium">Teachers</th>
-                <th className="px-4 py-3 font-medium">Status</th>
-                <th className="px-4 py-3 text-right font-medium">Actions</th>
+                <th className="px-4 py-3 font-medium">{t("academicsSubjects.subject")}</th>
+                <th className="px-4 py-3 font-medium">{t("academicsSubjects.code")}</th>
+                <th className="px-4 py-3 font-medium">{t("academicsSubjects.classes")}</th>
+                <th className="px-4 py-3 font-medium">{t("academicsSubjects.teachers")}</th>
+                <th className="px-4 py-3 font-medium">{t("academicsSubjects.status")}</th>
+                <th className="px-4 py-3 text-right font-medium">{t("academicsSubjects.actions")}</th>
               </tr>
             </thead>
             <tbody>
               {pageRows.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="px-4 py-16 text-center text-muted-foreground">
-                    No subjects match your filters.
+                    {t("academicsSubjects.noSubjectsMatchYourFilters")}
                   </td>
                 </tr>
               ) : (
@@ -154,7 +157,7 @@ export default function SubjectsPage() {
                     <td className="px-4 py-3">
                       <div className="flex justify-end gap-1">
                         <button
-                          title="Edit"
+                          title={t("academicsSubjects.edit")}
                           onClick={() => {
                             const sub = getAcademicsState().subjects.find((s) => s.id === r.id) ?? null;
                             setEditing(sub);
@@ -165,7 +168,7 @@ export default function SubjectsPage() {
                           <Pencil className="h-4 w-4" />
                         </button>
                         <button
-                          title="Delete"
+                          title={t("academicsSubjects.delete")}
                           onClick={() => setDeleting(r)}
                           className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-rose-500/10 hover:text-rose-600"
                         >
@@ -187,7 +190,7 @@ export default function SubjectsPage() {
       <SubjectFormDialog open={formOpen} onClose={() => setFormOpen(false)} subject={editing} />
       <ConfirmDialog
         open={!!deleting}
-        title="Delete Subject"
+        title={t("academicsSubjects.deleteSubject")}
         message={deleting ? `Delete ${deleting.name}? Subjects used by teacher assignments or exams cannot be deleted.` : ""}
         onConfirm={handleDelete}
         onClose={() => setDeleting(null)}

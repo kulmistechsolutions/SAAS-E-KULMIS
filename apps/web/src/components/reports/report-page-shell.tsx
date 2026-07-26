@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
@@ -52,6 +54,7 @@ interface Props {
 }
 
 export function ReportPageShell({ categoryId, categoryLabel, report }: Props) {
+  const t = useT();
   const [mounted, setMounted] = useState(false);
   const [search, setSearch] = useState("");
   const [filters, setFilters] = useState<ReportFilters>({});
@@ -212,7 +215,7 @@ export function ReportPageShell({ categoryId, categoryLabel, report }: Props) {
   if (!mounted) {
     return (
       <div className="flex h-64 items-center justify-center text-muted-foreground">
-        Loading report…
+        {t("reportsReportPageShell.loadingReport")}
       </div>
     );
   }
@@ -225,7 +228,7 @@ export function ReportPageShell({ categoryId, categoryLabel, report }: Props) {
         href={`/reports/${categoryId}`}
         className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
       >
-        <ArrowLeft className="h-4 w-4" /> Back to {categoryLabel}
+        <ArrowLeft className="h-4 w-4" /> {t("reportsReportPageShell.backTo")} {categoryLabel}
       </Link>
 
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -233,18 +236,18 @@ export function ReportPageShell({ categoryId, categoryLabel, report }: Props) {
           <h1 className="text-2xl font-bold">{report.title}</h1>
           <p className="mt-1 text-sm text-muted-foreground">{report.description}</p>
           <p className="mt-1 text-xs text-muted-foreground">
-            Academic Year: <span className="font-medium text-foreground">{filters.academicYear ?? year}</span>
+            {t("reportsReportPageShell.academicYear")} <span className="font-medium text-foreground">{filters.academicYear ?? year}</span>
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" onClick={handlePrint}>
-            <Printer className="mr-2 h-4 w-4" /> Print
+            <Printer className="mr-2 h-4 w-4" /> {t("reportsReportPageShell.print")}
           </Button>
           <Button variant="outline" onClick={handlePdf}>
-            <FileDown className="mr-2 h-4 w-4" /> PDF
+            <FileDown className="mr-2 h-4 w-4" /> {t("reportsReportPageShell.pdf")}
           </Button>
           <Button variant="outline" onClick={handleCsv}>
-            <FileDown className="mr-2 h-4 w-4" /> CSV
+            <FileDown className="mr-2 h-4 w-4" /> {t("reportsReportPageShell.csv")}
           </Button>
         </div>
       </div>
@@ -256,7 +259,7 @@ export function ReportPageShell({ categoryId, categoryLabel, report }: Props) {
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search report…"
+              placeholder={t("reportsReportPageShell.searchReport")}
               className="h-10 w-full rounded-lg border bg-background pl-9 pr-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
             />
           </div>
@@ -264,7 +267,7 @@ export function ReportPageShell({ categoryId, categoryLabel, report }: Props) {
             {showFilters ? "Hide Filters" : "Show Filters"}
           </Button>
           <Button variant="outline" onClick={() => setRefreshKey((k) => k + 1)}>
-            <RefreshCw className="mr-2 h-4 w-4" /> Refresh
+            <RefreshCw className="mr-2 h-4 w-4" /> {t("reportsReportPageShell.refresh")}
           </Button>
         </div>
 
@@ -274,7 +277,7 @@ export function ReportPageShell({ categoryId, categoryLabel, report }: Props) {
               <div>
                 <Label>{FILTER_LABELS.academicYear}</Label>
                 <Select value={filters.academicYear ?? ""} onChange={(e) => setFilter("academicYear", e.target.value)}>
-                  <option value="">Current ({year})</option>
+                  <option value="">{t("reportsReportPageShell.current")}{year})</option>
                   {years.map((y) => (
                     <option key={y.id} value={y.name}>{y.name}</option>
                   ))}
@@ -285,7 +288,7 @@ export function ReportPageShell({ categoryId, categoryLabel, report }: Props) {
               <div>
                 <Label>{FILTER_LABELS.className}</Label>
                 <Select value={filters.className ?? ""} onChange={(e) => setFilters((f) => ({ ...f, className: e.target.value, section: "" }))}>
-                  <option value="">All Classes</option>
+                  <option value="">{t("reportsReportPageShell.allClasses")}</option>
                   {classOptions.map((c) => (
                     <option key={c} value={c}>{c}</option>
                   ))}
@@ -300,9 +303,9 @@ export function ReportPageShell({ categoryId, categoryLabel, report }: Props) {
                   onChange={(e) => setFilter("section", e.target.value)}
                   disabled={!filters.className || sectionOptions.length === 0}
                 >
-                  <option value="">All Sections</option>
+                  <option value="">{t("reportsReportPageShell.allSections")}</option>
                   {sectionOptions.map((s) => (
-                    <option key={s} value={s}>Section {s}</option>
+                    <option key={s} value={s}>{t("reportsReportPageShell.section")} {s}</option>
                   ))}
                 </Select>
               </div>
@@ -311,9 +314,9 @@ export function ReportPageShell({ categoryId, categoryLabel, report }: Props) {
               <div>
                 <Label>{FILTER_LABELS.gender}</Label>
                 <Select value={filters.gender ?? ""} onChange={(e) => setFilter("gender", e.target.value)}>
-                  <option value="">All</option>
-                  <option value="MALE">Male</option>
-                  <option value="FEMALE">Female</option>
+                  <option value="">{t("reportsReportPageShell.all")}</option>
+                  <option value="MALE">{t("reportsReportPageShell.male")}</option>
+                  <option value="FEMALE">{t("reportsReportPageShell.female")}</option>
                 </Select>
               </div>
             )}
@@ -321,12 +324,12 @@ export function ReportPageShell({ categoryId, categoryLabel, report }: Props) {
               <div>
                 <Label>{FILTER_LABELS.status}</Label>
                 <Select value={filters.status ?? ""} onChange={(e) => setFilter("status", e.target.value)}>
-                  <option value="">All</option>
-                  <option value="ACTIVE">Active</option>
-                  <option value="INACTIVE">Inactive</option>
-                  <option value="GRADUATED">Graduated</option>
-                  <option value="PRESENT">Present</option>
-                  <option value="ABSENT">Absent</option>
+                  <option value="">{t("reportsReportPageShell.all")}</option>
+                  <option value="ACTIVE">{t("reportsReportPageShell.active")}</option>
+                  <option value="INACTIVE">{t("reportsReportPageShell.inactive")}</option>
+                  <option value="GRADUATED">{t("reportsReportPageShell.graduated")}</option>
+                  <option value="PRESENT">{t("reportsReportPageShell.present")}</option>
+                  <option value="ABSENT">{t("reportsReportPageShell.absent")}</option>
                 </Select>
               </div>
             )}
@@ -334,9 +337,9 @@ export function ReportPageShell({ categoryId, categoryLabel, report }: Props) {
               <div>
                 <Label>{FILTER_LABELS.shift}</Label>
                 <Select value={filters.shift ?? ""} onChange={(e) => setFilter("shift", e.target.value)}>
-                  <option value="">All Shifts</option>
-                  <option value="MORNING">Morning</option>
-                  <option value="AFTERNOON">Afternoon</option>
+                  <option value="">{t("reportsReportPageShell.allShifts")}</option>
+                  <option value="MORNING">{t("reportsReportPageShell.morning")}</option>
+                  <option value="AFTERNOON">{t("reportsReportPageShell.afternoon")}</option>
                 </Select>
               </div>
             )}
@@ -344,7 +347,7 @@ export function ReportPageShell({ categoryId, categoryLabel, report }: Props) {
               <div>
                 <Label>{FILTER_LABELS.examId}</Label>
                 <Select value={filters.examId ?? ""} onChange={(e) => setFilter("examId", e.target.value)}>
-                  <option value="">All Exams</option>
+                  <option value="">{t("reportsReportPageShell.allExams")}</option>
                   {exams.map((e) => (
                     <option key={e.id} value={e.id}>{e.name}</option>
                   ))}
@@ -398,7 +401,7 @@ export function ReportPageShell({ categoryId, categoryLabel, report }: Props) {
             {(search || Object.values(filters).some(Boolean)) && (
               <div className="flex items-end">
                 <Button variant="ghost" onClick={() => { setSearch(""); setFilters({}); }}>
-                  <X className="mr-1 h-4 w-4" /> Clear
+                  <X className="mr-1 h-4 w-4" /> {t("reportsReportPageShell.clear")}
                 </Button>
               </div>
             )}
@@ -441,13 +444,13 @@ export function ReportPageShell({ categoryId, categoryLabel, report }: Props) {
               {dataLoading ? (
                 <tr>
                   <td colSpan={data.columns.length + 1} className="px-4 py-16 text-center text-muted-foreground">
-                    Loading report data…
+                    {t("reportsReportPageShell.loadingReportData")}
                   </td>
                 </tr>
               ) : pageRows.length === 0 ? (
                 <tr>
                   <td colSpan={data.columns.length + 1} className="px-4 py-16 text-center text-muted-foreground">
-                    No records match your filters.
+                    {t("reportsReportPageShell.noRecordsMatchYourFilters")}
                   </td>
                 </tr>
               ) : (
@@ -484,7 +487,7 @@ export function ReportPageShell({ categoryId, categoryLabel, report }: Props) {
       </div>
 
       <p className="text-center text-xs text-muted-foreground">
-        Read-only report · {sorted.length} total record(s) · Generated {new Date().toLocaleString()}
+        {t("reportsReportPageShell.readOnlyReport")} {sorted.length} {t("reportsReportPageShell.totalRecordSGenerated")} {new Date().toLocaleString()}
       </p>
     </div>
   );

@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
@@ -46,6 +48,7 @@ const STATUS_TONE: Record<ParentStatus, "success" | "muted"> = {
 };
 
 export default function ParentsPage() {
+  const t = useT();
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
@@ -128,24 +131,24 @@ export default function ParentsPage() {
   }
 
   if (!mounted) {
-    return <div className="flex h-64 items-center justify-center text-muted-foreground">Loading parents…</div>;
+    return <div className="flex h-64 items-center justify-center text-muted-foreground">{t("parents.loadingParents")}</div>;
   }
 
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold">Parents</h1>
+          <h1 className="text-2xl font-bold">{t("parents.parents")}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Parent accounts are created automatically when students register. Manage profiles and access here.
+            {t("parents.parentAccountsAreCreatedAutomaticallyWhen")}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" onClick={() => printParentsList(filtered, { status: status || "All" })}>
-            <Printer className="mr-2 h-4 w-4" /> Print
+            <Printer className="mr-2 h-4 w-4" /> {t("parents.print")}
           </Button>
           <Button variant="outline" onClick={() => { exportParentsCsv(filtered); toast(`Exported ${filtered.length} parents.`, "info"); }}>
-            <FileDown className="mr-2 h-4 w-4" /> Export
+            <FileDown className="mr-2 h-4 w-4" /> {t("parents.export")}
           </Button>
         </div>
       </div>
@@ -159,25 +162,25 @@ export default function ParentsPage() {
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search by ID, name, phone, or student name…"
+              placeholder={t("parents.searchByIdNamePhoneOr")}
               className="h-10 w-full rounded-lg border bg-background pl-9 pr-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
             />
           </div>
           <div className="flex flex-wrap gap-2">
             <Select value={status} onChange={(e) => setStatus(e.target.value)} className="w-36">
-              <option value="">All Status</option>
-              <option value="ACTIVE">Active</option>
-              <option value="INACTIVE">Inactive</option>
+              <option value="">{t("parents.allStatus")}</option>
+              <option value="ACTIVE">{t("parents.active")}</option>
+              <option value="INACTIVE">{t("parents.inactive")}</option>
             </Select>
             <Select value={childrenFilter} onChange={(e) => setChildrenFilter(e.target.value)} className="w-40">
-              <option value="">All Families</option>
-              <option value="1">1 Child</option>
-              <option value="2+">2+ Children</option>
-              <option value="3+">3+ Children</option>
+              <option value="">{t("parents.allFamilies")}</option>
+              <option value="1">{t("parents.n1Child")}</option>
+              <option value="2+">{t("parents.n2Children")}</option>
+              <option value="3+">{t("parents.n3Children")}</option>
             </Select>
             {(search || status || childrenFilter) && (
               <Button variant="ghost" onClick={() => { setSearch(""); setStatus(""); setChildrenFilter(""); }}>
-                <X className="mr-1 h-4 w-4" /> Clear
+                <X className="mr-1 h-4 w-4" /> {t("parents.clear")}
               </Button>
             )}
           </div>
@@ -190,18 +193,18 @@ export default function ParentsPage() {
             <thead className="sticky top-0 z-10 bg-secondary/95 backdrop-blur text-left text-xs uppercase tracking-wide text-muted-foreground">
               <tr>
                 <th className="px-4 py-3 font-medium">#</th>
-                <SortTh label="Parent ID" active={sortKey === "code"} dir={sortDir} onClick={() => toggleSort("code")} />
-                <SortTh label="Parent Name" active={sortKey === "name"} dir={sortDir} onClick={() => toggleSort("name")} />
-                <th className="px-4 py-3 font-medium">Phone</th>
-                <SortTh label="Children" active={sortKey === "childCount"} dir={sortDir} onClick={() => toggleSort("childCount")} />
-                <SortTh label="Reg. Date" active={sortKey === "registrationDate"} dir={sortDir} onClick={() => toggleSort("registrationDate")} />
-                <th className="px-4 py-3 font-medium">Status</th>
-                <th className="px-4 py-3 text-right font-medium">Actions</th>
+                <SortTh label={t("parents.parentId")} active={sortKey === "code"} dir={sortDir} onClick={() => toggleSort("code")} />
+                <SortTh label={t("parents.parentName")} active={sortKey === "name"} dir={sortDir} onClick={() => toggleSort("name")} />
+                <th className="px-4 py-3 font-medium">{t("parents.phone")}</th>
+                <SortTh label={t("parents.children")} active={sortKey === "childCount"} dir={sortDir} onClick={() => toggleSort("childCount")} />
+                <SortTh label={t("parents.regDate")} active={sortKey === "registrationDate"} dir={sortDir} onClick={() => toggleSort("registrationDate")} />
+                <th className="px-4 py-3 font-medium">{t("parents.status")}</th>
+                <th className="px-4 py-3 text-right font-medium">{t("parents.actions")}</th>
               </tr>
             </thead>
             <tbody>
               {pageRows.length === 0 ? (
-                <tr><td colSpan={8} className="px-4 py-16 text-center text-muted-foreground">No parents found.</td></tr>
+                <tr><td colSpan={8} className="px-4 py-16 text-center text-muted-foreground">{t("parents.noParentsFound")}</td></tr>
               ) : (
                 pageRows.map((p, i) => (
                   <tr key={p.id} className="border-t hover:bg-secondary/40">
@@ -220,20 +223,20 @@ export default function ParentsPage() {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex justify-end gap-1">
-                        <Action href={`/parents/${p.id}`} title="View Profile" icon={Eye} />
-                        <Action title="Edit" icon={Pencil} onClick={() => setEditId(p.id)} />
-                        <Action title="Reset Password" icon={KeyRound} onClick={() => {
+                        <Action href={`/parents/${p.id}`} title={t("parents.viewProfile")} icon={Eye} />
+                        <Action title={t("parents.edit")} icon={Pencil} onClick={() => setEditId(p.id)} />
+                        <Action title={t("parents.resetPassword")} icon={KeyRound} onClick={() => {
                           void resetParentPassword(p.id).then((res) => {
                             if (res.ok && res.password)
                               toast(`New password for ${p.code}: ${res.password}`, "info");
                             else toast(res.error ?? "Reset failed", "error");
                           });
                         }} />
-                        <Action title="Print" icon={Printer} onClick={() => {
+                        <Action title={t("parents.print")} icon={Printer} onClick={() => {
                           const full = getParentWithChildren(p.id);
                           if (full) printParentProfile(full, full.children);
                         }} />
-                        <Action title="Download" icon={Download} onClick={() => exportParentsCsv([p], `${p.code}.csv`)} />
+                        <Action title={t("parents.download")} icon={Download} onClick={() => exportParentsCsv([p], `${p.code}.csv`)} />
                         <Action
                           title={p.status === "ACTIVE" ? "Disable Account" : "Enable Account"}
                           icon={ShieldOff}

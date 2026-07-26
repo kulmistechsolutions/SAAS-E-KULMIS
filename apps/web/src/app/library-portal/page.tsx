@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { BookOpen, Download, Eye, Loader2, LogOut, Search } from "lucide-react";
@@ -17,6 +19,7 @@ function formatBytes(bytes: number): string {
 }
 
 export default function LibraryPortalHomePage() {
+  const t = useT();
   const router = useRouter();
   const { me, loading: authLoading } = useLibraryPortalAuth();
   const [books, setBooks] = useState<LibraryPortalBook[]>([]);
@@ -46,7 +49,7 @@ export default function LibraryPortalHomePage() {
   if (authLoading || !me) {
     return (
       <div className="flex min-h-screen items-center justify-center gap-2 text-muted-foreground">
-        <Loader2 className="h-4 w-4 animate-spin" /> Loading…
+        <Loader2 className="h-4 w-4 animate-spin" /> {t("libraryPortal.loading")}
       </div>
     );
   }
@@ -69,7 +72,7 @@ export default function LibraryPortalHomePage() {
             onClick={signOut}
             className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm text-muted-foreground hover:bg-secondary hover:text-foreground"
           >
-            <LogOut className="h-4 w-4" /> Sign out
+            <LogOut className="h-4 w-4" /> {t("libraryPortal.signOut")}
           </button>
         </div>
       </header>
@@ -79,7 +82,7 @@ export default function LibraryPortalHomePage() {
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             className="pl-9"
-            placeholder="Search books…"
+            placeholder={t("libraryPortal.searchBooks")}
             value={q}
             onChange={(e) => setQ(e.target.value)}
           />
@@ -87,7 +90,7 @@ export default function LibraryPortalHomePage() {
 
         {loading ? (
           <div className="flex items-center gap-2 py-16 text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" /> Loading books…
+            <Loader2 className="h-4 w-4 animate-spin" /> {t("libraryPortal.loadingBooks")}
           </div>
         ) : filtered.length === 0 ? (
           <div className="py-16 text-center text-muted-foreground">
@@ -114,11 +117,11 @@ export default function LibraryPortalHomePage() {
                   <span className="inline-flex items-center gap-1 rounded bg-secondary px-1.5 py-0.5">
                     {b.allowDownload ? (
                       <>
-                        <Download className="h-3 w-3" /> Downloadable
+                        <Download className="h-3 w-3" /> {t("libraryPortal.downloadable")}
                       </>
                     ) : (
                       <>
-                        <Eye className="h-3 w-3" /> Read only
+                        <Eye className="h-3 w-3" /> {t("libraryPortal.readOnly")}
                       </>
                     )}
                   </span>

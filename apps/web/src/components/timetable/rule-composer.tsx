@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useState } from "react";
 import { AlertCircle, Check, Loader2, Sparkles, X } from "lucide-react";
 import type { AiProposal, InterpretResult } from "@ekulmis/shared";
@@ -29,6 +31,7 @@ interface Props {
  * so a misread sentence costs a click rather than a school's week.
  */
 export function RuleComposer({ academicYearId, shiftId, onApplied }: Props) {
+  const t = useT();
   const [text, setText] = useState("");
   const [result, setResult] = useState<InterpretResult | null>(null);
   const [busy, setBusy] = useState(false);
@@ -69,10 +72,10 @@ export function RuleComposer({ academicYearId, shiftId, onApplied }: Props) {
       <div>
         <h3 className="flex items-center gap-2 text-sm font-semibold">
           <Sparkles className="h-4 w-4" />
-          Ask in your own words
+          {t("timetableRuleComposer.askInYourOwnWords")}
         </h3>
         <p className="mt-0.5 text-xs text-muted-foreground">
-          Somali or English. Nothing is saved until you confirm it below.
+          {t("timetableRuleComposer.somaliOrEnglishNothingIsSaved")}
         </p>
       </div>
 
@@ -80,7 +83,7 @@ export function RuleComposer({ academicYearId, shiftId, onApplied }: Props) {
         rows={2}
         value={text}
         onChange={(e) => setText(e.target.value)}
-        placeholder="Cali cannot teach on Monday"
+        placeholder={t("timetableRuleComposer.caliCannotTeachOnMonday")}
       />
 
       <div className="flex flex-wrap gap-1.5">
@@ -101,7 +104,7 @@ export function RuleComposer({ academicYearId, shiftId, onApplied }: Props) {
           {busy && !result ? (
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
           ) : null}
-          Read it
+          {t("timetableRuleComposer.readIt")}
         </Button>
       </div>
 
@@ -110,7 +113,7 @@ export function RuleComposer({ academicYearId, shiftId, onApplied }: Props) {
           {result.summaries.length > 0 && (
             <>
               <p className="text-xs font-medium text-muted-foreground">
-                This is what it understood — confirm to save:
+                {t("timetableRuleComposer.thisIsWhatItUnderstoodConfirm")}
               </p>
               <ul className="space-y-1">
                 {result.summaries.map((s, i) => (
@@ -145,7 +148,7 @@ export function RuleComposer({ academicYearId, shiftId, onApplied }: Props) {
                 disabled={busy}
               >
                 <X className="mr-1 h-3.5 w-3.5" />
-                Discard
+                {t("timetableRuleComposer.discard")}
               </Button>
               <Button
                 type="button"
@@ -153,7 +156,7 @@ export function RuleComposer({ academicYearId, shiftId, onApplied }: Props) {
                 disabled={busy}
               >
                 {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                Confirm and save
+                {t("timetableRuleComposer.confirmAndSave")}
               </Button>
             </div>
           )}

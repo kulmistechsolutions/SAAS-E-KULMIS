@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import {
@@ -65,6 +67,7 @@ function StatusBadge({
 }
 
 export default function PlatformSmsSettingsPage() {
+  const t = useT();
   const [config, setConfig] = useState<PlatformSmsConfig | null>(null);
   const [logs, setLogs] = useState<PlatformSmsConnectionLog[]>([]);
   const [loading, setLoading] = useState(true);
@@ -156,7 +159,7 @@ export default function PlatformSmsSettingsPage() {
   }
 
   if (loading && !config) {
-    return <p className="text-slate-400">Loading SMS settings…</p>;
+    return <p className="text-slate-400">{t("platformSmsSettings.loadingSmsSettings")}</p>;
   }
 
   return (
@@ -165,10 +168,10 @@ export default function PlatformSmsSettingsPage() {
         <div>
           <h1 className="flex items-center gap-2 text-2xl font-bold text-white">
             <Settings2 className="h-6 w-6 text-violet-400" />
-            SMS Settings
+            {t("platformSmsSettings.smsSettings")}
           </h1>
           <p className="mt-1 text-sm text-slate-400">
-            Configure and verify the Hormuud SMS API before managing packages.
+            {t("platformSmsSettings.configureAndVerifyTheHormuudSms")}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -177,7 +180,7 @@ export default function PlatformSmsSettingsPage() {
             onClick={() => void load()}
             className="border-white/20 text-slate-200"
           >
-            <RefreshCw className="mr-2 h-4 w-4" /> Refresh
+            <RefreshCw className="mr-2 h-4 w-4" /> {t("platformSmsSettings.refresh")}
           </Button>
           <Link
             href="/platform/sms"
@@ -197,7 +200,7 @@ export default function PlatformSmsSettingsPage() {
               }
             }}
           >
-            SMS Packages
+            {t("platformSmsSettings.smsPackages")}
           </Link>
         </div>
       </div>
@@ -206,7 +209,7 @@ export default function PlatformSmsSettingsPage() {
       <div className="grid gap-3 sm:grid-cols-3">
         <div className="rounded-2xl border border-white/10 bg-[#0f172a] p-4">
           <p className="text-xs uppercase tracking-wide text-slate-500">
-            Connection status
+            {t("platformSmsSettings.connectionStatus")}
           </p>
           <div className="mt-2">
             <StatusBadge
@@ -219,13 +222,13 @@ export default function PlatformSmsSettingsPage() {
         </div>
         <div className="rounded-2xl border border-white/10 bg-[#0f172a] p-4">
           <p className="text-xs uppercase tracking-wide text-slate-500">
-            Verification
+            {t("platformSmsSettings.verification")}
           </p>
           <p className="mt-2 text-lg font-semibold text-white">
             {config?.connectionVerified ? "Verified" : "Not verified"}
           </p>
           <p className="mt-1 text-xs text-slate-500">
-            Last success:{" "}
+            {t("platformSmsSettings.lastSuccess")}{" "}
             {config?.lastSuccessAt
               ? new Date(config.lastSuccessAt).toLocaleString()
               : "—"}
@@ -233,17 +236,17 @@ export default function PlatformSmsSettingsPage() {
         </div>
         <div className="rounded-2xl border border-white/10 bg-[#0f172a] p-4">
           <p className="text-xs uppercase tracking-wide text-slate-500">
-            Provider balance
+            {t("platformSmsSettings.providerBalance")}
           </p>
           <p className="mt-2 text-lg font-semibold text-violet-300">
             {config?.providerBalance ?? "—"}
           </p>
           <p className="mt-1 text-xs text-slate-500">
-            Packages:{" "}
+            {t("platformSmsSettings.packages")}{" "}
             {config?.packagesUnlocked ? (
-              <span className="text-emerald-400">Unlocked</span>
+              <span className="text-emerald-400">{t("platformSmsSettings.unlocked")}</span>
             ) : (
-              <span className="text-amber-400">Locked</span>
+              <span className="text-amber-400">{t("platformSmsSettings.locked")}</span>
             )}
           </p>
         </div>
@@ -253,9 +256,7 @@ export default function PlatformSmsSettingsPage() {
         <div className="flex items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
           <p>
-            SMS packages, school purchases, and outbound sending stay locked
-            until you successfully test and save the Hormuud API connection
-            below.
+            {t("platformSmsSettings.smsPackagesSchoolPurchasesAndOutbound")}
           </p>
         </div>
       )}
@@ -264,15 +265,15 @@ export default function PlatformSmsSettingsPage() {
         <div className="rounded-2xl border border-white/10 bg-[#0f172a] p-5">
           <h2 className="flex items-center gap-2 font-semibold text-white">
             <PlugZap className="h-4 w-4 text-violet-400" />
-            Hormuud API credentials
+            {t("platformSmsSettings.hormuudApiCredentials")}
           </h2>
           <p className="mt-1 text-xs text-slate-500">
-            From the Hormuud business portal (API username + API password).
+            {t("platformSmsSettings.fromTheHormuudBusinessPortalApi")}
           </p>
 
           <div className="mt-4 space-y-3">
             <div>
-              <Label className="text-slate-400">Base URL</Label>
+              <Label className="text-slate-400">{t("platformSmsSettings.baseUrl")}</Label>
               <Input
                 className="mt-1 border-white/10 bg-[#0b1120] text-white"
                 value={baseUrl}
@@ -280,7 +281,7 @@ export default function PlatformSmsSettingsPage() {
               />
             </div>
             <div>
-              <Label className="text-slate-400">API Username</Label>
+              <Label className="text-slate-400">{t("platformSmsSettings.apiUsername")}</Label>
               <Input
                 className="mt-1 border-white/10 bg-[#0b1120] text-white"
                 value={username}
@@ -290,7 +291,7 @@ export default function PlatformSmsSettingsPage() {
             </div>
             <div>
               <Label className="text-slate-400">
-                API Password
+                {t("platformSmsSettings.apiPassword")}
                 {config?.hasPassword
                   ? " (saved — enter again to change)"
                   : ""}
@@ -306,30 +307,26 @@ export default function PlatformSmsSettingsPage() {
             </div>
             <div>
               <Label className="text-slate-400">
-                Default sender ID — the name registered with Hormuud
+                {t("platformSmsSettings.defaultSenderIdTheNameRegistered")}
               </Label>
               <Input
                 className="mt-1 border-white/10 bg-[#0b1120] text-white"
                 value={defaultSenderId}
                 onChange={(e) => setDefaultSenderId(e.target.value)}
                 maxLength={20}
-                placeholder="e.g. EKULMIS"
+                placeholder={t("platformSmsSettings.eGEkulmis")}
               />
               <p className="mt-1 text-xs text-slate-500">
-                Set this to the sender name Hormuud has registered for this
-                account, and every school sends under it. Leave it empty and
-                each school sends under its own name — which Hormuud rejects
-                with <span className="font-mono">203 Invalid Sender ID</span>{" "}
-                unless that exact name is registered too. Register the name
-                with Hormuud first; typing it here does not register anything.
+                {t("platformSmsSettings.setThisToTheSenderName")} <span className="font-mono">{t("platformSmsSettings.n203InvalidSenderId")}</span>{" "}
+                {t("platformSmsSettings.unlessThatExactNameIsRegistered")}
               </p>
             </div>
 
             <div className="flex items-center justify-between rounded-lg border border-white/10 px-3 py-2">
               <div>
-                <p className="text-sm text-slate-200">Enable SMS service</p>
+                <p className="text-sm text-slate-200">{t("platformSmsSettings.enableSmsService")}</p>
                 <p className="text-xs text-slate-500">
-                  Applied after a successful test (or toggled when already verified).
+                  {t("platformSmsSettings.appliedAfterASuccessfulTestOr")}
                 </p>
               </div>
               <button
@@ -359,28 +356,27 @@ export default function PlatformSmsSettingsPage() {
               {testing ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Testing Hormuud API…
+                  {t("platformSmsSettings.testingHormuudApi")}
                 </>
               ) : (
                 <>
                   <PlugZap className="mr-2 h-4 w-4" />
-                  Test Connection & Save
+                  {t("platformSmsSettings.testConnectionSave")}
                 </>
               )}
             </Button>
             <p className="text-xs text-slate-500">
-              Credentials are saved only when authentication succeeds. No SMS is
-              sent during the test (token + optional balance check only).
+              {t("platformSmsSettings.credentialsAreSavedOnlyWhenAuthentication")}
             </p>
           </div>
         </div>
 
         <div className="space-y-4">
           <div className="rounded-2xl border border-white/10 bg-[#0f172a] p-5">
-            <h2 className="font-semibold text-white">Last test details</h2>
+            <h2 className="font-semibold text-white">{t("platformSmsSettings.lastTestDetails")}</h2>
             {!lastTest && (
               <p className="mt-3 text-sm text-slate-500">
-                Run “Test Connection & Save” to see step-by-step results here.
+                {t("platformSmsSettings.runTestConnectionSaveToSee")}
               </p>
             )}
             {lastTest && (
@@ -423,7 +419,7 @@ export default function PlatformSmsSettingsPage() {
           </div>
 
           <div className="rounded-2xl border border-white/10 bg-[#0f172a] p-5">
-            <h2 className="font-semibold text-white">Connection logs</h2>
+            <h2 className="font-semibold text-white">{t("platformSmsSettings.connectionLogs")}</h2>
             <ul className="mt-3 max-h-80 space-y-2 overflow-y-auto text-sm">
               {logs.map((log) => (
                 <li
@@ -449,7 +445,7 @@ export default function PlatformSmsSettingsPage() {
                 </li>
               ))}
               {logs.length === 0 && (
-                <li className="text-slate-500">No connection attempts yet.</li>
+                <li className="text-slate-500">{t("platformSmsSettings.noConnectionAttemptsYet")}</li>
               )}
             </ul>
           </div>

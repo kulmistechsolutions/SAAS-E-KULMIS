@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { use, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, Download } from "lucide-react";
@@ -33,6 +35,7 @@ type AttemptRow = {
 };
 
 export default function QuizResultsPage({ params }: { params: Promise<{ id: string }> }) {
+  const t = useT();
   const { id } = use(params);
   const { user } = useAuth();
   const quizBase = user?.role === "TEACHER" ? "/teacher-portal/quizzes" : "/quiz";
@@ -97,14 +100,14 @@ export default function QuizResultsPage({ params }: { params: Promise<{ id: stri
             className="inline-flex items-center gap-2 text-sm text-primary"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back to Quiz
+            {t("quizResults.backToQuiz")}
           </Link>
-          <h1 className="mt-2 text-2xl font-bold">Class Results — {title}</h1>
+          <h1 className="mt-2 text-2xl font-bold">{t("quizResults.classResults")} {title}</h1>
         </div>
         <div className="flex gap-2">
           <Link href={`${quizBase}/${id}/live`}>
             <Button variant="outline" className="h-9">
-              Live Monitor
+              {t("quizResults.liveMonitor")}
             </Button>
           </Link>
           <Button
@@ -142,34 +145,34 @@ export default function QuizResultsPage({ params }: { params: Promise<{ id: stri
             }}
           >
             <Download className="mr-2 h-4 w-4" />
-            Export CSV
+            {t("quizResults.exportCsv")}
           </Button>
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 xl:grid-cols-8">
-        <Stat label="Total Students" value={summary.total} />
-        <Stat label="Completed" value={summary.completed} />
-        <Stat label="Average %" value={summary.avg} />
-        <Stat label="Highest %" value={summary.high} />
-        <Stat label="Lowest %" value={summary.low} />
-        <Stat label="Pass Rate %" value={summary.passRate} />
-        <Stat label="Fail Rate %" value={summary.failRate} />
-        <Stat label="Attempts" value={attempts.length} />
+        <Stat label={t("quizResults.totalStudents")} value={summary.total} />
+        <Stat label={t("quizResults.completed")} value={summary.completed} />
+        <Stat label={t("quizResults.average")} value={summary.avg} />
+        <Stat label={t("quizResults.highest")} value={summary.high} />
+        <Stat label={t("quizResults.lowest")} value={summary.low} />
+        <Stat label={t("quizResults.passRate")} value={summary.passRate} />
+        <Stat label={t("quizResults.failRate")} value={summary.failRate} />
+        <Stat label={t("quizResults.attempts")} value={attempts.length} />
       </div>
 
       <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
         <table className="w-full text-sm">
           <thead className="bg-secondary text-left text-xs text-muted-foreground">
             <tr>
-              <th className="px-4 py-2.5">No</th>
-              <th className="px-4 py-2.5">Student</th>
-              <th className="px-4 py-2.5">Submitted</th>
-              <th className="px-4 py-2.5">Score</th>
+              <th className="px-4 py-2.5">{t("quizResults.no")}</th>
+              <th className="px-4 py-2.5">{t("quizResults.student")}</th>
+              <th className="px-4 py-2.5">{t("quizResults.submitted")}</th>
+              <th className="px-4 py-2.5">{t("quizResults.score")}</th>
               <th className="px-4 py-2.5">%</th>
-              <th className="px-4 py-2.5">Result</th>
-              <th className="px-4 py-2.5">Status</th>
-              <th className="px-4 py-2.5">Sheet</th>
+              <th className="px-4 py-2.5">{t("quizResults.result")}</th>
+              <th className="px-4 py-2.5">{t("quizResults.status")}</th>
+              <th className="px-4 py-2.5">{t("quizResults.sheet")}</th>
             </tr>
           </thead>
           <tbody>
@@ -196,7 +199,7 @@ export default function QuizResultsPage({ params }: { params: Promise<{ id: stri
                       className="h-8 px-2 text-xs"
                       onClick={() => void printOne(a.id)}
                     >
-                      View / PDF
+                      {t("quizResults.viewPdf")}
                     </Button>
                   )}
                 </td>
@@ -205,7 +208,7 @@ export default function QuizResultsPage({ params }: { params: Promise<{ id: stri
             {attempts.length === 0 && (
               <tr>
                 <td colSpan={8} className="px-4 py-8 text-center text-muted-foreground">
-                  No submissions yet.
+                  {t("quizResults.noSubmissionsYet")}
                 </td>
               </tr>
             )}

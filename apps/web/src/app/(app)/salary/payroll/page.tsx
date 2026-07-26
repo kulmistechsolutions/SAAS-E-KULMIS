@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useEffect, useMemo, useState } from "react";
 import { Download, Eye, Printer, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -31,6 +33,7 @@ const PAGE_SIZE = 15;
 const STATUSES: (PayrollStatus | "")[] = ["", "PENDING", "PARTIAL", "PAID"];
 
 export default function PayrollPage() {
+  const t = useT();
   const [mounted, setMounted] = useState(false);
   const state = useSalaryState();
   const [month, setMonth] = useState("");
@@ -76,7 +79,7 @@ export default function PayrollPage() {
   if (!mounted) {
     return (
       <div className="flex h-64 items-center justify-center text-muted-foreground">
-        Loading payroll…
+        {t("salaryPayroll.loadingPayroll")}
       </div>
     );
   }
@@ -85,14 +88,14 @@ export default function PayrollPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Monthly Payroll</h1>
+          <h1 className="text-2xl font-bold">{t("salaryPayroll.monthlyPayroll")}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Generate payroll and process full or partial salary payments.
+            {t("salaryPayroll.generatePayrollAndProcessFullOr")}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" className="h-9" onClick={handleGenerate}>
-            Generate Payroll
+            {t("salaryPayroll.generatePayroll")}
           </Button>
           <Button
             variant="outline"
@@ -100,7 +103,7 @@ export default function PayrollPage() {
             onClick={() => exportPayrollReportCsv(rows, `payroll-${month}.csv`)}
           >
             <Download className="mr-2 h-4 w-4" />
-            Export CSV
+            {t("salaryPayroll.exportCsv")}
           </Button>
         </div>
       </div>
@@ -128,7 +131,7 @@ export default function PayrollPage() {
           }}
           className="h-9 min-w-[160px]"
         >
-          <option value="">All positions</option>
+          <option value="">{t("salaryPayroll.allPositions")}</option>
           {POSITIONS.map((p) => (
             <option key={p} value={p}>
               {p}
@@ -143,7 +146,7 @@ export default function PayrollPage() {
           }}
           className="h-9 min-w-[140px]"
         >
-          <option value="">All statuses</option>
+          <option value="">{t("salaryPayroll.allStatuses")}</option>
           {STATUSES.filter(Boolean).map((s) => (
             <option key={s} value={s}>
               {payrollStatusLabel(s as PayrollStatus)}
@@ -151,7 +154,7 @@ export default function PayrollPage() {
           ))}
         </Select>
         <Input
-          placeholder="Search employee name or ID…"
+          placeholder={t("salaryPayroll.searchEmployeeNameOrId")}
           value={search}
           onChange={(e) => {
             setSearch(e.target.value);
@@ -166,20 +169,20 @@ export default function PayrollPage() {
           <table className="w-full min-w-[960px] text-sm">
             <thead className="sticky top-0 bg-secondary text-left text-xs text-muted-foreground">
               <tr>
-                <th className="px-4 py-2.5 font-medium">Employee</th>
-                <th className="px-4 py-2.5 font-medium">Position</th>
-                <th className="px-4 py-2.5 font-medium">Net Salary</th>
-                <th className="px-4 py-2.5 font-medium">Paid</th>
-                <th className="px-4 py-2.5 font-medium">Balance</th>
-                <th className="px-4 py-2.5 font-medium">Status</th>
-                <th className="px-4 py-2.5 font-medium">Actions</th>
+                <th className="px-4 py-2.5 font-medium">{t("salaryPayroll.employee")}</th>
+                <th className="px-4 py-2.5 font-medium">{t("salaryPayroll.position")}</th>
+                <th className="px-4 py-2.5 font-medium">{t("salaryPayroll.netSalary")}</th>
+                <th className="px-4 py-2.5 font-medium">{t("salaryPayroll.paid")}</th>
+                <th className="px-4 py-2.5 font-medium">{t("salaryPayroll.balance")}</th>
+                <th className="px-4 py-2.5 font-medium">{t("salaryPayroll.status")}</th>
+                <th className="px-4 py-2.5 font-medium">{t("salaryPayroll.actions")}</th>
               </tr>
             </thead>
             <tbody>
               {pageRows.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="px-4 py-12 text-center text-muted-foreground">
-                    No payroll records for this filter.
+                    {t("salaryPayroll.noPayrollRecordsForThisFilter")}
                   </td>
                 </tr>
               ) : (
@@ -209,7 +212,7 @@ export default function PayrollPage() {
                             onClick={() => setPayRow(r)}
                           >
                             <Wallet className="mr-1 h-3.5 w-3.5" />
-                            Pay
+                            {t("salaryPayroll.pay")}
                           </Button>
                         )}
                         <Button

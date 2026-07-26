@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
@@ -21,6 +23,7 @@ const schema = z.object({
 type FormValues = z.infer<typeof schema>;
 
 export default function ParentPortalLoginPage() {
+  const t = useT();
   const router = useRouter();
   const portal = usePortalState();
   const branding = useSchoolBranding();
@@ -74,18 +77,18 @@ export default function ParentPortalLoginPage() {
               </div>
             )}
             <h1 className="text-2xl font-bold text-primary">{branding.name}</h1>
-            <p className="text-sm font-medium text-muted-foreground">Parent Portal</p>
+            <p className="text-sm font-medium text-muted-foreground">{t("parentPortalLogin.parentPortal")}</p>
             <p className="mt-2 text-sm text-muted-foreground">
-              Sign in with your Parent ID and password
+              {t("parentPortalLogin.signInWithYourParentId")}
             </p>
           </div>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div>
-              <label className="mb-1 block text-sm font-medium">Parent ID</label>
+              <label className="mb-1 block text-sm font-medium">{t("parentPortalLogin.parentId")}</label>
               <Input
                 {...register("identifier")}
-                placeholder="PSHMM000025"
+                placeholder={t("parentPortalLogin.pshmm000025")}
                 autoComplete="username"
               />
               {errors.identifier && (
@@ -93,7 +96,7 @@ export default function ParentPortalLoginPage() {
               )}
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium">Password</label>
+              <label className="mb-1 block text-sm font-medium">{t("parentPortalLogin.password")}</label>
               <Input
                 type="password"
                 {...register("password")}
@@ -111,9 +114,9 @@ export default function ParentPortalLoginPage() {
 
           {demo && (
             <p className="mt-4 rounded-lg border bg-secondary/50 p-3 text-center text-xs text-muted-foreground">
-              Demo: <span className="font-mono font-medium text-foreground">{demo.code}</span>
+              {t("parentPortalLogin.demo")} <span className="font-mono font-medium text-foreground">{demo.code}</span>
               {" · "}
-              Password shown in admin Parents profile
+              {t("parentPortalLogin.passwordShownInAdminParentsProfile")}
             </p>
           )}
         </CardContent>

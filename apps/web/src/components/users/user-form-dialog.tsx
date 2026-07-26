@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
@@ -24,6 +26,7 @@ export function UserFormDialog({
   onClose,
   onSuccess,
 }: UserFormDialogProps) {
+  const t = useT();
   const isEdit = !!user;
   const roles = getUsersState().roles;
 
@@ -84,7 +87,7 @@ export function UserFormDialog({
       footer={
         <>
           <Button variant="outline" onClick={onClose}>
-            Cancel
+            {t("usersUserFormDialog.cancel")}
           </Button>
           <Button onClick={handleSubmit} disabled={submitting}>
             {submitting ? "Saving…" : isEdit ? "Update" : "Create User"}
@@ -94,7 +97,7 @@ export function UserFormDialog({
     >
       <div className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="u-name">Full Name</Label>
+          <Label htmlFor="u-name">{t("usersUserFormDialog.fullName")}</Label>
           <Input
             id="u-name"
             value={fullName}
@@ -102,7 +105,7 @@ export function UserFormDialog({
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="u-username">Username</Label>
+          <Label htmlFor="u-username">{t("usersUserFormDialog.username")}</Label>
           <Input
             id="u-username"
             value={username}
@@ -111,7 +114,7 @@ export function UserFormDialog({
         </div>
         {!isEdit && (
           <div className="space-y-2">
-            <Label htmlFor="u-pass">Password</Label>
+            <Label htmlFor="u-pass">{t("usersUserFormDialog.password")}</Label>
             <Input
               id="u-pass"
               type="password"
@@ -122,7 +125,7 @@ export function UserFormDialog({
         )}
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-2">
-            <Label htmlFor="u-role">Role</Label>
+            <Label htmlFor="u-role">{t("usersUserFormDialog.role")}</Label>
             <Select
               id="u-role"
               value={role}
@@ -136,15 +139,15 @@ export function UserFormDialog({
             </Select>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="u-status">Status</Label>
+            <Label htmlFor="u-status">{t("usersUserFormDialog.status")}</Label>
             <Select
               id="u-status"
               value={status}
               onChange={(e) => setStatus(e.target.value as AccountStatus)}
             >
-              <option value="ACTIVE">Active</option>
-              <option value="INACTIVE">Inactive</option>
-              <option value="LOCKED">Locked</option>
+              <option value="ACTIVE">{t("usersUserFormDialog.active")}</option>
+              <option value="INACTIVE">{t("usersUserFormDialog.inactive")}</option>
+              <option value="LOCKED">{t("usersUserFormDialog.locked")}</option>
             </Select>
           </div>
         </div>

@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
@@ -27,6 +29,7 @@ interface ExamFormDialogProps {
 }
 
 export function ExamFormDialog({ open, onClose, onSuccess }: ExamFormDialogProps) {
+  const tr = useT();
   const { examGroups } = useExaminationsState();
   const academics = useAcademicsState();
   const { year: academicYear, setYear: setAcademicYear } = useAcademicYearSelect("exam-create-year");
@@ -107,13 +110,13 @@ export function ExamFormDialog({ open, onClose, onSuccess }: ExamFormDialogProps
     <Dialog
       open={open}
       onClose={onClose}
-      title="Create Examination"
-      description="Subjects are loaded automatically from teacher assignments."
+      title={tr("examinationsExamFormDialog.createExamination")}
+      description={tr("examinationsExamFormDialog.subjectsAreLoadedAutomaticallyFromTeacher")}
       className="max-w-2xl"
       footer={
         <>
           <Button variant="outline" onClick={onClose}>
-            Cancel
+            {tr("examinationsExamFormDialog.cancel")}
           </Button>
           <Button onClick={handleSubmit} disabled={submitting}>
             {submitting ? "Creating…" : "Create Exam"}
@@ -123,31 +126,31 @@ export function ExamFormDialog({ open, onClose, onSuccess }: ExamFormDialogProps
     >
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="sm:col-span-2">
-          <Label required>Exam Name</Label>
+          <Label required>{tr("examinationsExamFormDialog.examName")}</Label>
           <Input className="mt-1.5" value={name} onChange={(e) => setName(e.target.value)} />
         </div>
         <div>
-          <Label required>Academic Year</Label>
+          <Label required>{tr("examinationsExamFormDialog.academicYear")}</Label>
           <AcademicYearSelect className="mt-1.5" value={academicYear} onChange={setAcademicYear} />
         </div>
         <div>
-          <Label required>Exam Type</Label>
+          <Label required>{tr("examinationsExamFormDialog.examType")}</Label>
           <Select className="mt-1.5" value={examType} onChange={(e) => setExamType(e.target.value as ExamType)}>
-            <option value="TEACHER_ASSESSMENT">Teacher Assessment</option>
-            <option value="SCHOOL_IMPORT">School Import</option>
+            <option value="TEACHER_ASSESSMENT">{tr("examinationsExamFormDialog.teacherAssessment")}</option>
+            <option value="SCHOOL_IMPORT">{tr("examinationsExamFormDialog.schoolImport")}</option>
           </Select>
         </div>
         <div>
-          <Label>Exam Group</Label>
+          <Label>{tr("examinationsExamFormDialog.examGroup")}</Label>
           <Select className="mt-1.5" value={examGroupId} onChange={(e) => setExamGroupId(e.target.value)}>
-            <option value="">None</option>
+            <option value="">{tr("examinationsExamFormDialog.none")}</option>
             {examGroups.map((g) => (
               <option key={g.id} value={g.id}>{g.name}</option>
             ))}
           </Select>
         </div>
         <div>
-          <Label required>Term</Label>
+          <Label required>{tr("examinationsExamFormDialog.term")}</Label>
           <Select className="mt-1.5" value={term} onChange={(e) => setTerm(e.target.value)}>
             {TERMS.map((t) => (
               <option key={t} value={t}>{t}</option>
@@ -155,23 +158,23 @@ export function ExamFormDialog({ open, onClose, onSuccess }: ExamFormDialogProps
           </Select>
         </div>
         <div>
-          <Label required>Maximum Marks</Label>
+          <Label required>{tr("examinationsExamFormDialog.maximumMarks")}</Label>
           <Input className="mt-1.5" type="number" min={1} value={maxMarks} onChange={(e) => setMaxMarks(e.target.value)} />
         </div>
         <div>
-          <Label required>Weight %</Label>
+          <Label required>{tr("examinationsExamFormDialog.weight")}</Label>
           <Input className="mt-1.5" type="number" min={1} max={100} value={weightPercent} onChange={(e) => setWeightPercent(e.target.value)} />
         </div>
         <div>
-          <Label required>Start Date</Label>
+          <Label required>{tr("examinationsExamFormDialog.startDate")}</Label>
           <Input className="mt-1.5" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
         </div>
         <div>
-          <Label required>End Date</Label>
+          <Label required>{tr("examinationsExamFormDialog.endDate")}</Label>
           <Input className="mt-1.5" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
         </div>
         <div className="sm:col-span-2">
-          <Label>Classes (leave empty for all with sections)</Label>
+          <Label>{tr("examinationsExamFormDialog.classesLeaveEmptyForAllWith")}</Label>
           <div className="mt-2 flex flex-wrap gap-2">
             {classOptions.map((c) => (
               <button
@@ -190,7 +193,7 @@ export function ExamFormDialog({ open, onClose, onSuccess }: ExamFormDialogProps
           </div>
         </div>
         <div className="sm:col-span-2">
-          <Label>Sections</Label>
+          <Label>{tr("examinationsExamFormDialog.sections")}</Label>
           <div className="mt-2 flex flex-wrap gap-2">
             {sectionOptions.map((s) => (
               <button
@@ -203,7 +206,7 @@ export function ExamFormDialog({ open, onClose, onSuccess }: ExamFormDialogProps
                     : "hover:bg-secondary"
                 }`}
               >
-                Section {s}
+                {tr("examinationsExamFormDialog.section")} {s}
               </button>
             ))}
           </div>

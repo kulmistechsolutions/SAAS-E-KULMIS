@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
@@ -34,6 +36,7 @@ export function ExpenseFormDialog({
   onClose,
   onSuccess,
 }: ExpenseFormDialogProps) {
+  const t = useT();
   const isEdit = !!expense;
   const state = getExpensesState();
   const activeCategories = state.categories.filter((c) => c.status === "ACTIVE");
@@ -140,7 +143,7 @@ export function ExpenseFormDialog({
       footer={
         <>
           <Button variant="outline" onClick={onClose}>
-            Cancel
+            {t("expensesExpenseFormDialog.cancel")}
           </Button>
           <Button onClick={handleSubmit} disabled={submitting}>
             {submitting ? "Saving…" : isEdit ? "Update Expense" : "Record Expense"}
@@ -150,18 +153,18 @@ export function ExpenseFormDialog({
     >
       <div className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="exp-title">Expense Title</Label>
+          <Label htmlFor="exp-title">{t("expensesExpenseFormDialog.expenseTitle")}</Label>
           <Input
             id="exp-title"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="e.g. Monthly Electricity Bill"
+            placeholder={t("expensesExpenseFormDialog.eGMonthlyElectricityBill")}
           />
         </div>
 
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-2">
-            <Label htmlFor="exp-cat">Category</Label>
+            <Label htmlFor="exp-cat">{t("expensesExpenseFormDialog.category")}</Label>
             <Select
               id="exp-cat"
               value={categoryId}
@@ -175,7 +178,7 @@ export function ExpenseFormDialog({
             </Select>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="exp-amount">Amount</Label>
+            <Label htmlFor="exp-amount">{t("expensesExpenseFormDialog.amount")}</Label>
             <Input
               id="exp-amount"
               type="number"
@@ -189,7 +192,7 @@ export function ExpenseFormDialog({
 
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-2">
-            <Label htmlFor="exp-date">Expense Date</Label>
+            <Label htmlFor="exp-date">{t("expensesExpenseFormDialog.expenseDate")}</Label>
             <Input
               id="exp-date"
               type="date"
@@ -198,7 +201,7 @@ export function ExpenseFormDialog({
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="exp-year">Academic Year</Label>
+            <Label htmlFor="exp-year">{t("expensesExpenseFormDialog.academicYear")}</Label>
             <AcademicYearSelect
               value={academicYear}
               onChange={setAcademicYear}
@@ -208,7 +211,7 @@ export function ExpenseFormDialog({
 
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-2">
-            <Label htmlFor="exp-method">Payment Method</Label>
+            <Label htmlFor="exp-method">{t("expensesExpenseFormDialog.paymentMethod")}</Label>
             <Select
               id="exp-method"
               value={paymentMethod}
@@ -222,18 +225,18 @@ export function ExpenseFormDialog({
             </Select>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="exp-vendor">Paid To (Vendor)</Label>
+            <Label htmlFor="exp-vendor">{t("expensesExpenseFormDialog.paidToVendor")}</Label>
             <Input
               id="exp-vendor"
               value={paidTo}
               onChange={(e) => setPaidTo(e.target.value)}
-              placeholder="Supplier name"
+              placeholder={t("expensesExpenseFormDialog.supplierName")}
             />
           </div>
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="exp-desc">Description / Notes</Label>
+          <Label htmlFor="exp-desc">{t("expensesExpenseFormDialog.descriptionNotes")}</Label>
           <Textarea
             id="exp-desc"
             rows={2}
@@ -243,17 +246,17 @@ export function ExpenseFormDialog({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="exp-file">Attachment (optional)</Label>
+          <Label htmlFor="exp-file">{t("expensesExpenseFormDialog.attachmentOptional")}</Label>
           <Input id="exp-file" type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={handleFile} />
           {attachment && (
             <p className="text-xs text-muted-foreground">
-              Attached: {attachment.fileName}
+              {t("expensesExpenseFormDialog.attached")} {attachment.fileName}
               <button
                 type="button"
                 className="ml-2 text-rose-600 hover:underline"
                 onClick={() => setAttachment(null)}
               >
-                Remove
+                {t("expensesExpenseFormDialog.remove")}
               </button>
             </p>
           )}

@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { FileDown, GraduationCap, Printer, Search, Undo2, X } from "lucide-react";
@@ -24,6 +26,7 @@ import { toast } from "@/lib/toast";
 const PAGE_SIZE = 12;
 
 export default function PromotionHistoryPage() {
+  const t = useT();
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
   const state = usePromotionsState();
@@ -67,7 +70,7 @@ export default function PromotionHistoryPage() {
   if (!mounted) {
     return (
       <div className="flex h-64 items-center justify-center text-muted-foreground">
-        Loading history…
+        {t("promotionsHistory.loadingHistory")}
       </div>
     );
   }
@@ -76,9 +79,9 @@ export default function PromotionHistoryPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold">Promotion History</h1>
+          <h1 className="text-2xl font-bold">{t("promotionsHistory.promotionHistory")}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Complete, permanent record of every promotion and graduation.
+            {t("promotionsHistory.completePermanentRecordOfEveryPromotion")}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -99,10 +102,10 @@ export default function PromotionHistoryPage() {
               })
             }
           >
-            <Printer className="mr-2 h-4 w-4" /> Print
+            <Printer className="mr-2 h-4 w-4" /> {t("promotionsHistory.print")}
           </Button>
           <Button variant="outline" onClick={() => { exportPromotionHistoryCsv(rows); toast(`Exported ${rows.length} records.`, "info"); }}>
-            <FileDown className="mr-2 h-4 w-4" /> Export
+            <FileDown className="mr-2 h-4 w-4" /> {t("promotionsHistory.export")}
           </Button>
         </div>
       </div>
@@ -114,30 +117,30 @@ export default function PromotionHistoryPage() {
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search by student, ID or class…"
+              placeholder={t("promotionsHistory.searchByStudentIdOrClass")}
               className="h-10 w-full rounded-lg border bg-background pl-9 pr-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
             />
           </div>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:flex">
             <Select value={year} onChange={(e) => setYear(e.target.value)} className="lg:w-40">
-              <option value="">All Years</option>
+              <option value="">{t("promotionsHistory.allYears")}</option>
               {years.map((y) => (
                 <option key={y.id} value={y.name}>{y.name}</option>
               ))}
             </Select>
             <Select value={type} onChange={(e) => setType(e.target.value)} className="lg:w-36">
-              <option value="">All Types</option>
-              <option value="INDIVIDUAL">Individual</option>
-              <option value="CLASS">Class</option>
-              <option value="SCHOOL_WIDE">School-Wide</option>
+              <option value="">{t("promotionsHistory.allTypes")}</option>
+              <option value="INDIVIDUAL">{t("promotionsHistory.individual")}</option>
+              <option value="CLASS">{t("promotionsHistory.class")}</option>
+              <option value="SCHOOL_WIDE">{t("promotionsHistory.schoolWide")}</option>
             </Select>
             <label className="flex h-10 items-center gap-2 rounded-lg border px-3 text-sm">
               <input type="checkbox" checked={includeRolledBack} onChange={(e) => setIncludeRolledBack(e.target.checked)} className="h-4 w-4 rounded border-input" />
-              Rolled back
+              {t("promotionsHistory.rolledBack")}
             </label>
             {hasFilters && (
               <Button variant="ghost" onClick={() => { setSearch(""); setYear(""); setType(""); }}>
-                <X className="mr-1 h-4 w-4" /> Clear
+                <X className="mr-1 h-4 w-4" /> {t("promotionsHistory.clear")}
               </Button>
             )}
           </div>
@@ -149,21 +152,21 @@ export default function PromotionHistoryPage() {
           <table className="w-full min-w-[900px] text-sm">
             <thead className="sticky top-0 z-10 bg-secondary/95 backdrop-blur text-left text-xs uppercase tracking-wide text-muted-foreground">
               <tr>
-                <th className="px-4 py-3 font-medium">Student</th>
-                <th className="px-4 py-3 font-medium">Type</th>
-                <th className="px-4 py-3 font-medium">From</th>
-                <th className="px-4 py-3 font-medium">To</th>
-                <th className="px-4 py-3 font-medium">Academic Year</th>
-                <th className="px-4 py-3 font-medium">Date</th>
-                <th className="px-4 py-3 font-medium">By</th>
-                <th className="px-4 py-3 text-right font-medium">Actions</th>
+                <th className="px-4 py-3 font-medium">{t("promotionsHistory.student")}</th>
+                <th className="px-4 py-3 font-medium">{t("promotionsHistory.type")}</th>
+                <th className="px-4 py-3 font-medium">{t("promotionsHistory.from")}</th>
+                <th className="px-4 py-3 font-medium">{t("promotionsHistory.to")}</th>
+                <th className="px-4 py-3 font-medium">{t("promotionsHistory.academicYear")}</th>
+                <th className="px-4 py-3 font-medium">{t("promotionsHistory.date")}</th>
+                <th className="px-4 py-3 font-medium">{t("promotionsHistory.by")}</th>
+                <th className="px-4 py-3 text-right font-medium">{t("promotionsHistory.actions")}</th>
               </tr>
             </thead>
             <tbody>
               {pageRows.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="px-4 py-16 text-center text-muted-foreground">
-                    No promotion records match your filters.
+                    {t("promotionsHistory.noPromotionRecordsMatchYourFilters")}
                   </td>
                 </tr>
               ) : (
@@ -180,7 +183,7 @@ export default function PromotionHistoryPage() {
                     <td className="px-4 py-3">
                       {r.graduated ? (
                         <span className="inline-flex items-center gap-1 font-medium text-sky-600 dark:text-sky-400">
-                          <GraduationCap className="h-4 w-4" /> Graduated
+                          <GraduationCap className="h-4 w-4" /> {t("promotionsHistory.graduated")}
                         </span>
                       ) : (
                         `${r.toClass}${r.toSection ? ` (${r.toSection})` : ""}`
@@ -191,14 +194,14 @@ export default function PromotionHistoryPage() {
                     <td className="px-4 py-3 text-muted-foreground">{r.promotedBy}</td>
                     <td className="px-4 py-3 text-right">
                       {r.rolledBackAt ? (
-                        <Badge tone="muted">Rolled back</Badge>
+                        <Badge tone="muted">{t("promotionsHistory.rolledBack")}</Badge>
                       ) : (
                         <button
                           onClick={() => setRolling(r)}
-                          title="Rollback"
+                          title={t("promotionsHistory.rollback")}
                           className="inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-rose-500/10 hover:text-rose-600"
                         >
-                          <Undo2 className="h-3.5 w-3.5" /> Rollback
+                          <Undo2 className="h-3.5 w-3.5" /> {t("promotionsHistory.rollback")}
                         </button>
                       )}
                     </td>
@@ -215,9 +218,9 @@ export default function PromotionHistoryPage() {
 
       <ConfirmDialog
         open={!!rolling}
-        title="Rollback Promotion"
+        title={t("promotionsHistory.rollbackPromotion")}
         message={rolling ? `Reverse ${rolling.studentName}'s promotion (${rolling.fromClass} → ${rolling.graduated ? "Graduated" : rolling.toClass})? The student returns to their previous class. This is logged.` : ""}
-        confirmLabel="Rollback"
+        confirmLabel={t("promotionsHistory.rollback")}
         onConfirm={handleRollback}
         onClose={() => setRolling(null)}
       />

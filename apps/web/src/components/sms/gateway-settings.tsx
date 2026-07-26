@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useCallback, useEffect, useState } from "react";
 import {
   AlertTriangle,
@@ -32,6 +34,7 @@ function daysLeft(endDate: string): number {
 }
 
 export function GatewaySettings() {
+  const t = useT();
   const [gw, setGw] = useState<SchoolSmsGateway | null>(null);
   const [loading, setLoading] = useState(true);
   const [testing, setTesting] = useState(false);
@@ -108,7 +111,7 @@ export function GatewaySettings() {
   if (loading) {
     return (
       <div className="flex items-center gap-2 py-10 text-muted-foreground">
-        <Loader2 className="h-4 w-4 animate-spin" /> Loading…
+        <Loader2 className="h-4 w-4 animate-spin" /> {t("smsGatewaySettings.loading")}
       </div>
     );
   }
@@ -122,21 +125,19 @@ export function GatewaySettings() {
           <div className="flex items-start gap-3">
             <Lock className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground" />
             <div>
-              <h2 className="font-semibold">Use your own SMS account</h2>
+              <h2 className="font-semibold">{t("smsGatewaySettings.useYourOwnSmsAccount")}</h2>
               <p className="mt-1 text-sm text-muted-foreground">
-                Connect your school&apos;s own Hormuud account so messages are sent
-                and billed through it directly, instead of using SMS credits bought
-                from the platform.
+                {t("smsGatewaySettings.connectYourSchoolAposSOwn")}
               </p>
               <p className="mt-3 text-sm">
-                This is a paid add-on.{" "}
+                {t("smsGatewaySettings.thisIsAPaidAddOn")}{" "}
                 <span className="font-medium">
-                  Contact the platform administrator to activate it for your school.
+                  {t("smsGatewaySettings.contactThePlatformAdministratorToActivate")}
                 </span>
               </p>
               {gw.history.length > 0 && (
                 <p className="mt-3 text-xs text-muted-foreground">
-                  Last licence ended {fmtDate(gw.history[0]?.endDate)}.
+                  {t("smsGatewaySettings.lastLicenceEnded")} {fmtDate(gw.history[0]?.endDate)}.
                 </p>
               )}
             </div>
@@ -177,13 +178,13 @@ export function GatewaySettings() {
             </p>
             {gw.license && (
               <p className="mt-2 text-xs text-muted-foreground">
-                Licence valid until{" "}
+                {t("smsGatewaySettings.licenceValidUntil")}{" "}
                 <strong className="text-foreground">
                   {fmtDate(gw.license.endDate)}
                 </strong>
                 {expiring && (
                   <span className="ml-1 font-medium text-amber-700 dark:text-amber-300">
-                    · expires in {daysLeft(gw.license.endDate)} day(s)
+                    {t("smsGatewaySettings.expiresIn")} {daysLeft(gw.license.endDate)} {t("smsGatewaySettings.dayS")}
                   </span>
                 )}
               </p>
@@ -195,14 +196,14 @@ export function GatewaySettings() {
       {/* Credentials */}
       <div className="space-y-4 rounded-2xl border bg-card p-5 shadow-sm">
         <div>
-          <h2 className="font-semibold">Your Hormuud credentials</h2>
+          <h2 className="font-semibold">{t("smsGatewaySettings.yourHormuudCredentials")}</h2>
           <p className="mt-0.5 text-xs text-muted-foreground">
-            Saved only after a successful connection test.
+            {t("smsGatewaySettings.savedOnlyAfterASuccessfulConnection")}
           </p>
         </div>
 
         <div>
-          <Label htmlFor="gw-user">Username</Label>
+          <Label htmlFor="gw-user">{t("smsGatewaySettings.username")}</Label>
           <Input
             id="gw-user"
             className="mt-1.5"
@@ -212,7 +213,7 @@ export function GatewaySettings() {
         </div>
 
         <div>
-          <Label htmlFor="gw-pass">API password</Label>
+          <Label htmlFor="gw-pass">{t("smsGatewaySettings.apiPassword")}</Label>
           <Input
             id="gw-pass"
             type="password"
@@ -222,14 +223,13 @@ export function GatewaySettings() {
             onChange={(e) => setPassword(e.target.value)}
           />
           <p className="mt-1 text-xs text-muted-foreground">
-            The “API PASSWORD” from your Hormuud portal. It is never shown again
-            once saved.
+            {t("smsGatewaySettings.theApiPasswordFromYourHormuud")}
           </p>
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2">
           <div>
-            <Label htmlFor="gw-sender">Sender ID (optional)</Label>
+            <Label htmlFor="gw-sender">{t("smsGatewaySettings.senderIdOptional")}</Label>
             <Input
               id="gw-sender"
               className="mt-1.5"
@@ -239,7 +239,7 @@ export function GatewaySettings() {
             />
           </div>
           <div>
-            <Label htmlFor="gw-url">API URL</Label>
+            <Label htmlFor="gw-url">{t("smsGatewaySettings.apiUrl")}</Label>
             <Input
               id="gw-url"
               className="mt-1.5"
@@ -270,7 +270,7 @@ export function GatewaySettings() {
               <p className="mt-0.5 text-muted-foreground">{gw.connectionMessage}</p>
             )}
             <p className="mt-0.5 text-muted-foreground">
-              Last tested: {fmtDate(gw.lastTestedAt)}
+              {t("smsGatewaySettings.lastTested")} {fmtDate(gw.lastTestedAt)}
               {gw.providerBalance ? ` · Balance: ${gw.providerBalance}` : ""}
             </p>
           </div>

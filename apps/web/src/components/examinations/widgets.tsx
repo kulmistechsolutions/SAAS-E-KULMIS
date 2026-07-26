@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import Link from "next/link";
 import {
   ClipboardList,
@@ -12,24 +14,25 @@ import type { MonitoringRow } from "@/lib/examinations/types";
 import { SubmissionStatusBadge } from "./exam-status-badge";
 
 export function MonitoringTable({ rows }: { rows: MonitoringRow[] }) {
+  const t = useT();
   return (
     <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
       <div className="border-b px-5 py-4">
-        <h2 className="font-semibold">Exam Monitoring</h2>
+        <h2 className="font-semibold">{t("examinationsWidgets.examMonitoring")}</h2>
         <p className="text-sm text-muted-foreground">
-          Teacher submission status by exam, class, section, and subject.
+          {t("examinationsWidgets.teacherSubmissionStatusByExamClass")}
         </p>
       </div>
       <div className="overflow-x-auto">
         <table className="w-full min-w-[800px] text-sm">
           <thead className="sticky top-0 bg-secondary/90 text-left text-xs text-muted-foreground backdrop-blur">
             <tr>
-              <th className="px-4 py-2.5 font-medium">Exam</th>
-              <th className="px-4 py-2.5 font-medium">Class</th>
-              <th className="px-4 py-2.5 font-medium">Section</th>
-              <th className="px-4 py-2.5 font-medium">Subject</th>
-              <th className="px-4 py-2.5 font-medium">Teacher</th>
-              <th className="px-4 py-2.5 font-medium">Status</th>
+              <th className="px-4 py-2.5 font-medium">{t("examinationsWidgets.exam")}</th>
+              <th className="px-4 py-2.5 font-medium">{t("examinationsWidgets.class")}</th>
+              <th className="px-4 py-2.5 font-medium">{t("examinationsWidgets.section")}</th>
+              <th className="px-4 py-2.5 font-medium">{t("examinationsWidgets.subject")}</th>
+              <th className="px-4 py-2.5 font-medium">{t("examinationsWidgets.teacher")}</th>
+              <th className="px-4 py-2.5 font-medium">{t("examinationsWidgets.status")}</th>
             </tr>
           </thead>
           <tbody>
@@ -48,7 +51,7 @@ export function MonitoringTable({ rows }: { rows: MonitoringRow[] }) {
             {rows.length === 0 && (
               <tr>
                 <td colSpan={6} className="px-4 py-10 text-center text-muted-foreground">
-                  No teacher assessments to monitor.
+                  {t("examinationsWidgets.noTeacherAssessmentsToMonitor")}
                 </td>
               </tr>
             )}
@@ -67,9 +70,10 @@ const ACTIONS = [
 ];
 
 export function ExamQuickActions() {
+  const t = useT();
   return (
     <div className="rounded-2xl border bg-card p-5 shadow-sm">
-      <p className="text-sm font-semibold">Quick Actions</p>
+      <p className="text-sm font-semibold">{t("examinationsWidgets.quickActions")}</p>
       <div className="mt-4 grid grid-cols-2 gap-3">
         {ACTIONS.map((a) => (
           <Link
@@ -91,11 +95,12 @@ export function RecentExamsList({
 }: {
   exams: { id: string; name: string; className: string; section: string; status: string; term: string }[];
 }) {
+  const t = useT();
   return (
     <div className="rounded-2xl border bg-card shadow-sm">
       <div className="flex items-center gap-2 border-b px-5 py-4">
         <ClipboardList className="h-4 w-4 text-primary" />
-        <h2 className="font-semibold">Recent Examinations</h2>
+        <h2 className="font-semibold">{t("examinationsWidgets.recentExaminations")}</h2>
       </div>
       <div className="divide-y">
         {exams.map((e) => (

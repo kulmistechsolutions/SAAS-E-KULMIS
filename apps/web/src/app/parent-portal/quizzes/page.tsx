@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useMemo } from "react";
 import { usePortal } from "@/components/parent-portal/portal-context";
 import { childQuizRows } from "@/lib/parent-portal/store";
@@ -7,6 +9,7 @@ import { QuizStatusBadge } from "@/components/quiz/status-badge";
 import { Badge } from "@/components/ui/badge";
 
 export default function ParentQuizzesPage() {
+  const t = useT();
   const { selectedChild } = usePortal();
 
   const data = useMemo(
@@ -15,7 +18,7 @@ export default function ParentQuizzesPage() {
   );
 
   if (!selectedChild) {
-    return <p className="text-muted-foreground">Select a child to view quizzes.</p>;
+    return <p className="text-muted-foreground">{t("parentPortalQuizzes.selectAChildToViewQuizzes")}</p>;
   }
 
   const active = data?.assigned.filter((q) => q.status === "ACTIVE") ?? [];
@@ -25,16 +28,16 @@ export default function ParentQuizzesPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Online Quizzes</h1>
+        <h1 className="text-2xl font-bold">{t("parentPortalQuizzes.onlineQuizzes")}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          View-only · {selectedChild.fullName} · Parents cannot attempt quizzes
+          {t("parentPortalQuizzes.viewOnly")} {selectedChild.fullName} {t("parentPortalQuizzes.parentsCannotAttemptQuizzes")}
         </p>
       </div>
 
       <section className="space-y-3">
-        <h2 className="font-semibold">Active Quizzes ({active.length})</h2>
+        <h2 className="font-semibold">{t("parentPortalQuizzes.activeQuizzes")}{active.length})</h2>
         {active.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No active quizzes.</p>
+          <p className="text-sm text-muted-foreground">{t("parentPortalQuizzes.noActiveQuizzes")}</p>
         ) : (
           <div className="grid gap-3 md:grid-cols-2">
             {active.map((q) => (
@@ -53,9 +56,9 @@ export default function ParentQuizzesPage() {
       </section>
 
       <section className="space-y-3">
-        <h2 className="font-semibold">Assigned / Upcoming ({upcoming.length})</h2>
+        <h2 className="font-semibold">{t("parentPortalQuizzes.assignedUpcoming")}{upcoming.length})</h2>
         {upcoming.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No upcoming quizzes.</p>
+          <p className="text-sm text-muted-foreground">{t("parentPortalQuizzes.noUpcomingQuizzes")}</p>
         ) : (
           <div className="grid gap-3 md:grid-cols-2">
             {upcoming.map((q) => (
@@ -69,17 +72,17 @@ export default function ParentQuizzesPage() {
       </section>
 
       <section className="space-y-3">
-        <h2 className="font-semibold">Quiz History</h2>
+        <h2 className="font-semibold">{t("parentPortalQuizzes.quizHistory")}</h2>
         <div className="overflow-x-auto rounded-xl border bg-card">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b bg-secondary/50 text-left">
-                <th className="px-4 py-3">Quiz</th>
-                <th className="px-4 py-3">Subject</th>
-                <th className="px-4 py-3">Score</th>
+                <th className="px-4 py-3">{t("parentPortalQuizzes.quiz")}</th>
+                <th className="px-4 py-3">{t("parentPortalQuizzes.subject")}</th>
+                <th className="px-4 py-3">{t("parentPortalQuizzes.score")}</th>
                 <th className="px-4 py-3">%</th>
-                <th className="px-4 py-3">Grade</th>
-                <th className="px-4 py-3">Result</th>
+                <th className="px-4 py-3">{t("parentPortalQuizzes.grade")}</th>
+                <th className="px-4 py-3">{t("parentPortalQuizzes.result")}</th>
               </tr>
             </thead>
             <tbody>
@@ -100,7 +103,7 @@ export default function ParentQuizzesPage() {
               {completed.length === 0 && (
                 <tr>
                   <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
-                    No completed quizzes yet.
+                    {t("parentPortalQuizzes.noCompletedQuizzesYet")}
                   </td>
                 </tr>
               )}

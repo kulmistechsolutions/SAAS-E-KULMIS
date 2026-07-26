@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import Link from "next/link";
 import { ChevronRight, FileText } from "lucide-react";
 import { REPORT_CATEGORIES } from "@/lib/reports/catalog";
@@ -20,12 +22,13 @@ const EXTRA = [
 ];
 
 export default function ExpenseReportsPage() {
+  const t = useT();
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Expense Reports</h1>
+        <h1 className="text-2xl font-bold">{t("expensesReports.expenseReports")}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          View, print, and export expense analytics from the Reports Center.
+          {t("expensesReports.viewPrintAndExportExpenseAnalytics")}
         </p>
       </div>
 

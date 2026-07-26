@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useState } from "react";
 import { Coffee, Plus, Trash2 } from "lucide-react";
 import {
@@ -56,6 +58,7 @@ interface Props {
  * "period length" field cannot describe an actual school day.
  */
 export function ShiftEditor({ academicYearId, shift, onSave, onCancel }: Props) {
+  const t = useT();
   const [name, setName] = useState(shift?.name ?? "Morning");
   const [days, setDays] = useState<number[]>(shift?.days ?? [6, 0, 1, 2, 3]);
   const [periods, setPeriods] = useState<DraftPeriod[]>(toDraft(shift));
@@ -135,17 +138,17 @@ export function ShiftEditor({ academicYearId, shift, onSave, onCancel }: Props) 
     <div className="space-y-5">
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
-          <Label>Shift name</Label>
+          <Label>{t("timetableShiftEditor.shiftName")}</Label>
           <Input
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Morning"
+            placeholder={t("timetableShiftEditor.morning")}
           />
         </div>
       </div>
 
       <div>
-        <Label>Working days</Label>
+        <Label>{t("timetableShiftEditor.workingDays")}</Label>
         <div className="mt-2 flex flex-wrap gap-2">
           {WEEKDAY_NAMES.map((label, day) => (
             <button
@@ -168,13 +171,13 @@ export function ShiftEditor({ academicYearId, shift, onSave, onCancel }: Props) 
       <div>
         <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
           <Label className="mb-0">
-            Daily periods
+            {t("timetableShiftEditor.dailyPeriods")}
             <span className="ml-2 font-normal text-muted-foreground">
-              {teachingCount} teaching · {days.length} days ={" "}
+              {teachingCount} {t("timetableShiftEditor.teaching")} {days.length} {t("timetableShiftEditor.days")}{" "}
               <strong className="text-foreground">
                 {teachingCount * days.length}
               </strong>{" "}
-              slots a week
+              {t("timetableShiftEditor.slotsAWeek")}
             </span>
           </Label>
           <div className="flex gap-2">
@@ -185,7 +188,7 @@ export function ShiftEditor({ academicYearId, shift, onSave, onCancel }: Props) 
               onClick={() => addPeriod(false)}
             >
               <Plus className="mr-1 h-3.5 w-3.5" />
-              Period
+              {t("timetableShiftEditor.period")}
             </Button>
             <Button
               type="button"
@@ -194,7 +197,7 @@ export function ShiftEditor({ academicYearId, shift, onSave, onCancel }: Props) 
               onClick={() => addPeriod(true)}
             >
               <Coffee className="mr-1 h-3.5 w-3.5" />
-              Break
+              {t("timetableShiftEditor.break")}
             </Button>
           </div>
         </div>
@@ -232,7 +235,7 @@ export function ShiftEditor({ academicYearId, shift, onSave, onCancel }: Props) 
                   checked={p.isBreak}
                   onChange={(e) => patch(i, { isBreak: e.target.checked })}
                 />
-                Break
+                {t("timetableShiftEditor.break")}
               </label>
               <button
                 type="button"
@@ -255,7 +258,7 @@ export function ShiftEditor({ academicYearId, shift, onSave, onCancel }: Props) 
 
       <div className="flex justify-end gap-2">
         <Button type="button" variant="outline" onClick={onCancel}>
-          Cancel
+          {t("timetableShiftEditor.cancel")}
         </Button>
         <Button type="button" onClick={submit} disabled={saving}>
           {saving ? "Saving…" : "Save shift"}

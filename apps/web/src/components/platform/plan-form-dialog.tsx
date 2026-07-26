@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useEffect, useState } from "react";
 import { Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -30,6 +32,7 @@ function toStr(n: number | string | null | undefined): string {
 }
 
 export function PlanFormDialog({ open, onClose, plan, onSubmit }: Props) {
+  const t = useT();
   const [name, setName] = useState("");
   const [maxStudents, setMaxStudents] = useState("");
   const [maxTeachers, setMaxTeachers] = useState("");
@@ -88,11 +91,11 @@ export function PlanFormDialog({ open, onClose, plan, onSubmit }: Props) {
       open={open}
       onClose={onClose}
       title={plan ? "Edit Plan" : "New Subscription Plan"}
-      description="Leave student count or AI grading quota blank for unlimited."
+      description={t("platformPlanFormDialog.leaveStudentCountOrAiGrading")}
       footer={
         <>
           <Button type="button" variant="outline" onClick={onClose}>
-            Cancel
+            {t("platformPlanFormDialog.cancel")}
           </Button>
           <Button type="submit" form="plan-form" disabled={submitting}>
             {submitting ? "Saving…" : plan ? "Save Changes" : "Create Plan"}
@@ -110,36 +113,36 @@ export function PlanFormDialog({ open, onClose, plan, onSubmit }: Props) {
           </div>
         )}
         <div>
-          <Label>Plan Name</Label>
+          <Label>{t("platformPlanFormDialog.planName")}</Label>
           <Input
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Basic, Pro, Enterprise…"
+            placeholder={t("platformPlanFormDialog.basicProEnterprise")}
           />
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
-            <Label>Max Students</Label>
+            <Label>{t("platformPlanFormDialog.maxStudents")}</Label>
             <Input
               type="number"
               min={1}
               value={maxStudents}
               onChange={(e) => setMaxStudents(e.target.value)}
-              placeholder="Unlimited"
+              placeholder={t("platformPlanFormDialog.unlimited")}
             />
           </div>
           <div>
-            <Label>Max Teachers</Label>
+            <Label>{t("platformPlanFormDialog.maxTeachers")}</Label>
             <Input
               type="number"
               min={1}
               value={maxTeachers}
               onChange={(e) => setMaxTeachers(e.target.value)}
-              placeholder="Unlimited"
+              placeholder={t("platformPlanFormDialog.unlimited")}
             />
           </div>
           <div>
-            <Label>Duration (days)</Label>
+            <Label>{t("platformPlanFormDialog.durationDays")}</Label>
             <Input
               type="number"
               min={1}
@@ -148,34 +151,34 @@ export function PlanFormDialog({ open, onClose, plan, onSubmit }: Props) {
             />
           </div>
           <div>
-            <Label>AI Grading / month</Label>
+            <Label>{t("platformPlanFormDialog.aiGradingMonth")}</Label>
             <Input
               type="number"
               min={0}
               value={aiQuota}
               onChange={(e) => setAiQuota(e.target.value)}
-              placeholder="Unlimited"
+              placeholder={t("platformPlanFormDialog.unlimited")}
             />
           </div>
           <div>
-            <Label>Library storage (MB)</Label>
+            <Label>{t("platformPlanFormDialog.libraryStorageMb")}</Label>
             <Input
               type="number"
               min={0}
               value={libraryStorageMb}
               onChange={(e) => setLibraryStorageMb(e.target.value)}
-              placeholder="Unlimited"
+              placeholder={t("platformPlanFormDialog.unlimited")}
             />
           </div>
           <div>
-            <Label>Price (USD, optional)</Label>
+            <Label>{t("platformPlanFormDialog.priceUsdOptional")}</Label>
             <Input
               type="number"
               min={0}
               step="0.01"
               value={priceUsd}
               onChange={(e) => setPriceUsd(e.target.value)}
-              placeholder="Informational only"
+              placeholder={t("platformPlanFormDialog.informationalOnly")}
             />
           </div>
         </div>
@@ -187,9 +190,9 @@ export function PlanFormDialog({ open, onClose, plan, onSubmit }: Props) {
             onChange={(e) => setIsActive(e.target.checked)}
           />
           <span>
-            <span className="font-medium text-foreground">Plan is active</span>
+            <span className="font-medium text-foreground">{t("platformPlanFormDialog.planIsActive")}</span>
             <span className="mt-0.5 block text-xs text-muted-foreground">
-              Inactive plans cannot be assigned to schools.
+              {t("platformPlanFormDialog.inactivePlansCannotBeAssignedTo")}
             </span>
           </span>
         </label>

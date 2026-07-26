@@ -37,6 +37,7 @@ function friendlyLoginError(e: unknown, t: Translate): string {
 }
 
 export default function LoginPage() {
+  const tr = useT();
   const router = useRouter();
   const t = useT();
   const { login } = useAuth();
@@ -92,7 +93,7 @@ export default function LoginPage() {
               </label>
               <Input
                 {...register("identifier")}
-                placeholder="admin"
+                placeholder={tr("login.admin")}
                 autoComplete="username"
               />
               {errors.identifier && (

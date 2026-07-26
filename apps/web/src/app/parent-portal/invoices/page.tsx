@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { Download, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { usePortal } from "@/components/parent-portal/portal-context";
@@ -8,11 +10,12 @@ import { printFeeStatement } from "@/lib/parent-portal/print";
 import { money } from "@/lib/students/format";
 
 export default function ParentInvoicesPage() {
+  const t = useT();
   const { selectedChild } = usePortal();
   const fees = selectedChild ? childFeeSummary(selectedChild) : null;
 
   if (!selectedChild) {
-    return <p className="text-muted-foreground">Select a child to view invoices.</p>;
+    return <p className="text-muted-foreground">{t("parentPortalInvoices.selectAChildToViewInvoices")}</p>;
   }
 
   function printStatement() {
@@ -38,7 +41,7 @@ export default function ParentInvoicesPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Invoices & Statements</h1>
+        <h1 className="text-2xl font-bold">{t("parentPortalInvoices.invoicesStatements")}</h1>
         <p className="mt-1 text-sm text-muted-foreground">{selectedChild.fullName}</p>
       </div>
 
@@ -50,11 +53,11 @@ export default function ParentInvoicesPage() {
             <div className="mt-4 flex gap-2">
               <Button onClick={() => printStatement()}>
                 <Printer className="mr-2 h-4 w-4" />
-                Print
+                {t("parentPortalInvoices.print")}
               </Button>
               <Button onClick={() => printStatement()}>
                 <Download className="mr-2 h-4 w-4" />
-                PDF
+                {t("parentPortalInvoices.pdf")}
               </Button>
             </div>
           </div>

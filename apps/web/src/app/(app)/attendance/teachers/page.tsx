@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
@@ -49,6 +51,7 @@ const TABS = [
 ];
 
 export default function TeacherAttendancePage() {
+  const t = useT();
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
@@ -167,19 +170,19 @@ export default function TeacherAttendancePage() {
   };
 
   if (!mounted) {
-    return <div className="flex h-64 items-center justify-center text-muted-foreground">Loading…</div>;
+    return <div className="flex h-64 items-center justify-center text-muted-foreground">{t("attendanceTeachers.loading")}</div>;
   }
 
   return (
     <div className="space-y-6">
       <Link href="/attendance" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
-        <ArrowLeft className="h-4 w-4" /> Back to Attendance
+        <ArrowLeft className="h-4 w-4" /> {t("attendanceTeachers.backToAttendance")}
       </Link>
 
       <div>
-        <h1 className="text-2xl font-bold">Teacher Attendance</h1>
+        <h1 className="text-2xl font-bold">{t("attendanceTeachers.teacherAttendance")}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Record attendance by shift. Each teacher is marked once per day.
+          {t("attendanceTeachers.recordAttendanceByShiftEachTeacher")}
         </p>
       </div>
 
@@ -191,27 +194,27 @@ export default function TeacherAttendancePage() {
             <div className="space-y-5">
               <div className="grid gap-3 rounded-xl border bg-secondary/20 p-4 sm:grid-cols-2 lg:grid-cols-4">
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-muted-foreground">Academic Year</label>
+                  <label className="mb-1 block text-xs font-medium text-muted-foreground">{t("attendanceTeachers.academicYear")}</label>
                   <Select value={year} onChange={(e) => { setYear(e.target.value); setLoaded(false); }}>
                     {academics.academicYears.map((y) => <option key={y.id} value={y.name}>{y.name}</option>)}
                   </Select>
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-muted-foreground">Date</label>
+                  <label className="mb-1 block text-xs font-medium text-muted-foreground">{t("attendanceTeachers.date")}</label>
                   <input type="date" value={date} onChange={(e) => { setDate(e.target.value); setLoaded(false); }}
                     className="h-10 w-full rounded-lg border bg-background px-3 text-sm outline-none focus:border-primary" />
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-muted-foreground">Shift *</label>
+                  <label className="mb-1 block text-xs font-medium text-muted-foreground">{t("attendanceTeachers.shift")}</label>
                   <Select value={shift} onChange={(e) => { setShift(e.target.value as "MORNING" | "AFTERNOON"); setLoaded(false); }}>
-                    <option value="MORNING">Morning</option>
-                    <option value="AFTERNOON">Afternoon</option>
+                    <option value="MORNING">{t("attendanceTeachers.morning")}</option>
+                    <option value="AFTERNOON">{t("attendanceTeachers.afternoon")}</option>
                   </Select>
                 </div>
                 <div className="flex items-end">
                   <Button onClick={() => void loadList()} disabled={loading} className="w-full">
                     {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                    Load Teachers
+                    {t("attendanceTeachers.loadTeachers")}
                   </Button>
                 </div>
               </div>
@@ -220,16 +223,16 @@ export default function TeacherAttendancePage() {
                 <>
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <p className="text-sm text-muted-foreground">
-                      {formatDisplayDate(date)} · {shiftLabel(shift)} · {eligibleRows.length} teachers
+                      {formatDisplayDate(date)} · {shiftLabel(shift)} · {eligibleRows.length} {t("attendanceTeachers.teachers")}
                     </p>
                     <div className="flex flex-wrap gap-2">
                       <Button variant="outline" onClick={() => markAll("PRESENT")}>
-                        <CheckCheck className="mr-2 h-4 w-4" /> Mark All Present
+                        <CheckCheck className="mr-2 h-4 w-4" /> {t("attendanceTeachers.markAllPresent")}
                       </Button>
-                      <Button variant="outline" onClick={() => markAll("ABSENT")}>Mark All Absent</Button>
+                      <Button variant="outline" onClick={() => markAll("ABSENT")}>{t("attendanceTeachers.markAllAbsent")}</Button>
                       <Button onClick={() => void handleSave()} disabled={saving}>
                         {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                        Save Attendance
+                        {t("attendanceTeachers.saveAttendance")}
                       </Button>
                     </div>
                   </div>
@@ -240,10 +243,10 @@ export default function TeacherAttendancePage() {
                         <thead className="sticky top-0 z-10 bg-secondary/95 backdrop-blur text-left text-xs uppercase text-muted-foreground">
                           <tr>
                             <th className="px-4 py-3 font-medium">#</th>
-                            <th className="px-4 py-3 font-medium">Teacher ID</th>
-                            <th className="px-4 py-3 font-medium">Name</th>
-                            <th className="px-4 py-3 font-medium">Shift</th>
-                            <th className="px-4 py-3 font-medium">Status</th>
+                            <th className="px-4 py-3 font-medium">{t("attendanceTeachers.teacherId")}</th>
+                            <th className="px-4 py-3 font-medium">{t("attendanceTeachers.name")}</th>
+                            <th className="px-4 py-3 font-medium">{t("attendanceTeachers.shift")}</th>
+                            <th className="px-4 py-3 font-medium">{t("attendanceTeachers.status")}</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -253,7 +256,7 @@ export default function TeacherAttendancePage() {
                               <td className="px-4 py-3 font-mono text-xs">{r.code}</td>
                               <td className="px-4 py-3 font-medium">
                                 {r.fullName}
-                                {!r.eligible && <span className="ml-2 text-xs text-rose-500">(Inactive)</span>}
+                                {!r.eligible && <span className="ml-2 text-xs text-rose-500">{t("attendanceTeachers.inactive")}</span>}
                               </td>
                               <td className="px-4 py-3">{shiftLabel(r.shift)}</td>
                               <td className="px-4 py-3">
@@ -291,10 +294,10 @@ export default function TeacherAttendancePage() {
 
           {tab === "dashboard" && (
             <div className="space-y-4">
-              <p className="text-sm text-muted-foreground">Today — {formatDisplayDate(todayISO())}</p>
+              <p className="text-sm text-muted-foreground">{t("attendanceTeachers.today")} {formatDisplayDate(todayISO())}</p>
               {dashboardLoading ? (
                 <div className="flex h-32 items-center justify-center text-muted-foreground">
-                  <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Loading dashboard…
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" /> {t("attendanceTeachers.loadingDashboard")}
                 </div>
               ) : (
                 <TeacherAttendanceSummaryCards summary={dashboard} />
@@ -307,22 +310,22 @@ export default function TeacherAttendancePage() {
               <div className="flex flex-wrap gap-2">
                 <div className="relative min-w-[200px] flex-1">
                   <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <input value={rSearch} onChange={(e) => setRSearch(e.target.value)} placeholder="Search teacher…"
+                  <input value={rSearch} onChange={(e) => setRSearch(e.target.value)} placeholder={t("attendanceTeachers.searchTeacher")}
                     className="h-10 w-full rounded-lg border bg-background pl-9 pr-3 text-sm outline-none" />
                 </div>
                 <input type="date" value={rDate} onChange={(e) => setRDate(e.target.value)}
                   className="h-10 rounded-lg border bg-background px-3 text-sm" />
                 <Select value={rShift} onChange={(e) => setRShift(e.target.value)} className="w-36">
-                  <option value="">All Shifts</option>
-                  <option value="MORNING">Morning</option>
-                  <option value="AFTERNOON">Afternoon</option>
+                  <option value="">{t("attendanceTeachers.allShifts")}</option>
+                  <option value="MORNING">{t("attendanceTeachers.morning")}</option>
+                  <option value="AFTERNOON">{t("attendanceTeachers.afternoon")}</option>
                 </Select>
                 <Select value={rStatus} onChange={(e) => setRStatus(e.target.value)} className="w-32">
-                  <option value="">All Status</option>
-                  <option value="PRESENT">Present</option>
-                  <option value="ABSENT">Absent</option>
-                  <option value="LATE">Late</option>
-                  <option value="LEAVE">Leave</option>
+                  <option value="">{t("attendanceTeachers.allStatus")}</option>
+                  <option value="PRESENT">{t("attendanceTeachers.present")}</option>
+                  <option value="ABSENT">{t("attendanceTeachers.absent")}</option>
+                  <option value="LATE">{t("attendanceTeachers.late")}</option>
+                  <option value="LEAVE">{t("attendanceTeachers.leave")}</option>
                 </Select>
                 <Button variant="outline" onClick={() => {
                   exportTeacherAttendanceCsv(reportRows.map((r) => ({
@@ -330,7 +333,7 @@ export default function TeacherAttendancePage() {
                     shift: r.shift, date: r.date, status: r.status,
                   })));
                   toast("Report exported.", "info");
-                }}><FileDown className="mr-2 h-4 w-4" /> CSV</Button>
+                }}><FileDown className="mr-2 h-4 w-4" /> {t("attendanceTeachers.csv")}</Button>
                 <Button variant="outline" onClick={() => {
                   if (!reportRows.length) return toast("No records.", "error");
                   const first = reportRows[0];
@@ -343,26 +346,26 @@ export default function TeacherAttendancePage() {
                     })),
                     summary: previewSummary,
                   });
-                }}><Printer className="mr-2 h-4 w-4" /> Print</Button>
+                }}><Printer className="mr-2 h-4 w-4" /> {t("attendanceTeachers.print")}</Button>
               </div>
 
               <div className="overflow-hidden rounded-xl border">
                 <table className="w-full text-sm">
                   <thead className="bg-secondary text-left text-xs text-muted-foreground">
                     <tr>
-                      <th className="px-4 py-2.5 font-medium">Date</th>
-                      <th className="px-4 py-2.5 font-medium">Teacher</th>
-                      <th className="px-4 py-2.5 font-medium">Shift</th>
-                      <th className="px-4 py-2.5 font-medium">Status</th>
+                      <th className="px-4 py-2.5 font-medium">{t("attendanceTeachers.date")}</th>
+                      <th className="px-4 py-2.5 font-medium">{t("attendanceTeachers.teacher")}</th>
+                      <th className="px-4 py-2.5 font-medium">{t("attendanceTeachers.shift")}</th>
+                      <th className="px-4 py-2.5 font-medium">{t("attendanceTeachers.status")}</th>
                     </tr>
                   </thead>
                   <tbody>
                     {reportLoading ? (
                       <tr><td colSpan={4} className="px-4 py-12 text-center text-muted-foreground">
-                        <Loader2 className="mr-2 inline h-4 w-4 animate-spin" /> Loading records…
+                        <Loader2 className="mr-2 inline h-4 w-4 animate-spin" /> {t("attendanceTeachers.loadingRecords")}
                       </td></tr>
                     ) : reportRows.length === 0 ? (
-                      <tr><td colSpan={4} className="px-4 py-12 text-center text-muted-foreground">No records for this date.</td></tr>
+                      <tr><td colSpan={4} className="px-4 py-12 text-center text-muted-foreground">{t("attendanceTeachers.noRecordsForThisDate")}</td></tr>
                     ) : (
                       reportRows.slice(0, 100).map((r) => (
                         <tr key={r.id} className="border-t">

@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { use, useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, RefreshCw } from "lucide-react";
@@ -67,6 +69,7 @@ export default function QuizLiveMonitoringPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const t = useT();
   const { id } = use(params);
   const { user } = useAuth();
   const quizBase = user?.role === "TEACHER" ? "/teacher-portal/quizzes" : "/quiz";
@@ -113,8 +116,8 @@ export default function QuizLiveMonitoringPage({
     }
   }
 
-  if (loading) return <p className="text-muted-foreground">Loading live monitoring…</p>;
-  if (!data) return <p className="text-muted-foreground">Quiz not found.</p>;
+  if (loading) return <p className="text-muted-foreground">{t("quizLive.loadingLiveMonitoring")}</p>;
+  if (!data) return <p className="text-muted-foreground">{t("quizLive.quizNotFound")}</p>;
 
   const { quiz, summary, students } = data;
 
@@ -127,27 +130,27 @@ export default function QuizLiveMonitoringPage({
             className="inline-flex items-center gap-2 text-sm text-primary"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back to Quiz
+            {t("quizLive.backToQuiz")}
           </Link>
-          <h1 className="mt-2 text-2xl font-bold">Live Monitoring — {quiz.title}</h1>
+          <h1 className="mt-2 text-2xl font-bold">{t("quizLive.liveMonitoring")} {quiz.title}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             {quiz.className}
-            {quiz.section ? ` — ${quiz.section}` : ""} · Auto-refreshes every 8s
+            {quiz.section ? ` — ${quiz.section}` : ""} {t("quizLive.autoRefreshesEvery8s")}
           </p>
         </div>
         <Button variant="outline" className="h-9" onClick={() => void load()}>
           <RefreshCw className="mr-2 h-4 w-4" />
-          Refresh
+          {t("quizLive.refresh")}
         </Button>
       </div>
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-6">
-        <Stat label="Total Students" value={summary.total} />
-        <Stat label="Link Not Opened" value={summary.linkNotOpened ?? summary.notStarted} />
-        <Stat label="Link Opened" value={summary.linkOpened ?? 0} />
-        <Stat label="Logged In" value={summary.loggedIn ?? 0} />
-        <Stat label="In Progress" value={summary.inProgress} />
-        <Stat label="Completed" value={summary.completed} />
+        <Stat label={t("quizLive.totalStudents")} value={summary.total} />
+        <Stat label={t("quizLive.linkNotOpened")} value={summary.linkNotOpened ?? summary.notStarted} />
+        <Stat label={t("quizLive.linkOpened")} value={summary.linkOpened ?? 0} />
+        <Stat label={t("quizLive.loggedIn")} value={summary.loggedIn ?? 0} />
+        <Stat label={t("quizLive.inProgress")} value={summary.inProgress} />
+        <Stat label={t("quizLive.completed")} value={summary.completed} />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
@@ -155,13 +158,13 @@ export default function QuizLiveMonitoringPage({
           <table className="w-full text-sm">
             <thead className="bg-secondary text-left text-xs text-muted-foreground">
               <tr>
-                <th className="px-4 py-2.5">No</th>
-                <th className="px-4 py-2.5">Student</th>
-                <th className="px-4 py-2.5">Status</th>
-                <th className="px-4 py-2.5">Login</th>
-                <th className="px-4 py-2.5">Started</th>
-                <th className="px-4 py-2.5">Submitted</th>
-                <th className="px-4 py-2.5">Score</th>
+                <th className="px-4 py-2.5">{t("quizLive.no")}</th>
+                <th className="px-4 py-2.5">{t("quizLive.student")}</th>
+                <th className="px-4 py-2.5">{t("quizLive.status")}</th>
+                <th className="px-4 py-2.5">{t("quizLive.login")}</th>
+                <th className="px-4 py-2.5">{t("quizLive.started")}</th>
+                <th className="px-4 py-2.5">{t("quizLive.submitted")}</th>
+                <th className="px-4 py-2.5">{t("quizLive.score")}</th>
               </tr>
             </thead>
             <tbody>
@@ -203,7 +206,7 @@ export default function QuizLiveMonitoringPage({
               {students.length === 0 && (
                 <tr>
                   <td colSpan={7} className="px-4 py-6 text-center text-muted-foreground">
-                    No students assigned to this quiz&apos;s class/section.
+                    {t("quizLive.noStudentsAssignedToThisQuiz")}
                   </td>
                 </tr>
               )}
@@ -214,7 +217,7 @@ export default function QuizLiveMonitoringPage({
         <div className="rounded-xl border bg-card p-5 shadow-sm">
           {!selected ? (
             <p className="text-sm text-muted-foreground">
-              Select a student to view their activity timeline and result sheet.
+              {t("quizLive.selectAStudentToViewTheir")}
             </p>
           ) : (
             <div className="space-y-5">
@@ -225,11 +228,11 @@ export default function QuizLiveMonitoringPage({
 
               <div>
                 <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  Activity Timeline
+                  {t("quizLive.activityTimeline")}
                 </h3>
                 <ol className="mt-3 space-y-0">
                   {(selected.timeline ?? []).length === 0 && (
-                    <li className="text-sm text-muted-foreground">No activity yet.</li>
+                    <li className="text-sm text-muted-foreground">{t("quizLive.noActivityYet")}</li>
                   )}
                   {(selected.timeline ?? []).map((e, i, arr) => (
                     <li key={`${e.event}-${e.at}`} className="relative flex gap-3 pb-4">
@@ -253,17 +256,17 @@ export default function QuizLiveMonitoringPage({
               {review && (
                 <div className="space-y-3 border-t pt-4">
                   <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    Result Sheet
+                    {t("quizLive.resultSheet")}
                   </h3>
                   <dl className="grid grid-cols-2 gap-2 text-sm">
                     <div>
-                      <dt className="text-xs text-muted-foreground">Score</dt>
+                      <dt className="text-xs text-muted-foreground">{t("quizLive.score")}</dt>
                       <dd className="font-semibold">
                         {review.marksObtained}/{review.totalMarks} ({review.percentage}%)
                       </dd>
                     </div>
                     <div>
-                      <dt className="text-xs text-muted-foreground">Grade / Result</dt>
+                      <dt className="text-xs text-muted-foreground">{t("quizLive.gradeResult")}</dt>
                       <dd className="font-semibold">
                         {review.grade} · {review.result ?? "—"}
                       </dd>
@@ -274,7 +277,7 @@ export default function QuizLiveMonitoringPage({
                     className="h-9 w-full"
                     onClick={() => printAttemptReviewPdf(review)}
                   >
-                    Print / PDF Result
+                    {t("quizLive.printPdfResult")}
                   </Button>
                   <div className="max-h-72 space-y-2 overflow-y-auto">
                     {review.questions.map((q) => (
@@ -284,7 +287,7 @@ export default function QuizLiveMonitoringPage({
                         </p>
                         <p className="mt-1 text-muted-foreground line-clamp-2">{q.question}</p>
                         <p className="mt-1">
-                          Student: {q.studentAnswer || "—"} · Correct: {q.correctAnswer || "—"}
+                          {t("quizLive.student")} {q.studentAnswer || "—"} {t("quizLive.correct")} {q.correctAnswer || "—"}
                         </p>
                       </div>
                     ))}

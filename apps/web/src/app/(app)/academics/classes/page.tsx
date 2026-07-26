@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
@@ -38,6 +40,7 @@ type SortDir = "asc" | "desc";
 const PAGE_SIZE = 10;
 
 export default function ClassesPage() {
+  const t = useT();
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
   const state = useAcademicsState();
@@ -104,7 +107,7 @@ export default function ClassesPage() {
   if (!mounted) {
     return (
       <div className="flex h-64 items-center justify-center text-muted-foreground">
-        Loading classes…
+        {t("academicsClasses.loadingClasses")}
       </div>
     );
   }
@@ -113,10 +116,9 @@ export default function ClassesPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold">Classes / Grades</h1>
+          <h1 className="text-2xl font-bold">{t("academicsClasses.classesGrades")}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Each academic year has up to 12 grades. Rename grades to match your
-            school&apos;s naming — sections are managed separately.
+            {t("academicsClasses.eachAcademicYearHasUpTo")}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -149,7 +151,7 @@ export default function ClassesPage() {
               })
             }
           >
-            <Printer className="mr-2 h-4 w-4" /> Print
+            <Printer className="mr-2 h-4 w-4" /> {t("academicsClasses.print")}
           </Button>
           <Button
             variant="outline"
@@ -158,7 +160,7 @@ export default function ClassesPage() {
               toast(`Exported ${rows.length} classes.`, "info");
             }}
           >
-            <FileDown className="mr-2 h-4 w-4" /> Export
+            <FileDown className="mr-2 h-4 w-4" /> {t("academicsClasses.export")}
           </Button>
           {canAddClass ? (
             <Button
@@ -167,7 +169,7 @@ export default function ClassesPage() {
                 setFormOpen(true);
               }}
             >
-              <Plus className="mr-2 h-4 w-4" /> Add Class
+              <Plus className="mr-2 h-4 w-4" /> {t("academicsClasses.addClass")}
             </Button>
           ) : null}
         </div>
@@ -180,7 +182,7 @@ export default function ClassesPage() {
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search classes…"
+              placeholder={t("academicsClasses.searchClasses")}
               className="h-10 w-full rounded-lg border bg-background pl-9 pr-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
             />
           </div>
@@ -190,7 +192,7 @@ export default function ClassesPage() {
               onChange={(e) => setYear(e.target.value)}
               className="lg:w-40"
             >
-              <option value="">All Years</option>
+              <option value="">{t("academicsClasses.allYears")}</option>
               {years.map((y) => (
                 <option key={y.id} value={y.name}>
                   {y.name}
@@ -202,9 +204,9 @@ export default function ClassesPage() {
               onChange={(e) => setStatus(e.target.value)}
               className="lg:w-32"
             >
-              <option value="">All Status</option>
-              <option value="ACTIVE">Active</option>
-              <option value="INACTIVE">Inactive</option>
+              <option value="">{t("academicsClasses.allStatus")}</option>
+              <option value="ACTIVE">{t("academicsClasses.active")}</option>
+              <option value="INACTIVE">{t("academicsClasses.inactive")}</option>
             </Select>
             {hasFilters && (
               <Button
@@ -215,7 +217,7 @@ export default function ClassesPage() {
                   setStatus("");
                 }}
               >
-                <X className="mr-1 h-4 w-4" /> Clear
+                <X className="mr-1 h-4 w-4" /> {t("academicsClasses.clear")}
               </Button>
             )}
           </div>
@@ -229,28 +231,28 @@ export default function ClassesPage() {
               <tr>
                 <th className="px-4 py-3 font-medium">#</th>
                 <SortTh
-                  label="Class Name"
+                  label={t("academicsClasses.className")}
                   active={sortKey === "name"}
                   dir={sortDir}
                   onClick={() => toggleSort("name")}
                 />
-                <th className="px-4 py-3 font-medium">Academic Year</th>
-                <th className="px-4 py-3 font-medium">Sections</th>
+                <th className="px-4 py-3 font-medium">{t("academicsClasses.academicYear")}</th>
+                <th className="px-4 py-3 font-medium">{t("academicsClasses.sections")}</th>
                 <SortTh
-                  label="Students"
+                  label={t("academicsClasses.students")}
                   active={sortKey === "studentCount"}
                   dir={sortDir}
                   onClick={() => toggleSort("studentCount")}
                 />
                 <SortTh
-                  label="Subjects"
+                  label={t("academicsClasses.subjects")}
                   active={sortKey === "subjectCount"}
                   dir={sortDir}
                   onClick={() => toggleSort("subjectCount")}
                 />
-                <th className="px-4 py-3 font-medium">Teachers</th>
-                <th className="px-4 py-3 font-medium">Status</th>
-                <th className="px-4 py-3 text-right font-medium">Actions</th>
+                <th className="px-4 py-3 font-medium">{t("academicsClasses.teachers")}</th>
+                <th className="px-4 py-3 font-medium">{t("academicsClasses.status")}</th>
+                <th className="px-4 py-3 text-right font-medium">{t("academicsClasses.actions")}</th>
               </tr>
             </thead>
             <tbody>
@@ -260,7 +262,7 @@ export default function ClassesPage() {
                     colSpan={9}
                     className="px-4 py-16 text-center text-muted-foreground"
                   >
-                    No classes match your filters.
+                    {t("academicsClasses.noClassesMatchYourFilters")}
                   </td>
                 </tr>
               ) : (
@@ -287,7 +289,7 @@ export default function ClassesPage() {
                         </span>
                       ) : (
                         <span className="text-xs text-muted-foreground">
-                          No sections
+                          {t("academicsClasses.noSections")}
                         </span>
                       )}
                     </td>
@@ -301,11 +303,11 @@ export default function ClassesPage() {
                       <div className="flex justify-end gap-1">
                         <Action
                           href={`/academics/classes/${r.id}`}
-                          title="View Profile"
+                          title={t("academicsClasses.viewProfile")}
                           icon={Eye}
                         />
                         <Action
-                          title="Rename"
+                          title={t("academicsClasses.rename")}
                           icon={Pencil}
                           onClick={() => {
                             const cls =
@@ -317,7 +319,7 @@ export default function ClassesPage() {
                           }}
                         />
                         <Action
-                          title="Delete"
+                          title={t("academicsClasses.delete")}
                           icon={Trash2}
                           danger
                           onClick={() => setDeleting(r)}
@@ -348,7 +350,7 @@ export default function ClassesPage() {
       />
       <ConfirmDialog
         open={!!deleting}
-        title="Delete Class"
+        title={t("academicsClasses.deleteClass")}
         message={
           deleting
             ? `Delete ${deleting.name}? Classes with enrolled students cannot be deleted.`

@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import {
   createContext,
   useCallback,
@@ -33,6 +35,7 @@ interface PortalContextValue {
 const PortalContext = createContext<PortalContextValue | null>(null);
 
 export function PortalProvider({ children: node }: { children: ReactNode }) {
+  const t = useT();
   const router = useRouter();
   const portal = usePortalState();
   const [mounted, setMounted] = useState(false);
@@ -76,7 +79,7 @@ export function PortalProvider({ children: node }: { children: ReactNode }) {
   if (!mounted || !portal.session || !parent) {
     return (
       <div className="flex min-h-screen items-center justify-center text-muted-foreground">
-        Loading portal…
+        {t("parentPortalPortalContext.loadingPortal")}
       </div>
     );
   }

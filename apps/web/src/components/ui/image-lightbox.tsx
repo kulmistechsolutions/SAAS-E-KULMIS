@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Minus, Plus, RotateCcw, X } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -12,6 +14,7 @@ interface ImageLightboxProps {
 }
 
 export function ImageLightbox({ open, src, alt, onClose }: ImageLightboxProps) {
+  const t = useT();
   const [scale, setScale] = useState(1);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const dragging = useRef(false);
@@ -80,7 +83,7 @@ export function ImageLightbox({ open, src, alt, onClose }: ImageLightboxProps) {
             type="button"
             onClick={() => zoomBy(-0.2)}
             className="rounded-lg p-2 hover:bg-white/10"
-            aria-label="Zoom out"
+            aria-label={t("uiImageLightbox.zoomOut")}
           >
             <Minus className="h-4 w-4" />
           </button>
@@ -91,7 +94,7 @@ export function ImageLightbox({ open, src, alt, onClose }: ImageLightboxProps) {
             type="button"
             onClick={() => zoomBy(0.2)}
             className="rounded-lg p-2 hover:bg-white/10"
-            aria-label="Zoom in"
+            aria-label={t("uiImageLightbox.zoomIn")}
           >
             <Plus className="h-4 w-4" />
           </button>
@@ -99,7 +102,7 @@ export function ImageLightbox({ open, src, alt, onClose }: ImageLightboxProps) {
             type="button"
             onClick={reset}
             className="rounded-lg p-2 hover:bg-white/10"
-            aria-label="Reset zoom"
+            aria-label={t("uiImageLightbox.resetZoom")}
           >
             <RotateCcw className="h-4 w-4" />
           </button>
@@ -107,7 +110,7 @@ export function ImageLightbox({ open, src, alt, onClose }: ImageLightboxProps) {
             type="button"
             onClick={onClose}
             className="rounded-lg p-2 hover:bg-white/10"
-            aria-label="Close preview"
+            aria-label={t("uiImageLightbox.closePreview")}
           >
             <X className="h-5 w-5" />
           </button>
@@ -118,7 +121,7 @@ export function ImageLightbox({ open, src, alt, onClose }: ImageLightboxProps) {
         type="button"
         className="absolute inset-0 -z-10"
         onClick={onClose}
-        aria-label="Close preview backdrop"
+        aria-label={t("uiImageLightbox.closePreviewBackdrop")}
       />
 
       <div

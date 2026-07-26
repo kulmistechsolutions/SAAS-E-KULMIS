@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
@@ -97,6 +99,7 @@ function parseBulkNumbers(raw: string): { phone: string; name?: string }[] {
 }
 
 export default function SchoolSmsPage() {
+  const tr = useT();
   const academics = useAcademicsState();
   const year = activeAcademicYear();
   const classes = useMemo(
@@ -397,11 +400,10 @@ export default function SchoolSmsPage() {
         <div>
           <h1 className="flex items-center gap-2 text-2xl font-bold">
             <MessageSquare className="h-6 w-6 text-primary" />
-            SMS
+            {tr("sms.sms")}
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Send announcements, fee reminders, and notifications via Hormuud
-            SMS.
+            {tr("sms.sendAnnouncementsFeeRemindersAndNotifications")}
           </p>
         </div>
         <div className="flex gap-2">
@@ -409,10 +411,10 @@ export default function SchoolSmsPage() {
             href="/sms/packages"
             className="inline-flex h-9 items-center justify-center gap-2 rounded-md border bg-background px-3 text-sm font-medium hover:bg-accent"
           >
-            Buy credits
+            {tr("sms.buyCredits")}
           </Link>
           <Button variant="outline" onClick={() => void load()}>
-            <RefreshCw className="mr-2 h-4 w-4" /> Refresh
+            <RefreshCw className="mr-2 h-4 w-4" /> {tr("sms.refresh")}
           </Button>
         </div>
       </div>
@@ -425,10 +427,10 @@ export default function SchoolSmsPage() {
           {balance?.gateway?.active ? (
             <>
               <p className="mt-1 text-lg font-semibold text-emerald-600">
-                Own account
+                {tr("sms.ownAccount")}
               </p>
               <p className="mt-1 text-xs text-muted-foreground">
-                Platform credits are not used.
+                {tr("sms.platformCreditsAreNotUsed")}
               </p>
             </>
           ) : (
@@ -438,7 +440,7 @@ export default function SchoolSmsPage() {
           )}
         </div>
         <div className="rounded-2xl border bg-card p-4 shadow-sm">
-          <p className="text-xs text-muted-foreground">Hormuud SMS</p>
+          <p className="text-xs text-muted-foreground">{tr("sms.hormuudSms")}</p>
           <p
             className={`mt-1 text-lg font-semibold ${
               balance?.provider?.connected
@@ -457,13 +459,13 @@ export default function SchoolSmsPage() {
           </p>
         </div>
         <div className="rounded-2xl border bg-card p-4 shadow-sm">
-          <p className="text-xs text-muted-foreground">Sender name</p>
+          <p className="text-xs text-muted-foreground">{tr("sms.senderName")}</p>
           <p className="mt-1 truncate text-lg font-semibold">
             {balance?.school.sendingName || balance?.school.name || "—"}
           </p>
         </div>
         <div className="rounded-2xl border bg-card p-4 shadow-sm">
-          <p className="text-xs text-muted-foreground">School SMS</p>
+          <p className="text-xs text-muted-foreground">{tr("sms.schoolSms")}</p>
           <p className="mt-1 text-lg font-semibold">
             {balance?.school.smsEnabled ? "Enabled" : "Disabled"}
           </p>
@@ -472,18 +474,17 @@ export default function SchoolSmsPage() {
 
       {!loading && balance && !balance.provider.canSend && (
         <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-          <p className="font-semibold">SMS sending is not available yet</p>
+          <p className="font-semibold">{tr("sms.smsSendingIsNotAvailableYet")}</p>
           <p className="mt-1">{balance.provider.message}</p>
           {!balance.provider.connected && (
             <p className="mt-1 text-xs">
-              The platform administrator must connect Hormuud SMS under Platform
-              → SMS Settings. Then purchase an SMS package for your school.
+              {tr("sms.thePlatformAdministratorMustConnectHormuud")}
             </p>
           )}
           {balance.provider.connected && balance.creditsRemaining === 0 && (
             <p className="mt-2">
               <Link href="/sms/packages" className="font-medium underline">
-                Buy SMS credits
+                {tr("sms.buySmsCredits")}
               </Link>
             </p>
           )}
@@ -517,10 +518,10 @@ export default function SchoolSmsPage() {
                 <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
                   1
                 </span>
-                <h2 className="font-semibold">Choose audience</h2>
+                <h2 className="font-semibold">{tr("sms.chooseAudience")}</h2>
               </div>
               <div>
-                <Label>Send to</Label>
+                <Label>{tr("sms.sendTo")}</Label>
                 <Select
                   className="mt-1.5"
                   value={audience}
@@ -541,7 +542,7 @@ export default function SchoolSmsPage() {
                 audience === "OUTSTANDING") && (
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <Label>Class</Label>
+                    <Label>{tr("sms.class")}</Label>
                     <Select
                       className="mt-1.5"
                       value={className}
@@ -550,7 +551,7 @@ export default function SchoolSmsPage() {
                         setSection("");
                       }}
                     >
-                      <option value="">All…</option>
+                      <option value="">{tr("sms.all")}</option>
                       {classes.map((c) => (
                         <option key={c} value={c}>
                           {c}
@@ -560,13 +561,13 @@ export default function SchoolSmsPage() {
                   </div>
                   {(audience === "SECTION" || audience === "OUTSTANDING") && (
                     <div>
-                      <Label>Section</Label>
+                      <Label>{tr("sms.section")}</Label>
                       <Select
                         className="mt-1.5"
                         value={section}
                         onChange={(e) => setSection(e.target.value)}
                       >
-                        <option value="">All</option>
+                        <option value="">{tr("sms.all")}</option>
                         {sections.map((s) => (
                           <option key={s} value={s}>
                             {s}
@@ -589,7 +590,7 @@ export default function SchoolSmsPage() {
                         : `${selected.size} recipient${selected.size === 1 ? "" : "s"} selected`}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {recipients.length} matched
+                      {recipients.length} {tr("sms.matched")}
                       {excludedCount > 0 ? ` · ${excludedCount} excluded` : ""}
                     </p>
                   </div>
@@ -600,7 +601,7 @@ export default function SchoolSmsPage() {
                   onClick={() => setPickerOpen(true)}
                   disabled={recipients.length === 0 && !previewLoading}
                 >
-                  View & choose
+                  {tr("sms.viewChoose")}
                 </Button>
               </div>
             </div>
@@ -611,11 +612,11 @@ export default function SchoolSmsPage() {
                 <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
                   2
                 </span>
-                <h2 className="font-semibold">Write your message</h2>
+                <h2 className="font-semibold">{tr("sms.writeYourMessage")}</h2>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <Label>Category</Label>
+                  <Label>{tr("sms.category")}</Label>
                   <Select
                     className="mt-1.5"
                     value={category}
@@ -629,13 +630,13 @@ export default function SchoolSmsPage() {
                   </Select>
                 </div>
                 <div>
-                  <Label>Template</Label>
+                  <Label>{tr("sms.template")}</Label>
                   <Select
                     className="mt-1.5"
                     value={templateId}
                     onChange={(e) => setTemplateId(e.target.value)}
                   >
-                    <option value="">None — write custom</option>
+                    <option value="">{tr("sms.noneWriteCustom")}</option>
                     {templates.map((t) => (
                       <option key={t.id} value={t.id}>
                         {t.name}
@@ -645,7 +646,7 @@ export default function SchoolSmsPage() {
                 </div>
               </div>
               <div>
-                <Label>Message</Label>
+                <Label>{tr("sms.message")}</Label>
                 <div className="mt-1.5 space-y-2">
                   <VariablePicker
                     targetRef={bodyRef}
@@ -657,13 +658,13 @@ export default function SchoolSmsPage() {
                     className="min-h-[120px]"
                     value={body}
                     onChange={(e) => setBody(e.target.value)}
-                    placeholder="Write your message, and click a variable above to insert it…"
+                    placeholder={tr("sms.writeYourMessageAndClickA")}
                   />
                 </div>
                 <VariableWarning body={body} />
               </div>
               <div>
-                <Label>Schedule (optional)</Label>
+                <Label>{tr("sms.scheduleOptional")}</Label>
                 <div className="mt-1.5 flex items-center gap-2">
                   <Input
                     type="datetime-local"
@@ -677,7 +678,7 @@ export default function SchoolSmsPage() {
                       className="h-8 shrink-0 px-3 text-xs"
                       onClick={() => setScheduledAt("")}
                     >
-                      Clear
+                      {tr("sms.clear")}
                     </Button>
                   )}
                 </div>
@@ -708,7 +709,7 @@ export default function SchoolSmsPage() {
                     onClick={() => void handleFeeReminders()}
                     disabled={sending}
                   >
-                    Send default fee reminder
+                    {tr("sms.sendDefaultFeeReminder")}
                   </Button>
                 )}
               </div>
@@ -716,7 +717,7 @@ export default function SchoolSmsPage() {
           </div>
 
           <div className="rounded-2xl border bg-card p-5 shadow-sm">
-            <h2 className="font-semibold">Active packages</h2>
+            <h2 className="font-semibold">{tr("sms.activePackages")}</h2>
             <ul className="mt-3 space-y-2 text-sm">
               {(balance?.purchases ?? [])
                 .filter((p) => p.status === "ACTIVE")
@@ -724,25 +725,24 @@ export default function SchoolSmsPage() {
                   <li key={p.id} className="rounded-lg border px-3 py-2">
                     <p className="font-medium">{p.package.name}</p>
                     <p className="text-muted-foreground">
-                      {p.creditsRemaining} / {p.creditsTotal} credits remaining
+                      {p.creditsRemaining} / {p.creditsTotal} {tr("sms.creditsRemaining")}
                     </p>
                   </li>
                 ))}
               {(balance?.purchases ?? []).filter((p) => p.status === "ACTIVE")
                 .length === 0 && (
                 <p className="text-muted-foreground">
-                  No active SMS package. Ask the platform administrator to
-                  assign one.
+                  {tr("sms.noActiveSmsPackageAskThe")}
                 </p>
               )}
             </ul>
-            <h2 className="mt-6 font-semibold">Delivery stats</h2>
+            <h2 className="mt-6 font-semibold">{tr("sms.deliveryStats")}</h2>
             <ul className="mt-2 space-y-1 text-sm">
               {(balance?.deliveryStats ?? []).map((s) => (
                 <li key={s.status} className="flex justify-between">
                   <span>{s.status}</span>
                   <span className="font-mono">
-                    {s.count} ({s.credits} cr)
+                    {s.count} ({s.credits} {tr("sms.cr")}
                   </span>
                 </li>
               ))}
@@ -755,23 +755,22 @@ export default function SchoolSmsPage() {
         <div className="grid gap-4 lg:grid-cols-2">
           <div className="space-y-4 rounded-2xl border bg-card p-5 shadow-sm">
             <div>
-              <Label>Phone numbers (one per line)</Label>
+              <Label>{tr("sms.phoneNumbersOnePerLine")}</Label>
               <Textarea
                 className="mt-1.5 min-h-[140px] font-mono text-sm"
                 value={bulkNumbers}
                 onChange={(e) => setBulkNumbers(e.target.value)}
                 placeholder={
-                  "25261xxxxxxx, Name (optional)\n25263xxxxxxx\n25265xxxxxxx"
+                  tr("sms.n25261xxxxxxxNameOptional25263xxxxxxx25265xxxxxxx")
                 }
               />
               <p className="mt-1 text-xs text-muted-foreground">
-                Add one number per line, or separate with a comma. You can add a
-                name after a comma. {bulkRecipients.length} number
-                {bulkRecipients.length === 1 ? "" : "s"} detected.
+                {tr("sms.addOneNumberPerLineOr")} {bulkRecipients.length} {tr("sms.number")}
+                {bulkRecipients.length === 1 ? "" : "s"} {tr("sms.detected")}
               </p>
             </div>
             <div>
-              <Label>Category</Label>
+              <Label>{tr("sms.category")}</Label>
               <Select
                 className="mt-1.5"
                 value={bulkCategory}
@@ -785,16 +784,16 @@ export default function SchoolSmsPage() {
               </Select>
             </div>
             <div>
-              <Label>Message (one message sent to everyone)</Label>
+              <Label>{tr("sms.messageOneMessageSentToEveryone")}</Label>
               <Textarea
                 className="mt-1.5 min-h-[120px]"
                 value={bulkBody}
                 onChange={(e) => setBulkBody(e.target.value)}
-                placeholder="Write your message here…"
+                placeholder={tr("sms.writeYourMessageHere")}
               />
             </div>
             <div>
-              <Label>Schedule (optional)</Label>
+              <Label>{tr("sms.scheduleOptional")}</Label>
               <div className="mt-1.5 flex items-center gap-2">
                 <Input
                   type="datetime-local"
@@ -808,7 +807,7 @@ export default function SchoolSmsPage() {
                     className="h-8 shrink-0 px-3 text-xs"
                     onClick={() => setBulkScheduledAt("")}
                   >
-                    Clear
+                    {tr("sms.clear")}
                   </Button>
                 )}
               </div>
@@ -838,12 +837,9 @@ export default function SchoolSmsPage() {
           </div>
 
           <div className="rounded-2xl border bg-card p-5 shadow-sm">
-            <h2 className="font-semibold">How this works</h2>
+            <h2 className="font-semibold">{tr("sms.howThisWorks")}</h2>
             <p className="mt-2 text-sm text-muted-foreground">
-              Use this to send one message to many phone numbers that
-              aren&apos;t in your student or parent lists — like a WhatsApp
-              broadcast. Paste the numbers, write one message, and everyone gets
-              the same message at once.
+              {tr("sms.useThisToSendOneMessage")}
             </p>
             {bulkRecipients.length > 0 && (
               <div className="mt-4 max-h-[280px] overflow-auto rounded-lg border">
@@ -877,11 +873,11 @@ export default function SchoolSmsPage() {
           <table className="w-full text-sm">
             <thead className="bg-secondary text-left text-xs uppercase text-muted-foreground">
               <tr>
-                <th className="px-4 py-3">Recipient</th>
-                <th className="px-4 py-3">Category</th>
-                <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3">Credits</th>
-                <th className="px-4 py-3">When</th>
+                <th className="px-4 py-3">{tr("sms.recipient")}</th>
+                <th className="px-4 py-3">{tr("sms.category")}</th>
+                <th className="px-4 py-3">{tr("sms.status")}</th>
+                <th className="px-4 py-3">{tr("sms.credits")}</th>
+                <th className="px-4 py-3">{tr("sms.when")}</th>
               </tr>
             </thead>
             <tbody>
@@ -927,7 +923,7 @@ export default function SchoolSmsPage() {
                     colSpan={5}
                     className="px-4 py-8 text-center text-muted-foreground"
                   >
-                    No SMS logs yet.
+                    {tr("sms.noSmsLogsYet")}
                   </td>
                 </tr>
               )}
@@ -946,9 +942,9 @@ export default function SchoolSmsPage() {
                 checked={smsEnabled}
                 onChange={(e) => setSmsEnabled(e.target.checked)}
               />
-              Enable SMS for this school
+              {tr("sms.enableSmsForThisSchool")}
             </label>
-            <Button onClick={() => void saveSettings()}>Save settings</Button>
+            <Button onClick={() => void saveSettings()}>{tr("sms.saveSettings")}</Button>
           </div>
         </div>
       )}

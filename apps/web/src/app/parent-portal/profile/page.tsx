@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useState } from "react";
 import { KeyRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -11,6 +13,7 @@ import { longDate, statusLabel } from "@/lib/students/format";
 import { toast } from "@/lib/toast";
 
 export default function ParentProfilePage() {
+  const t = useT();
   const { parent } = usePortal();
   usePortalAudit("PROFILE_VIEWED");
 
@@ -52,13 +55,13 @@ export default function ParentProfilePage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">My Profile</h1>
-        <p className="mt-1 text-sm text-muted-foreground">View your account details and change your password.</p>
+        <h1 className="text-2xl font-bold">{t("parentPortalProfile.myProfile")}</h1>
+        <p className="mt-1 text-sm text-muted-foreground">{t("parentPortalProfile.viewYourAccountDetailsAndChange")}</p>
       </div>
 
       <div className="rounded-xl border bg-card p-6 shadow-sm">
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="font-semibold">Account Information</h2>
+          <h2 className="font-semibold">{t("parentPortalProfile.accountInformation")}</h2>
           <Badge tone={parent.status === "ACTIVE" ? "success" : "muted"}>
             {statusLabel(parent.status)}
           </Badge>
@@ -76,19 +79,19 @@ export default function ParentProfilePage() {
       <div className="rounded-xl border bg-card p-6 shadow-sm">
         <div className="mb-4 flex items-center gap-2">
           <KeyRound className="h-4 w-4 text-primary" />
-          <h2 className="font-semibold">Change Password</h2>
+          <h2 className="font-semibold">{t("parentPortalProfile.changePassword")}</h2>
         </div>
         <div className="grid max-w-md gap-3">
           <div>
-            <label className="mb-1 block text-sm">Current password</label>
+            <label className="mb-1 block text-sm">{t("parentPortalProfile.currentPassword")}</label>
             <Input type="password" value={current} onChange={(e) => setCurrent(e.target.value)} />
           </div>
           <div>
-            <label className="mb-1 block text-sm">New password</label>
+            <label className="mb-1 block text-sm">{t("parentPortalProfile.newPassword")}</label>
             <Input type="password" value={next} onChange={(e) => setNext(e.target.value)} />
           </div>
           <div>
-            <label className="mb-1 block text-sm">Confirm new password</label>
+            <label className="mb-1 block text-sm">{t("parentPortalProfile.confirmNewPassword")}</label>
             <Input type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} />
           </div>
           <Button onClick={handlePasswordChange} disabled={saving || !current || !next}>

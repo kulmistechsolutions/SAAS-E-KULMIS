@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Select } from "@/components/ui/select";
@@ -9,6 +11,7 @@ import { AcademicYearSelect } from "@/components/academics/academic-year-select"
 import { activeAcademicYear } from "@/lib/academics/store";
 
 function MarksEntryContent() {
+  const t = useT();
   const [mounted, setMounted] = useState(false);
   const params = useSearchParams();
   const state = useExaminationsState();
@@ -40,21 +43,21 @@ function MarksEntryContent() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Enter Marks</h1>
+        <h1 className="text-2xl font-bold">{t("examinationsMarks.enterMarks")}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Manual entry or Excel import. Students are sorted A–Z per section.
+          {t("examinationsMarks.manualEntryOrExcelImportStudents")}
         </p>
       </div>
 
       <div className="flex flex-wrap gap-3 rounded-xl border bg-card p-4">
         <div className="min-w-[140px]">
-          <label className="mb-1 block text-xs font-medium text-muted-foreground">Academic Year</label>
+          <label className="mb-1 block text-xs font-medium text-muted-foreground">{t("examinationsMarks.academicYear")}</label>
           <AcademicYearSelect value={year} onChange={setYear} />
         </div>
         <div className="min-w-[200px] flex-1">
-          <label className="mb-1 block text-xs font-medium text-muted-foreground">Exam</label>
+          <label className="mb-1 block text-xs font-medium text-muted-foreground">{t("examinationsMarks.exam")}</label>
           <Select value={examId} onChange={(e) => setExamId(e.target.value)}>
-            <option value="">Select exam…</option>
+            <option value="">{t("examinationsMarks.selectExam")}</option>
             {exams.map((e) => (
               <option key={e.id} value={e.id}>
                 {e.name} — {e.className} {e.section}
@@ -63,7 +66,7 @@ function MarksEntryContent() {
           </Select>
         </div>
         <div className="min-w-[160px]">
-          <label className="mb-1 block text-xs font-medium text-muted-foreground">Subject</label>
+          <label className="mb-1 block text-xs font-medium text-muted-foreground">{t("examinationsMarks.subject")}</label>
           <Select value={subject} onChange={(e) => setSubject(e.target.value)} disabled={!exam}>
             {subjects.map((s) => (
               <option key={s} value={s}>{s}</option>
@@ -80,11 +83,12 @@ function MarksEntryContent() {
 }
 
 export default function MarksEntryPage() {
+  const t = useT();
   return (
     <Suspense
       fallback={
         <div className="flex h-64 items-center justify-center text-muted-foreground">
-          Loading marks…
+          {t("examinationsMarks.loadingMarks")}
         </div>
       }
     >

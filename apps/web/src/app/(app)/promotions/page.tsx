@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
@@ -30,6 +32,7 @@ const QUICK = [
 ];
 
 export default function PromotionsDashboardPage() {
+  const t = useT();
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
   const state = usePromotionsState();
@@ -40,7 +43,7 @@ export default function PromotionsDashboardPage() {
   if (!mounted) {
     return (
       <div className="flex h-64 items-center justify-center text-muted-foreground">
-        Loading promotions…
+        {t("promotions.loadingPromotions")}
       </div>
     );
   }
@@ -49,16 +52,16 @@ export default function PromotionsDashboardPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold">Promotion &amp; Graduation</h1>
+          <h1 className="text-2xl font-bold">{t("promotions.promotionAmpGraduation")}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Advance students between classes and academic years — history preserved.
+            {t("promotions.advanceStudentsBetweenClassesAndAcademic")}
           </p>
         </div>
         <Link
           href="/promotions/promote"
           className="inline-flex h-10 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
         >
-          <Sparkles className="mr-2 h-4 w-4" /> Start Promotion
+          <Sparkles className="mr-2 h-4 w-4" /> {t("promotions.startPromotion")}
         </Link>
       </div>
 
@@ -85,27 +88,27 @@ export default function PromotionsDashboardPage() {
 
       <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
         <div className="flex items-center justify-between border-b px-5 py-4">
-          <h2 className="font-semibold">Recent Promotions</h2>
+          <h2 className="font-semibold">{t("promotions.recentPromotions")}</h2>
           <Link href="/promotions/history" className="text-xs font-medium text-primary hover:underline">
-            View all
+            {t("promotions.viewAll")}
           </Link>
         </div>
         <div className="max-h-[420px] overflow-auto scrollbar-slim">
           <table className="w-full min-w-[680px] text-sm">
             <thead className="sticky top-0 bg-secondary/60 text-left text-xs uppercase tracking-wide text-muted-foreground">
               <tr>
-                <th className="px-5 py-2.5 font-medium">Student</th>
-                <th className="px-5 py-2.5 font-medium">Type</th>
-                <th className="px-5 py-2.5 font-medium">From</th>
-                <th className="px-5 py-2.5 font-medium">To</th>
-                <th className="px-5 py-2.5 font-medium">Date</th>
+                <th className="px-5 py-2.5 font-medium">{t("promotions.student")}</th>
+                <th className="px-5 py-2.5 font-medium">{t("promotions.type")}</th>
+                <th className="px-5 py-2.5 font-medium">{t("promotions.from")}</th>
+                <th className="px-5 py-2.5 font-medium">{t("promotions.to")}</th>
+                <th className="px-5 py-2.5 font-medium">{t("promotions.date")}</th>
               </tr>
             </thead>
             <tbody>
               {recent.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="px-5 py-12 text-center text-muted-foreground">
-                    No promotions recorded yet. Start your first promotion.
+                    {t("promotions.noPromotionsRecordedYetStartYour")}
                   </td>
                 </tr>
               ) : (
@@ -124,7 +127,7 @@ export default function PromotionsDashboardPage() {
                     <td className="px-5 py-3">
                       {r.graduated ? (
                         <span className="inline-flex items-center gap-1 font-medium text-sky-600 dark:text-sky-400">
-                          <GraduationCap className="h-4 w-4" /> Graduated
+                          <GraduationCap className="h-4 w-4" /> {t("promotions.graduated")}
                         </span>
                       ) : (
                         <span className="inline-flex items-center gap-1 font-medium">
@@ -147,7 +150,7 @@ export default function PromotionsDashboardPage() {
           onClick={() => { resetPromotions(); toast("Promotion history reset.", "info"); }}
           className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
         >
-          <RotateCcw className="h-3.5 w-3.5" /> Reset promotion data
+          <RotateCcw className="h-3.5 w-3.5" /> {t("promotions.resetPromotionData")}
         </button>
       </div>
     </div>

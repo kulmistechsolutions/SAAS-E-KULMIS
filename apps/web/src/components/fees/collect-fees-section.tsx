@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Eye, Search } from "lucide-react";
@@ -33,6 +35,7 @@ export function CollectFeesSection({
   onPay,
   compact = false,
 }: CollectFeesSectionProps) {
+  const t = useT();
   const [klass, setKlass] = useState("");
   const [section, setSection] = useState("");
   const [search, setSearch] = useState("");
@@ -94,10 +97,10 @@ export function CollectFeesSection({
   return (
     <div className="rounded-2xl border bg-card shadow-sm">
       <div className="border-b px-5 py-4">
-        <h2 className="text-base font-semibold">Collect Fees</h2>
+        <h2 className="text-base font-semibold">{t("feesCollectFeesSection.collectFees")}</h2>
         {!compact && (
           <p className="mt-0.5 text-sm text-muted-foreground">
-            Filter by class and section, then collect payments.
+            {t("feesCollectFeesSection.filterByClassAndSectionThen")}
           </p>
         )}
       </div>
@@ -105,10 +108,10 @@ export function CollectFeesSection({
       <div className="flex flex-wrap items-end gap-3 border-b bg-secondary/20 px-5 py-4">
         <div className="min-w-[140px] flex-1">
           <label className="mb-1 block text-xs font-medium text-muted-foreground">
-            Class
+            {t("feesCollectFeesSection.class")}
           </label>
           <Select value={klass} onChange={(e) => onClassChange(e.target.value)}>
-            <option value="">All Classes</option>
+            <option value="">{t("feesCollectFeesSection.allClasses")}</option>
             {classOptions.map((c) => (
               <option key={c} value={c}>
                 {c}
@@ -118,39 +121,39 @@ export function CollectFeesSection({
         </div>
         <div className="min-w-[120px] flex-1">
           <label className="mb-1 block text-xs font-medium text-muted-foreground">
-            Section
+            {t("feesCollectFeesSection.section")}
           </label>
           <Select
             value={section}
             onChange={(e) => setSection(e.target.value)}
             disabled={!klass || sectionOptions.length === 0}
           >
-            <option value="">All Sections</option>
+            <option value="">{t("feesCollectFeesSection.allSections")}</option>
             {sectionOptions.map((s) => (
               <option key={s} value={s}>
-                Section {s}
+                {t("feesCollectFeesSection.section")} {s}
               </option>
             ))}
           </Select>
         </div>
         <div className="min-w-[180px] flex-[2]">
           <label className="mb-1 block text-xs font-medium text-muted-foreground">
-            Search Student
+            {t("feesCollectFeesSection.searchStudent")}
           </label>
           <div className="relative">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               className="pl-9"
-              placeholder="Name or ID…"
+              placeholder={t("feesCollectFeesSection.nameOrId")}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && applyFilters()}
             />
           </div>
         </div>
-        <Button onClick={applyFilters}>Search</Button>
+        <Button onClick={applyFilters}>{t("feesCollectFeesSection.search")}</Button>
         <Button variant="outline" onClick={resetFilters}>
-          Reset
+          {t("feesCollectFeesSection.reset")}
         </Button>
       </div>
 
@@ -159,12 +162,12 @@ export function CollectFeesSection({
           <thead className="sticky top-0 bg-secondary/90 text-left text-xs text-muted-foreground backdrop-blur">
             <tr>
               <th className="px-4 py-2.5 font-medium">#</th>
-              <th className="px-4 py-2.5 font-medium">Student ID</th>
-              <th className="px-4 py-2.5 font-medium">Student Name</th>
-              <th className="px-4 py-2.5 font-medium">Monthly Fee</th>
-              <th className="px-4 py-2.5 font-medium">Outstanding Balance</th>
-              <th className="px-4 py-2.5 font-medium">Status</th>
-              <th className="px-4 py-2.5 font-medium">Action</th>
+              <th className="px-4 py-2.5 font-medium">{t("feesCollectFeesSection.studentId")}</th>
+              <th className="px-4 py-2.5 font-medium">{t("feesCollectFeesSection.studentName")}</th>
+              <th className="px-4 py-2.5 font-medium">{t("feesCollectFeesSection.monthlyFee")}</th>
+              <th className="px-4 py-2.5 font-medium">{t("feesCollectFeesSection.outstandingBalance")}</th>
+              <th className="px-4 py-2.5 font-medium">{t("feesCollectFeesSection.status")}</th>
+              <th className="px-4 py-2.5 font-medium">{t("feesCollectFeesSection.action")}</th>
             </tr>
           </thead>
           <tbody>
@@ -196,7 +199,7 @@ export function CollectFeesSection({
                         className="h-8 bg-emerald-600 px-3 text-xs hover:bg-emerald-700"
                         onClick={() => onPay(r)}
                       >
-                        Pay
+                        {t("feesCollectFeesSection.pay")}
                       </Button>
                     ) : (
                       <Link
@@ -204,7 +207,7 @@ export function CollectFeesSection({
                         className="inline-flex h-8 items-center rounded-lg border border-primary px-3 text-xs font-medium text-primary transition-colors hover:bg-primary/5"
                       >
                         <Eye className="mr-1 h-3.5 w-3.5" />
-                        View
+                        {t("feesCollectFeesSection.view")}
                       </Link>
                     )}
                   </td>
@@ -214,7 +217,7 @@ export function CollectFeesSection({
             {mounted && pageRows.length === 0 && (
               <tr>
                 <td colSpan={7} className="px-4 py-10 text-center text-muted-foreground">
-                  No students match your filters.
+                  {t("feesCollectFeesSection.noStudentsMatchYourFilters")}
                 </td>
               </tr>
             )}

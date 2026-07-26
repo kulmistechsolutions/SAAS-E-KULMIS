@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useCallback, useEffect, useState } from "react";
 import { KeyRound, Loader2, ShieldCheck } from "lucide-react";
 import { Dialog } from "@/components/ui/dialog";
@@ -24,6 +26,7 @@ interface Props {
  * Only the chosen login's password changes — the school's data is untouched.
  */
 export function SchoolLoginsDialog({ open, onClose, school }: Props) {
+  const t = useT();
   const [users, setUsers] = useState<PlatformSchoolUser[]>([]);
   const [loading, setLoading] = useState(false);
   const [targetId, setTargetId] = useState<string | null>(null);
@@ -81,13 +84,13 @@ export function SchoolLoginsDialog({ open, onClose, school }: Props) {
       open={open}
       onClose={onClose}
       title={school ? `Logins — ${school.name}` : "Logins"}
-      description="Reset a password for a school that is locked out. School data is not affected."
+      description={t("platformSchoolLoginsDialog.resetAPasswordForASchool")}
       className="sm:max-w-lg"
-      footer={<Button variant="outline" onClick={onClose}>Close</Button>}
+      footer={<Button variant="outline" onClick={onClose}>{t("platformSchoolLoginsDialog.close")}</Button>}
     >
       {loading ? (
         <div className="flex items-center gap-2 py-10 text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin" /> Loading logins…
+          <Loader2 className="h-4 w-4 animate-spin" /> {t("platformSchoolLoginsDialog.loadingLogins")}
         </div>
       ) : target ? (
         <div className="space-y-4">
@@ -96,7 +99,7 @@ export function SchoolLoginsDialog({ open, onClose, school }: Props) {
             <p className="text-xs text-muted-foreground">{target.role}</p>
           </div>
           <div>
-            <Label htmlFor="pw1">New password</Label>
+            <Label htmlFor="pw1">{t("platformSchoolLoginsDialog.newPassword")}</Label>
             <Input
               id="pw1"
               type="password"
@@ -107,7 +110,7 @@ export function SchoolLoginsDialog({ open, onClose, school }: Props) {
             />
           </div>
           <div>
-            <Label htmlFor="pw2">Confirm password</Label>
+            <Label htmlFor="pw2">{t("platformSchoolLoginsDialog.confirmPassword")}</Label>
             <Input
               id="pw2"
               type="password"
@@ -118,21 +121,20 @@ export function SchoolLoginsDialog({ open, onClose, school }: Props) {
           </div>
           <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200">
             <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" />
-            This signs the user out everywhere. Tell them the new password and
-            ask them to change it from their Profile page.
+            {t("platformSchoolLoginsDialog.thisSignsTheUserOutEverywhere")}
           </div>
           <div className="flex gap-2">
             <Button onClick={() => void reset()} disabled={saving}>
               {saving ? "Resetting…" : "Set new password"}
             </Button>
             <Button variant="outline" onClick={() => setTargetId(null)}>
-              Back
+              {t("platformSchoolLoginsDialog.back")}
             </Button>
           </div>
         </div>
       ) : users.length === 0 ? (
         <p className="py-10 text-center text-sm text-muted-foreground">
-          This school has no logins yet.
+          {t("platformSchoolLoginsDialog.thisSchoolHasNoLoginsYet")}
         </p>
       ) : (
         <ul className="divide-y rounded-lg border">
@@ -153,7 +155,7 @@ export function SchoolLoginsDialog({ open, onClose, school }: Props) {
                 className="h-8 shrink-0 px-2.5 text-xs"
                 onClick={() => setTargetId(u.id)}
               >
-                <KeyRound className="mr-1.5 h-3.5 w-3.5" /> Reset
+                <KeyRound className="mr-1.5 h-3.5 w-3.5" /> {t("platformSchoolLoginsDialog.reset")}
               </Button>
             </li>
           ))}

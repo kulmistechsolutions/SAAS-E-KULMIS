@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { use, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
@@ -72,6 +74,7 @@ export default function StudentProfilePage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const tr = useT();
   const { id } = use(params);
   const { user } = useAuth();
   const isTeacher = user?.role === "TEACHER";
@@ -102,7 +105,7 @@ export default function StudentProfilePage({
   if (!mounted || loading) {
     return (
       <div className="flex h-64 items-center justify-center text-muted-foreground">
-        Loading profile…
+        {tr("students.loadingProfile")}
       </div>
     );
   }
@@ -118,7 +121,7 @@ export default function StudentProfilePage({
           {isTeacher ? "Back to My Students" : "Back to Students"}
         </Link>
         <div className="rounded-2xl border bg-card p-12 text-center text-muted-foreground">
-          Student not found. It may have been deleted.
+          {tr("students.studentNotFoundItMayHave")}
         </div>
       </div>
     );
@@ -162,24 +165,24 @@ export default function StudentProfilePage({
               </p>
               {student.hasPhoto || student.photoUrl ? (
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Click the photo to view full size
+                  {tr("students.clickThePhotoToViewFull")}
                 </p>
               ) : null}
             </div>
             <div className="flex flex-wrap gap-2 sm:justify-end">
               {!isTeacher && (
                 <Button variant="outline" onClick={() => setEditOpen(true)}>
-                  <Pencil className="mr-2 h-4 w-4" /> Edit
+                  <Pencil className="mr-2 h-4 w-4" /> {tr("students.edit")}
                 </Button>
               )}
               <Button variant="outline" onClick={() => printStudentProfile(student)}>
-                <Printer className="mr-2 h-4 w-4" /> Print
+                <Printer className="mr-2 h-4 w-4" /> {tr("students.print")}
               </Button>
               <Button
                 variant="outline"
                 onClick={() => exportStudentsCsv([student], `${student.code}.csv`)}
               >
-                <Download className="mr-2 h-4 w-4" /> Download
+                <Download className="mr-2 h-4 w-4" /> {tr("students.download")}
               </Button>
             </div>
           </div>
@@ -222,6 +225,7 @@ function Field({ label, value }: { label: string; value: React.ReactNode }) {
 }
 
 function PersonalTab({ student }: { student: StudentWithParent }) {
+  const tr = useT();
   return (
     <div className="space-y-6">
       <div className="flex flex-col items-start gap-4 rounded-xl border bg-secondary/20 p-5 sm:flex-row sm:items-center">
@@ -233,7 +237,7 @@ function PersonalTab({ student }: { student: StudentWithParent }) {
           size="lg"
         />
         <div>
-          <p className="text-sm font-medium text-foreground">Profile Photo</p>
+          <p className="text-sm font-medium text-foreground">{tr("students.profilePhoto")}</p>
           <p className="mt-1 text-sm text-muted-foreground">
             {student.hasPhoto || student.photoUrl
               ? "Photo on file. Click the image to open the full-size preview."
@@ -242,18 +246,18 @@ function PersonalTab({ student }: { student: StudentWithParent }) {
         </div>
       </div>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-      <Field label="Student ID" value={<span className="font-mono">{student.code}</span>} />
-      <Field label="Full Name" value={student.fullName} />
-      <Field label="Gender" value={genderLabel(student.gender)} />
-      <Field label="Date of Birth" value={shortDate(student.dob)} />
-      <Field label="Phone" value={student.phone ?? "—"} />
-      <Field label="Class" value={student.className} />
-      <Field label="Section" value={student.section ?? "—"} />
-      <Field label="Monthly Fee" value={money(student.monthlyFee)} />
-      <Field label="Academic Year" value={student.academicYear} />
-      <Field label="Registration Date" value={longDate(student.registrationDate)} />
-      <Field label="Status" value={statusLabel(student.status)} />
-      <Field label="Notes" value={student.notes ?? "—"} />
+      <Field label={tr("students.studentId")} value={<span className="font-mono">{student.code}</span>} />
+      <Field label={tr("students.fullName")} value={student.fullName} />
+      <Field label={tr("students.gender")} value={genderLabel(student.gender)} />
+      <Field label={tr("students.dateOfBirth")} value={shortDate(student.dob)} />
+      <Field label={tr("students.phone")} value={student.phone ?? "—"} />
+      <Field label={tr("students.class")} value={student.className} />
+      <Field label={tr("students.section")} value={student.section ?? "—"} />
+      <Field label={tr("students.monthlyFee")} value={money(student.monthlyFee)} />
+      <Field label={tr("students.academicYear")} value={student.academicYear} />
+      <Field label={tr("students.registrationDate")} value={longDate(student.registrationDate)} />
+      <Field label={tr("students.status")} value={statusLabel(student.status)} />
+      <Field label={tr("students.notes")} value={student.notes ?? "—"} />
       </div>
     </div>
   );
@@ -266,27 +270,28 @@ function ParentTab({
   student: StudentWithParent;
   state: ReturnType<typeof useStudentsState>;
 }) {
+  const tr = useT();
   const siblings = state.students.filter(
     (s) => s.parentId === student.parentId,
   );
   return (
     <div className="space-y-6">
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Field label="Parent ID" value={<span className="font-mono">{student.parent.code}</span>} />
-        <Field label="Parent Name" value={student.parent.name} />
-        <Field label="Parent Phone" value={student.parent.phone} />
-        <Field label="Number of Children" value={siblings.length} />
+        <Field label={tr("students.parentId")} value={<span className="font-mono">{student.parent.code}</span>} />
+        <Field label={tr("students.parentName")} value={student.parent.name} />
+        <Field label={tr("students.parentPhone")} value={student.parent.phone} />
+        <Field label={tr("students.numberOfChildren")} value={siblings.length} />
       </div>
       <div>
-        <h3 className="mb-3 text-sm font-semibold text-foreground">Children</h3>
+        <h3 className="mb-3 text-sm font-semibold text-foreground">{tr("students.children")}</h3>
         <div className="overflow-hidden rounded-xl border">
           <table className="w-full text-sm">
             <thead className="bg-secondary text-left text-xs text-muted-foreground">
               <tr>
-                <th className="px-4 py-2.5 font-medium">Student ID</th>
-                <th className="px-4 py-2.5 font-medium">Name</th>
-                <th className="px-4 py-2.5 font-medium">Class</th>
-                <th className="px-4 py-2.5 font-medium">Status</th>
+                <th className="px-4 py-2.5 font-medium">{tr("students.studentId")}</th>
+                <th className="px-4 py-2.5 font-medium">{tr("students.name")}</th>
+                <th className="px-4 py-2.5 font-medium">{tr("students.class")}</th>
+                <th className="px-4 py-2.5 font-medium">{tr("students.status")}</th>
               </tr>
             </thead>
             <tbody>
@@ -331,6 +336,7 @@ function StatPill({
 }
 
 function AttendanceTab({ student }: { student: StudentWithParent }) {
+  const tr = useT();
   const [a, setA] = useState<AttendanceSummary>(() => attendanceHistory(student));
   useEffect(() => {
     void loadAttendanceHistory(student.id, 60).then(setA);
@@ -338,17 +344,17 @@ function AttendanceTab({ student }: { student: StudentWithParent }) {
   return (
     <div className="space-y-5">
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <StatPill label="Present" value={a.present} tone="bg-emerald-500/10" />
-        <StatPill label="Absent" value={a.absent} tone="bg-rose-500/10" />
-        <StatPill label="Late" value={a.late} tone="bg-amber-500/10" />
-        <StatPill label="Attendance %" value={`${a.percentage}%`} tone="bg-sky-500/10" />
+        <StatPill label={tr("students.present")} value={a.present} tone="bg-emerald-500/10" />
+        <StatPill label={tr("students.absent")} value={a.absent} tone="bg-rose-500/10" />
+        <StatPill label={tr("students.late")} value={a.late} tone="bg-amber-500/10" />
+        <StatPill label={tr("students.attendance")} value={`${a.percentage}%`} tone="bg-sky-500/10" />
       </div>
       <div className="overflow-hidden rounded-xl border">
         <table className="w-full text-sm">
           <thead className="bg-secondary text-left text-xs text-muted-foreground">
             <tr>
-              <th className="px-4 py-2.5 font-medium">Date</th>
-              <th className="px-4 py-2.5 font-medium">Status</th>
+              <th className="px-4 py-2.5 font-medium">{tr("students.date")}</th>
+              <th className="px-4 py-2.5 font-medium">{tr("students.status")}</th>
             </tr>
           </thead>
           <tbody>
@@ -378,6 +384,7 @@ function AttendanceTab({ student }: { student: StudentWithParent }) {
 }
 
 function FeesTab({ student }: { student: StudentWithParent }) {
+  const tr = useT();
   const [ledger, setLedger] = useState<ApiStudentLedger | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -414,7 +421,7 @@ function FeesTab({ student }: { student: StudentWithParent }) {
         <div className="rounded-xl border bg-card p-4">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <p className="text-sm font-medium text-muted-foreground">Academic Progress</p>
+              <p className="text-sm font-medium text-muted-foreground">{tr("students.academicProgress")}</p>
               <p className="mt-1 text-xs text-muted-foreground">
                 {summary.billingMode === "ACADEMIC_YEAR"
                   ? "Academic Year Billing"
@@ -423,10 +430,10 @@ function FeesTab({ student }: { student: StudentWithParent }) {
             </div>
             <div className="text-right text-sm">
               <p className="tabular-nums">
-                Paid: <span className="font-semibold">{feeMoney(summary.amountPaid)}</span>
+                {tr("students.paid")} <span className="font-semibold">{feeMoney(summary.amountPaid)}</span>
               </p>
               <p className="tabular-nums text-rose-600">
-                Outstanding: <span className="font-semibold">{feeMoney(summary.outstandingBalance)}</span>
+                {tr("students.outstanding")} <span className="font-semibold">{feeMoney(summary.outstandingBalance)}</span>
               </p>
             </div>
           </div>
@@ -443,24 +450,24 @@ function FeesTab({ student }: { student: StudentWithParent }) {
           </div>
           <dl className="mt-3 grid gap-2 text-sm sm:grid-cols-2 lg:grid-cols-4">
             <div>
-              <dt className="text-muted-foreground">Paid Months</dt>
+              <dt className="text-muted-foreground">{tr("students.paidMonths")}</dt>
               <dd className="font-medium">
                 {summary.paidMonths} / {summary.totalMonths}
               </dd>
             </div>
             <div>
-              <dt className="text-muted-foreground">Outstanding Months</dt>
+              <dt className="text-muted-foreground">{tr("students.outstandingMonths")}</dt>
               <dd className="font-medium">{summary.unpaidMonths}</dd>
             </div>
             {summary.billingMode === "ACADEMIC_YEAR" && (
               <div>
-                <dt className="text-muted-foreground">Annual Fee</dt>
+                <dt className="text-muted-foreground">{tr("students.annualFee")}</dt>
                 <dd className="font-medium tabular-nums">{feeMoney(summary.totalAcademicFee)}</dd>
               </div>
             )}
             {summary.inactiveMonths > 0 && (
               <div>
-                <dt className="text-muted-foreground">Inactive Months</dt>
+                <dt className="text-muted-foreground">{tr("students.inactiveMonths")}</dt>
                 <dd className="font-medium">{summary.inactiveMonths}</dd>
               </div>
             )}
@@ -472,18 +479,18 @@ function FeesTab({ student }: { student: StudentWithParent }) {
         <table className="w-full text-sm">
           <thead className="bg-secondary text-left text-xs text-muted-foreground">
             <tr>
-              <th className="px-4 py-2.5 font-medium">Month</th>
-              <th className="px-4 py-2.5 font-medium">Monthly Charge</th>
-              <th className="px-4 py-2.5 font-medium">Amount Paid</th>
-              <th className="px-4 py-2.5 font-medium">Remaining Balance</th>
-              <th className="px-4 py-2.5 font-medium">Status</th>
+              <th className="px-4 py-2.5 font-medium">{tr("students.month")}</th>
+              <th className="px-4 py-2.5 font-medium">{tr("students.monthlyCharge")}</th>
+              <th className="px-4 py-2.5 font-medium">{tr("students.amountPaid")}</th>
+              <th className="px-4 py-2.5 font-medium">{tr("students.remainingBalance")}</th>
+              <th className="px-4 py-2.5 font-medium">{tr("students.status")}</th>
             </tr>
           </thead>
           <tbody>
             {loading && (
               <tr>
                 <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">
-                  Loading fee records…
+                  {tr("students.loadingFeeRecords")}
                 </td>
               </tr>
             )}
@@ -504,7 +511,7 @@ function FeesTab({ student }: { student: StudentWithParent }) {
             {!loading && rows.length === 0 && (
               <tr>
                 <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">
-                  No fee records yet.
+                  {tr("students.noFeeRecordsYet")}
                 </td>
               </tr>
             )}
@@ -516,6 +523,7 @@ function FeesTab({ student }: { student: StudentWithParent }) {
 }
 
 function ExamsTab({ student }: { student: StudentWithParent }) {
+  const tr = useT();
   // Blocked status still comes from the exam store, but the published results
   // themselves are read straight from the API — the student profile never
   // hydrates the full exams+marks store, so the old store-only lookup always
@@ -546,7 +554,7 @@ function ExamsTab({ student }: { student: StudentWithParent }) {
   if (blocked) {
     return (
       <div className="rounded-xl border border-rose-200 bg-rose-50 p-6 text-center text-rose-700">
-        Results are blocked. Contact the school office.
+        {tr("students.resultsAreBlockedContactTheSchool")}
       </div>
     );
   }
@@ -557,13 +565,13 @@ function ExamsTab({ student }: { student: StudentWithParent }) {
         <table className="w-full text-sm">
           <thead className="bg-secondary text-left text-xs text-muted-foreground">
             <tr>
-              <th className="px-4 py-2.5 font-medium">Exam</th>
-              <th className="px-4 py-2.5 font-medium">Term</th>
-              <th className="px-4 py-2.5 font-medium">Total</th>
-              <th className="px-4 py-2.5 font-medium">Average</th>
-              <th className="px-4 py-2.5 font-medium">Grade</th>
-              <th className="px-4 py-2.5 font-medium">Result</th>
-              <th className="px-4 py-2.5 text-right font-medium">Card</th>
+              <th className="px-4 py-2.5 font-medium">{tr("students.exam")}</th>
+              <th className="px-4 py-2.5 font-medium">{tr("students.term")}</th>
+              <th className="px-4 py-2.5 font-medium">{tr("students.total")}</th>
+              <th className="px-4 py-2.5 font-medium">{tr("students.average")}</th>
+              <th className="px-4 py-2.5 font-medium">{tr("students.grade")}</th>
+              <th className="px-4 py-2.5 font-medium">{tr("students.result")}</th>
+              <th className="px-4 py-2.5 text-right font-medium">{tr("students.card")}</th>
             </tr>
           </thead>
           <tbody>
@@ -586,7 +594,7 @@ function ExamsTab({ student }: { student: StudentWithParent }) {
                     className="inline-flex items-center gap-1 rounded-lg border px-2.5 py-1 text-xs font-medium hover:bg-secondary"
                   >
                     <FileText className="h-3.5 w-3.5" />
-                    View
+                    {tr("students.view")}
                   </button>
                 </td>
               </tr>
@@ -603,7 +611,7 @@ function ExamsTab({ student }: { student: StudentWithParent }) {
       </div>
       {result && rows.length > 0 && (
         <div className="rounded-xl border bg-primary/5 p-4">
-          <p className="text-sm font-medium text-muted-foreground">Final Academic Result</p>
+          <p className="text-sm font-medium text-muted-foreground">{tr("students.finalAcademicResult")}</p>
           <p className="mt-1 text-xl font-bold">
             {result.finalGrade} · {result.finalAverage.toFixed(1)}%
           </p>
@@ -616,7 +624,7 @@ function ExamsTab({ student }: { student: StudentWithParent }) {
       <Dialog
         open={!!viewing}
         onClose={() => setViewing(null)}
-        title="Exam Result Card"
+        title={tr("students.examResultCard")}
         className="sm:max-w-2xl"
       >
         {viewing && result ? (
@@ -644,17 +652,18 @@ function ExamsTab({ student }: { student: StudentWithParent }) {
 }
 
 function QuizzesTab({ student }: { student: StudentWithParent }) {
+  const tr = useT();
   const rows = useMemo(() => studentQuizHistory(student.id), [student.id]);
   return (
     <div className="overflow-hidden rounded-xl border">
       <table className="w-full text-sm">
         <thead className="bg-secondary text-left text-xs text-muted-foreground">
           <tr>
-            <th className="px-4 py-2.5 font-medium">Quiz</th>
-            <th className="px-4 py-2.5 font-medium">Score</th>
-            <th className="px-4 py-2.5 font-medium">Percentage</th>
-            <th className="px-4 py-2.5 font-medium">Status</th>
-            <th className="px-4 py-2.5 font-medium">Attempt Date</th>
+            <th className="px-4 py-2.5 font-medium">{tr("students.quiz")}</th>
+            <th className="px-4 py-2.5 font-medium">{tr("students.score")}</th>
+            <th className="px-4 py-2.5 font-medium">{tr("students.percentage")}</th>
+            <th className="px-4 py-2.5 font-medium">{tr("students.status")}</th>
+            <th className="px-4 py-2.5 font-medium">{tr("students.attemptDate")}</th>
           </tr>
         </thead>
         <tbody>
@@ -682,11 +691,12 @@ function QuizzesTab({ student }: { student: StudentWithParent }) {
 }
 
 function PromotionTab({ student }: { student: StudentWithParent }) {
+  const tr = useT();
   const rows = useMemo(() => studentPromotionHistory(student.id), [student.id]);
   if (rows.length === 0)
     return (
       <p className="py-8 text-center text-sm text-muted-foreground">
-        No promotion history yet.
+        {tr("students.noPromotionHistoryYet")}
       </p>
     );
   return (
@@ -694,12 +704,12 @@ function PromotionTab({ student }: { student: StudentWithParent }) {
       <table className="w-full text-sm">
         <thead className="bg-secondary text-left text-xs text-muted-foreground">
           <tr>
-            <th className="px-4 py-2.5 font-medium">Type</th>
-            <th className="px-4 py-2.5 font-medium">Academic Year</th>
-            <th className="px-4 py-2.5 font-medium">Previous Class</th>
-            <th className="px-4 py-2.5 font-medium">New Class</th>
-            <th className="px-4 py-2.5 font-medium">Promotion Date</th>
-            <th className="px-4 py-2.5 font-medium">By</th>
+            <th className="px-4 py-2.5 font-medium">{tr("students.type")}</th>
+            <th className="px-4 py-2.5 font-medium">{tr("students.academicYear")}</th>
+            <th className="px-4 py-2.5 font-medium">{tr("students.previousClass")}</th>
+            <th className="px-4 py-2.5 font-medium">{tr("students.newClass")}</th>
+            <th className="px-4 py-2.5 font-medium">{tr("students.promotionDate")}</th>
+            <th className="px-4 py-2.5 font-medium">{tr("students.by")}</th>
           </tr>
         </thead>
         <tbody>

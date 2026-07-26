@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -43,6 +45,7 @@ export function TeacherPortalShell({
 }: {
   children: React.ReactNode;
 }) {
+  const t = useT();
   const pathname = usePathname();
   const router = useRouter();
   const { teacher, canViewStudents } = useTeacherPortal();
@@ -90,7 +93,7 @@ export function TeacherPortalShell({
             <div>
               <p className="text-sm font-bold text-primary">{branding.name}</p>
               <p className="text-[11px] text-muted-foreground">
-                Teacher Portal
+                {t("teacherPortalPortalShell.teacherPortal")}
               </p>
             </div>
           </div>
@@ -126,7 +129,7 @@ export function TeacherPortalShell({
             className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
           >
             <LogOut className="h-4 w-4" />
-            Sign out
+            {t("teacherPortalPortalShell.signOut")}
           </button>
         </div>
       </aside>
@@ -137,18 +140,18 @@ export function TeacherPortalShell({
             <button
               type="button"
               onClick={() => setMenuOpen(true)}
-              aria-label="Open menu"
+              aria-label={t("teacherPortalPortalShell.openMenu")}
               className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border text-muted-foreground hover:bg-secondary lg:hidden"
             >
               <Menu className="h-5 w-5" />
             </button>
             <div className="min-w-0 flex-1">
-              <p className="text-xs text-muted-foreground">Teacher Portal</p>
+              <p className="text-xs text-muted-foreground">{t("teacherPortalPortalShell.teacherPortal")}</p>
               <p className="truncate font-semibold">{teacher.fullName}</p>
             </div>
             <div className="shrink-0 text-right text-xs text-muted-foreground">
               <p>{teacher.code}</p>
-              <p>{teacher.shift} shift</p>
+              <p>{teacher.shift} {t("teacherPortalPortalShell.shift")}</p>
             </div>
           </div>
         </header>
@@ -187,14 +190,14 @@ export function TeacherPortalShell({
                     {branding.name}
                   </p>
                   <p className="text-[11px] text-muted-foreground">
-                    Teacher Portal
+                    {t("teacherPortalPortalShell.teacherPortal")}
                   </p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setMenuOpen(false)}
-                aria-label="Close menu"
+                aria-label={t("teacherPortalPortalShell.closeMenu")}
                 className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary"
               >
                 <X className="h-4 w-4" />
@@ -231,7 +234,7 @@ export function TeacherPortalShell({
                 className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
               >
                 <LogOut className="h-4 w-4" />
-                Sign out
+                {t("teacherPortalPortalShell.signOut")}
               </button>
             </div>
           </div>

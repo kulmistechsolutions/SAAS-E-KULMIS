@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import Link from "next/link";
 import { CalendarCheck, GraduationCap, Users } from "lucide-react";
 
@@ -21,12 +23,13 @@ const SECTIONS = [
 ];
 
 export default function AttendanceHubPage() {
+  const t = useT();
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-bold">Attendance</h1>
+        <h1 className="text-2xl font-bold">{t("attendance.attendance")}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Record and monitor daily attendance for students and teachers.
+          {t("attendance.recordAndMonitorDailyAttendanceFor")}
         </p>
       </div>
 
@@ -45,7 +48,7 @@ export default function AttendanceHubPage() {
             <h2 className="text-lg font-semibold">{s.title}</h2>
             <p className="mt-2 flex-1 text-sm text-muted-foreground">{s.description}</p>
             <span className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-primary">
-              <CalendarCheck className="h-4 w-4" /> Open module →
+              <CalendarCheck className="h-4 w-4" /> {t("attendance.openModule")}
             </span>
           </Link>
         ))}

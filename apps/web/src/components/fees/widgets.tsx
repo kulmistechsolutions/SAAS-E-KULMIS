@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import Link from "next/link";
 import {
   Calendar,
@@ -18,9 +20,10 @@ export function PaymentSummaryWidget({
   slices: PaymentSummarySlice[];
   totalStudents: number;
 }) {
+  const t = useT();
   return (
     <div className="rounded-2xl border bg-card p-5 shadow-sm">
-      <p className="text-sm font-semibold">Payment Summary</p>
+      <p className="text-sm font-semibold">{t("feesWidgets.paymentSummary")}</p>
       <div className="mt-2">
         <AttendanceDonut
           segments={slices.map((s) => ({
@@ -47,7 +50,7 @@ export function PaymentSummaryWidget({
         ))}
       </div>
       <p className="mt-3 border-t pt-3 text-center text-sm text-muted-foreground">
-        Total Students:{" "}
+        {t("feesWidgets.totalStudents")}{" "}
         <span className="font-semibold text-foreground">{totalStudents}</span>
       </p>
     </div>
@@ -82,9 +85,10 @@ const ACTIONS = [
 ];
 
 export function FeeQuickActions() {
+  const t = useT();
   return (
     <div className="rounded-2xl border bg-card p-5 shadow-sm">
-      <p className="text-sm font-semibold">Quick Actions</p>
+      <p className="text-sm font-semibold">{t("feesWidgets.quickActions")}</p>
       <div className="mt-4 grid grid-cols-2 gap-3">
         {ACTIONS.map((a) => (
           <Link

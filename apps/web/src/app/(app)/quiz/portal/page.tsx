@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Play } from "lucide-react";
@@ -11,6 +13,7 @@ import { getState as getStudentsState } from "@/lib/students/store";
 import { shortDate } from "@/lib/quiz/format";
 
 export default function StudentQuizPortalPage() {
+  const t = useT();
   const [mounted, setMounted] = useState(false);
   const [studentId, setStudentId] = useState("");
 
@@ -29,8 +32,8 @@ export default function StudentQuizPortalPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Student Quiz Portal</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Available, upcoming, and completed quizzes.</p>
+        <h1 className="text-2xl font-bold">{t("quizPortal.studentQuizPortal")}</h1>
+        <p className="mt-1 text-sm text-muted-foreground">{t("quizPortal.availableUpcomingAndCompletedQuizzes")}</p>
       </div>
 
       <Select value={studentId} onChange={(e) => setStudentId(e.target.value)} className="h-9 max-w-xs">
@@ -50,12 +53,12 @@ export default function StudentQuizPortalPage() {
               <QuizStatusBadge status={r.status} />
             </div>
             {r.marksObtained !== null && (
-              <p className="mt-3 text-sm">Score: <span className="font-semibold">{r.marksObtained}/{r.totalMarks}</span> ({r.percentage}%)</p>
+              <p className="mt-3 text-sm">{t("quizPortal.score")} <span className="font-semibold">{r.marksObtained}/{r.totalMarks}</span> ({r.percentage}%)</p>
             )}
-            {r.attemptDate && <p className="mt-1 text-xs text-muted-foreground">Last: {shortDate(r.attemptDate)}</p>}
+            {r.attemptDate && <p className="mt-1 text-xs text-muted-foreground">{t("quizPortal.last")} {shortDate(r.attemptDate)}</p>}
             {r.canAttempt && (
               <Link href={`/quiz/take/${r.quizCode}?student=${studentId}`} className="mt-4 inline-block">
-                <Button className="h-9"><Play className="mr-2 h-4 w-4" />Start Quiz</Button>
+                <Button className="h-9"><Play className="mr-2 h-4 w-4" />{t("quizPortal.startQuiz")}</Button>
               </Link>
             )}
           </div>

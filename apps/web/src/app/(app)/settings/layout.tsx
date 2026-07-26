@@ -1,11 +1,14 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useEffect, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { SettingsNav } from "@/components/settings/settings-nav";
 import { usePermission } from "@/lib/users/use-permission";
 
 export default function SettingsLayout({ children }: { children: ReactNode }) {
+  const t = useT();
   const router = useRouter();
   const canView = usePermission("settings", "view");
   const canUpdate = usePermission("settings", "update");
@@ -20,7 +23,7 @@ export default function SettingsLayout({ children }: { children: ReactNode }) {
   if (!mounted) {
     return (
       <div className="flex h-64 items-center justify-center text-muted-foreground">
-        Loading settings…
+        {t("settingsLayout.loadingSettings")}
       </div>
     );
   }
@@ -32,13 +35,13 @@ export default function SettingsLayout({ children }: { children: ReactNode }) {
       <aside className="w-full shrink-0 lg:w-56">
         <div className="rounded-xl border bg-card p-3 lg:sticky lg:top-20">
           <p className="mb-2 px-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Configuration
+            {t("settingsLayout.configuration")}
           </p>
           <SettingsNav />
         </div>
         {!canUpdate && (
           <p className="mt-2 text-xs text-amber-600">
-            Read-only access. Contact an administrator to change settings.
+            {t("settingsLayout.readOnlyAccessContactAnAdministrator")}
           </p>
         )}
       </aside>

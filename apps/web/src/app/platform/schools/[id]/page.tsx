@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { use, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -29,6 +31,7 @@ export default function PlatformSchoolDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const t = useT();
   const { id } = use(params);
   const router = useRouter();
   const previewState = usePlatformSchoolsState();
@@ -104,7 +107,7 @@ export default function PlatformSchoolDetailPage({
     }
   }
 
-  if (loading) return <div className="text-slate-400">Loading school…</div>;
+  if (loading) return <div className="text-slate-400">{t("platformSchools.loadingSchool")}</div>;
 
   if (!school) {
     return (
@@ -113,9 +116,9 @@ export default function PlatformSchoolDetailPage({
           href="/platform/schools"
           className="inline-flex items-center gap-2 text-sm text-violet-400"
         >
-          <ArrowLeft className="h-4 w-4" /> Back to schools
+          <ArrowLeft className="h-4 w-4" /> {t("platformSchools.backToSchools")}
         </Link>
-        <p className="text-slate-400">School not found.</p>
+        <p className="text-slate-400">{t("platformSchools.schoolNotFound")}</p>
       </div>
     );
   }
@@ -128,7 +131,7 @@ export default function PlatformSchoolDetailPage({
         href="/platform/schools"
         className="inline-flex items-center gap-2 text-sm text-violet-400 hover:underline"
       >
-        <ArrowLeft className="h-4 w-4" /> All Schools
+        <ArrowLeft className="h-4 w-4" /> {t("platformSchools.allSchools")}
       </Link>
 
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -143,104 +146,104 @@ export default function PlatformSchoolDetailPage({
 
       <div className="rounded-xl border border-white/10 bg-white/5 p-5">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="font-semibold text-white">Current Subscription</h2>
+          <h2 className="font-semibold text-white">{t("platformSchools.currentSubscription")}</h2>
           <Link
             href="/platform/subscriptions"
             className="text-xs text-violet-400 hover:underline"
           >
-            Manage subscriptions
+            {t("platformSchools.manageSubscriptions")}
           </Link>
         </div>
         {sub ? (
           <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
             <div>
-              <dt className="text-slate-500">Plan</dt>
+              <dt className="text-slate-500">{t("platformSchools.plan")}</dt>
               <dd className="mt-0.5 font-medium text-white">{sub.plan.name}</dd>
             </div>
             <div>
-              <dt className="text-slate-500">Status</dt>
+              <dt className="text-slate-500">{t("platformSchools.status")}</dt>
               <dd className="mt-0.5 font-medium text-white">{sub.status}</dd>
             </div>
             <div>
-              <dt className="text-slate-500">Expiry Date</dt>
+              <dt className="text-slate-500">{t("platformSchools.expiryDate")}</dt>
               <dd className="mt-0.5 text-slate-200">
                 {shortDate(sub.endDate)}
               </dd>
             </div>
             <div>
-              <dt className="text-slate-500">Student Limit</dt>
+              <dt className="text-slate-500">{t("platformSchools.studentLimit")}</dt>
               <dd className="mt-0.5 text-slate-200">
                 {sub.studentLimit ?? "Unlimited"}
               </dd>
             </div>
             <div>
-              <dt className="text-slate-500">Students Used</dt>
+              <dt className="text-slate-500">{t("platformSchools.studentsUsed")}</dt>
               <dd className="mt-0.5 text-slate-200">{sub.studentsUsed}</dd>
             </div>
             <div>
-              <dt className="text-slate-500">Students Remaining</dt>
+              <dt className="text-slate-500">{t("platformSchools.studentsRemaining")}</dt>
               <dd className="mt-0.5 text-slate-200">
                 {sub.studentsRemaining ?? "Unlimited"}
               </dd>
             </div>
             <div>
-              <dt className="text-slate-500">AI Limit</dt>
+              <dt className="text-slate-500">{t("platformSchools.aiLimit")}</dt>
               <dd className="mt-0.5 text-slate-200">
                 {sub.aiLimit ?? "Unlimited"}
               </dd>
             </div>
             <div>
-              <dt className="text-slate-500">AI Used</dt>
+              <dt className="text-slate-500">{t("platformSchools.aiUsed")}</dt>
               <dd className="mt-0.5 text-slate-200">{sub.aiUsed}</dd>
             </div>
             <div>
-              <dt className="text-slate-500">AI Remaining</dt>
+              <dt className="text-slate-500">{t("platformSchools.aiRemaining")}</dt>
               <dd className="mt-0.5 text-slate-200">
                 {sub.aiRemaining ?? "Unlimited"}
               </dd>
             </div>
             <div>
-              <dt className="text-slate-500">Assigned By</dt>
+              <dt className="text-slate-500">{t("platformSchools.assignedBy")}</dt>
               <dd className="mt-0.5 text-slate-200">
                 {sub.assignedByUsername ?? "—"}
               </dd>
             </div>
             <div>
-              <dt className="text-slate-500">Assigned Date</dt>
+              <dt className="text-slate-500">{t("platformSchools.assignedDate")}</dt>
               <dd className="mt-0.5 text-slate-200">
                 {shortDate(sub.assignedAt)}
               </dd>
             </div>
             <div>
-              <dt className="text-slate-500">Days Remaining</dt>
+              <dt className="text-slate-500">{t("platformSchools.daysRemaining")}</dt>
               <dd className="mt-0.5 text-slate-200">{sub.daysRemaining}</dd>
             </div>
           </dl>
         ) : (
           <p className="mt-4 text-sm text-slate-400">
-            No subscription assigned to this school.
+            {t("platformSchools.noSubscriptionAssignedToThisSchool")}
           </p>
         )}
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
         <div className="rounded-xl border border-white/10 bg-white/5 p-5">
-          <h2 className="font-semibold text-white">School Details</h2>
+          <h2 className="font-semibold text-white">{t("platformSchools.schoolDetails")}</h2>
           <dl className="mt-4 space-y-3 text-sm">
             <div className="flex justify-between">
-              <dt className="text-slate-400">School ID</dt>
+              <dt className="text-slate-400">{t("platformSchools.schoolId")}</dt>
               <dd className="font-mono text-slate-200">{school.id}</dd>
             </div>
             <div className="flex justify-between">
-              <dt className="text-slate-400">Users</dt>
+              <dt className="text-slate-400">{t("platformSchools.users")}</dt>
               <dd className="text-slate-200">{school.userCount}</dd>
             </div>
             <div className="flex justify-between">
-              <dt className="text-slate-400">Created</dt>
+              <dt className="text-slate-400">{t("platformSchools.created")}</dt>
               <dd className="text-slate-200">{shortDate(school.createdAt)}</dd>
             </div>
             <div className="flex justify-between">
-              <dt className="text-slate-400">Tenant URL</dt>
+              <dt className="text-slate-400">{t("platformSchools.tenantUrl")}</dt>
               <dd>
                 <a
                   href={tenantUrl(school.subdomain)}
@@ -248,7 +251,7 @@ export default function PlatformSchoolDetailPage({
                   rel="noreferrer"
                   className="inline-flex items-center gap-1 text-violet-400 hover:underline"
                 >
-                  Open <ExternalLink className="h-3 w-3" />
+                  {t("platformSchools.open")} <ExternalLink className="h-3 w-3" />
                 </a>
               </dd>
             </div>
@@ -256,11 +259,11 @@ export default function PlatformSchoolDetailPage({
         </div>
 
         <div className="rounded-xl border border-white/10 bg-white/5 p-5">
-          <h2 className="font-semibold text-white">Edit School</h2>
+          <h2 className="font-semibold text-white">{t("platformSchools.editSchool")}</h2>
           <div className="mt-4 space-y-4">
             <div>
               <label className="mb-1 block text-sm text-slate-400">
-                School Name
+                {t("platformSchools.schoolName")}
               </label>
               <Input
                 value={name}
@@ -288,18 +291,18 @@ export default function PlatformSchoolDetailPage({
           {school.status === "ACTIVE" ? (
             <>
               <Ban className="mr-2 h-4 w-4" />
-              Suspend School
+              {t("platformSchools.suspendSchool")}
             </>
           ) : (
             <>
               <CheckCircle className="mr-2 h-4 w-4" />
-              Activate School
+              {t("platformSchools.activateSchool")}
             </>
           )}
         </Button>
         <Button variant="destructive" onClick={handleDelete}>
           <Trash2 className="mr-2 h-4 w-4" />
-          Delete School
+          {t("platformSchools.deleteSchool")}
         </Button>
       </div>
 

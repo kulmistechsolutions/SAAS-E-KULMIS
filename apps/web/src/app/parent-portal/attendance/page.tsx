@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useEffect, useMemo, useState } from "react";
 import { Download, Printer, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -24,6 +26,7 @@ const STATUS_TONE = {
 } as const;
 
 export default function ParentAttendancePage() {
+  const t = useT();
   const { selectedChild } = usePortal();
   usePortalAudit("ATTENDANCE_VIEWED", selectedChild?.id);
 
@@ -58,7 +61,7 @@ export default function ParentAttendancePage() {
   if (!selectedChild) {
     return (
       <p className="text-muted-foreground">
-        Select a child to view attendance.
+        {t("parentPortalAttendance.selectAChildToViewAttendance")}
       </p>
     );
   }
@@ -67,7 +70,7 @@ export default function ParentAttendancePage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold">Attendance</h1>
+          <h1 className="text-2xl font-bold">{t("parentPortalAttendance.attendance")}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             {selectedChild.fullName} · {selectedChild.className}
           </p>
@@ -75,11 +78,11 @@ export default function ParentAttendancePage() {
         <div className="flex gap-2">
           <Button onClick={() => printAttendanceReport(selectedChild)}>
             <Printer className="mr-2 h-4 w-4" />
-            Print
+            {t("parentPortalAttendance.print")}
           </Button>
           <Button onClick={() => printAttendanceReport(selectedChild)}>
             <Download className="mr-2 h-4 w-4" />
-            PDF
+            {t("parentPortalAttendance.pdf")}
           </Button>
         </div>
       </div>
@@ -112,7 +115,7 @@ export default function ParentAttendancePage() {
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             className="pl-9"
-            placeholder="Search by date…"
+            placeholder={t("parentPortalAttendance.searchByDate")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -122,19 +125,19 @@ export default function ParentAttendancePage() {
           onChange={(e) => setFilter(e.target.value)}
           className="h-9 w-36"
         >
-          <option value="ALL">All statuses</option>
-          <option value="PRESENT">Present</option>
-          <option value="ABSENT">Absent</option>
-          <option value="LATE">Late</option>
+          <option value="ALL">{t("parentPortalAttendance.allStatuses")}</option>
+          <option value="PRESENT">{t("parentPortalAttendance.present")}</option>
+          <option value="ABSENT">{t("parentPortalAttendance.absent")}</option>
+          <option value="LATE">{t("parentPortalAttendance.late")}</option>
         </Select>
         <Select
           value={range}
           onChange={(e) => setRange(e.target.value)}
           className="h-9 w-36"
         >
-          <option value="30">Last 30 days</option>
-          <option value="60">Last 60 days</option>
-          <option value="90">Last 90 days</option>
+          <option value="30">{t("parentPortalAttendance.last30Days")}</option>
+          <option value="60">{t("parentPortalAttendance.last60Days")}</option>
+          <option value="90">{t("parentPortalAttendance.last90Days")}</option>
         </Select>
       </div>
 
@@ -142,8 +145,8 @@ export default function ParentAttendancePage() {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b bg-secondary/50 text-left">
-              <th className="px-4 py-3 font-medium">Date</th>
-              <th className="px-4 py-3 font-medium">Status</th>
+              <th className="px-4 py-3 font-medium">{t("parentPortalAttendance.date")}</th>
+              <th className="px-4 py-3 font-medium">{t("parentPortalAttendance.status")}</th>
             </tr>
           </thead>
           <tbody>
@@ -161,7 +164,7 @@ export default function ParentAttendancePage() {
                   colSpan={2}
                   className="px-4 py-8 text-center text-muted-foreground"
                 >
-                  No attendance records match your filters.
+                  {t("parentPortalAttendance.noAttendanceRecordsMatchYourFilters")}
                 </td>
               </tr>
             )}

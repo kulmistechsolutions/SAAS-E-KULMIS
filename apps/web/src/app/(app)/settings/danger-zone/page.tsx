@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AlertTriangle, Loader2, RotateCcw, Users } from "lucide-react";
@@ -26,6 +28,7 @@ import { useIsSchoolSuperAdmin } from "@/lib/users/super-admin";
 import { toast } from "@/lib/toast";
 
 export default function DangerZonePage() {
+  const t = useT();
   const router = useRouter();
   const isSuper = useIsSchoolSuperAdmin();
 
@@ -41,11 +44,9 @@ export default function DangerZonePage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Danger Zone</h1>
+        <h1 className="text-2xl font-bold">{t("settingsDangerZone.dangerZone")}</h1>
         <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-          Deliberate resets. Normal deletes keep student IDs retired forever —
-          only these restart numbering. Everything here is permanent and cannot
-          be undone.
+          {t("settingsDangerZone.deliberateResetsNormalDeletesKeepStudent")}
         </p>
       </div>
 
@@ -58,6 +59,7 @@ export default function DangerZonePage() {
 
 /** Erase every teacher and restart teacher numbering at 1. */
 function TeacherResetCard() {
+  const t = useT();
   const [preview, setPreview] = useState<ApiTeacherResetPreview | null>(null);
   const [open, setOpen] = useState(false);
   const [typed, setTyped] = useState("");
@@ -99,15 +101,10 @@ function TeacherResetCard() {
     <div className="rounded-xl border border-red-300 bg-red-50/50 p-5 dark:border-red-900/50 dark:bg-red-950/20">
       <h2 className="flex items-center gap-2 font-semibold text-red-700 dark:text-red-300">
         <Users className="h-4 w-4" />
-        Reset all teachers
+        {t("settingsDangerZone.resetAllTeachers")}
       </h2>
       <p className="mt-1 text-sm text-muted-foreground">
-        Delete <strong>every</strong> teacher — their logins, class and subject
-        assignments, attendance and quizzes — and restart teacher IDs from #1,
-        so the school can import its staff again cleanly. Timetable slots keep
-        their place but are left unstaffed. Salary records are kept: they are
-        the school&apos;s financial history and name the employee in their own
-        right.
+        {t("settingsDangerZone.delete")} <strong>{t("settingsDangerZone.every")}</strong> {t("settingsDangerZone.teacherTheirLoginsClassAndSubject")}
       </p>
 
       {!open ? (
@@ -117,21 +114,21 @@ function TeacherResetCard() {
           onClick={() => void loadPreview()}
         >
           <Users className="mr-2 h-4 w-4" />
-          Reset all teachers…
+          {t("settingsDangerZone.resetAllTeachers")}
         </Button>
       ) : c && preview ? (
         <div className="mt-4 max-w-md space-y-3">
           <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 rounded-lg border bg-card p-3 text-sm sm:grid-cols-3">
-            <Count label="Teachers" value={c.teachers} strong />
-            <Count label="Assignments" value={c.assignments} />
-            <Count label="Attendance" value={c.attendance} />
-            <Count label="Quizzes" value={c.quizzes} />
-            <Count label="Timetable slots" value={c.timetableEntries} />
+            <Count label={t("settingsDangerZone.teachers")} value={c.teachers} strong />
+            <Count label={t("settingsDangerZone.assignments")} value={c.assignments} />
+            <Count label={t("settingsDangerZone.attendance")} value={c.attendance} />
+            <Count label={t("settingsDangerZone.quizzes")} value={c.quizzes} />
+            <Count label={t("settingsDangerZone.timetableSlots")} value={c.timetableEntries} />
           </div>
           <div>
             <label className="mb-1 block text-sm font-medium">
-              Type the school name{" "}
-              <span className="font-mono">{preview.name}</span> to confirm
+              {t("settingsDangerZone.typeTheSchoolName")}{" "}
+              <span className="font-mono">{preview.name}</span> {t("settingsDangerZone.toConfirm")}
             </label>
             <Input
               value={typed}
@@ -150,7 +147,7 @@ function TeacherResetCard() {
                 setTyped("");
               }}
             >
-              Cancel
+              {t("settingsDangerZone.cancel")}
             </Button>
             <Button
               variant="destructive"
@@ -159,7 +156,7 @@ function TeacherResetCard() {
             >
               {busy ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Resetting…
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> {t("settingsDangerZone.resetting")}
                 </>
               ) : (
                 "Erase all teachers & restart at 1"
@@ -193,6 +190,7 @@ function Count({
 
 /** Reset a single class — delete its students, keep the class for re-import. */
 function ClassResetCard() {
+  const t = useT();
   useAcademicsState(); // re-render when classes load
   const classes = useMemo(
     () =>
@@ -253,20 +251,17 @@ function ClassResetCard() {
     <div className="rounded-xl border border-amber-300 bg-amber-50/50 p-5 dark:border-amber-900/50 dark:bg-amber-950/20">
       <h2 className="flex items-center gap-2 font-semibold">
         <RotateCcw className="h-4 w-4 text-amber-600" />
-        Reset one class
+        {t("settingsDangerZone.resetOneClass")}
       </h2>
       <p className="mt-1 text-sm text-muted-foreground">
-        Erase every student in a class (and their history) but keep the class,
-        so you can re-import it cleanly. Student IDs stay retired — the
-        school&apos;s numbering does not restart. Parents left with no children
-        anywhere are removed.
+        {t("settingsDangerZone.eraseEveryStudentInAClass")}
       </p>
 
       <div className="mt-4 max-w-md space-y-3">
         <div>
-          <label className="mb-1 block text-sm font-medium">Class</label>
+          <label className="mb-1 block text-sm font-medium">{t("settingsDangerZone.class")}</label>
           <Select value={classId} onChange={(e) => setClassId(e.target.value)}>
-            <option value="">Select a class…</option>
+            <option value="">{t("settingsDangerZone.selectAClass")}</option>
             {classes.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.name}
@@ -278,29 +273,27 @@ function ClassResetCard() {
 
         {loading ? (
           <p className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" /> Counting…
+            <Loader2 className="h-4 w-4 animate-spin" /> {t("settingsDangerZone.counting")}
           </p>
         ) : preview ? (
           <>
             <div className="rounded-lg border bg-card p-3 text-sm">
               <p>
                 <span className="font-bold">{preview.counts.students}</span>{" "}
-                students and{" "}
+                {t("settingsDangerZone.studentsAnd")}{" "}
                 <span className="font-bold">{preview.counts.parents}</span>{" "}
-                parents will be deleted.
+                {t("settingsDangerZone.parentsWillBeDeleted")}
               </p>
               {preview.counts.parentsKept > 0 && (
                 <p className="mt-1 text-xs text-muted-foreground">
-                  {preview.counts.parentsKept} parent
-                  {preview.counts.parentsKept === 1 ? "" : "s"} kept — they have
-                  children in other classes.
+                  {preview.counts.parentsKept} {t("settingsDangerZone.parent")}
+                  {preview.counts.parentsKept === 1 ? "" : "s"} {t("settingsDangerZone.keptTheyHaveChildrenInOther")}
                 </p>
               )}
             </div>
             <div>
               <label className="mb-1 block text-sm font-medium">
-                Type <span className="font-mono">{preview.name}</span> to
-                confirm
+                {t("settingsDangerZone.type")} <span className="font-mono">{preview.name}</span> {t("settingsDangerZone.toConfirm")}
               </label>
               <Input
                 value={typed}
@@ -317,7 +310,7 @@ function ClassResetCard() {
             >
               {busy ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Resetting…
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> {t("settingsDangerZone.resetting")}
                 </>
               ) : (
                 "Reset this class"
@@ -332,6 +325,7 @@ function ClassResetCard() {
 
 /** Reset the whole school — delete all students and restart numbering at 1. */
 function SchoolResetCard() {
+  const t = useT();
   const [preview, setPreview] = useState<ApiSchoolResetPreview | null>(null);
   const [open, setOpen] = useState(false);
   const [typed, setTyped] = useState("");
@@ -371,12 +365,10 @@ function SchoolResetCard() {
     <div className="rounded-xl border border-red-300 bg-red-50/50 p-5 dark:border-red-900/50 dark:bg-red-950/20">
       <h2 className="flex items-center gap-2 font-semibold text-red-700 dark:text-red-300">
         <AlertTriangle className="h-4 w-4" />
-        Reset the whole school
+        {t("settingsDangerZone.resetTheWholeSchool")}
       </h2>
       <p className="mt-1 text-sm text-muted-foreground">
-        Delete <strong>every</strong> student and parent in the school and
-        restart student numbering from #1. Classes, teachers, subjects and
-        settings are kept. Use this only for a fresh start.
+        {t("settingsDangerZone.delete")} <strong>{t("settingsDangerZone.every")}</strong> {t("settingsDangerZone.studentAndParentInTheSchool")}
       </p>
 
       {!open ? (
@@ -386,23 +378,23 @@ function SchoolResetCard() {
           onClick={() => void loadPreview()}
         >
           <AlertTriangle className="mr-2 h-4 w-4" />
-          Reset entire school…
+          {t("settingsDangerZone.resetEntireSchool")}
         </Button>
       ) : preview ? (
         <div className="mt-4 max-w-md space-y-3">
           <div className="rounded-lg border bg-card p-3 text-sm">
             <p>
-              This deletes{" "}
+              {t("settingsDangerZone.thisDeletes")}{" "}
               <span className="font-bold">{preview.counts.students}</span>{" "}
-              students and{" "}
+              {t("settingsDangerZone.studentsAnd")}{" "}
               <span className="font-bold">{preview.counts.parents}</span>{" "}
-              parents. Numbering restarts at 1.
+              {t("settingsDangerZone.parentsNumberingRestartsAt1")}
             </p>
           </div>
           <div>
             <label className="mb-1 block text-sm font-medium">
-              Type the school name{" "}
-              <span className="font-mono">{preview.name}</span> to confirm
+              {t("settingsDangerZone.typeTheSchoolName")}{" "}
+              <span className="font-mono">{preview.name}</span> {t("settingsDangerZone.toConfirm")}
             </label>
             <Input
               value={typed}
@@ -421,7 +413,7 @@ function SchoolResetCard() {
                 setTyped("");
               }}
             >
-              Cancel
+              {t("settingsDangerZone.cancel")}
             </Button>
             <Button
               variant="destructive"
@@ -430,7 +422,7 @@ function SchoolResetCard() {
             >
               {busy ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Resetting…
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> {t("settingsDangerZone.resetting")}
                 </>
               ) : (
                 "Erase all students & restart at 1"

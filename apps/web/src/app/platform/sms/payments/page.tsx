@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import {
@@ -70,6 +72,7 @@ function money(n: string | number, currency = "USD") {
 }
 
 export default function PlatformWaafiPaymentsPage() {
+  const t = useT();
   const [tab, setTab] = useState<"gateway" | "transactions">("gateway");
   const [config, setConfig] = useState<PlatformWaafiConfig | null>(null);
   const [overview, setOverview] = useState<PlatformSmsPaymentOverview | null>(
@@ -211,7 +214,7 @@ export default function PlatformWaafiPaymentsPage() {
   if (loading && !config) {
     return (
       <div className="flex h-64 items-center justify-center text-slate-400">
-        <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Loading WaafiPay…
+        <Loader2 className="mr-2 h-5 w-5 animate-spin" /> {t("platformSmsPayments.loadingWaafipay")}
       </div>
     );
   }
@@ -220,23 +223,23 @@ export default function PlatformWaafiPaymentsPage() {
     <div className="space-y-6 p-4 lg:p-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white">WaafiPay Payments</h1>
+          <h1 className="text-2xl font-bold text-white">{t("platformSmsPayments.waafipayPayments")}</h1>
           <p className="mt-1 text-sm text-slate-400">
-            Configure Hormuud Waafi gateway and monitor SMS package purchases.{" "}
+            {t("platformSmsPayments.configureHormuudWaafiGatewayAndMonitor")}{" "}
             <a
               href="https://docs.waafipay.com/"
               target="_blank"
               rel="noreferrer"
               className="text-violet-300 hover:underline"
             >
-              Docs
+              {t("platformSmsPayments.docs")}
             </a>
           </p>
         </div>
         <div className="flex items-center gap-2">
           {config ? <StatusBadge status={config.connectionStatus} /> : null}
           <Button variant="outline" className="h-8 px-3 text-xs" onClick={() => void load()}>
-            <RefreshCw className="mr-1.5 h-3.5 w-3.5" /> Refresh
+            <RefreshCw className="mr-1.5 h-3.5 w-3.5" /> {t("platformSmsPayments.refresh")}
           </Button>
         </div>
       </div>
@@ -244,19 +247,19 @@ export default function PlatformWaafiPaymentsPage() {
       {overview ? (
         <div className="grid gap-3 sm:grid-cols-3">
           <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-            <p className="text-xs text-slate-400">Successful revenue</p>
+            <p className="text-xs text-slate-400">{t("platformSmsPayments.successfulRevenue")}</p>
             <p className="mt-1 text-xl font-semibold text-white">
               {money(overview.revenue.totalAmount, config?.currency ?? "USD")}
             </p>
           </div>
           <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-            <p className="text-xs text-slate-400">Successful payments</p>
+            <p className="text-xs text-slate-400">{t("platformSmsPayments.successfulPayments")}</p>
             <p className="mt-1 text-xl font-semibold text-white">
               {overview.revenue.successfulPayments}
             </p>
           </div>
           <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-            <p className="text-xs text-slate-400">Credits sold</p>
+            <p className="text-xs text-slate-400">{t("platformSmsPayments.creditsSold")}</p>
             <p className="mt-1 text-xl font-semibold text-white">
               {overview.revenue.totalCredits.toLocaleString()}
             </p>
@@ -292,25 +295,24 @@ export default function PlatformWaafiPaymentsPage() {
           <section className="space-y-4 rounded-2xl border border-white/10 bg-[#0f172a] p-5">
             <div className="flex items-center gap-2">
               <CreditCard className="h-5 w-5 text-violet-300" />
-              <h2 className="font-semibold text-white">Waafi credentials</h2>
+              <h2 className="font-semibold text-white">{t("platformSmsPayments.waafiCredentials")}</h2>
             </div>
             <p className="text-xs text-slate-400">
-              Credentials are saved only after a successful Test Connection.
-              Schools never see these values.
+              {t("platformSmsPayments.credentialsAreSavedOnlyAfterA")}
             </p>
 
             <div className="space-y-3">
               <div>
-                <Label className="text-slate-300">API base URL</Label>
+                <Label className="text-slate-300">{t("platformSmsPayments.apiBaseUrl")}</Label>
                 <Input
                   value={baseUrl}
                   onChange={(e) => setBaseUrl(e.target.value)}
                   className="mt-1 border-white/10 bg-black/20 text-white"
-                  placeholder="https://sandbox.waafipay.net/asm"
+                  placeholder={t("platformSmsPayments.httpsSandboxWaafipayNetAsm")}
                 />
               </div>
               <div>
-                <Label className="text-slate-300">Merchant UID</Label>
+                <Label className="text-slate-300">{t("platformSmsPayments.merchantUid")}</Label>
                 <Input
                   value={merchantUid}
                   onChange={(e) => setMerchantUid(e.target.value)}
@@ -319,7 +321,7 @@ export default function PlatformWaafiPaymentsPage() {
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
                 <div>
-                  <Label className="text-slate-300">API User ID</Label>
+                  <Label className="text-slate-300">{t("platformSmsPayments.apiUserId")}</Label>
                   <Input
                     value={apiUserId}
                     onChange={(e) => setApiUserId(e.target.value)}
@@ -328,7 +330,7 @@ export default function PlatformWaafiPaymentsPage() {
                 </div>
                 <div>
                   <Label className="text-slate-300">
-                    API Key {config?.hasApiKey ? "(saved)" : ""}
+                    {t("platformSmsPayments.apiKey")} {config?.hasApiKey ? "(saved)" : ""}
                   </Label>
                   <Input
                     type="password"
@@ -341,7 +343,7 @@ export default function PlatformWaafiPaymentsPage() {
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
                 <div>
-                  <Label className="text-slate-300">Store ID (HPP)</Label>
+                  <Label className="text-slate-300">{t("platformSmsPayments.storeIdHpp")}</Label>
                   <Input
                     value={storeId}
                     onChange={(e) => setStoreId(e.target.value)}
@@ -350,7 +352,7 @@ export default function PlatformWaafiPaymentsPage() {
                 </div>
                 <div>
                   <Label className="text-slate-300">
-                    HPP Key {config?.hasHppKey ? "(saved)" : ""}
+                    {t("platformSmsPayments.hppKey")} {config?.hasHppKey ? "(saved)" : ""}
                   </Label>
                   <Input
                     type="password"
@@ -363,7 +365,7 @@ export default function PlatformWaafiPaymentsPage() {
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
                 <div>
-                  <Label className="text-slate-300">Default method</Label>
+                  <Label className="text-slate-300">{t("platformSmsPayments.defaultMethod")}</Label>
                   <Select
                     value={defaultMethod}
                     onChange={(e) =>
@@ -373,12 +375,12 @@ export default function PlatformWaafiPaymentsPage() {
                     }
                     className="mt-1 border-white/10 bg-black/20 text-white"
                   >
-                    <option value="API_PURCHASE">Direct API (mobile wallet)</option>
-                    <option value="HPP_PURCHASE">Hosted Payment Page</option>
+                    <option value="API_PURCHASE">{t("platformSmsPayments.directApiMobileWallet")}</option>
+                    <option value="HPP_PURCHASE">{t("platformSmsPayments.hostedPaymentPage")}</option>
                   </Select>
                 </div>
                 <div>
-                  <Label className="text-slate-300">Currency</Label>
+                  <Label className="text-slate-300">{t("platformSmsPayments.currency")}</Label>
                   <Input
                     value={currency}
                     onChange={(e) => setCurrency(e.target.value.toUpperCase())}
@@ -388,18 +390,18 @@ export default function PlatformWaafiPaymentsPage() {
               </div>
               <div>
                 <Label className="text-slate-300">
-                  Callback base URL (HTTPS, public)
+                  {t("platformSmsPayments.callbackBaseUrlHttpsPublic")}
                 </Label>
                 <Input
                   value={callbackBaseUrl}
                   onChange={(e) => setCallbackBaseUrl(e.target.value)}
                   className="mt-1 border-white/10 bg-black/20 text-white"
-                  placeholder="https://api.yourdomain.com"
+                  placeholder={t("platformSmsPayments.httpsApiYourdomainCom")}
                 />
                 <p className="mt-1 text-[11px] text-slate-500">
-                  Required for HPP. Callbacks hit{" "}
+                  {t("platformSmsPayments.requiredForHppCallbacksHit")}{" "}
                   <code className="text-slate-400">
-                    /api/sms/payments/waafi/callback/*
+                    {t("platformSmsPayments.apiSmsPaymentsWaafiCallback")}
                   </code>
                 </p>
               </div>
@@ -412,7 +414,7 @@ export default function PlatformWaafiPaymentsPage() {
                 ) : (
                   <CheckCircle2 className="mr-1.5 h-4 w-4" />
                 )}
-                Test Connection & Save
+                {t("platformSmsPayments.testConnectionSave")}
               </Button>
               <Button
                 variant="outline"
@@ -433,17 +435,14 @@ export default function PlatformWaafiPaymentsPage() {
 
             {simulationMode ? (
               <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-100">
-                Simulation mode is ON. School package purchases succeed instantly
-                without calling WaafiPay. Turn this off before production.
+                {t("platformSmsPayments.simulationModeIsOnSchoolPackage")}
               </div>
             ) : null}
 
             {!config?.paymentsUnlocked && !simulationMode ? (
               <div className="rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-xs text-rose-100">
-                Payments are locked. Either enter real Hormuud Waafi credentials and
-                click <strong>Test Connection & Save</strong>, or click{" "}
-                <strong>Enable simulation mode</strong> to demo purchases without
-                credentials.
+                {t("platformSmsPayments.paymentsAreLockedEitherEnterReal")} <strong>{t("platformSmsPayments.testConnectionSave")}</strong>{t("platformSmsPayments.orClick")}{" "}
+                <strong>{t("platformSmsPayments.enableSimulationMode")}</strong> {t("platformSmsPayments.toDemoPurchasesWithoutCredentials")}
               </div>
             ) : null}
 
@@ -453,7 +452,7 @@ export default function PlatformWaafiPaymentsPage() {
           </section>
 
           <section className="space-y-4 rounded-2xl border border-white/10 bg-[#0f172a] p-5">
-            <h2 className="font-semibold text-white">Last connection test</h2>
+            <h2 className="font-semibold text-white">{t("platformSmsPayments.lastConnectionTest")}</h2>
             {lastTest ? (
               <div className="space-y-3">
                 <p
@@ -485,24 +484,22 @@ export default function PlatformWaafiPaymentsPage() {
               </div>
             ) : (
               <p className="text-sm text-slate-500">
-                Run Test Connection to verify merchant credentials against WaafiPay.
+                {t("platformSmsPayments.runTestConnectionToVerifyMerchant")}
               </p>
             )}
 
             <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-3 text-xs text-amber-100/80">
-              <p className="font-medium text-amber-200">No Waafi credentials yet?</p>
+              <p className="font-medium text-amber-200">{t("platformSmsPayments.noWaafiCredentialsYet")}</p>
               <p className="mt-1">
-                Register at a WAAFI HQ office to get Merchant UID / API keys, then
-                paste them here and test. For local demo without credentials, click{" "}
-                <strong>Enable simulation mode</strong>.
+                {t("platformSmsPayments.registerAtAWaafiHqOffice")}{" "}
+                <strong>{t("platformSmsPayments.enableSimulationMode")}</strong>.
               </p>
-              <p className="mt-2 font-medium text-amber-200">Sandbox test wallets</p>
-              <p className="mt-1">EVCPlus 252611111111 PIN 1212 · ZAAD 252631111111 · SAHAL 252901111111</p>
+              <p className="mt-2 font-medium text-amber-200">{t("platformSmsPayments.sandboxTestWallets")}</p>
+              <p className="mt-1">{t("platformSmsPayments.evcplus252611111111Pin1212Zaad252631111111")}</p>
               <p className="mt-2">
-                Packages for schools unlock for purchase only when this gateway is
-                verified and enabled (or simulation is on).{" "}
+                {t("platformSmsPayments.packagesForSchoolsUnlockForPurchase")}{" "}
                 <Link href="/platform/sms" className="text-violet-300 hover:underline">
-                  Manage packages →
+                  {t("platformSmsPayments.managePackages")}
                 </Link>
               </p>
             </div>
@@ -514,20 +511,20 @@ export default function PlatformWaafiPaymentsPage() {
             <table className="w-full min-w-[900px] text-left text-sm">
               <thead className="border-b border-white/10 text-xs uppercase text-slate-500">
                 <tr>
-                  <th className="px-4 py-3">School</th>
-                  <th className="px-4 py-3">Package</th>
-                  <th className="px-4 py-3">Amount</th>
-                  <th className="px-4 py-3">Status</th>
-                  <th className="px-4 py-3">Reference</th>
-                  <th className="px-4 py-3">Waafi Txn</th>
-                  <th className="px-4 py-3">Date</th>
+                  <th className="px-4 py-3">{t("platformSmsPayments.school")}</th>
+                  <th className="px-4 py-3">{t("platformSmsPayments.package")}</th>
+                  <th className="px-4 py-3">{t("platformSmsPayments.amount")}</th>
+                  <th className="px-4 py-3">{t("platformSmsPayments.status")}</th>
+                  <th className="px-4 py-3">{t("platformSmsPayments.reference")}</th>
+                  <th className="px-4 py-3">{t("platformSmsPayments.waafiTxn")}</th>
+                  <th className="px-4 py-3">{t("platformSmsPayments.date")}</th>
                 </tr>
               </thead>
               <tbody>
                 {(overview?.orders ?? []).length === 0 ? (
                   <tr>
                     <td colSpan={7} className="px-4 py-10 text-center text-slate-500">
-                      No payment transactions yet.
+                      {t("platformSmsPayments.noPaymentTransactionsYet")}
                     </td>
                   </tr>
                 ) : (
@@ -540,7 +537,7 @@ export default function PlatformWaafiPaymentsPage() {
                       <td className="px-4 py-3 text-slate-300">
                         {o.package.name}
                         <span className="block text-xs text-slate-500">
-                          {o.credits} credits
+                          {o.credits} {t("platformSmsPayments.credits")}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-slate-200">

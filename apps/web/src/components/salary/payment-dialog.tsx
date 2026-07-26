@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
@@ -30,6 +32,7 @@ export function SalaryPaymentDialog({
   onClose,
   onSuccess,
 }: PaymentDialogProps) {
+  const t = useT();
   const [amount, setAmount] = useState("");
   const [method, setMethod] = useState<PaymentMethod>("BANK_TRANSFER");
   const [notes, setNotes] = useState("");
@@ -75,7 +78,7 @@ export function SalaryPaymentDialog({
     <Dialog
       open={open}
       onClose={onClose}
-      title="Pay Salary"
+      title={t("salaryPaymentDialog.paySalary")}
       description={
         row
           ? `${row.employeeName} (${row.employeeCode}) — ${monthLabel(row.payrollMonth)}`
@@ -85,14 +88,14 @@ export function SalaryPaymentDialog({
       footer={
         <>
           <Button variant="outline" onClick={onClose}>
-            Cancel
+            {t("salaryPaymentDialog.cancel")}
           </Button>
           <Button
             variant="outline"
             onClick={() => handleSubmit(false)}
             disabled={submitting || !row || row.status === "PAID"}
           >
-            Partial Pay
+            {t("salaryPaymentDialog.partialPay")}
           </Button>
           <Button
             onClick={() => handleSubmit(true)}
@@ -107,15 +110,15 @@ export function SalaryPaymentDialog({
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-3 rounded-xl bg-secondary/50 p-3 text-sm">
             <div>
-              <p className="text-xs text-muted-foreground">Net Salary</p>
+              <p className="text-xs text-muted-foreground">{t("salaryPaymentDialog.netSalary")}</p>
               <p className="font-semibold tabular-nums">{money(row.netSalary)}</p>
             </div>
             <div>
-              <p className="text-xs text-muted-foreground">Already Paid</p>
+              <p className="text-xs text-muted-foreground">{t("salaryPaymentDialog.alreadyPaid")}</p>
               <p className="font-semibold tabular-nums">{money(row.amountPaid)}</p>
             </div>
             <div className="col-span-2">
-              <p className="text-xs text-muted-foreground">Remaining Balance</p>
+              <p className="text-xs text-muted-foreground">{t("salaryPaymentDialog.remainingBalance")}</p>
               <p className="text-lg font-bold tabular-nums text-rose-600">
                 {money(row.remainingBalance)}
               </p>
@@ -123,7 +126,7 @@ export function SalaryPaymentDialog({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="pay-amount">Amount Paid</Label>
+            <Label htmlFor="pay-amount">{t("salaryPaymentDialog.amountPaid")}</Label>
             <Input
               id="pay-amount"
               type="number"
@@ -135,7 +138,7 @@ export function SalaryPaymentDialog({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="pay-method">Payment Method</Label>
+            <Label htmlFor="pay-method">{t("salaryPaymentDialog.paymentMethod")}</Label>
             <Select
               id="pay-method"
               value={method}
@@ -150,13 +153,13 @@ export function SalaryPaymentDialog({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="pay-notes">Notes (optional)</Label>
+            <Label htmlFor="pay-notes">{t("salaryPaymentDialog.notesOptional")}</Label>
             <Textarea
               id="pay-notes"
               rows={2}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="Payment reference or remarks…"
+              placeholder={t("salaryPaymentDialog.paymentReferenceOrRemarks")}
             />
           </div>
         </div>

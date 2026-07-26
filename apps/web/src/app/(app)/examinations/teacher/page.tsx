@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useEffect, useMemo, useState } from "react";
 import { Select } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
@@ -27,6 +29,7 @@ import { sectionsForClass, useAcademicsState } from "@/lib/academics/store";
  * Then Manual Entry or Excel/CSV import via MarkEntryTable.
  */
 export default function TeacherExamPortalPage() {
+  const t = useT();
   const { user } = useAuth();
   const isTeacher = user?.role === "TEACHER";
   const academics = useAcademicsState();
@@ -267,7 +270,7 @@ export default function TeacherExamPortalPage() {
                 });
             }}
           >
-            Retry
+            {t("examinationsTeacher.retry")}
           </Button>
         )}
       </div>
@@ -277,17 +280,16 @@ export default function TeacherExamPortalPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Enter Marks</h1>
+        <h1 className="text-2xl font-bold">{t("examinationsTeacher.enterMarks")}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Select Academic Year → Class → Section → Exam → Subject. Students from
-          different sections never appear together.
+          {t("examinationsTeacher.selectAcademicYearClassSectionExam")}
         </p>
       </div>
 
       <div className="grid gap-3 rounded-xl border bg-card p-4 sm:grid-cols-2 lg:grid-cols-5">
         <div>
           <label className="mb-1 block text-xs font-medium text-muted-foreground">
-            Academic Year
+            {t("examinationsTeacher.academicYear")}
           </label>
           <Select
             value={year}
@@ -298,7 +300,7 @@ export default function TeacherExamPortalPage() {
               setExamId("");
             }}
           >
-            <option value="">Select year…</option>
+            <option value="">{t("examinationsTeacher.selectYear")}</option>
             {[
               ...new Set(me?.assignments.map((a) => a.academicYear.name) ?? []),
             ].map((y) => (
@@ -310,7 +312,7 @@ export default function TeacherExamPortalPage() {
         </div>
         <div>
           <label className="mb-1 block text-xs font-medium text-muted-foreground">
-            Class
+            {t("examinationsTeacher.class")}
           </label>
           <Select
             value={classId}
@@ -321,7 +323,7 @@ export default function TeacherExamPortalPage() {
             }}
             disabled={!year}
           >
-            <option value="">Select class…</option>
+            <option value="">{t("examinationsTeacher.selectClass")}</option>
             {classOptions.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.name}
@@ -331,9 +333,9 @@ export default function TeacherExamPortalPage() {
         </div>
         <div>
           <label className="mb-1 block text-xs font-medium text-muted-foreground">
-            Section{" "}
+            {t("examinationsTeacher.section")}{" "}
             {classId && !classHasSections ? (
-              <span className="text-muted-foreground">(optional)</span>
+              <span className="text-muted-foreground">{t("examinationsTeacher.optional")}</span>
             ) : (
               <span className="text-rose-500">*</span>
             )}
@@ -357,20 +359,20 @@ export default function TeacherExamPortalPage() {
           </Select>
           {classId && !classHasSections && (
             <p className="mt-1 text-[11px] text-muted-foreground">
-              This grade has no sections — continue to Exam.
+              {t("examinationsTeacher.thisGradeHasNoSectionsContinue")}
             </p>
           )}
         </div>
         <div>
           <label className="mb-1 block text-xs font-medium text-muted-foreground">
-            Exam
+            {t("examinationsTeacher.exam")}
           </label>
           <Select
             value={examId}
             onChange={(e) => setExamId(e.target.value)}
             disabled={!classId || (classHasSections && !sectionId)}
           >
-            <option value="">Select exam…</option>
+            <option value="">{t("examinationsTeacher.selectExam")}</option>
             {examOptions.map((e) => (
               <option key={e.id} value={e.id}>
                 {e.name} ({e.status})
@@ -380,7 +382,7 @@ export default function TeacherExamPortalPage() {
         </div>
         <div>
           <label className="mb-1 block text-xs font-medium text-muted-foreground">
-            Subject
+            {t("examinationsTeacher.subject")}
           </label>
           <Select
             value={subjectName}
@@ -393,7 +395,7 @@ export default function TeacherExamPortalPage() {
             }}
             disabled={!examId}
           >
-            <option value="">Select subject…</option>
+            <option value="">{t("examinationsTeacher.selectSubject")}</option>
             {subjectOptions.map((s) => (
               <option key={s.id} value={s.name}>
                 {s.name}
@@ -441,7 +443,7 @@ export default function TeacherExamPortalPage() {
         (sectionId || !classHasSections) &&
         examOptions.length === 0 && (
           <p className="text-center text-muted-foreground">
-            No examinations for this class{sectionId ? " and section" : ""}.
+            {t("examinationsTeacher.noExaminationsForThisClass")}{sectionId ? " and section" : ""}.
           </p>
         )}
     </div>

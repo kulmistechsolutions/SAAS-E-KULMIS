@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -79,6 +81,7 @@ const NAV = [
 ];
 
 export function PortalShell({ children }: { children: React.ReactNode }) {
+  const t = useT();
   const pathname = usePathname();
   const router = useRouter();
   const {
@@ -127,7 +130,7 @@ export function PortalShell({ children }: { children: React.ReactNode }) {
             </div>
             <div>
               <p className="text-sm font-bold text-primary">{branding.name}</p>
-              <p className="text-[11px] text-muted-foreground">Parent Portal</p>
+              <p className="text-[11px] text-muted-foreground">{t("parentPortalPortalShell.parentPortal")}</p>
             </div>
           </div>
         </div>
@@ -165,7 +168,7 @@ export function PortalShell({ children }: { children: React.ReactNode }) {
             className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
           >
             <LogOut className="h-4 w-4" />
-            Sign out
+            {t("parentPortalPortalShell.signOut")}
           </button>
         </div>
       </aside>
@@ -176,13 +179,13 @@ export function PortalShell({ children }: { children: React.ReactNode }) {
             <button
               type="button"
               onClick={() => setMenuOpen(true)}
-              aria-label="Open menu"
+              aria-label={t("parentPortalPortalShell.openMenu")}
               className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border text-muted-foreground hover:bg-secondary lg:hidden"
             >
               <Menu className="h-5 w-5" />
             </button>
             <div className="min-w-0 flex-1">
-              <p className="text-xs text-muted-foreground">Welcome back</p>
+              <p className="text-xs text-muted-foreground">{t("parentPortalPortalShell.welcomeBack")}</p>
               <p className="truncate font-semibold">{parent.name}</p>
             </div>
             <div className="flex shrink-0 items-center gap-3">
@@ -249,14 +252,14 @@ export function PortalShell({ children }: { children: React.ReactNode }) {
                     {branding.name}
                   </p>
                   <p className="text-[11px] text-muted-foreground">
-                    Parent Portal
+                    {t("parentPortalPortalShell.parentPortal")}
                   </p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setMenuOpen(false)}
-                aria-label="Close menu"
+                aria-label={t("parentPortalPortalShell.closeMenu")}
                 className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary"
               >
                 <X className="h-4 w-4" />
@@ -292,7 +295,7 @@ export function PortalShell({ children }: { children: React.ReactNode }) {
                 className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
               >
                 <LogOut className="h-4 w-4" />
-                Sign out
+                {t("parentPortalPortalShell.signOut")}
               </button>
             </div>
           </div>

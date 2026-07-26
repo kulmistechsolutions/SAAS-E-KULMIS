@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import {
   createContext,
   useContext,
@@ -32,6 +34,7 @@ interface TeacherPortalContextValue {
 const TeacherPortalContext = createContext<TeacherPortalContextValue | null>(null);
 
 export function TeacherPortalProvider({ children }: { children: ReactNode }) {
+  const t = useT();
   const router = useRouter();
   const portal = useTeacherPortalState();
   const [mounted, setMounted] = useState(false);
@@ -79,7 +82,7 @@ export function TeacherPortalProvider({ children }: { children: ReactNode }) {
   if (!portal.session || !teacher) {
     return (
       <div className="flex min-h-screen items-center justify-center text-muted-foreground">
-        Loading teacher portal…
+        {t("teacherPortalPortalContext.loadingTeacherPortal")}
       </div>
     );
   }

@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Download,
@@ -42,6 +44,7 @@ function formatBytes(bytes: number): string {
 }
 
 export function DocumentsTab() {
+  const tr = useT();
   const academics = useAcademicsState();
   const year = activeAcademicYear();
 
@@ -183,16 +186,16 @@ export function DocumentsTab() {
       {/* ── Upload ── */}
       <div className="space-y-4 rounded-2xl border bg-card p-5 shadow-sm">
         <div>
-          <h2 className="font-semibold">Upload a book</h2>
+          <h2 className="font-semibold">{tr("libraryDocumentsTab.uploadABook")}</h2>
           <p className="mt-0.5 text-xs text-muted-foreground">
-            PDF only, up to 50 MB. Students read it in their portal.
+            {tr("libraryDocumentsTab.pdfOnlyUpTo50Mb")}
           </p>
         </div>
 
         {usage && (
           <div className="rounded-lg border bg-secondary/40 px-3 py-2">
             <div className="flex items-center justify-between text-xs">
-              <span className="font-medium">Storage used</span>
+              <span className="font-medium">{tr("libraryDocumentsTab.storageUsed")}</span>
               <span className="text-muted-foreground">
                 {formatBytes(usage.usedBytes)}
                 {usage.limitMb == null ? " (unlimited)" : ` / ${usage.limitMb} MB`}
@@ -212,7 +215,7 @@ export function DocumentsTab() {
         )}
 
         <div>
-          <Label htmlFor="pdf">PDF file</Label>
+          <Label htmlFor="pdf">{tr("libraryDocumentsTab.pdfFile")}</Label>
           <input
             id="pdf"
             ref={fileRef}
@@ -229,7 +232,7 @@ export function DocumentsTab() {
         </div>
 
         <div>
-          <Label htmlFor="doc-title">Title</Label>
+          <Label htmlFor="doc-title">{tr("libraryDocumentsTab.title")}</Label>
           <Input
             id="doc-title"
             className="mt-1.5"
@@ -239,7 +242,7 @@ export function DocumentsTab() {
         </div>
 
         <div>
-          <Label htmlFor="doc-author">Author (optional)</Label>
+          <Label htmlFor="doc-author">{tr("libraryDocumentsTab.authorOptional")}</Label>
           <Input
             id="doc-author"
             className="mt-1.5"
@@ -249,7 +252,7 @@ export function DocumentsTab() {
         </div>
 
         <div>
-          <Label htmlFor="doc-desc">Description (optional)</Label>
+          <Label htmlFor="doc-desc">{tr("libraryDocumentsTab.descriptionOptional")}</Label>
           <Textarea
             id="doc-desc"
             className="mt-1.5 min-h-[70px]"
@@ -259,22 +262,22 @@ export function DocumentsTab() {
         </div>
 
         <div>
-          <Label htmlFor="doc-class">Who can read it</Label>
+          <Label htmlFor="doc-class">{tr("libraryDocumentsTab.whoCanReadIt")}</Label>
           <Select
             id="doc-class"
             className="mt-1.5"
             value={classId}
             onChange={(e) => setClassId(e.target.value)}
           >
-            <option value="">Every student in the school</option>
+            <option value="">{tr("libraryDocumentsTab.everyStudentInTheSchool")}</option>
             {classes.map((c) => (
               <option key={c.id} value={c.id}>
-                Only {c.name}
+                {tr("libraryDocumentsTab.only")} {c.name}
               </option>
             ))}
           </Select>
           <p className="mt-1 text-xs text-muted-foreground">
-            Locked to a class, no other class can see or open it.
+            {tr("libraryDocumentsTab.lockedToAClassNoOther")}
           </p>
         </div>
 
@@ -286,9 +289,9 @@ export function DocumentsTab() {
             className="mt-0.5 h-4 w-4 rounded border-input"
           />
           <span>
-            Allow download
+            {tr("libraryDocumentsTab.allowDownload")}
             <span className="mt-0.5 block text-xs text-muted-foreground">
-              Off = read on screen only, no download button.
+              {tr("libraryDocumentsTab.offReadOnScreenOnlyNo")}
             </span>
           </span>
         </label>
@@ -300,7 +303,7 @@ export function DocumentsTab() {
           </Button>
           {file && (
             <Button variant="outline" onClick={resetForm} disabled={uploading}>
-              Clear
+              {tr("libraryDocumentsTab.clear")}
             </Button>
           )}
         </div>
@@ -310,8 +313,7 @@ export function DocumentsTab() {
       <div className="space-y-3">
         <div className="flex items-center justify-between gap-3 rounded-xl border bg-secondary/30 px-3 py-2 text-xs">
           <p className="text-muted-foreground">
-            Students read these at <span className="font-mono">/library-portal</span> —
-            they sign in with just their Student ID.
+            {tr("libraryDocumentsTab.studentsReadTheseAt")} <span className="font-mono">{tr("libraryDocumentsTab.libraryPortal")}</span> {tr("libraryDocumentsTab.theySignInWithJustTheir")}
           </p>
           <Button
             variant="outline"
@@ -323,7 +325,7 @@ export function DocumentsTab() {
               toast("Portal link copied", "success");
             }}
           >
-            Copy link
+            {tr("libraryDocumentsTab.copyLink")}
           </Button>
         </div>
         <div className="flex flex-col gap-2 sm:flex-row">
@@ -331,7 +333,7 @@ export function DocumentsTab() {
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               className="pl-9"
-              placeholder="Search by title, author…"
+              placeholder={tr("libraryDocumentsTab.searchByTitleAuthor")}
               value={q}
               onChange={(e) => setQ(e.target.value)}
             />
@@ -341,7 +343,7 @@ export function DocumentsTab() {
             value={filterClassId}
             onChange={(e) => setFilterClassId(e.target.value)}
           >
-            <option value="">All classes</option>
+            <option value="">{tr("libraryDocumentsTab.allClasses")}</option>
             {classes.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.name}
@@ -353,12 +355,12 @@ export function DocumentsTab() {
         <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
           {loading ? (
             <p className="px-4 py-12 text-center text-sm text-muted-foreground">
-              Loading…
+              {tr("libraryDocumentsTab.loading")}
             </p>
           ) : docs.length === 0 ? (
             <div className="px-4 py-12 text-center text-sm text-muted-foreground">
               <FileText className="mx-auto mb-2 h-7 w-7 opacity-40" />
-              No books uploaded yet.
+              {tr("libraryDocumentsTab.noBooksUploadedYet")}
             </div>
           ) : (
             <ul className="divide-y">
@@ -381,22 +383,22 @@ export function DocumentsTab() {
                       >
                         {d.class ? (
                           <>
-                            <Lock className="h-3 w-3" /> {d.class.name} only
+                            <Lock className="h-3 w-3" /> {d.class.name} {tr("libraryDocumentsTab.only")}
                           </>
                         ) : (
                           <>
-                            <Users className="h-3 w-3" /> All students
+                            <Users className="h-3 w-3" /> {tr("libraryDocumentsTab.allStudents")}
                           </>
                         )}
                       </span>
                       <span className="inline-flex items-center gap-1 rounded bg-secondary px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
                         {d.allowDownload ? (
                           <>
-                            <Download className="h-3 w-3" /> Download allowed
+                            <Download className="h-3 w-3" /> {tr("libraryDocumentsTab.downloadAllowed")}
                           </>
                         ) : (
                           <>
-                            <Eye className="h-3 w-3" /> Read only
+                            <Eye className="h-3 w-3" /> {tr("libraryDocumentsTab.readOnly")}
                           </>
                         )}
                       </span>
@@ -408,8 +410,8 @@ export function DocumentsTab() {
                       onClick={() => void preview(d.id)}
                       disabled={previewingId === d.id}
                       className="rounded-md p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground disabled:opacity-50"
-                      aria-label="Preview"
-                      title="Preview"
+                      aria-label={tr("libraryDocumentsTab.preview")}
+                      title={tr("libraryDocumentsTab.preview")}
                     >
                       {previewingId === d.id ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
@@ -421,8 +423,8 @@ export function DocumentsTab() {
                       type="button"
                       onClick={() => void remove(d)}
                       className="rounded-md p-1.5 text-muted-foreground hover:bg-rose-100 hover:text-rose-600"
-                      aria-label="Delete"
-                      title="Delete"
+                      aria-label={tr("libraryDocumentsTab.delete")}
+                      title={tr("libraryDocumentsTab.delete")}
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>

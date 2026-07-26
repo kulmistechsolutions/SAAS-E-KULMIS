@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useState } from "react";
 import { Search, ShieldBan, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -16,6 +18,7 @@ import { shortDate } from "@/lib/examinations/format";
 import { toast } from "@/lib/toast";
 
 export default function BlockedStudentsPage() {
+  const t = useT();
   const { blockedStudents, exams } = useExaminationsState();
   const students = getStudentsState().students;
   const [search, setSearch] = useState("");
@@ -47,9 +50,9 @@ export default function BlockedStudentsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Blocked Students</h1>
+        <h1 className="text-2xl font-bold">{t("examinationsBlocked.blockedStudents")}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Block students from viewing published results. Unblock restores access immediately.
+          {t("examinationsBlocked.blockStudentsFromViewingPublishedResults")}
         </p>
       </div>
 
@@ -57,13 +60,13 @@ export default function BlockedStudentsPage() {
         <div className="rounded-2xl border bg-card p-6 shadow-sm">
           <h2 className="flex items-center gap-2 font-semibold">
             <ShieldBan className="h-4 w-4 text-rose-500" />
-            Block Student
+            {t("examinationsBlocked.blockStudent")}
           </h2>
           <div className="mt-4 space-y-4">
             <div>
-              <Label required>Student</Label>
+              <Label required>{t("examinationsBlocked.student")}</Label>
               <Select className="mt-1.5" value={studentId} onChange={(e) => setStudentId(e.target.value)}>
-                <option value="">Select student…</option>
+                <option value="">{t("examinationsBlocked.selectStudent")}</option>
                 {students.filter((s) => s.status === "ACTIVE").map((s) => (
                   <option key={s.id} value={s.id}>
                     {s.fullName} ({s.code})
@@ -72,19 +75,19 @@ export default function BlockedStudentsPage() {
               </Select>
             </div>
             <div>
-              <Label>Exam (optional)</Label>
+              <Label>{t("examinationsBlocked.examOptional")}</Label>
               <Select className="mt-1.5" value={examId} onChange={(e) => setExamId(e.target.value)}>
-                <option value="">All exams</option>
+                <option value="">{t("examinationsBlocked.allExams")}</option>
                 {exams.map((e) => (
                   <option key={e.id} value={e.id}>{e.name}</option>
                 ))}
               </Select>
             </div>
             <div>
-              <Label required>Reason</Label>
+              <Label required>{t("examinationsBlocked.reason")}</Label>
               <Input className="mt-1.5" value={reason} onChange={(e) => setReason(e.target.value)} />
             </div>
-            <Button onClick={handleBlock}>Block Student</Button>
+            <Button onClick={handleBlock}>{t("examinationsBlocked.blockStudent")}</Button>
           </div>
         </div>
 
@@ -92,7 +95,7 @@ export default function BlockedStudentsPage() {
           <div className="flex items-center gap-2 border-b px-5 py-4">
             <Search className="h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search blocked students…"
+              placeholder={t("examinationsBlocked.searchBlockedStudents")}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="border-0 shadow-none focus-visible:ring-0"
@@ -117,13 +120,13 @@ export default function BlockedStudentsPage() {
                     else toast(res.error ?? "Unblock not supported", "error");
                   }}>
                     <ShieldCheck className="mr-2 h-4 w-4" />
-                    Unblock
+                    {t("examinationsBlocked.unblock")}
                   </Button>
                 </li>
               );
             })}
             {filtered.length === 0 && (
-              <li className="px-5 py-10 text-center text-muted-foreground">No blocked students.</li>
+              <li className="px-5 py-10 text-center text-muted-foreground">{t("examinationsBlocked.noBlockedStudents")}</li>
             )}
           </ul>
         </div>

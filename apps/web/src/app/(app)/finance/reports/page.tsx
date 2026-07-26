@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import Link from "next/link";
 import { BarChart3, FileText, Users } from "lucide-react";
 
@@ -16,12 +18,13 @@ const REPORTS = [
 ];
 
 export default function FeeReportsPage() {
+  const t = useT();
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Fee Reports</h1>
+        <h1 className="text-2xl font-bold">{t("financeReports.feeReports")}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          View, search, filter, print, and export fee reports.
+          {t("financeReports.viewSearchFilterPrintAndExport")}
         </p>
       </div>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

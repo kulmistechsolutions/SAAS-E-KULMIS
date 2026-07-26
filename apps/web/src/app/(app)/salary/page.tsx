@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Calendar, ChevronRight, FileText, History, Users, Wallet } from "lucide-react";
@@ -27,6 +29,7 @@ const QUICK = [
 ];
 
 export default function SalaryDashboardPage() {
+  const t = useT();
   const [mounted, setMounted] = useState(false);
   const state = useSalaryState();
   const [filterMonth, setFilterMonth] = useState("");
@@ -66,7 +69,7 @@ export default function SalaryDashboardPage() {
   if (!mounted) {
     return (
       <div className="flex h-64 items-center justify-center text-muted-foreground">
-        Loading salary module…
+        {t("salary.loadingSalaryModule")}
       </div>
     );
   }
@@ -75,9 +78,9 @@ export default function SalaryDashboardPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Salary Management</h1>
+          <h1 className="text-2xl font-bold">{t("salary.salaryManagement")}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Payroll overview, salary payments, and employee compensation.
+            {t("salary.payrollOverviewSalaryPaymentsAndEmployee")}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -90,7 +93,7 @@ export default function SalaryDashboardPage() {
             />
           </div>
           <div className="flex items-center gap-2 rounded-lg border bg-card px-3 py-2 text-sm">
-            <span className="text-muted-foreground">Month:</span>
+            <span className="text-muted-foreground">{t("salary.month")}</span>
             <Select
               value={month}
               onChange={(e) => setFilterMonth(e.target.value)}
@@ -104,7 +107,7 @@ export default function SalaryDashboardPage() {
             </Select>
           </div>
           <Button className="h-9" onClick={handleGenerate}>
-            Generate Payroll
+            {t("salary.generatePayroll")}
           </Button>
         </div>
       </div>
@@ -133,25 +136,25 @@ export default function SalaryDashboardPage() {
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="rounded-xl border bg-card shadow-sm">
           <div className="flex items-center justify-between border-b px-4 py-3">
-            <h2 className="font-semibold">Pending Salaries</h2>
+            <h2 className="font-semibold">{t("salary.pendingSalaries")}</h2>
             <Link href="/salary/payroll" className="text-xs font-medium text-primary hover:underline">
-              View all
+              {t("salary.viewAll")}
             </Link>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-secondary text-left text-xs text-muted-foreground">
                 <tr>
-                  <th className="px-4 py-2 font-medium">Employee</th>
-                  <th className="px-4 py-2 font-medium">Net</th>
-                  <th className="px-4 py-2 font-medium">Status</th>
+                  <th className="px-4 py-2 font-medium">{t("salary.employee")}</th>
+                  <th className="px-4 py-2 font-medium">{t("salary.net")}</th>
+                  <th className="px-4 py-2 font-medium">{t("salary.status")}</th>
                 </tr>
               </thead>
               <tbody>
                 {pending.length === 0 ? (
                   <tr>
                     <td colSpan={3} className="px-4 py-8 text-center text-muted-foreground">
-                      No pending salaries for this month.
+                      {t("salary.noPendingSalariesForThisMonth")}
                     </td>
                   </tr>
                 ) : (
@@ -175,25 +178,25 @@ export default function SalaryDashboardPage() {
 
         <div className="rounded-xl border bg-card shadow-sm">
           <div className="flex items-center justify-between border-b px-4 py-3">
-            <h2 className="font-semibold">Recent Payments</h2>
+            <h2 className="font-semibold">{t("salary.recentPayments")}</h2>
             <Link href="/salary/history" className="text-xs font-medium text-primary hover:underline">
-              View history
+              {t("salary.viewHistory")}
             </Link>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-secondary text-left text-xs text-muted-foreground">
                 <tr>
-                  <th className="px-4 py-2 font-medium">Employee</th>
-                  <th className="px-4 py-2 font-medium">Amount</th>
-                  <th className="px-4 py-2 font-medium">Date</th>
+                  <th className="px-4 py-2 font-medium">{t("salary.employee")}</th>
+                  <th className="px-4 py-2 font-medium">{t("salary.amount")}</th>
+                  <th className="px-4 py-2 font-medium">{t("salary.date")}</th>
                 </tr>
               </thead>
               <tbody>
                 {recent.length === 0 ? (
                   <tr>
                     <td colSpan={3} className="px-4 py-8 text-center text-muted-foreground">
-                      No payments recorded yet.
+                      {t("salary.noPaymentsRecordedYet")}
                     </td>
                   </tr>
                 ) : (

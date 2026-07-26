@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import {
@@ -38,6 +40,7 @@ const STATUS_TONE: Record<TimetableSummary["status"], string> = {
 };
 
 export default function TimetablePage() {
+  const tr = useT();
   const academics = useAcademicsState();
   const [yearId, setYearId] = useState("");
   const [shifts, setShifts] = useState<ShiftDto[]>([]);
@@ -140,10 +143,10 @@ export default function TimetablePage() {
         <div>
           <h1 className="flex items-center gap-2 text-2xl font-bold">
             <CalendarClock className="h-6 w-6" />
-            Timetable
+            {tr("timetable.timetable")}
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Generate a clash-free week, review it, then publish.
+            {tr("timetable.generateAClashFreeWeekReview")}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -159,7 +162,7 @@ export default function TimetablePage() {
           <Link href="/timetable/setup">
             <Button variant="outline">
               <Settings2 className="mr-2 h-4 w-4" />
-              Setup
+              {tr("timetable.setup")}
             </Button>
           </Link>
         </div>
@@ -168,15 +171,15 @@ export default function TimetablePage() {
       {loading ? (
         <div className="flex items-center gap-2 py-12 text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin" />
-          Loading…
+          {tr("timetable.loading")}
         </div>
       ) : shifts.length === 0 ? (
         <div className="rounded-lg border border-dashed p-8 text-center">
           <p className="text-sm text-muted-foreground">
-            No shift set up yet. Describe your school week first.
+            {tr("timetable.noShiftSetUpYetDescribe")}
           </p>
           <Link href="/timetable/setup" className="mt-3 inline-block">
-            <Button>Go to setup</Button>
+            <Button>{tr("timetable.goToSetup")}</Button>
           </Link>
         </div>
       ) : (
@@ -203,7 +206,7 @@ export default function TimetablePage() {
 
           {list.length === 0 ? (
             <p className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
-              Nothing generated yet.
+              {tr("timetable.nothingGeneratedYet")}
             </p>
           ) : (
             <div className="space-y-2">
@@ -225,7 +228,7 @@ export default function TimetablePage() {
                         {t.status}
                       </span>
                       <span className="ml-2 text-xs text-muted-foreground">
-                        {t.shift.name} · {t._count.entries} lessons
+                        {t.shift.name} · {t._count.entries} {tr("timetable.lessons")}
                       </span>
                     </button>
                     <div className="flex gap-2">
@@ -244,7 +247,7 @@ export default function TimetablePage() {
                           onClick={() => handlePublish(t.id)}
                         >
                           <CheckCircle2 className="mr-1 h-3.5 w-3.5" />
-                          Publish
+                          {tr("timetable.publish")}
                         </Button>
                       )}
                       <Button
@@ -254,7 +257,7 @@ export default function TimetablePage() {
                         onClick={() => handleDownload(t)}
                       >
                         <Download className="mr-1 h-3.5 w-3.5" />
-                        PDF
+                        {tr("timetable.pdf")}
                       </Button>
                       <Button
                         type="button"
@@ -280,7 +283,7 @@ export default function TimetablePage() {
                       ) : (
                         <div className="flex items-center gap-2 py-6 text-muted-foreground">
                           <Loader2 className="h-4 w-4 animate-spin" />
-                          Loading…
+                          {tr("timetable.loading")}
                         </div>
                       )}
                     </div>

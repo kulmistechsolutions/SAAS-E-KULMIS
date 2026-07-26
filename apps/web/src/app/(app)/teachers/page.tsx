@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
@@ -53,6 +55,7 @@ const STATUS_TONE: Record<EmploymentStatus, "success" | "muted"> = {
 };
 
 export default function TeachersPage() {
+  const tr = useT();
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
@@ -146,7 +149,7 @@ export default function TeachersPage() {
         className="flex h-64 items-center justify-center text-muted-foreground"
         suppressHydrationWarning
       >
-        Loading teachers…
+        {tr("teachers.loadingTeachers")}
       </div>
     );
   }
@@ -155,9 +158,9 @@ export default function TeachersPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold">Teachers</h1>
+          <h1 className="text-2xl font-bold">{tr("teachers.teachers")}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Manage teacher records, assignments, and credentials.
+            {tr("teachers.manageTeacherRecordsAssignmentsAndCredentials")}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -165,19 +168,19 @@ export default function TeachersPage() {
             href="/teachers/assignments"
             className="inline-flex h-10 items-center justify-center rounded-md border border-input bg-background px-4 text-sm font-medium transition-colors hover:bg-secondary"
           >
-            <BookOpen className="mr-2 h-4 w-4" /> Assignments
+            <BookOpen className="mr-2 h-4 w-4" /> {tr("teachers.assignments")}
           </Link>
           <Button variant="outline" onClick={() => printTeachersList(filtered, { shift: shift || "All", status: status || "All" })}>
-            <Printer className="mr-2 h-4 w-4" /> Print
+            <Printer className="mr-2 h-4 w-4" /> {tr("teachers.print")}
           </Button>
           <Button variant="outline" onClick={() => { exportTeachersCsv(filtered); toast(`Exported ${filtered.length} teachers.`, "info"); }}>
-            <FileDown className="mr-2 h-4 w-4" /> Export
+            <FileDown className="mr-2 h-4 w-4" /> {tr("teachers.export")}
           </Button>
           <Button variant="outline" onClick={() => setImportOpen(true)}>
-            <Upload className="mr-2 h-4 w-4" /> Import
+            <Upload className="mr-2 h-4 w-4" /> {tr("teachers.import")}
           </Button>
           <Button onClick={() => { setEditing(null); setFormOpen(true); }}>
-            <Plus className="mr-2 h-4 w-4" /> Add Teacher
+            <Plus className="mr-2 h-4 w-4" /> {tr("teachers.addTeacher")}
           </Button>
         </div>
       </div>
@@ -191,25 +194,25 @@ export default function TeachersPage() {
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search by ID, name, or phone…"
+              placeholder={tr("teachers.searchByIdNameOrPhone")}
               className="h-10 w-full rounded-lg border bg-background pl-9 pr-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
             />
           </div>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:flex">
             <AcademicYearSelect value={year} onChange={setYear} allowAll className="lg:w-36" />
             <Select value={shift} onChange={(e) => setShift(e.target.value)} className="lg:w-36">
-              <option value="">All Shifts</option>
-              <option value="MORNING">Morning</option>
-              <option value="AFTERNOON">Afternoon</option>
+              <option value="">{tr("teachers.allShifts")}</option>
+              <option value="MORNING">{tr("teachers.morning")}</option>
+              <option value="AFTERNOON">{tr("teachers.afternoon")}</option>
             </Select>
             <Select value={status} onChange={(e) => setStatus(e.target.value)} className="lg:w-32">
-              <option value="">All Status</option>
-              <option value="ACTIVE">Active</option>
-              <option value="INACTIVE">Inactive</option>
+              <option value="">{tr("teachers.allStatus")}</option>
+              <option value="ACTIVE">{tr("teachers.active")}</option>
+              <option value="INACTIVE">{tr("teachers.inactive")}</option>
             </Select>
             {hasFilters && (
               <Button variant="ghost" onClick={() => { setSearch(""); setYear(""); setShift(""); setStatus(""); }}>
-                <X className="mr-1 h-4 w-4" /> Clear
+                <X className="mr-1 h-4 w-4" /> {tr("teachers.clear")}
               </Button>
             )}
           </div>
@@ -222,21 +225,21 @@ export default function TeachersPage() {
             <thead className="sticky top-0 z-10 bg-secondary/95 backdrop-blur text-left text-xs uppercase tracking-wide text-muted-foreground">
               <tr>
                 <th className="px-4 py-3 font-medium">#</th>
-                <SortTh label="Teacher ID" active={sortKey === "code"} dir={sortDir} onClick={() => toggleSort("code")} />
-                <SortTh label="Name" active={sortKey === "fullName"} dir={sortDir} onClick={() => toggleSort("fullName")} />
-                <th className="px-4 py-3 font-medium">Phone</th>
-                <SortTh label="Shift" active={sortKey === "shift"} dir={sortDir} onClick={() => toggleSort("shift")} />
-                <th className="px-4 py-3 font-medium">Salary</th>
-                <th className="px-4 py-3 font-medium">Status</th>
-                <SortTh label="Reg. Date" active={sortKey === "registrationDate"} dir={sortDir} onClick={() => toggleSort("registrationDate")} />
-                <th className="px-4 py-3 text-right font-medium">Actions</th>
+                <SortTh label={tr("teachers.teacherId")} active={sortKey === "code"} dir={sortDir} onClick={() => toggleSort("code")} />
+                <SortTh label={tr("teachers.name")} active={sortKey === "fullName"} dir={sortDir} onClick={() => toggleSort("fullName")} />
+                <th className="px-4 py-3 font-medium">{tr("teachers.phone")}</th>
+                <SortTh label={tr("teachers.shift")} active={sortKey === "shift"} dir={sortDir} onClick={() => toggleSort("shift")} />
+                <th className="px-4 py-3 font-medium">{tr("teachers.salary")}</th>
+                <th className="px-4 py-3 font-medium">{tr("teachers.status")}</th>
+                <SortTh label={tr("teachers.regDate")} active={sortKey === "registrationDate"} dir={sortDir} onClick={() => toggleSort("registrationDate")} />
+                <th className="px-4 py-3 text-right font-medium">{tr("teachers.actions")}</th>
               </tr>
             </thead>
             <tbody>
               {pageRows.length === 0 ? (
                 <tr>
                   <td colSpan={9} className="px-4 py-16 text-center text-muted-foreground">
-                    No teachers match your filters.
+                    {tr("teachers.noTeachersMatchYourFilters")}
                   </td>
                 </tr>
               ) : (
@@ -260,14 +263,14 @@ export default function TeachersPage() {
                     <td className="px-4 py-3 text-muted-foreground">{shortDate(t.registrationDate)}</td>
                     <td className="px-4 py-3">
                       <div className="flex justify-end gap-1">
-                        <Action href={`/teachers/${t.id}`} title="View Profile" icon={Eye} />
-                        <Action title="Edit" icon={Pencil} onClick={() => { setEditing(t); setFormOpen(true); }} />
-                        <Action title="Assign Subjects" icon={BookOpen} onClick={() => setAssignTeacher(t)} />
-                        <Action href={`/teachers/${t.id}?tab=assignments`} title="View Assignments" icon={BookOpen} />
-                        <Action title="Reset Password" icon={KeyRound} onClick={() => handleResetPassword(t)} />
-                        <Action title="Print Profile" icon={Printer} onClick={() => printTeacherProfile(t, state.assignments.filter((a) => a.teacherId === t.id))} />
-                        <Action title="Download" icon={Download} onClick={() => exportTeachersCsv([t], `${t.code}.csv`)} />
-                        <Action title="Delete" icon={Trash2} danger onClick={() => setDeleting(t)} />
+                        <Action href={`/teachers/${t.id}`} title={tr("teachers.viewProfile")} icon={Eye} />
+                        <Action title={tr("teachers.edit")} icon={Pencil} onClick={() => { setEditing(t); setFormOpen(true); }} />
+                        <Action title={tr("teachers.assignSubjects")} icon={BookOpen} onClick={() => setAssignTeacher(t)} />
+                        <Action href={`/teachers/${t.id}?tab=assignments`} title={tr("teachers.viewAssignments")} icon={BookOpen} />
+                        <Action title={tr("teachers.resetPassword")} icon={KeyRound} onClick={() => handleResetPassword(t)} />
+                        <Action title={tr("teachers.printProfile")} icon={Printer} onClick={() => printTeacherProfile(t, state.assignments.filter((a) => a.teacherId === t.id))} />
+                        <Action title={tr("teachers.download")} icon={Download} onClick={() => exportTeachersCsv([t], `${t.code}.csv`)} />
+                        <Action title={tr("teachers.delete")} icon={Trash2} danger onClick={() => setDeleting(t)} />
                       </div>
                     </td>
                   </tr>
@@ -283,7 +286,7 @@ export default function TeachersPage() {
 
       <div className="flex justify-end">
         <button onClick={() => { resetTeachers(); toast("Demo teacher data reset.", "info"); }} className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground">
-          <RotateCcw className="h-3.5 w-3.5" /> Reset demo data
+          <RotateCcw className="h-3.5 w-3.5" /> {tr("teachers.resetDemoData")}
         </button>
       </div>
 
@@ -292,7 +295,7 @@ export default function TeachersPage() {
       <AssignmentFormDialog open={!!assignTeacher} onClose={() => setAssignTeacher(null)} teacherId={assignTeacher?.id} onSaved={(m) => toast(m)} />
       <ConfirmDialog
         open={!!deleting}
-        title="Delete Teacher"
+        title={tr("teachers.deleteTeacher")}
         message={deleting ? `Delete ${deleting.fullName} (${deleting.code})? This removes assignments and login access. Historical records are preserved in audit logs.` : ""}
         onConfirm={handleDelete}
         onClose={() => setDeleting(null)}

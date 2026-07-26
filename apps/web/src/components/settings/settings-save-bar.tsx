@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -18,6 +20,7 @@ export function SettingsSaveBar({
   onCancel,
   onResetDefault,
 }: Props) {
+  const t = useT();
   return (
     <div
       className={cn(
@@ -36,10 +39,10 @@ export function SettingsSaveBar({
             onClick={onResetDefault}
             disabled={saving}
           >
-            Reset to Default
+            {t("settingsSettingsSaveBar.resetToDefault")}
           </Button>
           <Button className="h-9" variant="outline" onClick={onCancel} disabled={!dirty || saving}>
-            Cancel
+            {t("settingsSettingsSaveBar.cancel")}
           </Button>
           <Button className="h-9" onClick={onSave} disabled={!dirty || saving}>
             {saving ? "Saving…" : "Save Changes"}

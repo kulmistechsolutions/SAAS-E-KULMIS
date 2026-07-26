@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { AlertTriangle } from "lucide-react";
 import { EligibilityBadge } from "./badges";
 import { money } from "@/lib/promotions/format";
@@ -20,6 +22,7 @@ export function PreviewTable({
   onToggle,
   onToggleAll,
 }: Props) {
+  const t = useT();
   const selectableIds = candidates.filter((c) => c.eligible).map((c) => c.studentId);
   const allSelected =
     selectableIds.length > 0 && selectableIds.every((id) => selected?.has(id));
@@ -40,19 +43,19 @@ export function PreviewTable({
                   />
                 </th>
               )}
-              <th className="px-4 py-3 font-medium">Student ID</th>
-              <th className="px-4 py-3 font-medium">Name</th>
-              <th className="px-4 py-3 font-medium">Current Class</th>
-              <th className="px-4 py-3 font-medium">Fees</th>
-              <th className="px-4 py-3 font-medium">Status</th>
-              <th className="px-4 py-3 font-medium">Notes</th>
+              <th className="px-4 py-3 font-medium">{t("promotionsPreviewTable.studentId")}</th>
+              <th className="px-4 py-3 font-medium">{t("promotionsPreviewTable.name")}</th>
+              <th className="px-4 py-3 font-medium">{t("promotionsPreviewTable.currentClass")}</th>
+              <th className="px-4 py-3 font-medium">{t("promotionsPreviewTable.fees")}</th>
+              <th className="px-4 py-3 font-medium">{t("promotionsPreviewTable.status")}</th>
+              <th className="px-4 py-3 font-medium">{t("promotionsPreviewTable.notes")}</th>
             </tr>
           </thead>
           <tbody>
             {candidates.length === 0 ? (
               <tr>
                 <td colSpan={selectable ? 7 : 6} className="px-4 py-12 text-center text-muted-foreground">
-                  No students found for this selection.
+                  {t("promotionsPreviewTable.noStudentsFoundForThisSelection")}
                 </td>
               </tr>
             ) : (
@@ -87,7 +90,7 @@ export function PreviewTable({
                   </td>
                   <td className="px-4 py-3">
                     {c.issues.length === 0 ? (
-                      <span className="text-xs text-muted-foreground">Ready</span>
+                      <span className="text-xs text-muted-foreground">{t("promotionsPreviewTable.ready")}</span>
                     ) : (
                       <span className="inline-flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400">
                         <AlertTriangle className="h-3.5 w-3.5" />

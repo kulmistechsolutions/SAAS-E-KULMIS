@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { AlertTriangle, Building2, Plus } from "lucide-react";
@@ -16,6 +18,7 @@ import {
 import { Button } from "@/components/ui/button";
 
 export default function PlatformDashboardPage() {
+  const t = useT();
   const previewSchools = usePlatformSchoolsState();
   const [mounted, setMounted] = useState(false);
   const [summary, setSummary] = useState<PlatformDashboard | null>(null);
@@ -34,7 +37,7 @@ export default function PlatformDashboardPage() {
   }, [mounted, previewSchools]);
 
   if (!mounted || !summary) {
-    return <div className="text-slate-400">Loading dashboard…</div>;
+    return <div className="text-slate-400">{t("platform.loadingDashboard")}</div>;
   }
 
   const recent = schools.slice(0, 5);
@@ -43,15 +46,15 @@ export default function PlatformDashboardPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white">Platform Dashboard</h1>
+          <h1 className="text-2xl font-bold text-white">{t("platform.platformDashboard")}</h1>
           <p className="mt-1 text-sm text-slate-400">
-            Cross-tenant overview for all schools on eKulmis
+            {t("platform.crossTenantOverviewForAllSchools")}
           </p>
         </div>
         <Link href="/platform/schools">
           <Button className="bg-violet-600 hover:bg-violet-500">
             <Plus className="mr-2 h-4 w-4" />
-            New School
+            {t("platform.newSchool")}
           </Button>
         </Link>
       </div>
@@ -63,13 +66,13 @@ export default function PlatformDashboardPage() {
           <div className="mb-3 flex items-center justify-between gap-2">
             <h2 className="flex items-center gap-2 font-semibold text-amber-100">
               <AlertTriangle className="h-4 w-4" />
-              Subscription alerts (7 / 3 / 1 day)
+              {t("platform.subscriptionAlerts731Day")}
             </h2>
             <Link
               href="/platform/subscriptions"
               className="text-sm text-violet-300 hover:underline"
             >
-              Open subscriptions →
+              {t("platform.openSubscriptions")}
             </Link>
           </div>
           <ul className="space-y-2 text-sm">
@@ -112,23 +115,23 @@ export default function PlatformDashboardPage() {
 
       <div className="rounded-xl border border-white/10 bg-white/5 p-5">
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="font-semibold text-white">Recent Schools</h2>
+          <h2 className="font-semibold text-white">{t("platform.recentSchools")}</h2>
           <Link
             href="/platform/schools"
             className="text-sm text-violet-400 hover:underline"
           >
-            View all →
+            {t("platform.viewAll")}
           </Link>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-white/10 text-left text-slate-400">
-                <th className="px-3 py-2">School</th>
-                <th className="px-3 py-2">Subdomain</th>
-                <th className="px-3 py-2">Status</th>
-                <th className="px-3 py-2">Users</th>
-                <th className="px-3 py-2">Created</th>
+                <th className="px-3 py-2">{t("platform.school")}</th>
+                <th className="px-3 py-2">{t("platform.subdomain")}</th>
+                <th className="px-3 py-2">{t("platform.status")}</th>
+                <th className="px-3 py-2">{t("platform.users")}</th>
+                <th className="px-3 py-2">{t("platform.created")}</th>
               </tr>
             </thead>
             <tbody>
@@ -161,7 +164,7 @@ export default function PlatformDashboardPage() {
                     className="px-3 py-8 text-center text-slate-500"
                   >
                     <Building2 className="mx-auto mb-2 h-8 w-8 opacity-50" />
-                    No schools provisioned yet.
+                    {t("platform.noSchoolsProvisionedYet")}
                   </td>
                 </tr>
               )}

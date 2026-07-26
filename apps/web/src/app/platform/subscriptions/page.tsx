@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
@@ -141,6 +143,7 @@ function exportHistoryCsv(rows: PlatformSubscriptionHistoryRow[]) {
 }
 
 export default function PlatformSubscriptionsPage() {
+  const t = useT();
   const { admin } = usePlatformAuth();
   const canMutate = admin?.role !== "OPERATOR";
   const [mounted, setMounted] = useState(false);
@@ -266,15 +269,15 @@ export default function PlatformSubscriptionsPage() {
     }
   }
 
-  if (!mounted) return <div className="text-slate-400">Loading…</div>;
+  if (!mounted) return <div className="text-slate-400">{t("platformSubscriptions.loading")}</div>;
 
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white">Subscriptions</h1>
+          <h1 className="text-2xl font-bold text-white">{t("platformSubscriptions.subscriptions")}</h1>
           <p className="mt-1 text-sm text-slate-400">
-            Plans, school assignments, usage limits, and subscription history.
+            {t("platformSubscriptions.plansSchoolAssignmentsUsageLimitsAnd")}
           </p>
         </div>
         {tab === "plans" && canMutate && (
@@ -286,12 +289,12 @@ export default function PlatformSubscriptionsPage() {
             }}
           >
             <Plus className="mr-2 h-4 w-4" />
-            New Plan
+            {t("platformSubscriptions.newPlan")}
           </Button>
         )}
         {!canMutate && (
           <p className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs text-slate-400">
-            Read-only · Operator role
+            {t("platformSubscriptions.readOnlyOperatorRole")}
           </p>
         )}
       </div>
@@ -307,13 +310,13 @@ export default function PlatformSubscriptionsPage() {
         <div className="space-y-6">
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             <KpiCard
-              label="Total Schools"
+              label={t("platformSubscriptions.totalSchools")}
               value={dashboard?.totalSchools ?? "—"}
               icon={Building2}
               tone="violet"
             />
             <KpiCard
-              label="Active Schools"
+              label={t("platformSubscriptions.activeSchools")}
               value={dashboard?.activeSchools ?? "—"}
               hint={
                 dashboard
@@ -324,7 +327,7 @@ export default function PlatformSubscriptionsPage() {
               tone="emerald"
             />
             <KpiCard
-              label="Expired Schools"
+              label={t("platformSubscriptions.expiredSchools")}
               value={dashboard?.expiredSchools ?? "—"}
               hint={
                 dashboard
@@ -335,7 +338,7 @@ export default function PlatformSubscriptionsPage() {
               tone="rose"
             />
             <KpiCard
-              label="Total AI Usage"
+              label={t("platformSubscriptions.totalAiUsage")}
               value={
                 dashboard
                   ? dashboard.totalAiQuota != null
@@ -343,12 +346,12 @@ export default function PlatformSubscriptionsPage() {
                     : dashboard.totalAiUsage
                   : "—"
               }
-              hint="Current billing month across schools"
+              hint={t("platformSubscriptions.currentBillingMonthAcrossSchools")}
               icon={Sparkles}
               tone="sky"
             />
             <KpiCard
-              label="Student Usage"
+              label={t("platformSubscriptions.studentUsage")}
               value={
                 dashboard
                   ? dashboard.studentCap != null
@@ -356,12 +359,12 @@ export default function PlatformSubscriptionsPage() {
                     : dashboard.studentUsage
                   : "—"
               }
-              hint="Students enrolled vs plan caps"
+              hint={t("platformSubscriptions.studentsEnrolledVsPlanCaps")}
               icon={Users}
               tone="indigo"
             />
             <KpiCard
-              label="Subscription Status"
+              label={t("platformSubscriptions.subscriptionStatus")}
               value={
                 dashboard
                   ? `${dashboard.subscriptionStatus.ACTIVE} active`
@@ -378,7 +381,7 @@ export default function PlatformSubscriptionsPage() {
           </div>
 
           <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
-            <h2 className="font-semibold text-white">Status breakdown</h2>
+            <h2 className="font-semibold text-white">{t("platformSubscriptions.statusBreakdown")}</h2>
             <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               {statusBreakdown.map((s) => (
                 <div
@@ -403,14 +406,14 @@ export default function PlatformSubscriptionsPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-white/10 text-left text-slate-400">
-                <th className="px-4 py-3">Plan</th>
-                <th className="px-4 py-3">Max Students</th>
-                <th className="px-4 py-3">Max Teachers</th>
-                <th className="px-4 py-3">Duration</th>
-                <th className="px-4 py-3">AI Grading / mo</th>
-                <th className="px-4 py-3">Library</th>
-                <th className="px-4 py-3">Price</th>
-                <th className="px-4 py-3">Status</th>
+                <th className="px-4 py-3">{t("platformSubscriptions.plan")}</th>
+                <th className="px-4 py-3">{t("platformSubscriptions.maxStudents")}</th>
+                <th className="px-4 py-3">{t("platformSubscriptions.maxTeachers")}</th>
+                <th className="px-4 py-3">{t("platformSubscriptions.duration")}</th>
+                <th className="px-4 py-3">{t("platformSubscriptions.aiGradingMo")}</th>
+                <th className="px-4 py-3">{t("platformSubscriptions.library")}</th>
+                <th className="px-4 py-3">{t("platformSubscriptions.price")}</th>
+                <th className="px-4 py-3">{t("platformSubscriptions.status")}</th>
                 <th className="px-4 py-3" />
               </tr>
             </thead>
@@ -424,7 +427,7 @@ export default function PlatformSubscriptionsPage() {
                   <td className="px-4 py-3 text-slate-300">
                     {p.maxTeachers ?? "Unlimited"}
                   </td>
-                  <td className="px-4 py-3 text-slate-300">{p.durationDays} days</td>
+                  <td className="px-4 py-3 text-slate-300">{p.durationDays} {t("platformSubscriptions.days")}</td>
                   <td className="px-4 py-3 text-slate-300">
                     {p.aiGradingMonthlyQuota ?? "Unlimited"}
                   </td>
@@ -457,7 +460,7 @@ export default function PlatformSubscriptionsPage() {
                           setPlanDialogOpen(true);
                         }}
                         className="rounded-lg p-1.5 text-slate-400 hover:bg-white/10 hover:text-white"
-                        title="Edit"
+                        title={t("platformSubscriptions.edit")}
                       >
                         <Pencil className="h-4 w-4" />
                       </button>
@@ -465,7 +468,7 @@ export default function PlatformSubscriptionsPage() {
                         type="button"
                         onClick={() => void handleDeletePlan(p)}
                         className="rounded-lg p-1.5 text-slate-400 hover:bg-rose-500/10 hover:text-rose-400"
-                        title="Delete"
+                        title={t("platformSubscriptions.delete")}
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>
@@ -477,7 +480,7 @@ export default function PlatformSubscriptionsPage() {
               {plans.length === 0 && !loading && (
                 <tr>
                   <td colSpan={9} className="px-4 py-12 text-center text-slate-500">
-                    No plans yet — create your first plan.
+                    {t("platformSubscriptions.noPlansYetCreateYourFirst")}
                   </td>
                 </tr>
               )}
@@ -491,12 +494,12 @@ export default function PlatformSubscriptionsPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-white/10 text-left text-slate-400">
-                <th className="px-4 py-3">School</th>
-                <th className="px-4 py-3">Plan</th>
-                <th className="px-4 py-3">Students</th>
-                <th className="px-4 py-3">AI Grading</th>
-                <th className="px-4 py-3">Ends</th>
-                <th className="px-4 py-3">Status</th>
+                <th className="px-4 py-3">{t("platformSubscriptions.school")}</th>
+                <th className="px-4 py-3">{t("platformSubscriptions.plan")}</th>
+                <th className="px-4 py-3">{t("platformSubscriptions.students")}</th>
+                <th className="px-4 py-3">{t("platformSubscriptions.aiGrading")}</th>
+                <th className="px-4 py-3">{t("platformSubscriptions.ends")}</th>
+                <th className="px-4 py-3">{t("platformSubscriptions.status")}</th>
                 <th className="px-4 py-3" />
               </tr>
             </thead>
@@ -540,7 +543,7 @@ export default function PlatformSubscriptionsPage() {
                       <StatusBadge status={row.subscription.status} />
                     ) : (
                       <span className="rounded-full bg-slate-500/10 px-2.5 py-0.5 text-xs font-medium text-slate-400">
-                        No plan
+                        {t("platformSubscriptions.noPlan")}
                       </span>
                     )}
                   </td>
@@ -566,7 +569,7 @@ export default function PlatformSubscriptionsPage() {
                             type="button"
                             onClick={() => void handleCancel(row)}
                             className="rounded-lg p-1.5 text-slate-400 hover:bg-rose-500/10 hover:text-rose-400"
-                            title="Cancel subscription"
+                            title={t("platformSubscriptions.cancelSubscription")}
                           >
                             <Ban className="h-4 w-4" />
                           </button>
@@ -579,7 +582,7 @@ export default function PlatformSubscriptionsPage() {
               {rows.length === 0 && !loading && (
                 <tr>
                   <td colSpan={7} className="px-4 py-12 text-center text-slate-500">
-                    No schools yet.
+                    {t("platformSubscriptions.noSchoolsYet")}
                   </td>
                 </tr>
               )}
@@ -595,7 +598,7 @@ export default function PlatformSubscriptionsPage() {
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
               <Input
                 className="border-white/10 bg-white/5 pl-9 text-white placeholder:text-slate-500"
-                placeholder="Search school, plan, admin…"
+                placeholder={t("platformSubscriptions.searchSchoolPlanAdmin")}
                 value={historySearch}
                 onChange={(e) => {
                   setHistoryPage(1);
@@ -611,10 +614,10 @@ export default function PlatformSubscriptionsPage() {
                 setHistoryStatus(e.target.value);
               }}
             >
-              <option value="">All status</option>
-              <option value="ACTIVE">ACTIVE</option>
-              <option value="EXPIRED">EXPIRED</option>
-              <option value="CANCELLED">CANCELLED</option>
+              <option value="">{t("platformSubscriptions.allStatus")}</option>
+              <option value="ACTIVE">{t("platformSubscriptions.active")}</option>
+              <option value="EXPIRED">{t("platformSubscriptions.expired")}</option>
+              <option value="CANCELLED">{t("platformSubscriptions.cancelled")}</option>
             </Select>
             <Button
               variant="outline"
@@ -623,7 +626,7 @@ export default function PlatformSubscriptionsPage() {
               disabled={historyRows.length === 0}
             >
               <Download className="mr-2 h-4 w-4" />
-              Export CSV
+              {t("platformSubscriptions.exportCsv")}
             </Button>
           </div>
 
@@ -631,12 +634,12 @@ export default function PlatformSubscriptionsPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-white/10 text-left text-slate-400">
-                  <th className="px-4 py-3">School</th>
-                  <th className="px-4 py-3">Plan</th>
-                  <th className="px-4 py-3">Assigned By</th>
-                  <th className="px-4 py-3">Assigned Date</th>
-                  <th className="px-4 py-3">Expired Date</th>
-                  <th className="px-4 py-3">Status</th>
+                  <th className="px-4 py-3">{t("platformSubscriptions.school")}</th>
+                  <th className="px-4 py-3">{t("platformSubscriptions.plan")}</th>
+                  <th className="px-4 py-3">{t("platformSubscriptions.assignedBy")}</th>
+                  <th className="px-4 py-3">{t("platformSubscriptions.assignedDate")}</th>
+                  <th className="px-4 py-3">{t("platformSubscriptions.expiredDate")}</th>
+                  <th className="px-4 py-3">{t("platformSubscriptions.status")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -669,7 +672,7 @@ export default function PlatformSubscriptionsPage() {
                       colSpan={6}
                       className="px-4 py-12 text-center text-slate-500"
                     >
-                      No history records yet.
+                      {t("platformSubscriptions.noHistoryRecordsYet")}
                     </td>
                   </tr>
                 )}

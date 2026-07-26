@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useEffect, useState } from "react";
 import { Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -18,6 +20,7 @@ interface Props {
 }
 
 export function AcademicYearDialog({ open, onClose, year }: Props) {
+  const t = useT();
   const isEdit = !!year;
 
   const [name, setName] = useState("");
@@ -85,7 +88,7 @@ export function AcademicYearDialog({ open, onClose, year }: Props) {
       footer={
         <>
           <Button variant="outline" onClick={onClose} disabled={saving}>
-            Cancel
+            {t("academicsAcademicYearDialog.cancel")}
           </Button>
           <Button onClick={submit} disabled={saving}>
             {saving ? "Saving…" : isEdit ? "Save" : "Create"}
@@ -100,29 +103,29 @@ export function AcademicYearDialog({ open, onClose, year }: Props) {
       )}
       <div className="grid gap-4">
         <div>
-          <Label required>Academic Year Name</Label>
+          <Label required>{t("academicsAcademicYearDialog.academicYearName")}</Label>
           <Input
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="e.g. 2025-2026"
+            placeholder={t("academicsAcademicYearDialog.eG20252026")}
           />
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <Label required>Start Date</Label>
+            <Label required>{t("academicsAcademicYearDialog.startDate")}</Label>
             <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
           </div>
           <div>
-            <Label required>End Date</Label>
+            <Label required>{t("academicsAcademicYearDialog.endDate")}</Label>
             <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
           </div>
         </div>
         {!isEdit && (
           <div>
-            <Label required>Set as Active</Label>
+            <Label required>{t("academicsAcademicYearDialog.setAsActive")}</Label>
             <Select value={makeActive} onChange={(e) => setMakeActive(e.target.value)}>
-              <option value="no">No — keep current active year</option>
-              <option value="yes">Yes — activate this year</option>
+              <option value="no">{t("academicsAcademicYearDialog.noKeepCurrentActiveYear")}</option>
+              <option value="yes">{t("academicsAcademicYearDialog.yesActivateThisYear")}</option>
             </Select>
           </div>
         )}

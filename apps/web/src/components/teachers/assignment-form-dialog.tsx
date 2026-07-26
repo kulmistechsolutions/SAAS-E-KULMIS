@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useEffect, useMemo, useState } from "react";
 import { Check, Loader2, Plus, Trash2 } from "lucide-react";
 import { Dialog } from "@/components/ui/dialog";
@@ -60,10 +62,11 @@ function SubjectChips({
   selected: string[];
   onChange: (next: string[]) => void;
 }) {
+  const tr = useT();
   if (!options.length) {
     return (
       <p className="text-xs text-muted-foreground">
-        No subjects in the catalog. Add them under Academics first.
+        {tr("teachersAssignmentFormDialog.noSubjectsInTheCatalogAdd")}
       </p>
     );
   }
@@ -99,6 +102,7 @@ export function AssignmentFormDialog({
   assignment,
   onSaved,
 }: Props) {
+  const tr = useT();
   const { teachers } = useTeachersState();
   const academics = useAcademicsState();
   const years = useMemo(
@@ -283,13 +287,13 @@ export function AssignmentFormDialog({
       footer={
         <>
           <Button variant="outline" onClick={onClose} disabled={saving}>
-            Cancel
+            {tr("teachersAssignmentFormDialog.cancel")}
           </Button>
           <Button onClick={() => void handleSubmit()} disabled={saving}>
             {saving ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Saving…
+                {tr("teachersAssignmentFormDialog.saving")}
               </>
             ) : isEdit ? (
               "Save"
@@ -314,7 +318,7 @@ export function AssignmentFormDialog({
       <div className="grid gap-4">
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
-            <Label required>Teacher</Label>
+            <Label required>{tr("teachersAssignmentFormDialog.teacher")}</Label>
             <Select
               value={teacher}
               onChange={(e) => setTeacher(e.target.value)}
@@ -328,7 +332,7 @@ export function AssignmentFormDialog({
             </Select>
           </div>
           <div>
-            <Label>Academic Year</Label>
+            <Label>{tr("teachersAssignmentFormDialog.academicYear")}</Label>
             <Select
               value={year}
               onChange={(e) => {
@@ -357,7 +361,7 @@ export function AssignmentFormDialog({
         {isEdit ? (
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <Label>Class</Label>
+              <Label>{tr("teachersAssignmentFormDialog.class")}</Label>
               <Select
                 value={klass}
                 onChange={(e) => {
@@ -374,34 +378,34 @@ export function AssignmentFormDialog({
               </Select>
             </div>
             <div>
-              <Label>Section</Label>
+              <Label>{tr("teachersAssignmentFormDialog.section")}</Label>
               <Select
                 value={sectionMode}
                 onChange={(e) =>
                   setSectionMode(e.target.value as "one" | "all")
                 }
               >
-                <option value="one">One section</option>
-                <option value="all">All sections</option>
+                <option value="one">{tr("teachersAssignmentFormDialog.oneSection")}</option>
+                <option value="all">{tr("teachersAssignmentFormDialog.allSections")}</option>
               </Select>
             </div>
             {sectionMode === "one" && (
               <div>
-                <Label>Section Name</Label>
+                <Label>{tr("teachersAssignmentFormDialog.sectionName")}</Label>
                 <Select
                   value={section}
                   onChange={(e) => setSection(e.target.value)}
                 >
                   {editSectionList.map((s) => (
                     <option key={s} value={s}>
-                      Section {s}
+                      {tr("teachersAssignmentFormDialog.section")} {s}
                     </option>
                   ))}
                 </Select>
               </div>
             )}
             <div>
-              <Label>Subject</Label>
+              <Label>{tr("teachersAssignmentFormDialog.subject")}</Label>
               <Select
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
@@ -415,16 +419,16 @@ export function AssignmentFormDialog({
             </div>
             {isBoth && (
               <div>
-                <Label required>Shift</Label>
+                <Label required>{tr("teachersAssignmentFormDialog.shift")}</Label>
                 <Select
                   value={editShift ?? ""}
                   onChange={(e) =>
                     setEditShift((e.target.value || null) as AssignmentShift | null)
                   }
                 >
-                  <option value="">Select shift…</option>
-                  <option value="MORNING">Morning</option>
-                  <option value="AFTERNOON">Afternoon</option>
+                  <option value="">{tr("teachersAssignmentFormDialog.selectShift")}</option>
+                  <option value="MORNING">{tr("teachersAssignmentFormDialog.morning")}</option>
+                  <option value="AFTERNOON">{tr("teachersAssignmentFormDialog.afternoon")}</option>
                 </Select>
               </div>
             )}
@@ -432,10 +436,10 @@ export function AssignmentFormDialog({
         ) : (
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <Label>Teaching slots</Label>
+              <Label>{tr("teachersAssignmentFormDialog.teachingSlots")}</Label>
               <Button type="button" variant="outline" onClick={addSlot}>
                 <Plus className="mr-1.5 h-4 w-4" />
-                Add class / section
+                {tr("teachersAssignmentFormDialog.addClassSection")}
               </Button>
             </div>
 
@@ -448,7 +452,7 @@ export function AssignmentFormDialog({
                 >
                   <div className="mb-3 flex items-center justify-between gap-2">
                     <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                      Slot {index + 1}
+                      {tr("teachersAssignmentFormDialog.slot")} {index + 1}
                     </p>
                     <button
                       type="button"
@@ -457,7 +461,7 @@ export function AssignmentFormDialog({
                       className="inline-flex items-center gap-1 text-xs text-rose-600 hover:underline disabled:opacity-40"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
-                      Remove
+                      {tr("teachersAssignmentFormDialog.remove")}
                     </button>
                   </div>
 
@@ -468,7 +472,7 @@ export function AssignmentFormDialog({
                     )}
                   >
                     <div>
-                      <Label required>Class / Grade</Label>
+                      <Label required>{tr("teachersAssignmentFormDialog.classGrade")}</Label>
                       <Select
                         value={slot.className}
                         onChange={(e) => {
@@ -490,24 +494,24 @@ export function AssignmentFormDialog({
                       </Select>
                     </div>
                     <div>
-                      <Label required>Section</Label>
+                      <Label required>{tr("teachersAssignmentFormDialog.section")}</Label>
                       <Select
                         value={slot.section}
                         onChange={(e) =>
                           updateSlot(slot.key, { section: e.target.value })
                         }
                       >
-                        <option value="">All sections</option>
+                        <option value="">{tr("teachersAssignmentFormDialog.allSections")}</option>
                         {sectionOpts.map((s) => (
                           <option key={s} value={s}>
-                            Section {s}
+                            {tr("teachersAssignmentFormDialog.section")} {s}
                           </option>
                         ))}
                       </Select>
                     </div>
                     {isBoth && (
                       <div>
-                        <Label required>Shift</Label>
+                        <Label required>{tr("teachersAssignmentFormDialog.shift")}</Label>
                         <Select
                           value={slot.shift ?? ""}
                           onChange={(e) =>
@@ -516,9 +520,9 @@ export function AssignmentFormDialog({
                             })
                           }
                         >
-                          <option value="">Select shift…</option>
-                          <option value="MORNING">Morning</option>
-                          <option value="AFTERNOON">Afternoon</option>
+                          <option value="">{tr("teachersAssignmentFormDialog.selectShift")}</option>
+                          <option value="MORNING">{tr("teachersAssignmentFormDialog.morning")}</option>
+                          <option value="AFTERNOON">{tr("teachersAssignmentFormDialog.afternoon")}</option>
                         </Select>
                       </div>
                     )}
@@ -526,7 +530,7 @@ export function AssignmentFormDialog({
 
                   <div className="mt-3">
                     <div className="mb-1.5 flex items-center justify-between">
-                      <Label required>Subjects</Label>
+                      <Label required>{tr("teachersAssignmentFormDialog.subjects")}</Label>
                       <button
                         type="button"
                         className="text-xs text-primary hover:underline"
@@ -570,18 +574,17 @@ export function AssignmentFormDialog({
 
             {previewCount > 0 ? (
               <p className="rounded-lg bg-secondary/40 px-3 py-2 text-xs text-muted-foreground">
-                Will create{" "}
+                {tr("teachersAssignmentFormDialog.willCreate")}{" "}
                 <span className="font-medium text-foreground">
                   {previewCount}
                 </span>{" "}
-                independent row
-                {previewCount === 1 ? "" : "s"} for{" "}
+                {tr("teachersAssignmentFormDialog.independentRow")}
+                {previewCount === 1 ? "" : "s"} {tr("teachersAssignmentFormDialog.for")}{" "}
                 <span className="font-medium text-foreground">
                   {teachers.find((t) => t.id === teacher)?.fullName ??
                     "this teacher"}
                 </span>
-                . Only exact duplicates (same class, section, and subject) are
-                skipped.
+                {tr("teachersAssignmentFormDialog.onlyExactDuplicatesSameClassSection")}
               </p>
             ) : null}
           </div>

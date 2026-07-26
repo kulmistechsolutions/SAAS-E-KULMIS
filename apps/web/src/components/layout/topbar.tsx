@@ -18,6 +18,7 @@ interface TopbarProps {
 }
 
 export function Topbar({ onMenuClick, userName, userRole }: TopbarProps) {
+  const tr = useT();
   const router = useRouter();
   const t = useT();
   const { logout, user } = useAuth();
@@ -69,7 +70,7 @@ export function Topbar({ onMenuClick, userName, userRole }: TopbarProps) {
           className="h-10 w-full rounded-lg border border-input bg-secondary/50 ps-9 pe-16 text-sm outline-none transition-colors placeholder:text-muted-foreground focus:border-primary focus:bg-background"
         />
         <kbd className="absolute end-3 hidden items-center gap-0.5 rounded border bg-background px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground md:inline-flex">
-          Ctrl + K
+          {tr("layoutTopbar.ctrlK")}
         </kbd>
       </div>
 

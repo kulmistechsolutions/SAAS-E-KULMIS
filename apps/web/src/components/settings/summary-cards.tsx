@@ -1,3 +1,5 @@
+
+import { useT } from "@/lib/i18n/provider";
 import type { SettingsDashboardSummary } from "@/lib/settings/types";
 import {
   Bell,
@@ -39,6 +41,7 @@ export function SettingsSummaryCards({
 }: {
   summary: SettingsDashboardSummary;
 }) {
+  const t = useT();
   return (
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
       {CARDS.map((c) => (
@@ -54,9 +57,9 @@ export function SettingsSummaryCards({
         </a>
       ))}
       <div className="col-span-2 rounded-xl border bg-gradient-to-br from-primary/10 to-transparent p-4 sm:col-span-3 lg:col-span-2">
-        <p className="text-xs text-muted-foreground">Active school</p>
+        <p className="text-xs text-muted-foreground">{t("settingsSummaryCards.activeSchool")}</p>
         <p className="mt-1 font-bold">{summary.schoolName}</p>
-        <p className="mt-2 text-xs text-muted-foreground">Academic year {summary.activeAcademicYear}</p>
+        <p className="mt-2 text-xs text-muted-foreground">{t("settingsSummaryCards.academicYear")} {summary.activeAcademicYear}</p>
       </div>
     </div>
   );

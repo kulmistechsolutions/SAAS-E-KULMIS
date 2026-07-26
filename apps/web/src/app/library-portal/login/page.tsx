@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { BookOpen } from "lucide-react";
@@ -11,6 +13,7 @@ import { apiLibraryPortalLogin } from "@/lib/library-portal/api";
 import { ApiError } from "@/lib/api";
 
 export default function LibraryPortalLoginPage() {
+  const t = useT();
   const router = useRouter();
   const branding = useSchoolBranding();
   const [studentCode, setStudentCode] = useState("");
@@ -48,7 +51,7 @@ export default function LibraryPortalLoginPage() {
             </div>
           )}
           <h1 className="text-lg font-semibold">{branding.name}</h1>
-          <p className="text-sm text-muted-foreground">Library</p>
+          <p className="text-sm text-muted-foreground">{t("libraryPortalLogin.library")}</p>
         </div>
 
         <form
@@ -56,19 +59,19 @@ export default function LibraryPortalLoginPage() {
           className="space-y-4 rounded-2xl border bg-card p-6 shadow-lg"
         >
           <div>
-            <h2 className="text-xl font-bold">Student Sign-In</h2>
+            <h2 className="text-xl font-bold">{t("libraryPortalLogin.studentSignIn")}</h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              Enter your Student ID to read your school&apos;s books.
+              {t("libraryPortalLogin.enterYourStudentIdToRead")}
             </p>
           </div>
           <div>
-            <Label htmlFor="studentCode">Student ID</Label>
+            <Label htmlFor="studentCode">{t("libraryPortalLogin.studentId")}</Label>
             <Input
               id="studentCode"
               className="mt-1.5"
               value={studentCode}
               onChange={(e) => setStudentCode(e.target.value)}
-              placeholder="e.g. SHMM000001"
+              placeholder={t("libraryPortalLogin.eGShmm000001")}
               autoFocus
               required
             />

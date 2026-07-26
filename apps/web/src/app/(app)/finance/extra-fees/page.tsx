@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle,
@@ -69,6 +71,7 @@ function emptyForm(): FormState {
 }
 
 export default function ExtraFeesPage() {
+  const tr = useT();
   const academics = useAcademicsState();
   const year = activeAcademicYear();
 
@@ -222,28 +225,27 @@ export default function ExtraFeesPage() {
         <div>
           <h1 className="flex items-center gap-2 text-2xl font-bold">
             <Receipt className="h-6 w-6 text-primary" />
-            Extra Fees
+            {tr("financeExtraFees.extraFees")}
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            One-off charges such as an exam fee. They are added on top of the
-            student&apos;s regular fee for the month you choose.
+            {tr("financeExtraFees.oneOffChargesSuchAsAn")}
           </p>
         </div>
         <Button onClick={openCreate}>
-          <Plus className="mr-2 h-4 w-4" /> New extra fee
+          <Plus className="mr-2 h-4 w-4" /> {tr("financeExtraFees.newExtraFee")}
         </Button>
       </div>
 
       {loading ? (
         <div className="flex items-center gap-2 py-16 text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin" /> Loading…
+          <Loader2 className="h-4 w-4 animate-spin" /> {tr("financeExtraFees.loading")}
         </div>
       ) : fees.length === 0 ? (
         <div className="rounded-2xl border bg-card py-16 text-center text-muted-foreground">
           <Receipt className="mx-auto mb-2 h-8 w-8 opacity-40" />
-          <p>No extra fees yet.</p>
+          <p>{tr("financeExtraFees.noExtraFeesYet")}</p>
           <p className="mt-1 text-sm">
-            Create one to charge something like an exam fee alongside the monthly fee.
+            {tr("financeExtraFees.createOneToChargeSomethingLike")}
           </p>
         </div>
       ) : (
@@ -256,11 +258,11 @@ export default function ExtraFeesPage() {
                     <h2 className="font-semibold">{f.name}</h2>
                     {f.appliedAt ? (
                       <span className="inline-flex items-center gap-1 rounded bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700 dark:text-emerald-300">
-                        <CheckCircle2 className="h-3 w-3" /> Applied
+                        <CheckCircle2 className="h-3 w-3" /> {tr("financeExtraFees.applied")}
                       </span>
                     ) : (
                       <span className="rounded bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 dark:text-amber-300">
-                        Not applied yet
+                        {tr("financeExtraFees.notAppliedYet")}
                       </span>
                     )}
                   </div>
@@ -302,14 +304,14 @@ export default function ExtraFeesPage() {
                       className="h-8 px-3 text-xs"
                       onClick={() => openEdit(f)}
                     >
-                      Edit
+                      {tr("financeExtraFees.edit")}
                     </Button>
                   )}
                   <button
                     type="button"
                     onClick={() => void remove(f)}
                     className="rounded-md p-1.5 text-muted-foreground hover:bg-rose-100 hover:text-rose-600"
-                    aria-label="Delete"
+                    aria-label={tr("financeExtraFees.delete")}
                   >
                     <Trash2 className="h-4 w-4" />
                   </button>
@@ -319,13 +321,13 @@ export default function ExtraFeesPage() {
               {f.appliedCount > 0 && (
                 <div className="mt-3 flex flex-wrap gap-4 border-t pt-3 text-xs text-muted-foreground">
                   <span>
-                    <strong className="text-foreground">{f.appliedCount}</strong> student(s) charged
+                    <strong className="text-foreground">{f.appliedCount}</strong> {tr("financeExtraFees.studentSCharged")}
                   </span>
                   <span>
-                    Billed <strong className="text-foreground">{money(f.appliedTotal)}</strong>
+                    {tr("financeExtraFees.billed")} <strong className="text-foreground">{money(f.appliedTotal)}</strong>
                   </span>
                   <span>
-                    Collected{" "}
+                    {tr("financeExtraFees.collected")}{" "}
                     <strong className="text-emerald-600 dark:text-emerald-400">
                       {money(f.collectedTotal)}
                     </strong>
@@ -342,12 +344,12 @@ export default function ExtraFeesPage() {
         open={formOpen}
         onClose={() => setFormOpen(false)}
         title={form.id ? "Edit extra fee" : "New extra fee"}
-        description="Charged on top of the regular monthly fee for the month you pick."
+        description={tr("financeExtraFees.chargedOnTopOfTheRegular")}
         className="sm:max-w-2xl"
         footer={
           <>
             <Button variant="outline" onClick={() => setFormOpen(false)}>
-              <X className="mr-1.5 h-4 w-4" /> Cancel
+              <X className="mr-1.5 h-4 w-4" /> {tr("financeExtraFees.cancel")}
             </Button>
             <Button onClick={() => void save()} disabled={saving}>
               {saving ? "Saving…" : form.id ? "Save changes" : "Create"}
@@ -357,22 +359,22 @@ export default function ExtraFeesPage() {
       >
         <div className="space-y-4">
           <div>
-            <Label htmlFor="ef-name">Fee name</Label>
+            <Label htmlFor="ef-name">{tr("financeExtraFees.feeName")}</Label>
             <Input
               id="ef-name"
               className="mt-1.5"
-              placeholder="e.g. Exam Fee"
+              placeholder={tr("financeExtraFees.eGExamFee")}
               value={form.name}
               onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
             />
             <p className="mt-1 text-xs text-muted-foreground">
-              This is what the parent sees on the invoice and payment history.
+              {tr("financeExtraFees.thisIsWhatTheParentSees")}
             </p>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label htmlFor="ef-month">Charge in month</Label>
+              <Label htmlFor="ef-month">{tr("financeExtraFees.chargeInMonth")}</Label>
               <Select
                 id="ef-month"
                 className="mt-1.5"
@@ -389,7 +391,7 @@ export default function ExtraFeesPage() {
               </Select>
             </div>
             <div>
-              <Label htmlFor="ef-year">Year</Label>
+              <Label htmlFor="ef-year">{tr("financeExtraFees.year")}</Label>
               <Input
                 id="ef-year"
                 type="number"
@@ -403,7 +405,7 @@ export default function ExtraFeesPage() {
           </div>
 
           <div>
-            <Label htmlFor="ef-desc">Description (optional)</Label>
+            <Label htmlFor="ef-desc">{tr("financeExtraFees.descriptionOptional")}</Label>
             <Textarea
               id="ef-desc"
               className="mt-1.5 min-h-[70px]"
@@ -415,7 +417,7 @@ export default function ExtraFeesPage() {
           </div>
 
           <div className="rounded-xl border bg-secondary/30 p-4">
-            <Label>Who pays it</Label>
+            <Label>{tr("financeExtraFees.whoPaysIt")}</Label>
             <div className="mt-2 space-y-2">
               <label className="flex items-start gap-2 text-sm">
                 <input
@@ -427,9 +429,9 @@ export default function ExtraFeesPage() {
                   }
                 />
                 <span>
-                  Every class — same amount
+                  {tr("financeExtraFees.everyClassSameAmount")}
                   <span className="mt-0.5 block text-xs text-muted-foreground">
-                    One price charged to every active student in the school.
+                    {tr("financeExtraFees.onePriceChargedToEveryActive")}
                   </span>
                 </span>
               </label>
@@ -443,9 +445,9 @@ export default function ExtraFeesPage() {
                   }
                 />
                 <span>
-                  Chosen classes — own amount each
+                  {tr("financeExtraFees.chosenClassesOwnAmountEach")}
                   <span className="mt-0.5 block text-xs text-muted-foreground">
-                    Only classes you give an amount to are charged.
+                    {tr("financeExtraFees.onlyClassesYouGiveAnAmount")}
                   </span>
                 </span>
               </label>
@@ -453,13 +455,13 @@ export default function ExtraFeesPage() {
 
             {form.appliesToAllClasses ? (
               <div className="mt-3">
-                <Label htmlFor="ef-amount">Amount per student</Label>
+                <Label htmlFor="ef-amount">{tr("financeExtraFees.amountPerStudent")}</Label>
                 <Input
                   id="ef-amount"
                   type="number"
                   min={0}
                   className="mt-1.5"
-                  placeholder="e.g. 10"
+                  placeholder={tr("financeExtraFees.eG10")}
                   value={form.defaultAmount}
                   onChange={(e) =>
                     setForm((f) => ({ ...f, defaultAmount: e.target.value }))
@@ -470,7 +472,7 @@ export default function ExtraFeesPage() {
               <div className="mt-3 space-y-2">
                 {classes.length === 0 ? (
                   <p className="text-sm text-muted-foreground">
-                    No classes found for the active academic year.
+                    {tr("financeExtraFees.noClassesFoundForTheActive")}
                   </p>
                 ) : (
                   <div className="max-h-56 space-y-1.5 overflow-auto rounded-lg border bg-background p-2">
@@ -498,7 +500,7 @@ export default function ExtraFeesPage() {
                   </div>
                 )}
                 <p className="text-xs text-muted-foreground">
-                  Leave a class blank to skip it.
+                  {tr("financeExtraFees.leaveAClassBlankToSkip")}
                 </p>
               </div>
             )}
@@ -520,7 +522,7 @@ export default function ExtraFeesPage() {
         footer={
           <>
             <Button variant="outline" onClick={() => setPreviewFor(null)}>
-              Cancel
+              {tr("financeExtraFees.cancel")}
             </Button>
             <Button
               onClick={() => void apply()}
@@ -535,21 +537,21 @@ export default function ExtraFeesPage() {
       >
         {previewLoading ? (
           <div className="flex items-center gap-2 py-10 text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" /> Working out who pays…
+            <Loader2 className="h-4 w-4 animate-spin" /> {tr("financeExtraFees.workingOutWhoPays")}
           </div>
         ) : preview ? (
           <div className="space-y-3">
             <div className="grid grid-cols-3 gap-3">
               <div className="rounded-xl border bg-secondary/40 px-3 py-2">
-                <p className="text-[11px] text-muted-foreground">Students matched</p>
+                <p className="text-[11px] text-muted-foreground">{tr("financeExtraFees.studentsMatched")}</p>
                 <p className="mt-0.5 text-xl font-bold">{preview.studentCount}</p>
               </div>
               <div className="rounded-xl border bg-secondary/40 px-3 py-2">
-                <p className="text-[11px] text-muted-foreground">To be charged</p>
+                <p className="text-[11px] text-muted-foreground">{tr("financeExtraFees.toBeCharged")}</p>
                 <p className="mt-0.5 text-xl font-bold">{preview.pendingCount}</p>
               </div>
               <div className="rounded-xl border bg-secondary/40 px-3 py-2">
-                <p className="text-[11px] text-muted-foreground">Total added</p>
+                <p className="text-[11px] text-muted-foreground">{tr("financeExtraFees.totalAdded")}</p>
                 <p className="mt-0.5 text-xl font-bold">{money(preview.totalAmount)}</p>
               </div>
             </div>
@@ -557,7 +559,7 @@ export default function ExtraFeesPage() {
             {preview.pendingCount === 0 && preview.studentCount > 0 && (
               <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200">
                 <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-                Every matching student already has this fee — applying again adds nothing.
+                {tr("financeExtraFees.everyMatchingStudentAlreadyHasThis")}
               </div>
             )}
 
@@ -565,7 +567,7 @@ export default function ExtraFeesPage() {
               {preview.targets.length === 0 ? (
                 <div className="px-4 py-10 text-center text-sm text-muted-foreground">
                   <Users className="mx-auto mb-2 h-6 w-6 opacity-40" />
-                  No active students matched this fee.
+                  {tr("financeExtraFees.noActiveStudentsMatchedThisFee")}
                 </div>
               ) : (
                 <ul className="divide-y text-sm">
@@ -584,7 +586,7 @@ export default function ExtraFeesPage() {
                       </div>
                       {t.alreadyCharged && (
                         <span className="shrink-0 text-[11px] text-muted-foreground">
-                          already charged
+                          {tr("financeExtraFees.alreadyCharged")}
                         </span>
                       )}
                       <span className="shrink-0 font-semibold">{money(t.amount)}</span>

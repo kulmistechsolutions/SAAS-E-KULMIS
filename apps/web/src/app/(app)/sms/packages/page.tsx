@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import {
@@ -46,6 +48,7 @@ const STATUS_CLASS: Record<string, string> = {
 };
 
 export default function SchoolSmsPackagesPage() {
+  const t = useT();
   const [balance, setBalance] = useState<SmsBalance | null>(null);
   const [packages, setPackages] = useState<SmsPackage[]>([]);
   const [orders, setOrders] = useState<SmsPaymentOrderRow[]>([]);
@@ -154,11 +157,10 @@ export default function SchoolSmsPackagesPage() {
         <div>
           <h1 className="flex items-center gap-2 text-2xl font-bold">
             <Package className="h-6 w-6 text-primary" />
-            SMS Packages
+            {t("smsPackages.smsPackages")}
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Buy SMS credits with Hormuud WaafiPay. Credits activate automatically
-            after payment.
+            {t("smsPackages.buySmsCreditsWithHormuudWaafipay")}
           </p>
         </div>
         <div className="flex gap-2">
@@ -166,35 +168,35 @@ export default function SchoolSmsPackagesPage() {
             href="/sms"
             className="inline-flex h-9 items-center justify-center gap-2 rounded-md border bg-background px-3 text-sm font-medium hover:bg-accent"
           >
-            <Wallet className="h-4 w-4" /> Send SMS
+            <Wallet className="h-4 w-4" /> {t("smsPackages.sendSms")}
           </Link>
           <Button variant="outline" onClick={() => void load()}>
-            <RefreshCw className="mr-2 h-4 w-4" /> Refresh
+            <RefreshCw className="mr-2 h-4 w-4" /> {t("smsPackages.refresh")}
           </Button>
         </div>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-3">
         <div className="rounded-2xl border bg-card p-4 shadow-sm">
-          <p className="text-xs text-muted-foreground">Remaining balance</p>
+          <p className="text-xs text-muted-foreground">{t("smsPackages.remainingBalance")}</p>
           <p className="mt-1 text-3xl font-bold">
             {loading ? "…" : (balance?.creditsRemaining ?? 0)}
           </p>
         </div>
         <div className="rounded-2xl border bg-card p-4 shadow-sm">
-          <p className="text-xs text-muted-foreground">Active package</p>
+          <p className="text-xs text-muted-foreground">{t("smsPackages.activePackage")}</p>
           <p className="mt-1 text-lg font-semibold">
             {activePurchase?.package.name ?? "None"}
           </p>
           {activePurchase ? (
             <p className="text-xs text-muted-foreground">
               {activePurchase.creditsRemaining} / {activePurchase.creditsTotal}{" "}
-              credits
+              {t("smsPackages.credits")}
             </p>
           ) : null}
         </div>
         <div className="rounded-2xl border bg-card p-4 shadow-sm">
-          <p className="text-xs text-muted-foreground">Purchases</p>
+          <p className="text-xs text-muted-foreground">{t("smsPackages.purchases")}</p>
           <p className="mt-1 text-3xl font-bold">
             {balance?.purchases.length ?? 0}
           </p>
@@ -230,7 +232,7 @@ export default function SchoolSmsPackagesPage() {
           <div className="space-y-3">
             {packages.length === 0 ? (
               <div className="rounded-2xl border bg-card p-8 text-center text-muted-foreground">
-                No SMS packages published yet. Contact your platform administrator.
+                {t("smsPackages.noSmsPackagesPublishedYetContact")}
               </div>
             ) : (
               packages.map((p) => (
@@ -255,7 +257,7 @@ export default function SchoolSmsPackagesPage() {
                       ) : null}
                       <p className="mt-2 text-sm">
                         <span className="font-medium">
-                          {p.credits.toLocaleString()} SMS
+                          {p.credits.toLocaleString()} {t("smsPackages.sms")}
                         </span>
                       </p>
                     </div>
@@ -270,10 +272,10 @@ export default function SchoolSmsPackagesPage() {
 
           <div className="space-y-4 rounded-2xl border bg-card p-5 shadow-sm">
             <h2 className="flex items-center gap-2 font-semibold">
-              <CreditCard className="h-4 w-4" /> Pay with WaafiPay
+              <CreditCard className="h-4 w-4" /> {t("smsPackages.payWithWaafipay")}
             </h2>
             <div>
-              <Label>Payment channel</Label>
+              <Label>{t("smsPackages.paymentChannel")}</Label>
               <Select
                 className="mt-1.5"
                 value={channel}
@@ -282,13 +284,13 @@ export default function SchoolSmsPackagesPage() {
                 }
               >
                 <option value="API_PURCHASE">
-                  Direct mobile wallet (EVC / ZAAD / SAHAL)
+                  {t("smsPackages.directMobileWalletEvcZaadSahal")}
                 </option>
-                <option value="HPP_PURCHASE">Hosted Payment Page</option>
+                <option value="HPP_PURCHASE">{t("smsPackages.hostedPaymentPage")}</option>
               </Select>
             </div>
             <div>
-              <Label>Payer mobile number</Label>
+              <Label>{t("smsPackages.payerMobileNumber")}</Label>
               <Input
                 className="mt-1.5"
                 value={payerAccount}
@@ -296,7 +298,7 @@ export default function SchoolSmsPackagesPage() {
                 placeholder="252611111111"
               />
               <p className="mt-1 text-xs text-muted-foreground">
-                International format, no +. Required for direct wallet payment.
+                {t("smsPackages.internationalFormatNoRequiredForDirect")}
               </p>
             </div>
             <Button
@@ -309,11 +311,10 @@ export default function SchoolSmsPackagesPage() {
               ) : (
                 <CreditCard className="mr-2 h-4 w-4" />
               )}
-              Pay & activate package
+              {t("smsPackages.payActivatePackage")}
             </Button>
             <p className="text-xs text-muted-foreground">
-              After Waafi confirms payment, credits are added automatically — no
-              manual approval.
+              {t("smsPackages.afterWaafiConfirmsPaymentCreditsAre")}
             </p>
           </div>
         </div>
@@ -324,11 +325,11 @@ export default function SchoolSmsPackagesPage() {
           <table className="w-full text-left text-sm">
             <thead className="border-b bg-muted/40 text-xs uppercase text-muted-foreground">
               <tr>
-                <th className="px-4 py-3">Package</th>
-                <th className="px-4 py-3">Amount</th>
-                <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3">Receipt</th>
-                <th className="px-4 py-3">Date</th>
+                <th className="px-4 py-3">{t("smsPackages.package")}</th>
+                <th className="px-4 py-3">{t("smsPackages.amount")}</th>
+                <th className="px-4 py-3">{t("smsPackages.status")}</th>
+                <th className="px-4 py-3">{t("smsPackages.receipt")}</th>
+                <th className="px-4 py-3">{t("smsPackages.date")}</th>
                 <th className="px-4 py-3" />
               </tr>
             </thead>
@@ -339,7 +340,7 @@ export default function SchoolSmsPackagesPage() {
                     colSpan={6}
                     className="px-4 py-10 text-center text-muted-foreground"
                   >
-                    No purchases yet.
+                    {t("smsPackages.noPurchasesYet")}
                   </td>
                 </tr>
               ) : (
@@ -348,7 +349,7 @@ export default function SchoolSmsPackagesPage() {
                     <td className="px-4 py-3">
                       <p className="font-medium">{o.package.name}</p>
                       <p className="text-xs text-muted-foreground">
-                        {o.credits} credits
+                        {o.credits} {t("smsPackages.credits")}
                       </p>
                     </td>
                     <td className="px-4 py-3">
@@ -376,14 +377,14 @@ export default function SchoolSmsPackagesPage() {
                         className="h-8 px-3 text-xs"
                         onClick={() => void openReceipt(o.id)}
                       >
-                        View
+                        {t("smsPackages.view")}
                       </Button>
                       {(o.status === "PENDING" || o.status === "PROCESSING") && (
                         <Button
                           className="ml-2 h-8 px-3 text-xs"
                           onClick={() => void verify(o.id)}
                         >
-                          Verify
+                          {t("smsPackages.verify")}
                         </Button>
                       )}
                     </td>
@@ -395,7 +396,7 @@ export default function SchoolSmsPackagesPage() {
 
           {balance && balance.purchases.length > 0 ? (
             <div className="border-t p-4">
-              <h3 className="mb-2 text-sm font-semibold">Active credit wallets</h3>
+              <h3 className="mb-2 text-sm font-semibold">{t("smsPackages.activeCreditWallets")}</h3>
               <ul className="space-y-2 text-sm">
                 {balance.purchases.map((p) => (
                   <li
@@ -421,44 +422,44 @@ export default function SchoolSmsPackagesPage() {
         receipt ? (
           <div className="mx-auto max-w-lg space-y-4 rounded-2xl border bg-card p-6 shadow-sm">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold">Payment receipt</h2>
+              <h2 className="text-lg font-semibold">{t("smsPackages.paymentReceipt")}</h2>
               {receipt.status === "SUCCESS" ? (
                 <CheckCircle2 className="h-5 w-5 text-emerald-500" />
               ) : null}
             </div>
             <dl className="grid grid-cols-2 gap-3 text-sm">
               <div>
-                <dt className="text-muted-foreground">Status</dt>
+                <dt className="text-muted-foreground">{t("smsPackages.status")}</dt>
                 <dd className="font-medium">{receipt.status}</dd>
               </div>
               <div>
-                <dt className="text-muted-foreground">Receipt #</dt>
+                <dt className="text-muted-foreground">{t("smsPackages.receipt")}</dt>
                 <dd className="font-mono text-xs">
                   {receipt.receiptNumber ?? "—"}
                 </dd>
               </div>
               <div>
-                <dt className="text-muted-foreground">Package</dt>
+                <dt className="text-muted-foreground">{t("smsPackages.package")}</dt>
                 <dd className="font-medium">{receipt.package.name}</dd>
               </div>
               <div>
-                <dt className="text-muted-foreground">Credits</dt>
+                <dt className="text-muted-foreground">{t("smsPackages.credits")}</dt>
                 <dd className="font-medium">{receipt.credits}</dd>
               </div>
               <div>
-                <dt className="text-muted-foreground">Amount</dt>
+                <dt className="text-muted-foreground">{t("smsPackages.amount")}</dt>
                 <dd className="font-medium">
                   {money(receipt.amount, receipt.currency)}
                 </dd>
               </div>
               <div>
-                <dt className="text-muted-foreground">Waafi Txn</dt>
+                <dt className="text-muted-foreground">{t("smsPackages.waafiTxn")}</dt>
                 <dd className="font-mono text-xs">
                   {receipt.waafiTransactionId ?? "—"}
                 </dd>
               </div>
               <div className="col-span-2">
-                <dt className="text-muted-foreground">Reference</dt>
+                <dt className="text-muted-foreground">{t("smsPackages.reference")}</dt>
                 <dd className="font-mono text-xs">{receipt.referenceId}</dd>
               </div>
             </dl>
@@ -469,7 +470,7 @@ export default function SchoolSmsPackagesPage() {
                 rel="noreferrer"
                 className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:opacity-90"
               >
-                <ExternalLink className="h-4 w-4" /> Continue on WaafiPay
+                <ExternalLink className="h-4 w-4" /> {t("smsPackages.continueOnWaafipay")}
               </a>
             ) : null}
             {(receipt.status === "PENDING" ||
@@ -479,7 +480,7 @@ export default function SchoolSmsPackagesPage() {
                 variant="outline"
                 onClick={() => void verify(receipt.id)}
               >
-                Verify payment with Waafi
+                {t("smsPackages.verifyPaymentWithWaafi")}
               </Button>
             )}
             {receipt.failureReason ? (
@@ -487,7 +488,7 @@ export default function SchoolSmsPackagesPage() {
             ) : null}
             {receipt.auditLogs.length > 0 ? (
               <div>
-                <h3 className="mb-2 text-sm font-semibold">Audit trail</h3>
+                <h3 className="mb-2 text-sm font-semibold">{t("smsPackages.auditTrail")}</h3>
                 <ul className="max-h-48 space-y-1 overflow-y-auto text-xs text-muted-foreground">
                   {receipt.auditLogs.map((a) => (
                     <li key={a.id}>
@@ -501,7 +502,7 @@ export default function SchoolSmsPackagesPage() {
           </div>
         ) : (
           <p className="text-center text-muted-foreground">
-            Select a purchase from history to view its receipt.
+            {t("smsPackages.selectAPurchaseFromHistoryTo")}
           </p>
         )
       ) : null}

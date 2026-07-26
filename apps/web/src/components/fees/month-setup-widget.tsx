@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import Link from "next/link";
 import { Calendar, ChevronRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -21,6 +23,7 @@ export function MonthSetupWidget({
   activeMonthKey,
   academicYear,
 }: MonthSetupWidgetProps) {
+  const t = useT();
   const nextKey = nextActivatableMonth();
   const canActivate = canActivateNextMonth();
   const { year, month } = (() => {
@@ -42,29 +45,29 @@ export function MonthSetupWidget({
     <div className="rounded-2xl border bg-card p-5 shadow-sm">
       <div className="flex items-center gap-2 text-sm font-semibold">
         <Calendar className="h-4 w-4 text-primary" />
-        Month Setup
+        {t("feesMonthSetupWidget.monthSetup")}
       </div>
 
       <div className="mt-5 space-y-4 text-sm">
         <div>
-          <p className="text-xs text-muted-foreground">Current Active Month</p>
+          <p className="text-xs text-muted-foreground">{t("feesMonthSetupWidget.currentActiveMonth")}</p>
           <p className="mt-1 text-lg font-bold text-emerald-600">
             {monthLabel(activeMonthKey)}
           </p>
         </div>
         <div>
-          <p className="text-xs text-muted-foreground">Academic Year</p>
+          <p className="text-xs text-muted-foreground">{t("feesMonthSetupWidget.academicYear")}</p>
           <p className="mt-1 text-lg font-bold">{academicYear}</p>
         </div>
         <div>
-          <p className="text-xs text-muted-foreground">Status</p>
+          <p className="text-xs text-muted-foreground">{t("feesMonthSetupWidget.status")}</p>
           <Badge tone="success" className="mt-1.5" dot>
-            Active
+            {t("feesMonthSetupWidget.active")}
           </Badge>
         </div>
         <div className="border-t pt-4">
           <p className="text-xs text-muted-foreground">
-            Next Month (Can be activated after {activateAfterDay} {monthName})
+            {t("feesMonthSetupWidget.nextMonthCanBeActivatedAfter")} {activateAfterDay} {monthName})
           </p>
           <p className="mt-1 text-lg font-bold text-primary">
             {monthLabel(nextKey)}
@@ -77,7 +80,7 @@ export function MonthSetupWidget({
         disabled={!canActivate}
         onClick={handleSetup}
       >
-        Setup Next Month
+        {t("feesMonthSetupWidget.setupNextMonth")}
         <ChevronRight className="ml-1 h-4 w-4" />
       </Button>
 
@@ -85,7 +88,7 @@ export function MonthSetupWidget({
         href="/finance/monthly-setup"
         className="mt-3 block text-center text-xs font-medium text-primary hover:underline"
       >
-        Open Monthly Setup
+        {t("feesMonthSetupWidget.openMonthlySetup")}
       </Link>
     </div>
   );

@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { SettingsInput } from "@/components/settings/settings-field";
@@ -12,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "@/lib/toast";
 
 export default function ExaminationSettingsPage() {
+  const t = useT();
   const { draft, update, dirty, cancel, resetToDefault, save, saving } =
     useSettingsSection("examinations");
   const [grades, setGrades] = useState<GradeBand[]>(() => getSettings().grades);
@@ -49,38 +52,38 @@ export default function ExaminationSettingsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Examination Settings</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Exams, results, portals, and grade scale.</p>
+        <h1 className="text-2xl font-bold">{t("settingsExaminations.examinationSettings")}</h1>
+        <p className="mt-1 text-sm text-muted-foreground">{t("settingsExaminations.examsResultsPortalsAndGradeScale")}</p>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <SettingsInput label="Maximum Terms" type="number" value={draft.maxTerms} onChange={(e) => update({ maxTerms: Number(e.target.value) })} />
-        <SettingsInput label="Default Exam Status" value={draft.defaultExamStatus} onChange={(e) => update({ defaultExamStatus: e.target.value })} />
-        <SettingsInput label="Passing Percentage" type="number" value={draft.passingPercentage} onChange={(e) => update({ passingPercentage: Number(e.target.value) })} />
+        <SettingsInput label={t("settingsExaminations.maximumTerms")} type="number" value={draft.maxTerms} onChange={(e) => update({ maxTerms: Number(e.target.value) })} />
+        <SettingsInput label={t("settingsExaminations.defaultExamStatus")} value={draft.defaultExamStatus} onChange={(e) => update({ defaultExamStatus: e.target.value })} />
+        <SettingsInput label={t("settingsExaminations.passingPercentage")} type="number" value={draft.passingPercentage} onChange={(e) => update({ passingPercentage: Number(e.target.value) })} />
       </div>
 
       <div className="grid gap-2 sm:grid-cols-2">
-        <SettingsToggle label="Result Publishing" checked={draft.resultPublishing} onChange={(v) => update({ resultPublishing: v })} />
-        <SettingsToggle label="Result Locking" checked={draft.resultLocking} onChange={(v) => update({ resultLocking: v })} />
-        <SettingsToggle label="Student Result Portal" checked={draft.studentResultPortal} onChange={(v) => update({ studentResultPortal: v })} />
-        <SettingsToggle label="Parent Result Portal" checked={draft.parentResultPortal} onChange={(v) => update({ parentResultPortal: v })} />
-        <SettingsToggle label="Public Result Portal" checked={draft.publicResultPortal} onChange={(v) => update({ publicResultPortal: v })} />
-        <SettingsToggle label="Block Result Feature" checked={draft.blockResultFeature} onChange={(v) => update({ blockResultFeature: v })} />
+        <SettingsToggle label={t("settingsExaminations.resultPublishing")} checked={draft.resultPublishing} onChange={(v) => update({ resultPublishing: v })} />
+        <SettingsToggle label={t("settingsExaminations.resultLocking")} checked={draft.resultLocking} onChange={(v) => update({ resultLocking: v })} />
+        <SettingsToggle label={t("settingsExaminations.studentResultPortal")} checked={draft.studentResultPortal} onChange={(v) => update({ studentResultPortal: v })} />
+        <SettingsToggle label={t("settingsExaminations.parentResultPortal")} checked={draft.parentResultPortal} onChange={(v) => update({ parentResultPortal: v })} />
+        <SettingsToggle label={t("settingsExaminations.publicResultPortal")} checked={draft.publicResultPortal} onChange={(v) => update({ publicResultPortal: v })} />
+        <SettingsToggle label={t("settingsExaminations.blockResultFeature")} checked={draft.blockResultFeature} onChange={(v) => update({ blockResultFeature: v })} />
       </div>
 
       <div className="rounded-xl border bg-card p-5">
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="font-semibold">Grade Configuration</h2>
+          <h2 className="font-semibold">{t("settingsExaminations.gradeConfiguration")}</h2>
           <Button variant="outline" className="h-8" onClick={addGrade}>
-            <Plus className="mr-1 h-4 w-4" /> Add band
+            <Plus className="mr-1 h-4 w-4" /> {t("settingsExaminations.addBand")}
           </Button>
         </div>
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b text-left">
-              <th className="px-2 py-2">Minimum</th>
-              <th className="px-2 py-2">Maximum</th>
-              <th className="px-2 py-2">Grade</th>
+              <th className="px-2 py-2">{t("settingsExaminations.minimum")}</th>
+              <th className="px-2 py-2">{t("settingsExaminations.maximum")}</th>
+              <th className="px-2 py-2">{t("settingsExaminations.grade")}</th>
               <th className="px-2 py-2" />
             </tr>
           </thead>

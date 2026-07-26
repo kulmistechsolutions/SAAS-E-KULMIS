@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useEffect, useMemo, useState } from "react";
 import { AcademicYearSelect } from "@/components/academics/academic-year-select";
 import { ResultsClassTable } from "@/components/examinations/results-class-table";
@@ -14,6 +16,7 @@ import {
 } from "@/lib/academics/store";
 
 export default function ExamResultsPage() {
+  const t = useT();
   const [mounted, setMounted] = useState(false);
   const [yearName, setYearName] = useState("");
   const [rows, setRows] = useState<ApiResultsClassOverview[]>([]);
@@ -43,16 +46,15 @@ export default function ExamResultsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Results & Publishing</h1>
+        <h1 className="text-2xl font-bold">{t("examinationsResults.resultsPublishing")}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Manage results by class. Teacher lock and student portal publishing are
-          controlled separately per examination.
+          {t("examinationsResults.manageResultsByClassTeacherLock")}
         </p>
       </div>
 
       <div className="max-w-xs rounded-xl border bg-card p-4">
         <label className="mb-1 block text-xs font-medium text-muted-foreground">
-          Academic Year
+          {t("examinationsResults.academicYear")}
         </label>
         <AcademicYearSelect value={yearName} onChange={setYearName} />
       </div>

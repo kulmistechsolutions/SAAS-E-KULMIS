@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Select } from "@/components/ui/select";
@@ -18,6 +20,7 @@ import {
 } from "@/lib/academics/store";
 
 export default function ExamMonitoringPage() {
+  const t = useT();
   const [mounted, setMounted] = useState(false);
   const [yearName, setYearName] = useState("");
   const [examId, setExamId] = useState("");
@@ -60,33 +63,32 @@ export default function ExamMonitoringPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold">Exam Monitoring</h1>
+          <h1 className="text-2xl font-bold">{t("examinationsMonitoring.examMonitoring")}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Monitor teacher submissions by class. Open a class to see subject-level
-            progress and send reminders.
+            {t("examinationsMonitoring.monitorTeacherSubmissionsByClassOpen")}
           </p>
         </div>
         <Link
           href="/sms"
           className="inline-flex h-9 items-center rounded-md border bg-background px-4 text-sm font-medium hover:bg-accent"
         >
-          Send SMS
+          {t("examinationsMonitoring.sendSms")}
         </Link>
       </div>
 
       <div className="flex flex-wrap gap-3 rounded-xl border bg-card p-4">
         <div className="min-w-[160px]">
           <label className="mb-1 block text-xs font-medium text-muted-foreground">
-            Academic Year
+            {t("examinationsMonitoring.academicYear")}
           </label>
           <AcademicYearSelect value={yearName} onChange={setYearName} />
         </div>
         <div className="min-w-[220px] flex-1">
           <label className="mb-1 block text-xs font-medium text-muted-foreground">
-            Exam (optional)
+            {t("examinationsMonitoring.examOptional")}
           </label>
           <Select value={examId} onChange={(e) => setExamId(e.target.value)}>
-            <option value="">All examinations</option>
+            <option value="">{t("examinationsMonitoring.allExaminations")}</option>
             {exams.map((e) => (
               <option key={e.id} value={e.id}>
                 {e.name} — {e.class.name} {e.section?.name ?? ""}

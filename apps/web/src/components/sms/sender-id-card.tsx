@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useCallback, useEffect, useState } from "react";
 import {
   BadgeCheck,
@@ -58,6 +60,7 @@ function shortDate(iso: string | null): string {
  * wants and its registration document, and the platform owner grants it.
  */
 export function SenderIdCard() {
+  const t = useT();
   const [state, setState] = useState<SmsSenderIdState | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -136,7 +139,7 @@ export function SenderIdCard() {
     return (
       <div className="rounded-2xl border bg-card p-5 shadow-sm">
         <p className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin" /> Loading sender name…
+          <Loader2 className="h-4 w-4 animate-spin" /> {t("smsSenderIdCard.loadingSenderName")}
         </p>
       </div>
     );
@@ -158,29 +161,24 @@ export function SenderIdCard() {
         <Info className="mt-0.5 h-5 w-5 shrink-0" />
         <div className="space-y-1.5">
           <p className="font-semibold">
-            The name parents see when your SMS arrives
+            {t("smsSenderIdCard.theNameParentsSeeWhenYour")}
           </p>
           <p>
-            Instead of a phone number, your messages can show your school&apos;s
-            own name — for example{" "}
+            {t("smsSenderIdCard.insteadOfAPhoneNumberYour")}{" "}
             <span className="rounded bg-white/70 px-1.5 py-0.5 font-mono text-xs dark:bg-black/30">
-              AL-NUUR
+              {t("smsSenderIdCard.alNuur")}
             </span>{" "}
-            or{" "}
+            {t("smsSenderIdCard.or")}{" "}
             <span className="rounded bg-white/70 px-1.5 py-0.5 font-mono text-xs dark:bg-black/30">
-              SIRAAJI
+              {t("smsSenderIdCard.siraaji")}
             </span>
             .
           </p>
           <p>
-            The mobile operator registers that name against a licensed school,
-            so it has to be applied for. Send your school&apos;s registration
-            licence with the application; once it is approved the name is set
-            for you and every message goes out under it.
+            {t("smsSenderIdCard.theMobileOperatorRegistersThatName")}
           </p>
           <p className="text-xs opacity-90">
-            Up to 11 characters — letters, digits, spaces, dots and dashes. No
-            spaces at the start. The school cannot change this name itself.
+            {t("smsSenderIdCard.upTo11CharactersLettersDigits")}
           </p>
         </div>
       </div>
@@ -194,14 +192,13 @@ export function SenderIdCard() {
             </span>
             <div>
               <p className="text-sm text-muted-foreground">
-                Approved sender name
+                {t("smsSenderIdCard.approvedSenderName")}
               </p>
               <p className="text-xl font-bold text-emerald-600">
                 {state.activeSenderId}
               </p>
               <p className="mt-1 text-xs text-muted-foreground">
-                Every SMS you send arrives from this name. Only the platform can
-                change it — contact support if it needs to be different.
+                {t("smsSenderIdCard.everySmsYouSendArrivesFrom")}
               </p>
             </div>
           </div>
@@ -211,10 +208,10 @@ export function SenderIdCard() {
               <Clock className="h-5 w-5" />
             </span>
             <div>
-              <p className="text-sm text-muted-foreground">Awaiting approval</p>
+              <p className="text-sm text-muted-foreground">{t("smsSenderIdCard.awaitingApproval")}</p>
               <p className="text-xl font-bold">{state.pending.requestedName}</p>
               <p className="mt-1 text-xs text-muted-foreground">
-                Applied {shortDate(state.pending.createdAt)}
+                {t("smsSenderIdCard.applied")} {shortDate(state.pending.createdAt)}
                 {state.pending.licenseDocName
                   ? ` · licence attached (${state.pending.licenseDocName})`
                   : " · no licence attached"}
@@ -229,11 +226,10 @@ export function SenderIdCard() {
               </span>
               <div>
                 <p className="text-sm text-muted-foreground">
-                  No sender name yet
+                  {t("smsSenderIdCard.noSenderNameYet")}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  Until one is approved, messages go out under the platform
-                  default rather than your school&apos;s name.
+                  {t("smsSenderIdCard.untilOneIsApprovedMessagesGo")}
                 </p>
               </div>
             </div>
@@ -241,50 +237,49 @@ export function SenderIdCard() {
             {showRejection && (
               <div className="mt-4 rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-900 dark:border-rose-900/50 dark:bg-rose-950/30 dark:text-rose-200">
                 <p className="font-medium">
-                  Your last application ({showRejection.requestedName}) was not
-                  approved
+                  {t("smsSenderIdCard.yourLastApplication")}{showRejection.requestedName}{t("smsSenderIdCard.wasNotApproved")}
                 </p>
                 {showRejection.reviewNote && (
                   <p className="mt-1">{showRejection.reviewNote}</p>
                 )}
                 <p className="mt-1 text-xs opacity-80">
-                  Correct it and apply again.
+                  {t("smsSenderIdCard.correctItAndApplyAgain")}
                 </p>
               </div>
             )}
 
             {!showForm ? (
               <Button className="mt-4" onClick={() => setShowForm(true)}>
-                Apply for a sender name
+                {t("smsSenderIdCard.applyForASenderName")}
               </Button>
             ) : (
               <div className="mt-4 max-w-md space-y-3">
                 <div>
-                  <Label>Name you want *</Label>
+                  <Label>{t("smsSenderIdCard.nameYouWant")}</Label>
                   <Input
                     className="mt-1.5"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    placeholder="AL-NUUR"
+                    placeholder={t("smsSenderIdCard.alNuur")}
                     maxLength={11}
                     autoComplete="off"
                   />
                   <p className="mt-1 text-xs text-muted-foreground">
-                    {name.trim().length}/11 characters
+                    {name.trim().length}{t("smsSenderIdCard.n11Characters")}
                   </p>
                 </div>
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div>
-                    <Label>Contact person</Label>
+                    <Label>{t("smsSenderIdCard.contactPerson")}</Label>
                     <Input
                       className="mt-1.5"
                       value={person}
                       onChange={(e) => setPerson(e.target.value)}
-                      placeholder="Headteacher's name"
+                      placeholder={t("smsSenderIdCard.headteacherSName")}
                     />
                   </div>
                   <div>
-                    <Label>Contact phone</Label>
+                    <Label>{t("smsSenderIdCard.contactPhone")}</Label>
                     <Input
                       className="mt-1.5"
                       value={phone}
@@ -294,7 +289,7 @@ export function SenderIdCard() {
                   </div>
                 </div>
                 <div>
-                  <Label>School licence / registration</Label>
+                  <Label>{t("smsSenderIdCard.schoolLicenceRegistration")}</Label>
                   <div className="mt-1.5 flex items-center gap-2">
                     <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm hover:bg-secondary">
                       <Upload className="h-4 w-4" />
@@ -314,13 +309,13 @@ export function SenderIdCard() {
                   </div>
                 </div>
                 <div>
-                  <Label>Anything else (optional)</Label>
+                  <Label>{t("smsSenderIdCard.anythingElseOptional")}</Label>
                   <Textarea
                     className="mt-1.5"
                     rows={2}
                     value={note}
                     onChange={(e) => setNote(e.target.value)}
-                    placeholder="What the name stands for, if it isn't obvious."
+                    placeholder={t("smsSenderIdCard.whatTheNameStandsForIf")}
                   />
                 </div>
                 <div className="flex gap-2">
@@ -329,13 +324,13 @@ export function SenderIdCard() {
                     disabled={busy}
                     onClick={() => setShowForm(false)}
                   >
-                    Cancel
+                    {t("smsSenderIdCard.cancel")}
                   </Button>
                   <Button disabled={busy} onClick={() => void submit()}>
                     {busy ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Sending…
+                        {t("smsSenderIdCard.sending")}
                       </>
                     ) : (
                       "Send application"
@@ -352,16 +347,16 @@ export function SenderIdCard() {
       {state && state.history.length > 0 && (
         <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
           <p className="border-b px-5 py-3 text-sm font-semibold">
-            Application history
+            {t("smsSenderIdCard.applicationHistory")}
           </p>
           <div className="overflow-x-auto">
             <table className="w-full min-w-[520px] text-sm">
               <thead className="bg-secondary/60 text-left text-xs uppercase tracking-wide text-muted-foreground">
                 <tr>
-                  <th className="px-4 py-2.5 font-medium">Applied</th>
-                  <th className="px-4 py-2.5 font-medium">Name</th>
-                  <th className="px-4 py-2.5 font-medium">Result</th>
-                  <th className="px-4 py-2.5 font-medium">Note</th>
+                  <th className="px-4 py-2.5 font-medium">{t("smsSenderIdCard.applied")}</th>
+                  <th className="px-4 py-2.5 font-medium">{t("smsSenderIdCard.name")}</th>
+                  <th className="px-4 py-2.5 font-medium">{t("smsSenderIdCard.result")}</th>
+                  <th className="px-4 py-2.5 font-medium">{t("smsSenderIdCard.note")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -374,7 +369,7 @@ export function SenderIdCard() {
                       {h.approvedName ?? h.requestedName}
                       {h.approvedName && h.approvedName !== h.requestedName && (
                         <span className="ml-1 text-xs text-muted-foreground">
-                          (asked for {h.requestedName})
+                          {t("smsSenderIdCard.askedFor")} {h.requestedName})
                         </span>
                       )}
                     </td>

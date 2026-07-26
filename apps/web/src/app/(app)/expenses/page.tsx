@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Calendar, ChevronRight, FileText, List, Plus, Tags } from "lucide-react";
@@ -29,6 +31,7 @@ const QUICK = [
 ];
 
 export default function ExpensesDashboardPage() {
+  const t = useT();
   const [mounted, setMounted] = useState(false);
   const state = useExpensesState();
   const [filterYear, setFilterYear] = useState("");
@@ -60,7 +63,7 @@ export default function ExpensesDashboardPage() {
   if (!mounted) {
     return (
       <div className="flex h-64 items-center justify-center text-muted-foreground">
-        Loading expenses…
+        {t("expenses.loadingExpenses")}
       </div>
     );
   }
@@ -69,9 +72,9 @@ export default function ExpensesDashboardPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Expense Management</h1>
+          <h1 className="text-2xl font-bold">{t("expenses.expenseManagement")}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Track operational expenditures and net income across the school.
+            {t("expenses.trackOperationalExpendituresAndNetIncome")}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -84,7 +87,7 @@ export default function ExpensesDashboardPage() {
             />
           </div>
           <div className="flex items-center gap-2 rounded-lg border bg-card px-3 py-2 text-sm">
-            <span className="text-muted-foreground">Month:</span>
+            <span className="text-muted-foreground">{t("expenses.month")}</span>
             <Select
               value={filterMonth}
               onChange={(e) => setFilterMonth(e.target.value)}
@@ -99,7 +102,7 @@ export default function ExpensesDashboardPage() {
           </div>
           <Button className="h-9" onClick={() => setShowForm(true)}>
             <Plus className="mr-2 h-4 w-4" />
-            Record Expense
+            {t("expenses.recordExpense")}
           </Button>
         </div>
       </div>
@@ -129,19 +132,19 @@ export default function ExpensesDashboardPage() {
         <div className="space-y-6 lg:col-span-2">
           <div className="rounded-xl border bg-card shadow-sm">
             <div className="flex items-center justify-between border-b px-4 py-3">
-              <h2 className="font-semibold">Recent Expenses</h2>
+              <h2 className="font-semibold">{t("expenses.recentExpenses")}</h2>
               <Link href="/expenses/list" className="text-xs font-medium text-primary hover:underline">
-                View all
+                {t("expenses.viewAll")}
               </Link>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="bg-secondary text-left text-xs text-muted-foreground">
                   <tr>
-                    <th className="px-4 py-2 font-medium">Reference</th>
-                    <th className="px-4 py-2 font-medium">Title</th>
-                    <th className="px-4 py-2 font-medium">Category</th>
-                    <th className="px-4 py-2 font-medium">Amount</th>
+                    <th className="px-4 py-2 font-medium">{t("expenses.reference")}</th>
+                    <th className="px-4 py-2 font-medium">{t("expenses.title")}</th>
+                    <th className="px-4 py-2 font-medium">{t("expenses.category")}</th>
+                    <th className="px-4 py-2 font-medium">{t("expenses.amount")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -165,11 +168,11 @@ export default function ExpensesDashboardPage() {
           </div>
 
           <div className="rounded-xl border bg-card p-5 shadow-sm">
-            <h2 className="font-semibold">Expense Breakdown by Category</h2>
+            <h2 className="font-semibold">{t("expenses.expenseBreakdownByCategory")}</h2>
             <p className="mt-1 text-xs text-muted-foreground">{monthLabel(filterMonth)}</p>
             <div className="mt-4 space-y-3">
               {breakdown.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No expenses this month.</p>
+                <p className="text-sm text-muted-foreground">{t("expenses.noExpensesThisMonth")}</p>
               ) : (
                 breakdown.slice(0, 8).map((b) => (
                   <div key={b.category} className="flex items-center justify-between text-sm">
@@ -187,7 +190,7 @@ export default function ExpensesDashboardPage() {
         <div className="space-y-4">
           {summary && <FinancialSummaryPanel summary={summary} />}
           <Button variant="outline" className="h-9 w-full" onClick={handleRecurring}>
-            Process Recurring Expenses
+            {t("expenses.processRecurringExpenses")}
           </Button>
         </div>
       </div>

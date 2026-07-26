@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useEffect, useMemo, useState } from "react";
 import QRCode from "qrcode";
 import { Printer } from "lucide-react";
@@ -55,6 +57,7 @@ function publicResultUrl(studentCode: string): string {
 }
 
 export function ExamResultCard({ data }: { data: ExamResultCardData }) {
+  const t = useT();
   const branding = useSchoolBranding();
   const [qr, setQr] = useState<string | null>(null);
 
@@ -125,7 +128,7 @@ export function ExamResultCard({ data }: { data: ExamResultCardData }) {
               </p>
             ) : null}
             <p className="mt-0.5 text-xs font-medium uppercase tracking-wide text-primary-foreground/80">
-              Examination Result
+              {t("examinationsExamResultCard.examinationResult")}
             </p>
           </div>
         </div>
@@ -134,18 +137,18 @@ export function ExamResultCard({ data }: { data: ExamResultCardData }) {
           {/* Left: student + subjects */}
           <div className="min-w-0 space-y-5">
             <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm sm:grid-cols-3">
-              <Info label="Student" value={data.studentName} />
-              <Info label="Student ID" value={data.studentCode} mono />
-              <Info label="Class" value={data.className} />
+              <Info label={t("examinationsExamResultCard.student")} value={data.studentName} />
+              <Info label={t("examinationsExamResultCard.studentId")} value={data.studentCode} mono />
+              <Info label={t("examinationsExamResultCard.class")} value={data.className} />
               <Info
-                label="Section"
+                label={t("examinationsExamResultCard.section")}
                 value={data.section ? data.section : "—"}
               />
               {data.academicYear ? (
-                <Info label="Academic Year" value={data.academicYear} />
+                <Info label={t("examinationsExamResultCard.academicYear")} value={data.academicYear} />
               ) : null}
               <Info
-                label="Examination"
+                label={t("examinationsExamResultCard.examination")}
                 value={`${data.examName}${data.term ? ` · ${data.term}` : ""}`}
               />
             </div>
@@ -154,10 +157,10 @@ export function ExamResultCard({ data }: { data: ExamResultCardData }) {
               <table className="w-full text-sm">
                 <thead className="bg-secondary/60 text-left text-xs uppercase tracking-wide text-muted-foreground">
                   <tr>
-                    <th className="px-4 py-2.5 font-medium">Subject</th>
-                    <th className="px-4 py-2.5 text-right font-medium">Marks</th>
-                    <th className="px-4 py-2.5 text-right font-medium">Out of</th>
-                    <th className="px-4 py-2.5 text-center font-medium">Grade</th>
+                    <th className="px-4 py-2.5 font-medium">{t("examinationsExamResultCard.subject")}</th>
+                    <th className="px-4 py-2.5 text-right font-medium">{t("examinationsExamResultCard.marks")}</th>
+                    <th className="px-4 py-2.5 text-right font-medium">{t("examinationsExamResultCard.outOf")}</th>
+                    <th className="px-4 py-2.5 text-center font-medium">{t("examinationsExamResultCard.grade")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -178,7 +181,7 @@ export function ExamResultCard({ data }: { data: ExamResultCardData }) {
                 </tbody>
                 <tfoot>
                   <tr className="border-t bg-secondary/40 font-semibold">
-                    <td className="px-4 py-2.5">Total</td>
+                    <td className="px-4 py-2.5">{t("examinationsExamResultCard.total")}</td>
                     <td className="px-4 py-2.5 text-right tabular-nums">
                       {data.totalObtained}
                     </td>
@@ -193,10 +196,10 @@ export function ExamResultCard({ data }: { data: ExamResultCardData }) {
 
             {/* Summary tiles */}
             <div className="grid grid-cols-3 gap-3">
-              <Tile label="Average" value={data.average.toFixed(1)} />
-              <Tile label="Percentage" value={`${pct.toFixed(1)}%`} />
+              <Tile label={t("examinationsExamResultCard.average")} value={data.average.toFixed(1)} />
+              <Tile label={t("examinationsExamResultCard.percentage")} value={`${pct.toFixed(1)}%`} />
               <div className="rounded-xl border bg-secondary/20 p-3 text-center">
-                <p className="text-xs text-muted-foreground">Result</p>
+                <p className="text-xs text-muted-foreground">{t("examinationsExamResultCard.result")}</p>
                 <Badge
                   tone={data.passed ? "success" : "danger"}
                   className="mt-1"
@@ -210,13 +213,13 @@ export function ExamResultCard({ data }: { data: ExamResultCardData }) {
           {/* Right: QR / scan panel */}
           <div className="flex flex-col items-center justify-start gap-2 rounded-xl border bg-secondary/20 p-4 md:w-44">
             <p className="text-xs font-medium text-muted-foreground">
-              Scan to verify
+              {t("examinationsExamResultCard.scanToVerify")}
             </p>
             {qr ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={qr}
-                alt="Result verification QR code"
+                alt={t("examinationsExamResultCard.resultVerificationQrCode")}
                 className="h-32 w-32 rounded-lg bg-white p-1.5"
               />
             ) : (
@@ -231,7 +234,7 @@ export function ExamResultCard({ data }: { data: ExamResultCardData }) {
         {/* Footer + actions */}
         <div className="flex flex-wrap items-center justify-between gap-3 border-t bg-secondary/20 px-6 py-3">
           <p className="text-xs text-muted-foreground">
-            {branding.name} · Official examination result
+            {branding.name} {t("examinationsExamResultCard.officialExaminationResult")}
           </p>
           <Button
             variant="outline"
@@ -239,7 +242,7 @@ export function ExamResultCard({ data }: { data: ExamResultCardData }) {
             className="result-card-noprint h-9 px-3 text-sm"
           >
             <Printer className="mr-1.5 h-4 w-4" />
-            Print
+            {t("examinationsExamResultCard.print")}
           </Button>
         </div>
       </div>

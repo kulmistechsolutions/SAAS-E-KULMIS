@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { usePortal } from "@/components/parent-portal/portal-context";
@@ -10,6 +12,7 @@ import {
 
 /** The selected child's published class timetable. */
 export default function ParentTimetablePage() {
+  const t = useT();
   const { selectedChild } = usePortal();
   const [timetables, setTimetables] = useState<PersonalTimetableDto[]>([]);
   const [loading, setLoading] = useState(true);
@@ -44,7 +47,7 @@ export default function ParentTimetablePage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Class Timetable</h1>
+        <h1 className="text-2xl font-bold">{t("parentPortalTimetable.classTimetable")}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           {selectedChild
             ? `${selectedChild.fullName}'s weekly lessons.`

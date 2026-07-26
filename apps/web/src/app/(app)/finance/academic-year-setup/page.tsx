@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +14,7 @@ import { ApiError } from "@/lib/api";
 import { toast } from "@/lib/toast";
 
 export default function AcademicYearSetupPage() {
+  const t = useT();
   const { year: academicYearName, setYear: setAcademicYear } =
     useAcademicYearSelect("fee-ay-setup");
   const academics = useAcademicsState();
@@ -73,36 +76,35 @@ export default function AcademicYearSetupPage() {
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Academic Year Fee Setup</h1>
+        <h1 className="text-2xl font-bold">{t("financeAcademicYearSetup.academicYearFeeSetup")}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Charge the full academic year upfront (Monthly Fee × Academic Months) while
-          tracking month-by-month payment progress.
+          {t("financeAcademicYearSetup.chargeTheFullAcademicYearUpfront")}
         </p>
       </div>
 
       <div className="space-y-4 rounded-2xl border bg-card p-6 shadow-sm">
         <div className="space-y-2">
-          <Label>Academic Year</Label>
+          <Label>{t("financeAcademicYearSetup.academicYear")}</Label>
           <AcademicYearSelect value={academicYearName} onChange={setAcademicYear} />
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
-            <Label>Academic Months</Label>
+            <Label>{t("financeAcademicYearSetup.academicMonths")}</Label>
             <Input type="number" value={months} readOnly className="bg-muted/40" />
           </div>
           <div className="space-y-2">
-            <Label>Default Monthly Fee (optional)</Label>
+            <Label>{t("financeAcademicYearSetup.defaultMonthlyFeeOptional")}</Label>
             <Input
               type="number"
               min={0}
               value={monthlyFee}
               onChange={(e) => setMonthlyFee(e.target.value)}
-              placeholder="Uses each student's monthly fee if empty"
+              placeholder={t("financeAcademicYearSetup.usesEachStudentSMonthlyFee")}
             />
           </div>
         </div>
         <div className="rounded-xl bg-secondary/40 p-4">
-          <p className="text-xs text-muted-foreground">Total Annual Tuition (per student)</p>
+          <p className="text-xs text-muted-foreground">{t("financeAcademicYearSetup.totalAnnualTuitionPerStudent")}</p>
           <p className="text-2xl font-bold tabular-nums">
             {fee > 0 ? `$${totalAnnual}` : "Monthly Fee × " + months}
           </p>

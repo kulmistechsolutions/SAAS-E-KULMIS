@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -71,6 +73,7 @@ export function ExamCreationWizard({
   mode = "admin",
   successHref,
 }: ExamCreationWizardProps) {
+  const tr = useT();
   const router = useRouter();
   const isTeacher = mode === "teacher";
   const academics = useAcademicsState();
@@ -354,7 +357,7 @@ export function ExamCreationWizard({
   const DataLoading = (
     <div className="flex items-center justify-center gap-2 py-16 text-muted-foreground">
       <Loader2 className="h-4 w-4 animate-spin" />
-      Loading classes…
+      {tr("examinationsExamCreationWizard.loadingClasses")}
     </div>
   );
 
@@ -394,15 +397,14 @@ export function ExamCreationWizard({
         {step === "info" && (
           <div className="space-y-5">
             <div>
-              <h2 className="text-lg font-semibold">Exam information</h2>
+              <h2 className="text-lg font-semibold">{tr("examinationsExamCreationWizard.examInformation")}</h2>
               <p className="text-sm text-muted-foreground">
-                Subjects load automatically from teacher assignments — you never
-                pick them manually.
+                {tr("examinationsExamCreationWizard.subjectsLoadAutomaticallyFromTeacherAssignments")}
               </p>
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="sm:col-span-2">
-                <Label required>Academic Year</Label>
+                <Label required>{tr("examinationsExamCreationWizard.academicYear")}</Label>
                 <AcademicYearSelect
                   className="mt-1.5"
                   value={academicYear}
@@ -410,13 +412,13 @@ export function ExamCreationWizard({
                 />
               </div>
               <div>
-                <Label>Category (optional)</Label>
+                <Label>{tr("examinationsExamCreationWizard.categoryOptional")}</Label>
                 <Select
                   className="mt-1.5"
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
                 >
-                  <option value="">Custom name…</option>
+                  <option value="">{tr("examinationsExamCreationWizard.customName")}</option>
                   {EXAM_CATEGORIES.map((c) => (
                     <option key={c} value={c}>
                       {c}
@@ -425,16 +427,16 @@ export function ExamCreationWizard({
                 </Select>
               </div>
               <div>
-                <Label required>Exam Name</Label>
+                <Label required>{tr("examinationsExamCreationWizard.examName")}</Label>
                 <Input
                   className="mt-1.5"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="e.g. Mid Term Examination"
+                  placeholder={tr("examinationsExamCreationWizard.eGMidTermExamination")}
                 />
               </div>
               <div>
-                <Label required>Exam Type</Label>
+                <Label required>{tr("examinationsExamCreationWizard.examType")}</Label>
                 <Select
                   className="mt-1.5"
                   value={examType}
@@ -454,7 +456,7 @@ export function ExamCreationWizard({
                 </p>
               </div>
               <div>
-                <Label required>Term</Label>
+                <Label required>{tr("examinationsExamCreationWizard.term")}</Label>
                 <Select
                   className="mt-1.5"
                   value={term}
@@ -468,13 +470,13 @@ export function ExamCreationWizard({
                 </Select>
               </div>
               <div>
-                <Label>Exam Group (optional)</Label>
+                <Label>{tr("examinationsExamCreationWizard.examGroupOptional")}</Label>
                 <Select
                   className="mt-1.5"
                   value={examGroupId}
                   onChange={(e) => setExamGroupId(e.target.value)}
                 >
-                  <option value="">None</option>
+                  <option value="">{tr("examinationsExamCreationWizard.none")}</option>
                   {examGroups.map((g) => (
                     <option key={g.id} value={g.id}>
                       {g.name}
@@ -483,7 +485,7 @@ export function ExamCreationWizard({
                 </Select>
               </div>
               <div>
-                <Label required>Maximum Marks</Label>
+                <Label required>{tr("examinationsExamCreationWizard.maximumMarks")}</Label>
                 <Input
                   className="mt-1.5"
                   type="number"
@@ -493,7 +495,7 @@ export function ExamCreationWizard({
                 />
               </div>
               <div>
-                <Label required>Weight %</Label>
+                <Label required>{tr("examinationsExamCreationWizard.weight")}</Label>
                 <Input
                   className="mt-1.5"
                   type="number"
@@ -504,7 +506,7 @@ export function ExamCreationWizard({
                 />
               </div>
               <div>
-                <Label required>Start Date</Label>
+                <Label required>{tr("examinationsExamCreationWizard.startDate")}</Label>
                 <Input
                   className="mt-1.5"
                   type="date"
@@ -513,7 +515,7 @@ export function ExamCreationWizard({
                 />
               </div>
               <div>
-                <Label required>End Date</Label>
+                <Label required>{tr("examinationsExamCreationWizard.endDate")}</Label>
                 <Input
                   className="mt-1.5"
                   type="date"
@@ -529,9 +531,9 @@ export function ExamCreationWizard({
         {step === "classes" && dataReady && (
           <div className="space-y-5">
             <div>
-              <h2 className="text-lg font-semibold">Class selection</h2>
+              <h2 className="text-lg font-semibold">{tr("examinationsExamCreationWizard.classSelection")}</h2>
               <p className="text-sm text-muted-foreground">
-                Choose all classes or select specific grades.
+                {tr("examinationsExamCreationWizard.chooseAllClassesOrSelectSpecific")}
               </p>
             </div>
             <label className="flex cursor-pointer items-center gap-3 rounded-xl border bg-muted/30 p-4">
@@ -545,9 +547,9 @@ export function ExamCreationWizard({
                 className="h-4 w-4 rounded"
               />
               <div>
-                <p className="font-medium">All Classes</p>
+                <p className="font-medium">{tr("examinationsExamCreationWizard.allClasses")}</p>
                 <p className="text-xs text-muted-foreground">
-                  Every active class in {academicYear} participates
+                  {tr("examinationsExamCreationWizard.everyActiveClassIn")} {academicYear} {tr("examinationsExamCreationWizard.participates")}
                 </p>
               </div>
             </label>
@@ -578,7 +580,7 @@ export function ExamCreationWizard({
             )}
             {classOptions.length === 0 && (
               <p className="text-sm text-muted-foreground">
-                No classes available for this year.
+                {tr("examinationsExamCreationWizard.noClassesAvailableForThisYear")}
               </p>
             )}
           </div>
@@ -588,10 +590,9 @@ export function ExamCreationWizard({
         {step === "sections" && dataReady && (
           <div className="space-y-5">
             <div>
-              <h2 className="text-lg font-semibold">Section selection</h2>
+              <h2 className="text-lg font-semibold">{tr("examinationsExamCreationWizard.sectionSelection")}</h2>
               <p className="text-sm text-muted-foreground">
-                For each class with sections, choose all or specific sections.
-                Classes without sections are included automatically.
+                {tr("examinationsExamCreationWizard.forEachClassWithSectionsChoose")}
               </p>
             </div>
             {selectedClasses.map((cls) => {
@@ -605,7 +606,7 @@ export function ExamCreationWizard({
                     <span className="font-medium">{cls.name}</span>
                     <span className="text-muted-foreground">
                       {" "}
-                      — no sections (one exam for whole class)
+                      {tr("examinationsExamCreationWizard.noSectionsOneExamForWhole")}
                     </span>
                   </div>
                 );
@@ -622,7 +623,7 @@ export function ExamCreationWizard({
                         setSectionModeAll((p) => ({ ...p, [cls.id]: true }))
                       }
                     />
-                    All sections
+                    {tr("examinationsExamCreationWizard.allSections")}
                   </label>
                   <label className="mb-3 flex items-center gap-2 text-sm">
                     <input
@@ -632,7 +633,7 @@ export function ExamCreationWizard({
                         setSectionModeAll((p) => ({ ...p, [cls.id]: false }))
                       }
                     />
-                    Specific sections
+                    {tr("examinationsExamCreationWizard.specificSections")}
                   </label>
                   {!allSec && (
                     <div className="flex flex-wrap gap-2">
@@ -650,7 +651,7 @@ export function ExamCreationWizard({
                                 : "hover:bg-muted/50",
                             )}
                           >
-                            Section {s.name}
+                            {tr("examinationsExamCreationWizard.section")} {s.name}
                           </button>
                         );
                       })}
@@ -666,43 +667,43 @@ export function ExamCreationWizard({
           <div className="space-y-5">
             <div className="flex items-center gap-2">
               <Sparkles className="h-5 w-5 text-primary" />
-              <h2 className="text-lg font-semibold">Preview & confirm</h2>
+              <h2 className="text-lg font-semibold">{tr("examinationsExamCreationWizard.previewConfirm")}</h2>
             </div>
             {previewLoading ? (
-              <p className="text-muted-foreground">Building preview…</p>
+              <p className="text-muted-foreground">{tr("examinationsExamCreationWizard.buildingPreview")}</p>
             ) : preview ? (
               <>
                 <div className="grid gap-3 rounded-xl bg-muted/30 p-4 text-sm sm:grid-cols-2">
                   <PreviewRow
-                    label="Academic Year"
+                    label={tr("examinationsExamCreationWizard.academicYear")}
                     value={preview.academicYear}
                   />
-                  <PreviewRow label="Exam Name" value={preview.name} />
+                  <PreviewRow label={tr("examinationsExamCreationWizard.examName")} value={preview.name} />
                   <PreviewRow
-                    label="Exam Type"
+                    label={tr("examinationsExamCreationWizard.examType")}
                     value={examTypeLabel(preview.examType)}
                   />
-                  <PreviewRow label="Term" value={preview.term} />
+                  <PreviewRow label={tr("examinationsExamCreationWizard.term")} value={preview.term} />
                   <PreviewRow
-                    label="Maximum Marks"
+                    label={tr("examinationsExamCreationWizard.maximumMarks")}
                     value={String(preview.maxMarks)}
                   />
                   <PreviewRow
-                    label="Weight"
+                    label={tr("examinationsExamCreationWizard.weight")}
                     value={`${preview.weightPercent}%`}
                   />
-                  <PreviewRow label="Start" value={preview.startDate} />
-                  <PreviewRow label="End" value={preview.endDate} />
+                  <PreviewRow label={tr("examinationsExamCreationWizard.start")} value={preview.startDate} />
+                  <PreviewRow label={tr("examinationsExamCreationWizard.end")} value={preview.endDate} />
                   <PreviewRow
-                    label="Exams to create"
+                    label={tr("examinationsExamCreationWizard.examsToCreate")}
                     value={String(preview.creatableCount)}
                   />
                   <PreviewRow
-                    label="Est. students"
+                    label={tr("examinationsExamCreationWizard.estStudents")}
                     value={String(preview.totalStudents)}
                   />
                   <PreviewRow
-                    label="Assigned subjects"
+                    label={tr("examinationsExamCreationWizard.assignedSubjects")}
                     value={String(preview.subjectCount)}
                   />
                 </div>
@@ -723,7 +724,7 @@ export function ExamCreationWizard({
                           {inst.sectionName ? ` · ${inst.sectionName}` : ""}
                         </p>
                         <span className="text-xs text-muted-foreground">
-                          {inst.studentCount} students
+                          {inst.studentCount} {tr("examinationsExamCreationWizard.students")}
                         </span>
                       </div>
                       {inst.skipReason && (
@@ -733,7 +734,7 @@ export function ExamCreationWizard({
                       )}
                       {inst.subjects.length > 0 && (
                         <p className="mt-2 text-xs text-muted-foreground">
-                          Subjects:{" "}
+                          {tr("examinationsExamCreationWizard.subjects")}{" "}
                           {inst.subjects
                             .map(
                               (s) =>
@@ -747,22 +748,21 @@ export function ExamCreationWizard({
                 </div>
                 {!preview.canCreate && (
                   <p className="text-sm text-destructive">
-                    No valid exams to create. Resolve duplicates or add teacher
-                    assignments first.
+                    {tr("examinationsExamCreationWizard.noValidExamsToCreateResolve")}
                   </p>
                 )}
               </>
             ) : (
               <div className="space-y-3 text-muted-foreground">
                 <p>
-                  Could not load preview. Go back and check your selections.
+                  {tr("examinationsExamCreationWizard.couldNotLoadPreviewGoBack")}
                 </p>
                 <Button
                   variant="outline"
                   className="h-8 px-3 text-xs"
                   onClick={() => void loadPreview()}
                 >
-                  Retry preview
+                  {tr("examinationsExamCreationWizard.retryPreview")}
                 </Button>
               </div>
             )}
@@ -778,11 +778,11 @@ export function ExamCreationWizard({
           disabled={stepIndex === 0 || submitting}
         >
           <ChevronLeft className="mr-1 h-4 w-4" />
-          Back
+          {tr("examinationsExamCreationWizard.back")}
         </Button>
         {step !== "preview" ? (
           <Button onClick={() => void goNext()}>
-            Next
+            {tr("examinationsExamCreationWizard.next")}
             <ChevronRight className="ml-1 h-4 w-4" />
           </Button>
         ) : (

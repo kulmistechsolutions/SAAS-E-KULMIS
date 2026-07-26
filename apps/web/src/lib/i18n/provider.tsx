@@ -15,11 +15,15 @@ import {
   dirOf,
   type Lang,
 } from "./config";
-import { en, type Dictionary } from "./dictionaries/en";
+import {
+  en,
+  type Dictionary,
+  type PartialDictionary,
+} from "./dictionaries/en";
 import { so } from "./dictionaries/so";
 import { ar } from "./dictionaries/ar";
 
-const DICTIONARIES: Record<Lang, Dictionary> = { en, so, ar };
+const DICTIONARIES: Record<Lang, PartialDictionary> = { en, so, ar };
 
 /**
  * Every key in the dictionary, as a dotted path — "common.save",
@@ -48,7 +52,7 @@ interface I18nValue {
 
 const I18nContext = createContext<I18nValue | null>(null);
 
-function lookup(dict: Dictionary, key: string): string | undefined {
+function lookup(dict: PartialDictionary, key: string): string | undefined {
   let node: unknown = dict;
   for (const part of key.split(".")) {
     if (typeof node !== "object" || node === null) return undefined;

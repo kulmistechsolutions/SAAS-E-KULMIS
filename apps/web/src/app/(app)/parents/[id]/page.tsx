@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { use, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
@@ -80,6 +82,7 @@ export default function ParentProfilePage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const t = useT();
   const { id } = use(params);
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
@@ -120,7 +123,7 @@ export default function ParentProfilePage({
   if (!mounted) {
     return (
       <div className="flex h-64 items-center justify-center text-muted-foreground">
-        Loading profile…
+        {t("parents.loadingProfile")}
       </div>
     );
   }
@@ -132,10 +135,10 @@ export default function ParentProfilePage({
           href="/parents"
           className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
         >
-          <ArrowLeft className="h-4 w-4" /> Back to Parents
+          <ArrowLeft className="h-4 w-4" /> {t("parents.backToParents")}
         </Link>
         <div className="rounded-2xl border bg-card p-12 text-center text-muted-foreground">
-          Parent not found.
+          {t("parents.parentNotFound")}
         </div>
       </div>
     );
@@ -147,7 +150,7 @@ export default function ParentProfilePage({
         href="/parents"
         className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
       >
-        <ArrowLeft className="h-4 w-4" /> Back to Parents
+        <ArrowLeft className="h-4 w-4" /> {t("parents.backToParents")}
       </Link>
 
       <div className="flex flex-col gap-4 rounded-2xl border bg-card p-6 shadow-sm sm:flex-row sm:items-center">
@@ -163,19 +166,19 @@ export default function ParentProfilePage({
           </div>
           <p className="mt-1 text-sm text-muted-foreground">
             <span className="font-mono">{parent.code}</span> ·{" "}
-            {parent.children.length} child
+            {parent.children.length} {t("parents.child")}
             {parent.children.length !== 1 ? "ren" : ""} · {parent.phone}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" onClick={() => setEditOpen(true)}>
-            <Pencil className="mr-2 h-4 w-4" /> Edit
+            <Pencil className="mr-2 h-4 w-4" /> {t("parents.edit")}
           </Button>
           <Button
             variant="outline"
             onClick={() => printParentProfile(parent, parent.children)}
           >
-            <Printer className="mr-2 h-4 w-4" /> Print
+            <Printer className="mr-2 h-4 w-4" /> {t("parents.print")}
           </Button>
           <Button
             variant="outline"
@@ -186,7 +189,7 @@ export default function ParentProfilePage({
               )
             }
           >
-            <Download className="mr-2 h-4 w-4" /> Download
+            <Download className="mr-2 h-4 w-4" /> {t("parents.download")}
           </Button>
         </div>
       </div>
@@ -199,38 +202,36 @@ export default function ParentProfilePage({
           {tab === "personal" && (
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               <Field
-                label="Parent ID"
+                label={t("parents.parentId")}
                 value={<span className="font-mono">{parent.code}</span>}
               />
-              <Field label="Full Name" value={parent.name} />
-              <Field label="Phone" value={parent.phone} />
-              <Field label="Alternative Phone" value={parent.altPhone ?? "—"} />
-              <Field label="Email" value={parent.email ?? "—"} />
-              <Field label="Address" value={parent.address ?? "—"} />
-              <Field label="Occupation" value={parent.occupation ?? "—"} />
+              <Field label={t("parents.fullName")} value={parent.name} />
+              <Field label={t("parents.phone")} value={parent.phone} />
+              <Field label={t("parents.alternativePhone")} value={parent.altPhone ?? "—"} />
+              <Field label={t("parents.email")} value={parent.email ?? "—"} />
+              <Field label={t("parents.address")} value={parent.address ?? "—"} />
+              <Field label={t("parents.occupation")} value={parent.occupation ?? "—"} />
               <Field
-                label="Registration Date"
+                label={t("parents.registrationDate")}
                 value={longDate(parent.registrationDate)}
               />
-              <Field label="Status" value={statusLabel(parent.status)} />
+              <Field label={t("parents.status")} value={statusLabel(parent.status)} />
               <Field
-                label="Username"
+                label={t("parents.username")}
                 value={<span className="font-mono">{parent.username}</span>}
               />
               <Field
-                label="Login ID"
+                label={t("parents.loginId")}
                 value={<span className="font-mono">{parent.code}</span>}
               />
               <div className="rounded-xl border bg-secondary/30 px-4 py-3 sm:col-span-2">
-                <p className="text-xs text-muted-foreground">Password</p>
+                <p className="text-xs text-muted-foreground">{t("parents.password")}</p>
                 <p className="mt-0.5 font-mono font-medium">
                   {showPassword ? parent.password : "••••••••••"}
                 </p>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Parents start on the default{" "}
-                  <span className="font-mono">12345</span>. Reset returns them
-                  to it, or set a specific password below. The parent can change
-                  it themselves from their portal.
+                  {t("parents.parentsStartOnTheDefault")}{" "}
+                  <span className="font-mono">12345</span>{t("parents.resetReturnsThemToItOr")}
                 </p>
                 <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
                   <Button
@@ -244,7 +245,7 @@ export default function ParentProfilePage({
                   <div className="flex gap-2">
                     <Input
                       className="h-8 w-40 text-sm"
-                      placeholder="Custom password…"
+                      placeholder={t("parents.customPassword")}
                       value={customPw}
                       onChange={(e) => setCustomPw(e.target.value)}
                     />
@@ -254,7 +255,7 @@ export default function ParentProfilePage({
                       disabled={resetting || customPw.trim().length < 4}
                       onClick={() => void handleResetPassword(customPw.trim())}
                     >
-                      Set
+                      {t("parents.set")}
                     </Button>
                   </div>
                 </div>
@@ -267,12 +268,12 @@ export default function ParentProfilePage({
               <table className="w-full text-sm">
                 <thead className="bg-secondary text-left text-xs text-muted-foreground">
                   <tr>
-                    <th className="px-4 py-2.5 font-medium">Student ID</th>
-                    <th className="px-4 py-2.5 font-medium">Name</th>
-                    <th className="px-4 py-2.5 font-medium">Class</th>
-                    <th className="px-4 py-2.5 font-medium">Section</th>
-                    <th className="px-4 py-2.5 font-medium">Status</th>
-                    <th className="px-4 py-2.5 font-medium">Action</th>
+                    <th className="px-4 py-2.5 font-medium">{t("parents.studentId")}</th>
+                    <th className="px-4 py-2.5 font-medium">{t("parents.name")}</th>
+                    <th className="px-4 py-2.5 font-medium">{t("parents.class")}</th>
+                    <th className="px-4 py-2.5 font-medium">{t("parents.section")}</th>
+                    <th className="px-4 py-2.5 font-medium">{t("parents.status")}</th>
+                    <th className="px-4 py-2.5 font-medium">{t("parents.action")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -290,7 +291,7 @@ export default function ParentProfilePage({
                           href={`/students/${c.id}`}
                           className="text-primary hover:underline"
                         >
-                          View Student Profile
+                          {t("parents.viewStudentProfile")}
                         </Link>
                       </td>
                     </tr>
@@ -320,7 +321,7 @@ export default function ParentProfilePage({
                 </>
               ) : (
                 <p className="py-8 text-center text-muted-foreground">
-                  No children linked.
+                  {t("parents.noChildrenLinked")}
                 </p>
               )}
             </>
@@ -348,14 +349,15 @@ function Field({ label, value }: { label: string; value: React.ReactNode }) {
 }
 
 function AttendanceTab({ child }: { child: Student }) {
+  const t = useT();
   const a = useMemo(() => attendanceHistory(child), [child]);
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Stat label="Present" value={a.present} />
-        <Stat label="Absent" value={a.absent} />
-        <Stat label="Late" value={a.late} />
-        <Stat label="Attendance %" value={`${a.percentage}%`} />
+        <Stat label={t("parents.present")} value={a.present} />
+        <Stat label={t("parents.absent")} value={a.absent} />
+        <Stat label={t("parents.late")} value={a.late} />
+        <Stat label={t("parents.attendance")} value={`${a.percentage}%`} />
       </div>
       <DataTable
         headers={["Date", "Status"]}
@@ -372,6 +374,7 @@ function FeesTab({
   child: Student;
   allChildren: Student[];
 }) {
+  const t = useT();
   const fees = useMemo(() => feeHistory(child), [child]);
   const payments = useMemo(
     () => parentPaymentHistory(allChildren),
@@ -382,12 +385,12 @@ function FeesTab({
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Stat label="Monthly Fee" value={money(child.monthlyFee)} />
-        <Stat label="Paid (recent)" value={money(paid)} />
-        <Stat label="Outstanding" value={money(outstanding)} />
-        <Stat label="Receipts" value={payments.length} />
+        <Stat label={t("parents.monthlyFee")} value={money(child.monthlyFee)} />
+        <Stat label={t("parents.paidRecent")} value={money(paid)} />
+        <Stat label={t("parents.outstanding")} value={money(outstanding)} />
+        <Stat label={t("parents.receipts")} value={payments.length} />
       </div>
-      <h3 className="text-sm font-semibold">Fee Ledger — {child.fullName}</h3>
+      <h3 className="text-sm font-semibold">{t("parents.feeLedger")} {child.fullName}</h3>
       <DataTable
         headers={["Month", "Charged", "Paid", "Balance", "Status"]}
         rows={fees.map((f) => [
@@ -398,7 +401,7 @@ function FeesTab({
           statusLabel(f.status),
         ])}
       />
-      <h3 className="text-sm font-semibold">Payment History (all children)</h3>
+      <h3 className="text-sm font-semibold">{t("parents.paymentHistoryAllChildren")}</h3>
       <DataTable
         headers={["Receipt", "Student", "Amount", "Type", "Date"]}
         rows={payments.map((p) => [
@@ -447,21 +450,22 @@ function QuizzesTab({ child }: { child: Student }) {
 }
 
 function ProgressTab({ child }: { child: Student }) {
+  const t = useT();
   const promos = useMemo(() => promotionHistory(child), [child]);
   return (
     <div className="space-y-4">
       <div className="grid gap-3 sm:grid-cols-3">
         <Field
-          label="Current Class"
+          label={t("parents.currentClass")}
           value={`${child.className}${child.section ? ` - ${child.section}` : ""}`}
         />
-        <Field label="Gender" value={genderLabel(child.gender)} />
-        <Field label="Status" value={statusLabel(child.status)} />
+        <Field label={t("parents.gender")} value={genderLabel(child.gender)} />
+        <Field label={t("parents.status")} value={statusLabel(child.status)} />
       </div>
-      <h3 className="text-sm font-semibold">Promotion History</h3>
+      <h3 className="text-sm font-semibold">{t("parents.promotionHistory")}</h3>
       {promos.length === 0 ? (
         <p className="text-sm text-muted-foreground">
-          No promotion history yet.
+          {t("parents.noPromotionHistoryYet")}
         </p>
       ) : (
         <DataTable

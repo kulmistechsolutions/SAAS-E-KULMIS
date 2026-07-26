@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useCallback, useEffect, useState } from "react";
 import { FileText, Loader2, ShieldCheck } from "lucide-react";
 import {
@@ -32,6 +34,7 @@ function when(iso: string | null): string {
  * and it becomes the school's sending name immediately.
  */
 export function SenderIdReview() {
+  const t = useT();
   const [rows, setRows] = useState<PlatformSenderIdRequest[]>([]);
   const [featureEnabled, setFeatureEnabled] = useState(true);
   const [loading, setLoading] = useState(true);
@@ -107,7 +110,7 @@ export function SenderIdReview() {
   if (loading) {
     return (
       <p className="flex items-center gap-2 text-sm text-slate-400">
-        <Loader2 className="h-4 w-4 animate-spin" /> Loading applications…
+        <Loader2 className="h-4 w-4 animate-spin" /> {t("platformSenderIdReview.loadingApplications")}
       </p>
     );
   }
@@ -117,15 +120,10 @@ export function SenderIdReview() {
       {!featureEnabled && (
         <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-5 text-sm text-amber-100">
           <p className="font-semibold">
-            Sender names are switched off — approving one changes nothing.
+            {t("platformSenderIdReview.senderNamesAreSwitchedOffApproving")}
           </p>
           <p className="mt-1 text-amber-200/90">
-            Messages go out under the name configured on the gateway, and
-            schools no longer see this application form. Approving a name here
-            does not register it with Hormuud: register it with the operator
-            first, then set <code>SMS_SENDER_ID_ENABLED=true</code> on the API
-            to turn this back on. An unregistered name is refused with code 203
-            and never reaches the recipient.
+            {t("platformSenderIdReview.messagesGoOutUnderTheName")} <code>{t("platformSenderIdReview.sms_sender_id_enabledTrue")}</code> {t("platformSenderIdReview.onTheApiToTurnThis")}
           </p>
         </div>
       )}
@@ -133,20 +131,17 @@ export function SenderIdReview() {
         <div className="flex items-center gap-2">
           <ShieldCheck className="h-4 w-4 text-violet-400" />
           <h2 className="font-semibold text-white">
-            Sender ID applications ({pending.length} awaiting)
+            {t("platformSenderIdReview.senderIdApplications")}{pending.length} {t("platformSenderIdReview.awaiting")}
           </h2>
         </div>
         <p className="mt-1 text-sm text-white/60">
-          Schools apply for the name recipients see on their SMS. Register the
-          name with the operator first, then approve here with the name that was
-          actually registered — that is what goes out from the next message on.
-          Schools cannot set it themselves.
+          {t("platformSenderIdReview.schoolsApplyForTheNameRecipients")}
         </p>
       </div>
 
       {pending.length === 0 ? (
         <p className="text-sm text-slate-400">
-          No applications awaiting review.
+          {t("platformSenderIdReview.noApplicationsAwaitingReview")}
         </p>
       ) : (
         <div className="space-y-4">
@@ -163,19 +158,19 @@ export function SenderIdReview() {
                   </p>
                 </div>
                 <p className="text-xs text-white/50">
-                  Applied {when(r.createdAt)}
+                  {t("platformSenderIdReview.applied")} {when(r.createdAt)}
                 </p>
               </div>
 
               <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
                 <div>
-                  <dt className="text-white/50">Name requested</dt>
+                  <dt className="text-white/50">{t("platformSenderIdReview.nameRequested")}</dt>
                   <dd className="mt-0.5 font-mono text-base font-bold text-white">
                     {r.requestedName}
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-white/50">Contact</dt>
+                  <dt className="text-white/50">{t("platformSenderIdReview.contact")}</dt>
                   <dd className="mt-0.5 text-white/80">
                     {r.contactPerson ?? "—"}
                     {r.contactPhone ? ` · ${r.contactPhone}` : ""}
@@ -183,7 +178,7 @@ export function SenderIdReview() {
                 </div>
                 {r.note && (
                   <div className="sm:col-span-2">
-                    <dt className="text-white/50">School&apos;s note</dt>
+                    <dt className="text-white/50">{t("platformSenderIdReview.schoolAposSNote")}</dt>
                     <dd className="mt-0.5 text-white/80">{r.note}</dd>
                   </div>
                 )}
@@ -204,13 +199,12 @@ export function SenderIdReview() {
                     className="inline-flex items-center gap-2 rounded-lg border border-white/15 px-3 py-1.5 text-sm text-white/80 hover:bg-white/10"
                   >
                     <FileText className="h-4 w-4" />
-                    View licence
+                    {t("platformSenderIdReview.viewLicence")}
                     {r.licenseDocName ? ` (${r.licenseDocName})` : ""}
                   </button>
                 ) : (
                   <p className="text-sm text-amber-300">
-                    No licence attached — verify by other means before
-                    approving.
+                    {t("platformSenderIdReview.noLicenceAttachedVerifyByOther")}
                   </p>
                 )}
               </div>
@@ -218,7 +212,7 @@ export function SenderIdReview() {
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
                 <div>
                   <label className="mb-1 block text-xs font-medium text-white/70">
-                    Name to register (what will be sent)
+                    {t("platformSenderIdReview.nameToRegisterWhatWillBe")}
                   </label>
                   <input
                     value={names[r.id] ?? r.requestedName}
@@ -231,14 +225,14 @@ export function SenderIdReview() {
                 </div>
                 <div>
                   <label className="mb-1 block text-xs font-medium text-white/70">
-                    Note to the school (required to reject)
+                    {t("platformSenderIdReview.noteToTheSchoolRequiredTo")}
                   </label>
                   <input
                     value={notes[r.id] ?? ""}
                     onChange={(e) =>
                       setNotes((p) => ({ ...p, [r.id]: e.target.value }))
                     }
-                    placeholder="e.g. licence unreadable, send a clearer copy"
+                    placeholder={t("platformSenderIdReview.eGLicenceUnreadableSendA")}
                     className="w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-white outline-none focus:border-violet-400"
                   />
                 </div>
@@ -259,7 +253,7 @@ export function SenderIdReview() {
                   onClick={() => void reject(r)}
                   className="rounded-lg border border-rose-400/40 px-4 py-2 text-sm font-medium text-rose-300 hover:bg-rose-500/10 disabled:opacity-50"
                 >
-                  Reject
+                  {t("platformSenderIdReview.reject")}
                 </button>
               </div>
             </div>
@@ -270,18 +264,18 @@ export function SenderIdReview() {
       {decided.length > 0 && (
         <div className="overflow-hidden rounded-xl border border-white/10">
           <p className="border-b border-white/10 bg-white/5 px-5 py-3 text-sm font-semibold text-white">
-            Decided
+            {t("platformSenderIdReview.decided")}
           </p>
           <div className="overflow-x-auto">
             <table className="w-full min-w-[720px] text-sm">
               <thead className="bg-white/5 text-left text-xs uppercase tracking-wide text-white/50">
                 <tr>
-                  <th className="px-4 py-2.5 font-medium">School</th>
-                  <th className="px-4 py-2.5 font-medium">Requested</th>
-                  <th className="px-4 py-2.5 font-medium">Registered</th>
-                  <th className="px-4 py-2.5 font-medium">Result</th>
-                  <th className="px-4 py-2.5 font-medium">By</th>
-                  <th className="px-4 py-2.5 font-medium">When</th>
+                  <th className="px-4 py-2.5 font-medium">{t("platformSenderIdReview.school")}</th>
+                  <th className="px-4 py-2.5 font-medium">{t("platformSenderIdReview.requested")}</th>
+                  <th className="px-4 py-2.5 font-medium">{t("platformSenderIdReview.registered")}</th>
+                  <th className="px-4 py-2.5 font-medium">{t("platformSenderIdReview.result")}</th>
+                  <th className="px-4 py-2.5 font-medium">{t("platformSenderIdReview.by")}</th>
+                  <th className="px-4 py-2.5 font-medium">{t("platformSenderIdReview.when")}</th>
                 </tr>
               </thead>
               <tbody>

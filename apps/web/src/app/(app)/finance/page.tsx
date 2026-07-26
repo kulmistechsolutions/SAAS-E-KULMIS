@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useEffect, useMemo, useState } from "react";
 import { Calendar } from "lucide-react";
 import { Select } from "@/components/ui/select";
@@ -24,6 +26,7 @@ import type { FeePayment, StudentFeeRow } from "@/lib/fees/types";
 import { AcademicYearSelect } from "@/components/academics/academic-year-select";
 
 export default function FeeManagementPage() {
+  const t = useT();
   const [mounted, setMounted] = useState(false);
   const fees = useFeesState();
   const [filterMonth, setFilterMonth] = useState("");
@@ -61,9 +64,9 @@ export default function FeeManagementPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Fee Management</h1>
+          <h1 className="text-2xl font-bold">{t("finance.feeManagement")}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Real-time overview of fee collection, outstanding balances, and payments.
+            {t("finance.realTimeOverviewOfFeeCollection")}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -76,7 +79,7 @@ export default function FeeManagementPage() {
             />
           </div>
           <div className="flex items-center gap-2 rounded-lg border bg-card px-3 py-2 text-sm">
-            <span className="text-muted-foreground">Month:</span>
+            <span className="text-muted-foreground">{t("finance.month")}</span>
             <Select
               value={month}
               onChange={(e) => setFilterMonth(e.target.value)}

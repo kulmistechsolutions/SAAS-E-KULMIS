@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useEffect, useMemo, useState } from "react";
 import { Download, Eye, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -27,6 +29,7 @@ import type { PayrollStatus } from "@/lib/salary/types";
 const PAGE_SIZE = 20;
 
 export default function SalaryHistoryPage() {
+  const t = useT();
   const [mounted, setMounted] = useState(false);
   const state = useSalaryState();
   const [search, setSearch] = useState("");
@@ -80,7 +83,7 @@ export default function SalaryHistoryPage() {
   if (!mounted) {
     return (
       <div className="flex h-64 items-center justify-center text-muted-foreground">
-        Loading history…
+        {t("salaryHistory.loadingHistory")}
       </div>
     );
   }
@@ -89,9 +92,9 @@ export default function SalaryHistoryPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Salary History</h1>
+          <h1 className="text-2xl font-bold">{t("salaryHistory.salaryHistory")}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Complete payroll records with payslip access.
+            {t("salaryHistory.completePayrollRecordsWithPayslipAccess")}
           </p>
         </div>
         <Button
@@ -100,13 +103,13 @@ export default function SalaryHistoryPage() {
           onClick={() => exportPayrollReportCsv(exportRows, "salary-history.csv")}
         >
           <Download className="mr-2 h-4 w-4" />
-          Export CSV
+          {t("salaryHistory.exportCsv")}
         </Button>
       </div>
 
       <div className="flex flex-wrap gap-3">
         <Input
-          placeholder="Search employee…"
+          placeholder={t("salaryHistory.searchEmployee")}
           value={search}
           onChange={(e) => {
             setSearch(e.target.value);
@@ -122,7 +125,7 @@ export default function SalaryHistoryPage() {
           }}
           className="h-9 min-w-[160px]"
         >
-          <option value="">All months</option>
+          <option value="">{t("salaryHistory.allMonths")}</option>
           {months.map((m) => (
             <option key={m} value={m}>
               {monthLabel(m)}
@@ -137,7 +140,7 @@ export default function SalaryHistoryPage() {
           }}
           className="h-9 min-w-[160px]"
         >
-          <option value="">All positions</option>
+          <option value="">{t("salaryHistory.allPositions")}</option>
           {POSITIONS.map((p) => (
             <option key={p} value={p}>
               {p}
@@ -152,7 +155,7 @@ export default function SalaryHistoryPage() {
           }}
           className="h-9 min-w-[140px]"
         >
-          <option value="">All statuses</option>
+          <option value="">{t("salaryHistory.allStatuses")}</option>
           {(["PENDING", "PARTIAL", "PAID"] as PayrollStatus[]).map((s) => (
             <option key={s} value={s}>
               {payrollStatusLabel(s)}
@@ -166,17 +169,17 @@ export default function SalaryHistoryPage() {
           <table className="w-full min-w-[1100px] text-sm">
             <thead className="sticky top-0 bg-secondary text-left text-xs text-muted-foreground">
               <tr>
-                <th className="px-4 py-2.5 font-medium">Employee</th>
-                <th className="px-4 py-2.5 font-medium">Month</th>
-                <th className="px-4 py-2.5 font-medium">Basic</th>
-                <th className="px-4 py-2.5 font-medium">Allowances</th>
-                <th className="px-4 py-2.5 font-medium">Bonus</th>
-                <th className="px-4 py-2.5 font-medium">Deductions</th>
-                <th className="px-4 py-2.5 font-medium">Net</th>
-                <th className="px-4 py-2.5 font-medium">Paid</th>
-                <th className="px-4 py-2.5 font-medium">Balance</th>
-                <th className="px-4 py-2.5 font-medium">Status</th>
-                <th className="px-4 py-2.5 font-medium">Actions</th>
+                <th className="px-4 py-2.5 font-medium">{t("salaryHistory.employee")}</th>
+                <th className="px-4 py-2.5 font-medium">{t("salaryHistory.month")}</th>
+                <th className="px-4 py-2.5 font-medium">{t("salaryHistory.basic")}</th>
+                <th className="px-4 py-2.5 font-medium">{t("salaryHistory.allowances")}</th>
+                <th className="px-4 py-2.5 font-medium">{t("salaryHistory.bonus")}</th>
+                <th className="px-4 py-2.5 font-medium">{t("salaryHistory.deductions")}</th>
+                <th className="px-4 py-2.5 font-medium">{t("salaryHistory.net")}</th>
+                <th className="px-4 py-2.5 font-medium">{t("salaryHistory.paid")}</th>
+                <th className="px-4 py-2.5 font-medium">{t("salaryHistory.balance")}</th>
+                <th className="px-4 py-2.5 font-medium">{t("salaryHistory.status")}</th>
+                <th className="px-4 py-2.5 font-medium">{t("salaryHistory.actions")}</th>
               </tr>
             </thead>
             <tbody>

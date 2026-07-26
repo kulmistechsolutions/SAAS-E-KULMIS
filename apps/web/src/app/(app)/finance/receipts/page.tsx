@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useEffect, useMemo, useState } from "react";
 import { Eye, Printer } from "lucide-react";
 import { Pagination } from "@/components/ui/pagination";
@@ -13,6 +15,7 @@ import { getState as getStudentsState } from "@/lib/students/store";
 const PAGE_SIZE = 15;
 
 export default function ReceiptsPage() {
+  const t = useT();
   const [mounted, setMounted] = useState(false);
   const fees = useFeesState();
   const [page, setPage] = useState(1);
@@ -28,9 +31,9 @@ export default function ReceiptsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Receipts</h1>
+        <h1 className="text-2xl font-bold">{t("financeReceipts.receipts")}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          View, print, and download payment receipts.
+          {t("financeReceipts.viewPrintAndDownloadPaymentReceipts")}
         </p>
       </div>
 
@@ -40,12 +43,12 @@ export default function ReceiptsPage() {
             <table className="w-full min-w-[700px] text-sm">
               <thead className="sticky top-0 bg-secondary text-left text-xs text-muted-foreground">
                 <tr>
-                  <th className="px-4 py-2.5 font-medium">Receipt No.</th>
-                  <th className="px-4 py-2.5 font-medium">Student</th>
-                  <th className="px-4 py-2.5 font-medium">Amount</th>
-                  <th className="px-4 py-2.5 font-medium">Type</th>
-                  <th className="px-4 py-2.5 font-medium">Date</th>
-                  <th className="px-4 py-2.5 font-medium">Actions</th>
+                  <th className="px-4 py-2.5 font-medium">{t("financeReceipts.receiptNo")}</th>
+                  <th className="px-4 py-2.5 font-medium">{t("financeReceipts.student")}</th>
+                  <th className="px-4 py-2.5 font-medium">{t("financeReceipts.amount")}</th>
+                  <th className="px-4 py-2.5 font-medium">{t("financeReceipts.type")}</th>
+                  <th className="px-4 py-2.5 font-medium">{t("financeReceipts.date")}</th>
+                  <th className="px-4 py-2.5 font-medium">{t("financeReceipts.actions")}</th>
                 </tr>
               </thead>
               <tbody>

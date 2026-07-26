@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
@@ -40,6 +42,7 @@ import { toast } from "@/lib/toast";
 const PAGE_SIZE = 15;
 
 export default function UsersListPage() {
+  const t = useT();
   const [mounted, setMounted] = useState(false);
   const state = useUsersState();
   const [search, setSearch] = useState("");
@@ -76,16 +79,16 @@ export default function UsersListPage() {
   ];
 
   if (!mounted) {
-    return <div className="flex h-64 items-center justify-center text-muted-foreground">Loading…</div>;
+    return <div className="flex h-64 items-center justify-center text-muted-foreground">{t("usersList.loading")}</div>;
   }
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold">All Users</h1>
+          <h1 className="text-2xl font-bold">{t("usersList.allUsers")}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Manage system accounts, roles, and access status.
+            {t("usersList.manageSystemAccountsRolesAndAccess")}
           </p>
         </div>
         <div className="flex gap-2">
@@ -95,22 +98,22 @@ export default function UsersListPage() {
             onClick={() => printUserListReport(rows, "User List Report")}
           >
             <Printer className="mr-2 h-4 w-4" />
-            Print
+            {t("usersList.print")}
           </Button>
           <Button variant="outline" className="h-9" onClick={() => exportUsersCsv(rows)}>
             <Download className="mr-2 h-4 w-4" />
-            Export CSV
+            {t("usersList.exportCsv")}
           </Button>
           <Button className="h-9" onClick={() => setShowCreate(true)}>
             <Plus className="mr-2 h-4 w-4" />
-            Create User
+            {t("usersList.createUser")}
           </Button>
         </div>
       </div>
 
       <div className="flex flex-wrap gap-3">
         <Input
-          placeholder="Search user ID, username, name…"
+          placeholder={t("usersList.searchUserIdUsernameName")}
           value={search}
           onChange={(e) => {
             setSearch(e.target.value);
@@ -126,7 +129,7 @@ export default function UsersListPage() {
           }}
           className="h-9 min-w-[180px]"
         >
-          <option value="">All roles</option>
+          <option value="">{t("usersList.allRoles")}</option>
           {roleOptions.map((r) => (
             <option key={r.id} value={r.id}>
               {r.label}
@@ -141,10 +144,10 @@ export default function UsersListPage() {
           }}
           className="h-9 min-w-[140px]"
         >
-          <option value="">All statuses</option>
-          <option value="ACTIVE">Active</option>
-          <option value="INACTIVE">Inactive</option>
-          <option value="LOCKED">Locked</option>
+          <option value="">{t("usersList.allStatuses")}</option>
+          <option value="ACTIVE">{t("usersList.active")}</option>
+          <option value="INACTIVE">{t("usersList.inactive")}</option>
+          <option value="LOCKED">{t("usersList.locked")}</option>
         </Select>
       </div>
 
@@ -154,13 +157,13 @@ export default function UsersListPage() {
             <thead className="sticky top-0 bg-secondary text-left text-xs text-muted-foreground">
               <tr>
                 <th className="px-4 py-2.5 font-medium">#</th>
-                <th className="px-4 py-2.5 font-medium">User ID</th>
-                <th className="px-4 py-2.5 font-medium">Full Name</th>
-                <th className="px-4 py-2.5 font-medium">Username</th>
-                <th className="px-4 py-2.5 font-medium">Role</th>
-                <th className="px-4 py-2.5 font-medium">Status</th>
-                <th className="px-4 py-2.5 font-medium">Last Login</th>
-                <th className="px-4 py-2.5 font-medium">Actions</th>
+                <th className="px-4 py-2.5 font-medium">{t("usersList.userId")}</th>
+                <th className="px-4 py-2.5 font-medium">{t("usersList.fullName")}</th>
+                <th className="px-4 py-2.5 font-medium">{t("usersList.username")}</th>
+                <th className="px-4 py-2.5 font-medium">{t("usersList.role")}</th>
+                <th className="px-4 py-2.5 font-medium">{t("usersList.status")}</th>
+                <th className="px-4 py-2.5 font-medium">{t("usersList.lastLogin")}</th>
+                <th className="px-4 py-2.5 font-medium">{t("usersList.actions")}</th>
               </tr>
             </thead>
             <tbody>
@@ -173,7 +176,7 @@ export default function UsersListPage() {
                   <td className="px-4 py-2.5">
                     <span className="text-muted-foreground">{r.roleLabel}</span>
                     {isSchoolSuperAdminRole(r.role) && (
-                      <Badge tone="warning" className="ml-2 text-[10px]">Protected</Badge>
+                      <Badge tone="warning" className="ml-2 text-[10px]">{t("usersList.protected")}</Badge>
                     )}
                   </td>
                   <td className="px-4 py-2.5">
@@ -281,8 +284,8 @@ export default function UsersListPage() {
       />
       <ConfirmDialog
         open={!!deleteId}
-        title="Delete User"
-        message="This action removes the user account. Super Administrator accounts cannot be deleted if they are the last one."
+        title={t("usersList.deleteUser")}
+        message={t("usersList.thisActionRemovesTheUserAccount")}
         onConfirm={async () => {
           if (!deleteId) return;
           const res = await deleteUser(deleteId);

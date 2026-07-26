@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
@@ -42,6 +44,7 @@ export function TeacherDashboard({
   portalMode?: boolean;
   canViewStudents?: boolean;
 }) {
+  const t = useT();
   const branding = useSchoolBranding();
   const base = portalMode ? "/teacher-portal" : "";
   const [data, setData] = useState<TeacherDashboardResponse | null>(null);
@@ -65,7 +68,7 @@ export function TeacherDashboard({
   if (!data) {
     return (
       <p className="text-center text-muted-foreground">
-        Could not load your dashboard.
+        {t("dashboardTeacherDashboard.couldNotLoadYourDashboard")}
       </p>
     );
   }
@@ -113,10 +116,10 @@ export function TeacherDashboard({
             {data.school.name || branding.name}
           </p>
           <h1 className="truncate text-2xl font-bold">
-            Welcome, {data.teacher.fullName}
+            {t("dashboardTeacherDashboard.welcome")} {data.teacher.fullName}
           </h1>
           <p className="mt-0.5 text-sm text-muted-foreground">
-            Teacher ID {data.teacher.code} · {data.teacher.shift} shift ·{" "}
+            {t("dashboardTeacherDashboard.teacherId")} {data.teacher.code} · {data.teacher.shift} {t("dashboardTeacherDashboard.shift")}{" "}
             {formatToday(data.today)}
           </p>
         </div>
@@ -125,7 +128,7 @@ export function TeacherDashboard({
           className="inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium hover:bg-muted/50"
         >
           <UserCircle className="h-4 w-4" />
-          My Profile
+          {t("dashboardTeacherDashboard.myProfile")}
         </Link>
       </section>
 
@@ -167,9 +170,9 @@ export function TeacherDashboard({
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <Widget title="Upcoming exams" icon={FileText} href={`${base}/exams/marks`}>
+        <Widget title={t("dashboardTeacherDashboard.upcomingExams")} icon={FileText} href={`${base}/exams/marks`}>
           {data.upcomingExams.length === 0 ? (
-            <Empty>No upcoming exams.</Empty>
+            <Empty>{t("dashboardTeacherDashboard.noUpcomingExams")}</Empty>
           ) : (
             <ul className="space-y-3">
               {data.upcomingExams.map((e) => (
@@ -186,9 +189,9 @@ export function TeacherDashboard({
           )}
         </Widget>
 
-        <Widget title="Active quizzes" icon={ClipboardList} href={`${base}/quizzes`}>
+        <Widget title={t("dashboardTeacherDashboard.activeQuizzes")} icon={ClipboardList} href={`${base}/quizzes`}>
           {data.activeQuizzes.length === 0 ? (
-            <Empty>No active quizzes.</Empty>
+            <Empty>{t("dashboardTeacherDashboard.noActiveQuizzes")}</Empty>
           ) : (
             <ul className="space-y-3">
               {data.activeQuizzes.map((q) => (
@@ -209,9 +212,9 @@ export function TeacherDashboard({
           )}
         </Widget>
 
-        <Widget title="Notifications" icon={Bell} href={`${base}/notifications`}>
+        <Widget title={t("dashboardTeacherDashboard.notifications")} icon={Bell} href={`${base}/notifications`}>
           {data.notifications.length === 0 ? (
-            <Empty>No recent notifications.</Empty>
+            <Empty>{t("dashboardTeacherDashboard.noRecentNotifications")}</Empty>
           ) : (
             <ul className="space-y-3">
               {data.notifications.map((n) => (
@@ -226,9 +229,9 @@ export function TeacherDashboard({
           )}
         </Widget>
 
-        <Widget title="School announcements" icon={Megaphone} href={`${base}/announcements`}>
+        <Widget title={t("dashboardTeacherDashboard.schoolAnnouncements")} icon={Megaphone} href={`${base}/announcements`}>
           {data.announcements.length === 0 ? (
-            <Empty>No announcements.</Empty>
+            <Empty>{t("dashboardTeacherDashboard.noAnnouncements")}</Empty>
           ) : (
             <ul className="space-y-3">
               {data.announcements.map((a) => (
@@ -246,25 +249,25 @@ export function TeacherDashboard({
 
       <section className="rounded-xl border bg-card p-5">
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="font-semibold">Assigned classes & subjects</h2>
+          <h2 className="font-semibold">{t("dashboardTeacherDashboard.assignedClassesSubjects")}</h2>
           <Link
             href={`${base}/assignments`}
             className="text-xs font-medium text-primary hover:underline"
           >
-            View all
+            {t("dashboardTeacherDashboard.viewAll")}
           </Link>
         </div>
         {data.schedule.length === 0 ? (
-          <Empty>No assignments yet.</Empty>
+          <Empty>{t("dashboardTeacherDashboard.noAssignmentsYet")}</Empty>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b text-left text-muted-foreground">
-                  <th className="pb-2 pr-3 font-medium">Year</th>
-                  <th className="pb-2 pr-3 font-medium">Class</th>
-                  <th className="pb-2 pr-3 font-medium">Section</th>
-                  <th className="pb-2 font-medium">Subject</th>
+                  <th className="pb-2 pr-3 font-medium">{t("dashboardTeacherDashboard.year")}</th>
+                  <th className="pb-2 pr-3 font-medium">{t("dashboardTeacherDashboard.class")}</th>
+                  <th className="pb-2 pr-3 font-medium">{t("dashboardTeacherDashboard.section")}</th>
+                  <th className="pb-2 font-medium">{t("dashboardTeacherDashboard.subject")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -286,10 +289,9 @@ export function TeacherDashboard({
         <div className="flex items-center gap-3 rounded-xl border bg-card p-4 text-sm">
           <Users className="h-5 w-5 text-primary" />
           <span>
-            <strong>{data.stats.students}</strong> students in your assigned
-            classes ·{" "}
+            <strong>{data.stats.students}</strong> {t("dashboardTeacherDashboard.studentsInYourAssignedClasses")}{" "}
             <Link href={`${base}/students`} className="text-primary hover:underline">
-              Open student list
+              {t("dashboardTeacherDashboard.openStudentList")}
             </Link>
           </span>
         </div>
@@ -309,6 +311,7 @@ function Widget({
   href: string;
   children: React.ReactNode;
 }) {
+  const t = useT();
   return (
     <section className="rounded-xl border bg-card p-5">
       <div className="mb-3 flex items-center justify-between gap-2">
@@ -320,7 +323,7 @@ function Widget({
           href={href}
           className={cn("text-xs font-medium text-primary hover:underline")}
         >
-          View
+          {t("dashboardTeacherDashboard.view")}
         </Link>
       </div>
       {children}

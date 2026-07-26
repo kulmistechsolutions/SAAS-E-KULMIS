@@ -299,6 +299,7 @@ export default function DashboardPage() {
 }
 
 function AdminDashboard() {
+  const tr = useT();
   const t = useT();
   const { user } = useAuth();
   const router = useRouter();
@@ -420,7 +421,7 @@ function AdminDashboard() {
   if (loading) {
     return (
       <div className="flex h-64 items-center justify-center text-muted-foreground">
-        Loading dashboard…
+        {tr("dashboard.loadingDashboard")}
       </div>
     );
   }
@@ -435,7 +436,7 @@ function AdminDashboard() {
             onClick={() => void loadDashboard()}
             className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90"
           >
-            Retry
+            {tr("dashboard.retry")}
           </button>
         ) : null}
       </div>
@@ -447,10 +448,10 @@ function AdminDashboard() {
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-foreground sm:text-3xl">
-            Welcome back, {name}! <span className="align-middle">👋</span>
+            {tr("dashboard.welcomeBack")} {name}! <span className="align-middle">👋</span>
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Here&apos;s what&apos;s happening in your school today.
+            {tr("dashboard.hereAposSWhatAposS")}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
@@ -463,7 +464,7 @@ function AdminDashboard() {
             className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-violet-600 to-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
           >
             <Sparkles className="h-4 w-4" />
-            Quick Actions
+            {tr("dashboard.quickActions")}
           </button>
         </div>
       </div>
@@ -483,7 +484,7 @@ function AdminDashboard() {
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <Panel title="Attendance Overview (Today)">
+        <Panel title={tr("dashboard.attendanceOverviewToday")}>
           <div className="flex flex-col items-center gap-4 sm:flex-row">
             <div className="relative w-full max-w-[220px]">
               <AttendanceDonut segments={attendanceBreakdown.segments} />
@@ -511,7 +512,7 @@ function AdminDashboard() {
                 </div>
               ))}
               <div className="border-t pt-3 text-sm text-muted-foreground">
-                Total Students:{" "}
+                {tr("dashboard.totalStudents")}{" "}
                 <span className="font-semibold text-foreground">
                   {attendanceBreakdown.total.toLocaleString()}
                 </span>
@@ -520,7 +521,7 @@ function AdminDashboard() {
           </div>
         </Panel>
 
-        <Panel title="Fee Collection Overview (This Month)">
+        <Panel title={tr("dashboard.feeCollectionOverviewThisMonth")}>
           <p className="text-xs text-muted-foreground">
             {t("dashboard.totalCollected")}
           </p>
@@ -537,15 +538,15 @@ function AdminDashboard() {
           </div>
         </Panel>
 
-        <Panel title="Income vs Expense (This Month)">
+        <Panel title={tr("dashboard.incomeVsExpenseThisMonth")}>
           <div className="flex flex-wrap items-center gap-4 text-xs">
             <span className="inline-flex items-center gap-1.5">
               <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
-              Income
+              {tr("dashboard.income")}
             </span>
             <span className="inline-flex items-center gap-1.5">
               <span className="h-2.5 w-2.5 rounded-full bg-rose-500" />
-              Expenses
+              {tr("dashboard.expenses")}
             </span>
           </div>
           <div className="mt-2">
@@ -581,7 +582,7 @@ function AdminDashboard() {
           onAction={() => router.push("/examinations")}
         >
           {upcomingExams.length === 0 ? (
-            <p className="py-6 text-center text-sm text-muted-foreground">No upcoming exams scheduled.</p>
+            <p className="py-6 text-center text-sm text-muted-foreground">{tr("dashboard.noUpcomingExamsScheduled")}</p>
           ) : (
             <ul className="space-y-3">
               {upcomingExams.map((e) => (
@@ -626,7 +627,7 @@ function AdminDashboard() {
                 </li>
               ))
             ) : (
-              <li className="text-sm text-muted-foreground">No recent activity.</li>
+              <li className="text-sm text-muted-foreground">{tr("dashboard.noRecentActivity")}</li>
             )}
           </ul>
         </Panel>
@@ -703,7 +704,7 @@ function AdminDashboard() {
               </li>
             ))}
             {data.recentPayments.length === 0 && (
-              <li className="text-sm text-muted-foreground">No payments yet.</li>
+              <li className="text-sm text-muted-foreground">{tr("dashboard.noPaymentsYet")}</li>
             )}
           </ul>
         </Panel>

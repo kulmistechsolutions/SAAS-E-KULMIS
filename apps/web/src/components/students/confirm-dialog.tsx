@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { AlertTriangle } from "lucide-react";
 import { Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -21,6 +23,7 @@ export function ConfirmDialog({
   onConfirm,
   onClose,
 }: Props) {
+  const t = useT();
   return (
     <Dialog
       open={open}
@@ -30,7 +33,7 @@ export function ConfirmDialog({
       footer={
         <>
           <Button variant="outline" onClick={onClose}>
-            Cancel
+            {t("studentsConfirmDialog.cancel")}
           </Button>
           <Button variant="destructive" onClick={onConfirm}>
             {confirmLabel}

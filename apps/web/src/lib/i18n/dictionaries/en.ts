@@ -3,7 +3,14 @@
  * other language must satisfy, so a missing or misspelled key fails the build
  * rather than silently rendering the key name to a school.
  */
-export const en = {
+import { generated } from "./generated";
+
+/**
+ * Hand-written namespaces. These are the shared vocabulary and the screens
+ * translated deliberately; `generated` holds everything the codemod lifted
+ * out of the remaining pages.
+ */
+const core = {
   common: {
     save: "Save",
     saving: "Saving…",
@@ -174,6 +181,51 @@ export const en = {
     thisMonth: "+{count} this month",
   },
 
+  students: {
+    loadingStudents: "Loading students…",
+    students: "Students",
+    manageStudentRecordsRegistrationAndProfiles:
+      "Manage student records, registration, and profiles.",
+    print: "Print",
+    export: "Export",
+    import: "Import",
+    addStudent: "Add Student",
+    searchByIdNameParentOr: "Search by ID, name, parent, or phone…",
+    allClasses: "All Classes",
+    allSections: "All Sections",
+    section: "Section",
+    allGenders: "All Genders",
+    male: "Male",
+    female: "Female",
+    allStatus: "All Status",
+    active: "Active",
+    inactive: "Inactive",
+    graduated: "Graduated",
+    clear: "Clear",
+    student: "student",
+    selected: "selected",
+    deleteSelected: "Delete selected",
+    selectAllOnThisPage: "Select all on this page",
+    studentId: "Student ID",
+    name: "Name",
+    gender: "Gender",
+    parent: "Parent",
+    parentPhone: "Parent Phone",
+    class: "Class",
+    monthlyFee: "Monthly Fee",
+    regDate: "Reg. Date",
+    status: "Status",
+    actions: "Actions",
+    viewProfile: "View Profile",
+    edit: "Edit",
+    printProfile: "Print Profile",
+    downloadProfile: "Download Profile",
+    delete: "Delete",
+    resetDemoData: "Reset demo data",
+    deleteStudent: "Delete Student",
+    deleteSelectedStudents: "Delete selected students",
+  },
+
   topbar: {
     openMenu: "Open menu",
     searchPlaceholder: "Search students, teachers, parents…",
@@ -211,6 +263,14 @@ export const en = {
   },
 } as const;
 
+export const en = {
+  ...generated,
+  ...core,
+  // Both halves contribute keys to these two, so merge rather than replace.
+  dashboard: { ...generated.dashboard, ...core.dashboard },
+  students: { ...generated.students, ...core.students },
+} as const;
+
 /**
  * Values widened to `string`. `as const` above pins every value to its own
  * literal type, which is what makes the key paths exact — but a translation
@@ -222,3 +282,16 @@ type Widen<T> = {
 
 /** The shape every language must provide. */
 export type Dictionary = Widen<typeof en>;
+
+/**
+ * What a translation file may provide: any subset. Translating 1,900 strings
+ * is not one commit, and holding Somali and Arabic to the complete shape
+ * would mean no key could be added until both were finished. Anything missing
+ * falls back to English at runtime — see the provider — so a partial
+ * dictionary reads correctly rather than showing dotted key paths.
+ */
+type DeepPartial<T> = {
+  [K in keyof T]?: T[K] extends string ? string : DeepPartial<T[K]>;
+};
+
+export type PartialDictionary = DeepPartial<Dictionary>;

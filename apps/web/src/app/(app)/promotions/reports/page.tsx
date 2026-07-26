@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
@@ -24,12 +26,13 @@ import { printTable } from "@/lib/promotions/print";
 import { toast } from "@/lib/toast";
 
 export default function PromotionReportsPage() {
+  const t = useT();
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
   if (!mounted) {
     return (
       <div className="flex h-64 items-center justify-center text-muted-foreground">
-        Loading reports…
+        {t("promotionsReports.loadingReports")}
       </div>
     );
   }
@@ -99,13 +102,13 @@ export default function PromotionReportsPage() {
   return (
     <div className="space-y-6">
       <Link href="/promotions" className="inline-flex items-center gap-1 text-sm text-primary hover:underline">
-        <ArrowLeft className="h-4 w-4" /> Back to Promotions
+        <ArrowLeft className="h-4 w-4" /> {t("promotionsReports.backToPromotions")}
       </Link>
 
       <div>
-        <h1 className="text-2xl font-bold">Promotion Reports</h1>
+        <h1 className="text-2xl font-bold">{t("promotionsReports.promotionReports")}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Print or export promotion and graduation reports. Academic Year {year}.
+          {t("promotionsReports.printOrExportPromotionAndGraduation")} {year}.
         </p>
       </div>
 
@@ -122,14 +125,14 @@ export default function PromotionReportsPage() {
                 onClick={() => { r.onPrint(); }}
                 className="inline-flex h-9 flex-1 items-center justify-center gap-1.5 rounded-lg border text-sm font-medium transition-colors hover:bg-secondary"
               >
-                <Printer className="h-4 w-4" /> Print
+                <Printer className="h-4 w-4" /> {t("promotionsReports.print")}
               </button>
               {r.onCsv && (
                 <button
                   onClick={() => { r.onCsv!(); toast("Report exported.", "info"); }}
                   className="inline-flex h-9 flex-1 items-center justify-center gap-1.5 rounded-lg border text-sm font-medium transition-colors hover:bg-secondary"
                 >
-                  <FileDown className="h-4 w-4" /> CSV
+                  <FileDown className="h-4 w-4" /> {t("promotionsReports.csv")}
                 </button>
               )}
             </div>

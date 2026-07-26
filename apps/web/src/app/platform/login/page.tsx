@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
@@ -14,6 +16,7 @@ import Link from "next/link";
 import { toast } from "@/lib/toast";
 
 export default function PlatformLoginPage() {
+  const t = useT();
   const router = useRouter();
   const { admin, login, isPreview } = usePlatformAuth();
   const {
@@ -44,18 +47,18 @@ export default function PlatformLoginPage() {
             <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500 to-indigo-600 text-white shadow-lg">
               <Shield className="h-7 w-7" />
             </div>
-            <h1 className="text-2xl font-bold text-white">Platform Super Admin</h1>
+            <h1 className="text-2xl font-bold text-white">{t("platformLogin.platformSuperAdmin")}</h1>
             <p className="mt-1 text-sm text-slate-400">
-              Manage all schools and tenants across eKulmis
+              {t("platformLogin.manageAllSchoolsAndTenantsAcross")}
             </p>
           </div>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div>
-              <label className="mb-1 block text-sm font-medium text-slate-300">Username</label>
+              <label className="mb-1 block text-sm font-medium text-slate-300">{t("platformLogin.username")}</label>
               <Input
                 {...register("identifier")}
-                placeholder="superadmin"
+                placeholder={t("platformLogin.superadmin")}
                 autoComplete="username"
                 className="border-white/10 bg-white/5 text-white"
               />
@@ -64,7 +67,7 @@ export default function PlatformLoginPage() {
               )}
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium text-slate-300">Password</label>
+              <label className="mb-1 block text-sm font-medium text-slate-300">{t("platformLogin.password")}</label>
               <Input
                 type="password"
                 {...register("password")}
@@ -83,18 +86,18 @@ export default function PlatformLoginPage() {
 
           {isPreview && (
             <p className="mt-4 rounded-lg border border-violet-500/30 bg-violet-500/10 p-3 text-center text-xs text-violet-200">
-              Preview: <span className="font-mono">superadmin</span> / <span className="font-mono">super123</span>
+              {t("platformLogin.preview")} <span className="font-mono">{t("platformLogin.superadmin")}</span> / <span className="font-mono">{t("platformLogin.super123")}</span>
             </p>
           )}
           {!isPreview && (
             <p className="mt-4 text-center text-xs text-slate-500">
-              API login · seed with <span className="font-mono">node apps/api/seed-superadmin.cjs</span>
+              {t("platformLogin.apiLoginSeedWith")} <span className="font-mono">{t("platformLogin.nodeAppsApiSeedSuperadminCjs")}</span>
             </p>
           )}
 
           <p className="mt-6 text-center text-sm text-slate-500">
             <Link href="/login" className="text-violet-400 hover:underline">
-              ← School ERP login
+              {t("platformLogin.schoolErpLogin")}
             </Link>
           </p>
         </CardContent>

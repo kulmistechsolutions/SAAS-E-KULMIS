@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +15,7 @@ import { loadTeacherMe } from "@/lib/teachers/session";
 import { toast } from "@/lib/toast";
 
 export default function TeacherProfilePage() {
+  const tr = useT();
   const [me, setMe] = useState<TeacherMe | null>(null);
   const [loading, setLoading] = useState(true);
   const [phone, setPhone] = useState("");
@@ -87,7 +90,7 @@ export default function TeacherProfilePage() {
   if (!me) {
     return (
       <p className="text-center text-muted-foreground">
-        Teacher profile not found for this account.
+        {tr("profile.teacherProfileNotFoundForThis")}
       </p>
     );
   }
@@ -95,33 +98,33 @@ export default function TeacherProfilePage() {
   return (
     <div className="mx-auto max-w-3xl space-y-8">
       <div>
-        <h1 className="text-2xl font-bold">My Profile</h1>
+        <h1 className="text-2xl font-bold">{tr("profile.myProfile")}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          View your account details and update contact information.
+          {tr("profile.viewYourAccountDetailsAndUpdate")}
         </p>
       </div>
 
       <section className="rounded-xl border bg-card p-6 space-y-4">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-          Account
+          {tr("profile.account")}
         </h2>
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Teacher ID" value={me.code} />
-          <Field label="Full name" value={me.fullName} />
-          <Field label="Gender" value={me.gender} />
-          <Field label="Shift" value={me.shift} />
-          <Field label="Status" value={me.status} />
-          <Field label="Qualification" value={me.qualification ?? "—"} />
+          <Field label={tr("profile.teacherId")} value={me.code} />
+          <Field label={tr("profile.fullName")} value={me.fullName} />
+          <Field label={tr("profile.gender")} value={me.gender} />
+          <Field label={tr("profile.shift")} value={me.shift} />
+          <Field label={tr("profile.status")} value={me.status} />
+          <Field label={tr("profile.qualification")} value={me.qualification ?? "—"} />
         </div>
       </section>
 
       <section className="rounded-xl border bg-card p-6 space-y-4">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-          Contact (editable)
+          {tr("profile.contactEditable")}
         </h2>
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
-            <Label htmlFor="phone">Phone</Label>
+            <Label htmlFor="phone">{tr("profile.phone")}</Label>
             <Input
               id="phone"
               value={phone}
@@ -130,7 +133,7 @@ export default function TeacherProfilePage() {
             />
           </div>
           <div>
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="email">{tr("profile.email")}</Label>
             <Input
               id="email"
               type="email"
@@ -140,7 +143,7 @@ export default function TeacherProfilePage() {
             />
           </div>
           <div className="sm:col-span-2">
-            <Label htmlFor="address">Address</Label>
+            <Label htmlFor="address">{tr("profile.address")}</Label>
             <Input
               id="address"
               value={address}
@@ -156,11 +159,11 @@ export default function TeacherProfilePage() {
 
       <section className="rounded-xl border bg-card p-6 space-y-4">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-          Change password
+          {tr("profile.changePassword")}
         </h2>
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="sm:col-span-2">
-            <Label htmlFor="currentPw">Current password</Label>
+            <Label htmlFor="currentPw">{tr("profile.currentPassword")}</Label>
             <Input
               id="currentPw"
               type="password"
@@ -170,7 +173,7 @@ export default function TeacherProfilePage() {
             />
           </div>
           <div>
-            <Label htmlFor="newPw">New password</Label>
+            <Label htmlFor="newPw">{tr("profile.newPassword")}</Label>
             <Input
               id="newPw"
               type="password"
@@ -180,7 +183,7 @@ export default function TeacherProfilePage() {
             />
           </div>
           <div>
-            <Label htmlFor="confirmPw">Confirm password</Label>
+            <Label htmlFor="confirmPw">{tr("profile.confirmPassword")}</Label>
             <Input
               id="confirmPw"
               type="password"
@@ -201,21 +204,21 @@ export default function TeacherProfilePage() {
 
       <section className="rounded-xl border bg-card p-6 space-y-4">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-          Teaching assignments
+          {tr("profile.teachingAssignments")}
         </h2>
         {me.assignments.length === 0 ? (
           <p className="text-sm text-muted-foreground">
-            No subjects assigned yet. Contact your administrator.
+            {tr("profile.noSubjectsAssignedYetContactYour")}
           </p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b text-left text-muted-foreground">
-                  <th className="pb-2 pr-3 font-medium">Year</th>
-                  <th className="pb-2 pr-3 font-medium">Class</th>
-                  <th className="pb-2 pr-3 font-medium">Section</th>
-                  <th className="pb-2 font-medium">Subject</th>
+                  <th className="pb-2 pr-3 font-medium">{tr("profile.year")}</th>
+                  <th className="pb-2 pr-3 font-medium">{tr("profile.class")}</th>
+                  <th className="pb-2 pr-3 font-medium">{tr("profile.section")}</th>
+                  <th className="pb-2 font-medium">{tr("profile.subject")}</th>
                 </tr>
               </thead>
               <tbody>

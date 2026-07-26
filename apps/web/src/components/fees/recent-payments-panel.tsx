@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useState } from "react";
 import Link from "next/link";
 import { Eye } from "lucide-react";
@@ -20,6 +22,7 @@ export function RecentPaymentsPanel({
   outstanding,
   onViewReceipt,
 }: RecentPaymentsPanelProps) {
+  const tr = useT();
   const [tab, setTab] = useState<"recent" | "outstanding">("recent");
 
   return (
@@ -52,14 +55,14 @@ export function RecentPaymentsPanel({
           <table className="w-full min-w-[640px] text-sm">
             <thead className="sticky top-0 bg-secondary/80 text-left text-xs text-muted-foreground backdrop-blur">
               <tr>
-                <th className="px-4 py-2.5 font-medium">Receipt No.</th>
-                <th className="px-4 py-2.5 font-medium">Student Name</th>
-                <th className="px-4 py-2.5 font-medium">Class-Section</th>
-                <th className="px-4 py-2.5 font-medium">Amount</th>
-                <th className="px-4 py-2.5 font-medium">Payment Type</th>
-                <th className="px-4 py-2.5 font-medium">Collected By</th>
-                <th className="px-4 py-2.5 font-medium">Date</th>
-                <th className="px-4 py-2.5 font-medium">Action</th>
+                <th className="px-4 py-2.5 font-medium">{tr("feesRecentPaymentsPanel.receiptNo")}</th>
+                <th className="px-4 py-2.5 font-medium">{tr("feesRecentPaymentsPanel.studentName")}</th>
+                <th className="px-4 py-2.5 font-medium">{tr("feesRecentPaymentsPanel.classSection")}</th>
+                <th className="px-4 py-2.5 font-medium">{tr("feesRecentPaymentsPanel.amount")}</th>
+                <th className="px-4 py-2.5 font-medium">{tr("feesRecentPaymentsPanel.paymentType")}</th>
+                <th className="px-4 py-2.5 font-medium">{tr("feesRecentPaymentsPanel.collectedBy")}</th>
+                <th className="px-4 py-2.5 font-medium">{tr("feesRecentPaymentsPanel.date")}</th>
+                <th className="px-4 py-2.5 font-medium">{tr("feesRecentPaymentsPanel.action")}</th>
               </tr>
             </thead>
             <tbody>
@@ -92,7 +95,7 @@ export function RecentPaymentsPanel({
                       type="button"
                       onClick={() => onViewReceipt(r.payment.receiptNo)}
                       className="flex h-8 w-8 items-center justify-center rounded-lg text-primary transition-colors hover:bg-primary/10"
-                      aria-label="View receipt"
+                      aria-label={tr("feesRecentPaymentsPanel.viewReceipt")}
                     >
                       <Eye className="h-4 w-4" />
                     </button>
@@ -105,11 +108,11 @@ export function RecentPaymentsPanel({
           <table className="w-full min-w-[560px] text-sm">
             <thead className="sticky top-0 bg-secondary/80 text-left text-xs text-muted-foreground backdrop-blur">
               <tr>
-                <th className="px-4 py-2.5 font-medium">Student ID</th>
-                <th className="px-4 py-2.5 font-medium">Student Name</th>
-                <th className="px-4 py-2.5 font-medium">Class-Section</th>
-                <th className="px-4 py-2.5 font-medium">Outstanding</th>
-                <th className="px-4 py-2.5 font-medium">Status</th>
+                <th className="px-4 py-2.5 font-medium">{tr("feesRecentPaymentsPanel.studentId")}</th>
+                <th className="px-4 py-2.5 font-medium">{tr("feesRecentPaymentsPanel.studentName")}</th>
+                <th className="px-4 py-2.5 font-medium">{tr("feesRecentPaymentsPanel.classSection")}</th>
+                <th className="px-4 py-2.5 font-medium">{tr("feesRecentPaymentsPanel.outstanding")}</th>
+                <th className="px-4 py-2.5 font-medium">{tr("feesRecentPaymentsPanel.status")}</th>
               </tr>
             </thead>
             <tbody>
@@ -141,7 +144,7 @@ export function RecentPaymentsPanel({
           href="/finance/history"
           className="inline-flex h-9 items-center rounded-lg border border-input bg-background px-4 text-sm font-medium transition-colors hover:bg-secondary"
         >
-          View All Payments
+          {tr("feesRecentPaymentsPanel.viewAllPayments")}
         </Link>
       </div>
     </div>

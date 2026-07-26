@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useEffect, useMemo, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { Dialog } from "@/components/ui/dialog";
@@ -98,6 +100,7 @@ const empty = (year: string, className: string): FormState => ({
 });
 
 export function StudentFormDialog({ open, onClose, student, onSaved }: Props) {
+  const t = useT();
   const isEdit = !!student;
   const settings = useSettingsState();
   const academics = useAcademicsState();
@@ -299,7 +302,7 @@ export function StudentFormDialog({ open, onClose, student, onSaved }: Props) {
       footer={
         <>
           <Button variant="outline" onClick={onClose} disabled={saving}>
-            Cancel
+            {t("studentsStudentFormDialog.cancel")}
           </Button>
           <Button onClick={() => void handleSubmit()} disabled={saving}>
             {saving ? (
@@ -346,27 +349,27 @@ export function StudentFormDialog({ open, onClose, student, onSaved }: Props) {
             />
           </div>
 
-          <Field label="Full Name" required className="sm:col-span-2 lg:col-span-3">
+          <Field label={t("studentsStudentFormDialog.fullName")} required className="sm:col-span-2 lg:col-span-3">
             <Input
               className={inputClass}
               value={form.fullName}
               onChange={(e) => set("fullName", e.target.value)}
-              placeholder="e.g. Amina Hassan"
+              placeholder={t("studentsStudentFormDialog.eGAminaHassan")}
               autoFocus
             />
           </Field>
 
-          <Field label="Gender" required>
+          <Field label={t("studentsStudentFormDialog.gender")} required>
             <Select
               className={inputClass}
               value={form.gender}
               onChange={(e) => set("gender", e.target.value as Gender)}
             >
-              <option value="MALE">Male</option>
-              <option value="FEMALE">Female</option>
+              <option value="MALE">{t("studentsStudentFormDialog.male")}</option>
+              <option value="FEMALE">{t("studentsStudentFormDialog.female")}</option>
             </Select>
           </Field>
-          <Field label="Date of Birth">
+          <Field label={t("studentsStudentFormDialog.dateOfBirth")}>
             <Input
               className={inputClass}
               type="date"
@@ -374,33 +377,33 @@ export function StudentFormDialog({ open, onClose, student, onSaved }: Props) {
               onChange={(e) => set("dob", e.target.value)}
             />
           </Field>
-          <Field label="Student Phone" className="sm:col-span-2 lg:col-span-1">
+          <Field label={t("studentsStudentFormDialog.studentPhone")} className="sm:col-span-2 lg:col-span-1">
             <Input
               className={inputClass}
               value={form.phone}
               onChange={(e) => set("phone", e.target.value)}
-              placeholder="Optional"
+              placeholder={t("studentsStudentFormDialog.optional")}
             />
           </Field>
 
-          <Field label="Parent / Guardian Name" required className="sm:col-span-2">
+          <Field label={t("studentsStudentFormDialog.parentGuardianName")} required className="sm:col-span-2">
             <Input
               className={inputClass}
               value={form.parentName}
               onChange={(e) => set("parentName", e.target.value)}
-              placeholder="e.g. Mohamed Hassan"
+              placeholder={t("studentsStudentFormDialog.eGMohamedHassan")}
             />
           </Field>
-          <Field label="Parent Phone" required className="sm:col-span-2">
+          <Field label={t("studentsStudentFormDialog.parentPhone")} required className="sm:col-span-2">
             <Input
               className={inputClass}
               value={form.parentPhone}
               onChange={(e) => set("parentPhone", e.target.value)}
-              placeholder="Reused if exists"
+              placeholder={t("studentsStudentFormDialog.reusedIfExists")}
             />
           </Field>
 
-          <Field label="Class" required>
+          <Field label={t("studentsStudentFormDialog.class")} required>
             <Select
               className={inputClass}
               value={form.className}
@@ -419,7 +422,7 @@ export function StudentFormDialog({ open, onClose, student, onSaved }: Props) {
               ))}
             </Select>
           </Field>
-          <Field label="Section">
+          <Field label={t("studentsStudentFormDialog.section")}>
             <Select
               className={inputClass}
               value={form.section}
@@ -436,7 +439,7 @@ export function StudentFormDialog({ open, onClose, student, onSaved }: Props) {
               ))}
             </Select>
           </Field>
-          <Field label="Academic Year">
+          <Field label={t("studentsStudentFormDialog.academicYear")}>
             <Select
               className={inputClass}
               value={form.academicYear}
@@ -460,7 +463,7 @@ export function StudentFormDialog({ open, onClose, student, onSaved }: Props) {
               ))}
             </Select>
           </Field>
-          <Field label="Monthly Fee" required>
+          <Field label={t("studentsStudentFormDialog.monthlyFee")} required>
             <div className="relative">
               <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
                 $
@@ -474,32 +477,32 @@ export function StudentFormDialog({ open, onClose, student, onSaved }: Props) {
               />
             </div>
           </Field>
-          <Field label="Status">
+          <Field label={t("studentsStudentFormDialog.status")}>
             <Select
               className={inputClass}
               value={form.status}
               onChange={(e) => set("status", e.target.value as StudentStatus)}
             >
-              <option value="ACTIVE">Active</option>
-              <option value="INACTIVE">Inactive</option>
-              <option value="GRADUATED">Graduated</option>
+              <option value="ACTIVE">{t("studentsStudentFormDialog.active")}</option>
+              <option value="INACTIVE">{t("studentsStudentFormDialog.inactive")}</option>
+              <option value="GRADUATED">{t("studentsStudentFormDialog.graduated")}</option>
             </Select>
           </Field>
-          <Field label="Notes" className="sm:col-span-2 lg:col-span-3">
+          <Field label={t("studentsStudentFormDialog.notes")} className="sm:col-span-2 lg:col-span-3">
             <Input
               className={inputClass}
               value={form.notes}
               onChange={(e) => set("notes", e.target.value)}
-              placeholder="Optional"
+              placeholder={t("studentsStudentFormDialog.optional")}
             />
           </Field>
         </div>
 
         {!isEdit && (
           <div className="mt-4 rounded-xl border bg-secondary/20 p-4">
-            <p className="text-sm font-semibold">Fee Start Configuration</p>
+            <p className="text-sm font-semibold">{t("studentsStudentFormDialog.feeStartConfiguration")}</p>
             <p className="mt-1 text-xs text-muted-foreground">
-              Choose how tuition begins for this student
+              {t("studentsStudentFormDialog.chooseHowTuitionBeginsForThis")}
               {settings.fees.billingMode === "ACADEMIC_YEAR"
                 ? " (remaining academic months are calculated automatically)."
                 : "."}
@@ -548,7 +551,7 @@ export function StudentFormDialog({ open, onClose, student, onSaved }: Props) {
               ))}
             </div>
             {form.feeStartMode === "AGREEMENT" && (
-              <Field label="Agreement Amount" required className="mt-3 max-w-xs">
+              <Field label={t("studentsStudentFormDialog.agreementAmount")} required className="mt-3 max-w-xs">
                 <div className="relative">
                   <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
                     $
@@ -559,7 +562,7 @@ export function StudentFormDialog({ open, onClose, student, onSaved }: Props) {
                     min={0}
                     value={form.agreementAmount}
                     onChange={(e) => set("agreementAmount", e.target.value)}
-                    placeholder="e.g. 8"
+                    placeholder={t("studentsStudentFormDialog.eG8")}
                   />
                 </div>
               </Field>

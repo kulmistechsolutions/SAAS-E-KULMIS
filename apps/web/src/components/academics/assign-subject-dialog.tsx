@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useEffect, useState } from "react";
 import { Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -19,6 +21,7 @@ interface Props {
 }
 
 export function AssignSubjectDialog({ open, onClose, classId }: Props) {
+  const t = useT();
   const state = getAcademicsState();
   const assignedIds = new Set(subjectsForClass(classId).map((s) => s.id));
   const available = state.subjects.filter(
@@ -47,16 +50,16 @@ export function AssignSubjectDialog({ open, onClose, classId }: Props) {
     <Dialog
       open={open}
       onClose={onClose}
-      title="Assign Subject"
-      description="Assign a subject to this class."
+      title={t("academicsAssignSubjectDialog.assignSubject")}
+      description={t("academicsAssignSubjectDialog.assignASubjectToThisClass")}
       className="max-w-md"
       footer={
         <>
           <Button variant="outline" onClick={onClose}>
-            Cancel
+            {t("academicsAssignSubjectDialog.cancel")}
           </Button>
           <Button onClick={submit} disabled={available.length === 0}>
-            Assign
+            {t("academicsAssignSubjectDialog.assign")}
           </Button>
         </>
       }
@@ -68,11 +71,11 @@ export function AssignSubjectDialog({ open, onClose, classId }: Props) {
       )}
       {available.length === 0 ? (
         <p className="text-sm text-muted-foreground">
-          All active subjects are already assigned to this class.
+          {t("academicsAssignSubjectDialog.allActiveSubjectsAreAlreadyAssigned")}
         </p>
       ) : (
         <div>
-          <Label required>Subject</Label>
+          <Label required>{t("academicsAssignSubjectDialog.subject")}</Label>
           <Select value={subjectId} onChange={(e) => setSubjectId(e.target.value)}>
             {available.map((s) => (
               <option key={s.id} value={s.id}>

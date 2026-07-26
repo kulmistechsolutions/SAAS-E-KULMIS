@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Plus } from "lucide-react";
@@ -19,6 +21,7 @@ import {
 } from "@/lib/examinations/store";
 
 export default function ExaminationsDashboardPage() {
+  const t = useT();
   const [mounted, setMounted] = useState(false);
   const exams = useExaminationsState();
 
@@ -41,9 +44,9 @@ export default function ExaminationsDashboardPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Examination Management</h1>
+          <h1 className="text-2xl font-bold">{t("examinations.examinationManagement")}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Complete examination lifecycle — creation, marking, results, and publishing.
+            {t("examinations.completeExaminationLifecycleCreationMarkingResults")}
           </p>
         </div>
         <Link
@@ -51,7 +54,7 @@ export default function ExaminationsDashboardPage() {
           className="inline-flex h-10 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
         >
           <Plus className="mr-2 h-4 w-4" />
-          Create Exam
+          {t("examinations.createExam")}
         </Link>
       </div>
 
@@ -62,22 +65,22 @@ export default function ExaminationsDashboardPage() {
           {mounted && <MonitoringTable rows={monitoring.slice(0, 12)} />}
           <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
             <div className="flex items-center justify-between border-b px-5 py-4">
-              <h2 className="font-semibold">All Examinations</h2>
+              <h2 className="font-semibold">{t("examinations.allExaminations")}</h2>
               <Link href="/examinations/monitoring" className="text-sm text-primary hover:underline">
-                View monitoring
+                {t("examinations.viewMonitoring")}
               </Link>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full min-w-[720px] text-sm">
                 <thead className="sticky top-0 bg-secondary/90 text-left text-xs text-muted-foreground backdrop-blur">
                   <tr>
-                    <th className="px-4 py-2.5 font-medium">Exam</th>
-                    <th className="px-4 py-2.5 font-medium">Class-Section</th>
-                    <th className="px-4 py-2.5 font-medium">Term</th>
-                    <th className="px-4 py-2.5 font-medium">Type</th>
-                    <th className="px-4 py-2.5 font-medium">Weight</th>
-                    <th className="px-4 py-2.5 font-medium">Period</th>
-                    <th className="px-4 py-2.5 font-medium">Status</th>
+                    <th className="px-4 py-2.5 font-medium">{t("examinations.exam")}</th>
+                    <th className="px-4 py-2.5 font-medium">{t("examinations.classSection")}</th>
+                    <th className="px-4 py-2.5 font-medium">{t("examinations.term")}</th>
+                    <th className="px-4 py-2.5 font-medium">{t("examinations.type")}</th>
+                    <th className="px-4 py-2.5 font-medium">{t("examinations.weight")}</th>
+                    <th className="px-4 py-2.5 font-medium">{t("examinations.period")}</th>
+                    <th className="px-4 py-2.5 font-medium">{t("examinations.status")}</th>
                   </tr>
                 </thead>
                 <tbody>

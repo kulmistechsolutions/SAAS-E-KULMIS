@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Plus, Search } from "lucide-react";
@@ -20,6 +22,7 @@ import { toast } from "@/lib/toast";
 import type { CreateSchoolInput } from "@ekulmis/shared";
 
 export default function PlatformSchoolsPage() {
+  const t = useT();
   const previewState = usePlatformSchoolsState();
   const [mounted, setMounted] = useState(false);
   const [schools, setSchools] = useState<PlatformSchool[]>([]);
@@ -63,20 +66,20 @@ export default function PlatformSchoolsPage() {
     }
   }
 
-  if (!mounted) return <div className="text-slate-400">Loading schools…</div>;
+  if (!mounted) return <div className="text-slate-400">{t("platformSchools.loadingSchools")}</div>;
 
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white">Schools</h1>
+          <h1 className="text-2xl font-bold text-white">{t("platformSchools.schools")}</h1>
           <p className="mt-1 text-sm text-slate-400">
-            Provision, suspend, and manage tenant schools
+            {t("platformSchools.provisionSuspendAndManageTenantSchools")}
           </p>
         </div>
         <Button className="bg-violet-600 hover:bg-violet-500" onClick={() => setCreateOpen(true)}>
           <Plus className="mr-2 h-4 w-4" />
-          New School
+          {t("platformSchools.newSchool")}
         </Button>
       </div>
 
@@ -84,7 +87,7 @@ export default function PlatformSchoolsPage() {
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
         <Input
           className="border-white/10 bg-white/5 pl-9 text-white"
-          placeholder="Search schools…"
+          placeholder={t("platformSchools.searchSchools")}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
@@ -94,13 +97,13 @@ export default function PlatformSchoolsPage() {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-white/10 text-left text-slate-400">
-              <th className="px-4 py-3">School</th>
-              <th className="px-4 py-3">Subdomain</th>
-              <th className="px-4 py-3">Status</th>
-              <th className="px-4 py-3">Users</th>
-              <th className="px-4 py-3">Trial</th>
-              <th className="px-4 py-3">Created</th>
-              <th className="px-4 py-3">Tenant URL</th>
+              <th className="px-4 py-3">{t("platformSchools.school")}</th>
+              <th className="px-4 py-3">{t("platformSchools.subdomain")}</th>
+              <th className="px-4 py-3">{t("platformSchools.status")}</th>
+              <th className="px-4 py-3">{t("platformSchools.users")}</th>
+              <th className="px-4 py-3">{t("platformSchools.trial")}</th>
+              <th className="px-4 py-3">{t("platformSchools.created")}</th>
+              <th className="px-4 py-3">{t("platformSchools.tenantUrl")}</th>
             </tr>
           </thead>
           <tbody>
@@ -124,14 +127,14 @@ export default function PlatformSchoolsPage() {
                       rel="noreferrer"
                       className="text-xs text-violet-400 hover:underline"
                     >
-                      Open →
+                      {t("platformSchools.open")}
                     </a>
                     <button
                       type="button"
                       onClick={() => setLoginsFor({ id: s.id, name: s.name })}
                       className="text-xs text-slate-400 hover:text-white hover:underline"
                     >
-                      Logins
+                      {t("platformSchools.logins")}
                     </button>
                     <button
                       type="button"
@@ -144,7 +147,7 @@ export default function PlatformSchoolsPage() {
                       }
                       className="text-xs text-slate-400 hover:text-white hover:underline"
                     >
-                      Trial
+                      {t("platformSchools.trial")}
                     </button>
                   </div>
                 </td>
@@ -153,7 +156,7 @@ export default function PlatformSchoolsPage() {
             {filtered.length === 0 && (
               <tr>
                 <td colSpan={7} className="px-4 py-12 text-center text-slate-500">
-                  No schools match your search.
+                  {t("platformSchools.noSchoolsMatchYourSearch")}
                 </td>
               </tr>
             )}

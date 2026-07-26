@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useEffect, useState } from "react";
 import { Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -47,6 +49,7 @@ const empty: FormState = {
 };
 
 export function TeacherFormDialog({ open, onClose, teacher, onSaved }: Props) {
+  const t = useT();
   const isEdit = !!teacher;
   const [form, setForm] = useState<FormState>(empty);
   const [error, setError] = useState<string | null>(null);
@@ -141,7 +144,7 @@ export function TeacherFormDialog({ open, onClose, teacher, onSaved }: Props) {
       footer={
         <>
           <Button variant="outline" onClick={onClose}>
-            Cancel
+            {t("teachersTeacherFormDialog.cancel")}
           </Button>
           <Button onClick={handleSubmit}>
             {isEdit ? "Save Changes" : "Register Teacher"}
@@ -156,49 +159,49 @@ export function TeacherFormDialog({ open, onClose, teacher, onSaved }: Props) {
       )}
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
-          <Label required>Full Name</Label>
+          <Label required>{t("teachersTeacherFormDialog.fullName")}</Label>
           <Input value={form.fullName} onChange={(e) => set("fullName", e.target.value)} />
         </div>
         <div>
-          <Label required>Gender</Label>
+          <Label required>{t("teachersTeacherFormDialog.gender")}</Label>
           <Select value={form.gender} onChange={(e) => set("gender", e.target.value as Gender)}>
-            <option value="MALE">Male</option>
-            <option value="FEMALE">Female</option>
+            <option value="MALE">{t("teachersTeacherFormDialog.male")}</option>
+            <option value="FEMALE">{t("teachersTeacherFormDialog.female")}</option>
           </Select>
         </div>
         <div>
-          <Label required>Phone Number</Label>
+          <Label required>{t("teachersTeacherFormDialog.phoneNumber")}</Label>
           <Input value={form.phone} onChange={(e) => set("phone", e.target.value)} />
         </div>
         <div>
-          <Label>Email</Label>
+          <Label>{t("teachersTeacherFormDialog.email")}</Label>
           <Input type="email" value={form.email} onChange={(e) => set("email", e.target.value)} />
         </div>
         <div className="sm:col-span-2">
-          <Label>Address</Label>
+          <Label>{t("teachersTeacherFormDialog.address")}</Label>
           <Textarea value={form.address} onChange={(e) => set("address", e.target.value)} />
         </div>
         <div>
-          <Label>Qualification</Label>
+          <Label>{t("teachersTeacherFormDialog.qualification")}</Label>
           <Input value={form.qualification} onChange={(e) => set("qualification", e.target.value)} />
         </div>
         <div>
-          <Label required>Salary</Label>
+          <Label required>{t("teachersTeacherFormDialog.salary")}</Label>
           <Input type="number" min={0} value={form.salary} onChange={(e) => set("salary", e.target.value)} />
         </div>
         <div>
-          <Label required>Shift</Label>
+          <Label required>{t("teachersTeacherFormDialog.shift")}</Label>
           <Select value={form.shift} onChange={(e) => set("shift", e.target.value as Shift)}>
-            <option value="MORNING">Morning</option>
-            <option value="AFTERNOON">Afternoon</option>
-            <option value="BOTH">Both — morning and afternoon</option>
+            <option value="MORNING">{t("teachersTeacherFormDialog.morning")}</option>
+            <option value="AFTERNOON">{t("teachersTeacherFormDialog.afternoon")}</option>
+            <option value="BOTH">{t("teachersTeacherFormDialog.bothMorningAndAfternoon")}</option>
           </Select>
         </div>
         <div>
-          <Label>Employment Status</Label>
+          <Label>{t("teachersTeacherFormDialog.employmentStatus")}</Label>
           <Select value={form.status} onChange={(e) => set("status", e.target.value as EmploymentStatus)}>
-            <option value="ACTIVE">Active</option>
-            <option value="INACTIVE">Inactive</option>
+            <option value="ACTIVE">{t("teachersTeacherFormDialog.active")}</option>
+            <option value="INACTIVE">{t("teachersTeacherFormDialog.inactive")}</option>
           </Select>
         </div>
         {isEdit ? (
@@ -209,11 +212,11 @@ export function TeacherFormDialog({ open, onClose, teacher, onSaved }: Props) {
               onChange={(e) => set("canViewStudents", e.target.checked)}
               className="h-4 w-4 rounded border-input"
             />
-            Grant View Students permission (assigned classes only)
+            {t("teachersTeacherFormDialog.grantViewStudentsPermissionAssignedClasses")}
           </label>
         ) : (
           <div className="sm:col-span-2">
-            <Label required>Login Password</Label>
+            <Label required>{t("teachersTeacherFormDialog.loginPassword")}</Label>
             <Input
               type="text"
               className="mt-1 font-mono"
@@ -222,7 +225,7 @@ export function TeacherFormDialog({ open, onClose, teacher, onSaved }: Props) {
               placeholder={DEFAULT_TEACHER_PASSWORD}
             />
             <p className="mt-1 text-xs text-muted-foreground">
-              Default sample password is {DEFAULT_TEACHER_PASSWORD}. Visible to admin only.
+              {t("teachersTeacherFormDialog.defaultSamplePasswordIs")} {DEFAULT_TEACHER_PASSWORD}{t("teachersTeacherFormDialog.visibleToAdminOnly")}
             </p>
           </div>
         )}

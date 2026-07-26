@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useState } from "react";
 import { Camera, Trash2, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -38,6 +40,7 @@ export function StudentPhotoUpload({
   compact = false,
   minimal = false,
 }: StudentPhotoUploadProps) {
+  const t = useT();
   const [error, setError] = useState<string | null>(null);
   const inputId = "student-photo-input";
   const savedPhotoUrl = useStudentPhoto(
@@ -93,13 +96,13 @@ export function StudentPhotoUpload({
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={displayUrl}
-              alt="Student photo preview"
+              alt={t("studentsStudentPhotoUpload.studentPhotoPreview")}
               className="h-full w-full object-cover"
             />
           ) : (
             <div className="flex flex-col items-center gap-1.5 px-2 text-center text-muted-foreground">
               <User className="h-8 w-8 opacity-50" />
-              <span className="text-[11px] leading-tight">Add photo</span>
+              <span className="text-[11px] leading-tight">{t("studentsStudentPhotoUpload.addPhoto")}</span>
             </div>
           )}
         </div>
@@ -107,7 +110,7 @@ export function StudentPhotoUpload({
           <label
             htmlFor={inputId}
             className="absolute -bottom-1 -right-1 flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border-2 border-background bg-primary text-primary-foreground shadow-md transition hover:opacity-90"
-            title="Choose photo"
+            title={t("studentsStudentPhotoUpload.choosePhoto")}
           >
             <Camera className="h-4 w-4" />
           </label>
@@ -125,7 +128,7 @@ export function StudentPhotoUpload({
 
       {!minimal && (
         <p className="mt-2.5 max-w-[9rem] text-center text-[11px] leading-snug text-muted-foreground sm:text-left">
-          Optional · JPEG, PNG, WebP · max 2 MB
+          {t("studentsStudentPhotoUpload.optionalJpegPngWebpMax2")}
         </p>
       )}
 
@@ -137,7 +140,7 @@ export function StudentPhotoUpload({
           onClick={clearPhoto}
         >
           <Trash2 className="mr-1.5 h-3.5 w-3.5" />
-          Remove
+          {t("studentsStudentPhotoUpload.remove")}
         </Button>
       ) : null}
 

@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
@@ -21,6 +23,7 @@ const schema = z.object({
 type FormValues = z.infer<typeof schema>;
 
 export default function TeacherPortalLoginPage() {
+  const t = useT();
   const router = useRouter();
   const portal = useTeacherPortalState();
   const branding = useSchoolBranding();
@@ -71,18 +74,18 @@ export default function TeacherPortalLoginPage() {
               </div>
             )}
             <h1 className="text-2xl font-bold text-primary">{branding.name}</h1>
-            <p className="text-sm font-medium text-muted-foreground">Teacher Portal</p>
+            <p className="text-sm font-medium text-muted-foreground">{t("teacherPortalLogin.teacherPortal")}</p>
             <p className="mt-2 text-sm text-muted-foreground">
-              Sign in with your Teacher ID and password
+              {t("teacherPortalLogin.signInWithYourTeacherId")}
             </p>
           </div>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div>
-              <label className="mb-1 block text-sm font-medium">Teacher ID</label>
+              <label className="mb-1 block text-sm font-medium">{t("teacherPortalLogin.teacherId")}</label>
               <Input
                 {...register("identifier")}
-                placeholder="TCH0001"
+                placeholder={t("teacherPortalLogin.tch0001")}
                 autoComplete="username"
               />
               {errors.identifier && (
@@ -92,7 +95,7 @@ export default function TeacherPortalLoginPage() {
               )}
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium">Password</label>
+              <label className="mb-1 block text-sm font-medium">{t("teacherPortalLogin.password")}</label>
               <Input
                 type="password"
                 {...register("password")}
@@ -111,9 +114,9 @@ export default function TeacherPortalLoginPage() {
           </form>
 
           <p className="mt-6 text-center text-xs text-muted-foreground">
-            Staff admin login is at{" "}
+            {t("teacherPortalLogin.staffAdminLoginIsAt")}{" "}
             <a href="/login" className="text-primary hover:underline">
-              school sign-in
+              {t("teacherPortalLogin.schoolSignIn")}
             </a>
           </p>
         </CardContent>

@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { usePortal } from "@/components/parent-portal/portal-context";
@@ -13,6 +15,7 @@ import { relativeTime } from "@/lib/parent-portal/format";
 import { cn } from "@/lib/utils";
 
 export default function ParentNotificationsPage() {
+  const t = useT();
   const { parent } = usePortal();
   const portal = usePortalState();
 
@@ -25,14 +28,14 @@ export default function ParentNotificationsPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold">Notifications</h1>
+          <h1 className="text-2xl font-bold">{t("parentPortalNotifications.notifications")}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Attendance, exams, fees, quizzes, and school updates
+            {t("parentPortalNotifications.attendanceExamsFeesQuizzesAndSchool")}
           </p>
         </div>
         {items.some((n) => !n.read) && (
           <Button onClick={() => markAllNotificationsRead(parent.id)}>
-            Mark all read
+            {t("parentPortalNotifications.markAllRead")}
           </Button>
         )}
       </div>
@@ -57,7 +60,7 @@ export default function ParentNotificationsPage() {
           </li>
         ))}
         {items.length === 0 && (
-          <li className="px-5 py-12 text-center text-muted-foreground">No notifications yet.</li>
+          <li className="px-5 py-12 text-center text-muted-foreground">{t("parentPortalNotifications.noNotificationsYet")}</li>
         )}
       </ul>
     </div>

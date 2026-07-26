@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
@@ -21,6 +23,7 @@ export function ResetPasswordDialog({
   userName,
   onClose,
 }: ResetPasswordDialogProps) {
+  const t = useT();
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -45,24 +48,24 @@ export function ResetPasswordDialog({
     <Dialog
       open={open}
       onClose={onClose}
-      title="Reset Password"
+      title={t("usersResetPasswordDialog.resetPassword")}
       description={userName ? `Reset password for ${userName}` : undefined}
       className="max-w-sm"
       footer={
         <>
-          <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button onClick={handleSubmit} disabled={submitting || !userId}>Reset Password</Button>
+          <Button variant="outline" onClick={onClose}>{t("usersResetPasswordDialog.cancel")}</Button>
+          <Button onClick={handleSubmit} disabled={submitting || !userId}>{t("usersResetPasswordDialog.resetPassword")}</Button>
         </>
       }
     >
       <div className="space-y-2">
-        <Label htmlFor="new-pass">New Password</Label>
+        <Label htmlFor="new-pass">{t("usersResetPasswordDialog.newPassword")}</Label>
         <Input
           id="new-pass"
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          placeholder="Min 8 chars, uppercase & number"
+          placeholder={t("usersResetPasswordDialog.min8CharsUppercaseNumber")}
         />
       </div>
     </Dialog>

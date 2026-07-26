@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { Suspense, use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
@@ -75,6 +77,7 @@ function SchoolHeader({
   schoolName: string;
   logoUrl: string | null;
 }) {
+  const tr = useT();
   return (
     <div className="flex items-center gap-3">
       {logoUrl ? (
@@ -91,13 +94,14 @@ function SchoolHeader({
       )}
       <div>
         <p className="text-lg font-semibold tracking-tight">{schoolName}</p>
-        <p className="text-xs text-muted-foreground">Online Examination</p>
+        <p className="text-xs text-muted-foreground">{tr("quizTake.onlineExamination")}</p>
       </div>
     </div>
   );
 }
 
 function TakeQuizContent({ code }: { code: string }) {
+  const tr = useT();
   const [mounted, setMounted] = useState(false);
   const [step, setStep] = useState<Step>("landing");
   const [landing, setLanding] = useState<QuizLandingResponse | null>(null);
@@ -392,7 +396,7 @@ function TakeQuizContent({ code }: { code: string }) {
   if (!mounted) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center p-8 text-muted-foreground">
-        Loading quiz…
+        {tr("quizTake.loadingQuiz")}
       </div>
     );
   }
@@ -404,7 +408,7 @@ function TakeQuizContent({ code }: { code: string }) {
         <div className="flex min-h-[60vh] items-center justify-center p-8">
           <div className="max-w-sm text-center">
             <AlertTriangle className="mx-auto h-8 w-8 text-amber-500" />
-            <h1 className="mt-3 text-lg font-semibold">Examination unavailable</h1>
+            <h1 className="mt-3 text-lg font-semibold">{tr("quizTake.examinationUnavailable")}</h1>
             <p className="mt-1.5 text-sm text-muted-foreground">{landingError}</p>
           </div>
         </div>
@@ -413,7 +417,7 @@ function TakeQuizContent({ code }: { code: string }) {
     if (!landing) {
       return (
         <div className="flex min-h-[60vh] items-center justify-center gap-2 text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin" /> Loading examination…
+          <Loader2 className="h-4 w-4 animate-spin" /> {tr("quizTake.loadingExamination")}
         </div>
       );
     }
@@ -428,7 +432,7 @@ function TakeQuizContent({ code }: { code: string }) {
             <div className="space-y-6 px-6 py-7 sm:px-8">
               <div>
                 <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                  Examination
+                  {tr("quizTake.examination")}
                 </p>
                 <h1 className="mt-1 text-2xl font-bold tracking-tight sm:text-3xl">{q.title}</h1>
               </div>
@@ -452,14 +456,14 @@ function TakeQuizContent({ code }: { code: string }) {
               </dl>
               {q.instructions && (
                 <div>
-                  <h2 className="text-sm font-semibold">Quiz Instructions</h2>
+                  <h2 className="text-sm font-semibold">{tr("quizTake.quizInstructions")}</h2>
                   <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">
                     {q.instructions}
                   </p>
                 </div>
               )}
               <div>
-                <h2 className="text-sm font-semibold">School Examination Rules</h2>
+                <h2 className="text-sm font-semibold">{tr("quizTake.schoolExaminationRules")}</h2>
                 <ul className="mt-2 space-y-1.5 text-sm text-muted-foreground">
                   {q.examinationRules.split("\n").filter(Boolean).map((rule) => (
                     <li key={rule} className="flex gap-2">
@@ -470,7 +474,7 @@ function TakeQuizContent({ code }: { code: string }) {
                 </ul>
               </div>
               <Button className="h-11 w-full text-base" onClick={() => setStep("login")}>
-                Start Quiz
+                {tr("quizTake.startQuiz")}
               </Button>
             </div>
           </div>
@@ -492,19 +496,19 @@ function TakeQuizContent({ code }: { code: string }) {
             className="space-y-4 rounded-2xl border bg-card p-6 shadow-lg"
           >
             <div>
-              <h1 className="text-xl font-bold">Student Sign-In</h1>
+              <h1 className="text-xl font-bold">{tr("quizTake.studentSignIn")}</h1>
               <p className="mt-1 text-sm text-muted-foreground">
-                Enter your Student ID to continue.
+                {tr("quizTake.enterYourStudentIdToContinue")}
               </p>
             </div>
             <div>
-              <Label htmlFor="studentCode">Student ID</Label>
+              <Label htmlFor="studentCode">{tr("quizTake.studentId")}</Label>
               <Input
                 id="studentCode"
                 className="mt-1.5"
                 value={studentCode}
                 onChange={(e) => setStudentCode(e.target.value)}
-                placeholder="e.g. SHMM000001"
+                placeholder={tr("quizTake.eGShmm000001")}
                 autoFocus
                 required
               />
@@ -517,7 +521,7 @@ function TakeQuizContent({ code }: { code: string }) {
               className="w-full text-center text-sm text-muted-foreground hover:text-foreground"
               onClick={() => setStep("landing")}
             >
-              Back to quiz details
+              {tr("quizTake.backToQuizDetails")}
             </button>
           </form>
         </div>
@@ -539,20 +543,20 @@ function TakeQuizContent({ code }: { code: string }) {
               <div>
                 <h1 className="text-2xl font-bold">{q.title}</h1>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Welcome, <strong className="text-foreground">{access.studentName}</strong> ({access.studentCode})
+                  {tr("quizTake.welcome")} <strong className="text-foreground">{access.studentName}</strong> ({access.studentCode})
                 </p>
               </div>
               <dl className="grid gap-3 sm:grid-cols-3">
                 <div className="rounded-xl border px-3 py-2.5 text-sm">
-                  <dt className="text-xs text-muted-foreground">Duration</dt>
-                  <dd className="font-medium">{q.timeLimitMin ?? 30} min</dd>
+                  <dt className="text-xs text-muted-foreground">{tr("quizTake.duration")}</dt>
+                  <dd className="font-medium">{q.timeLimitMin ?? 30} {tr("quizTake.min")}</dd>
                 </div>
                 <div className="rounded-xl border px-3 py-2.5 text-sm">
-                  <dt className="text-xs text-muted-foreground">Questions</dt>
+                  <dt className="text-xs text-muted-foreground">{tr("quizTake.questions")}</dt>
                   <dd className="font-medium">{q.totalQuestions}</dd>
                 </div>
                 <div className="rounded-xl border px-3 py-2.5 text-sm">
-                  <dt className="text-xs text-muted-foreground">Attempts left</dt>
+                  <dt className="text-xs text-muted-foreground">{tr("quizTake.attemptsLeft")}</dt>
                   <dd className="font-medium">{access.remainingAttempts}</dd>
                 </div>
               </dl>
@@ -594,7 +598,7 @@ function TakeQuizContent({ code }: { code: string }) {
             <div className="space-y-6 px-6 py-8 text-center sm:px-10">
               <div>
                 <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                  Assessment Result
+                  {tr("quizTake.assessmentResult")}
                 </p>
                 <h1 className="mt-1 text-2xl font-bold">
                   {result?.quiz.title ?? access?.quiz.title ?? "Quiz Submitted"}
@@ -632,7 +636,7 @@ function TakeQuizContent({ code }: { code: string }) {
                         : "bg-rose-100 text-rose-800 dark:bg-rose-950/50 dark:text-rose-200",
                     )}
                   >
-                    {result.result === "PASS" ? "PASS" : "FAIL"} · Grade {result.grade}
+                    {result.result === "PASS" ? "PASS" : "FAIL"} {tr("quizTake.grade")} {result.grade}
                   </div>
                   <p className="text-5xl font-bold tabular-nums text-primary">
                     {result.marksObtained}
@@ -641,7 +645,7 @@ function TakeQuizContent({ code }: { code: string }) {
                     </span>
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    {result.percentage}% · Time taken {formatDuration(result.timeTakenSec)}
+                    {result.percentage}{tr("quizTake.timeTaken")} {formatDuration(result.timeTakenSec)}
                   </p>
                   <dl className="grid grid-cols-2 gap-3 text-left sm:grid-cols-4">
                     {[
@@ -658,7 +662,7 @@ function TakeQuizContent({ code }: { code: string }) {
                   </dl>
                   {result.teacherComment && (
                     <p className="rounded-xl border bg-secondary/30 px-4 py-3 text-left text-sm">
-                      <span className="font-medium">Teacher comment: </span>
+                      <span className="font-medium">{tr("quizTake.teacherComment")} </span>
                       {result.teacherComment}
                     </p>
                   )}
@@ -668,7 +672,7 @@ function TakeQuizContent({ code }: { code: string }) {
                 {showScore &&
                   (result?.quiz.allowReviewAnswers ?? access?.quiz.allowReviewAnswers) && (
                     <Button variant="outline" onClick={() => setStep("review")}>
-                      Review Answers
+                      {tr("quizTake.reviewAnswers")}
                     </Button>
                   )}
                 {showScore &&
@@ -676,7 +680,7 @@ function TakeQuizContent({ code }: { code: string }) {
                   result && (
                     <Button variant="outline" onClick={() => printAttemptReviewPdf(result)}>
                       <Download className="mr-2 h-4 w-4" />
-                      Download PDF
+                      {tr("quizTake.downloadPdf")}
                     </Button>
                   )}
               </div>
@@ -695,14 +699,14 @@ function TakeQuizContent({ code }: { code: string }) {
           <div className="flex items-center justify-between gap-3">
             <SchoolHeader schoolName={result.schoolName} logoUrl={resolveLogoUrl(result.logoUrl, result.logoKey)} />
             <Button variant="outline" onClick={() => setStep("done")}>
-              Back to result
+              {tr("quizTake.backToResult")}
             </Button>
           </div>
-          <h1 className="text-xl font-bold">Answer Review — {result.quiz.title}</h1>
+          <h1 className="text-xl font-bold">{tr("quizTake.answerReview")} {result.quiz.title}</h1>
           {result.questions.map((q) => (
             <div key={q.questionId} className="rounded-2xl border bg-card p-5 shadow-sm">
               <div className="flex items-start justify-between gap-3">
-                <p className="text-xs text-muted-foreground">Question {q.number}</p>
+                <p className="text-xs text-muted-foreground">{tr("quizTake.question")} {q.number}</p>
                 <span
                   className={cn(
                     "rounded-full px-2.5 py-0.5 text-xs font-medium",
@@ -723,20 +727,20 @@ function TakeQuizContent({ code }: { code: string }) {
               <p className="mt-2 whitespace-pre-wrap font-medium">{q.question}</p>
               <div className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
                 <div className="rounded-xl border bg-secondary/20 p-3">
-                  <p className="text-xs text-muted-foreground">Your Answer</p>
+                  <p className="text-xs text-muted-foreground">{tr("quizTake.yourAnswer")}</p>
                   <p className="mt-1 whitespace-pre-wrap">{q.studentAnswer || "—"}</p>
                 </div>
                 <div className="rounded-xl border bg-emerald-50/50 p-3 dark:bg-emerald-950/20">
-                  <p className="text-xs text-muted-foreground">Correct Answer</p>
+                  <p className="text-xs text-muted-foreground">{tr("quizTake.correctAnswer")}</p>
                   <p className="mt-1 whitespace-pre-wrap">{q.correctAnswer || "—"}</p>
                 </div>
               </div>
               <p className="mt-3 text-xs text-muted-foreground">
-                Marks: {q.marksAwarded} / {q.maxMarks}
+                {tr("quizTake.marks")} {q.marksAwarded} / {q.maxMarks}
               </p>
               {q.explanation && (
                 <p className="mt-3 rounded-xl border border-amber-200/60 bg-amber-50/50 p-3 text-sm dark:bg-amber-950/20">
-                  <span className="font-medium">Explanation: </span>
+                  <span className="font-medium">{tr("quizTake.explanation")} </span>
                   {q.explanation}
                 </p>
               )}
@@ -748,7 +752,7 @@ function TakeQuizContent({ code }: { code: string }) {
   }
 
   if (!quiz || !access) {
-    return <p className="p-8 text-muted-foreground">Loading quiz…</p>;
+    return <p className="p-8 text-muted-foreground">{tr("quizTake.loadingQuiz")}</p>;
   }
 
   const durationSec = (quiz.timeLimitMin ?? 30) * 60;
@@ -776,12 +780,12 @@ function TakeQuizContent({ code }: { code: string }) {
           <div className="flex items-center gap-4">
             {saving && (
               <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                <Save className="h-3 w-3" /> Saved
+                <Save className="h-3 w-3" /> {tr("quizTake.saved")}
               </span>
             )}
             <div className="text-right">
               <p className="flex items-center gap-1 text-xs text-muted-foreground">
-                <Clock className="h-3 w-3" /> Remaining
+                <Clock className="h-3 w-3" /> {tr("quizTake.remaining")}
               </p>
               <p
                 className={cn(
@@ -813,7 +817,7 @@ function TakeQuizContent({ code }: { code: string }) {
             <div className="flex items-start gap-2 rounded-xl border border-rose-400 bg-rose-50 p-3 text-sm text-rose-800 dark:bg-rose-950/40 dark:text-rose-200">
               <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
               <span>
-                Warning ({violations}): You left the exam window.
+                {tr("quizTake.warning")}{violations}{tr("quizTake.youLeftTheExamWindow")}
                 {quiz.resetOnMinimize ? " Answers were cleared." : ""}
               </span>
             </div>
@@ -826,11 +830,11 @@ function TakeQuizContent({ code }: { code: string }) {
           <div className="rounded-2xl border bg-card p-5 shadow-sm sm:p-7">
             <div className="flex items-center justify-between gap-3">
               <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                Question {currentIdx + 1} of {quiz.questions.length} · {q.marks} mark
+                {tr("quizTake.question")} {currentIdx + 1} {tr("quizTake.of")} {quiz.questions.length} · {q.marks} {tr("quizTake.mark")}
                 {q.marks === 1 ? "" : "s"}
               </p>
               <p className="text-xs text-muted-foreground">
-                {answeredCount}/{quiz.questions.length} answered
+                {answeredCount}/{quiz.questions.length} {tr("quizTake.answered")}
               </p>
             </div>
             <p className="mt-3 whitespace-pre-wrap text-base font-medium leading-relaxed sm:text-lg">
@@ -869,7 +873,7 @@ function TakeQuizContent({ code }: { code: string }) {
                         setArrAt(q.id, li, e.target.value, (q.matchLeft ?? []).length)
                       }
                     >
-                      <option value="">Select…</option>
+                      <option value="">{tr("quizTake.select")}</option>
                       {(q.matchChoices ?? []).map((c) => (
                         <option key={c} value={c}>
                           {c}
@@ -883,7 +887,7 @@ function TakeQuizContent({ code }: { code: string }) {
               <div className="mt-5 space-y-2.5">
                 {Array.from({ length: q.blankCount ?? 1 }).map((_, bi) => (
                   <div key={bi} className="flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground">Blank {bi + 1}</span>
+                    <span className="text-xs text-muted-foreground">{tr("quizTake.blank")} {bi + 1}</span>
                     <Input
                       value={readArr(q.id, q.blankCount ?? 1)[bi] ?? ""}
                       onChange={(e) =>
@@ -900,7 +904,7 @@ function TakeQuizContent({ code }: { code: string }) {
                 rows={5}
                 value={answers[q.id] ?? ""}
                 onChange={(e) => selectOption(q.id, e.target.value)}
-                placeholder="Type your answer…"
+                placeholder={tr("quizTake.typeYourAnswer")}
               />
             )}
           </div>
@@ -911,14 +915,14 @@ function TakeQuizContent({ code }: { code: string }) {
               disabled={currentIdx === 0}
               onClick={() => goToQuestion(currentIdx - 1)}
             >
-              <ChevronLeft className="mr-1 h-4 w-4" /> Previous
+              <ChevronLeft className="mr-1 h-4 w-4" /> {tr("quizTake.previous")}
             </Button>
             <Button
               variant="outline"
               disabled={currentIdx >= quiz.questions.length - 1}
               onClick={() => goToQuestion(currentIdx + 1)}
             >
-              Next <ChevronRight className="ml-1 h-4 w-4" />
+              {tr("quizTake.next")} <ChevronRight className="ml-1 h-4 w-4" />
             </Button>
             <Button
               variant="outline"
@@ -930,7 +934,7 @@ function TakeQuizContent({ code }: { code: string }) {
               {marked[q.id] ? "Unmark" : "Mark for Review"}
             </Button>
             <Button variant="outline" onClick={() => void persistAnswers()}>
-              <Save className="mr-1 h-4 w-4" /> Save
+              <Save className="mr-1 h-4 w-4" /> {tr("quizTake.save")}
             </Button>
             <Button
               className="ml-auto"
@@ -940,14 +944,14 @@ function TakeQuizContent({ code }: { code: string }) {
                 }
               }}
             >
-              <CheckCircle2 className="mr-1 h-4 w-4" /> Submit Quiz
+              <CheckCircle2 className="mr-1 h-4 w-4" /> {tr("quizTake.submitQuiz")}
             </Button>
           </div>
         </div>
 
         <aside className="rounded-2xl border bg-card p-4 shadow-sm lg:sticky lg:top-24 lg:self-start">
           <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Questions
+            {tr("quizTake.questions")}
           </p>
           <div className="mt-3 grid grid-cols-5 gap-2 sm:grid-cols-6 lg:grid-cols-4">
             {quiz.questions.map((qi, idx) => (
@@ -966,16 +970,16 @@ function TakeQuizContent({ code }: { code: string }) {
           </div>
           <ul className="mt-4 space-y-1.5 text-[11px] text-muted-foreground">
             <li className="flex items-center gap-2">
-              <span className="h-2.5 w-2.5 rounded bg-slate-300" /> Not visited
+              <span className="h-2.5 w-2.5 rounded bg-slate-300" /> {tr("quizTake.notVisited")}
             </li>
             <li className="flex items-center gap-2">
-              <span className="h-2.5 w-2.5 rounded bg-sky-600" /> Current
+              <span className="h-2.5 w-2.5 rounded bg-sky-600" /> {tr("quizTake.current")}
             </li>
             <li className="flex items-center gap-2">
-              <span className="h-2.5 w-2.5 rounded bg-emerald-600" /> Answered
+              <span className="h-2.5 w-2.5 rounded bg-emerald-600" /> {tr("quizTake.answered")}
             </li>
             <li className="flex items-center gap-2">
-              <span className="h-2.5 w-2.5 rounded bg-amber-500" /> Marked
+              <span className="h-2.5 w-2.5 rounded bg-amber-500" /> {tr("quizTake.marked")}
             </li>
           </ul>
         </aside>
@@ -985,12 +989,13 @@ function TakeQuizContent({ code }: { code: string }) {
 }
 
 export default function TakeQuizPage({ params }: { params: Promise<{ code: string }> }) {
+  const tr = useT();
   const { code } = use(params);
   return (
     <Suspense
       fallback={
         <div className="flex h-64 items-center justify-center text-muted-foreground">
-          Loading quiz…
+          {tr("quizTake.loadingQuiz")}
         </div>
       }
     >

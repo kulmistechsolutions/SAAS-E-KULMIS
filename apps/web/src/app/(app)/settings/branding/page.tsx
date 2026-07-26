@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { SettingsInput } from "@/components/settings/settings-field";
 import { SettingsSaveBar } from "@/components/settings/settings-save-bar";
 import { useSettingsSection } from "@/components/settings/use-settings-section";
@@ -7,6 +9,7 @@ import { readImageAsDataUrl } from "@/lib/settings/format";
 import { toast } from "@/lib/toast";
 
 export default function BrandingSettingsPage() {
+  const t = useT();
   const { draft, update, dirty, cancel, resetToDefault, save, saving } =
     useSettingsSection("branding");
 
@@ -26,9 +29,9 @@ export default function BrandingSettingsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Branding</h1>
+        <h1 className="text-2xl font-bold">{t("settingsBranding.branding")}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Colors and login appearance update across the entire system.
+          {t("settingsBranding.colorsAndLoginAppearanceUpdateAcross")}
         </p>
       </div>
 
@@ -60,17 +63,17 @@ export default function BrandingSettingsPage() {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <SettingsInput label="Login Page Title" value={draft.loginTitle} onChange={(e) => update({ loginTitle: e.target.value })} />
-        <SettingsInput label="Footer Text" value={draft.footerText} onChange={(e) => update({ footerText: e.target.value })} />
+        <SettingsInput label={t("settingsBranding.loginPageTitle")} value={draft.loginTitle} onChange={(e) => update({ loginTitle: e.target.value })} />
+        <SettingsInput label={t("settingsBranding.footerText")} value={draft.footerText} onChange={(e) => update({ footerText: e.target.value })} />
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="rounded-xl border bg-card p-4">
-          <p className="text-sm font-medium">Favicon</p>
+          <p className="text-sm font-medium">{t("settingsBranding.favicon")}</p>
           <input type="file" accept="image/*" className="mt-2 text-sm" onChange={(e) => onImage("faviconDataUrl", e.target.files?.[0] ?? null)} />
         </div>
         <div className="rounded-xl border bg-card p-4">
-          <p className="text-sm font-medium">Login Background</p>
+          <p className="text-sm font-medium">{t("settingsBranding.loginBackground")}</p>
           <input type="file" accept="image/*" className="mt-2 text-sm" onChange={(e) => onImage("loginBackgroundDataUrl", e.target.files?.[0] ?? null)} />
         </div>
       </div>
@@ -84,7 +87,7 @@ export default function BrandingSettingsPage() {
         }}
       >
         <p className="text-lg font-bold" style={{ color: draft.primaryColor }}>
-          {draft.loginTitle} — Preview
+          {draft.loginTitle} {t("settingsBranding.preview")}
         </p>
         <p className="mt-1 text-sm text-muted-foreground">{draft.footerText}</p>
       </div>

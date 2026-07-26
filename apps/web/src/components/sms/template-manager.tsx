@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useRef, useState } from "react";
 import { Pencil, Plus, RotateCcw, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -27,6 +29,7 @@ interface Props {
 const EMPTY = { name: "", category: "CUSTOM" as SmsCategory, body: "" };
 
 export function TemplateManager({ templates, onChanged }: Props) {
+  const tr = useT();
   const [editingId, setEditingId] = useState<string | "new" | null>(null);
   const [form, setForm] = useState(EMPTY);
   const [saving, setSaving] = useState(false);
@@ -107,9 +110,9 @@ export function TemplateManager({ templates, onChanged }: Props) {
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-2">
         <div>
-          <h2 className="font-semibold">Templates</h2>
+          <h2 className="font-semibold">{tr("smsTemplateManager.templates")}</h2>
           <p className="text-xs text-muted-foreground">
-            Built-in defaults are in Somali. Select one when composing to send that wording.
+            {tr("smsTemplateManager.builtInDefaultsAreInSomali")}
           </p>
         </div>
         {editingId === null && (
@@ -124,7 +127,7 @@ export function TemplateManager({ templates, onChanged }: Props) {
               {resetting ? "Resetting…" : "Reset to Somali defaults"}
             </Button>
             <Button className="h-8 px-3 text-xs" onClick={startCreate}>
-              <Plus className="mr-1.5 h-4 w-4" /> New template
+              <Plus className="mr-1.5 h-4 w-4" /> {tr("smsTemplateManager.newTemplate")}
             </Button>
           </div>
         )}
@@ -134,7 +137,7 @@ export function TemplateManager({ templates, onChanged }: Props) {
         <div className="space-y-3 rounded-xl border bg-secondary/30 p-4">
           <div className="grid gap-3 sm:grid-cols-2">
             <div>
-              <Label>Template name</Label>
+              <Label>{tr("smsTemplateManager.templateName")}</Label>
               <Input
                 className="mt-1.5"
                 value={form.name}
@@ -142,7 +145,7 @@ export function TemplateManager({ templates, onChanged }: Props) {
               />
             </div>
             <div>
-              <Label>Category</Label>
+              <Label>{tr("smsTemplateManager.category")}</Label>
               <Select
                 className="mt-1.5"
                 value={form.category}
@@ -159,7 +162,7 @@ export function TemplateManager({ templates, onChanged }: Props) {
             </div>
           </div>
           <div>
-            <Label>Message body</Label>
+            <Label>{tr("smsTemplateManager.messageBody")}</Label>
             <div className="mt-1.5 space-y-2">
               <VariablePicker
                 targetRef={bodyRef}
@@ -171,7 +174,7 @@ export function TemplateManager({ templates, onChanged }: Props) {
                 className="min-h-[100px]"
                 value={form.body}
                 onChange={(e) => setForm((f) => ({ ...f, body: e.target.value }))}
-                placeholder="Write your message, and click a variable above to insert it…"
+                placeholder={tr("smsTemplateManager.writeYourMessageAndClickA")}
               />
             </div>
             <VariableWarning body={form.body} />
@@ -181,7 +184,7 @@ export function TemplateManager({ templates, onChanged }: Props) {
               {saving ? "Saving…" : "Save"}
             </Button>
             <Button className="h-8 px-3 text-xs" variant="outline" onClick={cancel}>
-              <X className="mr-1.5 h-4 w-4" /> Cancel
+              <X className="mr-1.5 h-4 w-4" /> {tr("smsTemplateManager.cancel")}
             </Button>
           </div>
         </div>
@@ -205,7 +208,7 @@ export function TemplateManager({ templates, onChanged }: Props) {
                   type="button"
                   onClick={() => startEdit(t)}
                   className="rounded-md p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground"
-                  aria-label="Edit"
+                  aria-label={tr("smsTemplateManager.edit")}
                 >
                   <Pencil className="h-4 w-4" />
                 </button>
@@ -213,7 +216,7 @@ export function TemplateManager({ templates, onChanged }: Props) {
                   type="button"
                   onClick={() => void remove(t.id)}
                   className="rounded-md p-1.5 text-muted-foreground hover:bg-rose-100 hover:text-rose-600"
-                  aria-label="Delete"
+                  aria-label={tr("smsTemplateManager.delete")}
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>
@@ -222,7 +225,7 @@ export function TemplateManager({ templates, onChanged }: Props) {
           ))}
           {templates.length === 0 && (
             <li className="px-5 py-8 text-center text-muted-foreground">
-              No templates yet.
+              {tr("smsTemplateManager.noTemplatesYet")}
             </li>
           )}
         </ul>

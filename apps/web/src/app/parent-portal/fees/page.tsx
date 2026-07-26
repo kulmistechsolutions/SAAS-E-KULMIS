@@ -1,11 +1,14 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useEffect, useState } from "react";
 import { usePortal, usePortalAudit } from "@/components/parent-portal/portal-context";
 import { loadChildFeeSummary } from "@/lib/parent-portal/store";
 import { money } from "@/lib/students/format";
 
 export default function ParentFeesPage() {
+  const t = useT();
   const { selectedChild } = usePortal();
   usePortalAudit("FEE_VIEWED", selectedChild?.id);
 
@@ -25,17 +28,17 @@ export default function ParentFeesPage() {
   }, [selectedChild]);
 
   if (!selectedChild) {
-    return <p className="text-muted-foreground">Select a child to view fee information.</p>;
+    return <p className="text-muted-foreground">{t("parentPortalFees.selectAChildToViewFee")}</p>;
   }
 
   if (loading) {
-    return <p className="text-muted-foreground">Loading fee information…</p>;
+    return <p className="text-muted-foreground">{t("parentPortalFees.loadingFeeInformation")}</p>;
   }
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Fee Information</h1>
+        <h1 className="text-2xl font-bold">{t("parentPortalFees.feeInformation")}</h1>
         <p className="mt-1 text-sm text-muted-foreground">{selectedChild.fullName}</p>
       </div>
 
@@ -61,11 +64,11 @@ export default function ParentFeesPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b bg-secondary/50 text-left">
-                  <th className="px-4 py-3">Month</th>
-                  <th className="px-4 py-3">Charge</th>
-                  <th className="px-4 py-3">Paid</th>
-                  <th className="px-4 py-3">Balance</th>
-                  <th className="px-4 py-3">Status</th>
+                  <th className="px-4 py-3">{t("parentPortalFees.month")}</th>
+                  <th className="px-4 py-3">{t("parentPortalFees.charge")}</th>
+                  <th className="px-4 py-3">{t("parentPortalFees.paid")}</th>
+                  <th className="px-4 py-3">{t("parentPortalFees.balance")}</th>
+                  <th className="px-4 py-3">{t("parentPortalFees.status")}</th>
                 </tr>
               </thead>
               <tbody>

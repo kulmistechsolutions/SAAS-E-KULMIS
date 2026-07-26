@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -29,6 +31,7 @@ const NAV = [
 ];
 
 export function PlatformShell({ children }: { children: React.ReactNode }) {
+  const t = useT();
   const pathname = usePathname();
   const router = useRouter();
   const { admin, logout, isPreview } = usePlatformAuth();
@@ -47,8 +50,8 @@ export function PlatformShell({ children }: { children: React.ReactNode }) {
               <Shield className="h-5 w-5" />
             </span>
             <div>
-              <p className="font-bold text-white">eKulmis</p>
-              <p className="text-[11px] text-violet-300">Platform Super Admin</p>
+              <p className="font-bold text-white">{t("platformPlatformShell.ekulmis")}</p>
+              <p className="text-[11px] text-violet-300">{t("platformPlatformShell.platformSuperAdmin")}</p>
             </div>
           </div>
         </div>
@@ -80,7 +83,7 @@ export function PlatformShell({ children }: { children: React.ReactNode }) {
             className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-400 hover:bg-white/5 hover:text-white"
           >
             <ExternalLink className="h-4 w-4" />
-            School ERP Login
+            {t("platformPlatformShell.schoolErpLogin")}
           </Link>
           <button
             type="button"
@@ -88,7 +91,7 @@ export function PlatformShell({ children }: { children: React.ReactNode }) {
             className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-400 hover:bg-rose-500/10 hover:text-rose-300"
           >
             <LogOut className="h-4 w-4" />
-            Sign out
+            {t("platformPlatformShell.signOut")}
           </button>
         </div>
       </aside>
@@ -96,7 +99,7 @@ export function PlatformShell({ children }: { children: React.ReactNode }) {
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="sticky top-0 z-10 flex items-center justify-between border-b border-white/10 bg-[#0b1120]/90 px-4 py-3 backdrop-blur lg:px-6">
           <div className="lg:hidden">
-            <p className="text-sm font-bold text-white">Platform Super Admin</p>
+            <p className="text-sm font-bold text-white">{t("platformPlatformShell.platformSuperAdmin")}</p>
           </div>
           <div className="ml-auto text-right text-sm">
             <p className="font-medium text-white">{admin?.name ?? admin?.username}</p>
@@ -112,6 +115,7 @@ export function PlatformShell({ children }: { children: React.ReactNode }) {
 }
 
 export function PlatformGuard({ children }: { children: React.ReactNode }) {
+  const t = useT();
   const router = useRouter();
   const { admin, loading, isPreview } = usePlatformAuth();
 
@@ -122,7 +126,7 @@ export function PlatformGuard({ children }: { children: React.ReactNode }) {
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#0b1120] text-slate-400">
-        Loading platform…
+        {t("platformPlatformShell.loadingPlatform")}
       </div>
     );
   }
@@ -133,8 +137,7 @@ export function PlatformGuard({ children }: { children: React.ReactNode }) {
     <>
       {isPreview ? (
         <div className="border-b border-amber-500/30 bg-amber-500/10 px-4 py-2 text-center text-xs text-amber-100">
-          Offline preview — API token missing. Log out and sign in again while the
-          API is running so Waafi / SMS settings can save.
+          {t("platformPlatformShell.offlinePreviewApiTokenMissingLog")}
         </div>
       ) : null}
       <PlatformShell>{children}</PlatformShell>

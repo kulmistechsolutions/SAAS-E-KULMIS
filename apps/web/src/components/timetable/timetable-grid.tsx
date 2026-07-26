@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useMemo, useState } from "react";
 import { formatMinutes, WEEKDAY_NAMES } from "@ekulmis/shared";
 import { Select } from "@/components/ui/select";
@@ -14,6 +16,7 @@ type View = "class" | "teacher";
  * the same data read along different axes, so they share one component.
  */
 export function TimetableGrid({ timetable }: { timetable: TimetableDetail }) {
+  const t = useT();
   const [view, setView] = useState<View>("class");
   const [who, setWho] = useState<string>("");
 
@@ -77,7 +80,7 @@ export function TimetableGrid({ timetable }: { timetable: TimetableDetail }) {
                   : "text-muted-foreground hover:text-foreground",
               )}
             >
-              By {v}
+              {t("timetableTimetableGrid.by")} {v}
             </button>
           ))}
         </div>
@@ -91,7 +94,7 @@ export function TimetableGrid({ timetable }: { timetable: TimetableDetail }) {
           </Select>
         </div>
         <span className="text-sm text-muted-foreground">
-          {lessonCount} lessons / week
+          {lessonCount} {t("timetableTimetableGrid.lessonsWeek")}
         </span>
       </div>
 
@@ -100,7 +103,7 @@ export function TimetableGrid({ timetable }: { timetable: TimetableDetail }) {
           <thead>
             <tr className="border-b bg-secondary/40 text-left">
               <th className="w-32 px-3 py-2 text-xs font-medium text-muted-foreground">
-                Period
+                {t("timetableTimetableGrid.period")}
               </th>
               {days.map((d) => (
                 <th key={d} className="px-3 py-2 text-xs font-medium">
@@ -164,7 +167,7 @@ export function TimetableGrid({ timetable }: { timetable: TimetableDetail }) {
       {/* Free periods are worth seeing at a glance on a teacher's sheet. */}
       {view === "teacher" && (
         <p className="text-xs text-muted-foreground">
-          Blank cells are free periods.
+          {t("timetableTimetableGrid.blankCellsAreFreePeriods")}
         </p>
       )}
     </div>

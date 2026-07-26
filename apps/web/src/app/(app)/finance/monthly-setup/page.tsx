@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { Calendar, CheckCircle2, GraduationCap } from "lucide-react";
@@ -19,6 +21,7 @@ import { MonthBillingSetup } from "@/components/fees/month-billing-setup";
 import { toast } from "@/lib/toast";
 
 export default function MonthlySetupPage() {
+  const t = useT();
   const fees = useFeesState();
   const nextKey = nextMonthKey(fees.activeMonthKey);
   const canActivate = canActivateNextMonth();
@@ -81,24 +84,22 @@ export default function MonthlySetupPage() {
     return (
       <div className="mx-auto max-w-2xl space-y-6">
         <div>
-          <h1 className="text-2xl font-bold">Monthly Setup</h1>
+          <h1 className="text-2xl font-bold">{t("financeMonthlySetup.monthlySetup")}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Not used when Academic Year billing is active.
+            {t("financeMonthlySetup.notUsedWhenAcademicYearBilling")}
           </p>
         </div>
         <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200">
           <div className="flex items-start gap-3">
             <GraduationCap className="mt-0.5 h-5 w-5 shrink-0" />
             <div>
-              <p className="font-semibold">Academic Year Billing is enabled</p>
+              <p className="font-semibold">{t("financeMonthlySetup.academicYearBillingIsEnabled")}</p>
               <p className="mt-1 text-sm">
-                The school charges the full annual tuition upfront and tracks
-                month-by-month progress. Use Academic Year Setup instead of
-                monthly activation.
+                {t("financeMonthlySetup.theSchoolChargesTheFullAnnual")}
               </p>
               <Link href="/finance/academic-year-setup">
                 <Button className="mt-4" variant="outline">
-                  Go to Academic Year Setup
+                  {t("financeMonthlySetup.goToAcademicYearSetup")}
                 </Button>
               </Link>
             </div>
@@ -111,10 +112,9 @@ export default function MonthlySetupPage() {
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Monthly Setup</h1>
+        <h1 className="text-2xl font-bold">{t("financeMonthlySetup.monthlySetup")}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Turn billing on for the month. Nothing is charged, and no payment can
-          be collected, until you set it up here.
+          {t("financeMonthlySetup.turnBillingOnForTheMonth")}
         </p>
       </div>
 
@@ -133,7 +133,7 @@ export default function MonthlySetupPage() {
           </span>
           <div>
             <p className="text-sm text-muted-foreground">
-              Current Active Month
+              {t("financeMonthlySetup.currentActiveMonth")}
             </p>
             <p
               className={`text-xl font-bold ${
@@ -154,22 +154,21 @@ export default function MonthlySetupPage() {
 
         {!hasBilling && (
           <p className="mt-4 rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:bg-amber-500/10 dark:text-amber-200">
-            No month is active yet. Use{" "}
+            {t("financeMonthlySetup.noMonthIsActiveYetUse")}{" "}
             <span className="font-medium">
-              Set up this month&apos;s billing
+              {t("financeMonthlySetup.setUpThisMonthAposS")}
             </span>{" "}
-            above to turn billing on — nothing is charged and no payment can be
-            collected until you do.
+            {t("financeMonthlySetup.aboveToTurnBillingOnNothing")}
           </p>
         )}
 
         <dl className="mt-6 grid gap-3 text-sm">
           <div className="flex justify-between rounded-lg bg-secondary/40 px-4 py-3">
-            <dt className="text-muted-foreground">Academic Year</dt>
+            <dt className="text-muted-foreground">{t("financeMonthlySetup.academicYear")}</dt>
             <dd className="font-medium">{fees.academicYear}</dd>
           </div>
           <div className="flex justify-between rounded-lg bg-secondary/40 px-4 py-3">
-            <dt className="text-muted-foreground">Activated Billing Periods</dt>
+            <dt className="text-muted-foreground">{t("financeMonthlySetup.activatedBillingPeriods")}</dt>
             <dd className="font-medium">{fees.billingPeriods.length}</dd>
           </div>
         </dl>
@@ -178,16 +177,13 @@ export default function MonthlySetupPage() {
       <div className="rounded-2xl border border-dashed bg-card p-6 shadow-sm">
         <div className="flex items-center gap-2 text-sm font-semibold">
           <Calendar className="h-4 w-4 text-primary" />
-          Activate Next Month
+          {t("financeMonthlySetup.activateNextMonth")}
         </div>
         <p className="mt-2 text-sm text-muted-foreground">
-          A new month can only be activated after the {setupDay}th of the
-          current billing month. When activated, the system creates fee records
-          for every ticked class, carries forward unpaid balances, and skips
-          months covered by advance payments.
+          {t("financeMonthlySetup.aNewMonthCanOnlyBe")} {setupDay}{t("financeMonthlySetup.thOfTheCurrentBillingMonth")}
         </p>
         <div className="mt-4 rounded-xl bg-secondary/30 p-4">
-          <p className="text-xs text-muted-foreground">Next Month</p>
+          <p className="text-xs text-muted-foreground">{t("financeMonthlySetup.nextMonth")}</p>
           <p className="text-lg font-semibold">{monthLabel(nextKey)}</p>
         </div>
 
@@ -195,15 +191,14 @@ export default function MonthlySetupPage() {
           <div className="mt-4">
             <div className="mb-2 flex items-center justify-between">
               <p className="text-xs font-medium text-muted-foreground">
-                Classes to charge this month
+                {t("financeMonthlySetup.classesToChargeThisMonth")}
               </p>
               <p className="text-xs text-muted-foreground">
-                {includedCount} of {classGroups.length} selected
+                {includedCount} {t("financeMonthlySetup.of")} {classGroups.length} {t("financeMonthlySetup.selected")}
               </p>
             </div>
             <p className="mb-2 text-xs text-muted-foreground">
-              Untick a class that&apos;s on break this month — it will be
-              skipped and picks back up normally once ticked again next time.
+              {t("financeMonthlySetup.untickAClassThatAposS")}
             </p>
             <div className="max-h-64 overflow-y-auto rounded-xl border">
               {classGroups.map((g) => {
@@ -225,7 +220,7 @@ export default function MonthlySetupPage() {
                       </span>
                     </span>
                     <span className="text-xs text-muted-foreground">
-                      {g.studentCount} student{g.studentCount === 1 ? "" : "s"}
+                      {g.studentCount} {t("financeMonthlySetup.student")}{g.studentCount === 1 ? "" : "s"}
                     </span>
                   </label>
                 );
@@ -245,20 +240,20 @@ export default function MonthlySetupPage() {
         </Button>
         {!canActivate && (
           <p className="mt-2 text-center text-xs text-amber-600">
-            Available after the {setupDay}th of{" "}
+            {t("financeMonthlySetup.availableAfterThe")} {setupDay}{t("financeMonthlySetup.thOf")}{" "}
             {monthLabel(fees.activeMonthKey)}
           </p>
         )}
         {canActivate && includedCount === 0 && classGroups.length > 0 && (
           <p className="mt-2 text-center text-xs text-amber-600">
-            Every class is unticked — tick at least one to continue.
+            {t("financeMonthlySetup.everyClassIsUntickedTickAt")}
           </p>
         )}
       </div>
 
       <div className="rounded-2xl border bg-card shadow-sm">
         <p className="border-b px-5 py-3 text-sm font-semibold">
-          Billing History
+          {t("financeMonthlySetup.billingHistory")}
         </p>
         <ul className="divide-y">
           {[...fees.billingPeriods].reverse().map((b) => (

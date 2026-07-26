@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Bell, ChevronRight, List, Plus, Shield, FileText } from "lucide-react";
@@ -17,6 +19,7 @@ const QUICK = [
 ];
 
 export default function UsersDashboardPage() {
+  const t = useT();
   const [mounted, setMounted] = useState(false);
   const state = useUsersState();
   const [showCreate, setShowCreate] = useState(false);
@@ -30,7 +33,7 @@ export default function UsersDashboardPage() {
   if (!mounted) {
     return (
       <div className="flex h-64 items-center justify-center text-muted-foreground">
-        Loading users…
+        {t("users.loadingUsers")}
       </div>
     );
   }
@@ -39,14 +42,14 @@ export default function UsersDashboardPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold">User Management</h1>
+          <h1 className="text-2xl font-bold">{t("users.userManagement")}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Centralized control over accounts, roles, and access permissions.
+            {t("users.centralizedControlOverAccountsRolesAnd")}
           </p>
         </div>
         <Button className="h-9" onClick={() => setShowCreate(true)}>
           <Plus className="mr-2 h-4 w-4" />
-          Create User
+          {t("users.createUser")}
         </Button>
       </div>
 
@@ -74,17 +77,17 @@ export default function UsersDashboardPage() {
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="rounded-xl border bg-card shadow-sm">
           <div className="flex items-center justify-between border-b px-4 py-3">
-            <h2 className="font-semibold">Recent Users</h2>
+            <h2 className="font-semibold">{t("users.recentUsers")}</h2>
             <Link href="/users/list" className="text-xs font-medium text-primary hover:underline">
-              View all
+              {t("users.viewAll")}
             </Link>
           </div>
           <table className="w-full text-sm">
             <thead className="bg-secondary text-left text-xs text-muted-foreground">
               <tr>
-                <th className="px-4 py-2 font-medium">User</th>
-                <th className="px-4 py-2 font-medium">Role</th>
-                <th className="px-4 py-2 font-medium">Status</th>
+                <th className="px-4 py-2 font-medium">{t("users.user")}</th>
+                <th className="px-4 py-2 font-medium">{t("users.role")}</th>
+                <th className="px-4 py-2 font-medium">{t("users.status")}</th>
               </tr>
             </thead>
             <tbody>
@@ -109,7 +112,7 @@ export default function UsersDashboardPage() {
         <div className="rounded-xl border bg-card shadow-sm">
           <div className="flex items-center gap-2 border-b px-4 py-3">
             <Bell className="h-4 w-4 text-muted-foreground" />
-            <h2 className="font-semibold">Admin Notifications</h2>
+            <h2 className="font-semibold">{t("users.adminNotifications")}</h2>
             {unread > 0 && (
               <span className="rounded-full bg-rose-500 px-2 py-0.5 text-xs text-white">
                 {unread}

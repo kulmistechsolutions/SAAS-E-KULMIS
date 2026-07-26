@@ -1,6 +1,9 @@
+
+import { useT } from "@/lib/i18n/provider";
 export const metadata = { title: "Offline" };
 
 export default function OfflinePage() {
+  const t = useT();
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-3 p-6 text-center">
       <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
@@ -21,10 +24,9 @@ export default function OfflinePage() {
           <line x1="2" y1="2" x2="22" y2="22" />
         </svg>
       </div>
-      <h1 className="text-xl font-bold">You&apos;re offline</h1>
+      <h1 className="text-xl font-bold">{t("offline.youAposReOffline")}</h1>
       <p className="max-w-sm text-sm text-muted-foreground">
-        This page needs a connection. Reconnect and try again — the app will
-        pick up right where you left off.
+        {t("offline.thisPageNeedsAConnectionReconnect")}
       </p>
     </div>
   );

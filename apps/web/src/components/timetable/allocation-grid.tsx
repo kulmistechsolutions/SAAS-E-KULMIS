@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useMemo, useState } from "react";
 import { AlertTriangle, Check, UserX } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -38,6 +40,7 @@ function capacityOf(room: AllocationRoom, shifts: ShiftDto[]): number {
  * short while typing, not after a failed generation.
  */
 export function AllocationGrid({ rooms, shifts, onChange, onSave, dirty }: Props) {
+  const tr = useT();
   const [saving, setSaving] = useState(false);
 
   const totals = useMemo(
@@ -62,8 +65,7 @@ export function AllocationGrid({ rooms, shifts, onChange, onSave, dirty }: Props
   if (rooms.length === 0) {
     return (
       <p className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
-        No classes found for this academic year. Add classes and their subjects
-        first — this grid fills itself from them.
+        {tr("timetableAllocationGrid.noClassesFoundForThisAcademic")}
       </p>
     );
   }
@@ -88,7 +90,7 @@ export function AllocationGrid({ rooms, shifts, onChange, onSave, dirty }: Props
                     "bg-emerald-500/12 text-emerald-600 dark:text-emerald-400",
                 )}
               >
-                {t.allocated} / {t.capacity} periods
+                {t.allocated} / {t.capacity} {tr("timetableAllocationGrid.periods")}
                 {over && ` · ${t.allocated - t.capacity} too many`}
                 {under && ` · ${t.capacity - t.allocated} free`}
                 {!over && !under && " · exact"}
@@ -97,15 +99,15 @@ export function AllocationGrid({ rooms, shifts, onChange, onSave, dirty }: Props
 
             {room.subjects.length === 0 ? (
               <p className="px-4 py-4 text-sm text-muted-foreground">
-                No subjects assigned to this class yet.
+                {tr("timetableAllocationGrid.noSubjectsAssignedToThisClass")}
               </p>
             ) : (
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b text-left text-xs text-muted-foreground">
-                    <th className="px-4 py-2 font-medium">Subject</th>
-                    <th className="px-4 py-2 font-medium">Teacher</th>
-                    <th className="w-40 px-4 py-2 font-medium">Periods / week</th>
+                    <th className="px-4 py-2 font-medium">{tr("timetableAllocationGrid.subject")}</th>
+                    <th className="px-4 py-2 font-medium">{tr("timetableAllocationGrid.teacher")}</th>
+                    <th className="w-40 px-4 py-2 font-medium">{tr("timetableAllocationGrid.periodsWeek")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -120,7 +122,7 @@ export function AllocationGrid({ rooms, shifts, onChange, onSave, dirty }: Props
                         ) : (
                           <span className="inline-flex items-center gap-1 text-xs text-rose-600 dark:text-rose-400">
                             <UserX className="h-3.5 w-3.5" />
-                            No teacher assigned
+                            {tr("timetableAllocationGrid.noTeacherAssigned")}
                           </span>
                         )}
                       </td>
@@ -155,12 +157,12 @@ export function AllocationGrid({ rooms, shifts, onChange, onSave, dirty }: Props
           {totals.some((t) => t.allocated > t.capacity) ? (
             <span className="inline-flex items-center gap-1 text-rose-600 dark:text-rose-400">
               <AlertTriangle className="h-3.5 w-3.5" />
-              Some classes have more periods than slots — fix before generating.
+              {tr("timetableAllocationGrid.someClassesHaveMorePeriodsThan")}
             </span>
           ) : (
             <span className="inline-flex items-center gap-1">
               <Check className="h-3.5 w-3.5" />
-              Counts are saved for the whole year at once.
+              {tr("timetableAllocationGrid.countsAreSavedForTheWhole")}
             </span>
           )}
         </p>

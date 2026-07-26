@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { CalendarClock, Clock, Loader2, Pencil, Plus, Trash2 } from "lucide-react";
 import {
@@ -41,6 +43,7 @@ const STEPS = [
 ] as const;
 
 export default function TimetableSetupPage() {
+  const t = useT();
   const academics = useAcademicsState();
   const [yearId, setYearId] = useState("");
   const [step, setStep] = useState<number>(1);
@@ -193,10 +196,10 @@ export default function TimetableSetupPage() {
         <div>
           <h1 className="flex items-center gap-2 text-2xl font-bold">
             <CalendarClock className="h-6 w-6" />
-            Timetable setup
+            {t("timetableSetup.timetableSetup")}
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Describe the school week, then how many periods each subject needs.
+            {t("timetableSetup.describeTheSchoolWeekThenHow")}
           </p>
         </div>
         <div className="w-52">
@@ -232,7 +235,7 @@ export default function TimetableSetupPage() {
       {loading ? (
         <div className="flex items-center gap-2 py-12 text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin" />
-          Loading…
+          {t("timetableSetup.loading")}
         </div>
       ) : (
         <>
@@ -246,7 +249,7 @@ export default function TimetableSetupPage() {
                 </p>
                 <Button type="button" onClick={() => setEditing("new")}>
                   <Plus className="mr-2 h-4 w-4" />
-                  Add shift
+                  {t("timetableSetup.addShift")}
                 </Button>
               </div>
 
@@ -259,8 +262,7 @@ export default function TimetableSetupPage() {
                         {shift.days
                           .map((d) => WEEKDAY_NAMES[d]?.slice(0, 3))
                           .join(", ")}{" "}
-                        · {shift.periods.filter((p) => !p.isBreak).length} periods a
-                        day
+                        · {shift.periods.filter((p) => !p.isBreak).length} {t("timetableSetup.periodsADay")}
                       </p>
                     </div>
                     <div className="flex gap-2">
@@ -271,7 +273,7 @@ export default function TimetableSetupPage() {
                         onClick={() => setEditing(shift)}
                       >
                         <Pencil className="mr-1 h-3.5 w-3.5" />
-                        Edit
+                        {t("timetableSetup.edit")}
                       </Button>
                       <Button
                         type="button"
@@ -280,7 +282,7 @@ export default function TimetableSetupPage() {
                         onClick={() => handleDeleteShift(shift)}
                       >
                         <Trash2 className="mr-1 h-3.5 w-3.5" />
-                        Delete
+                        {t("timetableSetup.delete")}
                       </Button>
                     </div>
                   </div>
@@ -320,7 +322,7 @@ export default function TimetableSetupPage() {
             <div className="space-y-4">
               {shifts.length === 0 ? (
                 <p className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
-                  Add a shift first — rules are expressed in terms of its periods.
+                  {t("timetableSetup.addAShiftFirstRulesAre")}
                 </p>
               ) : (
                 <RuleComposer
@@ -335,7 +337,7 @@ export default function TimetableSetupPage() {
                   {rules.unavailability.length > 0 && (
                     <div className="overflow-hidden rounded-lg border">
                       <h3 className="border-b bg-secondary/40 px-4 py-2 text-sm font-semibold">
-                        Teacher unavailable times
+                        {t("timetableSetup.teacherUnavailableTimes")}
                       </h3>
                       <ul className="divide-y">
                         {rules.unavailability.map((u) => (
@@ -355,9 +357,9 @@ export default function TimetableSetupPage() {
                   {rules.preferences.length > 0 && (
                     <div className="overflow-hidden rounded-lg border">
                       <h3 className="border-b bg-secondary/40 px-4 py-2 text-sm font-semibold">
-                        Time preferences
+                        {t("timetableSetup.timePreferences")}
                         <span className="ml-2 font-normal text-muted-foreground">
-                          kept where possible, never at the cost of a valid week
+                          {t("timetableSetup.keptWherePossibleNeverAtThe")}
                         </span>
                       </h3>
                       <ul className="divide-y">
@@ -370,7 +372,7 @@ export default function TimetableSetupPage() {
                               <span className="font-medium">{p.subject.name}</span>
                               <span className="text-muted-foreground">
                                 {" "}
-                                in {p.class?.name ?? "every class"} —{" "}
+                                {t("timetableSetup.in")} {p.class?.name ?? "every class"} —{" "}
                                 {formatMinutes(p.startMinute)}–{formatMinutes(p.endMinute)}
                               </span>
                             </span>
@@ -382,7 +384,7 @@ export default function TimetableSetupPage() {
                               }}
                               className="text-xs text-muted-foreground hover:text-destructive"
                             >
-                              Remove
+                              {t("timetableSetup.remove")}
                             </button>
                           </li>
                         ))}
@@ -398,21 +400,20 @@ export default function TimetableSetupPage() {
             <div className="space-y-4">
               {dirty && (
                 <p className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm">
-                  You have unsaved allocation changes — save them on step 2 for
-                  this check to reflect them.
+                  {t("timetableSetup.youHaveUnsavedAllocationChangesSave")}
                 </p>
               )}
               {checking || !report ? (
                 <div className="flex items-center gap-2 py-8 text-muted-foreground">
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  Checking…
+                  {t("timetableSetup.checking")}
                 </div>
               ) : (
                 <>
                   <FeasibilityView report={report} />
                   <div className="flex justify-end">
                     <Button type="button" variant="outline" onClick={runCheck}>
-                      Re-check
+                      {t("timetableSetup.reCheck")}
                     </Button>
                   </div>
                 </>

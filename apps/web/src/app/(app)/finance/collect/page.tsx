@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useEffect, useState } from "react";
 import { CollectFeesSection } from "@/components/fees/collect-fees-section";
 import { PaymentDialog } from "@/components/fees/payment-dialog";
@@ -8,6 +10,7 @@ import { getPayment, useFeesState } from "@/lib/fees/store";
 import type { FeePayment, StudentFeeRow } from "@/lib/fees/types";
 
 export default function CollectFeesPage() {
+  const t = useT();
   const [mounted, setMounted] = useState(false);
   const fees = useFeesState();
   const [payStudent, setPayStudent] = useState<StudentFeeRow | null>(null);
@@ -18,9 +21,9 @@ export default function CollectFeesPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Collect Fees</h1>
+        <h1 className="text-2xl font-bold">{t("financeCollect.collectFees")}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Search students by class and section, then record payments.
+          {t("financeCollect.searchStudentsByClassAndSection")}
         </p>
       </div>
       {mounted && (

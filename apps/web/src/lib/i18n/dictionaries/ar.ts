@@ -1,10 +1,10 @@
-import type { Dictionary } from "./en";
+import type { PartialDictionary } from "./en";
 
 /**
  * العربية. The interface flips to RTL for this language — see dirOf() in the
  * i18n config and the `dir` attribute set on <html>.
  */
-export const ar: Dictionary = {
+export const ar: PartialDictionary = {
   common: {
     save: "حفظ",
     saving: "جارٍ الحفظ…",
@@ -172,6 +172,51 @@ export const ar: Dictionary = {
     feeCollectionMonth: "تحصيل الرسوم (الشهر)",
     academicYear: "العام الدراسي",
     thisMonth: "+{count} هذا الشهر",
+  },
+
+  students: {
+    loadingStudents: "جارٍ تحميل الطلاب…",
+    students: "الطلاب",
+    manageStudentRecordsRegistrationAndProfiles:
+      "إدارة سجلات الطلاب والتسجيل والملفات الشخصية.",
+    print: "طباعة",
+    export: "تصدير",
+    import: "استيراد",
+    addStudent: "إضافة طالب",
+    searchByIdNameParentOr: "ابحث بالمعرّف أو الاسم أو ولي الأمر أو الهاتف…",
+    allClasses: "جميع الصفوف",
+    allSections: "جميع الشعب",
+    section: "الشعبة",
+    allGenders: "كلا الجنسين",
+    male: "ذكر",
+    female: "أنثى",
+    allStatus: "جميع الحالات",
+    active: "نشط",
+    inactive: "غير نشط",
+    graduated: "متخرّج",
+    clear: "مسح",
+    student: "طالب",
+    selected: "محدّد",
+    deleteSelected: "حذف المحدّد",
+    selectAllOnThisPage: "تحديد الكل في هذه الصفحة",
+    studentId: "معرّف الطالب",
+    name: "الاسم",
+    gender: "الجنس",
+    parent: "ولي الأمر",
+    parentPhone: "هاتف ولي الأمر",
+    class: "الصف",
+    monthlyFee: "الرسوم الشهرية",
+    regDate: "تاريخ التسجيل",
+    status: "الحالة",
+    actions: "إجراءات",
+    viewProfile: "عرض الملف",
+    edit: "تعديل",
+    printProfile: "طباعة الملف",
+    downloadProfile: "تنزيل الملف",
+    delete: "حذف",
+    resetDemoData: "إعادة تعيين بيانات العرض",
+    deleteStudent: "حذف الطالب",
+    deleteSelectedStudents: "حذف الطلاب المحددين",
   },
 
   topbar: {

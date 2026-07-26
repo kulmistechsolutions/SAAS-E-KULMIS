@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Eye, FileDown, GraduationCap, Printer, Search, X } from "lucide-react";
@@ -20,6 +22,7 @@ import { toast } from "@/lib/toast";
 const PAGE_SIZE = 12;
 
 export default function GraduatedStudentsPage() {
+  const t = useT();
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
   const promotions = usePromotionsState();
@@ -47,7 +50,7 @@ export default function GraduatedStudentsPage() {
   if (!mounted) {
     return (
       <div className="flex h-64 items-center justify-center text-muted-foreground">
-        Loading graduated students…
+        {t("promotionsGraduated.loadingGraduatedStudents")}
       </div>
     );
   }
@@ -56,9 +59,9 @@ export default function GraduatedStudentsPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold">Graduated Students</h1>
+          <h1 className="text-2xl font-bold">{t("promotionsGraduated.graduatedStudents")}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Permanent records for students who completed the final class.
+            {t("promotionsGraduated.permanentRecordsForStudentsWhoCompleted")}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -80,10 +83,10 @@ export default function GraduatedStudentsPage() {
               })
             }
           >
-            <Printer className="mr-2 h-4 w-4" /> Print
+            <Printer className="mr-2 h-4 w-4" /> {t("promotionsGraduated.print")}
           </Button>
           <Button variant="outline" onClick={() => { exportGraduatedCsv(rows); toast(`Exported ${rows.length} graduates.`, "info"); }}>
-            <FileDown className="mr-2 h-4 w-4" /> Export
+            <FileDown className="mr-2 h-4 w-4" /> {t("promotionsGraduated.export")}
           </Button>
         </div>
       </div>
@@ -95,20 +98,20 @@ export default function GraduatedStudentsPage() {
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search by student, ID or parent…"
+              placeholder={t("promotionsGraduated.searchByStudentIdOrParent")}
               className="h-10 w-full rounded-lg border bg-background pl-9 pr-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
             />
           </div>
           <div className="grid grid-cols-2 gap-2 lg:flex">
             <Select value={year} onChange={(e) => setYear(e.target.value)} className="lg:w-40">
-              <option value="">All Years</option>
+              <option value="">{t("promotionsGraduated.allYears")}</option>
               {years.map((y) => (
                 <option key={y.id} value={y.name}>{y.name}</option>
               ))}
             </Select>
             {hasFilters && (
               <Button variant="ghost" onClick={() => { setSearch(""); setYear(""); }}>
-                <X className="mr-1 h-4 w-4" /> Clear
+                <X className="mr-1 h-4 w-4" /> {t("promotionsGraduated.clear")}
               </Button>
             )}
           </div>
@@ -118,7 +121,7 @@ export default function GraduatedStudentsPage() {
       {rows.length === 0 ? (
         <div className="rounded-2xl border bg-card py-20 text-center shadow-sm">
           <GraduationCap className="mx-auto h-10 w-10 text-muted-foreground/50" />
-          <p className="mt-3 text-sm text-muted-foreground">No graduated students yet.</p>
+          <p className="mt-3 text-sm text-muted-foreground">{t("promotionsGraduated.noGraduatedStudentsYet")}</p>
         </div>
       ) : (
         <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
@@ -127,13 +130,13 @@ export default function GraduatedStudentsPage() {
               <thead className="sticky top-0 z-10 bg-secondary/95 backdrop-blur text-left text-xs uppercase tracking-wide text-muted-foreground">
                 <tr>
                   <th className="px-4 py-3 font-medium">#</th>
-                  <th className="px-4 py-3 font-medium">Student ID</th>
-                  <th className="px-4 py-3 font-medium">Name</th>
-                  <th className="px-4 py-3 font-medium">Grad. Year</th>
-                  <th className="px-4 py-3 font-medium">Final Class</th>
-                  <th className="px-4 py-3 font-medium">Section</th>
-                  <th className="px-4 py-3 font-medium">Graduation Date</th>
-                  <th className="px-4 py-3 text-right font-medium">Actions</th>
+                  <th className="px-4 py-3 font-medium">{t("promotionsGraduated.studentId")}</th>
+                  <th className="px-4 py-3 font-medium">{t("promotionsGraduated.name")}</th>
+                  <th className="px-4 py-3 font-medium">{t("promotionsGraduated.gradYear")}</th>
+                  <th className="px-4 py-3 font-medium">{t("promotionsGraduated.finalClass")}</th>
+                  <th className="px-4 py-3 font-medium">{t("promotionsGraduated.section")}</th>
+                  <th className="px-4 py-3 font-medium">{t("promotionsGraduated.graduationDate")}</th>
+                  <th className="px-4 py-3 text-right font-medium">{t("promotionsGraduated.actions")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -154,13 +157,13 @@ export default function GraduatedStudentsPage() {
                       <div className="flex justify-end gap-1">
                         <Link
                           href={`/students/${r.studentId}`}
-                          title="View Profile"
+                          title={t("promotionsGraduated.viewProfile")}
                           className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
                         >
                           <Eye className="h-4 w-4" />
                         </Link>
                         <button
-                          title="Print Transcript"
+                          title={t("promotionsGraduated.printTranscript")}
                           onClick={() => printTranscript(r.studentId)}
                           className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
                         >

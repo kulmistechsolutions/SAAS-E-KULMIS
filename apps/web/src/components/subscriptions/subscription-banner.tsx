@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { AlertTriangle, XCircle } from "lucide-react";
@@ -15,6 +17,7 @@ import type { SchoolSubscriptionMe } from "@/lib/subscriptions/types";
  * Loaded from GET /subscriptions/me.
  */
 export function SubscriptionBanner() {
+  const t = useT();
   const [data, setData] = useState<SchoolSubscriptionMe | null>(null);
 
   useEffect(() => {
@@ -52,13 +55,13 @@ export function SubscriptionBanner() {
       <Icon className="h-3.5 w-3.5 shrink-0" />
       <p className="font-medium">{data.banner.message}</p>
       {data.daysRemaining != null && data.daysRemaining >= 0 && (
-        <span className="opacity-80">· {data.daysRemaining} day(s) left</span>
+        <span className="opacity-80">· {data.daysRemaining} {t("subscriptionsSubscriptionBanner.daySLeft")}</span>
       )}
       <Link
         href="/settings/subscription"
         className="font-medium underline-offset-2 hover:underline"
       >
-        View details
+        {t("subscriptionsSubscriptionBanner.viewDetails")}
       </Link>
     </div>
   );

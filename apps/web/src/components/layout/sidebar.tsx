@@ -235,6 +235,7 @@ export function Sidebar({
   collapsed = false,
   onToggleCollapse,
 }: SidebarProps) {
+  const tr = useT();
   const pathname = usePathname();
   const branding = useSchoolBranding();
   const t = useT();
@@ -500,7 +501,7 @@ export function Sidebar({
         {!collapsed && (
           <>
             <p className="mt-1 text-xs text-slate-400">{t("nav.allSystemsOperational")}</p>
-            <p className="mt-3 text-[11px] text-slate-500">v2.5.0</p>
+            <p className="mt-3 text-[11px] text-slate-500">{tr("layoutSidebar.v250")}</p>
           </>
         )}
       </div>

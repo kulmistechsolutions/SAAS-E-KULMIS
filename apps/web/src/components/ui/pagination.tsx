@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -18,6 +20,7 @@ export function Pagination({
   pageSize,
   onPageChange,
 }: PaginationProps) {
+  const t = useT();
   const from = total === 0 ? 0 : (page - 1) * pageSize + 1;
   const to = Math.min(page * pageSize, total);
 
@@ -26,8 +29,8 @@ export function Pagination({
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 px-1 py-3 text-sm">
       <p className="text-muted-foreground">
-        Showing <span className="font-medium text-foreground">{from}</span>–
-        <span className="font-medium text-foreground">{to}</span> of{" "}
+        {t("uiPagination.showing")} <span className="font-medium text-foreground">{from}</span>–
+        <span className="font-medium text-foreground">{to}</span> {t("uiPagination.of")}{" "}
         <span className="font-medium text-foreground">{total}</span>
       </p>
       <div className="flex items-center gap-1">

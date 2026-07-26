@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useEffect, useMemo, useState } from "react";
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -17,6 +19,7 @@ interface MyStudent {
 }
 
 export default function TeacherPortalStudentsList() {
+  const t = useT();
   const [students, setStudents] = useState<MyStudent[]>([]);
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
@@ -66,9 +69,9 @@ export default function TeacherPortalStudentsList() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">My Students</h1>
+        <h1 className="text-2xl font-bold">{t("teacherPortalStudentsStudentsList.myStudents")}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Read-only list of students in your assigned classes and sections.
+          {t("teacherPortalStudentsStudentsList.readOnlyListOfStudentsIn")}
         </p>
       </div>
 
@@ -78,7 +81,7 @@ export default function TeacherPortalStudentsList() {
           <Input
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Search by name or student ID…"
+            placeholder={t("teacherPortalStudentsStudentsList.searchByNameOrStudentId")}
             className="pl-9"
           />
         </div>
@@ -89,7 +92,7 @@ export default function TeacherPortalStudentsList() {
             setSection("");
           }}
         >
-          <option value="">All classes</option>
+          <option value="">{t("teacherPortalStudentsStudentsList.allClasses")}</option>
           {classes.map((c) => (
             <option key={c} value={c}>
               {c}
@@ -97,7 +100,7 @@ export default function TeacherPortalStudentsList() {
           ))}
         </Select>
         <Select value={section} onChange={(e) => setSection(e.target.value)}>
-          <option value="">All sections</option>
+          <option value="">{t("teacherPortalStudentsStudentsList.allSections")}</option>
           {sections.map((s) => (
             <option key={s} value={s}>
               {s}
@@ -112,18 +115,18 @@ export default function TeacherPortalStudentsList() {
         </div>
       ) : filtered.length === 0 ? (
         <p className="rounded-xl border bg-card p-8 text-center text-muted-foreground">
-          No students match your filters.
+          {t("teacherPortalStudentsStudentsList.noStudentsMatchYourFilters")}
         </p>
       ) : (
         <div className="overflow-x-auto rounded-xl border bg-card">
           <table className="w-full text-sm">
             <thead className="sticky top-0 bg-muted/80 backdrop-blur">
               <tr className="border-b text-left text-muted-foreground">
-                <th className="px-4 py-3 font-medium">Student ID</th>
-                <th className="px-4 py-3 font-medium">Student Name</th>
-                <th className="px-4 py-3 font-medium">Class</th>
-                <th className="px-4 py-3 font-medium">Section</th>
-                <th className="px-4 py-3 font-medium">Parent phone</th>
+                <th className="px-4 py-3 font-medium">{t("teacherPortalStudentsStudentsList.studentId")}</th>
+                <th className="px-4 py-3 font-medium">{t("teacherPortalStudentsStudentsList.studentName")}</th>
+                <th className="px-4 py-3 font-medium">{t("teacherPortalStudentsStudentsList.class")}</th>
+                <th className="px-4 py-3 font-medium">{t("teacherPortalStudentsStudentsList.section")}</th>
+                <th className="px-4 py-3 font-medium">{t("teacherPortalStudentsStudentsList.parentPhone")}</th>
               </tr>
             </thead>
             <tbody>

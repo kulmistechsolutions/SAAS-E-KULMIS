@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { ACTIONS, MODULES, normalizePermissions } from "@/lib/users/format";
 import type { PermissionMap } from "@/lib/users/types";
 
@@ -14,6 +16,7 @@ export function PermissionMatrix({
   readOnly = false,
   onChange,
 }: PermissionMatrixProps) {
+  const t = useT();
   const permissions = normalizePermissions(permissionsProp);
 
   function toggle(module: keyof PermissionMap, action: (typeof ACTIONS)[number]["id"]) {
@@ -30,7 +33,7 @@ export function PermissionMatrix({
       <table className="w-full min-w-[900px] text-sm">
         <thead className="sticky top-0 bg-secondary text-left text-xs text-muted-foreground">
           <tr>
-            <th className="px-4 py-2.5 font-medium">Module</th>
+            <th className="px-4 py-2.5 font-medium">{t("usersPermissionMatrix.module")}</th>
             {ACTIONS.map((a) => (
               <th key={a.id} className="px-3 py-2.5 text-center font-medium">
                 {a.label}

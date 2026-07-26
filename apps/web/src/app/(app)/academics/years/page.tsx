@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useEffect, useState } from "react";
 import { CalendarCheck, Pencil, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -11,6 +13,7 @@ import { shortDate } from "@/lib/academics/format";
 import { toast } from "@/lib/toast";
 
 export default function AcademicYearsPage() {
+  const t = useT();
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
   const state = useAcademicsState();
@@ -20,7 +23,7 @@ export default function AcademicYearsPage() {
   if (!mounted) {
     return (
       <div className="flex h-64 items-center justify-center text-muted-foreground">
-        Loading academic years…
+        {t("academicsYears.loadingAcademicYears")}
       </div>
     );
   }
@@ -31,15 +34,13 @@ export default function AcademicYearsPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold">Academic Years</h1>
+          <h1 className="text-2xl font-bold">{t("academicsYears.academicYears")}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Only one academic year can be active at a time. Fix a typo any time
-            with Edit — years are never deleted, since classes, students, and
-            records all hang off them.
+            {t("academicsYears.onlyOneAcademicYearCanBe")}
           </p>
         </div>
         <Button onClick={() => setOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" /> Add Academic Year
+          <Plus className="mr-2 h-4 w-4" /> {t("academicsYears.addAcademicYear")}
         </Button>
       </div>
 
@@ -56,7 +57,7 @@ export default function AcademicYearsPage() {
                 </span>
                 <div>
                   <p className="text-lg font-bold">{y.name}</p>
-                  <p className="text-xs text-muted-foreground">Academic Year</p>
+                  <p className="text-xs text-muted-foreground">{t("academicsYears.academicYear")}</p>
                 </div>
               </div>
               <div className="flex items-center gap-1.5">
@@ -66,7 +67,7 @@ export default function AcademicYearsPage() {
                   onClick={() => setEditing(y)}
                   className="rounded-md p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground"
                   aria-label={`Edit ${y.name}`}
-                  title="Edit name or dates"
+                  title={t("academicsYears.editNameOrDates")}
                 >
                   <Pencil className="h-3.5 w-3.5" />
                 </button>
@@ -74,11 +75,11 @@ export default function AcademicYearsPage() {
             </div>
             <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
               <div>
-                <dt className="text-xs text-muted-foreground">Start Date</dt>
+                <dt className="text-xs text-muted-foreground">{t("academicsYears.startDate")}</dt>
                 <dd className="font-medium">{shortDate(y.startDate)}</dd>
               </div>
               <div>
-                <dt className="text-xs text-muted-foreground">End Date</dt>
+                <dt className="text-xs text-muted-foreground">{t("academicsYears.endDate")}</dt>
                 <dd className="font-medium">{shortDate(y.endDate)}</dd>
               </div>
             </dl>
@@ -96,7 +97,7 @@ export default function AcademicYearsPage() {
                   );
                 }}
               >
-                Set as Active
+                {t("academicsYears.setAsActive")}
               </Button>
             )}
           </div>

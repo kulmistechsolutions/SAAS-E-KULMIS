@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useEffect, useMemo, useState } from "react";
 import { Download, Eye, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -15,6 +17,7 @@ import { getState as getStudentsState } from "@/lib/students/store";
 const PAGE_SIZE = 15;
 
 export default function FeeHistoryPage() {
+  const t = useT();
   const [mounted, setMounted] = useState(false);
   const fees = useFeesState();
   const [search, setSearch] = useState("");
@@ -45,9 +48,9 @@ export default function FeeHistoryPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Fee History</h1>
+          <h1 className="text-2xl font-bold">{t("financeHistory.feeHistory")}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            All recorded payments with receipts.
+            {t("financeHistory.allRecordedPaymentsWithReceipts")}
           </p>
         </div>
         <div className="flex gap-2">
@@ -57,13 +60,13 @@ export default function FeeHistoryPage() {
             onClick={() => exportPaymentsCsv(fees.payments)}
           >
             <Download className="mr-2 h-4 w-4" />
-            Export CSV
+            {t("financeHistory.exportCsv")}
           </Button>
         </div>
       </div>
 
       <Input
-        placeholder="Search receipt, student name or ID…"
+        placeholder={t("financeHistory.searchReceiptStudentNameOrId")}
         value={search}
         onChange={(e) => {
           setSearch(e.target.value);
@@ -77,14 +80,14 @@ export default function FeeHistoryPage() {
           <table className="w-full min-w-[800px] text-sm">
             <thead className="sticky top-0 bg-secondary text-left text-xs text-muted-foreground">
               <tr>
-                <th className="px-4 py-2.5 font-medium">Receipt No.</th>
-                <th className="px-4 py-2.5 font-medium">Student</th>
-                <th className="px-4 py-2.5 font-medium">Class-Section</th>
-                <th className="px-4 py-2.5 font-medium">Amount</th>
-                <th className="px-4 py-2.5 font-medium">Type</th>
-                <th className="px-4 py-2.5 font-medium">Collected By</th>
-                <th className="px-4 py-2.5 font-medium">Date</th>
-                <th className="px-4 py-2.5 font-medium">Actions</th>
+                <th className="px-4 py-2.5 font-medium">{t("financeHistory.receiptNo")}</th>
+                <th className="px-4 py-2.5 font-medium">{t("financeHistory.student")}</th>
+                <th className="px-4 py-2.5 font-medium">{t("financeHistory.classSection")}</th>
+                <th className="px-4 py-2.5 font-medium">{t("financeHistory.amount")}</th>
+                <th className="px-4 py-2.5 font-medium">{t("financeHistory.type")}</th>
+                <th className="px-4 py-2.5 font-medium">{t("financeHistory.collectedBy")}</th>
+                <th className="px-4 py-2.5 font-medium">{t("financeHistory.date")}</th>
+                <th className="px-4 py-2.5 font-medium">{t("financeHistory.actions")}</th>
               </tr>
             </thead>
             <tbody>

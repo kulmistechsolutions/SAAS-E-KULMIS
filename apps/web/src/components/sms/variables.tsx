@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import type { RefObject } from "react";
 
 /**
@@ -74,6 +76,7 @@ interface Props {
  * {{token}} by hand — a misspelled one silently renders as blank text.
  */
 export function VariablePicker({ targetRef, value, onChange }: Props) {
+  const tr = useT();
   function insert(token: string) {
     const text = `{{${token}}}`;
     const el = targetRef.current;
@@ -96,7 +99,7 @@ export function VariablePicker({ targetRef, value, onChange }: Props) {
   return (
     <div className="rounded-lg border bg-secondary/40 p-2">
       <p className="mb-1.5 px-0.5 text-[11px] font-medium text-muted-foreground">
-        Click to insert — these fill in automatically for each recipient
+        {tr("smsVariables.clickToInsertTheseFillIn")}
       </p>
       <div className="flex flex-wrap gap-1">
         {SMS_VARIABLES.map((v) => (
@@ -117,11 +120,12 @@ export function VariablePicker({ targetRef, value, onChange }: Props) {
 
 /** Warning strip listing placeholders that will send as blank text. */
 export function VariableWarning({ body }: { body: string }) {
+  const tr = useT();
   const unknown = unknownVariables(body);
   if (unknown.length === 0) return null;
   return (
     <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">
-      Will send blank — replace with real text:{" "}
+      {tr("smsVariables.willSendBlankReplaceWithReal")}{" "}
       {unknown.map((u) => `{{${u}}}`).join(", ")}
     </p>
   );

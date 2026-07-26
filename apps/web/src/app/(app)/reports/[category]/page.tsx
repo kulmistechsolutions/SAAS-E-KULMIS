@@ -1,11 +1,14 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import Link from "next/link";
 import { useParams, notFound } from "next/navigation";
 import { ArrowLeft, ChevronRight } from "lucide-react";
 import { getCategory } from "@/lib/reports/catalog";
 
 export default function ReportCategoryPage() {
+  const t = useT();
   const params = useParams();
   const categoryId = params.category as string;
   const category = getCategory(categoryId);
@@ -17,7 +20,7 @@ export default function ReportCategoryPage() {
   return (
     <div className="space-y-6">
       <Link href="/reports" className="inline-flex items-center gap-1 text-sm text-primary hover:underline">
-        <ArrowLeft className="h-4 w-4" /> Back to Reports Center
+        <ArrowLeft className="h-4 w-4" /> {t("reports.backToReportsCenter")}
       </Link>
 
       <div>

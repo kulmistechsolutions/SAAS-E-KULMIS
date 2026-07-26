@@ -1,9 +1,12 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useEffect, useState } from "react";
 import { Moon, Sun } from "lucide-react";
 
 export function ThemeToggle() {
+  const t = useT();
   const [dark, setDark] = useState(false);
 
   useEffect(() => {
@@ -22,7 +25,7 @@ export function ThemeToggle() {
   return (
     <button
       onClick={toggle}
-      aria-label="Toggle theme"
+      aria-label={t("uiThemeToggle.toggleTheme")}
       className="flex h-9 w-9 items-center justify-center rounded-lg border border-input text-muted-foreground transition-colors hover:bg-secondary"
     >
       {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}

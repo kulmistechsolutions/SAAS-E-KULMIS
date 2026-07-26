@@ -1,4 +1,4 @@
-import type { Dictionary } from "./en";
+import type { PartialDictionary } from "./en";
 
 /**
  * Soomaali. Erayada waxaa loo doortay sida dugsiyada dhab ahaantii u hadlaan,
@@ -9,7 +9,7 @@ import type { Dictionary } from "./en";
  *  - "Qaybaha" = sections (fasalka), "Noocyada" = categories.
  *  - "Dejinta" = settings iyo setup labadaba; isku macne ayay leeyihiin.
  */
-export const so: Dictionary = {
+export const so: PartialDictionary = {
   common: {
     save: "Kaydi",
     saving: "Waa la kaydinayaa…",
@@ -177,6 +177,51 @@ export const so: Dictionary = {
     feeCollectionMonth: "Ururinta Khidmadaha (Bishan)",
     academicYear: "Sannad-dugsiyeedka",
     thisMonth: "+{count} bishan",
+  },
+
+  students: {
+    loadingStudents: "Ardayda waa la soo dejinayaa…",
+    students: "Ardayda",
+    manageStudentRecordsRegistrationAndProfiles:
+      "Maamul diiwaanka ardayda, diiwaangelinta iyo xogtooda.",
+    print: "Daabac",
+    export: "Soo saar",
+    import: "Soo geli",
+    addStudent: "Ku dar Arday",
+    searchByIdNameParentOr: "Ku raadi aqoonsi, magac, waalid ama taleefan…",
+    allClasses: "Dhammaan Fasallada",
+    allSections: "Dhammaan Qaybaha",
+    section: "Qaybta",
+    allGenders: "Labada Jinsi",
+    male: "Lab",
+    female: "Dheddig",
+    allStatus: "Dhammaan Xaaladaha",
+    active: "Firfircoon",
+    inactive: "Aan firfircoonayn",
+    graduated: "Qalin-jabiyay",
+    clear: "Nadiifi",
+    student: "arday",
+    selected: "la doortay",
+    deleteSelected: "Tirtir kuwa la doortay",
+    selectAllOnThisPage: "Dooro dhammaan boggan",
+    studentId: "Aqoonsiga Ardayga",
+    name: "Magaca",
+    gender: "Jinsiga",
+    parent: "Waalidka",
+    parentPhone: "Taleefanka Waalidka",
+    class: "Fasalka",
+    monthlyFee: "Khidmadda Bishii",
+    regDate: "Taariikhda Diiwaangelinta",
+    status: "Xaaladda",
+    actions: "Ficillo",
+    viewProfile: "Eeg Xogta",
+    edit: "Wax ka beddel",
+    printProfile: "Daabac Xogta",
+    downloadProfile: "Soo dejiso Xogta",
+    delete: "Tirtir",
+    resetDemoData: "Dib u deji xogta tijaabada",
+    deleteStudent: "Tirtir Ardayga",
+    deleteSelectedStudents: "Tirtir ardayda la doortay",
   },
 
   topbar: {

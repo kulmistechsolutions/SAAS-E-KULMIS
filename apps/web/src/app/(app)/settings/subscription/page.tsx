@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -58,6 +60,7 @@ function UsageBar({
   limit: number | null;
   remaining: number | null;
 }) {
+  const t = useT();
   const pct =
     limit == null || limit <= 0
       ? null
@@ -91,7 +94,7 @@ function UsageBar({
       </div>
       {!unlimited && remaining != null && (
         <p className="mt-2 text-xs text-muted-foreground">
-          {remaining.toLocaleString()} remaining this period
+          {remaining.toLocaleString()} {t("settingsSubscription.remainingThisPeriod")}
         </p>
       )}
     </div>
@@ -99,6 +102,7 @@ function UsageBar({
 }
 
 export default function SubscriptionSettingsPage() {
+  const t = useT();
   const router = useRouter();
   const isAdmin = useIsSchoolSuperAdmin();
   const [tab, setTab] = useState<"current" | "plans" | "history" | "receipt">(
@@ -244,10 +248,10 @@ export default function SubscriptionSettingsPage() {
       <div>
         <h1 className="flex items-center gap-2 text-2xl font-bold">
           <Layers className="h-6 w-6 text-primary" />
-          Subscription
+          {t("settingsSubscription.subscription")}
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Current plan, usage, and upgrade options for this school.
+          {t("settingsSubscription.currentPlanUsageAndUpgradeOptions")}
         </p>
       </div>
 
@@ -274,7 +278,7 @@ export default function SubscriptionSettingsPage() {
           {loading && (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" />
-              Loading subscription…
+              {t("settingsSubscription.loadingSubscription")}
             </div>
           )}
 
@@ -300,7 +304,7 @@ export default function SubscriptionSettingsPage() {
                 <div>
                   <p className="font-medium">{data.banner.message}</p>
                   <p className="mt-0.5 text-xs opacity-80">
-                    Status: {data.status}
+                    {t("settingsSubscription.status")} {data.status}
                     {data.daysRemaining != null && data.daysRemaining >= 0
                       ? ` · ${data.daysRemaining} day(s) left`
                       : ""}
@@ -310,13 +314,13 @@ export default function SubscriptionSettingsPage() {
 
               <dl className="grid gap-3 sm:grid-cols-2">
                 <div className="rounded-xl border bg-card p-4">
-                  <dt className="text-xs text-muted-foreground">Plan</dt>
+                  <dt className="text-xs text-muted-foreground">{t("settingsSubscription.plan")}</dt>
                   <dd className="mt-1 font-medium">
                     {data.plan?.name ?? "No plan assigned"}
                   </dd>
                 </div>
                 <div className="rounded-xl border bg-card p-4">
-                  <dt className="text-xs text-muted-foreground">Period</dt>
+                  <dt className="text-xs text-muted-foreground">{t("settingsSubscription.period")}</dt>
                   <dd className="mt-1 font-medium">
                     {data.startDate || data.endDate
                       ? `${shortDate(data.startDate)} → ${shortDate(data.endDate)}`
@@ -324,34 +328,34 @@ export default function SubscriptionSettingsPage() {
                   </dd>
                 </div>
                 <div className="rounded-xl border bg-card p-4">
-                  <dt className="text-xs text-muted-foreground">Assigned by</dt>
+                  <dt className="text-xs text-muted-foreground">{t("settingsSubscription.assignedBy")}</dt>
                   <dd className="mt-1 font-medium">
                     {data.assignedByUsername ?? "Self-purchased"}
                   </dd>
                 </div>
                 <div className="rounded-xl border bg-card p-4">
-                  <dt className="text-xs text-muted-foreground">Assigned on</dt>
+                  <dt className="text-xs text-muted-foreground">{t("settingsSubscription.assignedOn")}</dt>
                   <dd className="mt-1 font-medium">{shortDate(data.assignedAt)}</dd>
                 </div>
               </dl>
 
               <div>
-                <h2 className="mb-3 text-sm font-semibold">Usage</h2>
+                <h2 className="mb-3 text-sm font-semibold">{t("settingsSubscription.usage")}</h2>
                 <div className="grid gap-3 sm:grid-cols-3">
                   <UsageBar
-                    label="Students"
+                    label={t("settingsSubscription.students")}
                     used={data.studentCount}
                     limit={data.studentLimit}
                     remaining={data.studentsRemaining}
                   />
                   <UsageBar
-                    label="Teachers"
+                    label={t("settingsSubscription.teachers")}
                     used={data.teacherCount}
                     limit={data.teacherLimit}
                     remaining={data.teachersRemaining}
                   />
                   <UsageBar
-                    label="AI grading (this month)"
+                    label={t("settingsSubscription.aiGradingThisMonth")}
                     used={data.aiGradingUsed}
                     limit={data.aiLimit}
                     remaining={data.aiRemaining}
@@ -367,7 +371,7 @@ export default function SubscriptionSettingsPage() {
                       : "No plan assigned yet — pick one to unlock student/teacher limits and AI grading."}
                   </p>
                   <Button className="mt-3" onClick={() => setTab("plans")}>
-                    View available plans
+                    {t("settingsSubscription.viewAvailablePlans")}
                   </Button>
                 </div>
               )}
@@ -381,7 +385,7 @@ export default function SubscriptionSettingsPage() {
           <div className="space-y-3">
             {plans.length === 0 ? (
               <div className="rounded-2xl border bg-card p-8 text-center text-muted-foreground">
-                No plans published yet. Contact your platform administrator.
+                {t("settingsSubscription.noPlansPublishedYetContactYour")}
               </div>
             ) : (
               plans.map((p) => (
@@ -400,12 +404,12 @@ export default function SubscriptionSettingsPage() {
                     <div>
                       <p className="font-semibold">{p.name}</p>
                       <p className="mt-2 text-sm text-muted-foreground">
-                        {p.maxStudents ?? "Unlimited"} students ·{" "}
-                        {p.maxTeachers ?? "Unlimited"} teachers ·{" "}
-                        {p.aiGradingMonthlyQuota ?? "Unlimited"} AI grades/mo
+                        {p.maxStudents ?? "Unlimited"} {t("settingsSubscription.students")}{" "}
+                        {p.maxTeachers ?? "Unlimited"} {t("settingsSubscription.teachers")}{" "}
+                        {p.aiGradingMonthlyQuota ?? "Unlimited"} {t("settingsSubscription.aiGradesMo")}
                       </p>
                       <p className="mt-1 text-xs text-muted-foreground">
-                        {p.durationDays} days
+                        {p.durationDays} {t("settingsSubscription.days")}
                       </p>
                     </div>
                     <p className="text-lg font-bold text-primary">
@@ -419,10 +423,10 @@ export default function SubscriptionSettingsPage() {
 
           <div className="space-y-4 rounded-2xl border bg-card p-5 shadow-sm">
             <h2 className="flex items-center gap-2 font-semibold">
-              <CreditCard className="h-4 w-4" /> Pay with WaafiPay
+              <CreditCard className="h-4 w-4" /> {t("settingsSubscription.payWithWaafipay")}
             </h2>
             <div>
-              <Label>Payment channel</Label>
+              <Label>{t("settingsSubscription.paymentChannel")}</Label>
               <Select
                 className="mt-1.5"
                 value={channel}
@@ -431,13 +435,13 @@ export default function SubscriptionSettingsPage() {
                 }
               >
                 <option value="API_PURCHASE">
-                  Direct mobile wallet (EVC / ZAAD / SAHAL)
+                  {t("settingsSubscription.directMobileWalletEvcZaadSahal")}
                 </option>
-                <option value="HPP_PURCHASE">Hosted Payment Page</option>
+                <option value="HPP_PURCHASE">{t("settingsSubscription.hostedPaymentPage")}</option>
               </Select>
             </div>
             <div>
-              <Label>Payer mobile number</Label>
+              <Label>{t("settingsSubscription.payerMobileNumber")}</Label>
               <Input
                 className="mt-1.5"
                 value={payerAccount}
@@ -445,7 +449,7 @@ export default function SubscriptionSettingsPage() {
                 placeholder="252611111111"
               />
               <p className="mt-1 text-xs text-muted-foreground">
-                International format, no +. Required for direct wallet payment.
+                {t("settingsSubscription.internationalFormatNoRequiredForDirect")}
               </p>
             </div>
             <Button
@@ -458,11 +462,10 @@ export default function SubscriptionSettingsPage() {
               ) : (
                 <CreditCard className="mr-2 h-4 w-4" />
               )}
-              Pay &amp; activate plan
+              {t("settingsSubscription.payAmpActivatePlan")}
             </Button>
             <p className="text-xs text-muted-foreground">
-              After Waafi confirms payment, your plan activates automatically —
-              no manual approval needed.
+              {t("settingsSubscription.afterWaafiConfirmsPaymentYourPlan")}
             </p>
           </div>
         </div>
@@ -473,11 +476,11 @@ export default function SubscriptionSettingsPage() {
           <table className="w-full text-left text-sm">
             <thead className="border-b bg-muted/40 text-xs uppercase text-muted-foreground">
               <tr>
-                <th className="px-4 py-3">Plan</th>
-                <th className="px-4 py-3">Amount</th>
-                <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3">Receipt</th>
-                <th className="px-4 py-3">Date</th>
+                <th className="px-4 py-3">{t("settingsSubscription.plan")}</th>
+                <th className="px-4 py-3">{t("settingsSubscription.amount")}</th>
+                <th className="px-4 py-3">{t("settingsSubscription.status")}</th>
+                <th className="px-4 py-3">{t("settingsSubscription.receipt")}</th>
+                <th className="px-4 py-3">{t("settingsSubscription.date")}</th>
                 <th className="px-4 py-3" />
               </tr>
             </thead>
@@ -485,7 +488,7 @@ export default function SubscriptionSettingsPage() {
               {orders.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-4 py-10 text-center text-muted-foreground">
-                    No purchases yet.
+                    {t("settingsSubscription.noPurchasesYet")}
                   </td>
                 </tr>
               ) : (
@@ -515,14 +518,14 @@ export default function SubscriptionSettingsPage() {
                         className="h-8 px-3 text-xs"
                         onClick={() => void openReceipt(o.id)}
                       >
-                        View
+                        {t("settingsSubscription.view")}
                       </Button>
                       {(o.status === "PENDING" || o.status === "PROCESSING") && (
                         <Button
                           className="ml-2 h-8 px-3 text-xs"
                           onClick={() => void verify(o.id)}
                         >
-                          Verify
+                          {t("settingsSubscription.verify")}
                         </Button>
                       )}
                     </td>
@@ -538,36 +541,36 @@ export default function SubscriptionSettingsPage() {
         (receipt ? (
           <div className="mx-auto max-w-lg space-y-4 rounded-2xl border bg-card p-6 shadow-sm">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold">Payment receipt</h2>
+              <h2 className="text-lg font-semibold">{t("settingsSubscription.paymentReceipt")}</h2>
               {receipt.status === "SUCCESS" ? (
                 <CheckCircle2 className="h-5 w-5 text-emerald-500" />
               ) : null}
             </div>
             <dl className="grid grid-cols-2 gap-3 text-sm">
               <div>
-                <dt className="text-muted-foreground">Status</dt>
+                <dt className="text-muted-foreground">{t("settingsSubscription.status")}</dt>
                 <dd className="font-medium">{receipt.status}</dd>
               </div>
               <div>
-                <dt className="text-muted-foreground">Receipt #</dt>
+                <dt className="text-muted-foreground">{t("settingsSubscription.receipt")}</dt>
                 <dd className="font-mono text-xs">{receipt.receiptNumber ?? "—"}</dd>
               </div>
               <div>
-                <dt className="text-muted-foreground">Plan</dt>
+                <dt className="text-muted-foreground">{t("settingsSubscription.plan")}</dt>
                 <dd className="font-medium">{receipt.plan.name}</dd>
               </div>
               <div>
-                <dt className="text-muted-foreground">Amount</dt>
+                <dt className="text-muted-foreground">{t("settingsSubscription.amount")}</dt>
                 <dd className="font-medium">{money(receipt.amount, receipt.currency)}</dd>
               </div>
               <div>
-                <dt className="text-muted-foreground">Waafi Txn</dt>
+                <dt className="text-muted-foreground">{t("settingsSubscription.waafiTxn")}</dt>
                 <dd className="font-mono text-xs">
                   {receipt.waafiTransactionId ?? "—"}
                 </dd>
               </div>
               <div className="col-span-2">
-                <dt className="text-muted-foreground">Reference</dt>
+                <dt className="text-muted-foreground">{t("settingsSubscription.reference")}</dt>
                 <dd className="font-mono text-xs">{receipt.referenceId}</dd>
               </div>
             </dl>
@@ -578,7 +581,7 @@ export default function SubscriptionSettingsPage() {
                 rel="noreferrer"
                 className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:opacity-90"
               >
-                <ExternalLink className="h-4 w-4" /> Continue on WaafiPay
+                <ExternalLink className="h-4 w-4" /> {t("settingsSubscription.continueOnWaafipay")}
               </a>
             ) : null}
             {(receipt.status === "PENDING" || receipt.status === "PROCESSING") && (
@@ -587,7 +590,7 @@ export default function SubscriptionSettingsPage() {
                 variant="outline"
                 onClick={() => void verify(receipt.id)}
               >
-                Verify payment with Waafi
+                {t("settingsSubscription.verifyPaymentWithWaafi")}
               </Button>
             )}
             {receipt.failureReason ? (
@@ -595,7 +598,7 @@ export default function SubscriptionSettingsPage() {
             ) : null}
             {receipt.auditLogs.length > 0 ? (
               <div>
-                <h3 className="mb-2 text-sm font-semibold">Audit trail</h3>
+                <h3 className="mb-2 text-sm font-semibold">{t("settingsSubscription.auditTrail")}</h3>
                 <ul className="max-h-48 space-y-1 overflow-y-auto text-xs text-muted-foreground">
                   {receipt.auditLogs.map((a) => (
                     <li key={a.id}>
@@ -608,7 +611,7 @@ export default function SubscriptionSettingsPage() {
           </div>
         ) : (
           <p className="text-center text-muted-foreground">
-            Select a purchase from payment history to view its receipt.
+            {t("settingsSubscription.selectAPurchaseFromPaymentHistory")}
           </p>
         ))}
     </div>

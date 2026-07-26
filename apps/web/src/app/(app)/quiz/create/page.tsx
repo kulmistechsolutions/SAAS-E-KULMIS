@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -24,6 +26,7 @@ import { useAuth } from "@/lib/auth";
 import { toast } from "@/lib/toast";
 
 export default function CreateQuizPage() {
+  const tr = useT();
   const router = useRouter();
   const { user } = useAuth();
   const isTeacher = user?.role === "TEACHER";
@@ -179,17 +182,16 @@ export default function CreateQuizPage() {
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Create Quiz</h1>
+        <h1 className="text-2xl font-bold">{tr("quizCreate.createQuiz")}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Class, section, and subject options come only from this teacher&apos;s
-          assignments.
+          {tr("quizCreate.classSectionAndSubjectOptionsCome")}
         </p>
       </div>
 
       <div className="space-y-4 rounded-xl border bg-card p-6 shadow-sm">
         {!isTeacher && (
           <div className="space-y-2">
-            <Label>Teacher</Label>
+            <Label>{tr("quizCreate.teacher")}</Label>
             <Select
               value={teacherId}
               onChange={(e) => {
@@ -208,12 +210,12 @@ export default function CreateQuizPage() {
           </div>
         )}
         <div className="space-y-2">
-          <Label>Quiz Title</Label>
+          <Label>{tr("quizCreate.quizTitle")}</Label>
           <Input value={title} onChange={(e) => setTitle(e.target.value)} />
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-2">
-            <Label>Academic Year</Label>
+            <Label>{tr("quizCreate.academicYear")}</Label>
             <AcademicYearSelect
               value={academicYear}
               onChange={(y) => {
@@ -225,7 +227,7 @@ export default function CreateQuizPage() {
             />
           </div>
           <div className="space-y-2">
-            <Label>Class</Label>
+            <Label>{tr("quizCreate.class")}</Label>
             <Select
               value={className}
               onChange={(e) => {
@@ -234,7 +236,7 @@ export default function CreateQuizPage() {
                 setSubject("");
               }}
             >
-              <option value="">Select</option>
+              <option value="">{tr("quizCreate.select")}</option>
               {classes.map((c) => (
                 <option key={c} value={c}>
                   {c}
@@ -243,7 +245,7 @@ export default function CreateQuizPage() {
             </Select>
           </div>
           <div className="space-y-2">
-            <Label>Section</Label>
+            <Label>{tr("quizCreate.section")}</Label>
             <Select
               value={section}
               disabled={!classNeedsSection || sections.length === 0}
@@ -261,12 +263,12 @@ export default function CreateQuizPage() {
             </Select>
           </div>
           <div className="space-y-2">
-            <Label>Subject</Label>
+            <Label>{tr("quizCreate.subject")}</Label>
             <Select
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
             >
-              <option value="">Select</option>
+              <option value="">{tr("quizCreate.select")}</option>
               {subjects.map((s) => (
                 <option key={s} value={s}>
                   {s}
@@ -277,12 +279,11 @@ export default function CreateQuizPage() {
         </div>
         {!assignments.length && teacherId ? (
           <p className="text-sm text-amber-600">
-            This teacher has no assignments for the selected year. Assign
-            subjects under Teachers → Assignments first.
+            {tr("quizCreate.thisTeacherHasNoAssignmentsFor")}
           </p>
         ) : null}
         <div className="space-y-2">
-          <Label>Description</Label>
+          <Label>{tr("quizCreate.description")}</Label>
           <Textarea
             rows={2}
             value={description}
@@ -291,7 +292,7 @@ export default function CreateQuizPage() {
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-2">
-            <Label>Start Date</Label>
+            <Label>{tr("quizCreate.startDate")}</Label>
             <Input
               type="date"
               value={startDate}
@@ -299,7 +300,7 @@ export default function CreateQuizPage() {
             />
           </div>
           <div className="space-y-2">
-            <Label>End Date</Label>
+            <Label>{tr("quizCreate.endDate")}</Label>
             <Input
               type="date"
               value={endDate}
@@ -307,7 +308,7 @@ export default function CreateQuizPage() {
             />
           </div>
           <div className="space-y-2">
-            <Label>Duration (min)</Label>
+            <Label>{tr("quizCreate.durationMin")}</Label>
             <Input
               type="number"
               value={duration}
@@ -315,7 +316,7 @@ export default function CreateQuizPage() {
             />
           </div>
           <div className="space-y-2">
-            <Label>Passing Marks</Label>
+            <Label>{tr("quizCreate.passingMarks")}</Label>
             <Input
               type="number"
               value={passing}
@@ -323,7 +324,7 @@ export default function CreateQuizPage() {
             />
           </div>
           <div className="space-y-2">
-            <Label>Max Attempts</Label>
+            <Label>{tr("quizCreate.maxAttempts")}</Label>
             <Input
               type="number"
               min={1}
@@ -333,7 +334,7 @@ export default function CreateQuizPage() {
           </div>
         </div>
         <Button onClick={() => void handleSubmit()} className="w-full">
-          Create & Open Builder
+          {tr("quizCreate.createOpenBuilder")}
         </Button>
       </div>
     </div>

@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
@@ -42,11 +44,12 @@ import { toast } from "@/lib/toast";
 type SortKey = "name" | "total" | "average" | "grade";
 
 export default function ClassResultsPage() {
+  const t = useT();
   return (
     <Suspense
       fallback={
         <div className="flex h-64 items-center justify-center text-muted-foreground">
-          Loading results…
+          {t("examinationsResults.loadingResults")}
         </div>
       }
     >
@@ -56,6 +59,7 @@ export default function ClassResultsPage() {
 }
 
 function ClassResultsContent() {
+  const t = useT();
   const params = useParams();
   const searchParams = useSearchParams();
   const classId = params.classId as string;
@@ -365,14 +369,13 @@ function ClassResultsContent() {
         <Button asChild variant="ghost" className="h-9 px-2">
           <Link href="/examinations/results">
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Back
+            {t("examinationsResults.back")}
           </Link>
         </Button>
         <div className="flex-1">
-          <h1 className="text-2xl font-bold">{className} — Results</h1>
+          <h1 className="text-2xl font-bold">{className} {t("examinationsResults.results")}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            View, edit, publish, and export class results. Sections are never
-            mixed.
+            {t("examinationsResults.viewEditPublishAndExportClass")}
           </p>
         </div>
         {data && (
@@ -386,12 +389,12 @@ function ClassResultsContent() {
               {data.exam.teacherLocked ? (
                 <>
                   <Unlock className="mr-2 h-4 w-4" />
-                  Unlock Teachers
+                  {t("examinationsResults.unlockTeachers")}
                 </>
               ) : (
                 <>
                   <Lock className="mr-2 h-4 w-4" />
-                  Teacher Lock
+                  {t("examinationsResults.teacherLock")}
                 </>
               )}
             </Button>
@@ -412,7 +415,7 @@ function ClassResultsContent() {
       <div className="grid gap-3 rounded-xl border bg-card p-4 print:hidden sm:grid-cols-2 lg:grid-cols-6">
         <div>
           <label className="mb-1 block text-xs font-medium text-muted-foreground">
-            Academic Year
+            {t("examinationsResults.academicYear")}
           </label>
           <Input
             value={yearName || (data?.exam.academicYear ?? "")}
@@ -422,10 +425,10 @@ function ClassResultsContent() {
         </div>
         <div>
           <label className="mb-1 block text-xs font-medium text-muted-foreground">
-            Exam
+            {t("examinationsResults.exam")}
           </label>
           <Select value={examId} onChange={(e) => setExamId(e.target.value)}>
-            <option value="">Select exam…</option>
+            <option value="">{t("examinationsResults.selectExam")}</option>
             {(classMeta?.exams ?? []).map((e) => (
               <option key={e.id} value={e.id}>
                 {e.name} {e.section ? `(${e.section})` : ""} — {e.status}
@@ -435,34 +438,34 @@ function ClassResultsContent() {
         </div>
         <div>
           <label className="mb-1 block text-xs font-medium text-muted-foreground">
-            Section
+            {t("examinationsResults.section")}
           </label>
           <Select
             value={sectionId}
             onChange={(e) => setSectionId(e.target.value)}
           >
-            <option value="">All / exam default</option>
+            <option value="">{t("examinationsResults.allExamDefault")}</option>
             {sections.map((s) => (
               <option key={s.id} value={s.id}>
-                Section {s.name}
+                {t("examinationsResults.section")} {s.name}
               </option>
             ))}
           </Select>
         </div>
         <div>
           <label className="mb-1 block text-xs font-medium text-muted-foreground">
-            Search Student
+            {t("examinationsResults.searchStudent")}
           </label>
           <Input
             className="h-9"
-            placeholder="ID or name…"
+            placeholder={t("examinationsResults.idOrName")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
         <div>
           <label className="mb-1 block text-xs font-medium text-muted-foreground">
-            Sort
+            {t("examinationsResults.sort")}
           </label>
           <div className="flex gap-2">
             <Select
@@ -470,34 +473,34 @@ function ClassResultsContent() {
               onChange={(e) => setSortBy(e.target.value as SortKey)}
               className="h-9"
             >
-              <option value="name">Name</option>
-              <option value="total">Total</option>
-              <option value="average">Average</option>
-              <option value="grade">Grade</option>
+              <option value="name">{t("examinationsResults.name")}</option>
+              <option value="total">{t("examinationsResults.total")}</option>
+              <option value="average">{t("examinationsResults.average")}</option>
+              <option value="grade">{t("examinationsResults.grade")}</option>
             </Select>
             <Select
               value={sortDir}
               onChange={(e) => setSortDir(e.target.value as "asc" | "desc")}
               className="h-9 w-24"
             >
-              <option value="asc">Asc</option>
-              <option value="desc">Desc</option>
+              <option value="asc">{t("examinationsResults.asc")}</option>
+              <option value="desc">{t("examinationsResults.desc")}</option>
             </Select>
           </div>
         </div>
         <div>
           <label className="mb-1 block text-xs font-medium text-muted-foreground">
-            Show
+            {t("examinationsResults.show")}
           </label>
           <Select
             value={topN}
             onChange={(e) => setTopN(e.target.value as typeof topN)}
             className="h-9"
           >
-            <option value="all">All students</option>
-            <option value="3">Top 3</option>
-            <option value="5">Top 5</option>
-            <option value="10">Top 10</option>
+            <option value="all">{t("examinationsResults.allStudents")}</option>
+            <option value="3">{t("examinationsResults.top3")}</option>
+            <option value="5">{t("examinationsResults.top5")}</option>
+            <option value="10">{t("examinationsResults.top10")}</option>
           </Select>
         </div>
       </div>
@@ -505,35 +508,35 @@ function ClassResultsContent() {
       {data && (
         <>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <Stat label="Total Students" value={data.summary.totalStudents} />
+            <Stat label={t("examinationsResults.totalStudents")} value={data.summary.totalStudents} />
             <Stat
-              label="Completed"
+              label={t("examinationsResults.completed")}
               value={data.summary.completed}
               tone="success"
             />
             <Stat
-              label="Incomplete"
+              label={t("examinationsResults.incomplete")}
               value={data.summary.incomplete}
               tone="warning"
             />
             <Stat
-              label="Completion"
+              label={t("examinationsResults.completion")}
               value={`${data.summary.completionPercent}%`}
             />
           </div>
 
           {incompleteRows.length > 0 && (
             <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 print:hidden">
-              <p className="font-semibold">Missing marks detected</p>
+              <p className="font-semibold">{t("examinationsResults.missingMarksDetected")}</p>
               <ul className="mt-2 space-y-1">
                 {incompleteRows.slice(0, 5).map((r) => (
                   <li key={r.studentId}>
-                    {r.studentName} ({r.studentCode}) — missing:{" "}
+                    {r.studentName} ({r.studentCode}{t("examinationsResults.missing")}{" "}
                     {r.missingSubjects.join(", ")}
                   </li>
                 ))}
                 {incompleteRows.length > 5 && (
-                  <li>…and {incompleteRows.length - 5} more students</li>
+                  <li>{t("examinationsResults.and")} {incompleteRows.length - 5} {t("examinationsResults.moreStudents")}</li>
                 )}
               </ul>
             </div>
@@ -559,7 +562,7 @@ function ClassResultsContent() {
             )}
             <Button variant="outline" className="h-9" onClick={exportCsv}>
               <Download className="mr-2 h-4 w-4" />
-              CSV Export
+              {t("examinationsResults.csvExport")}
             </Button>
             <Button
               variant="outline"
@@ -568,7 +571,7 @@ function ClassResultsContent() {
               onClick={() => void downloadExport("pdf")}
             >
               <Download className="mr-2 h-4 w-4" />
-              PDF
+              {t("examinationsResults.pdf")}
             </Button>
             <Button
               variant="outline"
@@ -577,11 +580,11 @@ function ClassResultsContent() {
               onClick={() => void downloadExport("xlsx")}
             >
               <Download className="mr-2 h-4 w-4" />
-              Excel Export
+              {t("examinationsResults.excelExport")}
             </Button>
             <Button variant="outline" className="h-9" onClick={handlePrint}>
               <Printer className="mr-2 h-4 w-4" />
-              Print
+              {t("examinationsResults.print")}
             </Button>
           </div>
 
@@ -609,20 +612,20 @@ function ClassResultsContent() {
             <table className="w-full min-w-[800px] text-sm">
               <thead className="sticky top-0 bg-secondary/90 text-left text-xs text-muted-foreground backdrop-blur">
                 <tr>
-                  <th className="px-3 py-2.5 font-medium">Rank</th>
-                  <th className="px-3 py-2.5 font-medium">Student ID</th>
-                  <th className="px-3 py-2.5 font-medium">Student Name</th>
+                  <th className="px-3 py-2.5 font-medium">{t("examinationsResults.rank")}</th>
+                  <th className="px-3 py-2.5 font-medium">{t("examinationsResults.studentId")}</th>
+                  <th className="px-3 py-2.5 font-medium">{t("examinationsResults.studentName")}</th>
                   {data.subjects.map((s) => (
                     <th key={s.subjectId} className="px-3 py-2.5 font-medium">
                       {s.name}
                     </th>
                   ))}
-                  <th className="px-3 py-2.5 font-medium">Total</th>
-                  <th className="px-3 py-2.5 font-medium">Average</th>
-                  <th className="px-3 py-2.5 font-medium">Grade</th>
-                  <th className="px-3 py-2.5 font-medium">Remark</th>
+                  <th className="px-3 py-2.5 font-medium">{t("examinationsResults.total")}</th>
+                  <th className="px-3 py-2.5 font-medium">{t("examinationsResults.average")}</th>
+                  <th className="px-3 py-2.5 font-medium">{t("examinationsResults.grade")}</th>
+                  <th className="px-3 py-2.5 font-medium">{t("examinationsResults.remark")}</th>
                   <th className="px-3 py-2.5 text-right font-medium print:hidden">
-                    Card
+                    {t("examinationsResults.card")}
                   </th>
                 </tr>
               </thead>
@@ -689,7 +692,7 @@ function ClassResultsContent() {
                         className="inline-flex items-center gap-1 rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors hover:bg-secondary"
                       >
                         <FileText className="h-3.5 w-3.5" />
-                        View
+                        {t("examinationsResults.view")}
                       </button>
                     </td>
                   </tr>
@@ -700,7 +703,7 @@ function ClassResultsContent() {
                       colSpan={data.subjects.length + 7}
                       className="px-3 py-8 text-center text-muted-foreground"
                     >
-                      No students match the current filter.
+                      {t("examinationsResults.noStudentsMatchTheCurrentFilter")}
                     </td>
                   </tr>
                 )}
@@ -710,14 +713,14 @@ function ClassResultsContent() {
         </div>
       ) : (
         <p className="text-center text-muted-foreground">
-          Select an exam to view results.
+          {t("examinationsResults.selectAnExamToViewResults")}
         </p>
       )}
 
       <Dialog
         open={!!cardData}
         onClose={() => setCardStudentId(null)}
-        title="Exam Result Card"
+        title={t("examinationsResults.examResultCard")}
         className="sm:max-w-3xl"
       >
         {cardData ? <ExamResultCard data={cardData} /> : null}

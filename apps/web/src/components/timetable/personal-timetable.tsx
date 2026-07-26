@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { formatMinutes, WEEKDAY_NAMES } from "@ekulmis/shared";
 
 export interface PersonalTimetableDto {
@@ -35,6 +37,7 @@ export function PersonalTimetableView({
   timetables: PersonalTimetableDto[];
   emptyMessage: string;
 }) {
+  const t = useT();
   if (timetables.length === 0) {
     return (
       <p className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
@@ -56,7 +59,7 @@ export function PersonalTimetableView({
               <thead>
                 <tr className="border-b bg-secondary/40 text-left">
                   <th className="w-28 px-3 py-2 text-xs font-medium text-muted-foreground">
-                    Period
+                    {t("timetablePersonalTimetable.period")}
                   </th>
                   {tt.days.map((d) => (
                     <th key={d} className="px-3 py-2 text-xs font-medium">

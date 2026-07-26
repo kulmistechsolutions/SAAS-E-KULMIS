@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import {
@@ -21,6 +23,7 @@ import {
 import { toast } from "@/lib/toast";
 
 export default function PlatformAiSettingsPage() {
+  const t = useT();
   const [cfg, setCfg] = useState<PlatformAiConfig | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -79,7 +82,7 @@ export default function PlatformAiSettingsPage() {
     }
   }
 
-  if (loading) return <p className="p-8 text-muted-foreground">Loading…</p>;
+  if (loading) return <p className="p-8 text-muted-foreground">{t("platformAi.loading")}</p>;
 
   const connected = cfg?.connectionStatus === "CONNECTED";
 
@@ -87,13 +90,13 @@ export default function PlatformAiSettingsPage() {
     <div className="mx-auto max-w-2xl space-y-6 p-6">
       <div>
         <Link href="/platform" className="inline-flex items-center gap-2 text-sm text-primary">
-          <ArrowLeft className="h-4 w-4" />Dashboard
+          <ArrowLeft className="h-4 w-4" />{t("platformAi.dashboard")}
         </Link>
         <h1 className="mt-2 flex items-center gap-2 text-2xl font-bold">
-          <Sparkles className="h-6 w-6 text-primary" />AI Grading (OpenAI)
+          <Sparkles className="h-6 w-6 text-primary" />{t("platformAi.aiGradingOpenai")}
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Platform-wide OpenAI key used to auto-grade quiz &ldquo;Direct&rdquo; questions set to AI Concept mode.
+          {t("platformAi.platformWideOpenaiKeyUsedTo")}
         </p>
       </div>
 
@@ -109,17 +112,17 @@ export default function PlatformAiSettingsPage() {
           </div>
           <Button variant="outline" className="h-9" disabled={testing} onClick={() => void test()}>
             {testing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-            Test connection
+            {t("platformAi.testConnection")}
           </Button>
         </div>
 
         <label className="flex items-center gap-2 text-sm font-medium">
           <input type="checkbox" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} className="h-4 w-4" />
-          Enable AI auto-grading
+          {t("platformAi.enableAiAutoGrading")}
         </label>
 
         <div className="space-y-2">
-          <Label>OpenAI API Key</Label>
+          <Label>{t("platformAi.openaiApiKey")}</Label>
           <Input
             type="password"
             value={apiKey}
@@ -128,14 +131,14 @@ export default function PlatformAiSettingsPage() {
             autoComplete="off"
           />
           <p className="text-xs text-muted-foreground">
-            Stored securely on the server and never shown again. Leave blank to keep the current key.
+            {t("platformAi.storedSecurelyOnTheServerAnd")}
           </p>
         </div>
 
         <div className="space-y-2">
-          <Label>Model</Label>
-          <Input value={model} onChange={(e) => setModel(e.target.value)} placeholder="gpt-4o-mini" />
-          <p className="text-xs text-muted-foreground">e.g. gpt-4o-mini (cheap, fast) or gpt-4o.</p>
+          <Label>{t("platformAi.model")}</Label>
+          <Input value={model} onChange={(e) => setModel(e.target.value)} placeholder={t("platformAi.gpt4oMini")} />
+          <p className="text-xs text-muted-foreground">{t("platformAi.eGGpt4oMiniCheap")}</p>
         </div>
 
         <div className="flex justify-end">

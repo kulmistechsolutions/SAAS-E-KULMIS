@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useState } from "react";
 import { Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -17,6 +19,7 @@ export function trialDaysLeft(iso: string | null): number | null {
 
 /** Compact trial state for the schools table. */
 export function TrialCell({ trialEndsAt }: { trialEndsAt: string | null }) {
+  const t = useT();
   const left = trialDaysLeft(trialEndsAt);
   if (left == null) {
     return <span className="text-xs text-slate-500">—</span>;
@@ -24,7 +27,7 @@ export function TrialCell({ trialEndsAt }: { trialEndsAt: string | null }) {
   if (left <= 0) {
     return (
       <span className="rounded-full bg-rose-500/15 px-2 py-0.5 text-xs font-medium text-rose-300">
-        Expired
+        {t("platformSchoolTrialDialog.expired")}
       </span>
     );
   }
@@ -34,7 +37,7 @@ export function TrialCell({ trialEndsAt }: { trialEndsAt: string | null }) {
       : "bg-emerald-500/15 text-emerald-300";
   return (
     <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${tone}`}>
-      {left}d left
+      {left}{t("platformSchoolTrialDialog.dLeft")}
     </span>
   );
 }
@@ -50,6 +53,7 @@ interface Props {
  * this works the same whether the trial is running or already lapsed.
  */
 export function SchoolTrialDialog({ school, onClose, onSaved }: Props) {
+  const t = useT();
   const [days, setDays] = useState("7");
   const [saving, setSaving] = useState(false);
   const left = trialDaysLeft(school.trialEndsAt);
@@ -86,7 +90,7 @@ export function SchoolTrialDialog({ school, onClose, onSaved }: Props) {
       footer={
         <>
           <Button type="button" variant="outline" onClick={onClose}>
-            Cancel
+            {t("platformSchoolTrialDialog.cancel")}
           </Button>
           <Button type="button" onClick={save} disabled={saving}>
             {saving ? "Saving…" : "Save trial"}
@@ -103,7 +107,7 @@ export function SchoolTrialDialog({ school, onClose, onSaved }: Props) {
               : `Trial ends in ${left} day(s).`}
         </p>
         <div>
-          <Label>Trial length (days from today)</Label>
+          <Label>{t("platformSchoolTrialDialog.trialLengthDaysFromToday")}</Label>
           <Input
             type="number"
             min={0}
@@ -112,12 +116,11 @@ export function SchoolTrialDialog({ school, onClose, onSaved }: Props) {
             onChange={(e) => setDays(e.target.value)}
           />
           <p className="mt-1 text-xs text-muted-foreground">
-            Counts from today, so it also works to extend a lapsed trial. 0 ends
-            the trial immediately.
+            {t("platformSchoolTrialDialog.countsFromTodaySoItAlso")}
           </p>
         </div>
         <p className="text-xs text-muted-foreground">
-          Only the trial deadline changes — no school data is touched.
+          {t("platformSchoolTrialDialog.onlyTheTrialDeadlineChangesNo")}
         </p>
       </div>
     </Dialog>

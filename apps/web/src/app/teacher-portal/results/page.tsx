@@ -1,5 +1,7 @@
 "use client";
 
+
+import { useT } from "@/lib/i18n/provider";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Download, Search } from "lucide-react";
@@ -14,6 +16,7 @@ import {
 import { toast } from "@/lib/toast";
 
 export default function TeacherPortalResultsPage() {
+  const t = useT();
   const { teacher, canViewStudents } = useTeacherPortal();
   const [yearId, setYearId] = useState("");
   const [classId, setClassId] = useState("");
@@ -116,13 +119,12 @@ export default function TeacherPortalResultsPage() {
   if (!canViewStudents) {
     return (
       <div className="mx-auto max-w-lg space-y-4 rounded-xl border bg-card p-8 text-center">
-        <h1 className="text-xl font-bold">Results require student access</h1>
+        <h1 className="text-xl font-bold">{t("teacherPortalResults.resultsRequireStudentAccess")}</h1>
         <p className="text-sm text-muted-foreground">
-          The View Students permission must be granted before you can open class
-          results. Contact your administrator.
+          {t("teacherPortalResults.theViewStudentsPermissionMustBe")}
         </p>
         <Link href="/teacher-portal" className="text-sm text-primary hover:underline">
-          Back to dashboard
+          {t("teacherPortalResults.backToDashboard")}
         </Link>
       </div>
     );
@@ -142,15 +144,15 @@ export default function TeacherPortalResultsPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold">Results</h1>
+          <h1 className="text-2xl font-bold">{t("teacherPortalResults.results")}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Published examination results for your assigned classes and subjects.
+            {t("teacherPortalResults.publishedExaminationResultsForYourAssigned")}
           </p>
         </div>
         {data?.rows.length ? (
           <Button variant="outline" onClick={exportCsv}>
             <Download className="mr-2 h-4 w-4" />
-            Export CSV
+            {t("teacherPortalResults.exportCsv")}
           </Button>
         ) : null}
       </div>
@@ -158,37 +160,37 @@ export default function TeacherPortalResultsPage() {
       <div className="grid gap-3 rounded-xl border bg-card p-4 sm:grid-cols-2 lg:grid-cols-4">
         <div>
           <label className="mb-1 block text-xs font-medium text-muted-foreground">
-            Academic Year
+            {t("teacherPortalResults.academicYear")}
           </label>
           <Select value={yearId} onChange={(e) => { setYearId(e.target.value); setClassId(""); setSectionId(""); }}>
-            <option value="">Select…</option>
+            <option value="">{t("teacherPortalResults.select")}</option>
             {[...new Map(yearAssignments.map((a) => [a.academicYearId, a.academicYear.name])).entries()].map(([id, name]) => (
               <option key={id} value={id}>{name}</option>
             ))}
           </Select>
         </div>
         <div>
-          <label className="mb-1 block text-xs font-medium text-muted-foreground">Class</label>
+          <label className="mb-1 block text-xs font-medium text-muted-foreground">{t("teacherPortalResults.class")}</label>
           <Select value={classId} onChange={(e) => { setClassId(e.target.value); setSectionId(""); }}>
-            <option value="">Select…</option>
+            <option value="">{t("teacherPortalResults.select")}</option>
             {classes.map((c) => (
               <option key={c.id} value={c.id}>{c.name}</option>
             ))}
           </Select>
         </div>
         <div>
-          <label className="mb-1 block text-xs font-medium text-muted-foreground">Section</label>
+          <label className="mb-1 block text-xs font-medium text-muted-foreground">{t("teacherPortalResults.section")}</label>
           <Select value={sectionId} onChange={(e) => setSectionId(e.target.value)} disabled={!classId}>
-            <option value="">Select…</option>
+            <option value="">{t("teacherPortalResults.select")}</option>
             {sections.map((s) => (
               <option key={s.id} value={s.id}>{s.name}</option>
             ))}
           </Select>
         </div>
         <div>
-          <label className="mb-1 block text-xs font-medium text-muted-foreground">Exam (optional)</label>
+          <label className="mb-1 block text-xs font-medium text-muted-foreground">{t("teacherPortalResults.examOptional")}</label>
           <Select value={examId} onChange={(e) => setExamId(e.target.value)} disabled={!data?.exams.length}>
-            <option value="">All exams</option>
+            <option value="">{t("teacherPortalResults.allExams")}</option>
             {data?.exams.map((e) => (
               <option key={e.id} value={e.id}>{e.name}</option>
             ))}
@@ -202,7 +204,7 @@ export default function TeacherPortalResultsPage() {
             <div key={s.subjectId} className="rounded-xl border bg-card p-4">
               <p className="text-xs text-muted-foreground">{s.subjectName}</p>
               <p className="text-2xl font-bold">{s.averagePercentage}%</p>
-              <p className="text-sm text-muted-foreground">Grade {s.grade} · {s.studentCount} students</p>
+              <p className="text-sm text-muted-foreground">{t("teacherPortalResults.grade")} {s.grade} · {s.studentCount} {t("teacherPortalResults.students")}</p>
             </div>
           ))}
         </div>
@@ -213,28 +215,28 @@ export default function TeacherPortalResultsPage() {
         <Input
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="Search student or subject…"
+          placeholder={t("teacherPortalResults.searchStudentOrSubject")}
           className="pl-9"
         />
       </div>
 
       {loading ? (
-        <p className="text-muted-foreground">Loading results…</p>
+        <p className="text-muted-foreground">{t("teacherPortalResults.loadingResults")}</p>
       ) : !classId || !sectionId ? (
-        <p className="text-muted-foreground">Select class and section to view results.</p>
+        <p className="text-muted-foreground">{t("teacherPortalResults.selectClassAndSectionToView")}</p>
       ) : !filteredRows?.length ? (
-        <p className="text-muted-foreground">No published results for this selection.</p>
+        <p className="text-muted-foreground">{t("teacherPortalResults.noPublishedResultsForThisSelection")}</p>
       ) : (
         <div className="overflow-x-auto rounded-xl border bg-card">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b bg-muted/40 text-left text-muted-foreground">
-                <th className="px-3 py-2 font-medium">Student</th>
-                <th className="px-3 py-2 font-medium">Exam</th>
-                <th className="px-3 py-2 font-medium">Subject</th>
-                <th className="px-3 py-2 font-medium">Marks</th>
+                <th className="px-3 py-2 font-medium">{t("teacherPortalResults.student")}</th>
+                <th className="px-3 py-2 font-medium">{t("teacherPortalResults.exam")}</th>
+                <th className="px-3 py-2 font-medium">{t("teacherPortalResults.subject")}</th>
+                <th className="px-3 py-2 font-medium">{t("teacherPortalResults.marks")}</th>
                 <th className="px-3 py-2 font-medium">%</th>
-                <th className="px-3 py-2 font-medium">Grade</th>
+                <th className="px-3 py-2 font-medium">{t("teacherPortalResults.grade")}</th>
               </tr>
             </thead>
             <tbody>
