@@ -1799,6 +1799,17 @@ export class SmsService {
         ? result.totalSms
         : msg.creditsUsed;
 
+    // Hormuud's refusals say only "Failed.", and the reason has twice been
+    // guessed wrong from that. The full body is the only place any detail
+    // could be, so keep it where it can be read after the fact.
+    if (!result.ok) {
+      this.logger.warn(
+        `Hormuud refused message ${messageId}: code=${result.responseCode} ` +
+          `sender=${JSON.stringify(msg.senderId)} to=${msg.recipientPhone} ` +
+          `raw=${JSON.stringify(result.raw ?? null)}`,
+      );
+    }
+
     return this.prisma.smsMessage.update({
       where: { id: messageId },
       data: result.ok

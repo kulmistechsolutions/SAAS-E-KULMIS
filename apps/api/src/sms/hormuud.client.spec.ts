@@ -5,20 +5,21 @@ import {
 } from "./hormuud.client";
 
 describe("explainSendFailure", () => {
-  it("explains 203 instead of repeating \"Failed.\"", () => {
+  it("names the code instead of repeating \"Failed.\"", () => {
     const msg = explainSendFailure("203", "Failed.", 200);
     expect(msg).toContain("code 203");
-    // Points at the recipient, which is what the send log actually shows:
-    // every 203 has been to one number while nine others went through.
-    expect(msg).toContain("number");
+    expect(msg).toContain("Hormuud");
   });
 
-  it("does not assert the sender name as the cause of a 203", () => {
-    // An earlier version stated this outright and sent schools chasing a
-    // sender ID registration that was not the problem.
-    expect(explainSendFailure("203", "Failed.", 200)).not.toMatch(
-      /^Rejected by Hormuud . the sender name is not registered/,
-    );
+  // Two confident causes have been asserted here and both were disproved by
+  // a later send: the sender name (a name that had worked ten times was
+  // refused) and the recipient (a second working number was refused too).
+  // The text must describe the refusal, not diagnose it.
+  it("asserts no cause the provider did not state", () => {
+    const msg = explainSendFailure("203", "Failed.", 200);
+    expect(msg).not.toMatch(/the sender name is not registered/);
+    expect(msg).not.toMatch(/It is usually the number/);
+    expect(msg).toContain("gave no reason");
   });
 
   it("keeps an unknown code's own message and shows the code", () => {
