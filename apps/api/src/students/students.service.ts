@@ -534,7 +534,7 @@ export class StudentsService {
     });
     return {
       ...result,
-      student: this.attachPhotoMeta(result.student),
+      student: await this.attachPhotoMeta(result.student),
     };
   }
 
