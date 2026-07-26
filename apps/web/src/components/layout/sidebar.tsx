@@ -38,154 +38,167 @@ import { useSchoolBranding } from "@/lib/settings/use-school-branding";
 import { useAuth } from "@/lib/auth";
 import { isFullAccessRole, isRouteAllowedForRole } from "@/lib/rbac/routes";
 import { cn } from "@/lib/utils";
+import { useT, type TranslationKey } from "@/lib/i18n/provider";
 
+/**
+ * Nav entries carry a dictionary key rather than finished text, so the whole
+ * menu re-reads in the chosen language without touching this structure.
+ * `label` stays the React key and the collapsed-menu identity — those must not
+ * change when the language does.
+ */
 interface NavChild {
-  label: string;
+  label: TranslationKey;
   href: string;
 }
 
 interface NavItem {
-  label: string;
+  label: TranslationKey;
   icon: LucideIcon;
   href?: string;
   children?: NavChild[];
 }
 
 const FEE_CHILDREN: NavChild[] = [
-  { label: "Dashboard", href: "/finance" },
-  { label: "Collect Fees", href: "/finance/collect" },
-  { label: "Fee History", href: "/finance/history" },
-  { label: "Monthly Setup", href: "/finance/monthly-setup" },
-  { label: "Academic Year Setup", href: "/finance/academic-year-setup" },
-  { label: "Extra Fees", href: "/finance/extra-fees" },
-  { label: "Reports", href: "/finance/reports" },
-  { label: "Receipts", href: "/finance/receipts" },
+  { label: "nav.dashboard", href: "/finance" },
+  { label: "nav.collectFees", href: "/finance/collect" },
+  { label: "nav.feeHistory", href: "/finance/history" },
+  { label: "nav.monthlySetup", href: "/finance/monthly-setup" },
+  { label: "nav.academicYearSetup", href: "/finance/academic-year-setup" },
+  { label: "nav.extraFees", href: "/finance/extra-fees" },
+  { label: "nav.reports", href: "/finance/reports" },
+  { label: "nav.receipts", href: "/finance/receipts" },
 ];
 
 const ACADEMICS_CHILDREN: NavChild[] = [
-  { label: "Dashboard", href: "/academics" },
-  { label: "Classes", href: "/academics/classes" },
-  { label: "Sections", href: "/academics/sections" },
-  { label: "Subjects", href: "/academics/subjects" },
-  { label: "Academic Years", href: "/academics/years" },
+  { label: "nav.dashboard", href: "/academics" },
+  { label: "nav.classes", href: "/academics/classes" },
+  { label: "nav.sections", href: "/academics/sections" },
+  { label: "nav.subjects", href: "/academics/subjects" },
+  { label: "nav.academicYears", href: "/academics/years" },
 ];
 
 const TIMETABLE_CHILDREN: NavChild[] = [
-  { label: "Timetables", href: "/timetable" },
-  { label: "Setup", href: "/timetable/setup" },
+  { label: "nav.timetables", href: "/timetable" },
+  { label: "nav.setup", href: "/timetable/setup" },
 ];
 
 const PROMOTION_CHILDREN: NavChild[] = [
-  { label: "Dashboard", href: "/promotions" },
-  { label: "Promote Students", href: "/promotions/promote" },
-  { label: "Graduated Students", href: "/promotions/graduated" },
-  { label: "History", href: "/promotions/history" },
-  { label: "Reports", href: "/promotions/reports" },
-  { label: "Eligibility Rules", href: "/promotions/settings" },
+  { label: "nav.dashboard", href: "/promotions" },
+  { label: "nav.promoteStudents", href: "/promotions/promote" },
+  { label: "nav.graduatedStudents", href: "/promotions/graduated" },
+  { label: "nav.history", href: "/promotions/history" },
+  { label: "nav.reports", href: "/promotions/reports" },
+  { label: "nav.eligibilityRules", href: "/promotions/settings" },
 ];
 
 const SALARY_CHILDREN: NavChild[] = [
-  { label: "Dashboard", href: "/salary" },
-  { label: "Monthly Payroll", href: "/salary/payroll" },
-  { label: "Employees", href: "/salary/employees" },
-  { label: "Salary History", href: "/salary/history" },
-  { label: "Reports", href: "/salary/reports" },
+  { label: "nav.dashboard", href: "/salary" },
+  { label: "nav.monthlyPayroll", href: "/salary/payroll" },
+  { label: "nav.employees", href: "/salary/employees" },
+  { label: "nav.salaryHistory", href: "/salary/history" },
+  { label: "nav.reports", href: "/salary/reports" },
 ];
 
 const QUIZ_CHILDREN: NavChild[] = [
-  { label: "Dashboard", href: "/quiz" },
-  { label: "All Quizzes", href: "/quiz/list" },
-  { label: "Create Quiz", href: "/quiz/create" },
-  { label: "Monitoring", href: "/quiz/monitoring" },
-  { label: "Reports", href: "/quiz/reports" },
+  { label: "nav.dashboard", href: "/quiz" },
+  { label: "nav.allQuizzes", href: "/quiz/list" },
+  { label: "nav.createQuiz", href: "/quiz/create" },
+  { label: "nav.monitoring", href: "/quiz/monitoring" },
+  { label: "nav.reports", href: "/quiz/reports" },
 ];
 
 const TEACHER_QUIZ_CHILDREN: NavChild[] = [
-  { label: "My Quizzes", href: "/quiz/list" },
-  { label: "Create Quiz", href: "/quiz/create" },
-  { label: "Reports", href: "/quiz/reports" },
+  { label: "nav.myQuizzes", href: "/quiz/list" },
+  { label: "nav.createQuiz", href: "/quiz/create" },
+  { label: "nav.reports", href: "/quiz/reports" },
 ];
 
 const USERS_CHILDREN: NavChild[] = [
-  { label: "Dashboard", href: "/users" },
-  { label: "All Users", href: "/users/list" },
-  { label: "Roles & Permissions", href: "/users/roles" },
-  { label: "Reports", href: "/users/reports" },
+  { label: "nav.dashboard", href: "/users" },
+  { label: "nav.allUsers", href: "/users/list" },
+  { label: "nav.rolesPermissions", href: "/users/roles" },
+  { label: "nav.reports", href: "/users/reports" },
 ];
 
 const EXPENSE_CHILDREN: NavChild[] = [
-  { label: "Dashboard", href: "/expenses" },
-  { label: "Expense List", href: "/expenses/list" },
-  { label: "Categories", href: "/expenses/categories" },
-  { label: "Reports", href: "/expenses/reports" },
+  { label: "nav.dashboard", href: "/expenses" },
+  { label: "nav.expenseList", href: "/expenses/list" },
+  { label: "nav.categories", href: "/expenses/categories" },
+  { label: "nav.reports", href: "/expenses/reports" },
 ];
 
 const EXAM_CHILDREN: NavChild[] = [
-  { label: "Dashboard", href: "/examinations" },
-  { label: "Create Exam", href: "/examinations/create" },
-  { label: "Enter Marks", href: "/examinations/marks" },
-  { label: "Import Marks", href: "/examinations/marks-import" },
-  { label: "Monitoring", href: "/examinations/monitoring" },
-  { label: "Exam Groups", href: "/examinations/groups" },
-  { label: "Results", href: "/examinations/results" },
-  { label: "Blocked Students", href: "/examinations/blocked" },
-  { label: "Teacher Portal", href: "/examinations/teacher" },
-  { label: "Reports", href: "/examinations/reports" },
+  { label: "nav.dashboard", href: "/examinations" },
+  { label: "nav.createExam", href: "/examinations/create" },
+  { label: "nav.enterMarks", href: "/examinations/marks" },
+  { label: "nav.importMarks", href: "/examinations/marks-import" },
+  { label: "nav.monitoring", href: "/examinations/monitoring" },
+  { label: "nav.examGroups", href: "/examinations/groups" },
+  { label: "nav.results", href: "/examinations/results" },
+  { label: "nav.blockedStudents", href: "/examinations/blocked" },
+  { label: "nav.teacherPortal", href: "/examinations/teacher" },
+  { label: "nav.reports", href: "/examinations/reports" },
 ];
 
 const TEACHER_EXAM_CHILDREN: NavChild[] = [
-  { label: "Enter Marks", href: "/examinations/teacher" },
+  { label: "nav.enterMarks", href: "/examinations/teacher" },
 ];
 
 const ADMIN_NAV: NavItem[] = [
-  { label: "Dashboard", icon: LayoutDashboard, href: "/dashboard" },
-  { label: "Students", icon: UsersRound, href: "/students" },
-  { label: "Teachers", icon: GraduationCap, href: "/teachers" },
-  { label: "Parents", icon: UsersRound, href: "/parents" },
-  { label: "Parent Portal", icon: HeartHandshake, href: "/parent-portal/login" },
-  { label: "Teacher Portal", icon: BookOpen, href: "/teacher-portal/login" },
-  { label: "Classes & Sections", icon: Library, children: ACADEMICS_CHILDREN },
-  { label: "Attendance", icon: CalendarCheck, href: "/attendance" },
-  { label: "Timetable", icon: CalendarClock, children: TIMETABLE_CHILDREN },
-  { label: "Fee Management", icon: Wallet, children: FEE_CHILDREN },
-  { label: "Salary Management", icon: Receipt, children: SALARY_CHILDREN },
-  { label: "Expense Management", icon: TrendingDown, children: EXPENSE_CHILDREN },
-  { label: "Examinations", icon: FileText, children: EXAM_CHILDREN },
-  { label: "Promotions", icon: TrendingUp, children: PROMOTION_CHILDREN },
-  { label: "Online Quiz", icon: ClipboardList, children: QUIZ_CHILDREN },
-  { label: "Finance", icon: DollarSign, href: "/finance" },
-  { label: "SMS", icon: MessageSquare, href: "/sms" },
-  { label: "SMS Packages", icon: Package, href: "/sms/packages" },
-  { label: "Library", icon: BookOpen, href: "/library" },
-  { label: "Reports", icon: BarChart3, href: "/reports" },
-  { label: "Users & Roles", icon: ShieldCheck, children: USERS_CHILDREN },
-  { label: "Settings", icon: Settings, href: "/settings" },
-  { label: "System Logs", icon: ScrollText },
+  { label: "nav.dashboard", icon: LayoutDashboard, href: "/dashboard" },
+  { label: "nav.students", icon: UsersRound, href: "/students" },
+  { label: "nav.teachers", icon: GraduationCap, href: "/teachers" },
+  { label: "nav.parents", icon: UsersRound, href: "/parents" },
+  { label: "nav.parentPortal", icon: HeartHandshake, href: "/parent-portal/login" },
+  { label: "nav.teacherPortal", icon: BookOpen, href: "/teacher-portal/login" },
+  { label: "nav.classesSections", icon: Library, children: ACADEMICS_CHILDREN },
+  { label: "nav.attendance", icon: CalendarCheck, href: "/attendance" },
+  { label: "nav.timetable", icon: CalendarClock, children: TIMETABLE_CHILDREN },
+  { label: "nav.feeManagement", icon: Wallet, children: FEE_CHILDREN },
+  { label: "nav.salaryManagement", icon: Receipt, children: SALARY_CHILDREN },
+  { label: "nav.expenseManagement", icon: TrendingDown, children: EXPENSE_CHILDREN },
+  { label: "nav.examinations", icon: FileText, children: EXAM_CHILDREN },
+  { label: "nav.promotions", icon: TrendingUp, children: PROMOTION_CHILDREN },
+  { label: "nav.onlineQuiz", icon: ClipboardList, children: QUIZ_CHILDREN },
+  { label: "nav.finance", icon: DollarSign, href: "/finance" },
+  { label: "nav.sms", icon: MessageSquare, href: "/sms" },
+  { label: "nav.smsPackages", icon: Package, href: "/sms/packages" },
+  { label: "nav.library", icon: BookOpen, href: "/library" },
+  { label: "nav.reports", icon: BarChart3, href: "/reports" },
+  { label: "nav.usersRoles", icon: ShieldCheck, children: USERS_CHILDREN },
+  { label: "nav.settings", icon: Settings, href: "/settings" },
+  { label: "nav.systemLogs", icon: ScrollText },
 ];
 
 const TEACHER_NAV: NavItem[] = [
-  { label: "Dashboard", icon: LayoutDashboard, href: "/dashboard" },
-  { label: "My Profile", icon: UserCircle, href: "/profile" },
-  { label: "My Students", icon: UsersRound, href: "/my-students" },
-  { label: "My Timetable", icon: CalendarClock, href: "/my-schedule" },
-  { label: "My Assignments", icon: CalendarDays, href: "/my-assignments" },
-  { label: "Attendance", icon: CalendarCheck, href: "/attendance/students" },
-  { label: "Examinations", icon: FileText, children: TEACHER_EXAM_CHILDREN },
-  { label: "Online Quiz", icon: ClipboardList, children: TEACHER_QUIZ_CHILDREN },
-  { label: "Announcements", icon: Megaphone, href: "/announcements" },
-  { label: "Reports", icon: BarChart3, href: "/reports" },
+  { label: "nav.dashboard", icon: LayoutDashboard, href: "/dashboard" },
+  { label: "nav.myProfile", icon: UserCircle, href: "/profile" },
+  { label: "nav.myStudents", icon: UsersRound, href: "/my-students" },
+  { label: "nav.myTimetable", icon: CalendarClock, href: "/my-schedule" },
+  { label: "nav.myAssignments", icon: CalendarDays, href: "/my-assignments" },
+  { label: "nav.attendance", icon: CalendarCheck, href: "/attendance/students" },
+  { label: "nav.examinations", icon: FileText, children: TEACHER_EXAM_CHILDREN },
+  { label: "nav.onlineQuiz", icon: ClipboardList, children: TEACHER_QUIZ_CHILDREN },
+  { label: "nav.announcements", icon: Megaphone, href: "/announcements" },
+  { label: "nav.reports", icon: BarChart3, href: "/reports" },
 ];
 
-const ADMIN_QUICK_LINKS = [
-  { label: "Collect Fees", href: "/finance/collect", icon: Wallet },
-  { label: "Enter Marks", href: "/examinations/marks", icon: FileText },
-  { label: "View Results", href: "/results", icon: GraduationCap },
+interface QuickLink {
+  label: TranslationKey;
+  href: string;
+  icon: LucideIcon;
+}
+
+const ADMIN_QUICK_LINKS: QuickLink[] = [
+  { label: "nav.collectFees", href: "/finance/collect", icon: Wallet },
+  { label: "nav.enterMarks", href: "/examinations/marks", icon: FileText },
+  { label: "nav.viewResults", href: "/results", icon: GraduationCap },
 ];
 
-const TEACHER_QUICK_LINKS = [
-  { label: "Take Attendance", href: "/attendance/students", icon: CalendarCheck },
-  { label: "Enter Marks", href: "/examinations/teacher", icon: FileText },
-  { label: "My Students", href: "/my-students", icon: UsersRound },
+const TEACHER_QUICK_LINKS: QuickLink[] = [
+  { label: "nav.takeAttendance", href: "/attendance/students", icon: CalendarCheck },
+  { label: "nav.enterMarks", href: "/examinations/teacher", icon: FileText },
+  { label: "nav.myStudents", href: "/my-students", icon: UsersRound },
 ];
 
 /**
@@ -224,6 +237,7 @@ export function Sidebar({
 }: SidebarProps) {
   const pathname = usePathname();
   const branding = useSchoolBranding();
+  const t = useT();
   const { user } = useAuth();
   const isTeacher = user?.role === "TEACHER";
   const role = user?.role ?? "";
@@ -337,7 +351,7 @@ export function Sidebar({
                 )}
               >
                 <item.icon className="h-[18px] w-[18px] shrink-0" />
-                <span className="truncate">{item.label}</span>
+                <span className="truncate">{t(item.label)}</span>
               </Link>
             );
           }
@@ -358,7 +372,7 @@ export function Sidebar({
                   )}
                 >
                   <item.icon className="h-[18px] w-[18px] shrink-0" />
-                  <span className="flex-1 truncate text-left">{item.label}</span>
+                  <span className="flex-1 truncate text-start">{t(item.label)}</span>
                   {isOpen ? (
                     <ChevronDown className="h-4 w-4 shrink-0 opacity-70" />
                   ) : (
@@ -381,7 +395,7 @@ export function Sidebar({
                               : "text-slate-400 hover:bg-white/5 hover:text-white",
                           )}
                         >
-                          {child.label}
+                          {t(child.label)}
                         </Link>
                       );
                     })}
@@ -410,7 +424,7 @@ export function Sidebar({
           const content = (
             <>
               <item.icon className="h-[18px] w-[18px] shrink-0" />
-              {!collapsed && <span className="truncate">{item.label}</span>}
+              {!collapsed && <span className="truncate">{t(item.label)}</span>}
             </>
           );
 
@@ -421,7 +435,7 @@ export function Sidebar({
                 href={defaultHref(item)}
                 onClick={onNavigate}
                 className={className}
-                title={item.label}
+                title={t(item.label)}
               >
                 {content}
               </Link>
@@ -434,12 +448,12 @@ export function Sidebar({
               href={item.href}
               onClick={onNavigate}
               className={className}
-              title={collapsed ? item.label : undefined}
+              title={collapsed ? t(item.label) : undefined}
             >
               {content}
             </Link>
           ) : (
-            <span key={item.label} className={className} title="Coming soon">
+            <span key={item.label} className={className} title={t("nav.comingSoon")}>
               {content}
             </span>
           );
@@ -448,7 +462,7 @@ export function Sidebar({
         {!collapsed && (
           <div className="mt-6 border-t border-white/5 pt-4">
             <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
-              Quick Links
+              {t("nav.quickLinks")}
             </p>
             {QUICK_LINKS.map((q) => (
               <Link
@@ -458,7 +472,7 @@ export function Sidebar({
                 className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-slate-400 transition-colors hover:bg-white/5 hover:text-white"
               >
                 <q.icon className="h-4 w-4" />
-                {q.label}
+                {t(q.label)}
               </Link>
             ))}
           </div>
@@ -485,7 +499,7 @@ export function Sidebar({
         </div>
         {!collapsed && (
           <>
-            <p className="mt-1 text-xs text-slate-400">All Systems Operational</p>
+            <p className="mt-1 text-xs text-slate-400">{t("nav.allSystemsOperational")}</p>
             <p className="mt-3 text-[11px] text-slate-500">v2.5.0</p>
           </>
         )}

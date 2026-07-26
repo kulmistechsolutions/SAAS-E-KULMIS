@@ -8,6 +8,8 @@ import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { useAuth } from "@/lib/auth";
 import { activeAcademicYear, ensureAcademicsLoaded, useAcademicsState } from "@/lib/academics/store";
 import { toast } from "@/lib/toast";
+import { LanguageSwitcher } from "@/components/ui/language-switcher";
+import { useT } from "@/lib/i18n/provider";
 
 interface TopbarProps {
   onMenuClick: () => void;
@@ -17,6 +19,7 @@ interface TopbarProps {
 
 export function Topbar({ onMenuClick, userName, userRole }: TopbarProps) {
   const router = useRouter();
+  const t = useT();
   const { logout, user } = useAuth();
   const academics = useAcademicsState();
   const isTeacher = user?.role === "TEACHER";
@@ -48,7 +51,7 @@ export function Topbar({ onMenuClick, userName, userRole }: TopbarProps) {
       {/* Mobile menu */}
       <button
         onClick={onMenuClick}
-        aria-label="Open menu"
+        aria-label={t("topbar.openMenu")}
         className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-secondary lg:hidden"
       >
         <Menu className="h-5 w-5" />
@@ -56,16 +59,16 @@ export function Topbar({ onMenuClick, userName, userRole }: TopbarProps) {
 
       {/* Search */}
       <div className="relative hidden max-w-md flex-1 items-center sm:flex">
-        <Search className="pointer-events-none absolute left-3 h-4 w-4 text-muted-foreground" />
+        <Search className="pointer-events-none absolute start-3 h-4 w-4 text-muted-foreground" />
         <input
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={onSearchKey}
-          placeholder="Search students, teachers, parents..."
-          className="h-10 w-full rounded-lg border border-input bg-secondary/50 pl-9 pr-16 text-sm outline-none transition-colors placeholder:text-muted-foreground focus:border-primary focus:bg-background"
+          placeholder={t("topbar.searchPlaceholder")}
+          className="h-10 w-full rounded-lg border border-input bg-secondary/50 ps-9 pe-16 text-sm outline-none transition-colors placeholder:text-muted-foreground focus:border-primary focus:bg-background"
         />
-        <kbd className="absolute right-3 hidden items-center gap-0.5 rounded border bg-background px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground md:inline-flex">
+        <kbd className="absolute end-3 hidden items-center gap-0.5 rounded border bg-background px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground md:inline-flex">
           Ctrl + K
         </kbd>
       </div>
@@ -76,17 +79,20 @@ export function Topbar({ onMenuClick, userName, userRole }: TopbarProps) {
           onClick={() => toast(`Active academic year: ${activeYear}`, "info")}
           className="hidden items-center gap-2 rounded-lg border border-input bg-background px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-secondary md:inline-flex"
         >
-          <span className="text-muted-foreground">Academic Year:</span>
+          <span className="text-muted-foreground">
+            {t("topbar.academicYear")}
+          </span>
           <span>{activeYear}</span>
           <ChevronDown className="h-4 w-4 text-muted-foreground" />
         </button>
 
+        <LanguageSwitcher />
         <ThemeToggle />
 
         {/* Notifications */}
         <button
           onClick={() => toast("You have 12 unread notifications", "info")}
-          aria-label="Notifications"
+          aria-label={t("topbar.notifications")}
           className="relative flex h-9 w-9 items-center justify-center rounded-lg border border-input text-muted-foreground transition-colors hover:bg-secondary"
         >
           <Bell className="h-4 w-4" />
@@ -121,7 +127,7 @@ export function Topbar({ onMenuClick, userName, userRole }: TopbarProps) {
                 className="fixed inset-0 z-40"
                 onClick={() => setMenuOpen(false)}
               />
-              <div className="absolute right-0 top-full z-50 mt-2 w-48 overflow-hidden rounded-lg border bg-card py-1 shadow-lg">
+              <div className="absolute end-0 top-full z-50 mt-2 w-48 overflow-hidden rounded-lg border bg-card py-1 shadow-lg">
                 <div className="border-b px-3 py-2">
                   <p className="truncate text-sm font-semibold text-foreground">
                     {userName}
@@ -137,7 +143,7 @@ export function Topbar({ onMenuClick, userName, userRole }: TopbarProps) {
                     className="flex w-full items-center gap-2 px-3 py-2 text-sm text-foreground transition-colors hover:bg-secondary"
                   >
                     <User className="h-4 w-4 text-muted-foreground" />
-                    My Profile
+                    {t("nav.myProfile")}
                   </Link>
                 ) : (
                   <button
@@ -148,7 +154,7 @@ export function Topbar({ onMenuClick, userName, userRole }: TopbarProps) {
                     className="flex w-full items-center gap-2 px-3 py-2 text-sm text-foreground transition-colors hover:bg-secondary"
                   >
                     <User className="h-4 w-4 text-muted-foreground" />
-                    My Profile
+                    {t("nav.myProfile")}
                   </button>
                 )}
                 <button
@@ -156,7 +162,7 @@ export function Topbar({ onMenuClick, userName, userRole }: TopbarProps) {
                   className="flex w-full items-center gap-2 px-3 py-2 text-sm text-rose-600 transition-colors hover:bg-secondary dark:text-rose-400"
                 >
                   <LogOut className="h-4 w-4" />
-                  Log out
+                  {t("topbar.logout")}
                 </button>
               </div>
             </>

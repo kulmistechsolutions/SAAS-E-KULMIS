@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
+import { cookies } from "next/headers";
+import { LANG_COOKIE, dirOf, toLang } from "@/lib/i18n/config";
 import { BRAND } from "@/lib/brand";
 import { PwaInstaller } from "@/components/pwa/pwa-installer";
 import { Providers } from "./providers";
@@ -31,11 +33,20 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
-export default function RootLayout({ children }: { children: ReactNode }) {
+export default async function RootLayout({
+  children,
+}: {
+  children: ReactNode;
+}) {
+  // Read on the server so lang and dir are right in the first response.
+  // Deciding this on the client instead would render Arabic left-to-right
+  // until hydration and then jump.
+  const lang = toLang((await cookies()).get(LANG_COOKIE)?.value);
+
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang={lang} dir={dirOf(lang)} suppressHydrationWarning>
       <body suppressHydrationWarning>
-        <Providers>{children}</Providers>
+        <Providers lang={lang}>{children}</Providers>
         <PwaInstaller />
       </body>
     </html>

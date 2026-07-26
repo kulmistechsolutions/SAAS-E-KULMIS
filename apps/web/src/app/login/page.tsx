@@ -12,6 +12,8 @@ import { ApiError, api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
+import { LanguageSwitcher } from "@/components/ui/language-switcher";
+import { useT, type Translate } from "@/lib/i18n/provider";
 
 /**
  * Turn raw API errors into a message the person signing in can act on.
@@ -19,22 +21,24 @@ import { Card, CardContent } from "@/components/ui/card";
  * never revealing whether it was the username or the password that was
  * wrong — but phrased so they know to re-check both.
  */
-function friendlyLoginError(e: unknown): string {
+function friendlyLoginError(e: unknown, t: Translate): string {
   if (e instanceof ApiError) {
     const m = e.message.toLowerCase();
     if (m.includes("invalid credentials")) {
-      return "Wrong username or password. Please check both and try again.";
+      return t("auth.wrongCredentials");
     }
     if (m.includes("no tenant") || m.includes("unknown tenant")) {
-      return "This sign-in page isn't linked to a school. Open your school's own address (e.g. yourschool.ekulmis.com) and sign in there.";
+      return t("auth.noSchoolLinked");
     }
+    // Anything else is the API's own wording and is passed through as-is.
     return e.message;
   }
-  return "Login failed. Please try again.";
+  return t("auth.loginFailed");
 }
 
 export default function LoginPage() {
   const router = useRouter();
+  const t = useT();
   const { login } = useAuth();
   const branding = useSchoolBranding();
   const [error, setError] = useState<string | null>(null);
@@ -51,7 +55,7 @@ export default function LoginPage() {
       const me = await login(values.identifier, values.password);
       router.push(me.role === "TEACHER" ? "/teacher-portal" : "/dashboard");
     } catch (e) {
-      setError(friendlyLoginError(e));
+      setError(friendlyLoginError(e, t));
     }
   }
 
@@ -65,6 +69,9 @@ export default function LoginPage() {
       }}
     >
       <div className={branding.loginBackgroundUrl ? "w-full max-w-sm rounded-2xl bg-background/95 p-1 shadow-xl backdrop-blur" : "w-full max-w-sm"}>
+      <div className="mb-2 flex justify-end">
+        <LanguageSwitcher />
+      </div>
       <Card className="w-full border-0 shadow-lg">
         <CardContent className="pt-8">
           <div className="mb-6 text-center">
@@ -74,12 +81,14 @@ export default function LoginPage() {
             ) : null}
             <h1 className="text-2xl font-bold text-primary">{branding.loginTitle}</h1>
             <p className="mt-0.5 text-sm font-medium text-muted-foreground">{branding.tagline}</p>
-            <p className="mt-2 text-sm text-muted-foreground">Sign in to continue</p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              {t("auth.signInToContinue")}
+            </p>
           </div>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div>
               <label className="mb-1 block text-sm font-medium">
-                ID / Username
+                {t("auth.idOrUsername")}
               </label>
               <Input
                 {...register("identifier")}
@@ -93,7 +102,9 @@ export default function LoginPage() {
               )}
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium">Password</label>
+              <label className="mb-1 block text-sm font-medium">
+                {t("auth.password")}
+              </label>
               <div className="relative">
                 <Input
                   type={showPassword ? "text" : "password"}
@@ -105,8 +116,8 @@ export default function LoginPage() {
                 <button
                   type="button"
                   onClick={() => setShowPassword((v) => !v)}
-                  aria-label={showPassword ? "Hide password" : "Show password"}
-                  title={showPassword ? "Hide password" : "Show password"}
+                  aria-label={t(showPassword ? "auth.hidePassword" : "auth.showPassword")}
+                  title={t(showPassword ? "auth.hidePassword" : "auth.showPassword")}
                   className="absolute inset-y-0 right-0 flex items-center px-3 text-muted-foreground hover:text-foreground"
                 >
                   {showPassword ? (
@@ -131,7 +142,7 @@ export default function LoginPage() {
               </div>
             )}
             <Button type="submit" className="w-full" disabled={isSubmitting}>
-              {isSubmitting ? "Signing in…" : "Sign in"}
+              {isSubmitting ? t("auth.signingIn") : t("auth.signIn")}
             </Button>
           </form>
           <p className="mt-6 text-center text-xs text-muted-foreground">{branding.footerText}</p>
