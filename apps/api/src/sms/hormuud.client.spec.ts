@@ -6,8 +6,18 @@ import {
 
 describe("explainSendFailure", () => {
   it("explains 203 instead of repeating \"Failed.\"", () => {
-    expect(explainSendFailure("203", "Failed.", 200)).toContain(
-      "sender name is not registered",
+    const msg = explainSendFailure("203", "Failed.", 200);
+    expect(msg).toContain("code 203");
+    // Points at the recipient, which is what the send log actually shows:
+    // every 203 has been to one number while nine others went through.
+    expect(msg).toContain("number");
+  });
+
+  it("does not assert the sender name as the cause of a 203", () => {
+    // An earlier version stated this outright and sent schools chasing a
+    // sender ID registration that was not the problem.
+    expect(explainSendFailure("203", "Failed.", 200)).not.toMatch(
+      /^Rejected by Hormuud . the sender name is not registered/,
     );
   });
 

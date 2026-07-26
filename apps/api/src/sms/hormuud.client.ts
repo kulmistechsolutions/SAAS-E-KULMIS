@@ -92,13 +92,22 @@ export function isSendAccepted(input: {
 
 /**
  * Hormuud's failure text is usually the single word "Failed.", which tells a
- * school nothing it can act on. Where the code has a known meaning, say it.
+ * school nothing it can act on. Where a code's meaning is known from observed
+ * behaviour, say what to check — without asserting a cause the response does
+ * not actually state.
+ *
+ * 203 was first read as "the sender name is not registered". The log then
+ * refuted that: every 203 on this platform has been to one number, while the
+ * same sender reached nine others, and the refused number had itself received
+ * eleven messages earlier. So the wording points at the number first and
+ * leaves the rest as possibilities.
  */
 const CODE_EXPLANATIONS: Record<string, string> = {
   "203":
-    "Rejected by Hormuud — the sender name is not registered with the operator for this account.",
-  "204": "Rejected by Hormuud — invalid or unreachable recipient number.",
-  "205": "Rejected by Hormuud — insufficient balance on the operator account.",
+    "Hormuud refused this message (code 203). It is usually the number: " +
+    "check it is correct, in service, and able to receive messages from a " +
+    "business sender. If other numbers are failing too, check the sending " +
+    "name is registered with Hormuud for this account.",
 };
 
 export function explainSendFailure(
