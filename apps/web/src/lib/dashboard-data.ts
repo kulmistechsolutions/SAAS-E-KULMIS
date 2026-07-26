@@ -1,3 +1,4 @@
+import type { TranslationKey } from "@/lib/i18n/provider";
 /**
  * Static demo data for the admin dashboard.
  *
@@ -100,16 +101,20 @@ export const incomeVsExpense = {
   ],
 };
 
+/**
+ * `label` is the identity — it keys ACTION_ROUTES and the React list — so it
+ * stays English and stable. `titleKey` is what the person reads.
+ */
 export const quickActions = [
-  { label: "Add Student", icon: "add-student" as const, theme: "violet" as const },
-  { label: "Collect Fees", icon: "collect-fees" as const, theme: "emerald" as const },
-  { label: "Take Attendance", icon: "attendance" as const, theme: "sky" as const },
-  { label: "Create Exam", icon: "exam" as const, theme: "amber" as const },
-  { label: "Create Quiz", icon: "quiz" as const, theme: "violet" as const },
-  { label: "Add Expense", icon: "expense" as const, theme: "rose" as const },
-  { label: "Generate Report", icon: "report" as const, theme: "teal" as const },
-  { label: "Send Notice", icon: "notice" as const, theme: "amber" as const },
-];
+  { label: "Add Student", titleKey: "dashboard.addStudent", icon: "add-student" as const, theme: "violet" as const },
+  { label: "Collect Fees", titleKey: "dashboard.collectFees", icon: "collect-fees" as const, theme: "emerald" as const },
+  { label: "Take Attendance", titleKey: "dashboard.takeAttendance", icon: "attendance" as const, theme: "sky" as const },
+  { label: "Create Exam", titleKey: "dashboard.createExam", icon: "exam" as const, theme: "amber" as const },
+  { label: "Create Quiz", titleKey: "dashboard.createQuiz", icon: "quiz" as const, theme: "violet" as const },
+  { label: "Add Expense", titleKey: "dashboard.addExpense", icon: "expense" as const, theme: "rose" as const },
+  { label: "Generate Report", titleKey: "dashboard.generateReport", icon: "report" as const, theme: "teal" as const },
+  { label: "Send Notice", titleKey: "dashboard.sendNotice", icon: "notice" as const, theme: "amber" as const },
+] satisfies { label: string; titleKey: TranslationKey; icon: string; theme: string }[];
 
 export const admissionTrend = [
   { label: "Jan", value: 120 },

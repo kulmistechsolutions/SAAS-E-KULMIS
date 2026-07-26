@@ -40,6 +40,11 @@ import {
   type AdminDashboardResponse,
 } from "@/lib/dashboard/api";
 import { quickActions } from "@/lib/dashboard-data";
+import {
+  useT,
+  type Translate,
+  type TranslationKey,
+} from "@/lib/i18n/provider";
 
 const STAT_ICONS: Record<string, LucideIcon> = {
   students: Users,
@@ -115,12 +120,13 @@ const ACTIVITY_COLORS = [
   "#22c55e",
 ];
 
-function buildStats(data: AdminDashboardResponse) {
+function buildStats(data: AdminDashboardResponse, t: Translate) {
   const outstandingStudents = data.fees.partialPayments;
   return [
     {
       key: "students",
       label: "Total Students",
+      labelKey: "dashboard.totalStudents" as TranslationKey,
       value: data.students.total.toLocaleString(),
       hint: `+${data.students.newThisMonth} this month`,
       hintTone: "up" as const,
@@ -130,6 +136,7 @@ function buildStats(data: AdminDashboardResponse) {
     {
       key: "teachers",
       label: "Total Teachers",
+      labelKey: "dashboard.totalTeachers" as TranslationKey,
       value: data.teachers.total.toLocaleString(),
       hint: `${data.teachers.morning + data.teachers.afternoon} active`,
       hintTone: "muted" as const,
@@ -139,8 +146,9 @@ function buildStats(data: AdminDashboardResponse) {
     {
       key: "parents",
       label: "Total Parents",
+      labelKey: "dashboard.totalParents" as TranslationKey,
       value: data.parents.total.toLocaleString(),
-      hint: "Registered",
+      hint: t("dashboard.registered"),
       hintTone: "muted" as const,
       icon: "parents" as const,
       theme: "amber" as const,
@@ -148,6 +156,7 @@ function buildStats(data: AdminDashboardResponse) {
     {
       key: "classes",
       label: "Total Classes",
+      labelKey: "dashboard.totalClasses" as TranslationKey,
       value: data.academics.classes.toLocaleString(),
       hint: `${data.academics.sections} Sections`,
       hintTone: "muted" as const,
@@ -157,6 +166,7 @@ function buildStats(data: AdminDashboardResponse) {
     {
       key: "fees",
       label: "Fees Outstanding",
+      labelKey: "dashboard.feesOutstanding" as TranslationKey,
       value: money(data.fees.totalOutstanding),
       hint: `${outstandingStudents} partial`,
       hintTone: "muted" as const,
@@ -166,8 +176,9 @@ function buildStats(data: AdminDashboardResponse) {
     {
       key: "attendance",
       label: "Today's Attendance",
+      labelKey: "dashboard.todaysAttendance" as TranslationKey,
       value: `${data.attendanceToday.percentage}%`,
-      hint: "Present",
+      hint: t("dashboard.present"),
       hintTone: "muted" as const,
       icon: "attendance" as const,
       theme: "teal" as const,
@@ -175,20 +186,20 @@ function buildStats(data: AdminDashboardResponse) {
   ];
 }
 
-function buildAttendance(data: AdminDashboardResponse) {
+function buildAttendance(data: AdminDashboardResponse, t: Translate) {
   const { present, absent, late, total } = data.attendanceToday;
   const pct = (n: number) => (total ? `${Math.round((n / total) * 1000) / 10}%` : "0%");
   return {
     total,
     segments: [
-      { name: "Present", value: present, percent: pct(present), color: "#22c55e" },
-      { name: "Absent", value: absent, percent: pct(absent), color: "#ef4444" },
-      { name: "Late", value: late, percent: pct(late), color: "#f59e0b" },
+      { name: t("dashboard.present"), value: present, percent: pct(present), color: "#22c55e" },
+      { name: t("dashboard.absent"), value: absent, percent: pct(absent), color: "#ef4444" },
+      { name: t("dashboard.late"), value: late, percent: pct(late), color: "#f59e0b" },
     ],
   };
 }
 
-function buildAlerts(data: AdminDashboardResponse) {
+function buildAlerts(data: AdminDashboardResponse, t: Translate) {
   const alerts: { text: string; icon: "alert" | "info" | "check"; tone: string }[] = [];
   if (data.fees.totalOutstanding > 0) {
     alerts.push({
@@ -213,7 +224,7 @@ function buildAlerts(data: AdminDashboardResponse) {
   }
   if (alerts.length === 0) {
     alerts.push({
-      text: "All systems operating normally",
+      text: t("dashboard.allSystemsNormal"),
       icon: "check",
       tone: "emerald",
     });
@@ -288,6 +299,7 @@ export default function DashboardPage() {
 }
 
 function AdminDashboard() {
+  const t = useT();
   const { user } = useAuth();
   const router = useRouter();
   const [data, setData] = useState<AdminDashboardResponse | null>(null);
@@ -303,21 +315,21 @@ function AdminDashboard() {
     } catch {
       setData(null);
       setLoadError(true);
-      if (showToastOnError) toast("Failed to load dashboard data", "error");
+      if (showToastOnError) toast(t("dashboard.loadFailed"), "error");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     if (!user) return;
     void loadDashboard();
   }, [user, loadDashboard]);
 
-  const stats = useMemo(() => (data ? buildStats(data) : []), [data]);
+  const stats = useMemo(() => (data ? buildStats(data, t) : []), [data, t]);
   const attendanceBreakdown = useMemo(
-    () => (data ? buildAttendance(data) : null),
-    [data],
+    () => (data ? buildAttendance(data, t) : null),
+    [data, t],
   );
   const feeCollection = useMemo(() => {
     if (!data) return null;
@@ -366,7 +378,7 @@ function AdminDashboard() {
       };
     });
   }, [data]);
-  const alerts = useMemo(() => (data ? buildAlerts(data) : []), [data]);
+  const alerts = useMemo(() => (data ? buildAlerts(data, t) : []), [data, t]);
   const admissionTrend = useMemo(
     () => data?.charts.studentGrowth ?? [],
     [data],
@@ -374,14 +386,14 @@ function AdminDashboard() {
   const systemInfo = useMemo(() => {
     if (!data) return [];
     return [
-      { label: "Academic Year", value: data.activeAcademicYear ?? "—", tone: "default" as const },
-      { label: "Total Subjects", value: String(data.academics.subjects), tone: "default" as const },
-      { label: "Net Income", value: money(data.finance.netIncome), tone: "default" as const },
-      { label: "Fee Collection (Month)", value: money(data.fees.collectedThisMonth), tone: "default" as const },
-      { label: "Database Status", value: "Connected", tone: "success" as const },
-      { label: "Server Status", value: "Online", tone: "success" as const },
+      { label: "Academic Year", labelKey: "dashboard.academicYear" as TranslationKey, value: data.activeAcademicYear ?? "—", tone: "default" as const },
+      { label: "Total Subjects", labelKey: "dashboard.totalSubjects" as TranslationKey, value: String(data.academics.subjects), tone: "default" as const },
+      { label: "Net Income", labelKey: "dashboard.netIncome" as TranslationKey, value: money(data.finance.netIncome), tone: "default" as const },
+      { label: "Fee Collection (Month)", labelKey: "dashboard.feeCollectionMonth" as TranslationKey, value: money(data.fees.collectedThisMonth), tone: "default" as const },
+      { label: "Database Status", labelKey: "dashboard.databaseStatus" as TranslationKey, value: t("dashboard.connected"), tone: "success" as const },
+      { label: "Server Status", labelKey: "dashboard.serverStatus" as TranslationKey, value: t("dashboard.online"), tone: "success" as const },
     ];
-  }, [data]);
+  }, [data, t]);
 
   function runAction(label: string) {
     const href = ACTION_ROUTES[label];
@@ -460,7 +472,7 @@ function AdminDashboard() {
         {stats.map((s) => (
           <StatCard
             key={s.key}
-            label={s.label}
+            label={t(s.labelKey)}
             value={s.value}
             hint={s.hint}
             hintTone={s.hintTone === "up" ? "up" : "muted"}
@@ -479,7 +491,9 @@ function AdminDashboard() {
                 <span className="text-2xl font-bold text-foreground">
                   {data.attendanceToday.percentage}%
                 </span>
-                <span className="text-xs text-muted-foreground">Present</span>
+                <span className="text-xs text-muted-foreground">
+                  {t("dashboard.present")}
+                </span>
               </div>
             </div>
             <div className="flex-1 space-y-3">
@@ -507,7 +521,9 @@ function AdminDashboard() {
         </Panel>
 
         <Panel title="Fee Collection Overview (This Month)">
-          <p className="text-xs text-muted-foreground">Total Collected</p>
+          <p className="text-xs text-muted-foreground">
+            {t("dashboard.totalCollected")}
+          </p>
           <div className="flex items-baseline gap-2">
             <span className="text-2xl font-bold text-foreground">
               {feeCollection.total}
@@ -537,19 +553,19 @@ function AdminDashboard() {
           </div>
           <div className="mt-3 grid grid-cols-3 gap-2 border-t pt-3 text-center text-xs">
             <div>
-              <p className="text-muted-foreground">Income</p>
+              <p className="text-muted-foreground">{t("dashboard.income")}</p>
               <p className="font-semibold text-emerald-600 dark:text-emerald-400">
                 {incomeVsExpense.income}
               </p>
             </div>
             <div>
-              <p className="text-muted-foreground">Expenses</p>
+              <p className="text-muted-foreground">{t("dashboard.expenses")}</p>
               <p className="font-semibold text-rose-600 dark:text-rose-400">
                 {incomeVsExpense.expenses}
               </p>
             </div>
             <div>
-              <p className="text-muted-foreground">Net Income</p>
+              <p className="text-muted-foreground">{t("dashboard.netIncome")}</p>
               <p className="font-semibold text-foreground">
                 {incomeVsExpense.netIncome}
               </p>
@@ -560,8 +576,8 @@ function AdminDashboard() {
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
         <Panel
-          title="Upcoming Exams"
-          action="View All"
+          title={t("dashboard.upcomingExams")}
+          action={t("dashboard.viewAll")}
           onAction={() => router.push("/examinations")}
         >
           {upcomingExams.length === 0 ? (
@@ -594,8 +610,8 @@ function AdminDashboard() {
         </Panel>
 
         <Panel
-          title="Recent Activities"
-          action="View All"
+          title={t("dashboard.recentActivities")}
+          action={t("dashboard.viewAll")}
           onAction={() => toast("Activity log — coming soon", "info")}
         >
           <ul className="space-y-4">
@@ -616,8 +632,8 @@ function AdminDashboard() {
         </Panel>
 
         <Panel
-          title="Alerts & Notifications"
-          action="View All"
+          title={t("dashboard.alertsNotifications")}
+          action={t("dashboard.viewAll")}
           onAction={() => toast("Notifications — coming soon", "info")}
         >
           <ul className="space-y-3">
@@ -635,7 +651,7 @@ function AdminDashboard() {
           </ul>
         </Panel>
 
-        <Panel title="Quick Actions" id="quick-actions">
+        <Panel title={t("dashboard.quickActions")} id="quick-actions">
           <div className="grid grid-cols-3 gap-3">
             {quickActions.map((q) => {
               const Icon = ACTION_ICONS[q.icon];
@@ -650,7 +666,7 @@ function AdminDashboard() {
                 >
                   <Icon className="h-5 w-5" />
                   <span className="text-[11px] font-medium leading-tight">
-                    {q.label}
+                    {t(q.titleKey)}
                   </span>
                 </button>
               );
@@ -660,13 +676,13 @@ function AdminDashboard() {
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-4">
-        <Panel title="Student Admission Trend" className="xl:col-span-2">
+        <Panel title={t("dashboard.studentAdmissionTrend")} className="xl:col-span-2">
           <AdmissionAreaChart data={admissionTrend} />
         </Panel>
 
         <Panel
-          title="Recent Payments"
-          action="View All"
+          title={t("dashboard.recentPayments")}
+          action={t("dashboard.viewAll")}
           onAction={() => router.push("/finance/history")}
         >
           <ul className="space-y-3">
@@ -692,14 +708,14 @@ function AdminDashboard() {
           </ul>
         </Panel>
 
-        <Panel title="System Information">
+        <Panel title={t("dashboard.systemInformation")}>
           <ul className="divide-y">
             {systemInfo.map((s) => (
               <li
                 key={s.label}
                 className="flex items-center justify-between py-2.5 text-sm"
               >
-                <span className="text-muted-foreground">{s.label}</span>
+                <span className="text-muted-foreground">{t(s.labelKey)}</span>
                 {s.tone === "success" ? (
                   <span className="inline-flex items-center gap-1.5 font-medium text-emerald-600 dark:text-emerald-400">
                     <span className="h-2 w-2 rounded-full bg-emerald-500" />
