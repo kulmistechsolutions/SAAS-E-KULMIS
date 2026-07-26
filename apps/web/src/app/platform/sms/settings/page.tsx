@@ -306,14 +306,23 @@ export default function PlatformSmsSettingsPage() {
             </div>
             <div>
               <Label className="text-slate-400">
-                Default sender ID (fallback)
+                Default sender ID — the name registered with Hormuud
               </Label>
               <Input
                 className="mt-1 border-white/10 bg-[#0b1120] text-white"
                 value={defaultSenderId}
                 onChange={(e) => setDefaultSenderId(e.target.value)}
                 maxLength={20}
+                placeholder="e.g. EKULMIS"
               />
+              <p className="mt-1 text-xs text-slate-500">
+                Set this to the sender name Hormuud has registered for this
+                account, and every school sends under it. Leave it empty and
+                each school sends under its own name — which Hormuud rejects
+                with <span className="font-mono">203 Invalid Sender ID</span>{" "}
+                unless that exact name is registered too. Register the name
+                with Hormuud first; typing it here does not register anything.
+              </p>
             </div>
 
             <div className="flex items-center justify-between rounded-lg border border-white/10 px-3 py-2">
