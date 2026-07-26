@@ -11,6 +11,28 @@ describe("explainSendFailure", () => {
     expect(msg).toContain("Hormuud");
   });
 
+  // Hormuud hides the reason in Data.Description while ResponseMessage says
+  // only "Failed.". Once that is read, the provider's own words must win --
+  // reading only the top-level field is what made three causes get guessed.
+  it("prefers the reason the provider actually gave", () => {
+    expect(
+      explainSendFailure(
+        "207",
+        "Invalid Mobile Number/ Not allowed for international Sms!!",
+        200,
+      ),
+    ).toBe(
+      "Invalid Mobile Number/ Not allowed for international Sms!! (code 207)",
+    );
+  });
+
+  it("ignores provider text that names no reason", () => {
+    for (const empty of ["Failed.", "failed", "ERROR", "-", "null", "  "]) {
+      const msg = explainSendFailure("203", empty, 200);
+      expect(msg).toContain("gave no reason");
+    }
+  });
+
   // Two confident causes have been asserted here and both were disproved by
   // a later send: the sender name (a name that had worked ten times was
   // refused) and the recipient (a second working number was refused too).

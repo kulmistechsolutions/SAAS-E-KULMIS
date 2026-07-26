@@ -111,17 +111,22 @@ const CODE_EXPLANATIONS: Record<string, string> = {
     "the sending name and a refused number.",
 };
 
+/** Provider text that names no reason, so it is worth nothing to a school. */
+const USELESS_MESSAGES = new Set(["failed.", "failed", "error", "-", "null"]);
+
 export function explainSendFailure(
   responseCode: string,
   responseMessage: string,
   httpStatus: number,
 ): string {
+  // When Hormuud actually explains itself — which it does in Data.Description
+  // — its words win. Nothing here can beat the provider naming the reason.
+  const stated = responseMessage.trim();
+  if (stated && !USELESS_MESSAGES.has(stated.toLowerCase())) {
+    return responseCode ? `${stated} (code ${responseCode})` : stated;
+  }
   const known = CODE_EXPLANATIONS[responseCode.trim()];
   if (known) return known;
-  if (responseMessage.trim())
-    return responseCode
-      ? `${responseMessage.trim()} (code ${responseCode})`
-      : responseMessage.trim();
   return `Hormuud send failed (HTTP ${httpStatus}${
     responseCode ? `, code ${responseCode}` : ""
   })`;
@@ -547,11 +552,19 @@ export async function hormuudSendSms(
     }
 
     const responseCode = String(json.ResponseCode ?? json.responseCode ?? "");
-    const responseMessage = String(
-      json.ResponseMessage ?? json.responseMessage ?? "",
-    );
+    const topMessage = String(json.ResponseMessage ?? json.responseMessage ?? "");
     const data = (json.Data ?? json.data) as
       Record<string, unknown> | undefined;
+
+    // Hormuud puts "Failed." in ResponseMessage and the actual reason in
+    // Data.Description — e.g. "Invalid Mobile Number/ Not allowed for
+    // international Sms!!". Reading only the top-level field is why three
+    // separate causes were guessed for a refusal the provider had explained
+    // all along.
+    const description = data
+      ? String(data.Description ?? data.description ?? "").trim()
+      : "";
+    const responseMessage = description || topMessage;
     const messageId = data
       ? String(data.MessageID ?? data.messageId ?? "")
       : undefined;
