@@ -1,4 +1,6 @@
 import type { PartialDictionary } from "./en";
+import { soGenerated } from "./so-generated";
+import { mergeDictionaries } from "./merge";
 
 /**
  * Soomaali. Erayada waxaa loo doortay sida dugsiyada dhab ahaantii u hadlaan,
@@ -9,7 +11,7 @@ import type { PartialDictionary } from "./en";
  *  - "Qaybaha" = sections (fasalka), "Noocyada" = categories.
  *  - "Dejinta" = settings iyo setup labadaba; isku macne ayay leeyihiin.
  */
-export const so: PartialDictionary = {
+const curated: PartialDictionary = {
   common: {
     save: "Kaydi",
     saving: "Waa la kaydinayaa…",
@@ -260,3 +262,9 @@ export const so: PartialDictionary = {
     loginFailed: "Gelitaanku wuu fashilmay. Fadlan mar kale isku day.",
   },
 };
+
+/**
+ * The hand-written entries win: they were written for their screen, while the
+ * generated ones come from matching English text across the whole system.
+ */
+export const so = mergeDictionaries(soGenerated, curated);

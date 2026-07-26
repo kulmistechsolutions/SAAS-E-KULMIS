@@ -1,10 +1,12 @@
 import type { PartialDictionary } from "./en";
+import { arGenerated } from "./ar-generated";
+import { mergeDictionaries } from "./merge";
 
 /**
  * العربية. The interface flips to RTL for this language — see dirOf() in the
  * i18n config and the `dir` attribute set on <html>.
  */
-export const ar: PartialDictionary = {
+const curated: PartialDictionary = {
   common: {
     save: "حفظ",
     saving: "جارٍ الحفظ…",
@@ -255,3 +257,9 @@ export const ar: PartialDictionary = {
     loginFailed: "فشل تسجيل الدخول. يرجى المحاولة مرة أخرى.",
   },
 };
+
+/**
+ * The hand-written entries win: they were written for their screen, while the
+ * generated ones come from matching English text across the whole system.
+ */
+export const ar = mergeDictionaries(arGenerated, curated);
