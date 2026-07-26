@@ -59,6 +59,15 @@ export const updateStudentSchema = z
     sectionId: z.string().nullable().optional(),
     monthlyFee: z.number().int().nonnegative().optional(),
     status: studentStatusSchema.optional(),
+    /**
+     * Who the child answers to. Sending these re-links the student to the
+     * parent holding this phone — an existing one is reused, an unknown one is
+     * created — rather than renaming whichever parent they are attached to
+     * now. Correcting a child registered under the wrong family is the whole
+     * point, so the wrong family must be left as it was.
+     */
+    parentName: z.string().min(1).optional(),
+    parentPhone: z.string().min(1).optional(),
   })
   .refine((o) => Object.keys(o).length > 0, { message: "Nothing to update" });
 export type UpdateStudentInput = z.infer<typeof updateStudentSchema>;

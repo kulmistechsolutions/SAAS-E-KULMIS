@@ -7,7 +7,7 @@ import {
   ServiceUnavailableException,
 } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import type { Prisma } from "@prisma/client";
+import type { Prisma, PrismaClient } from "@prisma/client";
 import type { RegisterStudentInput, UpdateStudentInput } from "@ekulmis/shared";
 import { PrismaService } from "../prisma/prisma.service";
 import { StorageService } from "../storage/storage.service";
@@ -24,6 +24,7 @@ import {
 } from "./student-photo.util";
 
 import { nextParentCode, nextStudentCode } from "./code-allocator";
+import { decideParentChange } from "./parent-link";
 
 const DEFAULT_PARENT_PASSWORD = "12345";
 
@@ -456,15 +457,20 @@ export class StudentsService {
 
   async update(schoolId: string, id: string, dto: UpdateStudentInput) {
     const current = await this.findOne(schoolId, id);
-    const updated = await this.prisma.forTenant(schoolId, async (tx) => {
+    const result = await this.prisma.forTenant(schoolId, async (tx) => {
+      const move = await this.resolveParentChange(tx, schoolId, current, dto);
+
       // Renaming must not create the duplicate registration refuses: a second
-      // child with the same name under the same parent.
-      if (dto.fullName !== undefined) {
+      // child with the same name under the same parent. The check follows the
+      // student to whichever parent they are landing under, not the one they
+      // are leaving.
+      const parentId = move?.parentId ?? current.parentId;
+      if (dto.fullName !== undefined || move) {
         const siblings = await tx.student.findMany({
-          where: { parentId: current.parentId, id: { not: id } },
+          where: { parentId, id: { not: id } },
           select: { code: true, fullName: true },
         });
-        const wanted = normalizeName(dto.fullName);
+        const wanted = normalizeName(dto.fullName ?? current.fullName);
         const clash = siblings.find(
           (s) => normalizeName(s.fullName) === wanted,
         );
@@ -488,7 +494,7 @@ export class StudentsService {
         });
         if (!sec) throw new BadRequestException("Invalid section");
       }
-      return tx.student.update({
+      const updated = await tx.student.update({
         where: { id },
         data: {
           fullName: dto.fullName,
@@ -500,11 +506,151 @@ export class StudentsService {
           sectionId: dto.sectionId,
           monthlyFee: dto.monthlyFee,
           status: dto.status,
+          ...(move ? { parentId: move.parentId } : {}),
         },
         include: studentInclude,
       });
+
+      // Only once the child has actually left is the old family checked. A
+      // parent record with nobody under it is the same orphan a deletion
+      // leaves behind, and is cleared the same way.
+      let formerParentRemoved = false;
+      if (move && move.previousParentId !== move.parentId) {
+        formerParentRemoved = await this.dropParentIfChildless(
+          tx,
+          move.previousParentId,
+        );
+      }
+
+      return {
+        student: updated,
+        parentCreated: move?.created ?? false,
+        parentCode: move?.created ? move.code : undefined,
+        initialParentPassword: move?.initialPassword,
+        formerParentRemoved,
+        /** Set only when the child changed families, so the UI can say so. */
+        movedToParentName: move ? updated.parent.name : undefined,
+      };
     });
-    return this.attachPhotoMeta(updated);
+    return {
+      ...result,
+      student: this.attachPhotoMeta(result.student),
+    };
+  }
+
+  /**
+   * Work out which parent a student edit is pointing at.
+   *
+   * A school correcting a child registered under the wrong family types the
+   * right parent's details. The obvious reading of that — rename the parent
+   * the student is attached to — is wrong twice over: it rewrites a real
+   * family's name for every one of their other children, and it collides with
+   * the unique phone of the parent actually being named, so the save fails.
+   * Editing the parent details on a student therefore MOVES the student:
+   * to the parent already holding that phone, or to a new one.
+   *
+   * Returns null when nothing about the parent changed.
+   */
+  private async resolveParentChange(
+    tx: PrismaClient,
+    schoolId: string,
+    current: StudentRow,
+    dto: UpdateStudentInput,
+  ): Promise<{
+    parentId: string;
+    previousParentId: string;
+    created: boolean;
+    code?: string;
+    initialPassword?: string;
+  } | null> {
+    if (dto.parentName === undefined && dto.parentPhone === undefined) {
+      return null;
+    }
+    const name = (dto.parentName ?? current.parent.name).trim();
+    const phone = (dto.parentPhone ?? current.parent.phone).trim();
+    const previousParentId = current.parentId;
+
+    const holder = await tx.parent.findFirst({
+      where: { phone },
+      select: { id: true },
+    });
+    const decision = decideParentChange({
+      holderId: holder?.id ?? null,
+      currentParentId: previousParentId,
+      siblingCount: await tx.student.count({
+        where: { parentId: previousParentId, id: { not: current.id } },
+      }),
+      nameChanged: name !== current.parent.name,
+      phoneChanged: phone !== current.parent.phone,
+    });
+
+    switch (decision.kind) {
+      case "none":
+        return null;
+      case "rename":
+        await tx.parent.update({
+          where: { id: previousParentId },
+          data: { name, phone },
+        });
+        return null;
+      case "attach":
+        return {
+          parentId: decision.parentId,
+          previousParentId,
+          created: false,
+        };
+      case "create": {
+        const made = await this.createParent(tx, schoolId, name, phone);
+        return { ...made, previousParentId, created: true };
+      }
+    }
+  }
+
+  /** A parent record with its own ID and portal login, as registration makes. */
+  private async createParent(
+    tx: PrismaClient,
+    schoolId: string,
+    name: string,
+    phone: string,
+  ) {
+    const school = await tx.school.findUnique({
+      where: { id: schoolId },
+      select: { parentPrefix: true },
+    });
+    if (!school) throw new NotFoundException("School not found");
+    const { code } = await nextParentCode(tx, schoolId, school.parentPrefix);
+    const user = await tx.user.create({
+      data: {
+        schoolId,
+        username: code,
+        role: "PARENT",
+        passwordHash: await hashPassword(DEFAULT_PARENT_PASSWORD),
+      },
+    });
+    const parent = await tx.parent.create({
+      data: { schoolId, code, name, phone, userId: user.id },
+    });
+    return {
+      parentId: parent.id,
+      code,
+      initialPassword: DEFAULT_PARENT_PASSWORD,
+    };
+  }
+
+  /** Clear a parent left with no children, as a deletion would. */
+  private async dropParentIfChildless(
+    tx: PrismaClient,
+    parentId: string,
+  ): Promise<boolean> {
+    const remaining = await tx.student.count({ where: { parentId } });
+    if (remaining > 0) return false;
+    const parent = await tx.parent.findFirst({
+      where: { id: parentId },
+      select: { userId: true },
+    });
+    await tx.parent.delete({ where: { id: parentId } });
+    if (parent) await tx.user.delete({ where: { id: parent.userId } });
+    return true;
   }
 
   /** Delete a student; delete the parent too iff it has no other children. */

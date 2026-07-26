@@ -226,8 +226,15 @@ export function StudentFormDialog({ open, onClose, student, onSaved }: Props) {
           );
         }
         const warn = res.warning ? ` Note: ${res.warning}` : "";
+        // A parent correction moves the child, so say where they landed —
+        // otherwise a school cannot tell a fixed typo from a re-linked family.
+        const movedMsg = res.parentCreated
+          ? ` Moved to a new parent — ID: ${res.parentCode}, Password: ${res.initialParentPassword ?? "(reset from Parents page)"}. Share these with the parent.`
+          : res.movedToParentName
+            ? ` Moved to existing parent ${res.movedToParentName}.`
+            : "";
         onSaved?.(
-          `${res.student?.fullName} updated successfully.${warn}`,
+          `${res.student?.fullName} updated successfully.${movedMsg}${warn}`,
           res.warning ? "error" : "success",
         );
         if (!res.warning) onClose();

@@ -218,17 +218,36 @@ export interface UpdateStudentApiInput {
   sectionId?: string | null;
   monthlyFee?: number;
   status?: StudentStatus;
+  /** Re-links the student to the parent on this phone — see the API schema. */
+  parentName?: string;
+  parentPhone?: string;
+}
+
+export interface UpdateStudentResult {
+  student: Student;
+  /** A parent record was created for this child by the edit. */
+  parentCreated: boolean;
+  parentCode?: string;
+  initialParentPassword?: string;
+  /** The family they left had no other children and was cleared. */
+  formerParentRemoved: boolean;
+  /** Set only when the child changed families. */
+  movedToParentName?: string;
 }
 
 export async function apiUpdateStudent(
   id: string,
   patch: UpdateStudentApiInput,
-): Promise<Student> {
-  const row = await api<ApiStudent>(`/students/${id}`, {
-    method: "PATCH",
-    body: patch,
-  });
-  return mapApiStudent(row);
+): Promise<UpdateStudentResult> {
+  const res = await api<{
+    student: ApiStudent;
+    parentCreated: boolean;
+    parentCode?: string;
+    initialParentPassword?: string;
+    formerParentRemoved: boolean;
+    movedToParentName?: string;
+  }>(`/students/${id}`, { method: "PATCH", body: patch });
+  return { ...res, student: mapApiStudent(res.student) };
 }
 
 export async function apiDeleteStudent(

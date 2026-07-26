@@ -326,6 +326,8 @@ export interface RegisterResult {
   parentCreated?: boolean;
   parentCode?: string;
   initialParentPassword?: string;
+  /** Set only when an edit moved the child to a different parent. */
+  movedToParentName?: string;
 }
 
 function isDuplicate(
@@ -525,13 +527,12 @@ export async function updateStudent(
   }
 
   try {
-    if (patch.parentName !== undefined || patch.parentPhone !== undefined) {
-      await apiUpdateParent(existing.parentId, {
-        name: patch.parentName?.trim(),
-        phone: patch.parentPhone?.trim(),
-      });
-    }
-    const updated = await apiUpdateStudent(id, {
+    // The parent details go to the student endpoint, which re-links the child
+    // to whoever holds that phone. Sending them to the parent endpoint instead
+    // renamed the family the child was wrongly filed under — rewriting the
+    // parent of every sibling, and failing outright when the corrected phone
+    // already belonged to the real family.
+    const res = await apiUpdateStudent(id, {
       fullName: patch.fullName?.trim(),
       gender: patch.gender,
       dob: patch.dob !== undefined ? patch.dob : undefined,
@@ -543,7 +544,10 @@ export async function updateStudent(
       sectionId,
       monthlyFee: patch.monthlyFee,
       status: patch.status,
+      parentName: patch.parentName?.trim() || undefined,
+      parentPhone: patch.parentPhone?.trim() || undefined,
     });
+    const updated = res.student;
 
     let student = updated;
     if (photo) {
@@ -558,9 +562,18 @@ export async function updateStudent(
       }
     }
 
+    // refreshStudents carries the parents list with it, so a re-link that
+    // created or retired a family is reflected without a second call.
     const refreshed = await refreshStudents();
     if (!refreshed) mergeStudentIntoState(student);
-    return { ok: true, student };
+    return {
+      ok: true,
+      student,
+      parentCreated: res.parentCreated,
+      parentCode: res.parentCode,
+      initialParentPassword: res.initialParentPassword,
+      movedToParentName: res.movedToParentName,
+    };
   } catch (e) {
     return { ok: false, error: apiErr(e, "Failed to update student.") };
   }
