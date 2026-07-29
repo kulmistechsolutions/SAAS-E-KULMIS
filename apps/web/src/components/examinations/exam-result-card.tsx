@@ -196,9 +196,9 @@ export function ExamResultCard({ data }: { data: ExamResultCardData }) {
               {data.academicYear ? (
                 <Info label={t("examinationsExamResultCard.academicYear")} value={data.academicYear} />
               ) : null}
-              <div className="min-w-0">
+              <div className="col-span-2 min-w-0 sm:col-span-3">
                 <p className="text-xs text-muted-foreground">{t("examinationsExamResultCard.examination")}</p>
-                <p className="truncate font-medium" title={data.examName}>
+                <p className="break-words font-medium">
                   {data.examName}
                   {data.term ? ` · ${data.term}` : ""}
                   {data.group ? (

@@ -6,6 +6,7 @@ import Link from "next/link";
 import {
   ClipboardList,
   FileText,
+  ListChecks,
   Lock,
   PenLine,
   Users,
@@ -67,6 +68,7 @@ const ACTIONS = [
   { label: "Enter Marks", href: "/examinations/marks", icon: PenLine, className: "bg-emerald-500 hover:bg-emerald-600 text-white" },
   { label: "Exam Groups", href: "/examinations/groups", icon: Users, className: "bg-violet-500 hover:bg-violet-600 text-white" },
   { label: "Publish Results", href: "/examinations/results", icon: Lock, className: "bg-orange-500 hover:bg-orange-600 text-white" },
+  { label: "Manage Exams", href: "/examinations/manage", icon: ListChecks, className: "bg-slate-500 hover:bg-slate-600 text-white" },
 ];
 
 export function ExamQuickActions() {

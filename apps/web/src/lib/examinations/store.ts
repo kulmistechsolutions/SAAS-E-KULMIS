@@ -18,6 +18,7 @@ import {
   apiBlockStudent,
   apiCreateExam,
   apiCreateExamGroup,
+  apiDeleteExam,
   apiExamDashboard,
   apiExamMarks,
   apiExamMonitoring,
@@ -1015,11 +1016,21 @@ export function recentExams(limit = 6): Exam[] {
   return [...ensure().exams].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, limit);
 }
 
-export function deleteExam(
-  _examId: string,
-  _user = "Admin User",
-): { ok: boolean; error?: string } {
-  return { ok: false, error: "Delete is not supported via API yet." };
+export async function deleteExam(
+  examId: string,
+  user = "Admin User",
+): Promise<{ ok: boolean; error?: string }> {
+  const s = ensure();
+  const exam = s.exams.find((e) => e.id === examId);
+  if (!exam) return { ok: false, error: "Exam not found." };
+  try {
+    await apiDeleteExam(examId);
+    await refreshExaminations();
+    logAudit("Exam Deleted", user, "ADMINISTRATOR", `${exam.name} · ${exam.className} ${exam.section}`);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: apiErr(e, "Failed to delete exam.") };
+  }
 }
 
 export function getAuditLog(): ExamAuditEntry[] {
