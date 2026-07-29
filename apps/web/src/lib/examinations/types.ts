@@ -30,6 +30,7 @@ export interface Exam {
   startDate: string;
   endDate: string;
   status: ExamStatus;
+  classId: string;
   className: string;
   section: string;
   subjects: string[];

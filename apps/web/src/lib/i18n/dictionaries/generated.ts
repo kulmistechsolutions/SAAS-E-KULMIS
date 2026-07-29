@@ -472,6 +472,11 @@ export const generated = {
     allTerms: "All terms",
     noExamsAvailable: "No exams available to add.",
     addSelected: "Add Selected",
+    published: "published",
+    publishAll: "Publish All",
+    allClasses: "All Classes",
+    exportExcel: "Export Excel",
+    exportDownloaded: "Export downloaded",
   },
   examinationsMarkEntryTable: {
     section: "— Section",

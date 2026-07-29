@@ -2,14 +2,14 @@
 
 
 import { useT } from "@/lib/i18n/provider";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { GraduationCap, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { useSchoolBranding } from "@/lib/settings/use-school-branding";
-import { lookupPublicResults } from "@/lib/examinations/store";
+import { buildExamGroupBreakdown, lookupPublicResults } from "@/lib/examinations/store";
 import type { StudentExamResult, StudentFinalResult } from "@/lib/examinations/types";
+import { ExamResultCard, type ExamResultCardData } from "@/components/examinations/exam-result-card";
 import { toast } from "@/lib/toast";
 
 export default function PublicResultsPage() {
@@ -64,6 +64,52 @@ export default function PublicResultsPage() {
 
   const student = finalResult;
 
+  const cards = useMemo<ExamResultCardData[]>(() => {
+    if (!finalResult) return [];
+    const seenGroups = new Set<string>();
+    const list: ExamResultCardData[] = [];
+    for (const tr of termResults) {
+      if (tr.examGroupId) {
+        if (seenGroups.has(tr.examGroupId)) continue;
+        seenGroups.add(tr.examGroupId);
+        const breakdown = buildExamGroupBreakdown(finalResult, tr.examGroupId);
+        if (!breakdown) continue;
+        list.push({
+          studentName: finalResult.studentName,
+          studentCode: finalResult.studentCode,
+          className: finalResult.className,
+          section: finalResult.section,
+          academicYear: finalResult.academicYear,
+          examName: breakdown.groupName,
+          subjects: [],
+          totalObtained: breakdown.totalObtained,
+          totalMax: breakdown.totalMax,
+          average: breakdown.average,
+          grade: breakdown.grade,
+          passed: breakdown.passed,
+          group: { examColumns: breakdown.examColumns, subjectRows: breakdown.subjectRows },
+        });
+      } else {
+        list.push({
+          studentName: finalResult.studentName,
+          studentCode: finalResult.studentCode,
+          className: finalResult.className,
+          section: finalResult.section,
+          academicYear: finalResult.academicYear,
+          examName: tr.examName,
+          term: tr.term,
+          subjects: tr.subjects,
+          totalObtained: tr.totalObtained,
+          totalMax: tr.totalMax,
+          average: tr.average,
+          grade: tr.grade,
+          passed: tr.passed,
+        });
+      }
+    }
+    return list;
+  }, [finalResult, termResults]);
+
   return (
     <main className="min-h-screen bg-secondary/30 p-4 sm:p-8">
       <div className="mx-auto max-w-3xl">
@@ -116,64 +162,9 @@ export default function PublicResultsPage() {
 
         {student && !blocked && (
           <div className="mt-6 space-y-6">
-            <div className="rounded-2xl border bg-card p-6 shadow-sm">
-              <h2 className="text-lg font-bold">{student.studentName}</h2>
-              <dl className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
-                <div><dt className="text-muted-foreground">{t("results.studentId")}</dt><dd className="font-medium">{student.studentCode}</dd></div>
-                <div><dt className="text-muted-foreground">{t("results.class")}</dt><dd className="font-medium">{student.className}</dd></div>
-                <div><dt className="text-muted-foreground">{t("results.section")}</dt><dd className="font-medium">{student.section ?? "—"}</dd></div>
-                <div><dt className="text-muted-foreground">{t("results.academicYear")}</dt><dd className="font-medium">{student.academicYear}</dd></div>
-              </dl>
-            </div>
-
-            {termResults.map((tr) => (
-              <div key={tr.examId} className="rounded-2xl border bg-card shadow-sm">
-                <div className="border-b px-5 py-3">
-                  <h3 className="font-semibold">{tr.examName}</h3>
-                  <p className="text-sm text-muted-foreground">{tr.term} {t("results.weight")} {tr.weightPercent}%</p>
-                </div>
-                <table className="w-full text-sm">
-                  <thead className="bg-secondary text-left text-xs text-muted-foreground">
-                    <tr>
-                      <th className="px-4 py-2 font-medium">{t("results.subject")}</th>
-                      <th className="px-4 py-2 font-medium">{t("results.max")}</th>
-                      <th className="px-4 py-2 font-medium">{t("results.obtained")}</th>
-                      <th className="px-4 py-2 font-medium">{t("results.grade")}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {tr.subjects.map((s) => (
-                      <tr key={s.subject} className="border-t">
-                        <td className="px-4 py-2">{s.subject}</td>
-                        <td className="px-4 py-2 tabular-nums">{s.maxMarks}</td>
-                        <td className="px-4 py-2 tabular-nums">{s.marksObtained}</td>
-                        <td className="px-4 py-2 font-semibold">{s.grade}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                <div className="flex flex-wrap gap-4 border-t px-5 py-3 text-sm">
-                  <span>{t("results.average")} <strong>{tr.average.toFixed(1)}</strong></span>
-                  <span>{t("results.grade")} <strong>{tr.grade}</strong></span>
-                  <Badge tone={tr.passed ? "success" : "danger"}>{tr.passed ? "Pass" : "Fail"}</Badge>
-                </div>
-              </div>
+            {cards.map((data) => (
+              <ExamResultCard key={data.examName + (data.term ?? "")} data={data} />
             ))}
-
-            {finalResult && (
-              <div className="rounded-2xl border-2 border-primary/20 bg-primary/5 p-6">
-                <h3 className="font-semibold">{t("results.finalAcademicResult")}</h3>
-                <p className="mt-2 text-3xl font-bold text-primary">
-                  {finalResult.finalGrade} · {finalResult.finalAverage.toFixed(1)}%
-                </p>
-                <Badge tone={finalResult.passed ? "success" : "danger"} className="mt-2">
-                  {finalResult.passed ? "PASS" : "FAIL"}
-                </Badge>
-                <p className="mt-3 text-xs text-muted-foreground">
-                  {t("results.calculatedFromWeightedTermMarksFinal")}
-                </p>
-              </div>
-            )}
 
             {termResults.length === 0 && (
               <p className="text-center text-muted-foreground">{t("results.noPublishedResultsYet")}</p>

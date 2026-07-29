@@ -431,6 +431,11 @@ export const arGenerated: PartialDictionary = {
     allTerms: "جميع الفصول",
     noExamsAvailable: "لا توجد امتحانات متاحة للإضافة.",
     addSelected: "إضافة المحدد",
+    published: "منشور",
+    publishAll: "نشر الكل",
+    allClasses: "جميع الصفوف",
+    exportExcel: "تصدير Excel",
+    exportDownloaded: "تم تنزيل التصدير",
     examS: "امتحان/امتحانات",
   },
   examinationsMarkEntryTable: {

@@ -59,6 +59,15 @@ export class ExaminationsController {
     return this.exams.createGroup(me.schoolId, parsed.data);
   }
 
+  @Roles(UserRole.ADMINISTRATOR, UserRole.EXAM_MANAGER)
+  @Patch("groups/:groupId/publish")
+  publishGroup(
+    @CurrentUser() me: AuthUser,
+    @Param("groupId") groupId: string,
+  ) {
+    return this.exams.publishExamGroup(me.schoolId, groupId, me);
+  }
+
   @Get("monitoring")
   monitoring(
     @CurrentUser() me: AuthUser,
@@ -159,6 +168,27 @@ export class ExaminationsController {
       me.schoolId,
       { classId, examId, sectionId, search, sortBy, sortDir },
       me.username,
+    );
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+    res.send(buffer);
+  }
+
+  @Roles(UserRole.ADMINISTRATOR, UserRole.EXAM_MANAGER)
+  @Get("groups/:groupId/export/xlsx")
+  @Header(
+    "Content-Type",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  )
+  async exportGroupResultsExcel(
+    @CurrentUser() me: AuthUser,
+    @Param("groupId") groupId: string,
+    @Query("classId") classId: string | undefined,
+    @Res() res: Response,
+  ) {
+    const { buffer, filename } = await this.exams.exportGroupResultsExcel(
+      me.schoolId,
+      groupId,
+      classId,
     );
     res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
     res.send(buffer);

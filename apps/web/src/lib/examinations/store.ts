@@ -25,6 +25,7 @@ import {
   apiListExamGroups,
   apiListExams,
   apiPublicResults,
+  apiPublishExamGroup,
   apiStudentResults,
   apiUpdateExamStatus,
   apiUpsertMarks,
@@ -127,6 +128,7 @@ function mapExam(e: ApiExam): Exam {
     startDate: e.startDate.slice(0, 10),
     endDate: e.endDate.slice(0, 10),
     status: e.status,
+    classId: e.classId,
     className: e.class?.name ?? "",
     section: e.section?.name ?? "",
     subjects: e.subjects.map((s) => s.subject.name),
@@ -576,6 +578,28 @@ export async function assignExamGroup(
     return { ok: true };
   } catch (e) {
     return { ok: false, error: apiErr(e, "Failed to assign exam group.") };
+  }
+}
+
+export async function publishExamGroup(
+  groupId: string,
+  user = "Admin User",
+): Promise<{ ok: boolean; error?: string; published?: number; skipped?: number; failed?: number }> {
+  const s = ensure();
+  const group = s.examGroups.find((g) => g.id === groupId);
+  if (!group) return { ok: false, error: "Exam group not found." };
+  try {
+    const res = await apiPublishExamGroup(groupId);
+    await refreshExaminations();
+    logAudit(
+      "Exam Group Published",
+      user,
+      "ADMINISTRATOR",
+      `${group.name} → ${res.published} published, ${res.skipped} already published, ${res.failed} failed`,
+    );
+    return { ok: true, published: res.published, skipped: res.skipped, failed: res.failed };
+  } catch (e) {
+    return { ok: false, error: apiErr(e, "Failed to publish exam group.") };
   }
 }
 

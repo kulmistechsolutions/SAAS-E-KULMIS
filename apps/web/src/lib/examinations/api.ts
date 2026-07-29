@@ -250,6 +250,12 @@ export const apiUpdateExamStatus = (examId: string, status: ExamStatus) =>
 export const apiAssignExamGroup = (examId: string, examGroupId: string | null) =>
   api<ApiExam>(`/examinations/${examId}/group`, { method: "PATCH", body: { examGroupId } });
 
+export const apiPublishExamGroup = (groupId: string) =>
+  api<{ total: number; published: number; skipped: number; failed: number }>(
+    `/examinations/groups/${groupId}/publish`,
+    { method: "PATCH" },
+  );
+
 export const apiUpsertMarks = (body: {
   examId: string;
   records: { studentId: string; subjectId: string; marks: number | null }[];
@@ -540,4 +546,30 @@ export async function apiDownloadClassResultsExcel(opts: {
   const disposition = res.headers.get("content-disposition") ?? "";
   const match = disposition.match(/filename="?([^"]+)"?/);
   return { blob: await res.blob(), filename: match?.[1] ?? "class-results.xlsx" };
+}
+
+/** Download a group's combined, weighted results — one class, or every class in the group. */
+export async function apiDownloadGroupResultsExcel(
+  groupId: string,
+  classId?: string,
+): Promise<{ blob: Blob; filename: string }> {
+  const params = new URLSearchParams();
+  if (classId) params.set("classId", classId);
+  const token = getAccessToken();
+  const res = await fetch(
+    `${API_URL}/api/examinations/groups/${groupId}/export/xlsx${params.toString() ? `?${params}` : ""}`,
+    {
+      headers: {
+        "x-tenant-subdomain": TENANT,
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    },
+  );
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new Error(body?.message ?? "Could not download Excel file.");
+  }
+  const disposition = res.headers.get("content-disposition") ?? "";
+  const match = disposition.match(/filename="?([^"]+)"?/);
+  return { blob: await res.blob(), filename: match?.[1] ?? "group-results.xlsx" };
 }

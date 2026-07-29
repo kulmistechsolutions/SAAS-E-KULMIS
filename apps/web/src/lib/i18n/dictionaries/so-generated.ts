@@ -432,6 +432,11 @@ export const soGenerated: PartialDictionary = {
     allTerms: "Dhammaan xilliyada",
     noExamsAvailable: "Imtixaan lagu dari karo ma jiro.",
     addSelected: "Ku Dar Kuwa La Doortay",
+    published: "waa la daabacay",
+    publishAll: "Daabac Dhammaan",
+    allClasses: "Dhammaan Fasallada",
+    exportExcel: "Soo Deji Excel",
+    exportDownloaded: "Soo dejinta way dhammaatay",
   },
   examinationsMarkEntryTable: {
     studentId: "Aqoonsiga Ardayga",

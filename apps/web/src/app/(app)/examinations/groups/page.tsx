@@ -10,8 +10,10 @@ import { Select } from "@/components/ui/select";
 import {
   assignExamGroup,
   createExamGroup,
+  publishExamGroup,
   useExaminationsState,
 } from "@/lib/examinations/store";
+import { apiDownloadGroupResultsExcel } from "@/lib/examinations/api";
 import { AcademicYearSelect } from "@/components/academics/academic-year-select";
 import { useAcademicYearSelect } from "@/lib/academics/year-select";
 import { toast } from "@/lib/toast";
@@ -26,6 +28,9 @@ export default function ExamGroupsPage() {
   const [termFilter, setTermFilter] = useState("");
   const [selectedExamIds, setSelectedExamIds] = useState<Set<string>>(new Set());
   const [adding, setAdding] = useState(false);
+  const [publishingGroupId, setPublishingGroupId] = useState<string | null>(null);
+  const [exportClassId, setExportClassId] = useState("");
+  const [exporting, setExporting] = useState(false);
 
   async function handleCreate() {
     if (!name.trim()) {
@@ -67,10 +72,19 @@ export default function ExamGroupsPage() {
     return [...terms].sort();
   }, [exams, managingGroup]);
 
+  const groupClasses = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const e of groupExams) map.set(e.classId, e.className);
+    return [...map.entries()]
+      .map(([classId, className]) => ({ classId, className }))
+      .sort((a, b) => a.className.localeCompare(b.className));
+  }, [groupExams]);
+
   function openManage(groupId: string) {
     setManagingGroupId(groupId === managingGroupId ? null : groupId);
     setTermFilter("");
     setSelectedExamIds(new Set());
+    setExportClassId("");
   }
 
   function toggleExamSelected(examId: string) {
@@ -102,6 +116,48 @@ export default function ExamGroupsPage() {
   async function handleRemoveFromGroup(examId: string) {
     const res = await assignExamGroup(examId, null);
     if (!res.ok) toast(res.error ?? "Failed to remove exam from group", "error");
+  }
+
+  async function handleExportGroup(groupId: string) {
+    setExporting(true);
+    try {
+      const { blob, filename } = await apiDownloadGroupResultsExcel(
+        groupId,
+        exportClassId || undefined,
+      );
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast(t("examinationsGroups.exportDownloaded"), "success");
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Export failed", "error");
+    } finally {
+      setExporting(false);
+    }
+  }
+
+  async function handlePublishGroup(groupId: string, groupName: string) {
+    setPublishingGroupId(groupId);
+    const res = await publishExamGroup(groupId);
+    setPublishingGroupId(null);
+    if (!res.ok) {
+      toast(res.error ?? "Failed to publish exam group", "error");
+      return;
+    }
+    if (res.failed && res.failed > 0) {
+      toast(
+        `${groupName}: published ${res.published}, ${res.skipped} already published, ${res.failed} failed`,
+        "error",
+      );
+    } else {
+      toast(
+        `${groupName}: published ${res.published} exam(s)${res.skipped ? `, ${res.skipped} already published` : ""}`,
+        "success",
+      );
+    }
   }
 
   return (
@@ -137,21 +193,35 @@ export default function ExamGroupsPage() {
           <p className="border-b px-5 py-3 font-semibold">{t("examinationsGroups.existingGroups")}</p>
           <ul className="divide-y">
             {examGroups.map((g) => {
-              const count = exams.filter((e) => e.examGroupId === g.id).length;
+              const groupExamsAll = exams.filter((e) => e.examGroupId === g.id);
+              const count = groupExamsAll.length;
+              const publishedCount = groupExamsAll.filter((e) => e.status === "PUBLISHED").length;
               const isOpen = managingGroupId === g.id;
               return (
                 <li key={g.id} className="px-5 py-4">
                   <div className="flex items-center justify-between gap-4">
                     <div>
                       <p className="font-medium">{g.name}</p>
-                      <p className="text-sm text-muted-foreground">{g.academicYear} · {count} {t("examinationsGroups.examS")}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {g.academicYear} · {count} {t("examinationsGroups.examS")}
+                        {count > 0 ? ` · ${publishedCount}/${count} ${t("examinationsGroups.published")}` : ""}
+                      </p>
                       {g.description && (
                         <p className="mt-1 text-xs text-muted-foreground">{g.description}</p>
                       )}
                     </div>
-                    <Button variant="outline" onClick={() => openManage(g.id)}>
-                      {isOpen ? t("examinationsGroups.close") : t("examinationsGroups.manageExams")}
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        disabled={count === 0 || publishedCount === count || publishingGroupId === g.id}
+                        onClick={() => handlePublishGroup(g.id, g.name)}
+                      >
+                        {publishingGroupId === g.id ? "…" : t("examinationsGroups.publishAll")}
+                      </Button>
+                      <Button variant="outline" onClick={() => openManage(g.id)}>
+                        {isOpen ? t("examinationsGroups.close") : t("examinationsGroups.manageExams")}
+                      </Button>
+                    </div>
                   </div>
 
                   {isOpen && (
@@ -180,6 +250,29 @@ export default function ExamGroupsPage() {
                               </li>
                             ))}
                           </ul>
+                        )}
+
+                        {groupExams.length > 0 && (
+                          <div className="mt-3 flex items-center gap-2">
+                            <Select
+                              className="h-8 flex-1 text-xs"
+                              value={exportClassId}
+                              onChange={(e) => setExportClassId(e.target.value)}
+                            >
+                              <option value="">{t("examinationsGroups.allClasses")}</option>
+                              {groupClasses.map((c) => (
+                                <option key={c.classId} value={c.classId}>{c.className}</option>
+                              ))}
+                            </Select>
+                            <Button
+                              variant="outline"
+                              className="h-8 px-3 text-xs"
+                              disabled={exporting}
+                              onClick={() => handleExportGroup(g.id)}
+                            >
+                              {exporting ? "…" : t("examinationsGroups.exportExcel")}
+                            </Button>
+                          </div>
                         )}
                       </div>
 

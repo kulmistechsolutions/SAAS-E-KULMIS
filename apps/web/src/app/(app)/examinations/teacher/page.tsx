@@ -218,6 +218,7 @@ export default function TeacherExamPortalPage() {
       startDate: apiExam.startDate.slice(0, 10),
       endDate: apiExam.endDate.slice(0, 10),
       status: apiExam.status,
+      classId: apiExam.classId,
       className: apiExam.class.name,
       section: secName,
       subjects: apiExam.subjects.map((s) => s.subject.name),

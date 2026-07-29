@@ -93,7 +93,15 @@ async function bootstrap() {
   );
 
   // Only this app's own origins may call the API with credentials.
-  app.enableCors({ origin: buildCorsOrigin(), credentials: true });
+  // exposedHeaders lets the browser read Content-Disposition on file-download
+  // responses (PDF/Excel exports) — without it, the app and API are on
+  // different origins in production, so the download filename silently falls
+  // back to a generic default.
+  app.enableCors({
+    origin: buildCorsOrigin(),
+    credentials: true,
+    exposedHeaders: ["Content-Disposition"],
+  });
 
   // Behind Traefik: trust the proxy so req.ip is the real client address, which
   // rate limiting and the login audit trail both depend on.

@@ -274,6 +274,191 @@ export class ExaminationsService {
     return updated;
   }
 
+  /** Lock (if needed) and publish every exam in a group with one action. */
+  async publishExamGroup(
+    schoolId: string,
+    examGroupId: string,
+    actor?: Pick<AuthUser, "userId" | "username" | "role">,
+  ) {
+    const group = await this.prisma.forTenant(schoolId, (tx) =>
+      tx.examGroup.findFirst({ where: { id: examGroupId } }),
+    );
+    if (!group) throw new NotFoundException("Exam group not found");
+
+    const exams = await this.prisma.forTenant(schoolId, (tx) =>
+      tx.exam.findMany({ where: { examGroupId }, select: { id: true, status: true } }),
+    );
+
+    let published = 0;
+    let skipped = 0;
+    let failed = 0;
+    for (const exam of exams) {
+      if (exam.status === "PUBLISHED") {
+        skipped++;
+        continue;
+      }
+      try {
+        if (exam.status !== "LOCKED") {
+          await this.updateExamStatus(schoolId, exam.id, "LOCKED");
+        }
+        await this.updateExamStatus(schoolId, exam.id, "PUBLISHED");
+        published++;
+      } catch {
+        failed++;
+      }
+    }
+
+    await this.audit.record({
+      schoolId,
+      userId: actor?.userId ?? null,
+      username: actor?.username ?? null,
+      role: actor?.role ?? null,
+      module: "examinations",
+      action: "EXAM_GROUP_PUBLISHED",
+      metadata: { examGroupId, groupName: group.name, published, skipped, failed },
+    });
+
+    return { total: exams.length, published, skipped, failed };
+  }
+
+  /** Excel export of a group's combined, weighted per-subject results — one class or every class that has exams in the group. */
+  async exportGroupResultsExcel(
+    schoolId: string,
+    examGroupId: string,
+    classId?: string,
+  ): Promise<{ buffer: Buffer; filename: string }> {
+    return this.prisma.forTenant(schoolId, async (tx) => {
+      const group = await tx.examGroup.findFirst({ where: { id: examGroupId } });
+      if (!group) throw new NotFoundException("Exam group not found");
+
+      const exams = await tx.exam.findMany({
+        where: { examGroupId, ...(classId ? { classId } : {}) },
+        include: {
+          subjects: { include: { subject: { select: { name: true } } } },
+          class: { select: { name: true } },
+          section: { select: { name: true } },
+        },
+      });
+      if (exams.length === 0) {
+        throw new BadRequestException("No exams found for this group/class.");
+      }
+
+      const marks = await tx.examMark.findMany({
+        where: { examId: { in: exams.map((e) => e.id) } },
+      });
+      const markMap = new Map(marks.map((m) => [`${m.examId}_${m.studentId}_${m.subjectId}`, m.marks]));
+
+      const cohorts = new Map<string, { classId: string; sectionId: string | null; className: string; sectionName: string | null; exams: typeof exams }>();
+      for (const exam of exams) {
+        const key = `${exam.classId}_${exam.sectionId ?? ""}`;
+        const existing = cohorts.get(key);
+        if (existing) existing.exams.push(exam);
+        else
+          cohorts.set(key, {
+            classId: exam.classId,
+            sectionId: exam.sectionId,
+            className: exam.class.name,
+            sectionName: exam.section?.name ?? null,
+            exams: [exam],
+          });
+      }
+
+      const allSubjects = new Set<string>();
+      for (const exam of exams) {
+        for (const es of exam.subjects) allSubjects.add(es.subject.name);
+      }
+      const subjectList = [...allSubjects].sort();
+
+      type ExportRow = Record<string, string | number>;
+      const rows: ExportRow[] = [];
+
+      for (const cohort of cohorts.values()) {
+        const students = await tx.student.findMany({
+          where: {
+            classId: cohort.classId,
+            sectionId: cohort.sectionId,
+            status: { in: ["ACTIVE", "GRADUATED"] },
+          },
+          select: { id: true, code: true, fullName: true },
+          orderBy: { fullName: "asc" },
+        });
+
+        for (const student of students) {
+          const row: ExportRow = {
+            className: cohort.className,
+            section: cohort.sectionName ?? "—",
+            code: student.code,
+            name: student.fullName,
+          };
+
+          const subjectPercents: number[] = [];
+          for (const subjectName of subjectList) {
+            let weightSum = 0;
+            let weightedPct = 0;
+            let present = false;
+            for (const exam of cohort.exams) {
+              const es = exam.subjects.find((s) => s.subject.name === subjectName);
+              if (!es) continue;
+              const obtained = markMap.get(`${exam.id}_${student.id}_${es.subjectId}`);
+              if (obtained == null || exam.maxMarks <= 0) continue;
+              present = true;
+              const pct = (obtained / exam.maxMarks) * 100;
+              weightedPct += pct * exam.weightPercent;
+              weightSum += exam.weightPercent;
+            }
+            if (present && weightSum > 0) {
+              const combined = Math.round((weightedPct / weightSum) * 10) / 10;
+              row[subjectName] = combined;
+              subjectPercents.push(combined);
+            } else {
+              row[subjectName] = "—";
+            }
+          }
+
+          const total =
+            subjectPercents.length > 0
+              ? subjectPercents.reduce((s, p) => s + p, 0) / subjectPercents.length
+              : 0;
+          row.total = Math.round(total * 10) / 10;
+          row.grade = subjectPercents.length > 0 ? gradeFromAverage(total) : "—";
+          row.result = subjectPercents.length > 0 ? (total >= 50 ? "Pass" : "Fail") : "—";
+          rows.push(row);
+        }
+      }
+
+      const school = await this.prisma.school.findFirst({
+        where: { id: schoolId },
+        select: { name: true },
+      });
+
+      const columns = [
+        { key: "className", label: "Class" },
+        { key: "section", label: "Section" },
+        { key: "code", label: "Student ID" },
+        { key: "name", label: "Student Name" },
+        ...subjectList.map((name) => ({ key: name, label: name })),
+        { key: "total", label: "Combined %" },
+        { key: "grade", label: "Grade" },
+        { key: "result", label: "Result" },
+      ];
+
+      const buffer = await this.docs.buildBrandedExcelReport({
+        sheetName: "Group Results",
+        headerLines: [
+          school?.name ?? "School",
+          `Exam Group: ${group.name}`,
+          classId ? `Class: ${exams[0].class.name}` : "All Classes",
+          `Date: ${new Date().toLocaleDateString()}`,
+        ],
+        columns,
+        rows,
+      });
+
+      const filename = `${group.name}-results.xlsx`.replace(/\s+/g, "-").toLowerCase();
+      return { buffer, filename };
+    });
+  }
+
   /** Toggle teacher lock — prevents teachers from editing marks. */
   async setTeacherLock(
     schoolId: string,

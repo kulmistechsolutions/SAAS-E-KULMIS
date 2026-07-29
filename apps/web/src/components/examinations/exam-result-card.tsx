@@ -70,6 +70,35 @@ export function subjectGrade(
   return "F";
 }
 
+/** Tailwind classes for a grade pill — green for top grades, fading to red for a fail. */
+function gradeTone(grade: string): string {
+  switch (grade) {
+    case "A+":
+    case "A":
+      return "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300";
+    case "B":
+      return "bg-sky-100 text-sky-800 dark:bg-sky-900/40 dark:text-sky-300";
+    case "C":
+      return "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300";
+    case "D":
+      return "bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-300";
+    case "F":
+      return "bg-rose-100 text-rose-800 dark:bg-rose-900/40 dark:text-rose-300";
+    default:
+      return "bg-secondary text-muted-foreground";
+  }
+}
+
+function GradePill({ grade }: { grade: string }) {
+  return (
+    <span
+      className={`inline-flex min-w-[2.25rem] items-center justify-center rounded-md px-2 py-0.5 text-xs font-bold ${gradeTone(grade)}`}
+    >
+      {grade}
+    </span>
+  );
+}
+
 /** The scannable link (public result lookup) the QR encodes. */
 function publicResultUrl(studentCode: string): string {
   if (typeof window === "undefined") return "";
@@ -167,10 +196,18 @@ export function ExamResultCard({ data }: { data: ExamResultCardData }) {
               {data.academicYear ? (
                 <Info label={t("examinationsExamResultCard.academicYear")} value={data.academicYear} />
               ) : null}
-              <Info
-                label={t("examinationsExamResultCard.examination")}
-                value={`${data.examName}${data.term ? ` · ${data.term}` : ""}`}
-              />
+              <div className="min-w-0">
+                <p className="text-xs text-muted-foreground">{t("examinationsExamResultCard.examination")}</p>
+                <p className="truncate font-medium" title={data.examName}>
+                  {data.examName}
+                  {data.term ? ` · ${data.term}` : ""}
+                  {data.group ? (
+                    <span className="ml-2 inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 align-middle text-[10px] font-semibold uppercase tracking-wide text-primary">
+                      {t("examinationsExamResultCard.combined")}
+                    </span>
+                  ) : null}
+                </p>
+              </div>
             </div>
 
             <div className="overflow-x-auto rounded-xl border">
@@ -190,7 +227,7 @@ export function ExamResultCard({ data }: { data: ExamResultCardData }) {
                   </thead>
                   <tbody>
                     {data.group.subjectRows.map((row) => (
-                      <tr key={row.subject} className="border-t">
+                      <tr key={row.subject} className="border-t odd:bg-secondary/20">
                         <td className="px-4 py-2.5 font-medium">{row.subject}</td>
                         {data.group!.examColumns.map((col) => (
                           <td key={col.examId} className="px-4 py-2.5 text-right tabular-nums">
@@ -201,7 +238,9 @@ export function ExamResultCard({ data }: { data: ExamResultCardData }) {
                         <td className="px-4 py-2.5 text-right font-semibold tabular-nums">
                           {row.combinedPercent}%
                         </td>
-                        <td className="px-4 py-2.5 text-center font-semibold">{row.grade}</td>
+                        <td className="px-4 py-2.5 text-center">
+                          <GradePill grade={row.grade} />
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -211,7 +250,9 @@ export function ExamResultCard({ data }: { data: ExamResultCardData }) {
                         {t("examinationsExamResultCard.total")}
                       </td>
                       <td className="px-4 py-2.5 text-right tabular-nums">{data.average}%</td>
-                      <td className="px-4 py-2.5 text-center">{data.grade}</td>
+                      <td className="px-4 py-2.5 text-center">
+                        <GradePill grade={data.grade} />
+                      </td>
                     </tr>
                   </tfoot>
                 </table>
@@ -227,7 +268,7 @@ export function ExamResultCard({ data }: { data: ExamResultCardData }) {
                   </thead>
                   <tbody>
                     {data.subjects.map((s) => (
-                      <tr key={s.subject} className="border-t">
+                      <tr key={s.subject} className="border-t odd:bg-secondary/20">
                         <td className="px-4 py-2.5 font-medium">{s.subject}</td>
                         <td className="px-4 py-2.5 text-right tabular-nums">
                           {s.marksObtained ?? "—"}
@@ -235,8 +276,8 @@ export function ExamResultCard({ data }: { data: ExamResultCardData }) {
                         <td className="px-4 py-2.5 text-right tabular-nums text-muted-foreground">
                           {s.maxMarks}
                         </td>
-                        <td className="px-4 py-2.5 text-center font-semibold">
-                          {s.grade}
+                        <td className="px-4 py-2.5 text-center">
+                          <GradePill grade={s.grade} />
                         </td>
                       </tr>
                     ))}
@@ -250,7 +291,9 @@ export function ExamResultCard({ data }: { data: ExamResultCardData }) {
                       <td className="px-4 py-2.5 text-right tabular-nums text-muted-foreground">
                         {data.totalMax}
                       </td>
-                      <td className="px-4 py-2.5 text-center">{data.grade}</td>
+                      <td className="px-4 py-2.5 text-center">
+                        <GradePill grade={data.grade} />
+                      </td>
                     </tr>
                   </tfoot>
                 </table>
