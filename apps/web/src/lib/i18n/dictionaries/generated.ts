@@ -346,6 +346,8 @@ export const generated = {
     weight: "Weight",
     period: "Period",
     status: "Status",
+    group: "Group",
+    none: "None",
   },
   examinationsBlocked: {
     blockedStudents: "Blocked Students",

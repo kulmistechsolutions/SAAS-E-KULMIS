@@ -340,6 +340,8 @@ export const soGenerated: PartialDictionary = {
     weight: "Miisaanka",
     period: "Xilliga",
     status: "Xaaladda",
+    group: "Kooxda",
+    none: "Midna",
   },
   examinationsBlocked: {
     blockedStudents: "Ardayda la Xannibay",

@@ -14,6 +14,7 @@ import type { Student } from "@/lib/students/types";
 import { getTeachersState, teacherAssignments } from "@/lib/teachers/store";
 import type { Teacher } from "@/lib/teachers/types";
 import {
+  apiAssignExamGroup,
   apiBlockStudent,
   apiCreateExam,
   apiCreateExamGroup,
@@ -548,6 +549,30 @@ export async function updateExamStatus(
     return { ok: true };
   } catch (e) {
     return { ok: false, error: apiErr(e, "Failed to update exam status.") };
+  }
+}
+
+export async function assignExamGroup(
+  examId: string,
+  examGroupId: string | null,
+  user = "Admin User",
+): Promise<{ ok: boolean; error?: string }> {
+  const s = ensure();
+  const exam = s.exams.find((e) => e.id === examId);
+  if (!exam) return { ok: false, error: "Exam not found." };
+  try {
+    await apiAssignExamGroup(examId, examGroupId);
+    await refreshExaminations();
+    const group = examGroupId ? s.examGroups.find((g) => g.id === examGroupId) : undefined;
+    logAudit(
+      examGroupId ? "Exam Group Assigned" : "Exam Group Removed",
+      user,
+      "ADMINISTRATOR",
+      `${exam.name} → ${group?.name ?? "None"}`,
+    );
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: apiErr(e, "Failed to assign exam group.") };
   }
 }
 

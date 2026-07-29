@@ -245,6 +245,9 @@ export const apiDeleteExam = (examId: string) =>
 export const apiUpdateExamStatus = (examId: string, status: ExamStatus) =>
   api<ApiExam>(`/examinations/${examId}/status`, { method: "PATCH", body: { status } });
 
+export const apiAssignExamGroup = (examId: string, examGroupId: string | null) =>
+  api<ApiExam>(`/examinations/${examId}/group`, { method: "PATCH", body: { examGroupId } });
+
 export const apiUpsertMarks = (body: {
   examId: string;
   records: { studentId: string; subjectId: string; marks: number | null }[];

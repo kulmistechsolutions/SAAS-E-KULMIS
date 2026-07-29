@@ -340,6 +340,8 @@ export const arGenerated: PartialDictionary = {
     weight: "الوزن",
     period: "الحصة",
     status: "الحالة",
+    group: "المجموعة",
+    none: "بلا",
   },
   examinationsBlocked: {
     blockedStudents: "الطلاب الممنوعون",

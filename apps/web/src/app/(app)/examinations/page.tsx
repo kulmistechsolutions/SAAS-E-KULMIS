@@ -12,13 +12,16 @@ import {
   RecentExamsList,
 } from "@/components/examinations/widgets";
 import { ExamStatusBadge } from "@/components/examinations/exam-status-badge";
+import { Select } from "@/components/ui/select";
 import { examTypeLabel, shortDate } from "@/lib/examinations/format";
 import {
+  assignExamGroup,
   dashboardSummary,
   monitoringRows,
   recentExams,
   useExaminationsState,
 } from "@/lib/examinations/store";
+import { toast } from "@/lib/toast";
 
 export default function ExaminationsDashboardPage() {
   const t = useT();
@@ -81,6 +84,7 @@ export default function ExaminationsDashboardPage() {
                     <th className="px-4 py-2.5 font-medium">{t("examinations.weight")}</th>
                     <th className="px-4 py-2.5 font-medium">{t("examinations.period")}</th>
                     <th className="px-4 py-2.5 font-medium">{t("examinations.status")}</th>
+                    <th className="px-4 py-2.5 font-medium">{t("examinations.group")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -102,6 +106,22 @@ export default function ExaminationsDashboardPage() {
                       </td>
                       <td className="px-4 py-2.5">
                         <ExamStatusBadge status={e.status} />
+                      </td>
+                      <td className="px-4 py-2.5">
+                        <Select
+                          className="h-8 min-w-[9rem] text-xs"
+                          value={e.examGroupId ?? ""}
+                          onChange={async (ev) => {
+                            const res = await assignExamGroup(e.id, ev.target.value || null);
+                            if (!res.ok) toast(res.error ?? "Failed to assign exam group", "error");
+                            else toast("Exam group updated", "success");
+                          }}
+                        >
+                          <option value="">{t("examinations.none")}</option>
+                          {exams.examGroups.map((g) => (
+                            <option key={g.id} value={g.id}>{g.name}</option>
+                          ))}
+                        </Select>
                       </td>
                     </tr>
                   ))}

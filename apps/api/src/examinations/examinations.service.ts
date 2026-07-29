@@ -254,6 +254,26 @@ export class ExaminationsService {
     });
   }
 
+  /** Assign, change, or clear the exam group on an already-created exam. */
+  async assignExamGroup(
+    schoolId: string,
+    examId: string,
+    examGroupId: string | null,
+    actor?: Pick<AuthUser, "userId" | "username" | "role">,
+  ) {
+    const updated = await this.prisma.forTenant(schoolId, async (tx) => {
+      const exam = await tx.exam.findFirst({ where: { id: examId } });
+      if (!exam) throw new NotFoundException("Exam not found");
+      if (examGroupId) {
+        const group = await tx.examGroup.findFirst({ where: { id: examGroupId } });
+        if (!group) throw new NotFoundException("Exam group not found");
+      }
+      return tx.exam.update({ where: { id: examId }, data: { examGroupId } });
+    });
+    await this.recordExamAudit(schoolId, actor, "EXAM_GROUP_ASSIGNED", examId);
+    return updated;
+  }
+
   /** Toggle teacher lock — prevents teachers from editing marks. */
   async setTeacherLock(
     schoolId: string,

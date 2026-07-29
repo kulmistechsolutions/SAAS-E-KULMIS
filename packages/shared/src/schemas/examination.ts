@@ -76,6 +76,10 @@ export const updateExamStatusSchema = z.object({
   status: examStatusSchema,
 });
 
+export const assignExamGroupSchema = z.object({
+  examGroupId: z.string().min(1).nullable(),
+});
+
 export const upsertExamMarksSchema = z.object({
   examId: z.string().min(1),
   records: z

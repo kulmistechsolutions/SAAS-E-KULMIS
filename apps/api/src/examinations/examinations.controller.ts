@@ -13,6 +13,7 @@ import {
 } from "@nestjs/common";
 import type { Response } from "express";
 import {
+  assignExamGroupSchema,
   blockStudentSchema,
   createExamGroupSchema,
   createExamSchema,
@@ -435,6 +436,18 @@ export class ExaminationsController {
       parsed.data.published,
       me,
     );
+  }
+
+  @Roles(UserRole.ADMINISTRATOR, UserRole.EXAM_MANAGER)
+  @Patch(":id/group")
+  assignGroup(
+    @CurrentUser() me: AuthUser,
+    @Param("id") id: string,
+    @Body() body: unknown,
+  ) {
+    const parsed = assignExamGroupSchema.safeParse(body);
+    if (!parsed.success) throw new BadRequestException(parsed.error.flatten());
+    return this.exams.assignExamGroup(me.schoolId, id, parsed.data.examGroupId, me);
   }
 
   @Roles(UserRole.ADMINISTRATOR, UserRole.EXAM_MANAGER)
