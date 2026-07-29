@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const ROOT_DOMAIN = process.env.APP_ROOT_DOMAIN ?? "ekulmis.local";
+const ROOT_DOMAIN = process.env.NEXT_PUBLIC_APP_ROOT_DOMAIN ?? "ekulmis.local";
 
 /**
  * Resolves the tenant subdomain from the Host header and forwards it as

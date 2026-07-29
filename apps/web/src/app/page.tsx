@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { BRAND } from "@/lib/brand";
 
-const ROOT_DOMAIN = process.env.APP_ROOT_DOMAIN ?? "ekulmis.local";
+const ROOT_DOMAIN = process.env.NEXT_PUBLIC_APP_ROOT_DOMAIN ?? "ekulmis.local";
 
 function hasTenantSubdomain(host: string): boolean {
   const bare = host.split(":")[0].toLowerCase();
