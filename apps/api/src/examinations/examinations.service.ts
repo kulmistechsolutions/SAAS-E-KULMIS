@@ -1465,6 +1465,7 @@ export class ExaminationsService {
         },
         include: {
           subjects: { include: { subject: { select: { name: true } } } },
+          examGroup: { select: { id: true, name: true } },
         },
       });
 
@@ -1494,6 +1495,8 @@ export class ExaminationsService {
           examName: exam.name,
           term: exam.term,
           weightPercent: exam.weightPercent,
+          examGroupId: exam.examGroupId,
+          examGroupName: exam.examGroup?.name ?? null,
           subjects,
           totalObtained,
           totalMax,

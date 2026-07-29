@@ -41,6 +41,7 @@ import type {
   ExamAuditEntry,
   ExamDashboardSummary,
   ExamGroup,
+  ExamGroupResultBreakdown,
   ExamMark,
   ExamStatus,
   ExaminationsState,
@@ -151,6 +152,8 @@ function mapStudentResults(data: ApiStudentFinalResult): StudentFinalResult {
     examName: tr.examName,
     term: tr.term,
     weightPercent: tr.weightPercent,
+    examGroupId: tr.examGroupId,
+    examGroupName: tr.examGroupName,
     subjects: tr.subjects.map((s) => ({
       subject: s.subject,
       maxMarks: s.maxMarks,
@@ -718,6 +721,8 @@ export function studentExamResult(studentId: string, examId: string): StudentExa
     examName: exam.name,
     term: exam.term,
     weightPercent: exam.weightPercent,
+    examGroupId: exam.examGroupId ?? null,
+    examGroupName: null,
     subjects: subjectRows,
     totalObtained,
     totalMax,
@@ -738,6 +743,61 @@ export async function fetchStudentFinalResult(
   } catch {
     return null;
   }
+}
+
+/** Combine every exam in `result.termResults` that shares `examGroupId`, weighted by weightPercent. */
+export function buildExamGroupBreakdown(
+  result: StudentFinalResult,
+  examGroupId: string,
+): ExamGroupResultBreakdown | null {
+  const members = result.termResults.filter((t) => t.examGroupId === examGroupId);
+  if (members.length === 0) return null;
+
+  const examColumns = members.map((t) => ({
+    examId: t.examId,
+    label: `${t.term} (${t.weightPercent}%)`,
+    maxMarks: t.subjects[0]?.maxMarks ?? 100,
+    weightPercent: t.weightPercent,
+  }));
+
+  const allSubjects = [...new Set(members.flatMap((t) => t.subjects.map((s) => s.subject)))];
+  const subjectRows = allSubjects.map((subject) => {
+    const perExam: Record<string, number | null> = {};
+    let weightSum = 0;
+    let weightedPct = 0;
+    for (const t of members) {
+      const row = t.subjects.find((s) => s.subject === subject);
+      perExam[t.examId] = row?.marksObtained ?? null;
+      if (row && row.maxMarks > 0) {
+        const pct = (row.marksObtained / row.maxMarks) * 100;
+        weightedPct += pct * t.weightPercent;
+        weightSum += t.weightPercent;
+      }
+    }
+    const combinedPercent = weightSum > 0 ? weightedPct / weightSum : 0;
+    return {
+      subject,
+      perExam,
+      combinedPercent: Math.round(combinedPercent * 10) / 10,
+      grade: gradeFromAverage(combinedPercent),
+    };
+  });
+
+  const average =
+    subjectRows.length > 0
+      ? subjectRows.reduce((sum, r) => sum + r.combinedPercent, 0) / subjectRows.length
+      : 0;
+
+  return {
+    groupName: members[0].examGroupName ?? "Combined Result",
+    examColumns,
+    subjectRows,
+    totalObtained: Math.round(subjectRows.reduce((sum, r) => sum + r.combinedPercent, 0) * 10) / 10,
+    totalMax: subjectRows.length * 100,
+    average: Math.round(average * 10) / 10,
+    grade: gradeFromAverage(average),
+    passed: passedFromAverage(average),
+  };
 }
 
 export function studentFinalResult(

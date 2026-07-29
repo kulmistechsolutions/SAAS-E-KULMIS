@@ -110,6 +110,8 @@ export interface StudentExamResult {
   examName: string;
   term: string;
   weightPercent: number;
+  examGroupId: string | null;
+  examGroupName: string | null;
   subjects: StudentResultRow[];
   totalObtained: number;
   totalMax: number;
@@ -137,6 +139,23 @@ export interface StudentFinalResult {
     average: number;
     grade: string;
   }[];
+}
+
+/** Combined view of every exam sharing one examGroupId, weighted by each exam's weightPercent. */
+export interface ExamGroupResultBreakdown {
+  groupName: string;
+  examColumns: { examId: string; label: string; maxMarks: number; weightPercent: number }[];
+  subjectRows: {
+    subject: string;
+    perExam: Record<string, number | null>;
+    combinedPercent: number;
+    grade: string;
+  }[];
+  totalObtained: number;
+  totalMax: number;
+  average: number;
+  grade: string;
+  passed: boolean;
 }
 
 export interface CreateExamInput {

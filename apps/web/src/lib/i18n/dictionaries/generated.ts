@@ -443,6 +443,7 @@ export const generated = {
     marks: "Marks",
     outOf: "Out of",
     grade: "Grade",
+    combined: "Combined",
     total: "Total",
     average: "Average",
     percentage: "Percentage",

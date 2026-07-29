@@ -29,6 +29,7 @@ import { FeeStatusBadge } from "@/components/fees/fee-status-badge";
 import { apiStudentLedger, type ApiStudentLedger } from "@/lib/fees/api";
 import { monthKey, monthLabel, money as feeMoney } from "@/lib/fees/format";
 import {
+  buildExamGroupBreakdown,
   fetchStudentFinalResult,
   isStudentBlocked,
   useExaminationsState,
@@ -551,6 +552,14 @@ function ExamsTab({ student }: { student: StudentWithParent }) {
 
   const rows = result?.termResults ?? [];
 
+  const groupBreakdown = useMemo(
+    () =>
+      viewing?.examGroupId && result
+        ? buildExamGroupBreakdown(result, viewing.examGroupId)
+        : null,
+    [viewing, result],
+  );
+
   if (blocked) {
     return (
       <div className="rounded-xl border border-rose-200 bg-rose-50 p-6 text-center text-rose-700">
@@ -577,7 +586,14 @@ function ExamsTab({ student }: { student: StudentWithParent }) {
           <tbody>
             {rows.map((r) => (
               <tr key={r.examId} className="border-t">
-                <td className="px-4 py-2.5">{r.examName}</td>
+                <td className="px-4 py-2.5">
+                  {r.examName}
+                  {r.examGroupName ? (
+                    <span className="ml-1.5 inline-flex items-center rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary">
+                      {r.examGroupName}
+                    </span>
+                  ) : null}
+                </td>
                 <td className="px-4 py-2.5">{r.term}</td>
                 <td className="px-4 py-2.5 tabular-nums">{r.totalObtained}</td>
                 <td className="px-4 py-2.5 tabular-nums">{r.average.toFixed(1)}</td>
@@ -625,25 +641,46 @@ function ExamsTab({ student }: { student: StudentWithParent }) {
         open={!!viewing}
         onClose={() => setViewing(null)}
         title={tr("students.examResultCard")}
-        className="sm:max-w-2xl"
+        className={groupBreakdown ? "sm:max-w-4xl" : "sm:max-w-2xl"}
       >
         {viewing && result ? (
           <ExamResultCard
-            data={{
-              studentName: result.studentName,
-              studentCode: result.studentCode,
-              className: result.className,
-              section: result.section,
-              academicYear: result.academicYear,
-              examName: viewing.examName,
-              term: viewing.term,
-              subjects: viewing.subjects,
-              totalObtained: viewing.totalObtained,
-              totalMax: viewing.totalMax,
-              average: viewing.average,
-              grade: viewing.grade,
-              passed: viewing.passed,
-            }}
+            data={
+              groupBreakdown
+                ? {
+                    studentName: result.studentName,
+                    studentCode: result.studentCode,
+                    className: result.className,
+                    section: result.section,
+                    academicYear: result.academicYear,
+                    examName: groupBreakdown.groupName,
+                    subjects: [],
+                    totalObtained: groupBreakdown.totalObtained,
+                    totalMax: groupBreakdown.totalMax,
+                    average: groupBreakdown.average,
+                    grade: groupBreakdown.grade,
+                    passed: groupBreakdown.passed,
+                    group: {
+                      examColumns: groupBreakdown.examColumns,
+                      subjectRows: groupBreakdown.subjectRows,
+                    },
+                  }
+                : {
+                    studentName: result.studentName,
+                    studentCode: result.studentCode,
+                    className: result.className,
+                    section: result.section,
+                    academicYear: result.academicYear,
+                    examName: viewing.examName,
+                    term: viewing.term,
+                    subjects: viewing.subjects,
+                    totalObtained: viewing.totalObtained,
+                    totalMax: viewing.totalMax,
+                    average: viewing.average,
+                    grade: viewing.grade,
+                    passed: viewing.passed,
+                  }
+            }
           />
         ) : null}
       </Dialog>

@@ -406,6 +406,7 @@ export const arGenerated: PartialDictionary = {
     subject: "المادة",
     marks: "الدرجات",
     grade: "الدرجة",
+    combined: "المجموع المرجّح",
     total: "الإجمالي",
     average: "المعدل",
     percentage: "النسبة",

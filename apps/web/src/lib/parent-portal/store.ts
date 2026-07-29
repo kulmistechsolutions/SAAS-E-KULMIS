@@ -335,6 +335,8 @@ export async function fetchChildExamResults(studentId: string): Promise<{
       examName: tr.examName,
       term: tr.term,
       weightPercent: tr.weightPercent,
+      examGroupId: tr.examGroupId,
+      examGroupName: tr.examGroupName,
       subjects: tr.subjects.map((s) => ({
         subject: s.subject,
         maxMarks: s.maxMarks,

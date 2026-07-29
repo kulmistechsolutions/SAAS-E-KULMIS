@@ -96,6 +96,8 @@ export interface ApiStudentExamResult {
   examName: string;
   term: string;
   weightPercent: number;
+  examGroupId: string | null;
+  examGroupName: string | null;
   subjects: ApiStudentResultSubject[];
   totalObtained: number;
   totalMax: number;

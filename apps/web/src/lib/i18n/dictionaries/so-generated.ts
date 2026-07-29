@@ -406,6 +406,7 @@ export const soGenerated: PartialDictionary = {
     subject: "Maadada",
     marks: "Dhibcaha",
     grade: "Darajada",
+    combined: "Isku Darka",
     total: "Wadarta",
     average: "Celceliska",
     percentage: "Boqolkiiba",

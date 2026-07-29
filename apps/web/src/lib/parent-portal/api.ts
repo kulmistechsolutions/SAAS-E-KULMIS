@@ -46,6 +46,8 @@ export interface ApiPortalExamResult {
   examName: string;
   term: string;
   weightPercent: number;
+  examGroupId: string | null;
+  examGroupName: string | null;
   subjects: {
     subject: string;
     maxMarks: number;
