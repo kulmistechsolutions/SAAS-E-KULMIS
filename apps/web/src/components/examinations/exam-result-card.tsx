@@ -210,53 +210,92 @@ export function ExamResultCard({ data }: { data: ExamResultCardData }) {
               </div>
             </div>
 
-            <div className="overflow-x-auto rounded-xl border">
-              {data.group ? (
-                <table className="w-full text-sm">
-                  <thead className="bg-secondary/60 text-left text-xs uppercase tracking-wide text-muted-foreground">
-                    <tr>
-                      <th className="px-4 py-2.5 font-medium">{t("examinationsExamResultCard.subject")}</th>
-                      {data.group.examColumns.map((col) => (
-                        <th key={col.examId} className="px-4 py-2.5 text-right font-medium whitespace-nowrap">
-                          {col.label}
-                        </th>
-                      ))}
-                      <th className="px-4 py-2.5 text-right font-medium">{t("examinationsExamResultCard.combined")}</th>
-                      <th className="px-4 py-2.5 text-center font-medium">{t("examinationsExamResultCard.grade")}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {data.group.subjectRows.map((row) => (
-                      <tr key={row.subject} className="border-t odd:bg-secondary/20">
-                        <td className="px-4 py-2.5 font-medium">{row.subject}</td>
+            {data.group ? (
+              <>
+                {/* Mobile: one card per subject — never needs horizontal scrolling. */}
+                <div className="divide-y rounded-xl border sm:hidden">
+                  {data.group.subjectRows.map((row) => (
+                    <div key={row.subject} className="space-y-1.5 p-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-medium">{row.subject}</span>
+                        <GradePill grade={row.grade} />
+                      </div>
+                      <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
                         {data.group!.examColumns.map((col) => (
-                          <td key={col.examId} className="px-4 py-2.5 text-right tabular-nums">
-                            {row.perExam[col.examId] ?? "—"}
-                            <span className="text-muted-foreground"> / {col.maxMarks}</span>
-                          </td>
+                          <div key={col.examId} className="flex items-center justify-between gap-2">
+                            <span className="truncate text-muted-foreground">{col.label}</span>
+                            <span className="shrink-0 tabular-nums">
+                              {row.perExam[col.examId] ?? "—"}
+                              <span className="text-muted-foreground">/{col.maxMarks}</span>
+                            </span>
+                          </div>
                         ))}
-                        <td className="px-4 py-2.5 text-right font-semibold tabular-nums">
-                          {row.combinedPercent}%
+                      </div>
+                      <div className="flex items-center justify-between border-t pt-1.5 text-sm font-semibold">
+                        <span>{t("examinationsExamResultCard.combined")}</span>
+                        <span className="tabular-nums">{row.combinedPercent}%</span>
+                      </div>
+                    </div>
+                  ))}
+                  <div className="flex items-center justify-between bg-secondary/40 p-3 font-semibold">
+                    <span>{t("examinationsExamResultCard.total")}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="tabular-nums">{data.average}%</span>
+                      <GradePill grade={data.grade} />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Desktop/tablet: full matrix table. */}
+                <div className="hidden overflow-x-auto rounded-xl border sm:block">
+                  <table className="w-full text-sm">
+                    <thead className="bg-secondary/60 text-left text-xs uppercase tracking-wide text-muted-foreground">
+                      <tr>
+                        <th className="px-4 py-2.5 font-medium">{t("examinationsExamResultCard.subject")}</th>
+                        {data.group.examColumns.map((col) => (
+                          <th key={col.examId} className="px-4 py-2.5 text-right font-medium whitespace-nowrap">
+                            {col.label}
+                          </th>
+                        ))}
+                        <th className="px-4 py-2.5 text-right font-medium">{t("examinationsExamResultCard.combined")}</th>
+                        <th className="px-4 py-2.5 text-center font-medium">{t("examinationsExamResultCard.grade")}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {data.group.subjectRows.map((row) => (
+                        <tr key={row.subject} className="border-t odd:bg-secondary/20">
+                          <td className="px-4 py-2.5 font-medium">{row.subject}</td>
+                          {data.group!.examColumns.map((col) => (
+                            <td key={col.examId} className="px-4 py-2.5 text-right tabular-nums">
+                              {row.perExam[col.examId] ?? "—"}
+                              <span className="text-muted-foreground"> / {col.maxMarks}</span>
+                            </td>
+                          ))}
+                          <td className="px-4 py-2.5 text-right font-semibold tabular-nums">
+                            {row.combinedPercent}%
+                          </td>
+                          <td className="px-4 py-2.5 text-center">
+                            <GradePill grade={row.grade} />
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot>
+                      <tr className="border-t bg-secondary/40 font-semibold">
+                        <td className="px-4 py-2.5" colSpan={1 + data.group.examColumns.length}>
+                          {t("examinationsExamResultCard.total")}
                         </td>
+                        <td className="px-4 py-2.5 text-right tabular-nums">{data.average}%</td>
                         <td className="px-4 py-2.5 text-center">
-                          <GradePill grade={row.grade} />
+                          <GradePill grade={data.grade} />
                         </td>
                       </tr>
-                    ))}
-                  </tbody>
-                  <tfoot>
-                    <tr className="border-t bg-secondary/40 font-semibold">
-                      <td className="px-4 py-2.5" colSpan={1 + data.group.examColumns.length}>
-                        {t("examinationsExamResultCard.total")}
-                      </td>
-                      <td className="px-4 py-2.5 text-right tabular-nums">{data.average}%</td>
-                      <td className="px-4 py-2.5 text-center">
-                        <GradePill grade={data.grade} />
-                      </td>
-                    </tr>
-                  </tfoot>
-                </table>
-              ) : (
+                    </tfoot>
+                  </table>
+                </div>
+              </>
+            ) : (
+              <div className="overflow-x-auto rounded-xl border">
                 <table className="w-full text-sm">
                   <thead className="bg-secondary/60 text-left text-xs uppercase tracking-wide text-muted-foreground">
                     <tr>
@@ -297,8 +336,8 @@ export function ExamResultCard({ data }: { data: ExamResultCardData }) {
                     </tr>
                   </tfoot>
                 </table>
-              )}
-            </div>
+              </div>
+            )}
 
             {/* Summary tiles */}
             <div className="grid grid-cols-3 gap-3">
