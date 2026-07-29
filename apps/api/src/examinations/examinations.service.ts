@@ -363,16 +363,17 @@ export class ExaminationsService {
           });
       }
 
-      const allSubjects = new Set<string>();
-      for (const exam of exams) {
-        for (const es of exam.subjects) allSubjects.add(es.subject.name);
-      }
-      const subjectList = [...allSubjects].sort();
-
       type ExportRow = Record<string, string | number>;
-      const rows: ExportRow[] = [];
+      const classSubjects = new Map<string, Set<string>>();
+      const classRows = new Map<string, ExportRow[]>();
 
       for (const cohort of cohorts.values()) {
+        const subjects = classSubjects.get(cohort.className) ?? new Set<string>();
+        for (const exam of cohort.exams) {
+          for (const es of exam.subjects) subjects.add(es.subject.name);
+        }
+        classSubjects.set(cohort.className, subjects);
+
         const students = await tx.student.findMany({
           where: {
             classId: cohort.classId,
@@ -383,16 +384,16 @@ export class ExaminationsService {
           orderBy: { fullName: "asc" },
         });
 
+        const rows = classRows.get(cohort.className) ?? [];
         for (const student of students) {
           const row: ExportRow = {
-            className: cohort.className,
             section: cohort.sectionName ?? "—",
             code: student.code,
             name: student.fullName,
           };
 
           const subjectPercents: number[] = [];
-          for (const subjectName of subjectList) {
+          for (const subjectName of subjects) {
             let weightSum = 0;
             let weightedPct = 0;
             let present = false;
@@ -424,6 +425,7 @@ export class ExaminationsService {
           row.result = subjectPercents.length > 0 ? (total >= 50 ? "Pass" : "Fail") : "—";
           rows.push(row);
         }
+        classRows.set(cohort.className, rows);
       }
 
       const school = await this.prisma.school.findFirst({
@@ -431,31 +433,66 @@ export class ExaminationsService {
         select: { name: true },
       });
 
-      const columns = [
-        { key: "className", label: "Class" },
-        { key: "section", label: "Section" },
-        { key: "code", label: "Student ID" },
-        { key: "name", label: "Student Name" },
-        ...subjectList.map((name) => ({ key: name, label: name })),
-        { key: "total", label: "Combined %" },
-        { key: "grade", label: "Grade" },
-        { key: "result", label: "Result" },
-      ];
+      const buildColumns = (className: string) => {
+        const subjectList = [...classSubjects.get(className)!].sort();
+        return [
+          { key: "section", label: "Section" },
+          { key: "code", label: "Student ID" },
+          { key: "name", label: "Student Name" },
+          ...subjectList.map((name) => ({ key: name, label: name })),
+          { key: "total", label: "Combined %" },
+          { key: "grade", label: "Grade" },
+          { key: "result", label: "Result" },
+        ];
+      };
 
-      const buffer = await this.docs.buildBrandedExcelReport({
-        sheetName: "Group Results",
-        headerLines: [
+      const classNames = [...classRows.keys()];
+
+      // A single class (either explicitly requested, or the group only touches one class):
+      // one flat sheet. Otherwise ("All Classes" spanning several grades): one sheet each.
+      if (classNames.length <= 1) {
+        const className = classNames[0] ?? exams[0].class.name;
+        const buffer = await this.docs.buildBrandedExcelReport({
+          sheetName: "Group Results",
+          headerLines: [
+            school?.name ?? "School",
+            `Exam Group: ${group.name}`,
+            `Class: ${className}`,
+            `Date: ${new Date().toLocaleDateString()}`,
+          ],
+          columns: buildColumns(className),
+          rows: classRows.get(className) ?? [],
+        });
+        const filename = `${group.name}-${className}-results.xlsx`.replace(/\s+/g, "-").toLowerCase();
+        return { buffer, filename };
+      }
+
+      const wb = new ExcelJS.Workbook();
+      for (const className of classNames) {
+        const columns = buildColumns(className);
+        const ws = wb.addWorksheet(className.slice(0, 31));
+        for (const line of [
           school?.name ?? "School",
           `Exam Group: ${group.name}`,
-          classId ? `Class: ${exams[0].class.name}` : "All Classes",
+          `Class: ${className}`,
           `Date: ${new Date().toLocaleDateString()}`,
-        ],
-        columns,
-        rows,
-      });
-
+        ]) {
+          const row = ws.addRow([line]);
+          row.font = { bold: true, size: 12 };
+        }
+        ws.addRow([]);
+        ws.addRow(columns.map((c) => c.label));
+        ws.getRow(ws.rowCount).font = { bold: true };
+        for (const row of classRows.get(className) ?? []) {
+          ws.addRow(columns.map((c) => row[c.key] ?? ""));
+        }
+        ws.columns.forEach((col) => {
+          col.width = 16;
+        });
+      }
+      const buf = await wb.xlsx.writeBuffer();
       const filename = `${group.name}-results.xlsx`.replace(/\s+/g, "-").toLowerCase();
-      return { buffer, filename };
+      return { buffer: Buffer.from(buf as ArrayBuffer), filename };
     });
   }
 
