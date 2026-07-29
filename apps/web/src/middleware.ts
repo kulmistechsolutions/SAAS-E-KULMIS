@@ -9,14 +9,17 @@ const ROOT_DOMAIN = process.env.APP_ROOT_DOMAIN ?? "ekulmis.local";
  */
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
+  const host = (req.headers.get("host") ?? "").split(":")[0].toLowerCase();
+  const subdomain = extractSubdomain(host);
 
-  if (pathname === "/") {
+  // "/" on a school subdomain goes straight to that school's login (or the
+  // dashboard in preview mode). "/" on the bare root domain (no subdomain)
+  // has no tenant to log in to — let it fall through and render the public
+  // marketing page instead of some fallback tenant's login screen.
+  if (pathname === "/" && subdomain) {
     const preview = process.env.NEXT_PUBLIC_PREVIEW_AUTH === "true";
     return NextResponse.redirect(new URL(preview ? "/dashboard" : "/login", req.url));
   }
-
-  const host = (req.headers.get("host") ?? "").split(":")[0].toLowerCase();
-  const subdomain = extractSubdomain(host);
 
   const headers = new Headers(req.headers);
   if (subdomain) {
