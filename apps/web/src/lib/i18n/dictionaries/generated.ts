@@ -497,6 +497,8 @@ export const generated = {
     deletesEveryExaminationMatchingTheFilters: "Deletes every examination matching the filters above:",
     examS: "exam(s)",
     publishedLockedExamsOrThoseWithSubmitted: "Published/locked exams or those with submitted marks are skipped — archive those instead.",
+    includingPublishedLockedAndMarked: "including published, locked, and exams with submitted marks",
+    studentAndParentRecordsAreNeverDeleted: "Student and parent records are never deleted.",
     toConfirm: "to confirm",
     deleting: "Deleting…",
     deleteExam: "Delete Exam",

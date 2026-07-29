@@ -494,8 +494,12 @@ export class ExaminationsController {
 
   @Roles(UserRole.ADMINISTRATOR, UserRole.EXAM_MANAGER)
   @Delete(":id")
-  deleteExam(@CurrentUser() me: AuthUser, @Param("id") id: string) {
-    return this.exams.deleteExam(me.schoolId, id);
+  deleteExam(
+    @CurrentUser() me: AuthUser,
+    @Param("id") id: string,
+    @Query("force") force?: string,
+  ) {
+    return this.exams.deleteExam(me.schoolId, id, force === "true");
   }
 
   @Roles(UserRole.ADMINISTRATOR, UserRole.EXAM_MANAGER)

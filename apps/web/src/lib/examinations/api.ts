@@ -241,8 +241,11 @@ export const apiCreateExamsBulk = (body: ExamCreationBulkBody) =>
     body,
   });
 
-export const apiDeleteExam = (examId: string) =>
-  api<{ success: boolean }>(`/examinations/${examId}`, { method: "DELETE" });
+export const apiDeleteExam = (examId: string, force?: boolean) =>
+  api<{ success: boolean }>(
+    `/examinations/${examId}${force ? "?force=true" : ""}`,
+    { method: "DELETE" },
+  );
 
 export const apiUpdateExamStatus = (examId: string, status: ExamStatus) =>
   api<ApiExam>(`/examinations/${examId}/status`, { method: "PATCH", body: { status } });

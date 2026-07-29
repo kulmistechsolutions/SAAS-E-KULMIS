@@ -66,17 +66,14 @@ export default function ExaminationsManagePage() {
     let deleted = 0;
     let failed = 0;
     for (const exam of filtered) {
-      const res = await deleteExam(exam.id);
+      const res = await deleteExam(exam.id, true);
       if (res.ok) deleted++;
       else failed++;
     }
     setBulkBusy(false);
     setBulkTyped("");
     if (failed > 0) {
-      toast(
-        `${deleted} deleted, ${failed} skipped (published/locked or has marks — archive those instead)`,
-        deleted > 0 ? "success" : "error",
-      );
+      toast(`${deleted} deleted, ${failed} failed`, deleted > 0 ? "success" : "error");
     } else {
       toast(`${deleted} exam(s) deleted`, "success");
     }
@@ -171,8 +168,9 @@ export default function ExaminationsManagePage() {
         </h2>
         <p className="mt-1 text-sm text-muted-foreground">
           {t("examinationsManage.deletesEveryExaminationMatchingTheFilters")}{" "}
-          <strong>{bulkScopeLabel}</strong> ({filtered.length} {t("examinationsManage.examS")}).{" "}
-          {t("examinationsManage.publishedLockedExamsOrThoseWithSubmitted")}
+          <strong>{bulkScopeLabel}</strong> ({filtered.length} {t("examinationsManage.examS")}),{" "}
+          <strong>{t("examinationsManage.includingPublishedLockedAndMarked")}</strong>.{" "}
+          {t("examinationsManage.studentAndParentRecordsAreNeverDeleted")}
         </p>
 
         <div className="mt-4 max-w-md space-y-3">

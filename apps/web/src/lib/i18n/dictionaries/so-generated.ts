@@ -457,6 +457,8 @@ export const soGenerated: PartialDictionary = {
     deletesEveryExaminationMatchingTheFilters: "Wuxuu tirtiraa dhammaan imtixaannada la mid ah shaandhadan kore:",
     examS: "imtixaan(no)",
     publishedLockedExamsOrThoseWithSubmitted: "Imtixaannada la daabacay/xiray ama kuwa dhibco la geliyay waa la dhaafi doonaa — halkii u dhig kaydka.",
+    includingPublishedLockedAndMarked: "oo ay ku jiraan kuwa la daabacay, la xiray, iyo kuwa dhibco la geliyay",
+    studentAndParentRecordsAreNeverDeleted: "Diiwaannada ardayda iyo waalidiinta marnaba lama tirtiro.",
     toConfirm: "si aad u xaqiijiso",
     deleting: "Tirtirid…",
     deleteExam: "Tirtir Imtixaanka",

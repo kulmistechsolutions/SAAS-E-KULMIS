@@ -2096,8 +2096,15 @@ export class ExaminationsService {
     return { created, count: created.length };
   }
 
-  /** Delete only DRAFT exams with no submitted marks. */
-  async deleteExam(schoolId: string, examId: string) {
+  /**
+   * Delete an exam. By default only DRAFT exams with no submitted marks can
+   * be deleted (everyday, no-confirmation action). `force` bypasses both
+   * checks for the Danger Zone bulk-delete, which already gated the action
+   * behind a typed "DELETE" confirmation — it cascades to that exam's own
+   * ExamSubject/ExamMark/BlockedStudent rows only, never touching Student,
+   * Class, or Section records.
+   */
+  async deleteExam(schoolId: string, examId: string, force = false) {
     return this.prisma.forTenant(schoolId, async (tx) => {
       const exam = await tx.exam.findFirst({
         where: { id: examId },
@@ -2105,15 +2112,17 @@ export class ExaminationsService {
       });
       if (!exam) throw new NotFoundException("Exam not found");
 
-      if (exam.status !== "DRAFT") {
-        throw new BadRequestException(
-          "Only draft examinations can be deleted. Archive instead.",
-        );
-      }
-      if (exam._count.marks > 0) {
-        throw new BadRequestException(
-          "This examination contains submitted marks and cannot be deleted. Please archive the examination instead.",
-        );
+      if (!force) {
+        if (exam.status !== "DRAFT") {
+          throw new BadRequestException(
+            "Only draft examinations can be deleted. Archive instead.",
+          );
+        }
+        if (exam._count.marks > 0) {
+          throw new BadRequestException(
+            "This examination contains submitted marks and cannot be deleted. Please archive the examination instead.",
+          );
+        }
       }
 
       await tx.exam.delete({ where: { id: examId } });

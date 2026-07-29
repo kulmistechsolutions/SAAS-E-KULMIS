@@ -457,6 +457,8 @@ export const arGenerated: PartialDictionary = {
     deletesEveryExaminationMatchingTheFilters: "يحذف كل امتحان مطابق للمرشحات أعلاه:",
     examS: "امتحان/امتحانات",
     publishedLockedExamsOrThoseWithSubmitted: "يتم تخطي الامتحانات المنشورة/المقفلة أو التي تحتوي على درجات مُرسلة — أرشفها بدلاً من ذلك.",
+    includingPublishedLockedAndMarked: "بما في ذلك المنشورة والمقفلة والتي تحتوي على درجات مُرسلة",
+    studentAndParentRecordsAreNeverDeleted: "سجلات الطلاب وأولياء الأمور لا تُحذف أبدًا.",
     toConfirm: "للتأكيد",
     deleting: "جارٍ الحذف…",
     deleteExam: "حذف الامتحان",

@@ -1018,15 +1018,21 @@ export function recentExams(limit = 6): Exam[] {
 
 export async function deleteExam(
   examId: string,
+  force = false,
   user = "Admin User",
 ): Promise<{ ok: boolean; error?: string }> {
   const s = ensure();
   const exam = s.exams.find((e) => e.id === examId);
   if (!exam) return { ok: false, error: "Exam not found." };
   try {
-    await apiDeleteExam(examId);
+    await apiDeleteExam(examId, force);
     await refreshExaminations();
-    logAudit("Exam Deleted", user, "ADMINISTRATOR", `${exam.name} · ${exam.className} ${exam.section}`);
+    logAudit(
+      force ? "Exam Force-Deleted" : "Exam Deleted",
+      user,
+      "ADMINISTRATOR",
+      `${exam.name} · ${exam.className} ${exam.section}`,
+    );
     return { ok: true };
   } catch (e) {
     return { ok: false, error: apiErr(e, "Failed to delete exam.") };
