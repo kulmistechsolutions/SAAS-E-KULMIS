@@ -253,7 +253,7 @@ export function ExpenseFormDialog({
               {t("expensesExpenseFormDialog.attached")} {attachment.fileName}
               <button
                 type="button"
-                className="ml-2 text-rose-600 hover:underline"
+                className="ms-2 text-rose-600 hover:underline"
                 onClick={() => setAttachment(null)}
               >
                 {t("expensesExpenseFormDialog.remove")}

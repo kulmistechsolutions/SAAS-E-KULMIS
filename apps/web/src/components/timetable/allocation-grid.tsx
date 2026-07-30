@@ -104,7 +104,7 @@ export function AllocationGrid({ rooms, shifts, onChange, onSave, dirty }: Props
             ) : (
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b text-left text-xs text-muted-foreground">
+                  <tr className="border-b text-start text-xs text-muted-foreground">
                     <th className="px-4 py-2 font-medium">{tr("timetableAllocationGrid.subject")}</th>
                     <th className="px-4 py-2 font-medium">{tr("timetableAllocationGrid.teacher")}</th>
                     <th className="w-40 px-4 py-2 font-medium">{tr("timetableAllocationGrid.periodsWeek")}</th>

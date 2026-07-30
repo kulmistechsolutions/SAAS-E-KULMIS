@@ -75,7 +75,7 @@ export function TeacherPortalShell({
 
   return (
     <div className="flex min-h-screen bg-secondary/30">
-      <aside className="hidden w-60 shrink-0 flex-col border-r bg-card lg:flex">
+      <aside className="hidden w-60 shrink-0 flex-col border-e bg-card lg:flex">
         <div className="border-b p-4">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 text-sm font-bold text-white">
@@ -149,7 +149,7 @@ export function TeacherPortalShell({
               <p className="text-xs text-muted-foreground">{t("teacherPortalPortalShell.teacherPortal")}</p>
               <p className="truncate font-semibold">{teacher.fullName}</p>
             </div>
-            <div className="shrink-0 text-right text-xs text-muted-foreground">
+            <div className="shrink-0 text-end text-xs text-muted-foreground">
               <p>{teacher.code}</p>
               <p>{teacher.shift} {t("teacherPortalPortalShell.shift")}</p>
             </div>
@@ -170,7 +170,7 @@ export function TeacherPortalShell({
             onClick={() => setMenuOpen(false)}
             aria-hidden
           />
-          <div className="absolute inset-y-0 left-0 flex w-72 max-w-[85vw] flex-col bg-card shadow-xl">
+          <div className="absolute inset-y-0 start-0 flex w-72 max-w-[85vw] flex-col bg-card shadow-xl">
             <div className="flex items-center justify-between border-b p-4">
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 text-sm font-bold text-white">

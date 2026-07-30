@@ -101,7 +101,7 @@ export function TimetableGrid({ timetable }: { timetable: TimetableDetail }) {
       <div className="overflow-x-auto rounded-lg border">
         <table className="w-full min-w-[640px] text-sm">
           <thead>
-            <tr className="border-b bg-secondary/40 text-left">
+            <tr className="border-b bg-secondary/40 text-start">
               <th className="w-32 px-3 py-2 text-xs font-medium text-muted-foreground">
                 {t("timetableTimetableGrid.period")}
               </th>

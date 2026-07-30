@@ -214,7 +214,7 @@ export default function PlatformWaafiPaymentsPage() {
   if (loading && !config) {
     return (
       <div className="flex h-64 items-center justify-center text-slate-400">
-        <Loader2 className="mr-2 h-5 w-5 animate-spin" /> {t("platformSmsPayments.loadingWaafipay")}
+        <Loader2 className="me-2 h-5 w-5 animate-spin" /> {t("platformSmsPayments.loadingWaafipay")}
       </div>
     );
   }
@@ -239,7 +239,7 @@ export default function PlatformWaafiPaymentsPage() {
         <div className="flex items-center gap-2">
           {config ? <StatusBadge status={config.connectionStatus} /> : null}
           <Button variant="outline" className="h-8 px-3 text-xs" onClick={() => void load()}>
-            <RefreshCw className="mr-1.5 h-3.5 w-3.5" /> {t("platformSmsPayments.refresh")}
+            <RefreshCw className="me-1.5 h-3.5 w-3.5" /> {t("platformSmsPayments.refresh")}
           </Button>
         </div>
       </div>
@@ -410,9 +410,9 @@ export default function PlatformWaafiPaymentsPage() {
             <div className="flex flex-wrap gap-2 pt-2">
               <Button onClick={() => void testConnection()} disabled={testing}>
                 {testing ? (
-                  <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+                  <Loader2 className="me-1.5 h-4 w-4 animate-spin" />
                 ) : (
-                  <CheckCircle2 className="mr-1.5 h-4 w-4" />
+                  <CheckCircle2 className="me-1.5 h-4 w-4" />
                 )}
                 {t("platformSmsPayments.testConnectionSave")}
               </Button>
@@ -425,7 +425,7 @@ export default function PlatformWaafiPaymentsPage() {
                   !enabled
                 }
               >
-                <Power className="mr-1.5 h-4 w-4" />
+                <Power className="me-1.5 h-4 w-4" />
                 {enabled ? "Disable payments" : "Enable payments"}
               </Button>
               <Button variant="outline" onClick={() => void toggleSimulation()}>
@@ -508,7 +508,7 @@ export default function PlatformWaafiPaymentsPage() {
       ) : (
         <section className="overflow-hidden rounded-2xl border border-white/10 bg-[#0f172a]">
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[900px] text-left text-sm">
+            <table className="w-full min-w-[900px] text-start text-sm">
               <thead className="border-b border-white/10 text-xs uppercase text-slate-500">
                 <tr>
                   <th className="px-4 py-3">{t("platformSmsPayments.school")}</th>

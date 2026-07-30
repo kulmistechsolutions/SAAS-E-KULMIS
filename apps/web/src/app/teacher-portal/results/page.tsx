@@ -151,7 +151,7 @@ export default function TeacherPortalResultsPage() {
         </div>
         {data?.rows.length ? (
           <Button variant="outline" onClick={exportCsv}>
-            <Download className="mr-2 h-4 w-4" />
+            <Download className="me-2 h-4 w-4" />
             {t("teacherPortalResults.exportCsv")}
           </Button>
         ) : null}
@@ -211,12 +211,12 @@ export default function TeacherPortalResultsPage() {
       ) : null}
 
       <div className="relative max-w-md">
-        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder={t("teacherPortalResults.searchStudentOrSubject")}
-          className="pl-9"
+          className="ps-9"
         />
       </div>
 
@@ -230,7 +230,7 @@ export default function TeacherPortalResultsPage() {
         <div className="overflow-x-auto rounded-xl border bg-card">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b bg-muted/40 text-left text-muted-foreground">
+              <tr className="border-b bg-muted/40 text-start text-muted-foreground">
                 <th className="px-3 py-2 font-medium">{t("teacherPortalResults.student")}</th>
                 <th className="px-3 py-2 font-medium">{t("teacherPortalResults.exam")}</th>
                 <th className="px-3 py-2 font-medium">{t("teacherPortalResults.subject")}</th>

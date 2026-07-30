@@ -291,18 +291,18 @@ export default function PlatformSchoolDetailPage({
         >
           {school.status === "ACTIVE" ? (
             <>
-              <Ban className="mr-2 h-4 w-4" />
+              <Ban className="me-2 h-4 w-4" />
               {t("platformSchools.suspendSchool")}
             </>
           ) : (
             <>
-              <CheckCircle className="mr-2 h-4 w-4" />
+              <CheckCircle className="me-2 h-4 w-4" />
               {t("platformSchools.activateSchool")}
             </>
           )}
         </Button>
         <Button variant="destructive" onClick={handleDelete}>
-          <Trash2 className="mr-2 h-4 w-4" />
+          <Trash2 className="me-2 h-4 w-4" />
           {t("platformSchools.deleteSchool")}
         </Button>
       </div>

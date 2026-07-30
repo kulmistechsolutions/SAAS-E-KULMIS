@@ -144,7 +144,7 @@ export default function PublicResultsPage() {
               onKeyDown={(e) => e.key === "Enter" && void handleSearch()}
             />
             <Button onClick={() => void handleSearch()} disabled={loading}>
-              <Search className="mr-2 h-4 w-4" />
+              <Search className="me-2 h-4 w-4" />
               {loading ? "Loading…" : "View Results"}
             </Button>
           </div>

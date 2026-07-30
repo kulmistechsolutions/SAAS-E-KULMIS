@@ -232,7 +232,7 @@ export default function ExtraFeesPage() {
           </p>
         </div>
         <Button onClick={openCreate}>
-          <Plus className="mr-2 h-4 w-4" /> {tr("financeExtraFees.newExtraFee")}
+          <Plus className="me-2 h-4 w-4" /> {tr("financeExtraFees.newExtraFee")}
         </Button>
       </div>
 
@@ -295,7 +295,7 @@ export default function ExtraFeesPage() {
                     className="h-8 px-3 text-xs"
                     onClick={() => void openPreview(f)}
                   >
-                    <Send className="mr-1.5 h-3.5 w-3.5" />
+                    <Send className="me-1.5 h-3.5 w-3.5" />
                     {f.appliedAt ? "Apply again" : "Review & apply"}
                   </Button>
                   {!f.appliedAt && (
@@ -349,7 +349,7 @@ export default function ExtraFeesPage() {
         footer={
           <>
             <Button variant="outline" onClick={() => setFormOpen(false)}>
-              <X className="mr-1.5 h-4 w-4" /> {tr("financeExtraFees.cancel")}
+              <X className="me-1.5 h-4 w-4" /> {tr("financeExtraFees.cancel")}
             </Button>
             <Button onClick={() => void save()} disabled={saving}>
               {saving ? "Saving…" : form.id ? "Save changes" : "Create"}

@@ -112,14 +112,14 @@ export default function LoginPage() {
                   {...register("password")}
                   placeholder="••••••••"
                   autoComplete="current-password"
-                  className="pr-10"
+                  className="pe-10"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword((v) => !v)}
                   aria-label={t(showPassword ? "auth.hidePassword" : "auth.showPassword")}
                   title={t(showPassword ? "auth.hidePassword" : "auth.showPassword")}
-                  className="absolute inset-y-0 right-0 flex items-center px-3 text-muted-foreground hover:text-foreground"
+                  className="absolute inset-y-0 end-0 flex items-center px-3 text-muted-foreground hover:text-foreground"
                 >
                   {showPassword ? (
                     <EyeOff className="h-4 w-4" />

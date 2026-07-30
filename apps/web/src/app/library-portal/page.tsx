@@ -79,9 +79,9 @@ export default function LibraryPortalHomePage() {
 
       <main className="mx-auto max-w-5xl px-4 py-6">
         <div className="relative mb-5 max-w-sm">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            className="pl-9"
+            className="ps-9"
             placeholder={t("libraryPortal.searchBooks")}
             value={q}
             onChange={(e) => setQ(e.target.value)}
@@ -104,7 +104,7 @@ export default function LibraryPortalHomePage() {
                 key={b.id}
                 type="button"
                 onClick={() => router.push(`/library-portal/read/${b.id}`)}
-                className="flex flex-col items-start gap-2 rounded-2xl border bg-card p-4 text-left shadow-sm transition-shadow hover:shadow-md"
+                className="flex flex-col items-start gap-2 rounded-2xl border bg-card p-4 text-start shadow-sm transition-shadow hover:shadow-md"
               >
                 <div className="flex h-32 w-full items-center justify-center rounded-xl bg-primary/5">
                   <BookOpen className="h-10 w-10 text-primary/50" />

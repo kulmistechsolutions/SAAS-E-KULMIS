@@ -90,7 +90,7 @@ export default function MySchedulePage() {
         <div className="overflow-x-auto rounded-xl border bg-card">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b bg-muted/40 text-left text-muted-foreground">
+              <tr className="border-b bg-muted/40 text-start text-muted-foreground">
                 <th className="px-4 py-3 font-medium">{tr("mySchedule.academicYear")}</th>
                 <th className="px-4 py-3 font-medium">{tr("mySchedule.class")}</th>
                 <th className="px-4 py-3 font-medium">{tr("mySchedule.section")}</th>

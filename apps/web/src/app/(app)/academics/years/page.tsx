@@ -40,7 +40,7 @@ export default function AcademicYearsPage() {
           </p>
         </div>
         <Button onClick={() => setOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" /> {t("academicsYears.addAcademicYear")}
+          <Plus className="me-2 h-4 w-4" /> {t("academicsYears.addAcademicYear")}
         </Button>
       </div>
 

@@ -59,7 +59,7 @@ export default function FeeHistoryPage() {
             className="h-9"
             onClick={() => exportPaymentsCsv(fees.payments)}
           >
-            <Download className="mr-2 h-4 w-4" />
+            <Download className="me-2 h-4 w-4" />
             {t("financeHistory.exportCsv")}
           </Button>
         </div>
@@ -78,7 +78,7 @@ export default function FeeHistoryPage() {
       <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[800px] text-sm">
-            <thead className="sticky top-0 bg-secondary text-left text-xs text-muted-foreground">
+            <thead className="sticky top-0 bg-secondary text-start text-xs text-muted-foreground">
               <tr>
                 <th className="px-4 py-2.5 font-medium">{t("financeHistory.receiptNo")}</th>
                 <th className="px-4 py-2.5 font-medium">{t("financeHistory.student")}</th>

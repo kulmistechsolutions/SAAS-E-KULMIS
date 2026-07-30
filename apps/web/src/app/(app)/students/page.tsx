@@ -306,13 +306,13 @@ export default function StudentsPage() {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Button variant="outline" onClick={handlePrint}>
-            <Printer className="mr-2 h-4 w-4" /> {t("students.print")}
+            <Printer className="me-2 h-4 w-4" /> {t("students.print")}
           </Button>
           <Button variant="outline" onClick={handleExport}>
-            <FileDown className="mr-2 h-4 w-4" /> {t("students.export")}
+            <FileDown className="me-2 h-4 w-4" /> {t("students.export")}
           </Button>
           <Button variant="outline" onClick={() => setImportOpen(true)}>
-            <Upload className="mr-2 h-4 w-4" /> {t("students.import")}
+            <Upload className="me-2 h-4 w-4" /> {t("students.import")}
           </Button>
           <Button
             onClick={() => {
@@ -320,7 +320,7 @@ export default function StudentsPage() {
               setFormOpen(true);
             }}
           >
-            <Plus className="mr-2 h-4 w-4" /> {t("students.addStudent")}
+            <Plus className="me-2 h-4 w-4" /> {t("students.addStudent")}
           </Button>
         </div>
       </div>
@@ -331,12 +331,12 @@ export default function StudentsPage() {
       <div className="rounded-2xl border bg-card p-4 shadow-sm">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
           <div className="relative flex-1">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder={t("students.searchByIdNameParentOr")}
-              className="h-10 w-full rounded-lg border border-input bg-background pl-9 pr-3 text-sm outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20"
+              className="h-10 w-full rounded-lg border border-input bg-background ps-9 pe-3 text-sm outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/20"
             />
           </div>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:flex lg:flex-nowrap">
@@ -398,7 +398,7 @@ export default function StudentsPage() {
                 onClick={clearFilters}
                 className="lg:w-auto"
               >
-                <X className="mr-1 h-4 w-4" /> {t("students.clear")}
+                <X className="me-1 h-4 w-4" /> {t("students.clear")}
               </Button>
             )}
           </div>
@@ -425,7 +425,7 @@ export default function StudentsPage() {
               disabled={bulkBusy}
               onClick={() => setBulkConfirm(true)}
             >
-              <Trash2 className="mr-2 h-4 w-4" />
+              <Trash2 className="me-2 h-4 w-4" />
               {t("students.deleteSelected")}
             </Button>
           </div>
@@ -437,7 +437,7 @@ export default function StudentsPage() {
         <div className="max-h-[600px] overflow-auto scrollbar-slim">
           <table className="w-full min-w-[1000px] text-sm">
             <thead className="sticky top-0 z-10 bg-secondary/95 backdrop-blur">
-              <tr className="text-left text-xs uppercase tracking-wide text-muted-foreground">
+              <tr className="text-start text-xs uppercase tracking-wide text-muted-foreground">
                 <th className="px-3 py-3 font-medium">
                   <input
                     type="checkbox"
@@ -478,7 +478,7 @@ export default function StudentsPage() {
                   onClick={() => toggleSort("registrationDate")}
                 />
                 <th className="px-4 py-3 font-medium">{t("students.status")}</th>
-                <th className="px-4 py-3 text-right font-medium">{t("students.actions")}</th>
+                <th className="px-4 py-3 text-end font-medium">{t("students.actions")}</th>
               </tr>
             </thead>
             <tbody>

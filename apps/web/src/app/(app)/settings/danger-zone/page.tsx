@@ -113,7 +113,7 @@ function TeacherResetCard() {
           className="mt-4"
           onClick={() => void loadPreview()}
         >
-          <Users className="mr-2 h-4 w-4" />
+          <Users className="me-2 h-4 w-4" />
           {t("settingsDangerZone.resetAllTeachers")}
         </Button>
       ) : c && preview ? (
@@ -156,7 +156,7 @@ function TeacherResetCard() {
             >
               {busy ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> {t("settingsDangerZone.resetting")}
+                  <Loader2 className="me-2 h-4 w-4 animate-spin" /> {t("settingsDangerZone.resetting")}
                 </>
               ) : (
                 "Erase all teachers & restart at 1"
@@ -310,7 +310,7 @@ function ClassResetCard() {
             >
               {busy ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> {t("settingsDangerZone.resetting")}
+                  <Loader2 className="me-2 h-4 w-4 animate-spin" /> {t("settingsDangerZone.resetting")}
                 </>
               ) : (
                 "Reset this class"
@@ -377,7 +377,7 @@ function SchoolResetCard() {
           className="mt-4"
           onClick={() => void loadPreview()}
         >
-          <AlertTriangle className="mr-2 h-4 w-4" />
+          <AlertTriangle className="me-2 h-4 w-4" />
           {t("settingsDangerZone.resetEntireSchool")}
         </Button>
       ) : preview ? (
@@ -422,7 +422,7 @@ function SchoolResetCard() {
             >
               {busy ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> {t("settingsDangerZone.resetting")}
+                  <Loader2 className="me-2 h-4 w-4 animate-spin" /> {t("settingsDangerZone.resetting")}
                 </>
               ) : (
                 "Erase all students & restart at 1"

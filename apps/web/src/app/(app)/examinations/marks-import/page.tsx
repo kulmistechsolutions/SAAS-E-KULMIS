@@ -256,7 +256,7 @@ export default function MarksImportPage() {
               {t("examinationsMarksImport.oneTabPerClassWithThat")}
             </p>
             <Button type="button" onClick={handleTemplate} disabled={selected.length === 0}>
-              <Download className="mr-2 h-4 w-4" />
+              <Download className="me-2 h-4 w-4" />
               {t("examinationsMarksImport.downloadTemplate")}{selected.length} {t("examinationsMarksImport.class")}
               {selected.length === 1 ? "" : "es"})
             </Button>
@@ -269,7 +269,7 @@ export default function MarksImportPage() {
               type="file"
               accept=".xlsx"
               onChange={(e) => handleFile(e.target.files?.[0] ?? null)}
-              className="block w-full text-sm file:mr-3 file:rounded-md file:border file:bg-secondary file:px-3 file:py-1.5 file:text-sm"
+              className="block w-full text-sm file:me-3 file:rounded-md file:border file:bg-secondary file:px-3 file:py-1.5 file:text-sm"
             />
 
             {busy === "checking" && (
@@ -311,7 +311,7 @@ export default function MarksImportPage() {
                 <div className="overflow-x-auto rounded-lg border">
                   <table className="w-full text-sm">
                     <thead>
-                      <tr className="border-b bg-secondary/40 text-left text-xs text-muted-foreground">
+                      <tr className="border-b bg-secondary/40 text-start text-xs text-muted-foreground">
                         <th className="px-3 py-2 font-medium">{t("examinationsMarksImport.class")}</th>
                         <th className="px-3 py-2 font-medium">{t("examinationsMarksImport.students")}</th>
                         <th className="px-3 py-2 font-medium">{t("examinationsMarksImport.marks")}</th>
@@ -371,9 +371,9 @@ export default function MarksImportPage() {
                     disabled={!preview.ok || busy !== "none"}
                   >
                     {busy === "importing" ? (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      <Loader2 className="me-2 h-4 w-4 animate-spin" />
                     ) : (
-                      <Upload className="mr-2 h-4 w-4" />
+                      <Upload className="me-2 h-4 w-4" />
                     )}
                     {t("examinationsMarksImport.import")} {preview.totalMarks} {t("examinationsMarksImport.marks")}
                   </Button>

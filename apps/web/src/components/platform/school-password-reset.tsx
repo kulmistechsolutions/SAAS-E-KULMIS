@@ -150,12 +150,12 @@ export function SchoolPasswordReset({ schoolId }: { schoolId: string }) {
                           onChange={(e) => setNewPassword(e.target.value)}
                           placeholder={t("platformSchoolPasswordReset.newPasswordMin8Chars")}
                           autoComplete="new-password"
-                          className="h-9 w-full rounded-lg border border-white/15 bg-white/5 px-3 pr-9 text-sm text-white placeholder:text-white/40 outline-none focus:border-violet-400"
+                          className="h-9 w-full rounded-lg border border-white/15 bg-white/5 px-3 pe-9 text-sm text-white placeholder:text-white/40 outline-none focus:border-violet-400"
                         />
                         <button
                           type="button"
                           onClick={() => setShowPassword((v) => !v)}
-                          className="absolute inset-y-0 right-0 flex items-center px-2.5 text-white/50 hover:text-white"
+                          className="absolute inset-y-0 end-0 flex items-center px-2.5 text-white/50 hover:text-white"
                         >
                           {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </button>

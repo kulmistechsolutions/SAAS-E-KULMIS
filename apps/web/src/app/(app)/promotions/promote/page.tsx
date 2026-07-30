@@ -199,7 +199,7 @@ export default function PromotePage() {
               key={t.id}
               onClick={() => setType(t.id)}
               className={cn(
-                "flex flex-col items-start gap-3 rounded-2xl border bg-card p-5 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md",
+                "flex flex-col items-start gap-3 rounded-2xl border bg-card p-5 text-start shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md",
                 type === t.id && "border-primary ring-2 ring-primary/20",
               )}
             >
@@ -335,7 +335,7 @@ export default function PromotePage() {
           onClick={() => setStep((s) => Math.max(1, s - 1))}
           disabled={step === 1}
         >
-          <ArrowLeft className="mr-2 h-4 w-4" /> {tr("promotionsPromote.back")}
+          <ArrowLeft className="me-2 h-4 w-4" /> {tr("promotionsPromote.back")}
         </Button>
 
         {step < 3 ? (
@@ -343,14 +343,14 @@ export default function PromotePage() {
             onClick={() => setStep((s) => s + 1)}
             disabled={step === 2 && !canProceedFromStep2()}
           >
-            {tr("promotionsPromote.next")} <ArrowRight className="ml-2 h-4 w-4" />
+            {tr("promotionsPromote.next")} <ArrowRight className="ms-2 h-4 w-4" />
           </Button>
         ) : (
           <Button
             onClick={() => setConfirmOpen(true)}
             disabled={type !== "SCHOOL_WIDE" && selected.size === 0}
           >
-            <Sparkles className="mr-2 h-4 w-4" /> {tr("promotionsPromote.confirmPromotion")}
+            <Sparkles className="me-2 h-4 w-4" /> {tr("promotionsPromote.confirmPromotion")}
           </Button>
         )}
       </div>

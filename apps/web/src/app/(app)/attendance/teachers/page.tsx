@@ -213,7 +213,7 @@ export default function TeacherAttendancePage() {
                 </div>
                 <div className="flex items-end">
                   <Button onClick={() => void loadList()} disabled={loading} className="w-full">
-                    {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                    {loading ? <Loader2 className="me-2 h-4 w-4 animate-spin" /> : null}
                     {t("attendanceTeachers.loadTeachers")}
                   </Button>
                 </div>
@@ -227,11 +227,11 @@ export default function TeacherAttendancePage() {
                     </p>
                     <div className="flex flex-wrap gap-2">
                       <Button variant="outline" onClick={() => markAll("PRESENT")}>
-                        <CheckCheck className="mr-2 h-4 w-4" /> {t("attendanceTeachers.markAllPresent")}
+                        <CheckCheck className="me-2 h-4 w-4" /> {t("attendanceTeachers.markAllPresent")}
                       </Button>
                       <Button variant="outline" onClick={() => markAll("ABSENT")}>{t("attendanceTeachers.markAllAbsent")}</Button>
                       <Button onClick={() => void handleSave()} disabled={saving}>
-                        {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                        {saving ? <Loader2 className="me-2 h-4 w-4 animate-spin" /> : <Save className="me-2 h-4 w-4" />}
                         {t("attendanceTeachers.saveAttendance")}
                       </Button>
                     </div>
@@ -240,7 +240,7 @@ export default function TeacherAttendancePage() {
                   <div className="overflow-hidden rounded-xl border">
                     <div className="max-h-[520px] overflow-auto scrollbar-slim">
                       <table className="w-full min-w-[640px] text-sm">
-                        <thead className="sticky top-0 z-10 bg-secondary/95 backdrop-blur text-left text-xs uppercase text-muted-foreground">
+                        <thead className="sticky top-0 z-10 bg-secondary/95 backdrop-blur text-start text-xs uppercase text-muted-foreground">
                           <tr>
                             <th className="px-4 py-3 font-medium">#</th>
                             <th className="px-4 py-3 font-medium">{t("attendanceTeachers.teacherId")}</th>
@@ -256,7 +256,7 @@ export default function TeacherAttendancePage() {
                               <td className="px-4 py-3 font-mono text-xs">{r.code}</td>
                               <td className="px-4 py-3 font-medium">
                                 {r.fullName}
-                                {!r.eligible && <span className="ml-2 text-xs text-rose-500">{t("attendanceTeachers.inactive")}</span>}
+                                {!r.eligible && <span className="ms-2 text-xs text-rose-500">{t("attendanceTeachers.inactive")}</span>}
                               </td>
                               <td className="px-4 py-3">{shiftLabel(r.shift)}</td>
                               <td className="px-4 py-3">
@@ -297,7 +297,7 @@ export default function TeacherAttendancePage() {
               <p className="text-sm text-muted-foreground">{t("attendanceTeachers.today")} {formatDisplayDate(todayISO())}</p>
               {dashboardLoading ? (
                 <div className="flex h-32 items-center justify-center text-muted-foreground">
-                  <Loader2 className="mr-2 h-5 w-5 animate-spin" /> {t("attendanceTeachers.loadingDashboard")}
+                  <Loader2 className="me-2 h-5 w-5 animate-spin" /> {t("attendanceTeachers.loadingDashboard")}
                 </div>
               ) : (
                 <TeacherAttendanceSummaryCards summary={dashboard} />
@@ -309,9 +309,9 @@ export default function TeacherAttendancePage() {
             <div className="space-y-4">
               <div className="flex flex-wrap gap-2">
                 <div className="relative min-w-[200px] flex-1">
-                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <input value={rSearch} onChange={(e) => setRSearch(e.target.value)} placeholder={t("attendanceTeachers.searchTeacher")}
-                    className="h-10 w-full rounded-lg border bg-background pl-9 pr-3 text-sm outline-none" />
+                    className="h-10 w-full rounded-lg border bg-background ps-9 pe-3 text-sm outline-none" />
                 </div>
                 <input type="date" value={rDate} onChange={(e) => setRDate(e.target.value)}
                   className="h-10 rounded-lg border bg-background px-3 text-sm" />
@@ -333,7 +333,7 @@ export default function TeacherAttendancePage() {
                     shift: r.shift, date: r.date, status: r.status,
                   })));
                   toast("Report exported.", "info");
-                }}><FileDown className="mr-2 h-4 w-4" /> {t("attendanceTeachers.csv")}</Button>
+                }}><FileDown className="me-2 h-4 w-4" /> {t("attendanceTeachers.csv")}</Button>
                 <Button variant="outline" onClick={() => {
                   if (!reportRows.length) return toast("No records.", "error");
                   const first = reportRows[0];
@@ -346,12 +346,12 @@ export default function TeacherAttendancePage() {
                     })),
                     summary: previewSummary,
                   });
-                }}><Printer className="mr-2 h-4 w-4" /> {t("attendanceTeachers.print")}</Button>
+                }}><Printer className="me-2 h-4 w-4" /> {t("attendanceTeachers.print")}</Button>
               </div>
 
               <div className="overflow-hidden rounded-xl border">
                 <table className="w-full text-sm">
-                  <thead className="bg-secondary text-left text-xs text-muted-foreground">
+                  <thead className="bg-secondary text-start text-xs text-muted-foreground">
                     <tr>
                       <th className="px-4 py-2.5 font-medium">{t("attendanceTeachers.date")}</th>
                       <th className="px-4 py-2.5 font-medium">{t("attendanceTeachers.teacher")}</th>
@@ -362,7 +362,7 @@ export default function TeacherAttendancePage() {
                   <tbody>
                     {reportLoading ? (
                       <tr><td colSpan={4} className="px-4 py-12 text-center text-muted-foreground">
-                        <Loader2 className="mr-2 inline h-4 w-4 animate-spin" /> {t("attendanceTeachers.loadingRecords")}
+                        <Loader2 className="me-2 inline h-4 w-4 animate-spin" /> {t("attendanceTeachers.loadingRecords")}
                       </td></tr>
                     ) : reportRows.length === 0 ? (
                       <tr><td colSpan={4} className="px-4 py-12 text-center text-muted-foreground">{t("attendanceTeachers.noRecordsForThisDate")}</td></tr>

@@ -114,8 +114,8 @@ export function LandingPage({ rootDomain }: { rootDomain: string }) {
         className="relative overflow-hidden bg-[#0b1f47] text-white"
       >
         {/* colour washes */}
-        <div className="pointer-events-none absolute -left-32 -top-32 h-[28rem] w-[28rem] rounded-full bg-blue-500/30 blur-3xl" />
-        <div className="pointer-events-none absolute -right-32 top-10 h-[26rem] w-[26rem] rounded-full bg-indigo-500/30 blur-3xl" />
+        <div className="pointer-events-none absolute -start-32 -top-32 h-[28rem] w-[28rem] rounded-full bg-blue-500/30 blur-3xl" />
+        <div className="pointer-events-none absolute -end-32 top-10 h-[26rem] w-[26rem] rounded-full bg-indigo-500/30 blur-3xl" />
         <div className="pointer-events-none absolute bottom-0 left-1/3 h-72 w-72 rounded-full bg-cyan-400/20 blur-3xl" />
 
         <div className="relative mx-auto max-w-6xl px-4 pt-16 text-center sm:px-8 sm:pt-24">
@@ -253,8 +253,8 @@ export function LandingPage({ rootDomain }: { rootDomain: string }) {
       <section id="contact" className="bg-white pb-20">
         <div className="mx-auto max-w-5xl px-4 sm:px-8">
           <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-blue-600 via-indigo-600 to-[#0b1f47] px-6 py-12 text-center text-white shadow-xl sm:px-12 sm:py-16">
-            <div className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full bg-white/10 blur-2xl" />
-            <div className="pointer-events-none absolute -bottom-20 -left-10 h-64 w-64 rounded-full bg-cyan-400/20 blur-2xl" />
+            <div className="pointer-events-none absolute -end-16 -top-16 h-64 w-64 rounded-full bg-white/10 blur-2xl" />
+            <div className="pointer-events-none absolute -bottom-20 -start-10 h-64 w-64 rounded-full bg-cyan-400/20 blur-2xl" />
 
             <div className="relative">
               <h2 className="text-2xl font-bold sm:text-3xl">{t("landing.contactTitle")}</h2>
@@ -267,7 +267,7 @@ export function LandingPage({ rootDomain }: { rootDomain: string }) {
                   href={`https://wa.me/${WHATSAPP_NUMBER}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="group inline-flex items-center justify-center gap-3 rounded-2xl bg-white px-6 py-4 text-left shadow-lg transition-transform hover:scale-[1.03]"
+                  className="group inline-flex items-center justify-center gap-3 rounded-2xl bg-white px-6 py-4 text-start shadow-lg transition-transform hover:scale-[1.03]"
                 >
                   <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500/12 text-emerald-600">
                     <MessageCircle className="h-5 w-5" />
@@ -280,7 +280,7 @@ export function LandingPage({ rootDomain }: { rootDomain: string }) {
 
                 <a
                   href={`mailto:${CONTACT_EMAIL}`}
-                  className="group inline-flex items-center justify-center gap-3 rounded-2xl border border-white/25 bg-white/10 px-6 py-4 text-left backdrop-blur transition-colors hover:bg-white/20"
+                  className="group inline-flex items-center justify-center gap-3 rounded-2xl border border-white/25 bg-white/10 px-6 py-4 text-start backdrop-blur transition-colors hover:bg-white/20"
                 >
                   <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/15 text-white">
                     <Mail className="h-5 w-5" />

@@ -83,10 +83,10 @@ export default function GraduatedStudentsPage() {
               })
             }
           >
-            <Printer className="mr-2 h-4 w-4" /> {t("promotionsGraduated.print")}
+            <Printer className="me-2 h-4 w-4" /> {t("promotionsGraduated.print")}
           </Button>
           <Button variant="outline" onClick={() => { exportGraduatedCsv(rows); toast(`Exported ${rows.length} graduates.`, "info"); }}>
-            <FileDown className="mr-2 h-4 w-4" /> {t("promotionsGraduated.export")}
+            <FileDown className="me-2 h-4 w-4" /> {t("promotionsGraduated.export")}
           </Button>
         </div>
       </div>
@@ -94,12 +94,12 @@ export default function GraduatedStudentsPage() {
       <div className="rounded-2xl border bg-card p-4 shadow-sm">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
           <div className="relative flex-1">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder={t("promotionsGraduated.searchByStudentIdOrParent")}
-              className="h-10 w-full rounded-lg border bg-background pl-9 pr-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+              className="h-10 w-full rounded-lg border bg-background ps-9 pe-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
             />
           </div>
           <div className="grid grid-cols-2 gap-2 lg:flex">
@@ -111,7 +111,7 @@ export default function GraduatedStudentsPage() {
             </Select>
             {hasFilters && (
               <Button variant="ghost" onClick={() => { setSearch(""); setYear(""); }}>
-                <X className="mr-1 h-4 w-4" /> {t("promotionsGraduated.clear")}
+                <X className="me-1 h-4 w-4" /> {t("promotionsGraduated.clear")}
               </Button>
             )}
           </div>
@@ -127,7 +127,7 @@ export default function GraduatedStudentsPage() {
         <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
           <div className="max-h-[600px] overflow-auto scrollbar-slim">
             <table className="w-full min-w-[820px] text-sm">
-              <thead className="sticky top-0 z-10 bg-secondary/95 backdrop-blur text-left text-xs uppercase tracking-wide text-muted-foreground">
+              <thead className="sticky top-0 z-10 bg-secondary/95 backdrop-blur text-start text-xs uppercase tracking-wide text-muted-foreground">
                 <tr>
                   <th className="px-4 py-3 font-medium">#</th>
                   <th className="px-4 py-3 font-medium">{t("promotionsGraduated.studentId")}</th>
@@ -136,7 +136,7 @@ export default function GraduatedStudentsPage() {
                   <th className="px-4 py-3 font-medium">{t("promotionsGraduated.finalClass")}</th>
                   <th className="px-4 py-3 font-medium">{t("promotionsGraduated.section")}</th>
                   <th className="px-4 py-3 font-medium">{t("promotionsGraduated.graduationDate")}</th>
-                  <th className="px-4 py-3 text-right font-medium">{t("promotionsGraduated.actions")}</th>
+                  <th className="px-4 py-3 text-end font-medium">{t("promotionsGraduated.actions")}</th>
                 </tr>
               </thead>
               <tbody>

@@ -26,7 +26,7 @@ export function MonitoringClassTable({
     <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
       <div className="overflow-x-auto">
         <table className="w-full min-w-[900px] text-sm">
-          <thead className="sticky top-0 bg-secondary/90 text-left text-xs text-muted-foreground backdrop-blur">
+          <thead className="sticky top-0 bg-secondary/90 text-start text-xs text-muted-foreground backdrop-blur">
             <tr>
               <th className="px-4 py-2.5 font-medium">{t("examinationsMonitoringClassTable.class")}</th>
               <th className="px-4 py-2.5 font-medium">{t("examinationsMonitoringClassTable.sections")}</th>

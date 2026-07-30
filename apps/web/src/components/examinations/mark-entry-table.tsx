@@ -216,14 +216,14 @@ export function MarkEntryTable({
               onClick={() => void handleDownload()}
               disabled={busy || !subjectId}
             >
-              <Download className="mr-2 h-4 w-4" />
+              <Download className="me-2 h-4 w-4" />
               {t("examinationsMarkEntryTable.excelTemplate")}
             </Button>
             <label
               className="inline-flex h-9 cursor-pointer items-center rounded-md border border-input bg-background px-4 text-sm font-medium hover:bg-secondary aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
               aria-disabled={busy || !subjectId}
             >
-              <Upload className="mr-2 h-4 w-4" />
+              <Upload className="me-2 h-4 w-4" />
               {t("examinationsMarkEntryTable.importExcel")}
               <input
                 type="file"
@@ -241,7 +241,7 @@ export function MarkEntryTable({
       </div>
       <div className="overflow-x-auto">
         <table className="w-full min-w-[640px] text-sm">
-          <thead className="sticky top-0 bg-secondary/90 text-left text-xs text-muted-foreground backdrop-blur">
+          <thead className="sticky top-0 bg-secondary/90 text-start text-xs text-muted-foreground backdrop-blur">
             <tr>
               <th className="px-4 py-2.5 font-medium">#</th>
               <th className="px-4 py-2.5 font-medium">{t("examinationsMarkEntryTable.studentId")}</th>

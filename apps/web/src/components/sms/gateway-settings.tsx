@@ -183,7 +183,7 @@ export function GatewaySettings() {
                   {fmtDate(gw.license.endDate)}
                 </strong>
                 {expiring && (
-                  <span className="ml-1 font-medium text-amber-700 dark:text-amber-300">
+                  <span className="ms-1 font-medium text-amber-700 dark:text-amber-300">
                     {t("smsGatewaySettings.expiresIn")} {daysLeft(gw.license.endDate)} {t("smsGatewaySettings.dayS")}
                   </span>
                 )}
@@ -278,7 +278,7 @@ export function GatewaySettings() {
 
         <div className="flex flex-wrap gap-2">
           <Button onClick={() => void testAndSave()} disabled={testing}>
-            <PlugZap className="mr-2 h-4 w-4" />
+            <PlugZap className="me-2 h-4 w-4" />
             {testing ? "Testing…" : "Test & save"}
           </Button>
           {gw.connectionVerified && (

@@ -168,19 +168,19 @@ export default function TeachersPage() {
             href="/teachers/assignments"
             className="inline-flex h-10 items-center justify-center rounded-md border border-input bg-background px-4 text-sm font-medium transition-colors hover:bg-secondary"
           >
-            <BookOpen className="mr-2 h-4 w-4" /> {tr("teachers.assignments")}
+            <BookOpen className="me-2 h-4 w-4" /> {tr("teachers.assignments")}
           </Link>
           <Button variant="outline" onClick={() => printTeachersList(filtered, { shift: shift || "All", status: status || "All" })}>
-            <Printer className="mr-2 h-4 w-4" /> {tr("teachers.print")}
+            <Printer className="me-2 h-4 w-4" /> {tr("teachers.print")}
           </Button>
           <Button variant="outline" onClick={() => { exportTeachersCsv(filtered); toast(`Exported ${filtered.length} teachers.`, "info"); }}>
-            <FileDown className="mr-2 h-4 w-4" /> {tr("teachers.export")}
+            <FileDown className="me-2 h-4 w-4" /> {tr("teachers.export")}
           </Button>
           <Button variant="outline" onClick={() => setImportOpen(true)}>
-            <Upload className="mr-2 h-4 w-4" /> {tr("teachers.import")}
+            <Upload className="me-2 h-4 w-4" /> {tr("teachers.import")}
           </Button>
           <Button onClick={() => { setEditing(null); setFormOpen(true); }}>
-            <Plus className="mr-2 h-4 w-4" /> {tr("teachers.addTeacher")}
+            <Plus className="me-2 h-4 w-4" /> {tr("teachers.addTeacher")}
           </Button>
         </div>
       </div>
@@ -190,12 +190,12 @@ export default function TeachersPage() {
       <div className="rounded-2xl border bg-card p-4 shadow-sm">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
           <div className="relative flex-1">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder={tr("teachers.searchByIdNameOrPhone")}
-              className="h-10 w-full rounded-lg border bg-background pl-9 pr-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+              className="h-10 w-full rounded-lg border bg-background ps-9 pe-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
             />
           </div>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:flex">
@@ -212,7 +212,7 @@ export default function TeachersPage() {
             </Select>
             {hasFilters && (
               <Button variant="ghost" onClick={() => { setSearch(""); setYear(""); setShift(""); setStatus(""); }}>
-                <X className="mr-1 h-4 w-4" /> {tr("teachers.clear")}
+                <X className="me-1 h-4 w-4" /> {tr("teachers.clear")}
               </Button>
             )}
           </div>
@@ -222,7 +222,7 @@ export default function TeachersPage() {
       <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
         <div className="max-h-[600px] overflow-auto scrollbar-slim">
           <table className="w-full min-w-[960px] text-sm">
-            <thead className="sticky top-0 z-10 bg-secondary/95 backdrop-blur text-left text-xs uppercase tracking-wide text-muted-foreground">
+            <thead className="sticky top-0 z-10 bg-secondary/95 backdrop-blur text-start text-xs uppercase tracking-wide text-muted-foreground">
               <tr>
                 <th className="px-4 py-3 font-medium">#</th>
                 <SortTh label={tr("teachers.teacherId")} active={sortKey === "code"} dir={sortDir} onClick={() => toggleSort("code")} />
@@ -232,7 +232,7 @@ export default function TeachersPage() {
                 <th className="px-4 py-3 font-medium">{tr("teachers.salary")}</th>
                 <th className="px-4 py-3 font-medium">{tr("teachers.status")}</th>
                 <SortTh label={tr("teachers.regDate")} active={sortKey === "registrationDate"} dir={sortDir} onClick={() => toggleSort("registrationDate")} />
-                <th className="px-4 py-3 text-right font-medium">{tr("teachers.actions")}</th>
+                <th className="px-4 py-3 text-end font-medium">{tr("teachers.actions")}</th>
               </tr>
             </thead>
             <tbody>

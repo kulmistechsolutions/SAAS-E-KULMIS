@@ -142,20 +142,20 @@ export function ImportDialog({ open, onClose, onDone }: Props) {
         ) : step === "preview" ? (
           <>
             <Button variant="outline" onClick={() => setStep("upload")} disabled={loading}>
-              <ArrowLeft className="mr-2 h-4 w-4" /> {t("teachersImportDialog.back")}
+              <ArrowLeft className="me-2 h-4 w-4" /> {t("teachersImportDialog.back")}
             </Button>
             <Button onClick={handleImport} disabled={loading || validCount === 0}>
-              <Upload className="mr-2 h-4 w-4" />
+              <Upload className="me-2 h-4 w-4" />
               {t("teachersImportDialog.import")} {validCount} {t("teachersImportDialog.teacher")}{validCount === 1 ? "" : "s"}
             </Button>
           </>
         ) : (
           <>
             <Button variant="outline" onClick={() => download("teachers-template.csv", TEMPLATE)}>
-              <Download className="mr-2 h-4 w-4" /> {t("teachersImportDialog.template")}
+              <Download className="me-2 h-4 w-4" /> {t("teachersImportDialog.template")}
             </Button>
             <Button onClick={handlePreview} disabled={!text.trim() || loading}>
-              <Eye className="mr-2 h-4 w-4" />
+              <Eye className="me-2 h-4 w-4" />
               {loading ? "Validating…" : "Preview"}
             </Button>
           </>
@@ -202,7 +202,7 @@ function PreviewTable({ preview }: { preview: TeacherImportPreviewRow[] }) {
   return (
     <div className="max-h-72 overflow-y-auto rounded-lg border">
       <table className="w-full text-sm">
-        <thead className="sticky top-0 bg-secondary text-left text-xs text-muted-foreground">
+        <thead className="sticky top-0 bg-secondary text-start text-xs text-muted-foreground">
           <tr>
             <th className="px-3 py-2">{t("teachersImportDialog.row")}</th>
             <th className="px-3 py-2">{t("teachersImportDialog.name")}</th>

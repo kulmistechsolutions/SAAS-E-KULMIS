@@ -563,7 +563,7 @@ export function ExamCreationWizard({
                       type="button"
                       onClick={() => toggleClass(c.id)}
                       className={cn(
-                        "rounded-xl border p-4 text-left transition-all hover:-translate-y-0.5",
+                        "rounded-xl border p-4 text-start transition-all hover:-translate-y-0.5",
                         on
                           ? "border-primary bg-primary/10 ring-2 ring-primary/20"
                           : "hover:bg-muted/50",
@@ -777,13 +777,13 @@ export function ExamCreationWizard({
           onClick={goBack}
           disabled={stepIndex === 0 || submitting}
         >
-          <ChevronLeft className="mr-1 h-4 w-4" />
+          <ChevronLeft className="me-1 h-4 w-4" />
           {tr("examinationsExamCreationWizard.back")}
         </Button>
         {step !== "preview" ? (
           <Button onClick={() => void goNext()}>
             {tr("examinationsExamCreationWizard.next")}
-            <ChevronRight className="ml-1 h-4 w-4" />
+            <ChevronRight className="ms-1 h-4 w-4" />
           </Button>
         ) : (
           <Button

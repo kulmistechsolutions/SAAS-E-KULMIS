@@ -201,13 +201,13 @@ function TeacherProfileContent({ id }: { id: string }) {
         </div>
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" onClick={() => setEditOpen(true)}>
-            <Pencil className="mr-2 h-4 w-4" /> {t("teachers.edit")}
+            <Pencil className="me-2 h-4 w-4" /> {t("teachers.edit")}
           </Button>
           <Button variant="outline" onClick={() => printTeacherProfile(teacher, assignments)}>
-            <Printer className="mr-2 h-4 w-4" /> {t("teachers.print")}
+            <Printer className="me-2 h-4 w-4" /> {t("teachers.print")}
           </Button>
           <Button variant="outline" onClick={() => exportTeachersCsv([teacher], `${teacher.code}.csv`)}>
-            <Download className="mr-2 h-4 w-4" /> {t("teachers.download")}
+            <Download className="me-2 h-4 w-4" /> {t("teachers.download")}
           </Button>
         </div>
       </div>
@@ -251,7 +251,7 @@ function TeacherProfileContent({ id }: { id: string }) {
               </p>
               <div className="flex flex-wrap gap-2">
                 <Button onClick={() => void handleSavePassword()} disabled={savingPassword}>
-                  <KeyRound className="mr-2 h-4 w-4" />
+                  <KeyRound className="me-2 h-4 w-4" />
                   {savingPassword ? "Saving…" : "Save Password"}
                 </Button>
                 <Button variant="outline" onClick={() => void handleResetPassword()}>
@@ -281,13 +281,13 @@ function TeacherProfileContent({ id }: { id: string }) {
               </div>
               <div className="overflow-hidden rounded-xl border">
                 <table className="w-full text-sm">
-                  <thead className="bg-secondary text-left text-xs text-muted-foreground">
+                  <thead className="bg-secondary text-start text-xs text-muted-foreground">
                     <tr>
                       <th className="px-4 py-2.5 font-medium">{t("teachers.academicYear")}</th>
                       <th className="px-4 py-2.5 font-medium">{t("teachers.class")}</th>
                       <th className="px-4 py-2.5 font-medium">{t("teachers.section")}</th>
                       <th className="px-4 py-2.5 font-medium">{t("teachers.subjects")}</th>
-                      <th className="px-4 py-2.5 text-right font-medium">
+                      <th className="px-4 py-2.5 text-end font-medium">
                         {t("teachers.actions")}
                       </th>
                     </tr>
@@ -322,7 +322,7 @@ function TeacherProfileContent({ id }: { id: string }) {
                               ))}
                             </div>
                           </td>
-                          <td className="px-4 py-2.5 text-right text-xs text-muted-foreground">
+                          <td className="px-4 py-2.5 text-end text-xs text-muted-foreground">
                             {g.subjects.length} {t("teachers.subject")}
                             {g.subjects.length === 1 ? "" : "s"}
                           </td>
@@ -338,14 +338,14 @@ function TeacherProfileContent({ id }: { id: string }) {
                     {t("teachers.individualAssignmentRowsEditOrRemove")}
                   </p>
                   <table className="w-full text-sm">
-                    <thead className="bg-secondary text-left text-xs text-muted-foreground">
+                    <thead className="bg-secondary text-start text-xs text-muted-foreground">
                       <tr>
                         <th className="px-4 py-2.5 font-medium">{t("teachers.year")}</th>
                         <th className="px-4 py-2.5 font-medium">{t("teachers.class")}</th>
                         <th className="px-4 py-2.5 font-medium">{t("teachers.section")}</th>
                         <th className="px-4 py-2.5 font-medium">{t("teachers.shift")}</th>
                         <th className="px-4 py-2.5 font-medium">{t("teachers.subject")}</th>
-                        <th className="px-4 py-2.5 text-right font-medium">
+                        <th className="px-4 py-2.5 text-end font-medium">
                           {t("teachers.actions")}
                         </th>
                       </tr>
@@ -526,7 +526,7 @@ function SalaryTab({ teacherId }: { teacherId: string }) {
     <>
       <div className="overflow-hidden rounded-xl border">
         <table className="w-full text-sm">
-          <thead className="bg-secondary text-left text-xs text-muted-foreground">
+          <thead className="bg-secondary text-start text-xs text-muted-foreground">
             <tr>
               <th className="px-4 py-2.5 font-medium">{t("teachers.month")}</th>
               <th className="px-4 py-2.5 font-medium">{t("teachers.netSalary")}</th>
@@ -595,7 +595,7 @@ function DataTable({ headers, rows }: { headers: string[]; rows: (string | numbe
   return (
     <div className="overflow-hidden rounded-xl border">
       <table className="w-full text-sm">
-        <thead className="bg-secondary text-left text-xs text-muted-foreground">
+        <thead className="bg-secondary text-start text-xs text-muted-foreground">
           <tr>
             {headers.map((h) => (
               <th key={h} className="px-4 py-2.5 font-medium">{h}</th>

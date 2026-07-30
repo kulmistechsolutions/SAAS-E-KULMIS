@@ -46,9 +46,9 @@ export default function ParentPaymentsPage() {
       </div>
 
       <div className="relative max-w-md">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
-          className="pl-9"
+          className="ps-9"
           placeholder={t("parentPortalPayments.searchReceiptNumber")}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -58,7 +58,7 @@ export default function ParentPaymentsPage() {
       <div className="overflow-x-auto rounded-xl border bg-card">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b bg-secondary/50 text-left">
+            <tr className="border-b bg-secondary/50 text-start">
               <th className="px-4 py-3">{t("parentPortalPayments.monthS")}</th>
               <th className="px-4 py-3">{t("parentPortalPayments.amount")}</th>
               <th className="px-4 py-3">{t("parentPortalPayments.status")}</th>

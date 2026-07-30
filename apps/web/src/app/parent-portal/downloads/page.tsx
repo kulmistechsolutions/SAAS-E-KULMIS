@@ -95,7 +95,7 @@ export default function ParentDownloadsPage() {
                 disabled={!d.enabled}
                 onClick={d.action}
               >
-                <Download className="mr-2 h-4 w-4" />
+                <Download className="me-2 h-4 w-4" />
                 {t("parentPortalDownloads.downloadPdf")}
               </Button>
             </div>

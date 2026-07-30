@@ -108,7 +108,7 @@ export default function AnnouncementsPage() {
         </div>
         {!isTeacher && (
           <Button onClick={() => setComposeOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
+            <Plus className="me-2 h-4 w-4" />
             {t("announcements.sendNotice")}
           </Button>
         )}

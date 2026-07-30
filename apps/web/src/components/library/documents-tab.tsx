@@ -222,7 +222,7 @@ export function DocumentsTab() {
             type="file"
             accept="application/pdf"
             onChange={(e) => onPickFile(e.target.files?.[0] ?? null)}
-            className="mt-1.5 block w-full text-sm file:mr-3 file:rounded-md file:border-0 file:bg-primary file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-primary-foreground hover:file:bg-primary/90"
+            className="mt-1.5 block w-full text-sm file:me-3 file:rounded-md file:border-0 file:bg-primary file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-primary-foreground hover:file:bg-primary/90"
           />
           {file && (
             <p className="mt-1 text-xs text-muted-foreground">
@@ -298,7 +298,7 @@ export function DocumentsTab() {
 
         <div className="flex gap-2">
           <Button onClick={() => void upload()} disabled={uploading || !file}>
-            <Upload className="mr-2 h-4 w-4" />
+            <Upload className="me-2 h-4 w-4" />
             {uploading ? "Uploading…" : "Upload"}
           </Button>
           {file && (
@@ -330,9 +330,9 @@ export function DocumentsTab() {
         </div>
         <div className="flex flex-col gap-2 sm:flex-row">
           <div className="relative flex-1">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
-              className="pl-9"
+              className="ps-9"
               placeholder={tr("libraryDocumentsTab.searchByTitleAuthor")}
               value={q}
               onChange={(e) => setQ(e.target.value)}

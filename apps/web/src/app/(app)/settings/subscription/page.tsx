@@ -394,7 +394,7 @@ export default function SubscriptionSettingsPage() {
                   type="button"
                   onClick={() => setSelectedPlan(p.id)}
                   className={cn(
-                    "w-full rounded-2xl border p-4 text-left shadow-sm transition",
+                    "w-full rounded-2xl border p-4 text-start shadow-sm transition",
                     selectedPlan === p.id
                       ? "border-primary bg-primary/5 ring-2 ring-primary/30"
                       : "bg-card hover:border-primary/40",
@@ -458,9 +458,9 @@ export default function SubscriptionSettingsPage() {
               onClick={() => void buy()}
             >
               {paying ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <Loader2 className="me-2 h-4 w-4 animate-spin" />
               ) : (
-                <CreditCard className="mr-2 h-4 w-4" />
+                <CreditCard className="me-2 h-4 w-4" />
               )}
               {t("settingsSubscription.payAmpActivatePlan")}
             </Button>
@@ -473,7 +473,7 @@ export default function SubscriptionSettingsPage() {
 
       {tab === "history" && (
         <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
-          <table className="w-full text-left text-sm">
+          <table className="w-full text-start text-sm">
             <thead className="border-b bg-muted/40 text-xs uppercase text-muted-foreground">
               <tr>
                 <th className="px-4 py-3">{t("settingsSubscription.plan")}</th>
@@ -512,7 +512,7 @@ export default function SubscriptionSettingsPage() {
                     <td className="px-4 py-3 text-xs text-muted-foreground">
                       {new Date(o.paidAt ?? o.createdAt).toLocaleString()}
                     </td>
-                    <td className="px-4 py-3 text-right">
+                    <td className="px-4 py-3 text-end">
                       <Button
                         variant="outline"
                         className="h-8 px-3 text-xs"
@@ -522,7 +522,7 @@ export default function SubscriptionSettingsPage() {
                       </Button>
                       {(o.status === "PENDING" || o.status === "PROCESSING") && (
                         <Button
-                          className="ml-2 h-8 px-3 text-xs"
+                          className="ms-2 h-8 px-3 text-xs"
                           onClick={() => void verify(o.id)}
                         >
                           {t("settingsSubscription.verify")}

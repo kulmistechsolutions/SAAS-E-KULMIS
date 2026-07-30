@@ -186,14 +186,14 @@ export function ImportDialog({ open, onClose, onDone }: Props) {
               onClick={() => setStep("upload")}
               disabled={loading}
             >
-              <ArrowLeft className="mr-2 h-4 w-4" />
+              <ArrowLeft className="me-2 h-4 w-4" />
               {t("studentsImportDialog.back")}
             </Button>
             <Button
               onClick={handleImport}
               disabled={loading || validCount === 0}
             >
-              <Upload className="mr-2 h-4 w-4" />
+              <Upload className="me-2 h-4 w-4" />
               {t("studentsImportDialog.import")} {validCount} {t("studentsImportDialog.student")}{validCount === 1 ? "" : "s"}
             </Button>
           </>
@@ -203,14 +203,14 @@ export function ImportDialog({ open, onClose, onDone }: Props) {
               variant="outline"
               onClick={() => download("students-template.csv", TEMPLATE)}
             >
-              <Download className="mr-2 h-4 w-4" />
+              <Download className="me-2 h-4 w-4" />
               {t("studentsImportDialog.template")}
             </Button>
             <Button
               onClick={handlePreview}
               disabled={!text.trim() || loading || !academicYear}
             >
-              <Eye className="mr-2 h-4 w-4" />
+              <Eye className="me-2 h-4 w-4" />
               {loading ? "Validating…" : "Preview"}
             </Button>
           </>
@@ -237,7 +237,7 @@ export function ImportDialog({ open, onClose, onDone }: Props) {
           </div>
           <div className="max-h-72 overflow-y-auto rounded-lg border">
             <table className="w-full text-sm">
-              <thead className="sticky top-0 bg-secondary text-left text-xs text-muted-foreground">
+              <thead className="sticky top-0 bg-secondary text-start text-xs text-muted-foreground">
                 <tr>
                   <th className="px-3 py-2">{t("studentsImportDialog.row")}</th>
                   <th className="px-3 py-2">{t("studentsImportDialog.name")}</th>
@@ -367,7 +367,7 @@ function ImportSummary({ result }: { result: ImportResult }) {
       {result.errors.length > 0 && (
         <div className="max-h-56 overflow-y-auto rounded-lg border">
           <table className="w-full text-sm">
-            <thead className="sticky top-0 bg-secondary text-left text-xs text-muted-foreground">
+            <thead className="sticky top-0 bg-secondary text-start text-xs text-muted-foreground">
               <tr>
                 <th className="px-3 py-2 font-medium">{t("studentsImportDialog.row")}</th>
                 <th className="px-3 py-2 font-medium">{t("studentsImportDialog.issue")}</th>

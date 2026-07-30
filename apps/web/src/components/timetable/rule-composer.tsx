@@ -102,7 +102,7 @@ export function RuleComposer({ academicYearId, shiftId, onApplied }: Props) {
       <div className="flex justify-end">
         <Button type="button" onClick={interpret} disabled={busy || text.trim().length < 3}>
           {busy && !result ? (
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            <Loader2 className="me-2 h-4 w-4 animate-spin" />
           ) : null}
           {t("timetableRuleComposer.readIt")}
         </Button>
@@ -147,7 +147,7 @@ export function RuleComposer({ academicYearId, shiftId, onApplied }: Props) {
                 onClick={() => setResult(null)}
                 disabled={busy}
               >
-                <X className="mr-1 h-3.5 w-3.5" />
+                <X className="me-1 h-3.5 w-3.5" />
                 {t("timetableRuleComposer.discard")}
               </Button>
               <Button
@@ -155,7 +155,7 @@ export function RuleComposer({ academicYearId, shiftId, onApplied }: Props) {
                 onClick={() => confirm(result.proposals)}
                 disabled={busy}
               >
-                {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                {busy ? <Loader2 className="me-2 h-4 w-4 animate-spin" /> : null}
                 {t("timetableRuleComposer.confirmAndSave")}
               </Button>
             </div>

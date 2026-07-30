@@ -62,7 +62,7 @@ export default function AcademicsDashboardPage() {
           onClick={() => setYearOpen(true)}
           className="inline-flex h-10 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
         >
-          <Plus className="mr-2 h-4 w-4" /> {t("academics.addAcademicYear")}
+          <Plus className="me-2 h-4 w-4" /> {t("academics.addAcademicYear")}
         </button>
       </div>
 
@@ -96,13 +96,13 @@ export default function AcademicsDashboardPage() {
             </Link>
           </div>
           <table className="w-full text-sm">
-            <thead className="bg-secondary/60 text-left text-xs uppercase tracking-wide text-muted-foreground">
+            <thead className="bg-secondary/60 text-start text-xs uppercase tracking-wide text-muted-foreground">
               <tr>
                 <th className="px-5 py-2.5 font-medium">{t("academics.year")}</th>
                 <th className="px-5 py-2.5 font-medium">{t("academics.start")}</th>
                 <th className="px-5 py-2.5 font-medium">{t("academics.end")}</th>
                 <th className="px-5 py-2.5 font-medium">{t("academics.status")}</th>
-                <th className="px-5 py-2.5 text-right font-medium">{t("academics.action")}</th>
+                <th className="px-5 py-2.5 text-end font-medium">{t("academics.action")}</th>
               </tr>
             </thead>
             <tbody>
@@ -112,7 +112,7 @@ export default function AcademicsDashboardPage() {
                   <td className="px-5 py-3 text-muted-foreground">{shortDate(y.startDate)}</td>
                   <td className="px-5 py-3 text-muted-foreground">{shortDate(y.endDate)}</td>
                   <td className="px-5 py-3"><StatusBadge status={y.status} /></td>
-                  <td className="px-5 py-3 text-right">
+                  <td className="px-5 py-3 text-end">
                     {y.status !== "ACTIVE" && (
                       <button
                         onClick={async () => {

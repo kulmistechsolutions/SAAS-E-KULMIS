@@ -31,7 +31,7 @@ export function PermissionMatrix({
   return (
     <div className="overflow-x-auto rounded-xl border">
       <table className="w-full min-w-[900px] text-sm">
-        <thead className="sticky top-0 bg-secondary text-left text-xs text-muted-foreground">
+        <thead className="sticky top-0 bg-secondary text-start text-xs text-muted-foreground">
           <tr>
             <th className="px-4 py-2.5 font-medium">{t("usersPermissionMatrix.module")}</th>
             {ACTIONS.map((a) => (

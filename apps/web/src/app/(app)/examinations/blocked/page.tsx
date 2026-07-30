@@ -119,7 +119,7 @@ export default function BlockedStudentsPage() {
                     if (res.ok) toast("Student unblocked", "success");
                     else toast(res.error ?? "Unblock not supported", "error");
                   }}>
-                    <ShieldCheck className="mr-2 h-4 w-4" />
+                    <ShieldCheck className="me-2 h-4 w-4" />
                     {t("examinationsBlocked.unblock")}
                   </Button>
                 </li>

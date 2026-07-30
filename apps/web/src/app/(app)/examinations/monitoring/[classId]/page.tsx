@@ -106,7 +106,7 @@ function ClassMonitoringContent() {
       <div className="flex flex-wrap items-start gap-4">
         <Button asChild variant="ghost" className="h-9 px-2">
           <Link href="/examinations/monitoring">
-            <ArrowLeft className="mr-2 h-4 w-4" />
+            <ArrowLeft className="me-2 h-4 w-4" />
             {t("examinationsMonitoring.back")}
           </Link>
         </Button>
@@ -150,7 +150,7 @@ function ClassMonitoringContent() {
               </Select>
             </>
           )}
-          <div className={`flex flex-wrap items-center gap-4 text-sm ${data.sections.length > 0 ? "ml-auto" : ""}`}>
+          <div className={`flex flex-wrap items-center gap-4 text-sm ${data.sections.length > 0 ? "ms-auto" : ""}`}>
             <label className="flex items-center gap-2">
               <input
                 type="checkbox"
@@ -179,7 +179,7 @@ function ClassMonitoringContent() {
         <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
           <div className="overflow-x-auto">
             <table className="w-full min-w-[960px] text-sm">
-              <thead className="sticky top-0 bg-secondary/90 text-left text-xs text-muted-foreground backdrop-blur">
+              <thead className="sticky top-0 bg-secondary/90 text-start text-xs text-muted-foreground backdrop-blur">
                 <tr>
                   <th className="px-4 py-2.5 font-medium">{t("examinationsMonitoring.subject")}</th>
                   <th className="px-4 py-2.5 font-medium">{t("examinationsMonitoring.assignedTeacher")}</th>
@@ -213,7 +213,7 @@ function ClassMonitoringContent() {
                             <Link
                               href={`/examinations/marks?exam=${s.examId}`}
                             >
-                              <Eye className="mr-1 h-3.5 w-3.5" />
+                              <Eye className="me-1 h-3.5 w-3.5" />
                               {t("examinationsMonitoring.view")}
                             </Link>
                           </Button>
@@ -226,7 +226,7 @@ function ClassMonitoringContent() {
                                 void handleReminder(s.examId, s.subjectId, key)
                               }
                             >
-                              <Bell className="mr-1 h-3.5 w-3.5" />
+                              <Bell className="me-1 h-3.5 w-3.5" />
                               {reminding === key ? "Sending…" : "Send Reminder"}
                             </Button>
                           )}

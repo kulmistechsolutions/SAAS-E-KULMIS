@@ -58,7 +58,7 @@ export default function StudentQuizPortalPage() {
             {r.attemptDate && <p className="mt-1 text-xs text-muted-foreground">{t("quizPortal.last")} {shortDate(r.attemptDate)}</p>}
             {r.canAttempt && (
               <Link href={`/quiz/take/${r.quizCode}?student=${studentId}`} className="mt-4 inline-block">
-                <Button className="h-9"><Play className="mr-2 h-4 w-4" />{t("quizPortal.startQuiz")}</Button>
+                <Button className="h-9"><Play className="me-2 h-4 w-4" />{t("quizPortal.startQuiz")}</Button>
               </Link>
             )}
           </div>

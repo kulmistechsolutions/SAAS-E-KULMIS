@@ -55,11 +55,11 @@ export default function ExpenseDetailPage({
         </div>
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" className="h-9" onClick={() => setEditing(true)}>
-            <Pencil className="mr-2 h-4 w-4" />
+            <Pencil className="me-2 h-4 w-4" />
             {t("expenses.edit")}
           </Button>
           <Button variant="outline" className="h-9" onClick={() => printExpense(expense)}>
-            <Printer className="mr-2 h-4 w-4" />
+            <Printer className="me-2 h-4 w-4" />
             {t("expenses.print")}
           </Button>
           <Button
@@ -67,7 +67,7 @@ export default function ExpenseDetailPage({
             className="h-9"
             onClick={() => printExpense(expense)}
           >
-            <Download className="mr-2 h-4 w-4" />
+            <Download className="me-2 h-4 w-4" />
             {t("expenses.downloadPdf")}
           </Button>
         </div>

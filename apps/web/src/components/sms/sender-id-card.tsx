@@ -329,7 +329,7 @@ export function SenderIdCard() {
                   <Button disabled={busy} onClick={() => void submit()}>
                     {busy ? (
                       <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        <Loader2 className="me-2 h-4 w-4 animate-spin" />
                         {t("smsSenderIdCard.sending")}
                       </>
                     ) : (
@@ -351,7 +351,7 @@ export function SenderIdCard() {
           </p>
           <div className="overflow-x-auto">
             <table className="w-full min-w-[520px] text-sm">
-              <thead className="bg-secondary/60 text-left text-xs uppercase tracking-wide text-muted-foreground">
+              <thead className="bg-secondary/60 text-start text-xs uppercase tracking-wide text-muted-foreground">
                 <tr>
                   <th className="px-4 py-2.5 font-medium">{t("smsSenderIdCard.applied")}</th>
                   <th className="px-4 py-2.5 font-medium">{t("smsSenderIdCard.name")}</th>
@@ -368,7 +368,7 @@ export function SenderIdCard() {
                     <td className="px-4 py-2.5 font-medium">
                       {h.approvedName ?? h.requestedName}
                       {h.approvedName && h.approvedName !== h.requestedName && (
-                        <span className="ml-1 text-xs text-muted-foreground">
+                        <span className="ms-1 text-xs text-muted-foreground">
                           {t("smsSenderIdCard.askedFor")} {h.requestedName})
                         </span>
                       )}

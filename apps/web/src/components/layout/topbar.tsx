@@ -74,7 +74,7 @@ export function Topbar({ onMenuClick, userName, userRole }: TopbarProps) {
         </kbd>
       </div>
 
-      <div className="ml-auto flex items-center gap-2 sm:gap-3">
+      <div className="ms-auto flex items-center gap-2 sm:gap-3">
         {/* Academic year */}
         <button
           onClick={() => toast(`Active academic year: ${activeYear}`, "info")}
@@ -97,7 +97,7 @@ export function Topbar({ onMenuClick, userName, userRole }: TopbarProps) {
           className="relative flex h-9 w-9 items-center justify-center rounded-lg border border-input text-muted-foreground transition-colors hover:bg-secondary"
         >
           <Bell className="h-4 w-4" />
-          <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-semibold text-white">
+          <span className="absolute -end-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-semibold text-white">
             12
           </span>
         </button>
@@ -111,7 +111,7 @@ export function Topbar({ onMenuClick, userName, userRole }: TopbarProps) {
             <span className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-sm font-semibold text-white">
               {userName.charAt(0).toUpperCase()}
             </span>
-            <span className="hidden text-left leading-tight sm:block">
+            <span className="hidden text-start leading-tight sm:block">
               <span className="block text-sm font-semibold text-foreground">
                 {userName}
               </span>

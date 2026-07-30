@@ -42,7 +42,7 @@ export default function QuizListPage() {
           <h1 className="text-2xl font-bold">{t("quizList.allQuizzes")}</h1>
           <p className="mt-1 text-sm text-muted-foreground">{t("quizList.manageQuizzesAcrossTheSchool")}</p>
         </div>
-        <Link href="/quiz/create"><Button className="h-9"><Plus className="mr-2 h-4 w-4" />{t("quizList.create")}</Button></Link>
+        <Link href="/quiz/create"><Button className="h-9"><Plus className="me-2 h-4 w-4" />{t("quizList.create")}</Button></Link>
       </div>
 
       <div className="flex flex-wrap gap-3">
@@ -55,7 +55,7 @@ export default function QuizListPage() {
 
       <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
         <table className="w-full min-w-[900px] text-sm">
-          <thead className="sticky top-0 bg-secondary text-left text-xs text-muted-foreground">
+          <thead className="sticky top-0 bg-secondary text-start text-xs text-muted-foreground">
             <tr>
               <th className="px-4 py-2.5">{t("quizList.code")}</th>
               <th className="px-4 py-2.5">{t("quizList.title")}</th>

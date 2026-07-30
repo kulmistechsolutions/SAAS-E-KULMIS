@@ -100,7 +100,7 @@ export function FeasibilityView({ report }: { report: FeasibilityReport }) {
                 return (
                   <tr key={`${c.classId}:${c.sectionId ?? ""}`} className="border-b last:border-0">
                     <td className="px-4 py-2">{c.label}</td>
-                    <td className="px-4 py-2 text-right tabular-nums">
+                    <td className="px-4 py-2 text-end tabular-nums">
                       <span
                         className={cn(
                           c.allocated > c.capacity && "text-rose-600 dark:text-rose-400",
@@ -127,7 +127,7 @@ export function FeasibilityView({ report }: { report: FeasibilityReport }) {
               {report.teachers.map((t) => (
                 <tr key={t.teacherId} className="border-b last:border-0">
                   <td className="px-4 py-2">{t.name}</td>
-                  <td className="px-4 py-2 text-right tabular-nums">
+                  <td className="px-4 py-2 text-end tabular-nums">
                     <span
                       className={cn(
                         t.load > t.available && "text-rose-600 dark:text-rose-400",

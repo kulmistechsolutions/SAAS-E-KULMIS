@@ -106,7 +106,7 @@ export default function ExaminationsManagePage() {
       <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[760px] text-sm">
-            <thead className="bg-secondary/60 text-left text-xs text-muted-foreground">
+            <thead className="bg-secondary/60 text-start text-xs text-muted-foreground">
               <tr>
                 <th className="px-4 py-2.5 font-medium">{t("examinationsManage.exam")}</th>
                 <th className="px-4 py-2.5 font-medium">{t("examinationsManage.academicYear")}</th>
@@ -115,7 +115,7 @@ export default function ExaminationsManagePage() {
                 <th className="px-4 py-2.5 font-medium">{t("examinationsManage.type")}</th>
                 <th className="px-4 py-2.5 font-medium">{t("examinationsManage.period")}</th>
                 <th className="px-4 py-2.5 font-medium">{t("examinationsManage.status")}</th>
-                <th className="px-4 py-2.5 text-right font-medium">{t("examinationsManage.delete")}</th>
+                <th className="px-4 py-2.5 text-end font-medium">{t("examinationsManage.delete")}</th>
               </tr>
             </thead>
             <tbody>
@@ -132,7 +132,7 @@ export default function ExaminationsManagePage() {
                   <td className="px-4 py-2.5">
                     <ExamStatusBadge status={e.status} />
                   </td>
-                  <td className="px-4 py-2.5 text-right">
+                  <td className="px-4 py-2.5 text-end">
                     <button
                       type="button"
                       onClick={() => setDeleting(e)}
@@ -193,7 +193,7 @@ export default function ExaminationsManagePage() {
           >
             {bulkBusy ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" /> {t("examinationsManage.deleting")}
+                <Loader2 className="me-2 h-4 w-4 animate-spin" /> {t("examinationsManage.deleting")}
               </>
             ) : (
               `${t("examinationsManage.delete")} ${filtered.length} ${t("examinationsManage.examS")}`

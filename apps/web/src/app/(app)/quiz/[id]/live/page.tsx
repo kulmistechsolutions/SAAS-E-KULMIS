@@ -139,7 +139,7 @@ export default function QuizLiveMonitoringPage({
           </p>
         </div>
         <Button variant="outline" className="h-9" onClick={() => void load()}>
-          <RefreshCw className="mr-2 h-4 w-4" />
+          <RefreshCw className="me-2 h-4 w-4" />
           {t("quizLive.refresh")}
         </Button>
       </div>
@@ -156,7 +156,7 @@ export default function QuizLiveMonitoringPage({
       <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
         <div className="overflow-x-auto rounded-xl border bg-card shadow-sm">
           <table className="w-full text-sm">
-            <thead className="bg-secondary text-left text-xs text-muted-foreground">
+            <thead className="bg-secondary text-start text-xs text-muted-foreground">
               <tr>
                 <th className="px-4 py-2.5">{t("quizLive.no")}</th>
                 <th className="px-4 py-2.5">{t("quizLive.student")}</th>

@@ -647,7 +647,7 @@ function TakeQuizContent({ code }: { code: string }) {
                   <p className="text-sm text-muted-foreground">
                     {result.percentage}{tr("quizTake.timeTaken")} {formatDuration(result.timeTakenSec)}
                   </p>
-                  <dl className="grid grid-cols-2 gap-3 text-left sm:grid-cols-4">
+                  <dl className="grid grid-cols-2 gap-3 text-start sm:grid-cols-4">
                     {[
                       ["Attempted", result.attempted],
                       ["Correct", result.correct],
@@ -661,7 +661,7 @@ function TakeQuizContent({ code }: { code: string }) {
                     ))}
                   </dl>
                   {result.teacherComment && (
-                    <p className="rounded-xl border bg-secondary/30 px-4 py-3 text-left text-sm">
+                    <p className="rounded-xl border bg-secondary/30 px-4 py-3 text-start text-sm">
                       <span className="font-medium">{tr("quizTake.teacherComment")} </span>
                       {result.teacherComment}
                     </p>
@@ -679,7 +679,7 @@ function TakeQuizContent({ code }: { code: string }) {
                   (result?.quiz.allowPdfDownload ?? access?.quiz.allowPdfDownload) &&
                   result && (
                     <Button variant="outline" onClick={() => printAttemptReviewPdf(result)}>
-                      <Download className="mr-2 h-4 w-4" />
+                      <Download className="me-2 h-4 w-4" />
                       {tr("quizTake.downloadPdf")}
                     </Button>
                   )}
@@ -783,7 +783,7 @@ function TakeQuizContent({ code }: { code: string }) {
                 <Save className="h-3 w-3" /> {tr("quizTake.saved")}
               </span>
             )}
-            <div className="text-right">
+            <div className="text-end">
               <p className="flex items-center gap-1 text-xs text-muted-foreground">
                 <Clock className="h-3 w-3" /> {tr("quizTake.remaining")}
               </p>
@@ -849,7 +849,7 @@ function TakeQuizContent({ code }: { code: string }) {
                     type="button"
                     onClick={() => selectOption(q.id, opt)}
                     className={cn(
-                      "w-full rounded-xl border px-4 py-3.5 text-left text-sm transition",
+                      "w-full rounded-xl border px-4 py-3.5 text-start text-sm transition",
                       answers[q.id] === opt
                         ? "border-primary bg-primary/10 ring-1 ring-primary/30"
                         : "hover:bg-secondary",
@@ -915,14 +915,14 @@ function TakeQuizContent({ code }: { code: string }) {
               disabled={currentIdx === 0}
               onClick={() => goToQuestion(currentIdx - 1)}
             >
-              <ChevronLeft className="mr-1 h-4 w-4" /> {tr("quizTake.previous")}
+              <ChevronLeft className="me-1 h-4 w-4" /> {tr("quizTake.previous")}
             </Button>
             <Button
               variant="outline"
               disabled={currentIdx >= quiz.questions.length - 1}
               onClick={() => goToQuestion(currentIdx + 1)}
             >
-              {tr("quizTake.next")} <ChevronRight className="ml-1 h-4 w-4" />
+              {tr("quizTake.next")} <ChevronRight className="ms-1 h-4 w-4" />
             </Button>
             <Button
               variant="outline"
@@ -930,21 +930,21 @@ function TakeQuizContent({ code }: { code: string }) {
                 setMarked((m) => ({ ...m, [q.id]: !m[q.id] }))
               }
             >
-              <Flag className="mr-1 h-4 w-4" />
+              <Flag className="me-1 h-4 w-4" />
               {marked[q.id] ? "Unmark" : "Mark for Review"}
             </Button>
             <Button variant="outline" onClick={() => void persistAnswers()}>
-              <Save className="mr-1 h-4 w-4" /> {tr("quizTake.save")}
+              <Save className="me-1 h-4 w-4" /> {tr("quizTake.save")}
             </Button>
             <Button
-              className="ml-auto"
+              className="ms-auto"
               onClick={() => {
                 if (confirm("Submit quiz? You cannot change answers after submitting.")) {
                   void handleSubmit();
                 }
               }}
             >
-              <CheckCircle2 className="mr-1 h-4 w-4" /> {tr("quizTake.submitQuiz")}
+              <CheckCircle2 className="me-1 h-4 w-4" /> {tr("quizTake.submitQuiz")}
             </Button>
           </div>
         </div>

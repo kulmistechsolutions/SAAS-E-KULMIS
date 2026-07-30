@@ -56,7 +56,7 @@ export default function ExaminationsDashboardPage() {
           href="/examinations/create"
           className="inline-flex h-10 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
         >
-          <Plus className="mr-2 h-4 w-4" />
+          <Plus className="me-2 h-4 w-4" />
           {t("examinations.createExam")}
         </Link>
       </div>
@@ -75,7 +75,7 @@ export default function ExaminationsDashboardPage() {
             </div>
             <div className="overflow-x-auto">
               <table className="w-full min-w-[720px] text-sm">
-                <thead className="sticky top-0 bg-secondary/90 text-left text-xs text-muted-foreground backdrop-blur">
+                <thead className="sticky top-0 bg-secondary/90 text-start text-xs text-muted-foreground backdrop-blur">
                   <tr>
                     <th className="px-4 py-2.5 font-medium">{t("examinations.exam")}</th>
                     <th className="px-4 py-2.5 font-medium">{t("examinations.classSection")}</th>

@@ -75,12 +75,12 @@ export default function ExaminationSettingsPage() {
         <div className="mb-4 flex items-center justify-between">
           <h2 className="font-semibold">{t("settingsExaminations.gradeConfiguration")}</h2>
           <Button variant="outline" className="h-8" onClick={addGrade}>
-            <Plus className="mr-1 h-4 w-4" /> {t("settingsExaminations.addBand")}
+            <Plus className="me-1 h-4 w-4" /> {t("settingsExaminations.addBand")}
           </Button>
         </div>
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b text-left">
+            <tr className="border-b text-start">
               <th className="px-2 py-2">{t("settingsExaminations.minimum")}</th>
               <th className="px-2 py-2">{t("settingsExaminations.maximum")}</th>
               <th className="px-2 py-2">{t("settingsExaminations.grade")}</th>

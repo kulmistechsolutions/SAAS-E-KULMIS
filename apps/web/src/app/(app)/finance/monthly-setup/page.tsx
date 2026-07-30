@@ -145,7 +145,7 @@ export default function MonthlySetupPage() {
           </div>
           <Badge
             tone={hasBilling ? "success" : "muted"}
-            className="ml-auto"
+            className="ms-auto"
             dot
           >
             {hasBilling ? "Active" : "Inactive"}

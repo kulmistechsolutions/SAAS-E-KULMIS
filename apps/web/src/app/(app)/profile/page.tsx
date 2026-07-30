@@ -214,19 +214,19 @@ export default function TeacherProfilePage() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b text-left text-muted-foreground">
-                  <th className="pb-2 pr-3 font-medium">{tr("profile.year")}</th>
-                  <th className="pb-2 pr-3 font-medium">{tr("profile.class")}</th>
-                  <th className="pb-2 pr-3 font-medium">{tr("profile.section")}</th>
+                <tr className="border-b text-start text-muted-foreground">
+                  <th className="pb-2 pe-3 font-medium">{tr("profile.year")}</th>
+                  <th className="pb-2 pe-3 font-medium">{tr("profile.class")}</th>
+                  <th className="pb-2 pe-3 font-medium">{tr("profile.section")}</th>
                   <th className="pb-2 font-medium">{tr("profile.subject")}</th>
                 </tr>
               </thead>
               <tbody>
                 {me.assignments.map((a) => (
                   <tr key={a.id} className="border-b last:border-0">
-                    <td className="py-2 pr-3">{a.academicYear.name}</td>
-                    <td className="py-2 pr-3">{a.class.name}</td>
-                    <td className="py-2 pr-3">{a.section?.name ?? "All"}</td>
+                    <td className="py-2 pe-3">{a.academicYear.name}</td>
+                    <td className="py-2 pe-3">{a.class.name}</td>
+                    <td className="py-2 pe-3">{a.section?.name ?? "All"}</td>
                     <td className="py-2">{a.subject.name}</td>
                   </tr>
                 ))}

@@ -161,7 +161,7 @@ export default function TimetablePage() {
           </div>
           <Link href="/timetable/setup">
             <Button variant="outline">
-              <Settings2 className="mr-2 h-4 w-4" />
+              <Settings2 className="me-2 h-4 w-4" />
               {tr("timetable.setup")}
             </Button>
           </Link>
@@ -193,9 +193,9 @@ export default function TimetablePage() {
                 disabled={generating !== null}
               >
                 {generating === shift.id ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <Loader2 className="me-2 h-4 w-4 animate-spin" />
                 ) : (
-                  <Sparkles className="mr-2 h-4 w-4" />
+                  <Sparkles className="me-2 h-4 w-4" />
                 )}
                 {generating === shift.id
                   ? "Working…"
@@ -216,18 +216,18 @@ export default function TimetablePage() {
                     <button
                       type="button"
                       onClick={() => setOpenId(openId === t.id ? null : t.id)}
-                      className="text-left"
+                      className="text-start"
                     >
                       <span className="font-medium">{t.name}</span>
                       <span
                         className={cn(
-                          "ml-2 rounded-full px-2 py-0.5 text-xs font-medium",
+                          "ms-2 rounded-full px-2 py-0.5 text-xs font-medium",
                           STATUS_TONE[t.status],
                         )}
                       >
                         {t.status}
                       </span>
-                      <span className="ml-2 text-xs text-muted-foreground">
+                      <span className="ms-2 text-xs text-muted-foreground">
                         {t.shift.name} · {t._count.entries} {tr("timetable.lessons")}
                       </span>
                     </button>
@@ -246,7 +246,7 @@ export default function TimetablePage() {
                           className="h-8 px-3 text-xs"
                           onClick={() => handlePublish(t.id)}
                         >
-                          <CheckCircle2 className="mr-1 h-3.5 w-3.5" />
+                          <CheckCircle2 className="me-1 h-3.5 w-3.5" />
                           {tr("timetable.publish")}
                         </Button>
                       )}
@@ -256,7 +256,7 @@ export default function TimetablePage() {
                         className="h-8 px-3 text-xs"
                         onClick={() => handleDownload(t)}
                       >
-                        <Download className="mr-1 h-3.5 w-3.5" />
+                        <Download className="me-1 h-3.5 w-3.5" />
                         {tr("timetable.pdf")}
                       </Button>
                       <Button

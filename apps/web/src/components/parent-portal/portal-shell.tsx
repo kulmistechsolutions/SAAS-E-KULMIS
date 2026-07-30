@@ -113,7 +113,7 @@ export function PortalShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex min-h-screen bg-secondary/30">
-      <aside className="hidden w-60 shrink-0 flex-col border-r bg-card lg:flex">
+      <aside className="hidden w-60 shrink-0 flex-col border-e bg-card lg:flex">
         <div className="border-b p-4">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 text-sm font-bold text-white">
@@ -195,12 +195,12 @@ export function PortalShell({ children }: { children: React.ReactNode }) {
                   className="relative rounded-lg border p-2 hover:bg-secondary"
                 >
                   <Bell className="h-4 w-4" />
-                  <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] text-white">
+                  <span className="absolute -end-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] text-white">
                     {unread}
                   </span>
                 </Link>
               )}
-              <div className="text-right text-xs text-muted-foreground">
+              <div className="text-end text-xs text-muted-foreground">
                 <p>{parent.code}</p>
                 <p>{selectedChild?.fullName ?? "Select a child"}</p>
               </div>
@@ -232,7 +232,7 @@ export function PortalShell({ children }: { children: React.ReactNode }) {
             onClick={() => setMenuOpen(false)}
             aria-hidden
           />
-          <div className="absolute inset-y-0 left-0 flex w-72 max-w-[85vw] flex-col bg-card shadow-xl">
+          <div className="absolute inset-y-0 start-0 flex w-72 max-w-[85vw] flex-col bg-card shadow-xl">
             <div className="flex items-center justify-between border-b p-4">
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 text-sm font-bold text-white">

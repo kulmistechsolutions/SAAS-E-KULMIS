@@ -53,12 +53,12 @@ export default function QuestionBankPage() {
         <Input placeholder={tr("quizQuestionBank.questionText")} value={text} onChange={(e) => setText(e.target.value)} className="sm:col-span-2" />
         <Input placeholder={tr("quizQuestionBank.correctAnswer")} value={answer} onChange={(e) => setAnswer(e.target.value)} />
         <Input type="number" value={marks} onChange={(e) => setMarks(e.target.value)} />
-        <Button onClick={handleAdd} className="sm:col-span-2"><Plus className="mr-2 h-4 w-4" />{tr("quizQuestionBank.addToBank")}</Button>
+        <Button onClick={handleAdd} className="sm:col-span-2"><Plus className="me-2 h-4 w-4" />{tr("quizQuestionBank.addToBank")}</Button>
       </div>
 
       <div className="overflow-hidden rounded-xl border">
         <table className="w-full text-sm">
-          <thead className="bg-secondary text-left text-xs text-muted-foreground">
+          <thead className="bg-secondary text-start text-xs text-muted-foreground">
             <tr>
               <th className="px-4 py-2.5">{tr("quizQuestionBank.subject")}</th>
               <th className="px-4 py-2.5">{tr("quizQuestionBank.question")}</th>

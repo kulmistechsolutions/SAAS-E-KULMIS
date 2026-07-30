@@ -84,10 +84,10 @@ export default function TeacherAssignmentsPage() {
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => window.print()}>
-            <Printer className="mr-2 h-4 w-4" /> {tr("teachersAssignments.print")}
+            <Printer className="me-2 h-4 w-4" /> {tr("teachersAssignments.print")}
           </Button>
           <Button onClick={() => { setEditing(null); setFormOpen(true); }}>
-            <Plus className="mr-2 h-4 w-4" /> {tr("teachersAssignments.assignSubjects")}
+            <Plus className="me-2 h-4 w-4" /> {tr("teachersAssignments.assignSubjects")}
           </Button>
         </div>
       </div>
@@ -95,12 +95,12 @@ export default function TeacherAssignmentsPage() {
       <div className="rounded-2xl border bg-card p-4 shadow-sm">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <div className="relative flex-1">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder={tr("teachersAssignments.searchTeacherClassOrSubject")}
-              className="h-10 w-full rounded-lg border bg-background pl-9 pr-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+              className="h-10 w-full rounded-lg border bg-background ps-9 pe-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
             />
           </div>
           <AcademicYearSelect value={year} onChange={setYear} allowAll className="sm:w-36" />
@@ -112,7 +112,7 @@ export default function TeacherAssignmentsPage() {
           </Select>
           {(search || year || klass) && (
             <Button variant="ghost" onClick={() => { setSearch(""); setYear(""); setKlass(""); }}>
-              <X className="mr-1 h-4 w-4" /> {tr("teachersAssignments.clear")}
+              <X className="me-1 h-4 w-4" /> {tr("teachersAssignments.clear")}
             </Button>
           )}
         </div>
@@ -121,7 +121,7 @@ export default function TeacherAssignmentsPage() {
       <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
         <div className="max-h-[600px] overflow-auto scrollbar-slim">
           <table className="w-full min-w-[900px] text-sm">
-            <thead className="sticky top-0 z-10 bg-secondary/95 backdrop-blur text-left text-xs uppercase tracking-wide text-muted-foreground">
+            <thead className="sticky top-0 z-10 bg-secondary/95 backdrop-blur text-start text-xs uppercase tracking-wide text-muted-foreground">
               <tr>
                 <th className="px-4 py-3 font-medium">#</th>
                 <th className="px-4 py-3 font-medium">{tr("teachersAssignments.teacher")}</th>
@@ -131,7 +131,7 @@ export default function TeacherAssignmentsPage() {
                 <th className="px-4 py-3 font-medium">{tr("teachersAssignments.subject")}</th>
                 <th className="px-4 py-3 font-medium">{tr("teachersAssignments.academicYear")}</th>
                 <th className="px-4 py-3 font-medium">{tr("teachersAssignments.status")}</th>
-                <th className="px-4 py-3 text-right font-medium">{tr("teachersAssignments.actions")}</th>
+                <th className="px-4 py-3 text-end font-medium">{tr("teachersAssignments.actions")}</th>
               </tr>
             </thead>
             <tbody>

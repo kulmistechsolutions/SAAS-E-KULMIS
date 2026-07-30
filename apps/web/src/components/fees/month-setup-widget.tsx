@@ -81,7 +81,7 @@ export function MonthSetupWidget({
         onClick={handleSetup}
       >
         {t("feesMonthSetupWidget.setupNextMonth")}
-        <ChevronRight className="ml-1 h-4 w-4" />
+        <ChevronRight className="ms-1 h-4 w-4" />
       </Button>
 
       <Link

@@ -294,7 +294,7 @@ export default function LibraryPortalReadPage({
               className="h-8 border-white/20 bg-transparent px-3 text-xs text-white hover:bg-white/10"
               onClick={download}
             >
-              <Download className="mr-1.5 h-3.5 w-3.5" /> {tr("libraryPortalRead.download")}
+              <Download className="me-1.5 h-3.5 w-3.5" /> {tr("libraryPortalRead.download")}
             </Button>
           )}
           <button

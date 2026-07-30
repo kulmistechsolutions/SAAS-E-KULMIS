@@ -288,7 +288,7 @@ export default function PlatformSubscriptionsPage() {
               setPlanDialogOpen(true);
             }}
           >
-            <Plus className="mr-2 h-4 w-4" />
+            <Plus className="me-2 h-4 w-4" />
             {t("platformSubscriptions.newPlan")}
           </Button>
         )}
@@ -405,7 +405,7 @@ export default function PlatformSubscriptionsPage() {
         <div className="overflow-x-auto rounded-xl border border-white/10 bg-white/5">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-white/10 text-left text-slate-400">
+              <tr className="border-b border-white/10 text-start text-slate-400">
                 <th className="px-4 py-3">{t("platformSubscriptions.plan")}</th>
                 <th className="px-4 py-3">{t("platformSubscriptions.maxStudents")}</th>
                 <th className="px-4 py-3">{t("platformSubscriptions.maxTeachers")}</th>
@@ -493,7 +493,7 @@ export default function PlatformSubscriptionsPage() {
         <div className="overflow-x-auto rounded-xl border border-white/10 bg-white/5">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-white/10 text-left text-slate-400">
+              <tr className="border-b border-white/10 text-start text-slate-400">
                 <th className="px-4 py-3">{t("platformSubscriptions.school")}</th>
                 <th className="px-4 py-3">{t("platformSubscriptions.plan")}</th>
                 <th className="px-4 py-3">{t("platformSubscriptions.students")}</th>
@@ -595,9 +595,9 @@ export default function PlatformSubscriptionsPage() {
         <div className="space-y-4">
           <div className="flex flex-wrap items-center gap-3">
             <div className="relative min-w-[220px] flex-1">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+              <Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
               <Input
-                className="border-white/10 bg-white/5 pl-9 text-white placeholder:text-slate-500"
+                className="border-white/10 bg-white/5 ps-9 text-white placeholder:text-slate-500"
                 placeholder={t("platformSubscriptions.searchSchoolPlanAdmin")}
                 value={historySearch}
                 onChange={(e) => {
@@ -625,7 +625,7 @@ export default function PlatformSubscriptionsPage() {
               onClick={() => exportHistoryCsv(historyRows)}
               disabled={historyRows.length === 0}
             >
-              <Download className="mr-2 h-4 w-4" />
+              <Download className="me-2 h-4 w-4" />
               {t("platformSubscriptions.exportCsv")}
             </Button>
           </div>
@@ -633,7 +633,7 @@ export default function PlatformSubscriptionsPage() {
           <div className="overflow-x-auto rounded-xl border border-white/10 bg-white/5">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-white/10 text-left text-slate-400">
+                <tr className="border-b border-white/10 text-start text-slate-400">
                   <th className="px-4 py-3">{t("platformSubscriptions.school")}</th>
                   <th className="px-4 py-3">{t("platformSubscriptions.plan")}</th>
                   <th className="px-4 py-3">{t("platformSubscriptions.assignedBy")}</th>

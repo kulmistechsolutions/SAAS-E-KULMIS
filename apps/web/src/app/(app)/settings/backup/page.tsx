@@ -46,7 +46,7 @@ export default function BackupSettingsPage() {
       <Button onClick={manualBackup}>{t("settingsBackup.createManualBackup")}</Button>
       <div className="rounded-xl border bg-card">
         <table className="w-full text-sm">
-          <thead><tr className="border-b bg-secondary/50 text-left"><th className="px-4 py-3">{t("settingsBackup.label")}</th><th className="px-4 py-3">{t("settingsBackup.created")}</th><th className="px-4 py-3">{t("settingsBackup.action")}</th></tr></thead>
+          <thead><tr className="border-b bg-secondary/50 text-start"><th className="px-4 py-3">{t("settingsBackup.label")}</th><th className="px-4 py-3">{t("settingsBackup.created")}</th><th className="px-4 py-3">{t("settingsBackup.action")}</th></tr></thead>
           <tbody>
             {backups.map((b) => (
               <tr key={b.id} className="border-b">

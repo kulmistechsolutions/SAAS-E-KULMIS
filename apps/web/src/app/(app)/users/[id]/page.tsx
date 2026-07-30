@@ -53,15 +53,15 @@ export default function UserProfilePage({
         </div>
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" className="h-9" onClick={() => setEditing(true)}>
-            <Pencil className="mr-2 h-4 w-4" />
+            <Pencil className="me-2 h-4 w-4" />
             {t("users.edit")}
           </Button>
           <Button variant="outline" className="h-9" onClick={() => setResetOpen(true)}>
-            <KeyRound className="mr-2 h-4 w-4" />
+            <KeyRound className="me-2 h-4 w-4" />
             {t("users.resetPassword")}
           </Button>
           <Button variant="outline" className="h-9" onClick={() => printUserProfile(user)}>
-            <Printer className="mr-2 h-4 w-4" />
+            <Printer className="me-2 h-4 w-4" />
             {t("users.printProfile")}
           </Button>
         </div>

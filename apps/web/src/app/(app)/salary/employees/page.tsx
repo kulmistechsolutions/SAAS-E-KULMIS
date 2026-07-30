@@ -106,7 +106,7 @@ export default function SalaryEmployeesPage() {
       <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[1000px] text-sm">
-            <thead className="sticky top-0 bg-secondary text-left text-xs text-muted-foreground">
+            <thead className="sticky top-0 bg-secondary text-start text-xs text-muted-foreground">
               <tr>
                 <th className="px-4 py-2.5 font-medium">{t("salaryEmployees.employeeId")}</th>
                 <th className="px-4 py-2.5 font-medium">{t("salaryEmployees.name")}</th>

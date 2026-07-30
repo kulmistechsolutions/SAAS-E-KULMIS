@@ -206,7 +206,7 @@ export default function ClassProfilePage() {
               <div className="flex items-center justify-between">
                 <p className="text-sm text-muted-foreground">{sections.length} {tr("academicsClasses.sectionS")}</p>
                 <Button onClick={() => { setEditingSection(null); setSectionOpen(true); }}>
-                  <Plus className="mr-2 h-4 w-4" /> {tr("academicsClasses.addSection")}
+                  <Plus className="me-2 h-4 w-4" /> {tr("academicsClasses.addSection")}
                 </Button>
               </div>
               {sections.length === 0 ? (
@@ -245,12 +245,12 @@ export default function ClassProfilePage() {
                     })
                   }
                 >
-                  <Printer className="mr-2 h-4 w-4" /> {tr("academicsClasses.print")}
+                  <Printer className="me-2 h-4 w-4" /> {tr("academicsClasses.print")}
                 </Button>
               </div>
               <div className="overflow-hidden rounded-xl border">
                 <table className="w-full text-sm">
-                  <thead className="bg-secondary/60 text-left text-xs uppercase tracking-wide text-muted-foreground">
+                  <thead className="bg-secondary/60 text-start text-xs uppercase tracking-wide text-muted-foreground">
                     <tr>
                       <th className="px-4 py-2.5 font-medium">#</th>
                       <th className="px-4 py-2.5 font-medium">{tr("academicsClasses.studentId")}</th>
@@ -286,7 +286,7 @@ export default function ClassProfilePage() {
               <div className="flex items-center justify-between">
                 <p className="text-sm text-muted-foreground">{subjects.length} {tr("academicsClasses.assignedSubjectS")}</p>
                 <Button onClick={() => setAssignOpen(true)}>
-                  <Plus className="mr-2 h-4 w-4" /> {tr("academicsClasses.assignSubject")}
+                  <Plus className="me-2 h-4 w-4" /> {tr("academicsClasses.assignSubject")}
                 </Button>
               </div>
               {subjects.length === 0 ? (
@@ -310,7 +310,7 @@ export default function ClassProfilePage() {
           {tab === "teachers" && (
             <div className="overflow-hidden rounded-xl border">
               <table className="w-full text-sm">
-                <thead className="bg-secondary/60 text-left text-xs uppercase tracking-wide text-muted-foreground">
+                <thead className="bg-secondary/60 text-start text-xs uppercase tracking-wide text-muted-foreground">
                   <tr>
                     <th className="px-4 py-2.5 font-medium">{tr("academicsClasses.teacher")}</th>
                     <th className="px-4 py-2.5 font-medium">{tr("academicsClasses.subject")}</th>
@@ -356,7 +356,7 @@ export default function ClassProfilePage() {
               </div>
               <div className="overflow-hidden rounded-xl border">
                 <table className="w-full text-sm">
-                  <thead className="bg-secondary/60 text-left text-xs uppercase tracking-wide text-muted-foreground">
+                  <thead className="bg-secondary/60 text-start text-xs uppercase tracking-wide text-muted-foreground">
                     <tr>
                       <th className="px-4 py-2.5 font-medium">{tr("academicsClasses.exam")}</th>
                       <th className="px-4 py-2.5 font-medium">{tr("academicsClasses.section")}</th>
@@ -500,7 +500,7 @@ function ReportBtn({ label, onClick }: { label: string; onClick: () => void }) {
   return (
     <button
       onClick={onClick}
-      className="flex items-center justify-between rounded-xl border bg-card p-4 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
+      className="flex items-center justify-between rounded-xl border bg-card p-4 text-start shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
     >
       <span className="font-medium">{label}</span>
       <Printer className="h-4 w-4 text-muted-foreground" />

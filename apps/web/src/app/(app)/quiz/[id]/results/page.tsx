@@ -144,7 +144,7 @@ export default function QuizResultsPage({ params }: { params: Promise<{ id: stri
               URL.revokeObjectURL(url);
             }}
           >
-            <Download className="mr-2 h-4 w-4" />
+            <Download className="me-2 h-4 w-4" />
             {t("quizResults.exportCsv")}
           </Button>
         </div>
@@ -163,7 +163,7 @@ export default function QuizResultsPage({ params }: { params: Promise<{ id: stri
 
       <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
         <table className="w-full text-sm">
-          <thead className="bg-secondary text-left text-xs text-muted-foreground">
+          <thead className="bg-secondary text-start text-xs text-muted-foreground">
             <tr>
               <th className="px-4 py-2.5">{t("quizResults.no")}</th>
               <th className="px-4 py-2.5">{t("quizResults.student")}</th>

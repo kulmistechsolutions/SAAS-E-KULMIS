@@ -172,13 +172,13 @@ export default function ParentProfilePage({
         </div>
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" onClick={() => setEditOpen(true)}>
-            <Pencil className="mr-2 h-4 w-4" /> {t("parents.edit")}
+            <Pencil className="me-2 h-4 w-4" /> {t("parents.edit")}
           </Button>
           <Button
             variant="outline"
             onClick={() => printParentProfile(parent, parent.children)}
           >
-            <Printer className="mr-2 h-4 w-4" /> {t("parents.print")}
+            <Printer className="me-2 h-4 w-4" /> {t("parents.print")}
           </Button>
           <Button
             variant="outline"
@@ -189,7 +189,7 @@ export default function ParentProfilePage({
               )
             }
           >
-            <Download className="mr-2 h-4 w-4" /> {t("parents.download")}
+            <Download className="me-2 h-4 w-4" /> {t("parents.download")}
           </Button>
         </div>
       </div>
@@ -239,7 +239,7 @@ export default function ParentProfilePage({
                     disabled={resetting}
                     onClick={() => void handleResetPassword()}
                   >
-                    <KeyRound className="mr-2 h-4 w-4" />
+                    <KeyRound className="me-2 h-4 w-4" />
                     {resetting ? "Resetting…" : "Reset to 12345"}
                   </Button>
                   <div className="flex gap-2">
@@ -266,7 +266,7 @@ export default function ParentProfilePage({
           {tab === "children" && (
             <div className="overflow-hidden rounded-xl border">
               <table className="w-full text-sm">
-                <thead className="bg-secondary text-left text-xs text-muted-foreground">
+                <thead className="bg-secondary text-start text-xs text-muted-foreground">
                   <tr>
                     <th className="px-4 py-2.5 font-medium">{t("parents.studentId")}</th>
                     <th className="px-4 py-2.5 font-medium">{t("parents.name")}</th>
@@ -501,7 +501,7 @@ function DataTable({
   return (
     <div className="overflow-hidden rounded-xl border">
       <table className="w-full text-sm">
-        <thead className="bg-secondary text-left text-xs text-muted-foreground">
+        <thead className="bg-secondary text-start text-xs text-muted-foreground">
           <tr>
             {headers.map((h) => (
               <th key={h} className="px-4 py-2.5 font-medium">

@@ -32,7 +32,7 @@ export default function ParentHistoryPage() {
       <div className="overflow-x-auto rounded-xl border bg-card">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b bg-secondary/50 text-left">
+            <tr className="border-b bg-secondary/50 text-start">
               <th className="px-4 py-3">{t("parentPortalHistory.academicYear")}</th>
               <th className="px-4 py-3">{t("parentPortalHistory.class")}</th>
               <th className="px-4 py-3">{t("parentPortalHistory.section")}</th>

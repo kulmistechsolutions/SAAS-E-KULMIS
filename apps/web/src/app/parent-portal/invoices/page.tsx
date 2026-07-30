@@ -52,11 +52,11 @@ export default function ParentInvoicesPage() {
             <p className="mt-2 text-sm text-muted-foreground">{d.desc}</p>
             <div className="mt-4 flex gap-2">
               <Button onClick={() => printStatement()}>
-                <Printer className="mr-2 h-4 w-4" />
+                <Printer className="me-2 h-4 w-4" />
                 {t("parentPortalInvoices.print")}
               </Button>
               <Button onClick={() => printStatement()}>
-                <Download className="mr-2 h-4 w-4" />
+                <Download className="me-2 h-4 w-4" />
                 {t("parentPortalInvoices.pdf")}
               </Button>
             </div>

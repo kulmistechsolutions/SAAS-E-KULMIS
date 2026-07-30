@@ -55,7 +55,7 @@ export default function RolesPage() {
           className="h-10"
         />
         <Button className="h-10 shrink-0" onClick={handleCreate}>
-          <Plus className="mr-2 h-4 w-4" />
+          <Plus className="me-2 h-4 w-4" />
           {t("usersRoles.addRole")}
         </Button>
       </div>

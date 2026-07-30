@@ -173,17 +173,17 @@ export default function StudentProfilePage({
             <div className="flex flex-wrap gap-2 sm:justify-end">
               {!isTeacher && (
                 <Button variant="outline" onClick={() => setEditOpen(true)}>
-                  <Pencil className="mr-2 h-4 w-4" /> {tr("students.edit")}
+                  <Pencil className="me-2 h-4 w-4" /> {tr("students.edit")}
                 </Button>
               )}
               <Button variant="outline" onClick={() => printStudentProfile(student)}>
-                <Printer className="mr-2 h-4 w-4" /> {tr("students.print")}
+                <Printer className="me-2 h-4 w-4" /> {tr("students.print")}
               </Button>
               <Button
                 variant="outline"
                 onClick={() => exportStudentsCsv([student], `${student.code}.csv`)}
               >
-                <Download className="mr-2 h-4 w-4" /> {tr("students.download")}
+                <Download className="me-2 h-4 w-4" /> {tr("students.download")}
               </Button>
             </div>
           </div>
@@ -287,7 +287,7 @@ function ParentTab({
         <h3 className="mb-3 text-sm font-semibold text-foreground">{tr("students.children")}</h3>
         <div className="overflow-hidden rounded-xl border">
           <table className="w-full text-sm">
-            <thead className="bg-secondary text-left text-xs text-muted-foreground">
+            <thead className="bg-secondary text-start text-xs text-muted-foreground">
               <tr>
                 <th className="px-4 py-2.5 font-medium">{tr("students.studentId")}</th>
                 <th className="px-4 py-2.5 font-medium">{tr("students.name")}</th>
@@ -352,7 +352,7 @@ function AttendanceTab({ student }: { student: StudentWithParent }) {
       </div>
       <div className="overflow-hidden rounded-xl border">
         <table className="w-full text-sm">
-          <thead className="bg-secondary text-left text-xs text-muted-foreground">
+          <thead className="bg-secondary text-start text-xs text-muted-foreground">
             <tr>
               <th className="px-4 py-2.5 font-medium">{tr("students.date")}</th>
               <th className="px-4 py-2.5 font-medium">{tr("students.status")}</th>
@@ -429,7 +429,7 @@ function FeesTab({ student }: { student: StudentWithParent }) {
                   : "Monthly Billing"}
               </p>
             </div>
-            <div className="text-right text-sm">
+            <div className="text-end text-sm">
               <p className="tabular-nums">
                 {tr("students.paid")} <span className="font-semibold">{feeMoney(summary.amountPaid)}</span>
               </p>
@@ -478,7 +478,7 @@ function FeesTab({ student }: { student: StudentWithParent }) {
 
       <div className="overflow-hidden rounded-xl border">
         <table className="w-full text-sm">
-          <thead className="bg-secondary text-left text-xs text-muted-foreground">
+          <thead className="bg-secondary text-start text-xs text-muted-foreground">
             <tr>
               <th className="px-4 py-2.5 font-medium">{tr("students.month")}</th>
               <th className="px-4 py-2.5 font-medium">{tr("students.monthlyCharge")}</th>
@@ -572,7 +572,7 @@ function ExamsTab({ student }: { student: StudentWithParent }) {
     <div className="space-y-4">
       <div className="overflow-x-auto rounded-xl border">
         <table className="w-full text-sm">
-          <thead className="bg-secondary text-left text-xs text-muted-foreground">
+          <thead className="bg-secondary text-start text-xs text-muted-foreground">
             <tr>
               <th className="px-4 py-2.5 font-medium">{tr("students.exam")}</th>
               <th className="px-4 py-2.5 font-medium">{tr("students.term")}</th>
@@ -580,7 +580,7 @@ function ExamsTab({ student }: { student: StudentWithParent }) {
               <th className="px-4 py-2.5 font-medium">{tr("students.average")}</th>
               <th className="px-4 py-2.5 font-medium">{tr("students.grade")}</th>
               <th className="px-4 py-2.5 font-medium">{tr("students.result")}</th>
-              <th className="px-4 py-2.5 text-right font-medium">{tr("students.card")}</th>
+              <th className="px-4 py-2.5 text-end font-medium">{tr("students.card")}</th>
             </tr>
           </thead>
           <tbody>
@@ -589,7 +589,7 @@ function ExamsTab({ student }: { student: StudentWithParent }) {
                 <td className="px-4 py-2.5">
                   {r.examName}
                   {r.examGroupName ? (
-                    <span className="ml-1.5 inline-flex items-center rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary">
+                    <span className="ms-1.5 inline-flex items-center rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary">
                       {r.examGroupName}
                     </span>
                   ) : null}
@@ -603,7 +603,7 @@ function ExamsTab({ student }: { student: StudentWithParent }) {
                     {r.passed ? "Pass" : "Fail"}
                   </Badge>
                 </td>
-                <td className="px-4 py-2.5 text-right">
+                <td className="px-4 py-2.5 text-end">
                   <button
                     type="button"
                     onClick={() => setViewing(r)}
@@ -694,7 +694,7 @@ function QuizzesTab({ student }: { student: StudentWithParent }) {
   return (
     <div className="overflow-hidden rounded-xl border">
       <table className="w-full text-sm">
-        <thead className="bg-secondary text-left text-xs text-muted-foreground">
+        <thead className="bg-secondary text-start text-xs text-muted-foreground">
           <tr>
             <th className="px-4 py-2.5 font-medium">{tr("students.quiz")}</th>
             <th className="px-4 py-2.5 font-medium">{tr("students.score")}</th>
@@ -739,7 +739,7 @@ function PromotionTab({ student }: { student: StudentWithParent }) {
   return (
     <div className="overflow-hidden rounded-xl border">
       <table className="w-full text-sm">
-        <thead className="bg-secondary text-left text-xs text-muted-foreground">
+        <thead className="bg-secondary text-start text-xs text-muted-foreground">
           <tr>
             <th className="px-4 py-2.5 font-medium">{tr("students.type")}</th>
             <th className="px-4 py-2.5 font-medium">{tr("students.academicYear")}</th>

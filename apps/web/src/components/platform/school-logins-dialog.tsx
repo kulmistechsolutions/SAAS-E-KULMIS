@@ -155,7 +155,7 @@ export function SchoolLoginsDialog({ open, onClose, school }: Props) {
                 className="h-8 shrink-0 px-2.5 text-xs"
                 onClick={() => setTargetId(u.id)}
               >
-                <KeyRound className="mr-1.5 h-3.5 w-3.5" /> {t("platformSchoolLoginsDialog.reset")}
+                <KeyRound className="me-1.5 h-3.5 w-3.5" /> {t("platformSchoolLoginsDialog.reset")}
               </Button>
             </li>
           ))}

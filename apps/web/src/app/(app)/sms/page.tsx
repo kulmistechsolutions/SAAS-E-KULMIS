@@ -414,7 +414,7 @@ export default function SchoolSmsPage() {
             {tr("sms.buyCredits")}
           </Link>
           <Button variant="outline" onClick={() => void load()}>
-            <RefreshCw className="mr-2 h-4 w-4" /> {tr("sms.refresh")}
+            <RefreshCw className="me-2 h-4 w-4" /> {tr("sms.refresh")}
           </Button>
         </div>
       </div>
@@ -696,7 +696,7 @@ export default function SchoolSmsPage() {
                     sending || !body.trim() || !canSend || selected.size === 0
                   }
                 >
-                  <Send className="mr-2 h-4 w-4" />
+                  <Send className="me-2 h-4 w-4" />
                   {sending
                     ? "Sending…"
                     : scheduledAt
@@ -827,7 +827,7 @@ export default function SchoolSmsPage() {
                 !canSend
               }
             >
-              <Send className="mr-2 h-4 w-4" />
+              <Send className="me-2 h-4 w-4" />
               {sending
                 ? "Sending…"
                 : bulkScheduledAt
@@ -871,7 +871,7 @@ export default function SchoolSmsPage() {
       {tab === "logs" && (
         <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
           <table className="w-full text-sm">
-            <thead className="bg-secondary text-left text-xs uppercase text-muted-foreground">
+            <thead className="bg-secondary text-start text-xs uppercase text-muted-foreground">
               <tr>
                 <th className="px-4 py-3">{tr("sms.recipient")}</th>
                 <th className="px-4 py-3">{tr("sms.category")}</th>

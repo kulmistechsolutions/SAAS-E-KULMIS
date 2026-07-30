@@ -172,7 +172,7 @@ export function ShiftEditor({ academicYearId, shift, onSave, onCancel }: Props) 
         <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
           <Label className="mb-0">
             {t("timetableShiftEditor.dailyPeriods")}
-            <span className="ml-2 font-normal text-muted-foreground">
+            <span className="ms-2 font-normal text-muted-foreground">
               {teachingCount} {t("timetableShiftEditor.teaching")} {days.length} {t("timetableShiftEditor.days")}{" "}
               <strong className="text-foreground">
                 {teachingCount * days.length}
@@ -187,7 +187,7 @@ export function ShiftEditor({ academicYearId, shift, onSave, onCancel }: Props) 
               className="h-8 px-3 text-xs"
               onClick={() => addPeriod(false)}
             >
-              <Plus className="mr-1 h-3.5 w-3.5" />
+              <Plus className="me-1 h-3.5 w-3.5" />
               {t("timetableShiftEditor.period")}
             </Button>
             <Button
@@ -196,7 +196,7 @@ export function ShiftEditor({ academicYearId, shift, onSave, onCancel }: Props) 
               className="h-8 px-3 text-xs"
               onClick={() => addPeriod(true)}
             >
-              <Coffee className="mr-1 h-3.5 w-3.5" />
+              <Coffee className="me-1 h-3.5 w-3.5" />
               {t("timetableShiftEditor.break")}
             </Button>
           </div>
@@ -240,7 +240,7 @@ export function ShiftEditor({ academicYearId, shift, onSave, onCancel }: Props) 
               <button
                 type="button"
                 onClick={() => setPeriods((prev) => prev.filter((_, x) => x !== i))}
-                className="ml-auto text-muted-foreground hover:text-destructive"
+                className="ms-auto text-muted-foreground hover:text-destructive"
                 aria-label={`Remove ${p.name}`}
               >
                 <Trash2 className="h-4 w-4" />

@@ -76,12 +76,12 @@ export default function MyStudentsPage() {
 
       <div className="flex flex-wrap gap-3 rounded-xl border bg-card p-4">
         <div className="relative min-w-[220px] flex-1">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder={t("myStudents.searchByNameOrStudentId")}
-            className="pl-9"
+            className="ps-9"
           />
         </div>
         <Select
@@ -120,7 +120,7 @@ export default function MyStudentsPage() {
         <div className="overflow-x-auto rounded-xl border bg-card">
           <table className="w-full text-sm">
             <thead className="sticky top-0 bg-muted/80 backdrop-blur">
-              <tr className="border-b text-left text-muted-foreground">
+              <tr className="border-b text-start text-muted-foreground">
                 <th className="px-4 py-3 font-medium">{t("myStudents.studentId")}</th>
                 <th className="px-4 py-3 font-medium">{t("myStudents.studentName")}</th>
                 <th className="px-4 py-3 font-medium">{t("myStudents.class")}</th>

@@ -53,7 +53,7 @@ export default function PlatformDashboardPage() {
         </div>
         <Link href="/platform/schools">
           <Button className="bg-violet-600 hover:bg-violet-500">
-            <Plus className="mr-2 h-4 w-4" />
+            <Plus className="me-2 h-4 w-4" />
             {t("platform.newSchool")}
           </Button>
         </Link>
@@ -88,7 +88,7 @@ export default function PlatformDashboardPage() {
                   >
                     {a.school.name}
                   </Link>
-                  <span className="ml-2 text-slate-400">{a.planName}</span>
+                  <span className="ms-2 text-slate-400">{a.planName}</span>
                 </div>
                 <span
                   className={
@@ -126,7 +126,7 @@ export default function PlatformDashboardPage() {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-white/10 text-left text-slate-400">
+              <tr className="border-b border-white/10 text-start text-slate-400">
                 <th className="px-3 py-2">{t("platform.school")}</th>
                 <th className="px-3 py-2">{t("platform.subdomain")}</th>
                 <th className="px-3 py-2">{t("platform.status")}</th>

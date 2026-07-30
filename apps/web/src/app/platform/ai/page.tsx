@@ -111,7 +111,7 @@ export default function PlatformAiSettingsPage() {
             <span>{cfg?.connectionMessage ?? cfg?.connectionStatus ?? "Not tested"}</span>
           </div>
           <Button variant="outline" className="h-9" disabled={testing} onClick={() => void test()}>
-            {testing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+            {testing ? <Loader2 className="me-2 h-4 w-4 animate-spin" /> : null}
             {t("platformAi.testConnection")}
           </Button>
         </div>

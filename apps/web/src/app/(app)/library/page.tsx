@@ -187,7 +187,7 @@ export default function LibraryPage() {
             <Input placeholder={tr("library.category")} value={category} onChange={(e) => setCategory(e.target.value)} />
             <Input type="number" min={1} placeholder={tr("library.copies")} value={copies} onChange={(e) => setCopies(e.target.value)} />
             <Button onClick={() => void addBook()}>
-              <Plus className="mr-1.5 h-4 w-4" /> {tr("library.addBook")}
+              <Plus className="me-1.5 h-4 w-4" /> {tr("library.addBook")}
             </Button>
           </div>
 
@@ -200,14 +200,14 @@ export default function LibraryPage() {
 
           <div className="overflow-x-auto rounded-2xl border bg-card">
             <table className="w-full min-w-[720px] text-sm">
-              <thead className="sticky top-0 bg-secondary/90 text-left text-xs text-muted-foreground">
+              <thead className="sticky top-0 bg-secondary/90 text-start text-xs text-muted-foreground">
                 <tr>
                   <th className="px-4 py-2.5 font-medium">{tr("library.title")}</th>
                   <th className="px-4 py-2.5 font-medium">{tr("library.author")}</th>
                   <th className="px-4 py-2.5 font-medium">{tr("library.category")}</th>
                   <th className="px-4 py-2.5 font-medium">{tr("library.available")}</th>
                   <th className="px-4 py-2.5 font-medium">{tr("library.total")}</th>
-                  <th className="px-4 py-2.5 font-medium text-right">{tr("library.actions")}</th>
+                  <th className="px-4 py-2.5 font-medium text-end">{tr("library.actions")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -218,7 +218,7 @@ export default function LibraryPage() {
                     <td className="px-4 py-2.5 text-muted-foreground">{b.category ?? "—"}</td>
                     <td className="px-4 py-2.5 tabular-nums">{b.availableCopies}</td>
                     <td className="px-4 py-2.5 tabular-nums">{b.totalCopies}</td>
-                    <td className="px-4 py-2.5 text-right">
+                    <td className="px-4 py-2.5 text-end">
                       <button
                         onClick={() => void removeBook(b)}
                         className="text-xs text-rose-600 hover:underline"
@@ -269,13 +269,13 @@ export default function LibraryPage() {
 
           <div className="overflow-x-auto rounded-2xl border bg-card">
             <table className="w-full min-w-[720px] text-sm">
-              <thead className="sticky top-0 bg-secondary/90 text-left text-xs text-muted-foreground">
+              <thead className="sticky top-0 bg-secondary/90 text-start text-xs text-muted-foreground">
                 <tr>
                   <th className="px-4 py-2.5 font-medium">{tr("library.book")}</th>
                   <th className="px-4 py-2.5 font-medium">{tr("library.student")}</th>
                   <th className="px-4 py-2.5 font-medium">{tr("library.issued")}</th>
                   <th className="px-4 py-2.5 font-medium">{tr("library.due")}</th>
-                  <th className="px-4 py-2.5 font-medium text-right">{tr("library.action")}</th>
+                  <th className="px-4 py-2.5 font-medium text-end">{tr("library.action")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -295,7 +295,7 @@ export default function LibraryPage() {
                         {l.dueDate.slice(0, 10)}
                         {overdue ? " · overdue" : ""}
                       </td>
-                      <td className="px-4 py-2.5 text-right">
+                      <td className="px-4 py-2.5 text-end">
                         <Button variant="outline" className="h-8" onClick={() => void returnLoan(l.id)}>
                           {tr("library.return")}
                         </Button>

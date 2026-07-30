@@ -226,7 +226,7 @@ export default function TimetableSetupPage() {
                 : "border-input text-muted-foreground hover:bg-secondary",
             )}
           >
-            <span className="mr-1.5 text-xs opacity-70">{s.id}</span>
+            <span className="me-1.5 text-xs opacity-70">{s.id}</span>
             {s.label}
           </button>
         ))}
@@ -248,7 +248,7 @@ export default function TimetableSetupPage() {
                     : `${shifts.length} shift${shifts.length === 1 ? "" : "s"} · ${totalSlots} teaching slots a week in total.`}
                 </p>
                 <Button type="button" onClick={() => setEditing("new")}>
-                  <Plus className="mr-2 h-4 w-4" />
+                  <Plus className="me-2 h-4 w-4" />
                   {t("timetableSetup.addShift")}
                 </Button>
               </div>
@@ -272,7 +272,7 @@ export default function TimetableSetupPage() {
                         className="h-8 px-3 text-xs"
                         onClick={() => setEditing(shift)}
                       >
-                        <Pencil className="mr-1 h-3.5 w-3.5" />
+                        <Pencil className="me-1 h-3.5 w-3.5" />
                         {t("timetableSetup.edit")}
                       </Button>
                       <Button
@@ -281,7 +281,7 @@ export default function TimetableSetupPage() {
                         className="h-8 px-3 text-xs"
                         onClick={() => handleDeleteShift(shift)}
                       >
-                        <Trash2 className="mr-1 h-3.5 w-3.5" />
+                        <Trash2 className="me-1 h-3.5 w-3.5" />
                         {t("timetableSetup.delete")}
                       </Button>
                     </div>
@@ -358,7 +358,7 @@ export default function TimetableSetupPage() {
                     <div className="overflow-hidden rounded-lg border">
                       <h3 className="border-b bg-secondary/40 px-4 py-2 text-sm font-semibold">
                         {t("timetableSetup.timePreferences")}
-                        <span className="ml-2 font-normal text-muted-foreground">
+                        <span className="ms-2 font-normal text-muted-foreground">
                           {t("timetableSetup.keptWherePossibleNeverAtThe")}
                         </span>
                       </h3>

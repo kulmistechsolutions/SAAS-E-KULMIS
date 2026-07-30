@@ -53,7 +53,7 @@ export function RecentPaymentsPanel({
       <div className="overflow-x-auto">
         {tab === "recent" ? (
           <table className="w-full min-w-[640px] text-sm">
-            <thead className="sticky top-0 bg-secondary/80 text-left text-xs text-muted-foreground backdrop-blur">
+            <thead className="sticky top-0 bg-secondary/80 text-start text-xs text-muted-foreground backdrop-blur">
               <tr>
                 <th className="px-4 py-2.5 font-medium">{tr("feesRecentPaymentsPanel.receiptNo")}</th>
                 <th className="px-4 py-2.5 font-medium">{tr("feesRecentPaymentsPanel.studentName")}</th>
@@ -106,7 +106,7 @@ export function RecentPaymentsPanel({
           </table>
         ) : (
           <table className="w-full min-w-[560px] text-sm">
-            <thead className="sticky top-0 bg-secondary/80 text-left text-xs text-muted-foreground backdrop-blur">
+            <thead className="sticky top-0 bg-secondary/80 text-start text-xs text-muted-foreground backdrop-blur">
               <tr>
                 <th className="px-4 py-2.5 font-medium">{tr("feesRecentPaymentsPanel.studentId")}</th>
                 <th className="px-4 py-2.5 font-medium">{tr("feesRecentPaymentsPanel.studentName")}</th>

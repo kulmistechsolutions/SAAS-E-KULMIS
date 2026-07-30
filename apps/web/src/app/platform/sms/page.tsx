@@ -190,7 +190,7 @@ export default function PlatformSmsPackagesPage() {
             onClick={() => void load()}
             className="border-white/20 text-slate-200"
           >
-            <RefreshCw className="mr-2 h-4 w-4" /> {t("platformSms.refresh")}
+            <RefreshCw className="me-2 h-4 w-4" /> {t("platformSms.refresh")}
           </Button>
         </div>
       </div>
@@ -320,7 +320,7 @@ export default function PlatformSmsPackagesPage() {
                 onClick={() => void createPackage()}
                 disabled={!unlocked || !pkgName}
               >
-                <Plus className="mr-2 h-4 w-4" /> {t("platformSms.create")}
+                <Plus className="me-2 h-4 w-4" /> {t("platformSms.create")}
               </Button>
             </div>
           </div>
@@ -552,7 +552,7 @@ export default function PlatformSmsPackagesPage() {
       {tab === "logs" && (
         <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#0f172a]">
           <table className="w-full text-sm">
-            <thead className="bg-white/5 text-left text-xs uppercase text-slate-500">
+            <thead className="bg-white/5 text-start text-xs uppercase text-slate-500">
               <tr>
                 <th className="px-4 py-3">{t("platformSms.school")}</th>
                 <th className="px-4 py-3">{t("platformSms.to")}</th>

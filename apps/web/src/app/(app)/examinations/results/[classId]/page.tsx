@@ -368,7 +368,7 @@ function ClassResultsContent() {
       <div className="flex flex-wrap items-start gap-4 print:hidden">
         <Button asChild variant="ghost" className="h-9 px-2">
           <Link href="/examinations/results">
-            <ArrowLeft className="mr-2 h-4 w-4" />
+            <ArrowLeft className="me-2 h-4 w-4" />
             {t("examinationsResults.back")}
           </Link>
         </Button>
@@ -388,12 +388,12 @@ function ClassResultsContent() {
             >
               {data.exam.teacherLocked ? (
                 <>
-                  <Unlock className="mr-2 h-4 w-4" />
+                  <Unlock className="me-2 h-4 w-4" />
                   {t("examinationsResults.unlockTeachers")}
                 </>
               ) : (
                 <>
-                  <Lock className="mr-2 h-4 w-4" />
+                  <Lock className="me-2 h-4 w-4" />
                   {t("examinationsResults.teacherLock")}
                 </>
               )}
@@ -403,7 +403,7 @@ function ClassResultsContent() {
               disabled={actionBusy}
               onClick={() => void toggleStudentPortal()}
             >
-              <Send className="mr-2 h-4 w-4" />
+              <Send className="me-2 h-4 w-4" />
               {data.exam.studentPortalOpen
                 ? "Unpublish Portal"
                 : "Publish Portal"}
@@ -548,7 +548,7 @@ function ClassResultsContent() {
               className="h-9"
               onClick={() => setEditMode((v) => !v)}
             >
-              <Pencil className="mr-2 h-4 w-4" />
+              <Pencil className="me-2 h-4 w-4" />
               {editMode ? "Edit Mode On" : "Enable Edit Mode"}
             </Button>
             {editMode && (
@@ -561,7 +561,7 @@ function ClassResultsContent() {
               </Button>
             )}
             <Button variant="outline" className="h-9" onClick={exportCsv}>
-              <Download className="mr-2 h-4 w-4" />
+              <Download className="me-2 h-4 w-4" />
               {t("examinationsResults.csvExport")}
             </Button>
             <Button
@@ -570,7 +570,7 @@ function ClassResultsContent() {
               disabled={exportBusy || !examId}
               onClick={() => void downloadExport("pdf")}
             >
-              <Download className="mr-2 h-4 w-4" />
+              <Download className="me-2 h-4 w-4" />
               {t("examinationsResults.pdf")}
             </Button>
             <Button
@@ -579,11 +579,11 @@ function ClassResultsContent() {
               disabled={exportBusy || !examId}
               onClick={() => void downloadExport("xlsx")}
             >
-              <Download className="mr-2 h-4 w-4" />
+              <Download className="me-2 h-4 w-4" />
               {t("examinationsResults.excelExport")}
             </Button>
             <Button variant="outline" className="h-9" onClick={handlePrint}>
-              <Printer className="mr-2 h-4 w-4" />
+              <Printer className="me-2 h-4 w-4" />
               {t("examinationsResults.print")}
             </Button>
           </div>
@@ -610,7 +610,7 @@ function ClassResultsContent() {
         <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
           <div className="overflow-x-auto">
             <table className="w-full min-w-[800px] text-sm">
-              <thead className="sticky top-0 bg-secondary/90 text-left text-xs text-muted-foreground backdrop-blur">
+              <thead className="sticky top-0 bg-secondary/90 text-start text-xs text-muted-foreground backdrop-blur">
                 <tr>
                   <th className="px-3 py-2.5 font-medium">{t("examinationsResults.rank")}</th>
                   <th className="px-3 py-2.5 font-medium">{t("examinationsResults.studentId")}</th>
@@ -624,7 +624,7 @@ function ClassResultsContent() {
                   <th className="px-3 py-2.5 font-medium">{t("examinationsResults.average")}</th>
                   <th className="px-3 py-2.5 font-medium">{t("examinationsResults.grade")}</th>
                   <th className="px-3 py-2.5 font-medium">{t("examinationsResults.remark")}</th>
-                  <th className="px-3 py-2.5 text-right font-medium print:hidden">
+                  <th className="px-3 py-2.5 text-end font-medium print:hidden">
                     {t("examinationsResults.card")}
                   </th>
                 </tr>
@@ -685,7 +685,7 @@ function ClassResultsContent() {
                         {r.remark}
                       </Badge>
                     </td>
-                    <td className="px-3 py-2 text-right print:hidden">
+                    <td className="px-3 py-2 text-end print:hidden">
                       <button
                         type="button"
                         onClick={() => setCardStudentId(r.studentId)}

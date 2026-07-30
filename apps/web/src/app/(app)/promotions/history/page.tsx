@@ -102,10 +102,10 @@ export default function PromotionHistoryPage() {
               })
             }
           >
-            <Printer className="mr-2 h-4 w-4" /> {t("promotionsHistory.print")}
+            <Printer className="me-2 h-4 w-4" /> {t("promotionsHistory.print")}
           </Button>
           <Button variant="outline" onClick={() => { exportPromotionHistoryCsv(rows); toast(`Exported ${rows.length} records.`, "info"); }}>
-            <FileDown className="mr-2 h-4 w-4" /> {t("promotionsHistory.export")}
+            <FileDown className="me-2 h-4 w-4" /> {t("promotionsHistory.export")}
           </Button>
         </div>
       </div>
@@ -113,12 +113,12 @@ export default function PromotionHistoryPage() {
       <div className="rounded-2xl border bg-card p-4 shadow-sm">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
           <div className="relative flex-1">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder={t("promotionsHistory.searchByStudentIdOrClass")}
-              className="h-10 w-full rounded-lg border bg-background pl-9 pr-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+              className="h-10 w-full rounded-lg border bg-background ps-9 pe-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
             />
           </div>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:flex">
@@ -140,7 +140,7 @@ export default function PromotionHistoryPage() {
             </label>
             {hasFilters && (
               <Button variant="ghost" onClick={() => { setSearch(""); setYear(""); setType(""); }}>
-                <X className="mr-1 h-4 w-4" /> {t("promotionsHistory.clear")}
+                <X className="me-1 h-4 w-4" /> {t("promotionsHistory.clear")}
               </Button>
             )}
           </div>
@@ -150,7 +150,7 @@ export default function PromotionHistoryPage() {
       <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
         <div className="max-h-[600px] overflow-auto scrollbar-slim">
           <table className="w-full min-w-[900px] text-sm">
-            <thead className="sticky top-0 z-10 bg-secondary/95 backdrop-blur text-left text-xs uppercase tracking-wide text-muted-foreground">
+            <thead className="sticky top-0 z-10 bg-secondary/95 backdrop-blur text-start text-xs uppercase tracking-wide text-muted-foreground">
               <tr>
                 <th className="px-4 py-3 font-medium">{t("promotionsHistory.student")}</th>
                 <th className="px-4 py-3 font-medium">{t("promotionsHistory.type")}</th>
@@ -159,7 +159,7 @@ export default function PromotionHistoryPage() {
                 <th className="px-4 py-3 font-medium">{t("promotionsHistory.academicYear")}</th>
                 <th className="px-4 py-3 font-medium">{t("promotionsHistory.date")}</th>
                 <th className="px-4 py-3 font-medium">{t("promotionsHistory.by")}</th>
-                <th className="px-4 py-3 text-right font-medium">{t("promotionsHistory.actions")}</th>
+                <th className="px-4 py-3 text-end font-medium">{t("promotionsHistory.actions")}</th>
               </tr>
             </thead>
             <tbody>
@@ -176,7 +176,7 @@ export default function PromotionHistoryPage() {
                       <Link href={`/students/${r.studentId}`} className="font-medium hover:text-primary hover:underline">
                         {r.studentName}
                       </Link>
-                      <span className="ml-2 font-mono text-xs text-muted-foreground">{r.studentCode}</span>
+                      <span className="ms-2 font-mono text-xs text-muted-foreground">{r.studentCode}</span>
                     </td>
                     <td className="px-4 py-3"><PromotionTypeBadge type={r.type} /></td>
                     <td className="px-4 py-3 text-muted-foreground">{r.fromClass}{r.fromSection ? ` (${r.fromSection})` : ""}</td>
@@ -192,7 +192,7 @@ export default function PromotionHistoryPage() {
                     <td className="px-4 py-3 text-muted-foreground">{r.fromAcademicYear}</td>
                     <td className="px-4 py-3 text-muted-foreground">{dateTime(r.promotedAt)}</td>
                     <td className="px-4 py-3 text-muted-foreground">{r.promotedBy}</td>
-                    <td className="px-4 py-3 text-right">
+                    <td className="px-4 py-3 text-end">
                       {r.rolledBackAt ? (
                         <Badge tone="muted">{t("promotionsHistory.rolledBack")}</Badge>
                       ) : (

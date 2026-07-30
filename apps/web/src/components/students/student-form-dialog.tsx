@@ -307,7 +307,7 @@ export function StudentFormDialog({ open, onClose, student, onSaved }: Props) {
           <Button onClick={() => void handleSubmit()} disabled={saving}>
             {saving ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <Loader2 className="me-2 h-4 w-4 animate-spin" />
                 {isEdit ? "Saving…" : "Registering…"}
               </>
             ) : isEdit ? (
@@ -465,11 +465,11 @@ export function StudentFormDialog({ open, onClose, student, onSaved }: Props) {
           </Field>
           <Field label={t("studentsStudentFormDialog.monthlyFee")} required>
             <div className="relative">
-              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
+              <span className="pointer-events-none absolute start-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
                 $
               </span>
               <Input
-                className={cn(inputClass, "pl-6")}
+                className={cn(inputClass, "ps-6")}
                 type="number"
                 min={0}
                 value={form.monthlyFee}
@@ -553,11 +553,11 @@ export function StudentFormDialog({ open, onClose, student, onSaved }: Props) {
             {form.feeStartMode === "AGREEMENT" && (
               <Field label={t("studentsStudentFormDialog.agreementAmount")} required className="mt-3 max-w-xs">
                 <div className="relative">
-                  <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
+                  <span className="pointer-events-none absolute start-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
                     $
                   </span>
                   <Input
-                    className={cn(inputClass, "pl-6")}
+                    className={cn(inputClass, "ps-6")}
                     type="number"
                     min={0}
                     value={form.agreementAmount}

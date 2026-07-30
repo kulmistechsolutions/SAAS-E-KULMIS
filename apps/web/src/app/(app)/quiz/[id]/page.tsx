@@ -215,8 +215,8 @@ export default function QuizBuilderPage({ params }: { params: Promise<{ id: stri
           <p className="mt-1 font-mono text-sm text-muted-foreground">{quiz.code}</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" className="h-9" onClick={copyLink}><Copy className="mr-2 h-4 w-4" />{tr("quiz.copyLink")}</Button>
-          <Link href={`/quiz-take/${quiz.code}`} target="_blank"><Button variant="outline" className="h-9"><Play className="mr-2 h-4 w-4" />{tr("quiz.preview")}</Button></Link>
+          <Button variant="outline" className="h-9" onClick={copyLink}><Copy className="me-2 h-4 w-4" />{tr("quiz.copyLink")}</Button>
+          <Link href={`/quiz-take/${quiz.code}`} target="_blank"><Button variant="outline" className="h-9"><Play className="me-2 h-4 w-4" />{tr("quiz.preview")}</Button></Link>
           <Link href={`${quizBase}/${quiz.id}/results`}><Button variant="outline" className="h-9">{tr("quiz.results")}</Button></Link>
           {!isDraft && (
             <Link href={`${quizBase}/${quiz.id}/live`}><Button variant="outline" className="h-9">{tr("quiz.liveMonitor")}</Button></Link>
@@ -285,7 +285,7 @@ export default function QuizBuilderPage({ params }: { params: Promise<{ id: stri
             ))}
           </Select>
           <Button variant="outline" className="h-9" onClick={() => setQuestions((qs) => [...qs, blankQuestion(addType)])}>
-            <Plus className="mr-2 h-4 w-4" />{tr("quiz.addQuestion")}
+            <Plus className="me-2 h-4 w-4" />{tr("quiz.addQuestion")}
           </Button>
         </div>
       </fieldset>
@@ -293,7 +293,7 @@ export default function QuizBuilderPage({ params }: { params: Promise<{ id: stri
       {isDraft && (
         <div className="flex flex-wrap justify-end gap-2">
           <Button variant="outline" className="h-10" disabled={saving} onClick={() => void save(false)}>
-            <Save className="mr-2 h-4 w-4" />{saving ? "Saving…" : "Save draft"}
+            <Save className="me-2 h-4 w-4" />{saving ? "Saving…" : "Save draft"}
           </Button>
           <Button className="h-10" disabled={saving} onClick={() => void save(true)}>
             {saving ? "Publishing…" : "Save & Publish"}
@@ -330,7 +330,7 @@ function QuestionEditor({ q, index, onChange, onRemove }: { q: BQ; index: number
               {q.options.length > 2 && <Button variant="ghost" className="h-8 w-8 p-0 text-rose-600" onClick={() => onChange({ options: q.options.filter((_, x) => x !== oi) })}><Trash2 className="h-4 w-4" /></Button>}
             </div>
           ))}
-          <Button variant="outline" className="h-8" onClick={() => onChange({ options: [...q.options, ""] })}><Plus className="mr-1 h-3 w-3" />{tr("quiz.option")}</Button>
+          <Button variant="outline" className="h-8" onClick={() => onChange({ options: [...q.options, ""] })}><Plus className="me-1 h-3 w-3" />{tr("quiz.option")}</Button>
         </div>
       )}
 
@@ -357,7 +357,7 @@ function QuestionEditor({ q, index, onChange, onRemove }: { q: BQ; index: number
               {q.pairs.length > 2 && <Button variant="ghost" className="h-8 w-8 p-0 text-rose-600" onClick={() => onChange({ pairs: q.pairs.filter((_, x) => x !== pi) })}><Trash2 className="h-4 w-4" /></Button>}
             </div>
           ))}
-          <Button variant="outline" className="h-8" onClick={() => onChange({ pairs: [...q.pairs, { left: "", right: "" }] })}><Plus className="mr-1 h-3 w-3" />{tr("quiz.pair")}</Button>
+          <Button variant="outline" className="h-8" onClick={() => onChange({ pairs: [...q.pairs, { left: "", right: "" }] })}><Plus className="me-1 h-3 w-3" />{tr("quiz.pair")}</Button>
         </div>
       )}
 
@@ -371,7 +371,7 @@ function QuestionEditor({ q, index, onChange, onRemove }: { q: BQ; index: number
               {q.blanks.length > 1 && <Button variant="ghost" className="h-8 w-8 p-0 text-rose-600" onClick={() => onChange({ blanks: q.blanks.filter((_, x) => x !== bi) })}><Trash2 className="h-4 w-4" /></Button>}
             </div>
           ))}
-          <Button variant="outline" className="h-8" onClick={() => onChange({ blanks: [...q.blanks, ""] })}><Plus className="mr-1 h-3 w-3" />{tr("quiz.blank")}</Button>
+          <Button variant="outline" className="h-8" onClick={() => onChange({ blanks: [...q.blanks, ""] })}><Plus className="me-1 h-3 w-3" />{tr("quiz.blank")}</Button>
         </div>
       )}
     </div>

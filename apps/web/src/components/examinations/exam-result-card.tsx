@@ -202,7 +202,7 @@ export function ExamResultCard({ data }: { data: ExamResultCardData }) {
                   {data.examName}
                   {data.term ? ` · ${data.term}` : ""}
                   {data.group ? (
-                    <span className="ml-2 inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 align-middle text-[10px] font-semibold uppercase tracking-wide text-primary">
+                    <span className="ms-2 inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 align-middle text-[10px] font-semibold uppercase tracking-wide text-primary">
                       {t("examinationsExamResultCard.combined")}
                     </span>
                   ) : null}
@@ -249,15 +249,15 @@ export function ExamResultCard({ data }: { data: ExamResultCardData }) {
                 {/* Desktop/tablet: full matrix table. */}
                 <div className="hidden overflow-x-auto rounded-xl border sm:block">
                   <table className="w-full text-sm">
-                    <thead className="bg-secondary/60 text-left text-xs uppercase tracking-wide text-muted-foreground">
+                    <thead className="bg-secondary/60 text-start text-xs uppercase tracking-wide text-muted-foreground">
                       <tr>
                         <th className="px-4 py-2.5 font-medium">{t("examinationsExamResultCard.subject")}</th>
                         {data.group.examColumns.map((col) => (
-                          <th key={col.examId} className="px-4 py-2.5 text-right font-medium whitespace-nowrap">
+                          <th key={col.examId} className="px-4 py-2.5 text-end font-medium whitespace-nowrap">
                             {col.label}
                           </th>
                         ))}
-                        <th className="px-4 py-2.5 text-right font-medium">{t("examinationsExamResultCard.combined")}</th>
+                        <th className="px-4 py-2.5 text-end font-medium">{t("examinationsExamResultCard.combined")}</th>
                         <th className="px-4 py-2.5 text-center font-medium">{t("examinationsExamResultCard.grade")}</th>
                       </tr>
                     </thead>
@@ -266,12 +266,12 @@ export function ExamResultCard({ data }: { data: ExamResultCardData }) {
                         <tr key={row.subject} className="border-t odd:bg-secondary/20">
                           <td className="px-4 py-2.5 font-medium">{row.subject}</td>
                           {data.group!.examColumns.map((col) => (
-                            <td key={col.examId} className="px-4 py-2.5 text-right tabular-nums">
+                            <td key={col.examId} className="px-4 py-2.5 text-end tabular-nums">
                               {row.perExam[col.examId] ?? "—"}
                               <span className="text-muted-foreground"> / {col.maxMarks}</span>
                             </td>
                           ))}
-                          <td className="px-4 py-2.5 text-right font-semibold tabular-nums">
+                          <td className="px-4 py-2.5 text-end font-semibold tabular-nums">
                             {row.combinedPercent}%
                           </td>
                           <td className="px-4 py-2.5 text-center">
@@ -285,7 +285,7 @@ export function ExamResultCard({ data }: { data: ExamResultCardData }) {
                         <td className="px-4 py-2.5" colSpan={1 + data.group.examColumns.length}>
                           {t("examinationsExamResultCard.total")}
                         </td>
-                        <td className="px-4 py-2.5 text-right tabular-nums">{data.average}%</td>
+                        <td className="px-4 py-2.5 text-end tabular-nums">{data.average}%</td>
                         <td className="px-4 py-2.5 text-center">
                           <GradePill grade={data.grade} />
                         </td>
@@ -297,11 +297,11 @@ export function ExamResultCard({ data }: { data: ExamResultCardData }) {
             ) : (
               <div className="overflow-x-auto rounded-xl border">
                 <table className="w-full text-sm">
-                  <thead className="bg-secondary/60 text-left text-xs uppercase tracking-wide text-muted-foreground">
+                  <thead className="bg-secondary/60 text-start text-xs uppercase tracking-wide text-muted-foreground">
                     <tr>
                       <th className="px-4 py-2.5 font-medium">{t("examinationsExamResultCard.subject")}</th>
-                      <th className="px-4 py-2.5 text-right font-medium">{t("examinationsExamResultCard.marks")}</th>
-                      <th className="px-4 py-2.5 text-right font-medium">{t("examinationsExamResultCard.outOf")}</th>
+                      <th className="px-4 py-2.5 text-end font-medium">{t("examinationsExamResultCard.marks")}</th>
+                      <th className="px-4 py-2.5 text-end font-medium">{t("examinationsExamResultCard.outOf")}</th>
                       <th className="px-4 py-2.5 text-center font-medium">{t("examinationsExamResultCard.grade")}</th>
                     </tr>
                   </thead>
@@ -309,10 +309,10 @@ export function ExamResultCard({ data }: { data: ExamResultCardData }) {
                     {data.subjects.map((s) => (
                       <tr key={s.subject} className="border-t odd:bg-secondary/20">
                         <td className="px-4 py-2.5 font-medium">{s.subject}</td>
-                        <td className="px-4 py-2.5 text-right tabular-nums">
+                        <td className="px-4 py-2.5 text-end tabular-nums">
                           {s.marksObtained ?? "—"}
                         </td>
-                        <td className="px-4 py-2.5 text-right tabular-nums text-muted-foreground">
+                        <td className="px-4 py-2.5 text-end tabular-nums text-muted-foreground">
                           {s.maxMarks}
                         </td>
                         <td className="px-4 py-2.5 text-center">
@@ -324,10 +324,10 @@ export function ExamResultCard({ data }: { data: ExamResultCardData }) {
                   <tfoot>
                     <tr className="border-t bg-secondary/40 font-semibold">
                       <td className="px-4 py-2.5">{t("examinationsExamResultCard.total")}</td>
-                      <td className="px-4 py-2.5 text-right tabular-nums">
+                      <td className="px-4 py-2.5 text-end tabular-nums">
                         {data.totalObtained}
                       </td>
-                      <td className="px-4 py-2.5 text-right tabular-nums text-muted-foreground">
+                      <td className="px-4 py-2.5 text-end tabular-nums text-muted-foreground">
                         {data.totalMax}
                       </td>
                       <td className="px-4 py-2.5 text-center">
@@ -386,7 +386,7 @@ export function ExamResultCard({ data }: { data: ExamResultCardData }) {
             onClick={handlePrint}
             className="result-card-noprint h-9 px-3 text-sm"
           >
-            <Printer className="mr-1.5 h-4 w-4" />
+            <Printer className="me-1.5 h-4 w-4" />
             {t("examinationsExamResultCard.print")}
           </Button>
         </div>

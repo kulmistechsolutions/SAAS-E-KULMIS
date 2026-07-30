@@ -292,7 +292,7 @@ export function AssignmentFormDialog({
           <Button onClick={() => void handleSubmit()} disabled={saving}>
             {saving ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <Loader2 className="me-2 h-4 w-4 animate-spin" />
                 {tr("teachersAssignmentFormDialog.saving")}
               </>
             ) : isEdit ? (
@@ -438,7 +438,7 @@ export function AssignmentFormDialog({
             <div className="flex items-center justify-between">
               <Label>{tr("teachersAssignmentFormDialog.teachingSlots")}</Label>
               <Button type="button" variant="outline" onClick={addSlot}>
-                <Plus className="mr-1.5 h-4 w-4" />
+                <Plus className="me-1.5 h-4 w-4" />
                 {tr("teachersAssignmentFormDialog.addClassSection")}
               </Button>
             </div>

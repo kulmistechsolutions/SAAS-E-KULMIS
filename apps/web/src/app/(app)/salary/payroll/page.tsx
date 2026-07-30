@@ -102,7 +102,7 @@ export default function PayrollPage() {
             className="h-9"
             onClick={() => exportPayrollReportCsv(rows, `payroll-${month}.csv`)}
           >
-            <Download className="mr-2 h-4 w-4" />
+            <Download className="me-2 h-4 w-4" />
             {t("salaryPayroll.exportCsv")}
           </Button>
         </div>
@@ -167,7 +167,7 @@ export default function PayrollPage() {
       <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[960px] text-sm">
-            <thead className="sticky top-0 bg-secondary text-left text-xs text-muted-foreground">
+            <thead className="sticky top-0 bg-secondary text-start text-xs text-muted-foreground">
               <tr>
                 <th className="px-4 py-2.5 font-medium">{t("salaryPayroll.employee")}</th>
                 <th className="px-4 py-2.5 font-medium">{t("salaryPayroll.position")}</th>
@@ -211,7 +211,7 @@ export default function PayrollPage() {
                             className="h-8 px-2"
                             onClick={() => setPayRow(r)}
                           >
-                            <Wallet className="mr-1 h-3.5 w-3.5" />
+                            <Wallet className="me-1 h-3.5 w-3.5" />
                             {t("salaryPayroll.pay")}
                           </Button>
                         )}

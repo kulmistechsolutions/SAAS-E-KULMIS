@@ -112,7 +112,7 @@ export function SchoolLoginActivity({ schoolId }: { schoolId: string }) {
 
           <div className="mt-4 overflow-x-auto rounded-lg border border-white/10">
             <table className="w-full min-w-[640px] text-sm">
-              <thead className="bg-white/5 text-left text-xs uppercase tracking-wide text-white/50">
+              <thead className="bg-white/5 text-start text-xs uppercase tracking-wide text-white/50">
                 <tr>
                   <th className="px-3 py-2.5 font-medium">{t("platformSchoolLoginActivity.when")}</th>
                   <th className="px-3 py-2.5 font-medium">{t("platformSchoolLoginActivity.user")}</th>

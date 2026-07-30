@@ -20,14 +20,14 @@ export function ChildSelector({ students, selectedId, onChange, className }: Pro
           key={c.id}
           onClick={() => onChange(c.id)}
           className={cn(
-            "rounded-lg border px-3 py-2 text-left text-sm transition-colors",
+            "rounded-lg border px-3 py-2 text-start text-sm transition-colors",
             selectedId === c.id
               ? "border-primary bg-primary/10 text-primary"
               : "hover:bg-secondary",
           )}
         >
           <span className="font-medium">{c.fullName}</span>
-          <span className="ml-2 text-xs text-muted-foreground">
+          <span className="ms-2 text-xs text-muted-foreground">
             {c.className}{c.section ? ` - ${c.section}` : ""}
           </span>
         </button>

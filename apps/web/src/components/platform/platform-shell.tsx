@@ -43,7 +43,7 @@ export function PlatformShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex min-h-screen bg-[#0b1120] text-slate-200">
-      <aside className="hidden w-60 shrink-0 flex-col border-r border-white/10 bg-[#0f172a] lg:flex">
+      <aside className="hidden w-60 shrink-0 flex-col border-e border-white/10 bg-[#0f172a] lg:flex">
         <div className="border-b border-white/10 p-5">
           <div className="flex items-center gap-3">
             <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600 text-white shadow-lg">
@@ -101,7 +101,7 @@ export function PlatformShell({ children }: { children: React.ReactNode }) {
           <div className="lg:hidden">
             <p className="text-sm font-bold text-white">{t("platformPlatformShell.platformSuperAdmin")}</p>
           </div>
-          <div className="ml-auto text-right text-sm">
+          <div className="ms-auto text-end text-sm">
             <p className="font-medium text-white">{admin?.name ?? admin?.username}</p>
             <p className="text-xs text-slate-400">
               {isPreview ? "Preview mode" : "Platform administrator"}

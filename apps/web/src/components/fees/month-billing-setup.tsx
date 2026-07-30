@@ -125,7 +125,7 @@ export function MonthBillingSetup() {
                   />
                   <span>
                     {c.name}
-                    <span className="ml-1 text-xs text-muted-foreground">
+                    <span className="ms-1 text-xs text-muted-foreground">
                       · {c.activeStudents} {t("feesMonthBillingSetup.student")}
                       {c.activeStudents === 1 ? "" : "s"}
                     </span>

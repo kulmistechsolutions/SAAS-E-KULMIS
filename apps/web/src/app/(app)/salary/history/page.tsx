@@ -102,7 +102,7 @@ export default function SalaryHistoryPage() {
           className="h-9"
           onClick={() => exportPayrollReportCsv(exportRows, "salary-history.csv")}
         >
-          <Download className="mr-2 h-4 w-4" />
+          <Download className="me-2 h-4 w-4" />
           {t("salaryHistory.exportCsv")}
         </Button>
       </div>
@@ -167,7 +167,7 @@ export default function SalaryHistoryPage() {
       <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[1100px] text-sm">
-            <thead className="sticky top-0 bg-secondary text-left text-xs text-muted-foreground">
+            <thead className="sticky top-0 bg-secondary text-start text-xs text-muted-foreground">
               <tr>
                 <th className="px-4 py-2.5 font-medium">{t("salaryHistory.employee")}</th>
                 <th className="px-4 py-2.5 font-medium">{t("salaryHistory.month")}</th>

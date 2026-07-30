@@ -123,11 +123,11 @@ export function TemplateManager({ templates, onChanged }: Props) {
               onClick={() => void resetToDefaults()}
               disabled={resetting}
             >
-              <RotateCcw className="mr-1.5 h-3.5 w-3.5" />
+              <RotateCcw className="me-1.5 h-3.5 w-3.5" />
               {resetting ? "Resetting…" : "Reset to Somali defaults"}
             </Button>
             <Button className="h-8 px-3 text-xs" onClick={startCreate}>
-              <Plus className="mr-1.5 h-4 w-4" /> {tr("smsTemplateManager.newTemplate")}
+              <Plus className="me-1.5 h-4 w-4" /> {tr("smsTemplateManager.newTemplate")}
             </Button>
           </div>
         )}
@@ -184,7 +184,7 @@ export function TemplateManager({ templates, onChanged }: Props) {
               {saving ? "Saving…" : "Save"}
             </Button>
             <Button className="h-8 px-3 text-xs" variant="outline" onClick={cancel}>
-              <X className="mr-1.5 h-4 w-4" /> {tr("smsTemplateManager.cancel")}
+              <X className="me-1.5 h-4 w-4" /> {tr("smsTemplateManager.cancel")}
             </Button>
           </div>
         </div>

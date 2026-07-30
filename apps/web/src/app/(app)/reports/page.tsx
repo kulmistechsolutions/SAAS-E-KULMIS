@@ -83,12 +83,12 @@ export default function ReportsDashboardPage() {
       </div>
 
       <div className="relative max-w-xl">
-        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder={t("reports.searchReportsByNameOrCategory")}
-          className="h-11 w-full rounded-xl border bg-card pl-10 pr-4 text-sm shadow-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+          className="h-11 w-full rounded-xl border bg-card ps-10 pe-4 text-sm shadow-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
         />
       </div>
 

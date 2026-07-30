@@ -48,14 +48,14 @@ export default function ExpenseCategoriesPage() {
           className="h-10"
         />
         <Button className="h-10 shrink-0" onClick={handleAdd}>
-          <Plus className="mr-2 h-4 w-4" />
+          <Plus className="me-2 h-4 w-4" />
           {t("expensesCategories.add")}
         </Button>
       </div>
 
       <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
         <table className="w-full text-sm">
-          <thead className="bg-secondary text-left text-xs text-muted-foreground">
+          <thead className="bg-secondary text-start text-xs text-muted-foreground">
             <tr>
               <th className="px-4 py-2.5 font-medium">{t("expensesCategories.category")}</th>
               <th className="px-4 py-2.5 font-medium">{t("expensesCategories.status")}</th>

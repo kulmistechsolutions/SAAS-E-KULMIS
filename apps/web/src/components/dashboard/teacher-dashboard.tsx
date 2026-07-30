@@ -263,19 +263,19 @@ export function TeacherDashboard({
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b text-left text-muted-foreground">
-                  <th className="pb-2 pr-3 font-medium">{t("dashboardTeacherDashboard.year")}</th>
-                  <th className="pb-2 pr-3 font-medium">{t("dashboardTeacherDashboard.class")}</th>
-                  <th className="pb-2 pr-3 font-medium">{t("dashboardTeacherDashboard.section")}</th>
+                <tr className="border-b text-start text-muted-foreground">
+                  <th className="pb-2 pe-3 font-medium">{t("dashboardTeacherDashboard.year")}</th>
+                  <th className="pb-2 pe-3 font-medium">{t("dashboardTeacherDashboard.class")}</th>
+                  <th className="pb-2 pe-3 font-medium">{t("dashboardTeacherDashboard.section")}</th>
                   <th className="pb-2 font-medium">{t("dashboardTeacherDashboard.subject")}</th>
                 </tr>
               </thead>
               <tbody>
                 {data.schedule.slice(0, 10).map((a) => (
                   <tr key={a.id} className="border-b last:border-0">
-                    <td className="py-2 pr-3">{a.academicYear}</td>
-                    <td className="py-2 pr-3">{a.className}</td>
-                    <td className="py-2 pr-3">{a.section ?? "All"}</td>
+                    <td className="py-2 pe-3">{a.academicYear}</td>
+                    <td className="py-2 pe-3">{a.className}</td>
+                    <td className="py-2 pe-3">{a.section ?? "All"}</td>
                     <td className="py-2">{a.subject}</td>
                   </tr>
                 ))}

@@ -61,7 +61,7 @@ export default function PromotionsDashboardPage() {
           href="/promotions/promote"
           className="inline-flex h-10 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
         >
-          <Sparkles className="mr-2 h-4 w-4" /> {t("promotions.startPromotion")}
+          <Sparkles className="me-2 h-4 w-4" /> {t("promotions.startPromotion")}
         </Link>
       </div>
 
@@ -95,7 +95,7 @@ export default function PromotionsDashboardPage() {
         </div>
         <div className="max-h-[420px] overflow-auto scrollbar-slim">
           <table className="w-full min-w-[680px] text-sm">
-            <thead className="sticky top-0 bg-secondary/60 text-left text-xs uppercase tracking-wide text-muted-foreground">
+            <thead className="sticky top-0 bg-secondary/60 text-start text-xs uppercase tracking-wide text-muted-foreground">
               <tr>
                 <th className="px-5 py-2.5 font-medium">{t("promotions.student")}</th>
                 <th className="px-5 py-2.5 font-medium">{t("promotions.type")}</th>
@@ -118,7 +118,7 @@ export default function PromotionsDashboardPage() {
                       <Link href={`/students/${r.studentId}`} className="font-medium hover:text-primary hover:underline">
                         {r.studentName}
                       </Link>
-                      <span className="ml-2 font-mono text-xs text-muted-foreground">{r.studentCode}</span>
+                      <span className="ms-2 font-mono text-xs text-muted-foreground">{r.studentCode}</span>
                     </td>
                     <td className="px-5 py-3"><PromotionTypeBadge type={r.type} /></td>
                     <td className="px-5 py-3 text-muted-foreground">

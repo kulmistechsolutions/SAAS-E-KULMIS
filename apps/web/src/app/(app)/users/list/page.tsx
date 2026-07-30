@@ -97,15 +97,15 @@ export default function UsersListPage() {
             className="h-9"
             onClick={() => printUserListReport(rows, "User List Report")}
           >
-            <Printer className="mr-2 h-4 w-4" />
+            <Printer className="me-2 h-4 w-4" />
             {t("usersList.print")}
           </Button>
           <Button variant="outline" className="h-9" onClick={() => exportUsersCsv(rows)}>
-            <Download className="mr-2 h-4 w-4" />
+            <Download className="me-2 h-4 w-4" />
             {t("usersList.exportCsv")}
           </Button>
           <Button className="h-9" onClick={() => setShowCreate(true)}>
-            <Plus className="mr-2 h-4 w-4" />
+            <Plus className="me-2 h-4 w-4" />
             {t("usersList.createUser")}
           </Button>
         </div>
@@ -154,7 +154,7 @@ export default function UsersListPage() {
       <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[1000px] text-sm">
-            <thead className="sticky top-0 bg-secondary text-left text-xs text-muted-foreground">
+            <thead className="sticky top-0 bg-secondary text-start text-xs text-muted-foreground">
               <tr>
                 <th className="px-4 py-2.5 font-medium">#</th>
                 <th className="px-4 py-2.5 font-medium">{t("usersList.userId")}</th>
@@ -176,7 +176,7 @@ export default function UsersListPage() {
                   <td className="px-4 py-2.5">
                     <span className="text-muted-foreground">{r.roleLabel}</span>
                     {isSchoolSuperAdminRole(r.role) && (
-                      <Badge tone="warning" className="ml-2 text-[10px]">{t("usersList.protected")}</Badge>
+                      <Badge tone="warning" className="ms-2 text-[10px]">{t("usersList.protected")}</Badge>
                     )}
                   </td>
                   <td className="px-4 py-2.5">

@@ -268,7 +268,7 @@ export function SenderIdReview() {
           </p>
           <div className="overflow-x-auto">
             <table className="w-full min-w-[720px] text-sm">
-              <thead className="bg-white/5 text-left text-xs uppercase tracking-wide text-white/50">
+              <thead className="bg-white/5 text-start text-xs uppercase tracking-wide text-white/50">
                 <tr>
                   <th className="px-4 py-2.5 font-medium">{t("platformSenderIdReview.school")}</th>
                   <th className="px-4 py-2.5 font-medium">{t("platformSenderIdReview.requested")}</th>

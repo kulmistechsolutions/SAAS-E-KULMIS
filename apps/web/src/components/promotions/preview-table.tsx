@@ -31,7 +31,7 @@ export function PreviewTable({
     <div className="overflow-hidden rounded-xl border">
       <div className="max-h-[440px] overflow-auto scrollbar-slim">
         <table className="w-full min-w-[720px] text-sm">
-          <thead className="sticky top-0 z-10 bg-secondary/95 backdrop-blur text-left text-xs uppercase tracking-wide text-muted-foreground">
+          <thead className="sticky top-0 z-10 bg-secondary/95 backdrop-blur text-start text-xs uppercase tracking-wide text-muted-foreground">
             <tr>
               {selectable && (
                 <th className="px-4 py-3">

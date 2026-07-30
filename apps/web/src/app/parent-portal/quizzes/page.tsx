@@ -76,7 +76,7 @@ export default function ParentQuizzesPage() {
         <div className="overflow-x-auto rounded-xl border bg-card">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b bg-secondary/50 text-left">
+              <tr className="border-b bg-secondary/50 text-start">
                 <th className="px-4 py-3">{t("parentPortalQuizzes.quiz")}</th>
                 <th className="px-4 py-3">{t("parentPortalQuizzes.subject")}</th>
                 <th className="px-4 py-3">{t("parentPortalQuizzes.score")}</th>

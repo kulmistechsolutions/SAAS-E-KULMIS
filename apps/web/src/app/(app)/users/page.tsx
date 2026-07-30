@@ -48,7 +48,7 @@ export default function UsersDashboardPage() {
           </p>
         </div>
         <Button className="h-9" onClick={() => setShowCreate(true)}>
-          <Plus className="mr-2 h-4 w-4" />
+          <Plus className="me-2 h-4 w-4" />
           {t("users.createUser")}
         </Button>
       </div>
@@ -83,7 +83,7 @@ export default function UsersDashboardPage() {
             </Link>
           </div>
           <table className="w-full text-sm">
-            <thead className="bg-secondary text-left text-xs text-muted-foreground">
+            <thead className="bg-secondary text-start text-xs text-muted-foreground">
               <tr>
                 <th className="px-4 py-2 font-medium">{t("users.user")}</th>
                 <th className="px-4 py-2 font-medium">{t("users.role")}</th>

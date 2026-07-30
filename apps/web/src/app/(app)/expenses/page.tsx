@@ -101,7 +101,7 @@ export default function ExpensesDashboardPage() {
             </Select>
           </div>
           <Button className="h-9" onClick={() => setShowForm(true)}>
-            <Plus className="mr-2 h-4 w-4" />
+            <Plus className="me-2 h-4 w-4" />
             {t("expenses.recordExpense")}
           </Button>
         </div>
@@ -139,7 +139,7 @@ export default function ExpensesDashboardPage() {
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="bg-secondary text-left text-xs text-muted-foreground">
+                <thead className="bg-secondary text-start text-xs text-muted-foreground">
                   <tr>
                     <th className="px-4 py-2 font-medium">{t("expenses.reference")}</th>
                     <th className="px-4 py-2 font-medium">{t("expenses.title")}</th>

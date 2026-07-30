@@ -67,7 +67,7 @@ export default function TeacherPortalQuizzesPage() {
         </div>
         <Button asChild>
           <Link href="/teacher-portal/quizzes/create">
-            <Plus className="mr-2 h-4 w-4" />
+            <Plus className="me-2 h-4 w-4" />
             {t("teacherPortalQuizzes.createQuiz")}
           </Link>
         </Button>
@@ -97,7 +97,7 @@ export default function TeacherPortalQuizzesPage() {
       ) : (
         <div className="overflow-x-auto rounded-xl border bg-card">
           <table className="w-full min-w-[640px] text-sm">
-            <thead className="border-b bg-muted/40 text-left">
+            <thead className="border-b bg-muted/40 text-start">
               <tr>
                 <th className="px-4 py-3 font-medium">{t("teacherPortalQuizzes.quiz")}</th>
                 <th className="px-4 py-3 font-medium">{t("teacherPortalQuizzes.classSection")}</th>
@@ -123,7 +123,7 @@ export default function TeacherPortalQuizzesPage() {
                   <td className="px-4 py-3">
                     <QuizStatusBadge status={statusMap[q.status] ?? "DRAFT"} />
                   </td>
-                  <td className="px-4 py-3 text-right">
+                  <td className="px-4 py-3 text-end">
                     <Link href={`/teacher-portal/quizzes/${q.id}`} className="text-primary hover:underline">
                       {t("teacherPortalQuizzes.open")}
                     </Link>

@@ -241,13 +241,13 @@ export function ReportPageShell({ categoryId, categoryLabel, report }: Props) {
         </div>
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" onClick={handlePrint}>
-            <Printer className="mr-2 h-4 w-4" /> {t("reportsReportPageShell.print")}
+            <Printer className="me-2 h-4 w-4" /> {t("reportsReportPageShell.print")}
           </Button>
           <Button variant="outline" onClick={handlePdf}>
-            <FileDown className="mr-2 h-4 w-4" /> {t("reportsReportPageShell.pdf")}
+            <FileDown className="me-2 h-4 w-4" /> {t("reportsReportPageShell.pdf")}
           </Button>
           <Button variant="outline" onClick={handleCsv}>
-            <FileDown className="mr-2 h-4 w-4" /> {t("reportsReportPageShell.csv")}
+            <FileDown className="me-2 h-4 w-4" /> {t("reportsReportPageShell.csv")}
           </Button>
         </div>
       </div>
@@ -255,19 +255,19 @@ export function ReportPageShell({ categoryId, categoryLabel, report }: Props) {
       <div className="rounded-2xl border bg-card p-4 shadow-sm">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-end">
           <div className="relative flex-1">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder={t("reportsReportPageShell.searchReport")}
-              className="h-10 w-full rounded-lg border bg-background pl-9 pr-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+              className="h-10 w-full rounded-lg border bg-background ps-9 pe-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
             />
           </div>
           <Button variant="outline" onClick={() => setShowFilters((v) => !v)}>
             {showFilters ? "Hide Filters" : "Show Filters"}
           </Button>
           <Button variant="outline" onClick={() => setRefreshKey((k) => k + 1)}>
-            <RefreshCw className="mr-2 h-4 w-4" /> {t("reportsReportPageShell.refresh")}
+            <RefreshCw className="me-2 h-4 w-4" /> {t("reportsReportPageShell.refresh")}
           </Button>
         </div>
 
@@ -401,7 +401,7 @@ export function ReportPageShell({ categoryId, categoryLabel, report }: Props) {
             {(search || Object.values(filters).some(Boolean)) && (
               <div className="flex items-end">
                 <Button variant="ghost" onClick={() => { setSearch(""); setFilters({}); }}>
-                  <X className="mr-1 h-4 w-4" /> {t("reportsReportPageShell.clear")}
+                  <X className="me-1 h-4 w-4" /> {t("reportsReportPageShell.clear")}
                 </Button>
               </div>
             )}
@@ -423,11 +423,11 @@ export function ReportPageShell({ categoryId, categoryLabel, report }: Props) {
       <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
         <div className="max-h-[560px] overflow-auto scrollbar-slim">
           <table className="w-full min-w-[640px] text-sm">
-            <thead className="sticky top-0 z-10 bg-secondary/95 backdrop-blur text-left text-xs uppercase tracking-wide text-muted-foreground">
+            <thead className="sticky top-0 z-10 bg-secondary/95 backdrop-blur text-start text-xs uppercase tracking-wide text-muted-foreground">
               <tr>
                 <th className="px-4 py-3 font-medium">#</th>
                 {data.columns.map((c) => (
-                  <th key={c.key} className={cn("px-4 py-3 font-medium", c.align === "right" && "text-right")}>
+                  <th key={c.key} className={cn("px-4 py-3 font-medium", c.align === "right" && "text-end")}>
                     <button
                       type="button"
                       onClick={() => toggleSort(c.key)}
@@ -462,7 +462,7 @@ export function ReportPageShell({ categoryId, categoryLabel, report }: Props) {
                         key={c.key}
                         className={cn(
                           "px-4 py-3",
-                          c.align === "right" && "text-right tabular-nums",
+                          c.align === "right" && "text-end tabular-nums",
                           c.mono && "font-mono text-xs",
                         )}
                       >

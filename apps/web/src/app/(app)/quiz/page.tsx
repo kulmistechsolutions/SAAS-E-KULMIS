@@ -63,7 +63,7 @@ export default function QuizDashboardPage() {
             ))}
           </Select>
           <Link href="/quiz/create">
-            <Button className="h-9"><Plus className="mr-2 h-4 w-4" />{t("quiz.createQuiz")}</Button>
+            <Button className="h-9"><Plus className="me-2 h-4 w-4" />{t("quiz.createQuiz")}</Button>
           </Link>
         </div>
       </div>
@@ -91,7 +91,7 @@ export default function QuizDashboardPage() {
           <Link href="/quiz/list" className="text-xs font-medium text-primary hover:underline">{t("quiz.viewAll")}</Link>
         </div>
         <table className="w-full text-sm">
-          <thead className="bg-secondary text-left text-xs text-muted-foreground">
+          <thead className="bg-secondary text-start text-xs text-muted-foreground">
             <tr>
               <th className="px-4 py-2 font-medium">{t("quiz.quiz")}</th>
               <th className="px-4 py-2 font-medium">{t("quiz.class")}</th>

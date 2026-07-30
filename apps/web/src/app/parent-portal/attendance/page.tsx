@@ -77,11 +77,11 @@ export default function ParentAttendancePage() {
         </div>
         <div className="flex gap-2">
           <Button onClick={() => printAttendanceReport(selectedChild)}>
-            <Printer className="mr-2 h-4 w-4" />
+            <Printer className="me-2 h-4 w-4" />
             {t("parentPortalAttendance.print")}
           </Button>
           <Button onClick={() => printAttendanceReport(selectedChild)}>
-            <Download className="mr-2 h-4 w-4" />
+            <Download className="me-2 h-4 w-4" />
             {t("parentPortalAttendance.pdf")}
           </Button>
         </div>
@@ -112,9 +112,9 @@ export default function ParentAttendancePage() {
 
       <div className="flex flex-wrap gap-3">
         <div className="relative min-w-[200px] flex-1">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            className="pl-9"
+            className="ps-9"
             placeholder={t("parentPortalAttendance.searchByDate")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -144,7 +144,7 @@ export default function ParentAttendancePage() {
       <div className="overflow-x-auto rounded-xl border bg-card">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b bg-secondary/50 text-left">
+            <tr className="border-b bg-secondary/50 text-start">
               <th className="px-4 py-3 font-medium">{t("parentPortalAttendance.date")}</th>
               <th className="px-4 py-3 font-medium">{t("parentPortalAttendance.status")}</th>
             </tr>

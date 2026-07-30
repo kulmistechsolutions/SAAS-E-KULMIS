@@ -141,9 +141,9 @@ export function CollectFeesSection({
             {t("feesCollectFeesSection.searchStudent")}
           </label>
           <div className="relative">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
-              className="pl-9"
+              className="ps-9"
               placeholder={t("feesCollectFeesSection.nameOrId")}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -159,7 +159,7 @@ export function CollectFeesSection({
 
       <div className="overflow-x-auto">
         <table className="w-full min-w-[720px] text-sm">
-          <thead className="sticky top-0 bg-secondary/90 text-left text-xs text-muted-foreground backdrop-blur">
+          <thead className="sticky top-0 bg-secondary/90 text-start text-xs text-muted-foreground backdrop-blur">
             <tr>
               <th className="px-4 py-2.5 font-medium">#</th>
               <th className="px-4 py-2.5 font-medium">{t("feesCollectFeesSection.studentId")}</th>
@@ -206,7 +206,7 @@ export function CollectFeesSection({
                         href={`/students/${r.studentId}`}
                         className="inline-flex h-8 items-center rounded-lg border border-primary px-3 text-xs font-medium text-primary transition-colors hover:bg-primary/5"
                       >
-                        <Eye className="mr-1 h-3.5 w-3.5" />
+                        <Eye className="me-1 h-3.5 w-3.5" />
                         {t("feesCollectFeesSection.view")}
                       </Link>
                     )}

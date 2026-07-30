@@ -55,7 +55,7 @@ export default function UserReportsPage() {
                   )
                 }
               >
-                <Printer className="mr-2 h-4 w-4" />
+                <Printer className="me-2 h-4 w-4" />
                 {t("usersReports.print")}
               </Button>
               <Button
@@ -63,7 +63,7 @@ export default function UserReportsPage() {
                 className="h-9"
                 onClick={() => exportUsersCsv(report.rows)}
               >
-                <Download className="mr-2 h-4 w-4" />
+                <Download className="me-2 h-4 w-4" />
                 {t("usersReports.csv")}
               </Button>
             </div>
@@ -93,7 +93,7 @@ export default function UserReportsPage() {
         </p>
         <div className="mt-4 overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="bg-secondary text-left text-xs text-muted-foreground">
+            <thead className="bg-secondary text-start text-xs text-muted-foreground">
               <tr>
                 <th className="px-3 py-2">{t("usersReports.user")}</th>
                 <th className="px-3 py-2">{t("usersReports.login")}</th>

@@ -59,7 +59,7 @@ export function Toaster() {
   }
 
   return (
-    <div className="pointer-events-none fixed bottom-4 right-4 z-[100] flex w-full max-w-sm flex-col gap-2">
+    <div className="pointer-events-none fixed bottom-4 end-4 z-[100] flex w-full max-w-sm flex-col gap-2">
       {items.map((t) => {
         const Icon = ICONS[t.tone];
         return (

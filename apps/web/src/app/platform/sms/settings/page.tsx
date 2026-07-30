@@ -180,7 +180,7 @@ export default function PlatformSmsSettingsPage() {
             onClick={() => void load()}
             className="border-white/20 text-slate-200"
           >
-            <RefreshCw className="mr-2 h-4 w-4" /> {t("platformSmsSettings.refresh")}
+            <RefreshCw className="me-2 h-4 w-4" /> {t("platformSmsSettings.refresh")}
           </Button>
           <Link
             href="/platform/sms"
@@ -355,12 +355,12 @@ export default function PlatformSmsSettingsPage() {
             >
               {testing ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <Loader2 className="me-2 h-4 w-4 animate-spin" />
                   {t("platformSmsSettings.testingHormuudApi")}
                 </>
               ) : (
                 <>
-                  <PlugZap className="mr-2 h-4 w-4" />
+                  <PlugZap className="me-2 h-4 w-4" />
                   {t("platformSmsSettings.testConnectionSave")}
                 </>
               )}

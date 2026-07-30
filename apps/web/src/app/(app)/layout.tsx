@@ -130,7 +130,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
       >
         <div
           className={cn(
-            "fixed inset-y-0 left-0 z-40 transition-[width] duration-300 ease-in-out",
+            "fixed inset-y-0 start-0 z-40 transition-[width] duration-300 ease-in-out",
             sidebarWidth,
           )}
         >
@@ -145,7 +145,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
             className="absolute inset-0 bg-black/50"
             aria-hidden
           />
-          <div className="absolute inset-y-0 left-0 w-64 shadow-xl">
+          <div className="absolute inset-y-0 start-0 w-64 shadow-xl">
             <Sidebar onNavigate={() => setMobileOpen(false)} />
           </div>
         </div>

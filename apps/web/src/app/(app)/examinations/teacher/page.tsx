@@ -418,7 +418,7 @@ export default function TeacherExamPortalPage() {
             {me ? ` · ${me.fullName}` : ""}
           </span>
           <Button
-            className="ml-auto h-9"
+            className="ms-auto h-9"
             disabled={
               submitting ||
               ["LOCKED", "PUBLISHED", "ARCHIVED"].includes(markExam.status)

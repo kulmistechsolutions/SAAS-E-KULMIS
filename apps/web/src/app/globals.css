@@ -52,6 +52,37 @@
   }
 }
 
+/*
+ * Arabic mirrors the whole interface (see dirOf() in the i18n config). Layout
+ * follows from logical properties — ms/me, ps/pe, start/end — but icons that
+ * point somewhere have to be flipped by hand: a "back" arrow in RTL points
+ * right, and a collapsed menu opens leftwards.
+ *
+ * Uses the standalone `scale` property rather than `transform` so it composes
+ * with Tailwind's transform utilities instead of erasing them — several of
+ * these chevrons also carry `group-hover:translate-x-0.5`.
+ *
+ * Deliberately NOT inside `@layer base`: lucide-react builds these class names
+ * at runtime, so they never appear in the files Tailwind scans and it drops the
+ * whole block as unused.
+ */
+[dir="rtl"] .lucide-chevron-right,
+[dir="rtl"] .lucide-chevron-left,
+[dir="rtl"] .lucide-chevrons-right,
+[dir="rtl"] .lucide-chevrons-left,
+[dir="rtl"] .lucide-arrow-right,
+[dir="rtl"] .lucide-arrow-left,
+[dir="rtl"] .lucide-move-right,
+[dir="rtl"] .lucide-move-left,
+[dir="rtl"] .lucide-panel-left-close,
+[dir="rtl"] .lucide-panel-left-open,
+[dir="rtl"] .lucide-corner-down-left,
+[dir="rtl"] .lucide-corner-down-right,
+[dir="rtl"] .lucide-reply,
+[dir="rtl"] .lucide-send {
+  scale: -1 1;
+}
+
 @layer utilities {
   @keyframes fade-up {
     from {

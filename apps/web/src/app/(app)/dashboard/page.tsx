@@ -505,7 +505,7 @@ function AdminDashboard() {
                     style={{ backgroundColor: s.color }}
                   />
                   <span className="text-muted-foreground">{s.name}</span>
-                  <span className="ml-auto font-medium text-foreground">
+                  <span className="ms-auto font-medium text-foreground">
                     {s.value.toLocaleString()}{" "}
                     <span className="text-muted-foreground">({s.percent})</span>
                   </span>

@@ -64,7 +64,7 @@ export default function QuizMonitoringPage() {
 
       <div className="overflow-x-auto rounded-xl border bg-card">
         <table className="w-full min-w-[900px] text-sm">
-          <thead className="border-b bg-muted/40 text-left">
+          <thead className="border-b bg-muted/40 text-start">
             <tr>
               <th className="px-4 py-3 font-medium">{t("quizMonitoring.teacher")}</th>
               <th className="px-4 py-3 font-medium">{t("quizMonitoring.quiz")}</th>
@@ -94,7 +94,7 @@ export default function QuizMonitoringPage() {
                 <td className="px-4 py-3">
                   <QuizStatusBadge status={STATUS_MAP[q.status] ?? "DRAFT"} />
                 </td>
-                <td className="px-4 py-3 text-right">
+                <td className="px-4 py-3 text-end">
                   <Link href={`/quiz/${q.id}`} className="text-primary hover:underline">
                     {t("quizMonitoring.view")}
                   </Link>

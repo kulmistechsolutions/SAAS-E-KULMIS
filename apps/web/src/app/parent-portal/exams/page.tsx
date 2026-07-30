@@ -103,11 +103,11 @@ export default function ParentExamsPage() {
               </Badge>
               <Badge tone="info">{t("parentPortalExams.grade")} {result.grade}</Badge>
               <Button onClick={() => printResultSlip(selectedChild, result)}>
-                <Printer className="mr-2 h-4 w-4" />
+                <Printer className="me-2 h-4 w-4" />
                 {t("parentPortalExams.print")}
               </Button>
               <Button onClick={() => printResultSlip(selectedChild, result)}>
-                <Download className="mr-2 h-4 w-4" />
+                <Download className="me-2 h-4 w-4" />
                 {t("parentPortalExams.pdf")}
               </Button>
             </div>
@@ -116,7 +116,7 @@ export default function ParentExamsPage() {
           <div className="mt-4 overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b bg-secondary/50 text-left">
+                <tr className="border-b bg-secondary/50 text-start">
                   <th className="px-3 py-2">{t("parentPortalExams.subject")}</th>
                   <th className="px-3 py-2">{t("parentPortalExams.maxMarks")}</th>
                   <th className="px-3 py-2">{t("parentPortalExams.obtained")}</th>

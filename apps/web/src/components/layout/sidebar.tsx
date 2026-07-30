@@ -321,7 +321,7 @@ export function Sidebar({
             aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
             className={cn(
               "flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-white/10 hover:text-white",
-              collapsed ? "mt-1" : "ml-auto",
+              collapsed ? "mt-1" : "ms-auto",
             )}
           >
             {collapsed ? (
@@ -381,7 +381,7 @@ export function Sidebar({
                   )}
                 </button>
                 {isOpen && (
-                  <div className="ml-4 mt-1 space-y-0.5 border-l border-white/10 pl-3">
+                  <div className="ms-4 mt-1 space-y-0.5 border-s border-white/10 ps-3">
                     {item.children.map((child) => {
                       const active = isChildActive(child, item.children);
                       return (

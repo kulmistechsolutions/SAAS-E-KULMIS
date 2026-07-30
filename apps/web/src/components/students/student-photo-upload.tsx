@@ -109,7 +109,7 @@ export function StudentPhotoUpload({
         {!disabled && (
           <label
             htmlFor={inputId}
-            className="absolute -bottom-1 -right-1 flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border-2 border-background bg-primary text-primary-foreground shadow-md transition hover:opacity-90"
+            className="absolute -bottom-1 -end-1 flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border-2 border-background bg-primary text-primary-foreground shadow-md transition hover:opacity-90"
             title={t("studentsStudentPhotoUpload.choosePhoto")}
           >
             <Camera className="h-4 w-4" />
@@ -127,7 +127,7 @@ export function StudentPhotoUpload({
       />
 
       {!minimal && (
-        <p className="mt-2.5 max-w-[9rem] text-center text-[11px] leading-snug text-muted-foreground sm:text-left">
+        <p className="mt-2.5 max-w-[9rem] text-center text-[11px] leading-snug text-muted-foreground sm:text-start">
           {t("studentsStudentPhotoUpload.optionalJpegPngWebpMax2")}
         </p>
       )}
@@ -139,13 +139,13 @@ export function StudentPhotoUpload({
           className="mt-1 h-8 px-2 text-xs text-rose-600 hover:text-rose-700"
           onClick={clearPhoto}
         >
-          <Trash2 className="mr-1.5 h-3.5 w-3.5" />
+          <Trash2 className="me-1.5 h-3.5 w-3.5" />
           {t("studentsStudentPhotoUpload.remove")}
         </Button>
       ) : null}
 
       {error ? (
-        <p className="mt-2 max-w-[10rem] text-center text-xs text-rose-600 sm:text-left" role="alert">
+        <p className="mt-2 max-w-[10rem] text-center text-xs text-rose-600 sm:text-start" role="alert">
           {error}
         </p>
       ) : null}
