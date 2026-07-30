@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { SchoolStatusBadge } from "@/components/platform/school-status-badge";
 import { SchoolLoginActivity } from "@/components/platform/school-login-activity";
+import { SchoolPasswordReset } from "@/components/platform/school-password-reset";
 import { loadSchool, removeSchool, updateSchool } from "@/lib/platform/data";
 import { shortDate, tenantUrl } from "@/lib/platform/format";
 import { usePlatformSchoolsState } from "@/lib/platform/store";
@@ -306,6 +307,7 @@ export default function PlatformSchoolDetailPage({
         </Button>
       </div>
 
+      <SchoolPasswordReset schoolId={id} />
       <SchoolLoginActivity schoolId={id} />
     </div>
   );
