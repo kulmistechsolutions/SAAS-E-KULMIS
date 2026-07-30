@@ -37,6 +37,11 @@ const NAV: {
   { href: "/settings/school", label: "settingsSettingsNav.schoolInformation", icon: School },
   { href: "/settings/branding", label: "settingsSettingsNav.branding", icon: Palette },
   { href: "/settings/academic", label: "settingsSettingsNav.academic", icon: BookOpen },
+  {
+    href: "/settings/academic-structure",
+    label: "settingsSettingsNav.academicStructure",
+    icon: Layers,
+  },
   { href: "/settings/students", label: "settingsSettingsNav.students", icon: GraduationCap },
   { href: "/settings/teachers", label: "settingsSettingsNav.teachers", icon: Users },
   { href: "/settings/parents", label: "settingsSettingsNav.parents", icon: Users },
