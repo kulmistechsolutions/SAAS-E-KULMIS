@@ -12,6 +12,7 @@ import { randomBytes } from "node:crypto";
 import type {
   AssignSchoolSubscriptionInput,
   CreateSubscriptionPlanInput,
+  CustomDurationInput,
   PurchaseSubscriptionPlanInput,
   UpdateSubscriptionPlanInput,
 } from "@ekulmis/shared";
@@ -32,6 +33,38 @@ function addDays(date: Date, days: number): Date {
   const d = new Date(date);
   d.setDate(d.getDate() + days);
   return d;
+}
+
+/**
+ * Calendar months, not a 30-day multiple: the 15th plus 3 months is the 15th,
+ * whatever those months' lengths are. `setMonth` itself already rolls a short
+ * target month over (Jan 31 + 1 month → Mar 3), which would silently hand out
+ * an extra day or two every time it happens — clamp to the target month's
+ * last day instead, the way a human reading "3 months from the 31st" would.
+ */
+function addMonths(date: Date, months: number): Date {
+  const d = new Date(date);
+  const targetMonth = d.getMonth() + months;
+  d.setMonth(targetMonth, 1); // park on day 1 so overflow can't skip a month
+  const lastDayOfTargetMonth = new Date(
+    d.getFullYear(),
+    d.getMonth() + 1,
+    0,
+  ).getDate();
+  d.setDate(Math.min(date.getDate(), lastDayOfTargetMonth));
+  return d;
+}
+
+/** endDate for an assignment: the plan's own term, or a one-off override. */
+function resolveEndDate(
+  startDate: Date,
+  planDurationDays: number,
+  customDuration?: CustomDurationInput,
+): Date {
+  if (!customDuration) return addDays(startDate, planDurationDays);
+  return customDuration.unit === "MONTHS"
+    ? addMonths(startDate, customDuration.value)
+    : addDays(startDate, customDuration.value);
 }
 
 function startOfUtcDay(d = new Date()): Date {
@@ -402,7 +435,7 @@ export class SubscriptionsService {
     });
 
     const startDate = dto.startDate ? new Date(dto.startDate) : new Date();
-    const endDate = addDays(startDate, plan.durationDays);
+    const endDate = resolveEndDate(startDate, plan.durationDays, dto.customDuration);
     const action = previous ? "RENEW" : "ASSIGN";
 
     const sub = await this.prisma.schoolSubscription.upsert({

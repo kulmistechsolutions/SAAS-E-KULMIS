@@ -802,7 +802,12 @@ export const fetchPlatformSchoolSubscriptions = () =>
 
 export const assignPlatformSchoolSubscription = (
   schoolId: string,
-  body: { planId: string; startDate?: string },
+  body: {
+    planId: string;
+    startDate?: string;
+    /** A one-off length for this assignment only — the plan's own duration is untouched. */
+    customDuration?: { unit: "DAYS" | "MONTHS"; value: number };
+  },
 ) =>
   platformFetch<unknown>(`/platform/subscriptions/schools/${schoolId}/assign`, {
     method: "POST",

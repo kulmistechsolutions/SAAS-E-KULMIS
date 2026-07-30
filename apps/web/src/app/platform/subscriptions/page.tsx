@@ -249,9 +249,15 @@ export default function PlatformSubscriptionsPage() {
     }
   }
 
-  async function handleAssign(planId: string) {
+  async function handleAssign(
+    planId: string,
+    customDuration?: { unit: "DAYS" | "MONTHS"; value: number },
+  ) {
     if (!assignRow) return;
-    await assignPlatformSchoolSubscription(assignRow.school.id, { planId });
+    await assignPlatformSchoolSubscription(assignRow.school.id, {
+      planId,
+      customDuration,
+    });
     toast(`Plan assigned to ${assignRow.school.name}`, "success");
     await reload();
     if (tab === "history") void loadHistory();

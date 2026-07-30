@@ -1644,6 +1644,11 @@ export const arGenerated: PartialDictionary = {
     aiMo: "ذكاء اصطناعي/شهريًا",
     noPlansYetCreateOneFirst: "لا توجد خطط بعد — أنشئ واحدة أولًا.",
     failedToAssignPlan: "فشل تعيين الخطة.",
+    useACustomLength: "استخدام مدة مخصصة",
+    overridesJustThisAssignmentThe: "يُطبَّق على هذا التعيين فقط — لا يتغيّر مدة الخطة نفسها.",
+    days: "أيام",
+    months: "أشهر",
+    enterAWholeNumberOf: "أدخل عددًا صحيحًا من الأيام أو الأشهر.",
   },
   platformLogin: {
     platformSuperAdmin: "المشرف العام للمنصة",

@@ -5,6 +5,7 @@ import { useT } from "@/lib/i18n/provider";
 import { useEffect, useState } from "react";
 import { Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import type {
@@ -12,12 +13,14 @@ import type {
   PlatformSubscriptionPlan,
 } from "@/lib/platform/api";
 
+type CustomDuration = { unit: "DAYS" | "MONTHS"; value: number };
+
 interface Props {
   open: boolean;
   onClose: () => void;
   row: PlatformSchoolSubscriptionRow | null;
   plans: PlatformSubscriptionPlan[];
-  onSubmit: (planId: string) => Promise<void>;
+  onSubmit: (planId: string, customDuration?: CustomDuration) => Promise<void>;
 }
 
 export function AssignSubscriptionDialog({
@@ -29,22 +32,38 @@ export function AssignSubscriptionDialog({
 }: Props) {
   const t = useT();
   const [planId, setPlanId] = useState("");
+  const [useCustom, setUseCustom] = useState(false);
+  const [durationValue, setDurationValue] = useState("30");
+  const [durationUnit, setDurationUnit] = useState<"DAYS" | "MONTHS">("DAYS");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) return;
     setPlanId(row?.subscription?.plan.id ?? plans[0]?.id ?? "");
+    setUseCustom(false);
+    setDurationValue("30");
+    setDurationUnit("DAYS");
     setError(null);
   }, [open, row, plans]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    if (!planId) return setError("Choose a plan.");
+    if (!planId) return setError(t("platformAssignSubscriptionDialog.selectAPlan"));
+
+    let customDuration: CustomDuration | undefined;
+    if (useCustom) {
+      const value = Number(durationValue);
+      if (!Number.isInteger(value) || value < 1) {
+        return setError(t("platformAssignSubscriptionDialog.enterAWholeNumberOf"));
+      }
+      customDuration = { unit: durationUnit, value };
+    }
+
     setSubmitting(true);
     try {
-      await onSubmit(planId);
+      await onSubmit(planId, customDuration);
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to assign plan.");
@@ -96,6 +115,45 @@ export function AssignSubscriptionDialog({
             <p className="mt-1 text-xs text-muted-foreground">
               {t("platformAssignSubscriptionDialog.noPlansYetCreateOneFirst")}
             </p>
+          )}
+        </div>
+
+        {/*
+          The plan itself always keeps its own durationDays — this only
+          overrides how long *this school's* assignment runs, e.g. a school
+          that negotiated 45 days instead of the plan's normal 30.
+        */}
+        <div className="rounded-lg border p-3">
+          <label className="flex items-center gap-2 text-sm font-medium">
+            <input
+              type="checkbox"
+              checked={useCustom}
+              onChange={(e) => setUseCustom(e.target.checked)}
+              className="h-4 w-4 rounded border-input"
+            />
+            {t("platformAssignSubscriptionDialog.useACustomLength")}
+          </label>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {t("platformAssignSubscriptionDialog.overridesJustThisAssignmentThe")}
+          </p>
+          {useCustom && (
+            <div className="mt-3 flex items-center gap-2">
+              <Input
+                type="number"
+                min={1}
+                step={1}
+                value={durationValue}
+                onChange={(e) => setDurationValue(e.target.value)}
+                className="w-24"
+              />
+              <Select
+                value={durationUnit}
+                onChange={(e) => setDurationUnit(e.target.value as "DAYS" | "MONTHS")}
+              >
+                <option value="DAYS">{t("platformAssignSubscriptionDialog.days")}</option>
+                <option value="MONTHS">{t("platformAssignSubscriptionDialog.months")}</option>
+              </Select>
+            </div>
           )}
         </div>
       </form>

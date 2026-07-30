@@ -1644,6 +1644,11 @@ export const soGenerated: PartialDictionary = {
     aiMo: "AI/bishii",
     noPlansYetCreateOneFirst: "Wali qorshayaal ma jiraan — marka hore abuur mid.",
     failedToAssignPlan: "Qorshaha lama qoondeyn karin.",
+    useACustomLength: "Isticmaal muddo gaar ah",
+    overridesJustThisAssignmentThe: "Waxay bedelaysaa qoondayntan oo kaliya — muddada qorshaha lafteeda wax kama beddelayo.",
+    days: "maalmo",
+    months: "bilo",
+    enterAWholeNumberOf: "Geli tiro dhan oo maalmo ama bilo ah.",
   },
   platformLogin: {
     platformSuperAdmin: "Maamulaha Guud ee Platform-ka",

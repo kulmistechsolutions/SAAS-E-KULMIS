@@ -1644,6 +1644,11 @@ export const generated = {
     aiMo: "AI/mo",
     noPlansYetCreateOneFirst: "No plans yet — create one first.",
     failedToAssignPlan: "Failed to assign plan.",
+    useACustomLength: "Use a custom length",
+    overridesJustThisAssignmentThe: "Overrides just this assignment — the plan's own duration is unaffected.",
+    days: "days",
+    months: "months",
+    enterAWholeNumberOf: "Enter a whole number of days or months.",
   },
   platformLogin: {
     platformSuperAdmin: "Platform Super Admin",

@@ -45,10 +45,23 @@ export type PurchaseSubscriptionPlanInput = z.infer<
   typeof purchaseSubscriptionPlanSchema
 >;
 
+/**
+ * A one-off length for this assignment only — the plan's own durationDays is
+ * unaffected, so every other school on the same plan keeps its normal term.
+ * Months are calendar months (the 15th to the 15th), not a 30-day multiple,
+ * so "3 months" lands on the same day-of-month it started.
+ */
+export const customDurationSchema = z.object({
+  unit: z.enum(["DAYS", "MONTHS"]),
+  value: z.number().int().min(1).max(3650),
+});
+export type CustomDurationInput = z.infer<typeof customDurationSchema>;
+
 /** Super Admin: assign (or renew) a school's subscription to a plan. */
 export const assignSchoolSubscriptionSchema = z.object({
   planId: z.string().min(1, "Plan is required"),
   startDate: z.string().datetime().optional(),
+  customDuration: customDurationSchema.optional(),
 });
 export type AssignSchoolSubscriptionInput = z.infer<
   typeof assignSchoolSubscriptionSchema
