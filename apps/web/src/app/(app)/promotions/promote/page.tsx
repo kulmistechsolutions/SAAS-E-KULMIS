@@ -1,7 +1,7 @@
 "use client";
 
 
-import { useT } from "@/lib/i18n/provider";
+import { useT, type TranslationKey } from "@/lib/i18n/provider";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -33,9 +33,9 @@ import { toast } from "@/lib/toast";
 import type { PromotionType } from "@/lib/promotions/types";
 
 const TYPES: { id: PromotionType; label: string; desc: string; icon: typeof User }[] = [
-  { id: "INDIVIDUAL", label: "Individual", desc: "Promote a single student", icon: User },
-  { id: "CLASS", label: "Class", desc: "Promote all eligible students in a class", icon: Users },
-  { id: "SCHOOL_WIDE", label: "School-Wide", desc: "Promote every eligible class at once", icon: School },
+  { id: "INDIVIDUAL", label: "promotionsPromote.individual", desc: "Promote a single student", icon: User },
+  { id: "CLASS", label: "promotionsPromote.class", desc: "Promote all eligible students in a class", icon: Users },
+  { id: "SCHOOL_WIDE", label: "promotionsPromote.schoolWide", desc: "Promote every eligible class at once", icon: School },
 ];
 
 export default function PromotePage() {

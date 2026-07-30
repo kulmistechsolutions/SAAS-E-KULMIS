@@ -34,19 +34,19 @@ export default function ParentDownloadsPage() {
 
   const downloads = [
     {
-      title: "Student Result Slip",
+      title: t("parentPortalDownloads.studentResultSlip"),
       desc: "Latest published examination result",
       enabled: !results.blocked && !!latestResult,
       action: () => latestResult && printResultSlip(selectedChild, latestResult),
     },
     {
-      title: "Attendance Report",
+      title: t("parentPortalDownloads.attendanceReport"),
       desc: "Daily attendance summary (PDF)",
       enabled: true,
       action: () => printAttendanceReport(selectedChild),
     },
     {
-      title: "Fee Receipt",
+      title: t("parentPortalDownloads.feeReceipt"),
       desc: "Most recent payment receipt",
       enabled: !!latestPayment,
       action: () => {
@@ -56,13 +56,13 @@ export default function ParentDownloadsPage() {
       },
     },
     {
-      title: "Annual Fee Statement",
+      title: t("parentPortalDownloads.annualFeeStatement"),
       desc: "Full year fee ledger",
       enabled: fees.ledger.length > 0,
       action: () => printFeeStatement(selectedChild, fees.ledger),
     },
     {
-      title: "Academic Transcript",
+      title: t("parentPortalDownloads.academicTranscript"),
       desc: "Available when promotion records exist",
       enabled: false,
       action: () => {},

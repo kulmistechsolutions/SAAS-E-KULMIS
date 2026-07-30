@@ -69,7 +69,7 @@ export default function GraduatedStudentsPage() {
             variant="outline"
             onClick={() =>
               printTable({
-                title: "Graduated Students Report",
+                title: t("promotionsGraduated.graduatedStudentsReport"),
                 columns: ["Student ID", "Name", "Parent", "Grad. Year", "Final Class", "Section", "Date"],
                 rows: rows.map((r) => [
                   r.studentCode,

@@ -22,6 +22,7 @@ export function RecentPaymentsPanel({
   outstanding,
   onViewReceipt,
 }: RecentPaymentsPanelProps) {
+  const t = useT();
   const tr = useT();
   const [tab, setTab] = useState<"recent" | "outstanding">("recent");
 
@@ -30,8 +31,8 @@ export function RecentPaymentsPanel({
       <div className="flex border-b">
         {(
           [
-            { id: "recent" as const, label: "Recent Payments" },
-            { id: "outstanding" as const, label: "Outstanding Students" },
+            { id: "recent" as const, label: t("feesRecentPaymentsPanel.recentPayments") },
+            { id: "outstanding" as const, label: t("feesRecentPaymentsPanel.outstandingStudents") },
           ] as const
         ).map((t) => (
           <button

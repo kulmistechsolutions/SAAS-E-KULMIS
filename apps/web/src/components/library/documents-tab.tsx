@@ -44,6 +44,7 @@ function formatBytes(bytes: number): string {
 }
 
 export function DocumentsTab() {
+  const t = useT();
   const tr = useT();
   const academics = useAcademicsState();
   const year = activeAcademicYear();

@@ -1,7 +1,7 @@
 "use client";
 
 
-import { useT } from "@/lib/i18n/provider";
+import { useT, type TranslationKey } from "@/lib/i18n/provider";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -54,10 +54,10 @@ import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 
 const STEPS = [
-  { id: "info", label: "Exam Info", icon: BookOpen },
-  { id: "classes", label: "Classes", icon: GraduationCap },
-  { id: "sections", label: "Sections", icon: Layers },
-  { id: "preview", label: "Preview", icon: ClipboardList },
+  { id: "info", label: "examinationsExamCreationWizard.examInfo", icon: BookOpen },
+  { id: "classes", label: "examinationsExamCreationWizard.classes", icon: GraduationCap },
+  { id: "sections", label: "examinationsExamCreationWizard.sections", icon: Layers },
+  { id: "preview", label: "examinationsExamCreationWizard.preview", icon: ClipboardList },
 ] as const;
 
 type StepId = (typeof STEPS)[number]["id"];
@@ -387,7 +387,7 @@ export function ExamCreationWizard({
               ) : (
                 <Icon className="h-4 w-4" />
               )}
-              {s.label}
+              {tr(s.label)}
             </div>
           );
         })}

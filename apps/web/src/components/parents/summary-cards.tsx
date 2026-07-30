@@ -1,3 +1,4 @@
+import { useT, type TranslationKey } from "@/lib/i18n/provider";
 import type { ParentAdminSummary, ParentDashboardSummary } from "@/lib/students/store";
 import {
   BookOpen,
@@ -13,19 +14,20 @@ import { cn } from "@/lib/utils";
 
 const ADMIN_CARDS: {
   key: keyof ParentAdminSummary;
-  label: string;
+  label: TranslationKey;
   icon: LucideIcon;
   chip: string;
 }[] = [
-  { key: "totalParents", label: "Total Parents", icon: Users, chip: "bg-violet-500/15 text-violet-600" },
-  { key: "activeParents", label: "Active Parents", icon: UserCheck, chip: "bg-emerald-500/15 text-emerald-600" },
-  { key: "inactiveParents", label: "Inactive", icon: Users, chip: "bg-slate-500/15 text-slate-500" },
-  { key: "totalChildren", label: "Linked Children", icon: GraduationCap, chip: "bg-sky-500/15 text-sky-600" },
-  { key: "multiChildFamilies", label: "Multi-Child Families", icon: Users, chip: "bg-indigo-500/15 text-indigo-600" },
-  { key: "registeredThisMonth", label: "New This Month", icon: UserCheck, chip: "bg-amber-500/15 text-amber-600" },
+  { key: "totalParents", label: "parentsSummaryCards.totalParents", icon: Users, chip: "bg-violet-500/15 text-violet-600" },
+  { key: "activeParents", label: "parentsSummaryCards.activeParents", icon: UserCheck, chip: "bg-emerald-500/15 text-emerald-600" },
+  { key: "inactiveParents", label: "parentsSummaryCards.inactive", icon: Users, chip: "bg-slate-500/15 text-slate-500" },
+  { key: "totalChildren", label: "parentsSummaryCards.linkedChildren", icon: GraduationCap, chip: "bg-sky-500/15 text-sky-600" },
+  { key: "multiChildFamilies", label: "parentsSummaryCards.multiChildFamilies", icon: Users, chip: "bg-indigo-500/15 text-indigo-600" },
+  { key: "registeredThisMonth", label: "parentsSummaryCards.newThisMonth", icon: UserCheck, chip: "bg-amber-500/15 text-amber-600" },
 ];
 
 export function AdminSummaryCards({ summary }: { summary: ParentAdminSummary }) {
+  const t = useT();
   return (
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
       {ADMIN_CARDS.map((c) => (
@@ -36,7 +38,7 @@ export function AdminSummaryCards({ summary }: { summary: ParentAdminSummary }) 
             </span>
             <span className="text-2xl font-bold tabular-nums">{summary[c.key]}</span>
           </div>
-          <p className="mt-2 text-xs font-medium text-muted-foreground">{c.label}</p>
+          <p className="mt-2 text-xs font-medium text-muted-foreground">{t(c.label)}</p>
         </div>
       ))}
     </div>
@@ -45,22 +47,23 @@ export function AdminSummaryCards({ summary }: { summary: ParentAdminSummary }) 
 
 const DASH_CARDS: {
   key: keyof ParentDashboardSummary;
-  label: string;
+  label: TranslationKey;
   icon: LucideIcon;
   chip: string;
   format?: (v: number | string) => string;
 }[] = [
-  { key: "totalChildren", label: "Total Children", icon: Users, chip: "bg-violet-500/15 text-violet-600" },
-  { key: "activeStudents", label: "Active Students", icon: UserCheck, chip: "bg-emerald-500/15 text-emerald-600" },
-  { key: "outstandingFees", label: "Outstanding Fees", icon: DollarSign, chip: "bg-rose-500/15 text-rose-600", format: (v) => `$${Number(v).toLocaleString()}` },
-  { key: "totalFeesPaid", label: "Total Fees Paid", icon: DollarSign, chip: "bg-teal-500/15 text-teal-600", format: (v) => `$${Number(v).toLocaleString()}` },
-  { key: "upcomingExams", label: "Upcoming Exams", icon: BookOpen, chip: "bg-sky-500/15 text-sky-600" },
-  { key: "activeQuizzes", label: "Active Quizzes", icon: ClipboardList, chip: "bg-indigo-500/15 text-indigo-600" },
-  { key: "attendancePercentage", label: "Attendance %", icon: CalendarCheck, chip: "bg-amber-500/15 text-amber-600", format: (v) => `${v}%` },
-  { key: "latestGrade", label: "Latest Result", icon: GraduationCap, chip: "bg-emerald-500/15 text-emerald-600" },
+  { key: "totalChildren", label: "parentsSummaryCards.totalChildren", icon: Users, chip: "bg-violet-500/15 text-violet-600" },
+  { key: "activeStudents", label: "parentsSummaryCards.activeStudents", icon: UserCheck, chip: "bg-emerald-500/15 text-emerald-600" },
+  { key: "outstandingFees", label: "parentsSummaryCards.outstandingFees", icon: DollarSign, chip: "bg-rose-500/15 text-rose-600", format: (v) => `$${Number(v).toLocaleString()}` },
+  { key: "totalFeesPaid", label: "parentsSummaryCards.totalFeesPaid", icon: DollarSign, chip: "bg-teal-500/15 text-teal-600", format: (v) => `$${Number(v).toLocaleString()}` },
+  { key: "upcomingExams", label: "parentsSummaryCards.upcomingExams", icon: BookOpen, chip: "bg-sky-500/15 text-sky-600" },
+  { key: "activeQuizzes", label: "parentsSummaryCards.activeQuizzes", icon: ClipboardList, chip: "bg-indigo-500/15 text-indigo-600" },
+  { key: "attendancePercentage", label: "parentsSummaryCards.attendance", icon: CalendarCheck, chip: "bg-amber-500/15 text-amber-600", format: (v) => `${v}%` },
+  { key: "latestGrade", label: "parentsSummaryCards.latestResult", icon: GraduationCap, chip: "bg-emerald-500/15 text-emerald-600" },
 ];
 
 export function ParentDashboardCards({ summary }: { summary: ParentDashboardSummary }) {
+  const t = useT();
   return (
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-8">
       {DASH_CARDS.map((c) => {
@@ -72,7 +75,7 @@ export function ParentDashboardCards({ summary }: { summary: ParentDashboardSumm
               <c.icon className="h-4 w-4" />
             </span>
             <p className="text-xl font-bold tabular-nums">{display}</p>
-            <p className="mt-1 text-[11px] text-muted-foreground">{c.label}</p>
+            <p className="mt-1 text-[11px] text-muted-foreground">{t(c.label)}</p>
           </div>
         );
       })}

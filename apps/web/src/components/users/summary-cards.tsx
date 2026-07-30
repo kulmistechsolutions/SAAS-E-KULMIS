@@ -1,5 +1,5 @@
 
-import { useT } from "@/lib/i18n/provider";
+import { useT, type TranslationKey } from "@/lib/i18n/provider";
 import type { LucideIcon } from "lucide-react";
 import {
   ArrowRight,
@@ -16,21 +16,21 @@ import type { UsersDashboardSummary } from "@/lib/users/types";
 
 const CARDS: {
   key: keyof UsersDashboardSummary;
-  label: string;
+  label: TranslationKey;
   icon: LucideIcon;
   chip: string;
   value: string;
 }[] = [
-  { key: "totalUsers", label: "Total Users", icon: Users, chip: "bg-blue-100 text-blue-600 dark:bg-blue-500/15", value: "text-blue-600 dark:text-blue-400" },
-  { key: "activeUsers", label: "Active Users", icon: UserCheck, chip: "bg-emerald-100 text-emerald-600 dark:bg-emerald-500/15", value: "text-emerald-600 dark:text-emerald-400" },
-  { key: "inactiveUsers", label: "Inactive Users", icon: UserX, chip: "bg-slate-100 text-slate-600 dark:bg-slate-500/15", value: "text-slate-600 dark:text-slate-400" },
-  { key: "administrators", label: "Administrators", icon: Shield, chip: "bg-violet-100 text-violet-600 dark:bg-violet-500/15", value: "text-violet-600 dark:text-violet-400" },
-  { key: "teachers", label: "Teachers", icon: GraduationCap, chip: "bg-sky-100 text-sky-600 dark:bg-sky-500/15", value: "text-sky-600 dark:text-sky-400" },
-  { key: "parents", label: "Parents", icon: Users, chip: "bg-amber-100 text-amber-600 dark:bg-amber-500/15", value: "text-amber-600 dark:text-amber-400" },
-  { key: "financeOfficers", label: "Finance Officers", icon: Briefcase, chip: "bg-green-100 text-green-600 dark:bg-green-500/15", value: "text-green-600 dark:text-green-400" },
-  { key: "attendanceOfficers", label: "Attendance Officers", icon: ClipboardCheck, chip: "bg-teal-100 text-teal-600 dark:bg-teal-500/15", value: "text-teal-600 dark:text-teal-400" },
-  { key: "examManagers", label: "Exam Managers", icon: ClipboardCheck, chip: "bg-orange-100 text-orange-600 dark:bg-orange-500/15", value: "text-orange-600 dark:text-orange-400" },
-  { key: "receptionOfficers", label: "Reception Officers", icon: Briefcase, chip: "bg-rose-100 text-rose-600 dark:bg-rose-500/15", value: "text-rose-600 dark:text-rose-400" },
+  { key: "totalUsers", label: "usersSummaryCards.totalUsers", icon: Users, chip: "bg-blue-100 text-blue-600 dark:bg-blue-500/15", value: "text-blue-600 dark:text-blue-400" },
+  { key: "activeUsers", label: "usersSummaryCards.activeUsers", icon: UserCheck, chip: "bg-emerald-100 text-emerald-600 dark:bg-emerald-500/15", value: "text-emerald-600 dark:text-emerald-400" },
+  { key: "inactiveUsers", label: "usersSummaryCards.inactiveUsers", icon: UserX, chip: "bg-slate-100 text-slate-600 dark:bg-slate-500/15", value: "text-slate-600 dark:text-slate-400" },
+  { key: "administrators", label: "usersSummaryCards.administrators", icon: Shield, chip: "bg-violet-100 text-violet-600 dark:bg-violet-500/15", value: "text-violet-600 dark:text-violet-400" },
+  { key: "teachers", label: "usersSummaryCards.teachers", icon: GraduationCap, chip: "bg-sky-100 text-sky-600 dark:bg-sky-500/15", value: "text-sky-600 dark:text-sky-400" },
+  { key: "parents", label: "usersSummaryCards.parents", icon: Users, chip: "bg-amber-100 text-amber-600 dark:bg-amber-500/15", value: "text-amber-600 dark:text-amber-400" },
+  { key: "financeOfficers", label: "usersSummaryCards.financeOfficers", icon: Briefcase, chip: "bg-green-100 text-green-600 dark:bg-green-500/15", value: "text-green-600 dark:text-green-400" },
+  { key: "attendanceOfficers", label: "usersSummaryCards.attendanceOfficers", icon: ClipboardCheck, chip: "bg-teal-100 text-teal-600 dark:bg-teal-500/15", value: "text-teal-600 dark:text-teal-400" },
+  { key: "examManagers", label: "usersSummaryCards.examManagers", icon: ClipboardCheck, chip: "bg-orange-100 text-orange-600 dark:bg-orange-500/15", value: "text-orange-600 dark:text-orange-400" },
+  { key: "receptionOfficers", label: "usersSummaryCards.receptionOfficers", icon: Briefcase, chip: "bg-rose-100 text-rose-600 dark:bg-rose-500/15", value: "text-rose-600 dark:text-rose-400" },
 ];
 
 export function UsersSummaryCards({ summary }: { summary: UsersDashboardSummary }) {
@@ -43,7 +43,7 @@ export function UsersSummaryCards({ summary }: { summary: UsersDashboardSummary 
             <span className={cn("flex h-11 w-11 shrink-0 items-center justify-center rounded-full", c.chip)}>
               <c.icon className="h-5 w-5" />
             </span>
-            <p className="text-xs font-medium leading-tight text-muted-foreground">{c.label}</p>
+            <p className="text-xs font-medium leading-tight text-muted-foreground">{t(c.label)}</p>
           </div>
           <p className={cn("mt-3 text-2xl font-bold tabular-nums tracking-tight", c.value)}>
             {summary[c.key].toLocaleString()}

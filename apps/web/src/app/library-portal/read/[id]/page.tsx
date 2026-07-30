@@ -151,6 +151,7 @@ export default function LibraryPortalReadPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const t = useT();
   const tr = useT();
   const { id } = use(params);
   const router = useRouter();

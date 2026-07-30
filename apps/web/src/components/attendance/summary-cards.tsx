@@ -1,3 +1,4 @@
+import { useT } from "@/lib/i18n/provider";
 import type { AttendanceSummary } from "@/lib/attendance/store";
 import {
   CalendarCheck,
@@ -14,13 +15,14 @@ export function StudentAttendanceSummaryCards({
 }: {
   summary: AttendanceSummary & { totalStudents?: number };
 }) {
+  const t = useT();
   const cards: { label: string; value: string | number; icon: LucideIcon; chip: string }[] = [
-    { label: "Total Students", value: summary.totalStudents ?? summary.total, icon: Users, chip: "bg-violet-500/15 text-violet-600" },
-    { label: "Present Today", value: summary.present, icon: UserCheck, chip: "bg-emerald-500/15 text-emerald-600" },
-    { label: "Absent Today", value: summary.absent, icon: UserX, chip: "bg-rose-500/15 text-rose-600" },
-    { label: "Late Today", value: summary.late, icon: Clock, chip: "bg-amber-500/15 text-amber-600" },
-    { label: "Excused Today", value: summary.excused, icon: CalendarCheck, chip: "bg-sky-500/15 text-sky-600" },
-    { label: "Attendance %", value: `${summary.percentage}%`, icon: UserCheck, chip: "bg-indigo-500/15 text-indigo-600" },
+    { label: t("attendanceSummaryCards.totalStudents"), value: summary.totalStudents ?? summary.total, icon: Users, chip: "bg-violet-500/15 text-violet-600" },
+    { label: t("attendanceSummaryCards.presentToday"), value: summary.present, icon: UserCheck, chip: "bg-emerald-500/15 text-emerald-600" },
+    { label: t("attendanceSummaryCards.absentToday"), value: summary.absent, icon: UserX, chip: "bg-rose-500/15 text-rose-600" },
+    { label: t("attendanceSummaryCards.lateToday"), value: summary.late, icon: Clock, chip: "bg-amber-500/15 text-amber-600" },
+    { label: t("attendanceSummaryCards.excusedToday"), value: summary.excused, icon: CalendarCheck, chip: "bg-sky-500/15 text-sky-600" },
+    { label: t("attendanceSummaryCards.attendance"), value: `${summary.percentage}%`, icon: UserCheck, chip: "bg-indigo-500/15 text-indigo-600" },
   ];
   return <CardGrid cards={cards} />;
 }
@@ -30,13 +32,14 @@ export function TeacherAttendanceSummaryCards({
 }: {
   summary: AttendanceSummary & { totalTeachers?: number; morning?: number; afternoon?: number };
 }) {
+  const t = useT();
   const cards: { label: string; value: string | number; icon: LucideIcon; chip: string }[] = [
-    { label: "Total Teachers", value: summary.totalTeachers ?? summary.total, icon: Users, chip: "bg-violet-500/15 text-violet-600" },
-    { label: "Morning", value: summary.morning ?? "—", icon: Clock, chip: "bg-amber-500/15 text-amber-600" },
-    { label: "Afternoon", value: summary.afternoon ?? "—", icon: Clock, chip: "bg-sky-500/15 text-sky-600" },
-    { label: "Present Today", value: summary.present, icon: UserCheck, chip: "bg-emerald-500/15 text-emerald-600" },
-    { label: "Absent Today", value: summary.absent, icon: UserX, chip: "bg-rose-500/15 text-rose-600" },
-    { label: "Attendance %", value: `${summary.percentage}%`, icon: CalendarCheck, chip: "bg-indigo-500/15 text-indigo-600" },
+    { label: t("attendanceSummaryCards.totalTeachers"), value: summary.totalTeachers ?? summary.total, icon: Users, chip: "bg-violet-500/15 text-violet-600" },
+    { label: t("attendanceSummaryCards.morning"), value: summary.morning ?? "—", icon: Clock, chip: "bg-amber-500/15 text-amber-600" },
+    { label: t("attendanceSummaryCards.afternoon"), value: summary.afternoon ?? "—", icon: Clock, chip: "bg-sky-500/15 text-sky-600" },
+    { label: t("attendanceSummaryCards.presentToday"), value: summary.present, icon: UserCheck, chip: "bg-emerald-500/15 text-emerald-600" },
+    { label: t("attendanceSummaryCards.absentToday"), value: summary.absent, icon: UserX, chip: "bg-rose-500/15 text-rose-600" },
+    { label: t("attendanceSummaryCards.attendance"), value: `${summary.percentage}%`, icon: CalendarCheck, chip: "bg-indigo-500/15 text-indigo-600" },
   ];
   return <CardGrid cards={cards} />;
 }

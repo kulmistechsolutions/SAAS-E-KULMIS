@@ -1,7 +1,7 @@
 "use client";
 
 
-import { useT } from "@/lib/i18n/provider";
+import { useT, type TranslationKey } from "@/lib/i18n/provider";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
@@ -45,14 +45,14 @@ import type { Section, Subject } from "@/lib/academics/types";
 import { toast } from "@/lib/toast";
 
 const TABS = [
-  { id: "general", label: "General", icon: <Info className="h-4 w-4" /> },
-  { id: "sections", label: "Sections", icon: <Layers className="h-4 w-4" /> },
-  { id: "students", label: "Students", icon: <Users className="h-4 w-4" /> },
-  { id: "subjects", label: "Subjects", icon: <BookOpen className="h-4 w-4" /> },
-  { id: "teachers", label: "Teachers", icon: <GraduationCap className="h-4 w-4" /> },
-  { id: "attendance", label: "Attendance", icon: <CalendarCheck className="h-4 w-4" /> },
-  { id: "exams", label: "Examinations", icon: <FileText className="h-4 w-4" /> },
-  { id: "reports", label: "Reports", icon: <FileDown className="h-4 w-4" /> },
+  { id: "general", label: "academicsClasses.general", icon: <Info className="h-4 w-4" /> },
+  { id: "sections", label: "academicsClasses.sections", icon: <Layers className="h-4 w-4" /> },
+  { id: "students", label: "academicsClasses.students", icon: <Users className="h-4 w-4" /> },
+  { id: "subjects", label: "academicsClasses.subjects", icon: <BookOpen className="h-4 w-4" /> },
+  { id: "teachers", label: "academicsClasses.teachers", icon: <GraduationCap className="h-4 w-4" /> },
+  { id: "attendance", label: "academicsClasses.attendance", icon: <CalendarCheck className="h-4 w-4" /> },
+  { id: "exams", label: "academicsClasses.examinations", icon: <FileText className="h-4 w-4" /> },
+  { id: "reports", label: "academicsClasses.reports", icon: <FileDown className="h-4 w-4" /> },
 ];
 
 export default function ClassProfilePage() {
@@ -146,15 +146,15 @@ export default function ClassProfilePage() {
     setRemovingSubject(null);
   }
 
-  const STAT_CARDS = [
-    { label: "Total Students", value: stats.totalStudents, icon: Users },
-    { label: "Male", value: stats.maleStudents, icon: Users },
-    { label: "Female", value: stats.femaleStudents, icon: Users },
-    { label: "Sections", value: stats.totalSections, icon: Layers },
-    { label: "Subjects", value: stats.assignedSubjects, icon: BookOpen },
-    { label: "Teachers", value: stats.assignedTeachers, icon: GraduationCap },
-    { label: "Attendance", value: percent(stats.attendancePercentage), icon: CalendarCheck },
-    { label: "Exam Avg", value: percent(stats.examAverage), icon: FileText },
+  const STAT_CARDS: { label: TranslationKey; value: string | number; icon: typeof Users }[] = [
+    { label: "academicsClasses.totalStudents", value: stats.totalStudents, icon: Users },
+    { label: "academicsClasses.male", value: stats.maleStudents, icon: Users },
+    { label: "academicsClasses.female", value: stats.femaleStudents, icon: Users },
+    { label: "academicsClasses.sections", value: stats.totalSections, icon: Layers },
+    { label: "academicsClasses.subjects", value: stats.assignedSubjects, icon: BookOpen },
+    { label: "academicsClasses.teachers", value: stats.assignedTeachers, icon: GraduationCap },
+    { label: "academicsClasses.attendance", value: percent(stats.attendancePercentage), icon: CalendarCheck },
+    { label: "academicsClasses.examAvg", value: percent(stats.examAverage), icon: FileText },
   ];
 
   return (
@@ -179,10 +179,10 @@ export default function ClassProfilePage() {
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-8">
         {STAT_CARDS.map((c) => (
-          <div key={c.label} className="rounded-xl border bg-card p-3 shadow-sm">
+          <div key={tr(c.label)} className="rounded-xl border bg-card p-3 shadow-sm">
             <c.icon className="h-4 w-4 text-muted-foreground" />
             <p className="mt-2 text-lg font-bold tabular-nums">{c.value}</p>
-            <p className="truncate text-xs text-muted-foreground">{c.label}</p>
+            <p className="truncate text-xs text-muted-foreground">{tr(c.label)}</p>
           </div>
         ))}
       </div>

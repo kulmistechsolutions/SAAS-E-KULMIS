@@ -81,7 +81,7 @@ export default function SubjectsPage() {
             variant="outline"
             onClick={() =>
               printTable({
-                title: "Subjects List",
+                title: t("academicsSubjects.subjectsList"),
                 columns: ["Subject", "Code", "Classes", "Teachers", "Status"],
                 rows: rows.map((r) => [r.name, r.code ?? "—", r.classCount, r.usedByTeachers, r.status]),
               })

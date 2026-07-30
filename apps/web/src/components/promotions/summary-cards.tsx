@@ -1,3 +1,4 @@
+import { useT, type TranslationKey } from "@/lib/i18n/provider";
 import type { LucideIcon } from "lucide-react";
 import {
   CalendarCheck,
@@ -14,20 +15,20 @@ import { shortDate } from "@/lib/promotions/format";
 
 interface CardDef {
   key: keyof PromotionDashboardSummary;
-  label: string;
+  label: TranslationKey;
   icon: LucideIcon;
   chip: string;
   isDate?: boolean;
 }
 
 const CARDS: CardDef[] = [
-  { key: "currentAcademicYear", label: "Current Academic Year", icon: CalendarCheck, chip: "bg-violet-500/15 text-violet-600 dark:text-violet-400" },
-  { key: "eligibleForPromotion", label: "Eligible for Promotion", icon: Users, chip: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400" },
-  { key: "totalPromoted", label: "Promoted", icon: CheckCircle2, chip: "bg-indigo-500/15 text-indigo-600 dark:text-indigo-400" },
-  { key: "totalGraduated", label: "Graduated", icon: GraduationCap, chip: "bg-sky-500/15 text-sky-600 dark:text-sky-400" },
-  { key: "totalInactive", label: "Inactive Students", icon: UserX, chip: "bg-rose-500/15 text-rose-600 dark:text-rose-400" },
-  { key: "pendingPromotions", label: "Pending Promotions", icon: Clock, chip: "bg-amber-500/15 text-amber-600 dark:text-amber-400" },
-  { key: "lastPromotionDate", label: "Last Promotion", icon: CalendarClock, chip: "bg-teal-500/15 text-teal-600 dark:text-teal-400", isDate: true },
+  { key: "currentAcademicYear", label: "promotionsSummaryCards.currentAcademicYear", icon: CalendarCheck, chip: "bg-violet-500/15 text-violet-600 dark:text-violet-400" },
+  { key: "eligibleForPromotion", label: "promotionsSummaryCards.eligibleForPromotion", icon: Users, chip: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400" },
+  { key: "totalPromoted", label: "promotionsSummaryCards.promoted", icon: CheckCircle2, chip: "bg-indigo-500/15 text-indigo-600 dark:text-indigo-400" },
+  { key: "totalGraduated", label: "promotionsSummaryCards.graduated", icon: GraduationCap, chip: "bg-sky-500/15 text-sky-600 dark:text-sky-400" },
+  { key: "totalInactive", label: "promotionsSummaryCards.inactiveStudents", icon: UserX, chip: "bg-rose-500/15 text-rose-600 dark:text-rose-400" },
+  { key: "pendingPromotions", label: "promotionsSummaryCards.pendingPromotions", icon: Clock, chip: "bg-amber-500/15 text-amber-600 dark:text-amber-400" },
+  { key: "lastPromotionDate", label: "promotionsSummaryCards.lastPromotion", icon: CalendarClock, chip: "bg-teal-500/15 text-teal-600 dark:text-teal-400", isDate: true },
 ];
 
 export function PromotionSummaryCards({
@@ -35,6 +36,7 @@ export function PromotionSummaryCards({
 }: {
   summary: PromotionDashboardSummary;
 }) {
+  const t = useT();
   return (
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7">
       {CARDS.map((c) => {
@@ -63,7 +65,7 @@ export function PromotionSummaryCards({
               </span>
             </div>
             <p className="mt-2 truncate text-xs font-medium text-muted-foreground">
-              {c.label}
+              {t(c.label)}
             </p>
           </div>
         );

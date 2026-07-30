@@ -1,7 +1,7 @@
 "use client";
 
 
-import { useT } from "@/lib/i18n/provider";
+import { useT, type TranslationKey } from "@/lib/i18n/provider";
 import Link from "next/link";
 import {
   ClipboardList,
@@ -10,6 +10,7 @@ import {
   Lock,
   PenLine,
   Users,
+  type LucideIcon,
 } from "lucide-react";
 import type { MonitoringRow } from "@/lib/examinations/types";
 import { SubmissionStatusBadge } from "./exam-status-badge";
@@ -63,12 +64,12 @@ export function MonitoringTable({ rows }: { rows: MonitoringRow[] }) {
   );
 }
 
-const ACTIONS = [
-  { label: "Create Exam", href: "/examinations/create", icon: FileText, className: "bg-blue-500 hover:bg-blue-600 text-white" },
-  { label: "Enter Marks", href: "/examinations/marks", icon: PenLine, className: "bg-emerald-500 hover:bg-emerald-600 text-white" },
-  { label: "Exam Groups", href: "/examinations/groups", icon: Users, className: "bg-violet-500 hover:bg-violet-600 text-white" },
-  { label: "Publish Results", href: "/examinations/results", icon: Lock, className: "bg-orange-500 hover:bg-orange-600 text-white" },
-  { label: "Manage Exams", href: "/examinations/manage", icon: ListChecks, className: "bg-slate-500 hover:bg-slate-600 text-white" },
+const ACTIONS: { label: TranslationKey; href: string; icon: LucideIcon; className: string }[] = [
+  { label: "examinationsWidgets.createExam", href: "/examinations/create", icon: FileText, className: "bg-blue-500 hover:bg-blue-600 text-white" },
+  { label: "examinationsWidgets.enterMarks", href: "/examinations/marks", icon: PenLine, className: "bg-emerald-500 hover:bg-emerald-600 text-white" },
+  { label: "examinationsWidgets.examGroups", href: "/examinations/groups", icon: Users, className: "bg-violet-500 hover:bg-violet-600 text-white" },
+  { label: "examinationsWidgets.publishResults", href: "/examinations/results", icon: Lock, className: "bg-orange-500 hover:bg-orange-600 text-white" },
+  { label: "examinationsWidgets.manageExams", href: "/examinations/manage", icon: ListChecks, className: "bg-slate-500 hover:bg-slate-600 text-white" },
 ];
 
 export function ExamQuickActions() {
@@ -84,7 +85,7 @@ export function ExamQuickActions() {
             className={`flex flex-col items-center justify-center gap-2 rounded-xl px-3 py-4 text-center text-xs font-semibold shadow-sm transition-transform hover:scale-[1.02] ${a.className}`}
           >
             <a.icon className="h-5 w-5" />
-            {a.label}
+            {t(a.label)}
           </Link>
         ))}
       </div>

@@ -49,11 +49,11 @@ export default function QuizMonitoringPage() {
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         {[
-          { label: "Total Quizzes", value: summary.totalQuizzes },
-          { label: "Published", value: summary.published },
-          { label: "Draft", value: summary.draft },
-          { label: "Closed", value: summary.closed },
-          { label: "Total Attempts", value: summary.totalAttempts },
+          { label: t("quizMonitoring.totalQuizzes"), value: summary.totalQuizzes },
+          { label: t("quizMonitoring.published"), value: summary.published },
+          { label: t("quizMonitoring.draft"), value: summary.draft },
+          { label: t("quizMonitoring.closed"), value: summary.closed },
+          { label: t("quizMonitoring.totalAttempts"), value: summary.totalAttempts },
         ].map((s) => (
           <div key={s.label} className="rounded-xl border bg-card p-4 shadow-sm">
             <p className="text-2xl font-bold tabular-nums">{s.value}</p>

@@ -34,19 +34,20 @@ function StatusBadge({
 }: {
   status: PlatformSmsConfig["connectionStatus"];
 }) {
+  const t = useT();
   const map = {
     CONNECTED: {
-      label: "Connected",
+      label: t("platformSmsSettings.connected"),
       className: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30",
       icon: CheckCircle2,
     },
     DISCONNECTED: {
-      label: "Disconnected",
+      label: t("platformSmsSettings.disconnected"),
       className: "bg-slate-500/15 text-slate-300 border-slate-500/30",
       icon: XCircle,
     },
     ERROR: {
-      label: "Error",
+      label: t("platformSmsSettings.error"),
       className: "bg-rose-500/15 text-rose-300 border-rose-500/30",
       icon: AlertTriangle,
     },

@@ -29,6 +29,7 @@ interface Props {
 const EMPTY = { name: "", category: "CUSTOM" as SmsCategory, body: "" };
 
 export function TemplateManager({ templates, onChanged }: Props) {
+  const t = useT();
   const tr = useT();
   const [editingId, setEditingId] = useState<string | "new" | null>(null);
   const [form, setForm] = useState(EMPTY);

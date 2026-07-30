@@ -1,5 +1,5 @@
 
-import { useT } from "@/lib/i18n/provider";
+import { useT, type TranslationKey } from "@/lib/i18n/provider";
 import type { LucideIcon } from "lucide-react";
 import {
   ArrowRight,
@@ -18,7 +18,7 @@ import type { SalaryDashboardSummary } from "@/lib/salary/types";
 
 const CARDS: {
   key: keyof SalaryDashboardSummary;
-  label: string;
+  label: TranslationKey;
   icon: LucideIcon;
   chip: string;
   value: string;
@@ -26,7 +26,7 @@ const CARDS: {
 }[] = [
   {
     key: "totalEmployees",
-    label: "Total Employees",
+    label: "salarySummaryCards.totalEmployees",
     icon: Users,
     chip: "bg-blue-100 text-blue-600 dark:bg-blue-500/15",
     value: "text-blue-600 dark:text-blue-400",
@@ -34,7 +34,7 @@ const CARDS: {
   },
   {
     key: "totalTeachers",
-    label: "Total Teachers",
+    label: "salarySummaryCards.totalTeachers",
     icon: UserCheck,
     chip: "bg-violet-100 text-violet-600 dark:bg-violet-500/15",
     value: "text-violet-600 dark:text-violet-400",
@@ -42,7 +42,7 @@ const CARDS: {
   },
   {
     key: "totalStaff",
-    label: "Total Staff",
+    label: "salarySummaryCards.totalStaff",
     icon: Users,
     chip: "bg-sky-100 text-sky-600 dark:bg-sky-500/15",
     value: "text-sky-600 dark:text-sky-400",
@@ -50,7 +50,7 @@ const CARDS: {
   },
   {
     key: "monthlyPayroll",
-    label: "Monthly Payroll",
+    label: "salarySummaryCards.monthlyPayroll",
     icon: Wallet,
     chip: "bg-indigo-100 text-indigo-600 dark:bg-indigo-500/15",
     value: "text-indigo-600 dark:text-indigo-400",
@@ -58,7 +58,7 @@ const CARDS: {
   },
   {
     key: "salariesPaid",
-    label: "Salaries Paid",
+    label: "salarySummaryCards.salariesPaid",
     icon: Banknote,
     chip: "bg-emerald-100 text-emerald-600 dark:bg-emerald-500/15",
     value: "text-emerald-600 dark:text-emerald-400",
@@ -66,7 +66,7 @@ const CARDS: {
   },
   {
     key: "pendingSalaries",
-    label: "Pending Salaries",
+    label: "salarySummaryCards.pendingSalaries",
     icon: Clock,
     chip: "bg-rose-100 text-rose-600 dark:bg-rose-500/15",
     value: "text-rose-600 dark:text-rose-400",
@@ -74,7 +74,7 @@ const CARDS: {
   },
   {
     key: "partialPayments",
-    label: "Partial Payments",
+    label: "salarySummaryCards.partialPayments",
     icon: PieChart,
     chip: "bg-amber-100 text-amber-600 dark:bg-amber-500/15",
     value: "text-amber-600 dark:text-amber-400",
@@ -82,7 +82,7 @@ const CARDS: {
   },
   {
     key: "payrollThisMonth",
-    label: "Payroll This Month",
+    label: "salarySummaryCards.payrollThisMonth",
     icon: CircleDollarSign,
     chip: "bg-purple-100 text-purple-600 dark:bg-purple-500/15",
     value: "text-purple-600 dark:text-purple-400",
@@ -90,7 +90,7 @@ const CARDS: {
   },
   {
     key: "annualPayroll",
-    label: "Annual Payroll",
+    label: "salarySummaryCards.annualPayroll",
     icon: TrendingUp,
     chip: "bg-teal-100 text-teal-600 dark:bg-teal-500/15",
     value: "text-teal-600 dark:text-teal-400",
@@ -117,7 +117,7 @@ export function SalarySummaryCards({ summary }: { summary: SalaryDashboardSummar
               <c.icon className="h-5 w-5" />
             </span>
             <p className="text-xs font-medium leading-tight text-muted-foreground">
-              {c.label}
+              {t(c.label)}
             </p>
           </div>
           <p

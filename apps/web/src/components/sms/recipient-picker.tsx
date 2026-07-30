@@ -70,8 +70,8 @@ export function RecipientPickerDialog({
 
   const filters: { key: FilterMode; label: string }[] = [
     { key: "all", label: "All" },
-    { key: "selected", label: "Selected" },
-    { key: "unselected", label: "Excluded" },
+    { key: "selected", label: t("smsRecipientPicker.selected") },
+    { key: "unselected", label: t("smsRecipientPicker.excluded") },
   ];
 
   return (

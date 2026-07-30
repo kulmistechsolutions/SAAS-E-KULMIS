@@ -96,7 +96,7 @@ export default function SectionsPage() {
             variant="outline"
             onClick={() =>
               printTable({
-                title: "Sections List",
+                title: t("academicsSections.sectionsList"),
                 columns: ["Section", "Class", "Academic Year", "Students", "Status"],
                 rows: rows.map((r) => [r.name, r.className, r.academicYear, r.studentCount, r.status]),
               })

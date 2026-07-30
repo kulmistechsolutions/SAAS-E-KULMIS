@@ -1,13 +1,14 @@
 "use client";
 
 
-import { useT } from "@/lib/i18n/provider";
+import { useT, type TranslationKey } from "@/lib/i18n/provider";
 import Link from "next/link";
 import {
   Calendar,
   FileText,
   Printer,
   Wallet,
+  type LucideIcon,
 } from "lucide-react";
 import { AttendanceDonut } from "@/components/dashboard/charts";
 import { money } from "@/lib/fees/format";
@@ -57,27 +58,27 @@ export function PaymentSummaryWidget({
   );
 }
 
-const ACTIONS = [
+const ACTIONS: { label: TranslationKey; href: string; icon: LucideIcon; className: string }[] = [
   {
-    label: "Collect Fees",
+    label: "feesWidgets.collectFees",
     href: "/finance/collect",
     icon: Wallet,
     className: "bg-emerald-500 hover:bg-emerald-600 text-white",
   },
   {
-    label: "Monthly Setup",
+    label: "feesWidgets.monthlySetup",
     href: "/finance/monthly-setup",
     icon: Calendar,
     className: "bg-violet-500 hover:bg-violet-600 text-white",
   },
   {
-    label: "Fee Reports",
+    label: "feesWidgets.feeReports",
     href: "/finance/reports",
     icon: FileText,
     className: "bg-blue-500 hover:bg-blue-600 text-white",
   },
   {
-    label: "Print Receipt",
+    label: "feesWidgets.printReceipt",
     href: "/finance/receipts",
     icon: Printer,
     className: "bg-orange-500 hover:bg-orange-600 text-white",
@@ -97,7 +98,7 @@ export function FeeQuickActions() {
             className={`flex flex-col items-center justify-center gap-2 rounded-xl px-3 py-4 text-center text-xs font-semibold shadow-sm transition-transform hover:scale-[1.02] ${a.className}`}
           >
             <a.icon className="h-5 w-5" />
-            {a.label}
+            {t(a.label)}
           </Link>
         ))}
       </div>

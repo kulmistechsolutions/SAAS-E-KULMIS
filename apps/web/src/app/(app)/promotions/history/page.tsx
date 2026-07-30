@@ -89,7 +89,7 @@ export default function PromotionHistoryPage() {
             variant="outline"
             onClick={() =>
               printTable({
-                title: "Promotion History Report",
+                title: t("promotionsHistory.promotionHistoryReport"),
                 columns: ["Student", "Type", "From", "To", "Year", "Date"],
                 rows: rows.map((r) => [
                   `${r.studentName} (${r.studentCode})`,

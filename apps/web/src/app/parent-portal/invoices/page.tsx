@@ -25,15 +25,15 @@ export default function ParentInvoicesPage() {
 
   const docs = [
     {
-      title: "Monthly Invoice",
+      title: t("parentPortalInvoices.monthlyInvoice"),
       desc: `Current month fee statement for ${selectedChild.fullName}`,
     },
     {
-      title: "Annual Fee Statement",
+      title: t("parentPortalInvoices.annualFeeStatement"),
       desc: "Full academic year fee summary with paid and outstanding months",
     },
     {
-      title: "Outstanding Balance Statement",
+      title: t("parentPortalInvoices.outstandingBalanceStatement"),
       desc: fees ? `Outstanding balance: ${money(fees.outstanding)}` : "",
     },
   ];

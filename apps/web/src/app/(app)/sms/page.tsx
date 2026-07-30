@@ -1,7 +1,7 @@
 "use client";
 
 
-import { useT } from "@/lib/i18n/provider";
+import { useT, type TranslationKey } from "@/lib/i18n/provider";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
@@ -54,20 +54,20 @@ import { toast } from "@/lib/toast";
 
 type Tab = "send" | "custom" | "templates" | "logs" | "settings" | "gateway";
 
-const AUDIENCES: { value: SmsAudience; label: string; hint: string }[] = [
+const AUDIENCES: { value: SmsAudience; label: TranslationKey; hint: string }[] = [
   {
     value: "ALL_PARENTS",
-    label: "All parents",
+    label: "sms.allParents",
     hint: "Every active student's parent",
   },
-  { value: "CLASS", label: "A class", hint: "Choose a class" },
-  { value: "SECTION", label: "A section", hint: "Choose a class and section" },
+  { value: "CLASS", label: "sms.aClass", hint: "Choose a class" },
+  { value: "SECTION", label: "sms.aSection", hint: "Choose a class and section" },
   {
     value: "OUTSTANDING",
-    label: "Outstanding fees",
+    label: "sms.outstandingFees",
     hint: "Parents who owe a balance",
   },
-  { value: "TEACHERS", label: "Teachers", hint: "Every active teacher" },
+  { value: "TEACHERS", label: "sms.teachers", hint: "Every active teacher" },
 ];
 
 /**
@@ -99,6 +99,7 @@ function parseBulkNumbers(raw: string): { phone: string; name?: string }[] {
 }
 
 export default function SchoolSmsPage() {
+  const t = useT();
   const tr = useT();
   const academics = useAcademicsState();
   const year = activeAcademicYear();
@@ -178,7 +179,7 @@ export default function SchoolSmsPage() {
         setTemplates(seeded);
       }
     } catch (e) {
-      toast(e instanceof Error ? e.message : "Failed to load SMS", "error");
+      toast(e instanceof Error ? e.message : "Something went wrong", "error");
     } finally {
       setLoading(false);
     }
@@ -215,7 +216,7 @@ export default function SchoolSmsPage() {
       setSelected(new Set(list.map((r) => r.recordId)));
     } catch (e) {
       toast(
-        e instanceof Error ? e.message : "Could not load recipients",
+        e instanceof Error ? e.message : "Something went wrong",
         "error",
       );
       setRecipients([]);
@@ -296,7 +297,7 @@ export default function SchoolSmsPage() {
       await load();
       await loadPreview();
     } catch (e) {
-      toast(e instanceof Error ? e.message : "Send failed", "error");
+      toast(e instanceof Error ? e.message : "Something went wrong", "error");
     } finally {
       setSending(false);
     }
@@ -312,7 +313,7 @@ export default function SchoolSmsPage() {
       );
       await load();
     } catch (e) {
-      toast(e instanceof Error ? e.message : "Fee reminders failed", "error");
+      toast(e instanceof Error ? e.message : "Something went wrong", "error");
     } finally {
       setSending(false);
     }
@@ -363,7 +364,7 @@ export default function SchoolSmsPage() {
       setBulkBody("");
       await load();
     } catch (e) {
-      toast(e instanceof Error ? e.message : "Send failed", "error");
+      toast(e instanceof Error ? e.message : "Something went wrong", "error");
     } finally {
       setSending(false);
     }
@@ -377,17 +378,17 @@ export default function SchoolSmsPage() {
       toast("SMS settings saved", "success");
       await load();
     } catch (e) {
-      toast(e instanceof Error ? e.message : "Save failed", "error");
+      toast(e instanceof Error ? e.message : "Something went wrong", "error");
     }
   }
 
-  const tabs: { id: Tab; label: string; icon: typeof Send }[] = [
-    { id: "send", label: "Send", icon: Send },
-    { id: "custom", label: "Custom SMS", icon: Users },
-    { id: "templates", label: "Templates", icon: FileText },
-    { id: "logs", label: "Logs", icon: Bell },
-    { id: "settings", label: "Settings", icon: Wallet },
-    { id: "gateway", label: "My SMS Account", icon: PlugZap },
+  const tabs: { id: Tab; label: TranslationKey; icon: typeof Send }[] = [
+    { id: "send", label: "sms.send", icon: Send },
+    { id: "custom", label: "sms.customSMS", icon: Users },
+    { id: "templates", label: "sms.templates", icon: FileText },
+    { id: "logs", label: "sms.logs", icon: Bell },
+    { id: "settings", label: "sms.settings", icon: Wallet },
+    { id: "gateway", label: "sms.mySMSAccount", icon: PlugZap },
   ];
 
   const canSend =
@@ -492,19 +493,19 @@ export default function SchoolSmsPage() {
       )}
 
       <div className="flex flex-wrap gap-2 border-b pb-3">
-        {tabs.map((t) => (
+        {tabs.map((tb) => (
           <button
-            key={t.id}
+            key={tb.id}
             type="button"
-            onClick={() => setTab(t.id)}
+            onClick={() => setTab(tb.id)}
             className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm transition-colors ${
-              tab === t.id
+              tab === tb.id
                 ? "bg-primary text-primary-foreground"
                 : "bg-secondary text-muted-foreground hover:bg-secondary/80"
             }`}
           >
-            <t.icon className="h-3.5 w-3.5" />
-            {t.label}
+            <tb.icon className="h-3.5 w-3.5" />
+            {t(tb.label)}
           </button>
         ))}
       </div>
@@ -529,7 +530,7 @@ export default function SchoolSmsPage() {
                 >
                   {AUDIENCES.map((a) => (
                     <option key={a.value} value={a.value}>
-                      {a.label}
+                      {t(a.label)}
                     </option>
                   ))}
                 </Select>
@@ -624,7 +625,7 @@ export default function SchoolSmsPage() {
                   >
                     {CATEGORIES.map((c) => (
                       <option key={c.value} value={c.value}>
-                        {c.label}
+                        {t(c.label)}
                       </option>
                     ))}
                   </Select>
@@ -778,7 +779,7 @@ export default function SchoolSmsPage() {
               >
                 {CATEGORIES.map((c) => (
                   <option key={c.value} value={c.value}>
-                    {c.label}
+                    {t(c.label)}
                   </option>
                 ))}
               </Select>

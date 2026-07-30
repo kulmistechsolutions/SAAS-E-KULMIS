@@ -1,5 +1,6 @@
 "use client";
 
+import { useT, type TranslationKey } from "@/lib/i18n/provider";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -28,39 +29,40 @@ import type { LucideIcon } from "lucide-react";
 
 const NAV: {
   href: string;
-  label: string;
+  label: TranslationKey;
   icon: LucideIcon;
   exact?: boolean;
 }[] = [
-  { href: "/settings", label: "Dashboard", icon: Settings, exact: true },
-  { href: "/settings/school", label: "School Information", icon: School },
-  { href: "/settings/branding", label: "Branding", icon: Palette },
-  { href: "/settings/academic", label: "Academic", icon: BookOpen },
-  { href: "/settings/students", label: "Students", icon: GraduationCap },
-  { href: "/settings/teachers", label: "Teachers", icon: Users },
-  { href: "/settings/parents", label: "Parents", icon: Users },
+  { href: "/settings", label: "settingsSettingsNav.dashboard", icon: Settings, exact: true },
+  { href: "/settings/school", label: "settingsSettingsNav.schoolInformation", icon: School },
+  { href: "/settings/branding", label: "settingsSettingsNav.branding", icon: Palette },
+  { href: "/settings/academic", label: "settingsSettingsNav.academic", icon: BookOpen },
+  { href: "/settings/students", label: "settingsSettingsNav.students", icon: GraduationCap },
+  { href: "/settings/teachers", label: "settingsSettingsNav.teachers", icon: Users },
+  { href: "/settings/parents", label: "settingsSettingsNav.parents", icon: Users },
   {
     href: "/settings/examinations",
-    label: "Examinations",
+    label: "settingsSettingsNav.examinations",
     icon: ClipboardList,
   },
-  { href: "/settings/fees", label: "Fees", icon: Wallet },
-  { href: "/settings/salary", label: "Salary", icon: Receipt },
-  { href: "/settings/expenses", label: "Expenses", icon: Receipt },
-  { href: "/settings/attendance", label: "Attendance", icon: CalendarCheck },
-  { href: "/settings/quiz", label: "Online Quiz", icon: ClipboardList },
-  { href: "/settings/notifications", label: "Notifications", icon: Bell },
-  { href: "/settings/email", label: "Email / SMTP", icon: Mail },
-  { href: "/settings/security", label: "Security", icon: Shield },
-  { href: "/settings/backup", label: "Backup", icon: Database },
-  { href: "/settings/system", label: "System Info", icon: Info },
-  { href: "/settings/import-export", label: "Import / Export", icon: FileUp },
-  { href: "/settings/subscription", label: "Subscription", icon: Layers },
-  { href: "/settings/license", label: "License", icon: KeyRound },
-  { href: "/settings/danger-zone", label: "Danger Zone", icon: TriangleAlert },
+  { href: "/settings/fees", label: "settingsSettingsNav.fees", icon: Wallet },
+  { href: "/settings/salary", label: "settingsSettingsNav.salary", icon: Receipt },
+  { href: "/settings/expenses", label: "settingsSettingsNav.expenses", icon: Receipt },
+  { href: "/settings/attendance", label: "settingsSettingsNav.attendance", icon: CalendarCheck },
+  { href: "/settings/quiz", label: "settingsSettingsNav.onlineQuiz", icon: ClipboardList },
+  { href: "/settings/notifications", label: "settingsSettingsNav.notifications", icon: Bell },
+  { href: "/settings/email", label: "settingsSettingsNav.emailSMTP", icon: Mail },
+  { href: "/settings/security", label: "settingsSettingsNav.security", icon: Shield },
+  { href: "/settings/backup", label: "settingsSettingsNav.backup", icon: Database },
+  { href: "/settings/system", label: "settingsSettingsNav.systemInfo", icon: Info },
+  { href: "/settings/import-export", label: "settingsSettingsNav.importExport", icon: FileUp },
+  { href: "/settings/subscription", label: "settingsSettingsNav.subscription", icon: Layers },
+  { href: "/settings/license", label: "settingsSettingsNav.license", icon: KeyRound },
+  { href: "/settings/danger-zone", label: "settingsSettingsNav.dangerZone", icon: TriangleAlert },
 ];
 
 export function SettingsNav() {
+  const t = useT();
   const pathname = usePathname();
 
   return (
@@ -81,7 +83,7 @@ export function SettingsNav() {
             )}
           >
             <item.icon className="h-4 w-4 shrink-0" />
-            {item.label}
+            {t(item.label)}
           </Link>
         );
       })}

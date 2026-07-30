@@ -74,23 +74,23 @@ export function TeacherDashboard({
   }
 
   const stats = [
-    { label: "Assigned Classes", value: data.stats.classes, icon: GraduationCap },
-    { label: "Assigned Sections", value: data.stats.sections, icon: Library },
-    { label: "Assigned Subjects", value: data.stats.subjects, icon: BookOpen },
-    { label: "Active Examinations", value: data.stats.activeExams, icon: FileText },
+    { label: t("dashboardTeacherDashboard.assignedClasses"), value: data.stats.classes, icon: GraduationCap },
+    { label: t("dashboardTeacherDashboard.assignedSections"), value: data.stats.sections, icon: Library },
+    { label: t("dashboardTeacherDashboard.assignedSubjects"), value: data.stats.subjects, icon: BookOpen },
+    { label: t("dashboardTeacherDashboard.activeExaminations"), value: data.stats.activeExams, icon: FileText },
     {
-      label: "Pending Submissions",
+      label: t("dashboardTeacherDashboard.pendingSubmissions"),
       value: data.stats.pendingSubmissions,
       icon: FileText,
     },
-    { label: "Active Quizzes", value: data.stats.activeQuizzes, icon: ClipboardList },
+    { label: t("dashboardTeacherDashboard.activeQuizzes"), value: data.stats.activeQuizzes, icon: ClipboardList },
     {
-      label: "Completed Quizzes",
+      label: t("dashboardTeacherDashboard.completedQuizzes"),
       value: data.stats.completedQuizzes,
       icon: ClipboardList,
     },
     {
-      label: "Today's Attendance",
+      label: t("dashboardTeacherDashboard.todaySAttendance"),
       value: `${data.attendanceToday.percentage}%`,
       icon: CalendarCheck,
     },
@@ -151,13 +151,13 @@ export function TeacherDashboard({
 
       <div className="flex flex-wrap gap-2">
         {[
-          { href: `${base}/attendance`, label: "Take attendance" },
-          { href: `${base}/exams/marks`, label: "Enter marks" },
+          { href: `${base}/attendance`, label: t("dashboardTeacherDashboard.takeAttendance") },
+          { href: `${base}/exams/marks`, label: t("dashboardTeacherDashboard.enterMarks") },
           ...(canViewStudents
-            ? [{ href: `${base}/students`, label: "My students" }]
+            ? [{ href: `${base}/students`, label: t("dashboardTeacherDashboard.myStudents") }]
             : []),
-          { href: `${base}/assignments`, label: "My assignments" },
-          { href: `${base}/quizzes/create`, label: "Create quiz" },
+          { href: `${base}/assignments`, label: t("dashboardTeacherDashboard.myAssignments") },
+          { href: `${base}/quizzes/create`, label: t("dashboardTeacherDashboard.createQuiz") },
         ].map((q) => (
           <Link
             key={q.href}

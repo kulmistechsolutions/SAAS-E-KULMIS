@@ -126,7 +126,7 @@ export default function ClassesPage() {
             variant="outline"
             onClick={() =>
               printTable({
-                title: "Classes List",
+                title: t("academicsClasses.classesList"),
                 academicYear:
                   year ||
                   getAcademicsState().academicYears.find(

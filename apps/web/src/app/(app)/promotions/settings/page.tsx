@@ -1,7 +1,7 @@
 "use client";
 
 
-import { useT } from "@/lib/i18n/provider";
+import { useT, type TranslationKey } from "@/lib/i18n/provider";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, ShieldCheck } from "lucide-react";
@@ -14,11 +14,11 @@ import type { PromotionSettings } from "@/lib/promotions/types";
 import { cn } from "@/lib/utils";
 import { toast } from "@/lib/toast";
 
-const RULES: { key: keyof PromotionSettings; label: string; desc: string }[] = [
-  { key: "requirePublishedResults", label: "Require Published Final Results", desc: "Students must have published final results before promotion." },
-  { key: "requireMinimumPass", label: "Require Minimum Pass Grade", desc: "Only students who passed (average ≥ 50) may be promoted." },
-  { key: "requireNoOutstandingFees", label: "Require No Outstanding Fees", desc: "Students with unpaid balances cannot be promoted." },
-  { key: "requireClearance", label: "Require Administrative Clearance", desc: "Blocked students (e.g. disciplinary holds) cannot be promoted." },
+const RULES: { key: keyof PromotionSettings; label: TranslationKey; desc: string }[] = [
+  { key: "requirePublishedResults", label: "promotionsSettings.requirePublishedFinalResults", desc: "Students must have published final results before promotion." },
+  { key: "requireMinimumPass", label: "promotionsSettings.requireMinimumPassGrade", desc: "Only students who passed (average ≥ 50) may be promoted." },
+  { key: "requireNoOutstandingFees", label: "promotionsSettings.requireNoOutstandingFees", desc: "Students with unpaid balances cannot be promoted." },
+  { key: "requireClearance", label: "promotionsSettings.requireAdministrativeClearance", desc: "Blocked students (e.g. disciplinary holds) cannot be promoted." },
 ];
 
 export default function PromotionSettingsPage() {
@@ -66,7 +66,7 @@ export default function PromotionSettingsPage() {
           return (
             <div key={rule.key} className="flex items-center justify-between gap-4 rounded-2xl border bg-card p-5 shadow-sm">
               <div>
-                <p className="font-semibold">{rule.label}</p>
+                <p className="font-semibold">{t(rule.label)}</p>
                 <p className="mt-0.5 text-sm text-muted-foreground">{rule.desc}</p>
               </div>
               <button

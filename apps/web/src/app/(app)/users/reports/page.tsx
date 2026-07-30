@@ -18,10 +18,10 @@ export default function UserReportsPage() {
   const locked = useMemo(() => listUsers({ status: "LOCKED" }), [state]);
 
   const standardReports = [
-    { title: "User List", rows: allUsers },
-    { title: "Active Users", rows: active },
-    { title: "Inactive Users", rows: inactive },
-    { title: "Locked Accounts", rows: locked },
+    { title: t("usersReports.userList"), rows: allUsers },
+    { title: t("usersReports.activeUsers"), rows: active },
+    { title: t("usersReports.inactiveUsers"), rows: inactive },
+    { title: t("usersReports.lockedAccounts"), rows: locked },
   ];
 
   return (

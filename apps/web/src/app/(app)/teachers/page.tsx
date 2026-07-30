@@ -1,7 +1,7 @@
 "use client";
 
 
-import { useT } from "@/lib/i18n/provider";
+import { useT, type TranslationKey } from "@/lib/i18n/provider";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
@@ -52,6 +52,23 @@ const PAGE_SIZE = 10;
 const STATUS_TONE: Record<EmploymentStatus, "success" | "muted"> = {
   ACTIVE: "success",
   INACTIVE: "muted",
+};
+
+/*
+ * The API sends these as enum names. The table read "ACTIVE" / "Morning" in
+ * every language before, so map them to the dictionary rather than casing the
+ * raw value. lib/teachers/format.ts keeps its plain-English helpers for the
+ * print and CSV output, which is not localised.
+ */
+const STATUS_KEY: Record<string, TranslationKey> = {
+  ACTIVE: "teachers.statusActive",
+  INACTIVE: "teachers.statusInactive",
+};
+
+const SHIFT_KEY: Record<string, TranslationKey> = {
+  MORNING: "teachers.shiftMorning",
+  AFTERNOON: "teachers.shiftAfternoon",
+  BOTH: "teachers.shiftBoth",
 };
 
 export default function TeachersPage() {
@@ -253,11 +270,11 @@ export default function TeachersPage() {
                       </Link>
                     </td>
                     <td className="px-4 py-3 text-muted-foreground">{t.phone}</td>
-                    <td className="px-4 py-3">{shiftLabel(t.shift)}</td>
+                    <td className="px-4 py-3">{tr(SHIFT_KEY[t.shift] ?? "teachers.shiftBoth")}</td>
                     <td className="px-4 py-3 tabular-nums">{money(t.salary)}</td>
                     <td className="px-4 py-3">
                       <Badge tone={STATUS_TONE[t.status]} dot>
-                        {t.status.charAt(0) + t.status.slice(1).toLowerCase()}
+                        {tr(STATUS_KEY[t.status] ?? "teachers.statusInactive")}
                       </Badge>
                     </td>
                     <td className="px-4 py-3 text-muted-foreground">{shortDate(t.registrationDate)}</td>

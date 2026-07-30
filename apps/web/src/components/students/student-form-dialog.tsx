@@ -512,17 +512,17 @@ export function StudentFormDialog({ open, onClose, student, onSaved }: Props) {
                 [
                   {
                     value: "FULL_CURRENT" as const,
-                    title: "Charge Full Current Month",
+                    title: t("studentsStudentFormDialog.chargeFullCurrentMonth"),
                     desc: "Bill the full monthly fee for the admission month.",
                   },
                   {
                     value: "AGREEMENT" as const,
-                    title: "Agreement / Special Fee",
+                    title: t("studentsStudentFormDialog.agreementSpecialFee"),
                     desc: "Charge a custom amount for the first month only.",
                   },
                   {
                     value: "NEXT_MONTH" as const,
-                    title: "Start Billing From Next Month",
+                    title: t("studentsStudentFormDialog.startBillingFromNextMonth"),
                     desc: "Skip the current month; billing begins next month.",
                   },
                 ] as const

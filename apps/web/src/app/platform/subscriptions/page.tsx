@@ -1,7 +1,7 @@
 "use client";
 
 
-import { useT } from "@/lib/i18n/provider";
+import { useT, type TranslationKey } from "@/lib/i18n/provider";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
@@ -45,10 +45,10 @@ import {
 } from "@/lib/platform/api";
 
 const TABS = [
-  { id: "overview", label: "Overview" },
-  { id: "plans", label: "Plans" },
-  { id: "schools", label: "Schools" },
-  { id: "history", label: "History" },
+  { id: "overview", label: "platformSubscriptions.overview" },
+  { id: "plans", label: "platformSubscriptions.plans" },
+  { id: "schools", label: "platformSubscriptions.schools" },
+  { id: "history", label: "platformSubscriptions.history" },
 ];
 
 function StatusBadge({ status }: { status: "ACTIVE" | "EXPIRED" | "CANCELLED" }) {

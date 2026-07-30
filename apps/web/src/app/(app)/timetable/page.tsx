@@ -40,6 +40,7 @@ const STATUS_TONE: Record<TimetableSummary["status"], string> = {
 };
 
 export default function TimetablePage() {
+  const t = useT();
   const tr = useT();
   const academics = useAcademicsState();
   const [yearId, setYearId] = useState("");

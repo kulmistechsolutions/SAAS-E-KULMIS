@@ -63,7 +63,7 @@ export default function PromotionReportsPage() {
     );
     const ineligible = candidates.filter((c) => !c.eligible);
     printTable({
-      title: "Ineligible Students Report",
+      title: t("promotionsReports.ineligibleStudentsReport"),
       academicYear: year,
       columns: ["Student", "Class", "Reason"],
       rows: ineligible.map((c) => [
@@ -77,7 +77,7 @@ export default function PromotionReportsPage() {
   function printGraduated() {
     const rows = graduatedStudents();
     printTable({
-      title: "Graduated Students Report",
+      title: t("promotionsReports.graduatedStudentsReport"),
       academicYear: year,
       columns: ["Student ID", "Name", "Grad. Year", "Final Class", "Date"],
       rows: rows.map((r) => [
@@ -91,12 +91,12 @@ export default function PromotionReportsPage() {
   }
 
   const REPORTS = [
-    { label: "Individual Promotion Report", desc: "Single-student promotions", icon: User, onPrint: () => printHistory("INDIVIDUAL", "Individual Promotion Report"), onCsv: () => exportPromotionHistoryCsv(promotionHistory({ type: "INDIVIDUAL" })) },
-    { label: "Class Promotion Report", desc: "Class-level promotions", icon: Users, onPrint: () => printHistory("CLASS", "Class Promotion Report"), onCsv: () => exportPromotionHistoryCsv(promotionHistory({ type: "CLASS" })) },
-    { label: "School Promotion Report", desc: "School-wide promotions", icon: School, onPrint: () => printHistory("SCHOOL_WIDE", "School Promotion Report"), onCsv: () => exportPromotionHistoryCsv(promotionHistory({ type: "SCHOOL_WIDE" })) },
-    { label: "Promotion History Report", desc: "All promotions combined", icon: FileDown, onPrint: () => printHistory(undefined, "Promotion History Report"), onCsv: () => exportPromotionHistoryCsv(promotionHistory()) },
-    { label: "Graduated Students Report", desc: "All graduates on record", icon: GraduationCap, onPrint: printGraduated, onCsv: () => exportGraduatedCsv(graduatedStudents()) },
-    { label: "Ineligible Students Report", desc: "Students not yet eligible", icon: UserX, onPrint: printIneligible, onCsv: null },
+    { label: t("promotionsReports.individualPromotionReport"), desc: "Single-student promotions", icon: User, onPrint: () => printHistory("INDIVIDUAL", "Individual Promotion Report"), onCsv: () => exportPromotionHistoryCsv(promotionHistory({ type: "INDIVIDUAL" })) },
+    { label: t("promotionsReports.classPromotionReport"), desc: "Class-level promotions", icon: Users, onPrint: () => printHistory("CLASS", "Class Promotion Report"), onCsv: () => exportPromotionHistoryCsv(promotionHistory({ type: "CLASS" })) },
+    { label: t("promotionsReports.schoolPromotionReport"), desc: "School-wide promotions", icon: School, onPrint: () => printHistory("SCHOOL_WIDE", "School Promotion Report"), onCsv: () => exportPromotionHistoryCsv(promotionHistory({ type: "SCHOOL_WIDE" })) },
+    { label: t("promotionsReports.promotionHistoryReport"), desc: "All promotions combined", icon: FileDown, onPrint: () => printHistory(undefined, "Promotion History Report"), onCsv: () => exportPromotionHistoryCsv(promotionHistory()) },
+    { label: t("promotionsReports.graduatedStudentsReport"), desc: "All graduates on record", icon: GraduationCap, onPrint: printGraduated, onCsv: () => exportGraduatedCsv(graduatedStudents()) },
+    { label: t("promotionsReports.ineligibleStudentsReport"), desc: "Students not yet eligible", icon: UserX, onPrint: printIneligible, onCsv: null },
   ];
 
   return (

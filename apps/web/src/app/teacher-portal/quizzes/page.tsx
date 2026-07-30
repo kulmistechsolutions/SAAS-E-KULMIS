@@ -75,13 +75,13 @@ export default function TeacherPortalQuizzesPage() {
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {[
-          { label: "Total Quizzes", value: stats.totalQuizzes },
-          { label: "Active", value: stats.activeQuizzes },
-          { label: "Drafts", value: stats.draftQuizzes },
-          { label: "Completed", value: stats.completedQuizzes },
-          { label: "Student Attempts", value: stats.totalAttempts },
-          { label: "Average Score", value: `${stats.averageScore}%` },
-          { label: "Pending Reviews", value: stats.pendingReviews },
+          { label: t("teacherPortalQuizzes.totalQuizzes"), value: stats.totalQuizzes },
+          { label: t("teacherPortalQuizzes.active"), value: stats.activeQuizzes },
+          { label: t("teacherPortalQuizzes.drafts"), value: stats.draftQuizzes },
+          { label: t("teacherPortalQuizzes.completed"), value: stats.completedQuizzes },
+          { label: t("teacherPortalQuizzes.studentAttempts"), value: stats.totalAttempts },
+          { label: t("teacherPortalQuizzes.averageScore"), value: `${stats.averageScore}%` },
+          { label: t("teacherPortalQuizzes.pendingReviews"), value: stats.pendingReviews },
         ].map((s) => (
           <div key={s.label} className="rounded-xl border bg-card p-4 shadow-sm">
             <p className="text-2xl font-bold tabular-nums">{s.value}</p>

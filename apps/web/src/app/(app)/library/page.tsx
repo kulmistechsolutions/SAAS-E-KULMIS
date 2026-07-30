@@ -27,6 +27,7 @@ import {
 import { DocumentsTab } from "@/components/library/documents-tab";
 
 function StatCard({ label, value, icon: Icon }: { label: string; value: number; icon: typeof BookOpen }) {
+  const t = useT();
   return (
     <div className="rounded-xl border bg-card p-4">
       <div className="flex items-center gap-2 text-sm text-muted-foreground">

@@ -1,5 +1,5 @@
 
-import { useT } from "@/lib/i18n/provider";
+import { useT, type TranslationKey } from "@/lib/i18n/provider";
 import type { LucideIcon } from "lucide-react";
 import {
   ArrowRight,
@@ -18,7 +18,7 @@ import type { FeeDashboardSummary } from "@/lib/fees/types";
 
 const CARDS: {
   key: keyof FeeDashboardSummary;
-  label: string;
+  label: TranslationKey;
   icon: LucideIcon;
   chip: string;
   value: string;
@@ -26,7 +26,7 @@ const CARDS: {
 }[] = [
   {
     key: "totalOutstanding",
-    label: "Total Outstanding",
+    label: "feesSummaryCards.totalOutstanding",
     icon: CircleDollarSign,
     chip: "bg-rose-100 text-rose-600 dark:bg-rose-500/15",
     value: "text-rose-600 dark:text-rose-400",
@@ -34,7 +34,7 @@ const CARDS: {
   },
   {
     key: "outstandingThisMonth",
-    label: "Outstanding This Month",
+    label: "feesSummaryCards.outstandingThisMonth",
     icon: ClipboardList,
     chip: "bg-orange-100 text-orange-600 dark:bg-orange-500/15",
     value: "text-orange-600 dark:text-orange-400",
@@ -42,7 +42,7 @@ const CARDS: {
   },
   {
     key: "collectedToday",
-    label: "Fee Collected Today",
+    label: "feesSummaryCards.feeCollectedToday",
     icon: Banknote,
     chip: "bg-emerald-100 text-emerald-600 dark:bg-emerald-500/15",
     value: "text-emerald-600 dark:text-emerald-400",
@@ -50,7 +50,7 @@ const CARDS: {
   },
   {
     key: "collectedThisMonth",
-    label: "Fee Collected This Month",
+    label: "feesSummaryCards.feeCollectedThisMonth",
     icon: TrendingUp,
     chip: "bg-blue-100 text-blue-600 dark:bg-blue-500/15",
     value: "text-blue-600 dark:text-blue-400",
@@ -58,7 +58,7 @@ const CARDS: {
   },
   {
     key: "collectionPercentage",
-    label: "Collection Percentage",
+    label: "feesSummaryCards.collectionPercentage",
     icon: PieChart,
     chip: "bg-violet-100 text-violet-600 dark:bg-violet-500/15",
     value: "text-violet-600 dark:text-violet-400",
@@ -66,7 +66,7 @@ const CARDS: {
   },
   {
     key: "fullyPaidStudents",
-    label: "Total Fully Paid Students",
+    label: "feesSummaryCards.totalFullyPaidStudents",
     icon: UserCheck,
     chip: "bg-green-100 text-green-600 dark:bg-green-500/15",
     value: "text-green-600 dark:text-green-400",
@@ -74,7 +74,7 @@ const CARDS: {
   },
   {
     key: "partialPayments",
-    label: "Total Partial Payments",
+    label: "feesSummaryCards.totalPartialPayments",
     icon: PieChart,
     chip: "bg-amber-100 text-amber-600 dark:bg-amber-500/15",
     value: "text-amber-600 dark:text-amber-400",
@@ -82,7 +82,7 @@ const CARDS: {
   },
   {
     key: "advancePayments",
-    label: "Total Advance Payments",
+    label: "feesSummaryCards.totalAdvancePayments",
     icon: ArrowUpRight,
     chip: "bg-purple-100 text-purple-600 dark:bg-purple-500/15",
     value: "text-purple-600 dark:text-purple-400",
@@ -90,7 +90,7 @@ const CARDS: {
   },
   {
     key: "expectedMonthlyIncome",
-    label: "Expected Monthly Income",
+    label: "feesSummaryCards.expectedMonthlyIncome",
     icon: Wallet,
     chip: "bg-sky-100 text-sky-600 dark:bg-sky-500/15",
     value: "text-sky-600 dark:text-sky-400",
@@ -98,7 +98,7 @@ const CARDS: {
   },
   {
     key: "netFeeCollection",
-    label: "Net Fee Collection",
+    label: "feesSummaryCards.netFeeCollection",
     icon: CircleDollarSign,
     chip: "bg-emerald-100 text-emerald-600 dark:bg-emerald-500/15",
     value: "text-emerald-600 dark:text-emerald-400",
@@ -125,7 +125,7 @@ export function FeeSummaryCards({ summary }: { summary: FeeDashboardSummary }) {
               <c.icon className="h-5 w-5" />
             </span>
             <p className="text-xs font-medium leading-tight text-muted-foreground">
-              {c.label}
+              {t(c.label)}
             </p>
           </div>
           <p

@@ -77,6 +77,7 @@ function SchoolHeader({
   schoolName: string;
   logoUrl: string | null;
 }) {
+  const t = useT();
   const tr = useT();
   return (
     <div className="flex items-center gap-3">

@@ -71,6 +71,7 @@ function emptyForm(): FormState {
 }
 
 export default function ExtraFeesPage() {
+  const t = useT();
   const tr = useT();
   const academics = useAcademicsState();
   const year = activeAcademicYear();

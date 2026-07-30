@@ -46,12 +46,12 @@ export default function ParentFeesPage() {
         <>
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             {[
-              { label: "Monthly Fee", value: money(fees.monthlyFee) },
-              { label: "Outstanding", value: money(fees.outstanding) },
-              { label: "Paid Months", value: String(fees.paidMonths) },
-              { label: "Partial Payments", value: String(fees.partialMonths) },
-              { label: "Advance Months", value: String(fees.advanceMonths) },
-              { label: "Carry Forward", value: money(fees.carryForward) },
+              { label: t("parentPortalFees.monthlyFee"), value: money(fees.monthlyFee) },
+              { label: t("parentPortalFees.outstanding"), value: money(fees.outstanding) },
+              { label: t("parentPortalFees.paidMonths"), value: String(fees.paidMonths) },
+              { label: t("parentPortalFees.partialPayments"), value: String(fees.partialMonths) },
+              { label: t("parentPortalFees.advanceMonths"), value: String(fees.advanceMonths) },
+              { label: t("parentPortalFees.carryForward"), value: money(fees.carryForward) },
             ].map((c) => (
               <div key={c.label} className="rounded-xl border bg-card p-4">
                 <p className="text-xs text-muted-foreground">{c.label}</p>

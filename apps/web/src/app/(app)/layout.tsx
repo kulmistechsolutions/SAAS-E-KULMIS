@@ -1,7 +1,7 @@
 "use client";
 
 
-import { useT } from "@/lib/i18n/provider";
+import { useT, type TranslationKey } from "@/lib/i18n/provider";
 import { useEffect, useState, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth";
@@ -19,18 +19,19 @@ import {
   landingRouteForRole,
 } from "@/lib/rbac/routes";
 
-const ROLE_LABEL: Record<string, string> = {
-  SUPER_ADMINISTRATOR: "Super Administrator",
-  ADMINISTRATOR: "Administrator",
-  ACADEMIC_MANAGER: "Academic Manager",
-  FINANCE_OFFICER: "Finance Officer",
-  ATTENDANCE_OFFICER: "Attendance Officer",
-  EXAM_MANAGER: "Exam Manager",
-  RECEPTION_OFFICER: "Reception Officer",
-  LIBRARIAN: "Librarian",
-  TEACHER: "Teacher",
-  PARENT: "Parent",
-  STUDENT: "Student",
+/** Dictionary keys, not finished text — the topbar shows this to the user. */
+const ROLE_LABEL: Record<string, TranslationKey> = {
+  SUPER_ADMINISTRATOR: "layout.roleSuperAdministrator",
+  ADMINISTRATOR: "layout.roleAdministrator",
+  ACADEMIC_MANAGER: "layout.roleAcademicManager",
+  FINANCE_OFFICER: "layout.roleFinanceOfficer",
+  ATTENDANCE_OFFICER: "layout.roleAttendanceOfficer",
+  EXAM_MANAGER: "layout.roleExamManager",
+  RECEPTION_OFFICER: "layout.roleReceptionOfficer",
+  LIBRARIAN: "layout.roleLibrarian",
+  TEACHER: "layout.roleTeacher",
+  PARENT: "layout.roleParent",
+  STUDENT: "layout.roleStudent",
 };
 
 export default function AppLayout({ children }: { children: ReactNode }) {
@@ -111,7 +112,8 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     !isFullAccessRole(user.role) &&
     !isRouteAllowedForRole(user.role, pathname);
 
-  const roleLabel = ROLE_LABEL[user.role] ?? user.role;
+  const roleKey = ROLE_LABEL[user.role];
+  const roleLabel = roleKey ? t(roleKey) : user.role;
   const sidebarWidth = collapsed ? "w-20" : "w-64";
 
   return (

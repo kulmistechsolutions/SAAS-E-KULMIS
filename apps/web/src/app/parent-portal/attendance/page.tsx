@@ -90,11 +90,11 @@ export default function ParentAttendancePage() {
       {att && (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {[
-            { label: "Present", value: att.present, tone: "success" as const },
-            { label: "Absent", value: att.absent, tone: "danger" as const },
-            { label: "Late", value: att.late, tone: "warning" as const },
+            { label: t("parentPortalAttendance.present"), value: att.present, tone: "success" as const },
+            { label: t("parentPortalAttendance.absent"), value: att.absent, tone: "danger" as const },
+            { label: t("parentPortalAttendance.late"), value: att.late, tone: "warning" as const },
             {
-              label: "Rate",
+              label: t("parentPortalAttendance.rate"),
               value: `${att.percentage}%`,
               tone: "info" as const,
             },
