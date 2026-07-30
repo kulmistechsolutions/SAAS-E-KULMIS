@@ -29,3 +29,14 @@ export const promoteSchoolWideSchema = z.object({
 });
 
 export type PromoteSchoolWideInput = z.infer<typeof promoteSchoolWideSchema>;
+
+/**
+ * Hold a student back. What they repeat follows the school's repeatScope —
+ * the class they failed, or the whole stage — so the caller does not choose.
+ */
+export const retainStudentSchema = z.object({
+  studentId: z.string().min(1),
+  academicYearId: z.string().min(1),
+});
+
+export type RetainStudentInput = z.infer<typeof retainStudentSchema>;

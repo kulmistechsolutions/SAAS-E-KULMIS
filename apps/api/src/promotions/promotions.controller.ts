@@ -1,5 +1,6 @@
 import { BadRequestException, Body, Controller, Get, Post, Query } from "@nestjs/common";
-import { promoteClassSchema, promoteSchoolWideSchema, promoteStudentSchema, UserRole } from "@ekulmis/shared";
+import { promoteClassSchema, promoteSchoolWideSchema,
+  retainStudentSchema, promoteStudentSchema, UserRole } from "@ekulmis/shared";
 import { PromotionsService } from "./promotions.service";
 import { Roles } from "../auth/roles.decorator";
 import { CurrentUser } from "../auth/current-user.decorator";
@@ -47,5 +48,15 @@ export class PromotionsController {
     const parsed = promoteSchoolWideSchema.safeParse(body);
     if (!parsed.success) throw new BadRequestException(parsed.error.flatten());
     return this.promotions.promoteSchoolWide(me.schoolId, parsed.data, me.userId);
+  }
+
+  /// Hold a student back. The school's repeatScope decides whether they redo
+  /// just this class or the whole stage, so there is nothing to pass.
+  @Roles(UserRole.ADMINISTRATOR)
+  @Post("retain")
+  retainStudent(@CurrentUser() me: AuthUser, @Body() body: unknown) {
+    const parsed = retainStudentSchema.safeParse(body);
+    if (!parsed.success) throw new BadRequestException(parsed.error.flatten());
+    return this.promotions.retainStudent(me.schoolId, parsed.data, me.userId);
   }
 }
