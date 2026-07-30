@@ -1,4 +1,6 @@
 import { Module } from "@nestjs/common";
+import { AcademicStructureController } from "./academic-structure.controller";
+import { AcademicStructureService } from "./academic-structure.service";
 import { AcademicYearController } from "./academic-year.controller";
 import { AcademicYearService } from "./academic-year.service";
 import { ClassController } from "./class.controller";
@@ -11,7 +13,12 @@ import { SectionService } from "./section.service";
 import { SubjectController } from "./subject.controller";
 import { SubjectService } from "./subject.service";
 
-/** Phase 2 — Academic structure: AcademicYear → Class → Section, and Subjects. */
+/**
+ * Phase 2 — Academic structure: AcademicYear → Class → Section, and Subjects.
+ *
+ * AcademicStructure adds the optional Level and Stage tiers a school can put
+ * above its classes when the default Grade 1–12 ladder does not fit.
+ */
 @Module({
   controllers: [
     AcademicYearController,
@@ -19,6 +26,7 @@ import { SubjectService } from "./subject.service";
     SectionController,
     SubjectController,
     ClassSubjectController,
+    AcademicStructureController,
   ],
   providers: [
     AcademicYearService,
@@ -27,6 +35,7 @@ import { SubjectService } from "./subject.service";
     SectionService,
     SubjectService,
     ClassSubjectService,
+    AcademicStructureService,
   ],
   exports: [
     AcademicYearService,
@@ -35,6 +44,7 @@ import { SubjectService } from "./subject.service";
     SectionService,
     SubjectService,
     ClassSubjectService,
+    AcademicStructureService,
   ],
 })
 export class AcademicsModule {}

@@ -37,6 +37,10 @@ export const createClassSchema = z.object({
   hasSections: z.boolean().optional(),
   notes: z.string().nullable().optional(),
   status: entityStatusSchema.optional(),
+  /// Both null on the default Grade 1–12 ladder. Set only when the school
+  /// runs a custom structure; a stage is optional even then.
+  levelId: z.string().min(1).nullable().optional(),
+  stageId: z.string().min(1).nullable().optional(),
 });
 export type CreateClassInput = z.infer<typeof createClassSchema>;
 
@@ -47,6 +51,8 @@ export const updateClassSchema = z
     hasSections: z.boolean().optional(),
     notes: z.string().nullable().optional(),
     status: entityStatusSchema.optional(),
+    levelId: z.string().min(1).nullable().optional(),
+    stageId: z.string().min(1).nullable().optional(),
   })
   .refine((o) => Object.keys(o).length > 0, { message: "Nothing to update" });
 export type UpdateClassInput = z.infer<typeof updateClassSchema>;
@@ -92,3 +98,76 @@ export const createClassSubjectSchema = z.object({
   subjectId: z.string().min(1),
 });
 export type CreateClassSubjectInput = z.infer<typeof createClassSubjectSchema>;
+
+// ── Custom academic structure ──
+// Two optional tiers above Class, so a school can build its own ladder
+// (الإبتدائي → المستوى الأول → الفصل الخامس) instead of Grade 1–12. Both are
+// opt-in; a school on the default ladder never creates any of these.
+
+export const repeatScopeSchema = z.enum(["CLASS", "STAGE"]);
+export type RepeatScopeValue = z.infer<typeof repeatScopeSchema>;
+
+export const createAcademicLevelSchema = z.object({
+  academicYearId: z.string().min(1),
+  name: academicNameSchema,
+  orderIndex: z.number().int().optional(),
+  status: entityStatusSchema.optional(),
+});
+export type CreateAcademicLevelInput = z.infer<typeof createAcademicLevelSchema>;
+
+export const updateAcademicLevelSchema = z
+  .object({
+    name: academicNameSchema.optional(),
+    orderIndex: z.number().int().optional(),
+    status: entityStatusSchema.optional(),
+  })
+  .refine((o) => Object.keys(o).length > 0, { message: "Nothing to update" });
+export type UpdateAcademicLevelInput = z.infer<typeof updateAcademicLevelSchema>;
+
+export const createAcademicStageSchema = z.object({
+  levelId: z.string().min(1),
+  name: academicNameSchema,
+  orderIndex: z.number().int().optional(),
+  status: entityStatusSchema.optional(),
+});
+export type CreateAcademicStageInput = z.infer<typeof createAcademicStageSchema>;
+
+export const updateAcademicStageSchema = z
+  .object({
+    name: academicNameSchema.optional(),
+    orderIndex: z.number().int().optional(),
+    status: entityStatusSchema.optional(),
+  })
+  .refine((o) => Object.keys(o).length > 0, { message: "Nothing to update" });
+export type UpdateAcademicStageInput = z.infer<typeof updateAcademicStageSchema>;
+
+/// Ids in the order they should appear. Position becomes orderIndex, which is
+/// what promotion walks, so this is how a school rewrites its promotion path.
+export const reorderSchema = z.object({
+  ids: z.array(z.string().min(1)).min(1),
+});
+export type ReorderInput = z.infer<typeof reorderSchema>;
+
+export const academicStructureSettingsSchema = z
+  .object({
+    customStructureEnabled: z.boolean().optional(),
+    /// How many classes a student passes through in one academic year: 1 is
+    /// the classic yearly promotion, 2 the two-semester Arabic model.
+    termsPerYear: z.number().int().min(1).max(6).optional(),
+    repeatScope: repeatScopeSchema.optional(),
+  })
+  .refine((o) => Object.keys(o).length > 0, { message: "Nothing to update" });
+export type AcademicStructureSettingsInput = z.infer<
+  typeof academicStructureSettingsSchema
+>;
+
+/// Copy a whole ladder into another year, so a school defines it once rather
+/// than rebuilding fourteen classes every August.
+export const cloneAcademicStructureSchema = z.object({
+  fromAcademicYearId: z.string().min(1),
+  toAcademicYearId: z.string().min(1),
+  includeSections: z.boolean().optional(),
+});
+export type CloneAcademicStructureInput = z.infer<
+  typeof cloneAcademicStructureSchema
+>;

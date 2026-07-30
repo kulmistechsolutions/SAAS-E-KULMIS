@@ -40,6 +40,10 @@ export class ClassService {
             hasSections: dto.hasSections ?? false,
             notes: dto.notes ?? null,
             status: dto.status ?? "ACTIVE",
+            // Null on the default Grade 1–12 ladder; set only by a school
+            // running its own structure.
+            levelId: dto.levelId ?? null,
+            stageId: dto.stageId ?? null,
           },
         }),
       )
@@ -99,6 +103,10 @@ export class ClassService {
             hasSections: dto.hasSections,
             notes: dto.notes,
             status: dto.status,
+            // Undefined leaves the tier alone; null deliberately detaches the
+            // class, which is how a school ungroups one.
+            levelId: dto.levelId,
+            stageId: dto.stageId,
           },
         }),
       )

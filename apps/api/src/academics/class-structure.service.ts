@@ -26,7 +26,15 @@ type Tx = Prisma.TransactionClient;
 export class ClassStructureService {
   constructor(private readonly prisma: PrismaService) {}
 
-  /** Ensure exactly 12 default grade slots exist; dedupe first. */
+  /**
+   * Ensure exactly 12 default grade slots exist; dedupe first.
+   *
+   * Only for schools on the default ladder. A school running its own structure
+   * may have any number of classes under any names, so provisioning Grade 1–12
+   * would litter its year and — worse — the excess trim would delete the
+   * thirteenth and fourteenth rungs of a longer Arabic ladder. Deduplication is
+   * still safe there, since it only merges classes that share a name.
+   */
   async repairAcademicYear(
     schoolId: string,
     academicYearId: string,
@@ -41,8 +49,20 @@ export class ClassStructureService {
       throw new NotFoundException("Academic year not found");
     }
 
+    const custom = await this.usesCustomStructure(schoolId);
+
     return this.prisma.forTenant(schoolId, async (tx) => {
       const dedupe = await this.deduplicateClassesInTx(tx, schoolId, academicYearId);
+      if (custom) {
+        return {
+          academicYearId,
+          classesCreated: 0,
+          classesMerged: dedupe.classesMerged,
+          sectionsMerged: dedupe.sectionsMerged,
+          excessClassesRemoved: 0,
+        };
+      }
+
       const ensure = await this.ensureDefaultClassesInTx(tx, schoolId, academicYearId);
       const trim = await this.removeExcessClassesInTx(tx, schoolId, academicYearId);
 
@@ -54,6 +74,17 @@ export class ClassStructureService {
         excessClassesRemoved: trim.removed,
       };
     });
+  }
+
+  /** Whether this school has opted out of the fixed Grade 1–12 ladder. */
+  private async usesCustomStructure(schoolId: string): Promise<boolean> {
+    const school = await this.prisma.forTenant(schoolId, (tx) =>
+      tx.school.findFirst({
+        where: { id: schoolId },
+        select: { customStructureEnabled: true },
+      }),
+    );
+    return school?.customStructureEnabled ?? false;
   }
 
   async repairAllYears(schoolId: string): Promise<ClassStructureRepairResult[]> {
@@ -74,6 +105,7 @@ export class ClassStructureService {
   ): Promise<void> {
     const normalized = normalizeAcademicName(name);
     const key = academicNameKey(normalized);
+    const custom = await this.usesCustomStructure(schoolId);
 
     await this.prisma.forTenant(schoolId, async (tx) => {
       const existing = await tx.class.findMany({
@@ -89,7 +121,10 @@ export class ClassStructureService {
         );
       }
 
-      if (existing.length >= DEFAULT_GRADE_COUNT) {
+      // The twelve-class ceiling belongs to the default ladder. A school that
+      // defines its own structure sets its own length — the Arabic example
+      // that prompted this runs fourteen classes.
+      if (!custom && existing.length >= DEFAULT_GRADE_COUNT) {
         throw new ConflictException(
           `This academic year already has ${DEFAULT_GRADE_COUNT} classes. Rename an existing class instead of creating a new one.`,
         );
