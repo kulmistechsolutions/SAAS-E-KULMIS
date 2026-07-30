@@ -87,6 +87,18 @@ model School {
   feeCarryForward      Boolean     @default(true)
   feeMonthSetupDay     Int         @default(25)
 
+  // ── Custom academic structure ──
+  /// Off by default, so a school keeps the plain Grade 1–12 ladder and sees no
+  /// change. Turning it on reveals the Level and Stage layers and lets the
+  /// school name and order its own classes.
+  customStructureEnabled Boolean     @default(false)
+  /// How many classes a student passes through in one academic year. 1 is the
+  /// classic yearly promotion; 2 is the Arabic two-semester model where a
+  /// student moves الفصل الأول → الفصل الثاني inside the same year.
+  termsPerYear           Int         @default(1)
+  /// What a student who fails repeats — just that class, or the whole stage.
+  repeatScope            RepeatScope @default(CLASS)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -165,6 +177,7 @@ model AcademicYear {
 
   school        School                  @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   classes       Class[]
+  levels        AcademicLevel[]
   assignments   TeacherAssignment[]
   classSubjects ClassSubject[]
   examGroups    ExamGroup[]
@@ -181,6 +194,65 @@ model AcademicYear {
   @@unique([schoolId, name])
   @@index([schoolId])
   @@map("academic_years")
+}
+
+/// What a failing student repeats under a custom academic structure.
+enum RepeatScope {
+  /// Only the class they failed; they rejoin the next intake.
+  CLASS
+  /// Every class in the stage, so both semesters are taken again.
+  STAGE
+}
+
+/// Optional top tier of a custom structure — الإبتدائي, الإعدادي, الثانوي.
+///
+/// Nullable from Class, so a school on the default Grade 1–12 ladder has no
+/// levels at all and nothing about its classes changes. Scoped to an academic
+/// year like Class is, which is what keeps last year's structure intact for
+/// reporting after the school reorganises.
+model AcademicLevel {
+  id             String       @id @default(cuid())
+  schoolId       String
+  academicYearId String
+  name           String
+  /// Position in the promotion ladder — الإبتدائي before الإعدادي.
+  orderIndex     Int          @default(0)
+  status         EntityStatus @default(ACTIVE)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  academicYear AcademicYear    @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
+  stages       AcademicStage[]
+  classes      Class[]
+
+  @@unique([schoolId, academicYearId, name])
+  @@index([schoolId])
+  @@index([academicYearId])
+  @@map("academic_levels")
+}
+
+/// Optional middle tier — المستوى الأول, المستوى الثاني.
+///
+/// Groups the classes a student passes through in one year, which is what the
+/// two-semester schools show as a single "Main Level" row. Optional because the
+/// same school often leaves its early classes ungrouped.
+model AcademicStage {
+  id         String       @id @default(cuid())
+  schoolId   String
+  levelId    String
+  name       String
+  orderIndex Int          @default(0)
+  status     EntityStatus @default(ACTIVE)
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+
+  level   AcademicLevel @relation(fields: [levelId], references: [id], onDelete: Cascade)
+  classes Class[]
+
+  @@unique([schoolId, levelId, name])
+  @@index([schoolId])
+  @@index([levelId])
+  @@map("academic_stages")
 }
 
 /// A grade within an academic year. Has many independent Sections.
@@ -212,6 +284,12 @@ model Class {
   /// Which part of the day this class attends. A section may override it.
   shift            SchoolShift?            @relation(fields: [shiftId], references: [id], onDelete: SetNull)
   shiftId          String?
+  /// Both null on the default Grade 1–12 ladder. A custom structure hangs the
+  /// class off a level, and optionally off a stage within it.
+  level            AcademicLevel?          @relation(fields: [levelId], references: [id], onDelete: SetNull)
+  levelId          String?
+  stage            AcademicStage?          @relation(fields: [stageId], references: [id], onDelete: SetNull)
+  stageId          String?
 
   @@unique([schoolId, academicYearId, name])
   @@index([schoolId])
