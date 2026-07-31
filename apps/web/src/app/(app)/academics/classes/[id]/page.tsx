@@ -44,7 +44,8 @@ import { getExaminationsState } from "@/lib/examinations/store";
 import type { Section, Subject } from "@/lib/academics/types";
 import { toast } from "@/lib/toast";
 
-const TABS = [
+/** Keys, not finished text — the shared `Tabs` component renders `label` as-is, so the render site wraps each one in tr(). */
+const TAB_KEYS: { id: string; label: TranslationKey; icon: React.ReactNode }[] = [
   { id: "general", label: "academicsClasses.general", icon: <Info className="h-4 w-4" /> },
   { id: "sections", label: "academicsClasses.sections", icon: <Layers className="h-4 w-4" /> },
   { id: "students", label: "academicsClasses.students", icon: <Users className="h-4 w-4" /> },
@@ -188,7 +189,12 @@ export default function ClassProfilePage() {
       </div>
 
       <div className="rounded-2xl border bg-card shadow-sm">
-        <Tabs tabs={TABS} active={tab} onChange={setTab} className="px-4" />
+        <Tabs
+          tabs={TAB_KEYS.map((tk) => ({ ...tk, label: tr(tk.label) }))}
+          active={tab}
+          onChange={setTab}
+          className="px-4"
+        />
         <div className="p-5">
           {tab === "general" && (
             <dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

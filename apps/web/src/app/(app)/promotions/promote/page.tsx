@@ -32,7 +32,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "@/lib/toast";
 import type { PromotionType } from "@/lib/promotions/types";
 
-const TYPES: { id: PromotionType; label: string; desc: string; icon: typeof User }[] = [
+const TYPES: { id: PromotionType; label: TranslationKey; desc: string; icon: typeof User }[] = [
   { id: "INDIVIDUAL", label: "promotionsPromote.individual", desc: "Promote a single student", icon: User },
   { id: "CLASS", label: "promotionsPromote.class", desc: "Promote all eligible students in a class", icon: Users },
   { id: "SCHOOL_WIDE", label: "promotionsPromote.schoolWide", desc: "Promote every eligible class at once", icon: School },
@@ -194,21 +194,21 @@ export default function PromotePage() {
 
       {step === 1 && (
         <div className="grid gap-4 sm:grid-cols-3">
-          {TYPES.map((t) => (
+          {TYPES.map((pt) => (
             <button
-              key={t.id}
-              onClick={() => setType(t.id)}
+              key={pt.id}
+              onClick={() => setType(pt.id)}
               className={cn(
                 "flex flex-col items-start gap-3 rounded-2xl border bg-card p-5 text-start shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md",
-                type === t.id && "border-primary ring-2 ring-primary/20",
+                type === pt.id && "border-primary ring-2 ring-primary/20",
               )}
             >
-              <span className={cn("flex h-11 w-11 items-center justify-center rounded-xl", type === t.id ? "bg-primary text-primary-foreground" : "bg-primary/10 text-primary")}>
-                <t.icon className="h-5 w-5" />
+              <span className={cn("flex h-11 w-11 items-center justify-center rounded-xl", type === pt.id ? "bg-primary text-primary-foreground" : "bg-primary/10 text-primary")}>
+                <pt.icon className="h-5 w-5" />
               </span>
               <div>
-                <p className="font-semibold">{t.label}</p>
-                <p className="text-xs text-muted-foreground">{t.desc}</p>
+                <p className="font-semibold">{tr(pt.label)}</p>
+                <p className="text-xs text-muted-foreground">{pt.desc}</p>
               </div>
             </button>
           ))}

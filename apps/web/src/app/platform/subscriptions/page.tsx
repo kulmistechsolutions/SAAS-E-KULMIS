@@ -44,7 +44,8 @@ import {
   type PlatformSubscriptionPlan,
 } from "@/lib/platform/api";
 
-const TABS = [
+/** Keys, not finished text — the `Tabs` component just renders `label` as-is, so the render site below wraps each one in t(). */
+const TAB_KEYS: { id: string; label: TranslationKey }[] = [
   { id: "overview", label: "platformSubscriptions.overview" },
   { id: "plans", label: "platformSubscriptions.plans" },
   { id: "schools", label: "platformSubscriptions.schools" },
@@ -306,7 +307,7 @@ export default function PlatformSubscriptionsPage() {
       </div>
 
       <Tabs
-        tabs={TABS}
+        tabs={TAB_KEYS.map((tk) => ({ id: tk.id, label: t(tk.label) }))}
         active={tab}
         onChange={setTab}
         className="border-white/10 text-slate-400"
