@@ -1,17 +1,19 @@
-const MONTH_NAMES = [
-  "January",
-  "February",
-  "March",
-  "April",
-  "May",
-  "June",
-  "July",
-  "August",
-  "September",
-  "October",
-  "November",
-  "December",
-] as const;
+import { getStoredLang, translateIn } from "@/lib/i18n/provider";
+
+const MONTH_KEYS = [
+  "feesFormat.month1",
+  "feesFormat.month2",
+  "feesFormat.month3",
+  "feesFormat.month4",
+  "feesFormat.month5",
+  "feesFormat.month6",
+  "feesFormat.month7",
+  "feesFormat.month8",
+  "feesFormat.month9",
+  "feesFormat.month10",
+  "feesFormat.month11",
+  "feesFormat.month12",
+] as const satisfies readonly Parameters<typeof translateIn>[1][];
 
 export const money = (n: number) =>
   `$${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -29,12 +31,12 @@ export function parseMonthKey(key: string): { year: number; month: number } {
 
 export function monthLabel(key: string): string {
   const { year, month } = parseMonthKey(key);
-  return `${MONTH_NAMES[month - 1]} - ${year}`;
+  return `${translateIn(getStoredLang(), MONTH_KEYS[month - 1]!)} - ${year}`;
 }
 
 export function shortMonthLabel(key: string): string {
   const { year, month } = parseMonthKey(key);
-  return `${MONTH_NAMES[month - 1].slice(0, 3)} ${year}`;
+  return `${translateIn(getStoredLang(), MONTH_KEYS[month - 1]!).slice(0, 3)} ${year}`;
 }
 
 export function nextMonthKey(key: string): string {
@@ -61,9 +63,10 @@ export function monthsBetween(from: string, to: string): string[] {
 }
 
 export function paymentTypeLabel(t: string, advanceMonths?: number): string {
-  if (t === "THIS_MONTH") return "This Month";
-  if (t === "PARTIAL") return "Partial Payment";
-  if (t === "ADVANCE") return `Advance (${advanceMonths ?? 1} Month${(advanceMonths ?? 1) > 1 ? "s" : ""})`;
+  const lang = getStoredLang();
+  if (t === "THIS_MONTH") return translateIn(lang, "feesFormat.thisMonth");
+  if (t === "PARTIAL") return translateIn(lang, "feesFormat.partialPayment");
+  if (t === "ADVANCE") return `${translateIn(lang, "feesFormat.advance")} (${advanceMonths ?? 1})`;
   return t;
 }
 
@@ -71,10 +74,14 @@ export function feeStatusLabel(
   status: string,
   advanceMonthsLeft?: number,
 ): string {
+  const lang = getStoredLang();
   if (status === "ADVANCE_MULTI" && advanceMonthsLeft)
-    return `Advance (${advanceMonthsLeft})`;
-  if (status === "ADVANCE") return "Advance";
-  if (status === "INACTIVE") return "Inactive";
+    return `${translateIn(lang, "feesFormat.advance")} (${advanceMonthsLeft})`;
+  if (status === "ADVANCE") return translateIn(lang, "feesFormat.advance");
+  if (status === "INACTIVE") return translateIn(lang, "feesFormat.inactive");
+  if (status === "PAID") return translateIn(lang, "feesFormat.paid");
+  if (status === "UNPAID") return translateIn(lang, "feesFormat.unpaid");
+  if (status === "PARTIAL") return translateIn(lang, "feesFormat.partial");
   return status.charAt(0) + status.slice(1).toLowerCase();
 }
 

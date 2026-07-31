@@ -13,6 +13,7 @@ import {
   LANG_COOKIE,
   LANG_COOKIE_MAX_AGE,
   dirOf,
+  toLang,
   type Lang,
 } from "./config";
 import {
@@ -67,6 +68,28 @@ function fill(text: string, vars?: Record<string, string | number>): string {
   return text.replace(/\{(\w+)\}/g, (whole, name: string) =>
     name in vars ? String(vars[name]) : whole,
   );
+}
+
+/**
+ * Reads the language cookie directly, for code that builds HTML outside
+ * React — the print/receipt generators open a new window and write markup
+ * by hand, so they have no component tree to pull useT() from.
+ */
+export function getStoredLang(): Lang {
+  if (typeof document === "undefined") return DEFAULT_LANG;
+  const match = document.cookie.match(new RegExp(`(?:^|; )${LANG_COOKIE}=([^;]+)`));
+  return toLang(match?.[1]);
+}
+
+/** translate()'s non-hook twin, for the same print/receipt generators. */
+export function translateIn(
+  lang: Lang,
+  key: TranslationKey,
+  vars?: Record<string, string | number>,
+): string {
+  const dict = DICTIONARIES[lang] ?? DICTIONARIES[DEFAULT_LANG];
+  const text = lookup(dict, key) ?? lookup(en, key) ?? key;
+  return fill(text, vars);
 }
 
 export function I18nProvider({

@@ -1,6 +1,6 @@
 import type { FeeChargeStatus } from "@/lib/fees/types";
 import { Badge } from "@/components/ui/badge";
-import { feeStatusLabel } from "@/lib/fees/format";
+import { feeStatusLabel, paymentTypeLabel } from "@/lib/fees/format";
 
 const TONE: Record<
   string,
@@ -41,11 +41,5 @@ export function PaymentTypeBadge({
       : type === "PARTIAL"
         ? "warning"
         : "info";
-  const label =
-    type === "THIS_MONTH"
-      ? "This Month"
-      : type === "PARTIAL"
-        ? "Partial Payment"
-        : `Advance (${advanceMonths ?? 1} Month${(advanceMonths ?? 1) > 1 ? "s" : ""})`;
-  return <Badge tone={tone}>{label}</Badge>;
+  return <Badge tone={tone}>{paymentTypeLabel(type, advanceMonths)}</Badge>;
 }

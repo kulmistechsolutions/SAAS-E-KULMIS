@@ -56,19 +56,18 @@ const STATUS_TONE: Record<StudentStatus, "success" | "muted" | "info"> = {
   GRADUATED: "info",
 };
 
-const ALL_TABS = [
-  { id: "personal", label: "Personal", icon: <User className="h-4 w-4" /> },
-  { id: "parent", label: "Parent", icon: <Users className="h-4 w-4" /> },
-  { id: "attendance", label: "Attendance", icon: <CalendarCheck className="h-4 w-4" /> },
-  { id: "fees", label: "Fees", icon: <Receipt className="h-4 w-4" /> },
-  { id: "exams", label: "Exams", icon: <FileText className="h-4 w-4" /> },
-  { id: "quizzes", label: "Quizzes", icon: <GraduationCap className="h-4 w-4" /> },
-  { id: "promotion", label: "Promotion", icon: <TrendingUp className="h-4 w-4" /> },
-];
-
-const TEACHER_TABS = ALL_TABS.filter(
-  (t) => t.id !== "fees" && t.id !== "promotion",
-);
+function buildTabs(tr: ReturnType<typeof useT>) {
+  const all = [
+    { id: "personal", label: tr("students.tabPersonal"), icon: <User className="h-4 w-4" /> },
+    { id: "parent", label: tr("students.tabParent"), icon: <Users className="h-4 w-4" /> },
+    { id: "attendance", label: tr("students.tabAttendance"), icon: <CalendarCheck className="h-4 w-4" /> },
+    { id: "fees", label: tr("students.tabFees"), icon: <Receipt className="h-4 w-4" /> },
+    { id: "exams", label: tr("students.tabExams"), icon: <FileText className="h-4 w-4" /> },
+    { id: "quizzes", label: tr("students.tabQuizzes"), icon: <GraduationCap className="h-4 w-4" /> },
+    { id: "promotion", label: tr("students.tabPromotion"), icon: <TrendingUp className="h-4 w-4" /> },
+  ];
+  return { all, teacher: all.filter((t) => t.id !== "fees" && t.id !== "promotion") };
+}
 
 export default function StudentProfilePage({
   params,
@@ -79,7 +78,8 @@ export default function StudentProfilePage({
   const { id } = use(params);
   const { user } = useAuth();
   const isTeacher = user?.role === "TEACHER";
-  const TABS = isTeacher ? TEACHER_TABS : ALL_TABS;
+  const { all: allTabs, teacher: teacherTabs } = buildTabs(tr);
+  const TABS = isTeacher ? teacherTabs : allTabs;
   const [mounted, setMounted] = useState(false);
   const [loading, setLoading] = useState(true);
   useEffect(() => setMounted(true), []);
@@ -119,7 +119,7 @@ export default function StudentProfilePage({
           className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
         >
           <ArrowLeft className="h-4 w-4" />{" "}
-          {isTeacher ? "Back to My Students" : "Back to Students"}
+          {isTeacher ? tr("students.backToMyStudents") : tr("students.backToStudents")}
         </Link>
         <div className="rounded-2xl border bg-card p-12 text-center text-muted-foreground">
           {tr("students.studentNotFoundItMayHave")}
@@ -135,7 +135,7 @@ export default function StudentProfilePage({
         className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
       >
         <ArrowLeft className="h-4 w-4" />{" "}
-        {isTeacher ? "Back to My Students" : "Back to Students"}
+        {isTeacher ? tr("students.backToMyStudents") : tr("students.backToStudents")}
       </Link>
 
       {/* Header card */}
@@ -161,7 +161,7 @@ export default function StudentProfilePage({
               <p className="mt-2 text-sm text-muted-foreground">
                 <span className="font-mono">{student.code}</span> ·{" "}
                 {student.className}
-                {student.section ? ` · Section ${student.section}` : ""} ·{" "}
+                {student.section ? ` · ${tr("students.section")} ${student.section}` : ""} ·{" "}
                 {genderLabel(student.gender)}
               </p>
               {student.hasPhoto || student.photoUrl ? (
@@ -241,8 +241,8 @@ function PersonalTab({ student }: { student: StudentWithParent }) {
           <p className="text-sm font-medium text-foreground">{tr("students.profilePhoto")}</p>
           <p className="mt-1 text-sm text-muted-foreground">
             {student.hasPhoto || student.photoUrl
-              ? "Photo on file. Click the image to open the full-size preview."
-              : "No photo uploaded. Use Edit to add an optional student photo."}
+              ? tr("students.photoOnFileClickToPreview")
+              : tr("students.noPhotoUploadedUseEditToAdd")}
           </p>
         </div>
       </div>
@@ -425,8 +425,8 @@ function FeesTab({ student }: { student: StudentWithParent }) {
               <p className="text-sm font-medium text-muted-foreground">{tr("students.academicProgress")}</p>
               <p className="mt-1 text-xs text-muted-foreground">
                 {summary.billingMode === "ACADEMIC_YEAR"
-                  ? "Academic Year Billing"
-                  : "Monthly Billing"}
+                  ? tr("students.academicYearBilling")
+                  : tr("students.monthlyBilling")}
               </p>
             </div>
             <div className="text-end text-sm">
@@ -600,7 +600,7 @@ function ExamsTab({ student }: { student: StudentWithParent }) {
                 <td className="px-4 py-2.5 font-semibold">{r.grade}</td>
                 <td className="px-4 py-2.5">
                   <Badge tone={r.passed ? "success" : "danger"}>
-                    {r.passed ? "Pass" : "Fail"}
+                    {r.passed ? tr("students.pass") : tr("students.fail")}
                   </Badge>
                 </td>
                 <td className="px-4 py-2.5 text-end">
@@ -618,7 +618,7 @@ function ExamsTab({ student }: { student: StudentWithParent }) {
             {rows.length === 0 && (
               <tr>
                 <td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">
-                  {loading ? "Loading results…" : "No published exam results yet."}
+                  {loading ? tr("students.loadingResults") : tr("students.noPublishedExamResultsYet")}
                 </td>
               </tr>
             )}
@@ -632,7 +632,7 @@ function ExamsTab({ student }: { student: StudentWithParent }) {
             {result.finalGrade} · {result.finalAverage.toFixed(1)}%
           </p>
           <Badge tone={result.passed ? "success" : "danger"} className="mt-2">
-            {result.passed ? "Pass" : "Fail"}
+            {result.passed ? tr("students.pass") : tr("students.fail")}
           </Badge>
         </div>
       )}
@@ -756,7 +756,7 @@ function PromotionTab({ student }: { student: StudentWithParent }) {
               <td className="px-4 py-2.5">{r.fromAcademicYear}</td>
               <td className="px-4 py-2.5">{r.fromClass}{r.fromSection ? ` (${r.fromSection})` : ""}</td>
               <td className="px-4 py-2.5">
-                {r.graduated ? "Graduated" : `${r.toClass}${r.toSection ? ` (${r.toSection})` : ""}`}
+                {r.graduated ? tr("students.graduated") : `${r.toClass}${r.toSection ? ` (${r.toSection})` : ""}`}
                 {r.rolledBackAt ? " — rolled back" : ""}
               </td>
               <td className="px-4 py-2.5 text-muted-foreground">{dateTime(r.promotedAt)}</td>

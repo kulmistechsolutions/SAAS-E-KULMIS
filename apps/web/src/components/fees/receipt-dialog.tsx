@@ -26,7 +26,7 @@ export function ReceiptDialog({ payment, onClose }: ReceiptDialogProps) {
     <Dialog
       open={!!payment}
       onClose={onClose}
-      title={`Receipt ${payment.receiptNo}`}
+      title={`${t("feesReceiptDialog.feeReceipt")} ${payment.receiptNo}`}
       className="max-w-lg"
       footer={
         <>

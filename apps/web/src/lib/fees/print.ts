@@ -3,6 +3,8 @@ import { getState as getStudentsState } from "@/lib/students/store";
 import { monthLabel, money, paymentTypeLabel, receiptDate } from "./format";
 import type { FeePayment } from "./types";
 import { outstandingBalance } from "./store";
+import { dirOf } from "@/lib/i18n/config";
+import { getStoredLang, translateIn } from "@/lib/i18n/provider";
 
 export function receiptHtml(payment: FeePayment): string {
   const school = schoolBranding();
@@ -17,8 +19,15 @@ export function receiptHtml(payment: FeePayment): string {
     : `<div class="logo">${school.name.slice(0, 2).toUpperCase()}</div>`;
   const centered = school.headerLayout === "CENTERED";
 
+  // Print windows have no React tree to pull useT() from — read the same
+  // language the rest of the app is showing straight off the cookie, so a
+  // printed receipt matches whatever language is active, not always English.
+  const lang = getStoredLang();
+  const dir = dirOf(lang);
+  const tr = (key: Parameters<typeof translateIn>[1]) => translateIn(lang, key);
+
   return `<!DOCTYPE html>
-<html><head><meta charset="utf-8"/><title>${payment.receiptNo}</title>
+<html lang="${lang}" dir="${dir}"><head><meta charset="utf-8"/><title>${payment.receiptNo}</title>
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
   body{font-family:system-ui,sans-serif;padding:40px;color:#0f172a;max-width:720px;margin:0 auto}
@@ -28,10 +37,10 @@ export function receiptHtml(payment: FeePayment): string {
   .logo{width:56px;height:56px;border-radius:12px;background:linear-gradient(135deg,#3b82f6,#6366f1);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:20px}
   h1{font-size:22px}
   .meta{color:#64748b;font-size:13px;margin-top:4px}
-  .receipt-no{text-align:right;font-size:14px;color:#64748b;margin-left:auto}
+  .receipt-no{text-align:end;font-size:14px;color:#64748b;margin-inline-start:auto}
   .receipt-no strong{display:block;font-size:20px;color:#0f172a}
   table{width:100%;border-collapse:collapse;margin:20px 0}
-  th,td{text-align:left;padding:10px 12px;border-bottom:1px solid #e2e8f0;font-size:14px}
+  th,td{text-align:start;padding:10px 12px;border-bottom:1px solid #e2e8f0;font-size:14px}
   th{width:40%;color:#64748b;font-weight:500}
   .amount{font-size:28px;font-weight:700;color:#16a34a;text-align:center;margin:24px 0}
   .foot{margin-top:32px;padding-top:16px;border-top:1px solid #e2e8f0;font-size:12px;color:#94a3b8;text-align:center}
@@ -41,22 +50,22 @@ export function receiptHtml(payment: FeePayment): string {
     ${logo}
     <div>
       <h1>${school.name}</h1>
-      ${receiptHeader ? `<div class="meta">${receiptHeader}</div>` : `<div class="meta">Fee Receipt</div>`}
+      ${receiptHeader ? `<div class="meta">${receiptHeader}</div>` : `<div class="meta">${tr("feesReceiptPrint.feeReceiptDefault")}</div>`}
     </div>
-    <div class="receipt-no">Receipt No.<strong>${payment.receiptNo}</strong></div>
+    <div class="receipt-no">${tr("feesReceiptPrint.receiptNo")}<strong>${payment.receiptNo}</strong></div>
   </div>
   <table>
-    <tr><th>Student Name</th><td>${student?.fullName ?? "—"}</td></tr>
-    <tr><th>Student ID</th><td>${student?.code ?? "—"}</td></tr>
-    <tr><th>Class / Section</th><td>${student?.className ?? "—"} — ${student?.section ?? "—"}</td></tr>
-    <tr><th>Payment Type</th><td>${paymentTypeLabel(payment.paymentType, payment.advanceMonths)}</td></tr>
-    <tr><th>Month(s)</th><td>${months || "—"}</td></tr>
-    <tr><th>Collected By</th><td>${payment.collectedBy}</td></tr>
-    <tr><th>Collection Date</th><td>${receiptDate(payment.collectedAt)}</td></tr>
-    <tr><th>Outstanding Balance</th><td>${money(outstanding)}</td></tr>
+    <tr><th>${tr("feesReceiptPrint.studentName")}</th><td>${student?.fullName ?? "—"}</td></tr>
+    <tr><th>${tr("feesReceiptPrint.studentId")}</th><td>${student?.code ?? "—"}</td></tr>
+    <tr><th>${tr("feesReceiptPrint.classSection")}</th><td>${student?.className ?? "—"} — ${student?.section ?? "—"}</td></tr>
+    <tr><th>${tr("feesReceiptPrint.paymentType")}</th><td>${paymentTypeLabel(payment.paymentType, payment.advanceMonths)}</td></tr>
+    <tr><th>${tr("feesReceiptPrint.monthS")}</th><td>${months || "—"}</td></tr>
+    <tr><th>${tr("feesReceiptPrint.collectedBy")}</th><td>${payment.collectedBy}</td></tr>
+    <tr><th>${tr("feesReceiptPrint.collectionDate")}</th><td>${receiptDate(payment.collectedAt)}</td></tr>
+    <tr><th>${tr("feesReceiptPrint.outstandingBalance")}</th><td>${money(outstanding)}</td></tr>
   </table>
-  <div class="amount">Amount Paid: ${money(payment.amount)}</div>
-  <div class="foot">${receiptFooter || "This is a computer-generated receipt. Thank you for your payment."}</div>
+  <div class="amount">${tr("feesReceiptPrint.amountPaid")} ${money(payment.amount)}</div>
+  <div class="foot">${receiptFooter || tr("feesReceiptPrint.defaultFooter")}</div>
 </body></html>`;
 }
 
