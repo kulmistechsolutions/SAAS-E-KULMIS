@@ -327,10 +327,22 @@ export function groupClassesByStructure<T>(
 ): ClassItemGroup<T>[] {
   const y = year ?? activeAcademicYear();
   const tree = ensure().structureTrees[y];
+
   // A school that turned the feature back off gets the flat default-ladder
   // dropdown, even if old levels/stages are still sitting in the database —
-  // "off" has to mean off, not "off until you look at a picker".
-  if (!ensure().customStructureEnabled || !tree || tree.levels.length === 0) {
+  // "off" has to mean off, not "off until you look at a picker". That means
+  // more than skipping the grouping: a class that was moved into a level
+  // while the feature was on has to disappear from the list entirely, or
+  // every picker still shows it mixed in with the plain Grade 1-12 names.
+  if (!ensure().customStructureEnabled) {
+    if (!tree || tree.levels.length === 0) return [{ label: null, items }];
+    const ungroupedNames = new Set(tree.ungrouped.map((c) => c.name));
+    return [
+      { label: null, items: items.filter((item) => ungroupedNames.has(nameOf(item))) },
+    ];
+  }
+
+  if (!tree || tree.levels.length === 0) {
     return [{ label: null, items }];
   }
 
@@ -380,6 +392,25 @@ export function isHiddenDefaultClass(className: string, year: string): boolean {
   const tree = ensure().structureTrees[year];
   if (!tree || tree.levels.length === 0) return false;
   return tree.ungrouped.some((c) => c.name === className);
+}
+
+/**
+ * The mirror of isHiddenDefaultClass: whether `className` is one of the
+ * school's own custom-structure classes (belongs to a level or stage) at a
+ * point where the school has turned the whole feature off. Nothing deletes
+ * those classes when the toggle goes off, so without this check an Excel
+ * import row (or any other name-based lookup) could still resolve one even
+ * though every picker in the UI has stopped offering it.
+ */
+export function isHiddenCustomClass(className: string, year: string): boolean {
+  if (ensure().customStructureEnabled) return false;
+  const tree = ensure().structureTrees[year];
+  if (!tree || tree.levels.length === 0) return false;
+  return tree.levels.some(
+    (level) =>
+      level.classes.some((c) => c.name === className) ||
+      level.stages.some((stage) => stage.classes.some((c) => c.name === className)),
+  );
 }
 
 /** The common case: grouping a plain list of class names for a <select>. */

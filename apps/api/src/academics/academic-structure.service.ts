@@ -52,14 +52,18 @@ export class AcademicStructureService {
         data: {
           ...(dto.customStructureEnabled !== undefined && {
             customStructureEnabled: dto.customStructureEnabled,
-            // Turning the feature off must also stop hiding the default
-            // ladder — otherwise a school that built a structure, hid the
-            // default Grades, then switched the whole thing back off keeps
-            // hideDefaultGrades sitting orphaned in the database, and any
-            // code that checks it without also checking
-            // customStructureEnabled goes on hiding Grade 1-12.
+            // Turning the feature off must also stop everything it turned
+            // on — otherwise a school that built a structure (multiple
+            // terms per year, stage-based repeats, hidden default Grades)
+            // then switched the whole thing back off keeps those settings
+            // sitting orphaned in the database. termsPerYear/repeatScope
+            // are meaningless without levels and stages to walk, and
+            // repeatScope: STAGE in particular drives retainStudent's
+            // hold-back logic regardless of whether the feature is on.
             ...(dto.customStructureEnabled === false && {
               hideDefaultGrades: false,
+              termsPerYear: 1,
+              repeatScope: "CLASS",
             }),
           }),
           ...(dto.termsPerYear !== undefined && {

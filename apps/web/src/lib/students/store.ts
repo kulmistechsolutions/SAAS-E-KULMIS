@@ -6,6 +6,7 @@ import { getCachedAuthUser } from "@/lib/auth";
 import {
   ensureAcademicsLoaded,
   getAcademicsState,
+  isHiddenCustomClass,
   isHiddenDefaultClass,
 } from "@/lib/academics/store";
 import { ensureVillagesLoaded, villageIdByName } from "@/lib/villages/store";
@@ -207,6 +208,11 @@ function resolveClassId(
   if (isHiddenDefaultClass(className, academicYear)) {
     return {
       error: `"${className}" is a default grade, but this school no longer uses default grades. Use one of your school's own classes instead.`,
+    };
+  }
+  if (isHiddenCustomClass(className, academicYear)) {
+    return {
+      error: `"${className}" belongs to a custom structure this school no longer uses. Use one of the default Grade classes instead.`,
     };
   }
   return { classId: cls.id };
