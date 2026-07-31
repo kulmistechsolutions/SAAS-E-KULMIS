@@ -214,5 +214,11 @@ export async function apiChangePassword(body: {
   currentPassword: string;
   newPassword: string;
 }): Promise<void> {
-  await api("/auth/change-password", { method: "POST", body });
+  // The backend requires confirmPassword too (it re-checks the match
+  // server-side rather than trusting the client) — the caller has already
+  // confirmed newPassword against its own confirm field.
+  await api("/auth/change-password", {
+    method: "POST",
+    body: { ...body, confirmPassword: body.newPassword },
+  });
 }

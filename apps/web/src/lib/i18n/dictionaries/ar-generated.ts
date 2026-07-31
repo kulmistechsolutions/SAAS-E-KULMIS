@@ -2989,6 +2989,12 @@ export const arGenerated: PartialDictionary = {
     requireUppercase: "يتطلب حرفًا كبيرًا",
     requireNumber: "يتطلب رقمًا",
     twoFactorAuthenticationFuture: "المصادقة الثنائية (لاحقًا)",
+    changeMyPassword: "تغيير كلمة المرور الخاصة بي",
+    changeMyPasswordHint: "قم بتحديث كلمة المرور التي تستخدمها لتسجيل الدخول إلى هذا الحساب.",
+    updatePassword: "تحديث كلمة المرور",
+    updating: "جارٍ التحديث…",
+    newPasswordMinLength: "يجب أن تتكون كلمة المرور الجديدة من 8 أحرف على الأقل",
+    changePasswordFailed: "تعذر تغيير كلمة المرور — تحقق من كلمة المرور الحالية",
   },
   settingsSettingsNav: {
     dashboard: "لوحة التحكم",

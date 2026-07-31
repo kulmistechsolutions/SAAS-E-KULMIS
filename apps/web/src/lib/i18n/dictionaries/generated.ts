@@ -2989,6 +2989,12 @@ export const generated = {
     requireUppercase: "Require Uppercase",
     requireNumber: "Require Number",
     twoFactorAuthenticationFuture: "Two-Factor Authentication (Future)",
+    changeMyPassword: "Change My Password",
+    changeMyPasswordHint: "Update the password you use to sign in to this account.",
+    updatePassword: "Update Password",
+    updating: "Updating…",
+    newPasswordMinLength: "New password must be at least 8 characters",
+    changePasswordFailed: "Could not change password — check your current password",
   },
   settingsSettingsNav: {
     dashboard: "Dashboard",

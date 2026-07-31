@@ -2989,6 +2989,12 @@ export const soGenerated: PartialDictionary = {
     requireUppercase: "U baahan xaraf weyn",
     requireNumber: "U baahan lambar",
     twoFactorAuthenticationFuture: "Xaqiijin Laba-Talaabo ah (Mustaqbalka)",
+    changeMyPassword: "Beddel Furahayga Sirta ah",
+    changeMyPasswordHint: "Cusbooneysii furaha sirta ah ee aad kugu gashid koontadan.",
+    updatePassword: "Cusbooneysii Furaha Sirta ah",
+    updating: "Waa la cusbooneysiinayaa…",
+    newPasswordMinLength: "Furaha sirta ah ee cusub waa inuu ugu yaraan ahaadaa 8 xaraf",
+    changePasswordFailed: "Furaha sirta ah looma bedeli karin — hubi furahaaga hadda jira",
   },
   settingsSettingsNav: {
     dashboard: "Shaxda Guud",

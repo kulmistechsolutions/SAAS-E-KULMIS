@@ -57,8 +57,8 @@ export default function TeacherProfilePage() {
   }
 
   async function changePassword() {
-    if (!newPassword || newPassword.length < 6) {
-      toast("New password must be at least 6 characters", "error");
+    if (!newPassword || newPassword.length < 8) {
+      toast("New password must be at least 8 characters", "error");
       return;
     }
     if (newPassword !== confirmPassword) {
