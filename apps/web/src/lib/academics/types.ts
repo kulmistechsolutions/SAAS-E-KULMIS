@@ -72,6 +72,12 @@ export interface AcademicsState {
   structureTrees: Record<string, StructureTree>;
   /** Whether to drop the default Grade 1-12 group entirely from class pickers. */
   hideDefaultGrades: boolean;
+  /** The school's own on/off switch for the whole feature. Structure data
+   *  (levels/stages/hideDefaultGrades) can still exist in the database after
+   *  a school turns this off — nothing is deleted — so every consumer of
+   *  that data must gate on this flag too, or a school that opts back out
+   *  keeps seeing its old structure's effects. */
+  customStructureEnabled: boolean;
 }
 
 export interface AcademicsDashboardSummary {

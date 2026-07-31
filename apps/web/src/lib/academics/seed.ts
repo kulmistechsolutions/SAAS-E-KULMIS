@@ -113,5 +113,6 @@ export function buildSeed(): AcademicsState {
     yearSeq: academicYears.length,
     structureTrees: {},
     hideDefaultGrades: false,
+    customStructureEnabled: false,
   };
 }

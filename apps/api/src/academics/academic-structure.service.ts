@@ -52,6 +52,15 @@ export class AcademicStructureService {
         data: {
           ...(dto.customStructureEnabled !== undefined && {
             customStructureEnabled: dto.customStructureEnabled,
+            // Turning the feature off must also stop hiding the default
+            // ladder — otherwise a school that built a structure, hid the
+            // default Grades, then switched the whole thing back off keeps
+            // hideDefaultGrades sitting orphaned in the database, and any
+            // code that checks it without also checking
+            // customStructureEnabled goes on hiding Grade 1-12.
+            ...(dto.customStructureEnabled === false && {
+              hideDefaultGrades: false,
+            }),
           }),
           ...(dto.termsPerYear !== undefined && {
             termsPerYear: dto.termsPerYear,

@@ -61,6 +61,7 @@ const EMPTY: AcademicsState = {
   yearSeq: 0,
   structureTrees: {},
   hideDefaultGrades: false,
+  customStructureEnabled: false,
 };
 
 let state: AcademicsState | null = null;
@@ -158,6 +159,7 @@ export async function refreshAcademics(): Promise<void> {
         years.map((y, i) => [y.name, structureTreesByYearId[i]!]),
       ),
       hideDefaultGrades: structureSettings?.hideDefaultGrades ?? false,
+      customStructureEnabled: structureSettings?.customStructureEnabled ?? false,
     };
     setState(mapped);
   } catch {
@@ -325,7 +327,10 @@ export function groupClassesByStructure<T>(
 ): ClassItemGroup<T>[] {
   const y = year ?? activeAcademicYear();
   const tree = ensure().structureTrees[y];
-  if (!tree || tree.levels.length === 0) {
+  // A school that turned the feature back off gets the flat default-ladder
+  // dropdown, even if old levels/stages are still sitting in the database —
+  // "off" has to mean off, not "off until you look at a picker".
+  if (!ensure().customStructureEnabled || !tree || tree.levels.length === 0) {
     return [{ label: null, items }];
   }
 
@@ -371,7 +376,7 @@ export function groupClassesByStructure<T>(
  * has declared it doesn't use that ladder anymore.
  */
 export function isHiddenDefaultClass(className: string, year: string): boolean {
-  if (!ensure().hideDefaultGrades) return false;
+  if (!ensure().customStructureEnabled || !ensure().hideDefaultGrades) return false;
   const tree = ensure().structureTrees[year];
   if (!tree || tree.levels.length === 0) return false;
   return tree.ungrouped.some((c) => c.name === className);
