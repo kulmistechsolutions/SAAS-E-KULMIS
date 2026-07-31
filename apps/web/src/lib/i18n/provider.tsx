@@ -4,6 +4,7 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useState,
   type ReactNode,
@@ -102,6 +103,20 @@ export function I18nProvider({
   // Seeded from the cookie the server already read, so the first client render
   // matches the HTML it is hydrating and no text flips after load.
   const [lang, setLangState] = useState<Lang>(initialLang);
+
+  // If the server had no cookie to read, it resolved initialLang from the
+  // school's own preferred language instead (see RootLayout). Persist that
+  // now so the choice sticks — otherwise every subsequent anonymous page load
+  // repeats the same server-side lookup instead of just reading the cookie.
+  // Never overwrites a cookie that's already there.
+  useEffect(() => {
+    if (!document.cookie.split("; ").some((c) => c.startsWith(`${LANG_COOKIE}=`))) {
+      document.cookie = `${LANG_COOKIE}=${initialLang}; path=/; max-age=${LANG_COOKIE_MAX_AGE}; samesite=lax`;
+    }
+    // Only ever needs to run once per mount — re-running on `lang` changes
+    // would fight setLang's own cookie write.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const setLang = useCallback((next: Lang) => {
     setLangState(next);
