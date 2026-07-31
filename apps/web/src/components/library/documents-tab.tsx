@@ -31,6 +31,7 @@ import {
 import {
   activeAcademicYear,
   ensureAcademicsLoaded,
+  groupClassesByStructure,
   useAcademicsState,
 } from "@/lib/academics/store";
 import { toast } from "@/lib/toast";
@@ -69,6 +70,16 @@ export function DocumentsTab() {
   const classes = useMemo(
     () => academics.classes.filter((c) => !year || c.academicYear === year),
     [academics.classes, year],
+  );
+  const classGroups = useMemo(
+    () =>
+      groupClassesByStructure(
+        classes,
+        (c) => c.name,
+        year || undefined,
+        tr("common.defaultGrades"),
+      ),
+    [classes, year, academics.structureTrees, tr],
   );
 
   const load = useCallback(async () => {
@@ -271,11 +282,23 @@ export function DocumentsTab() {
             onChange={(e) => setClassId(e.target.value)}
           >
             <option value="">{tr("libraryDocumentsTab.everyStudentInTheSchool")}</option>
-            {classes.map((c) => (
-              <option key={c.id} value={c.id}>
-                {tr("libraryDocumentsTab.only")} {c.name}
-              </option>
-            ))}
+            {classGroups.map((g) =>
+              g.label === null ? (
+                g.items.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {tr("libraryDocumentsTab.only")} {c.name}
+                  </option>
+                ))
+              ) : (
+                <optgroup key={g.label} label={g.label}>
+                  {g.items.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {tr("libraryDocumentsTab.only")} {c.name}
+                    </option>
+                  ))}
+                </optgroup>
+              ),
+            )}
           </Select>
           <p className="mt-1 text-xs text-muted-foreground">
             {tr("libraryDocumentsTab.lockedToAClassNoOther")}
@@ -345,11 +368,23 @@ export function DocumentsTab() {
             onChange={(e) => setFilterClassId(e.target.value)}
           >
             <option value="">{tr("libraryDocumentsTab.allClasses")}</option>
-            {classes.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
+            {classGroups.map((g) =>
+              g.label === null ? (
+                g.items.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))
+              ) : (
+                <optgroup key={g.label} label={g.label}>
+                  {g.items.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </optgroup>
+              ),
+            )}
           </Select>
         </div>
 

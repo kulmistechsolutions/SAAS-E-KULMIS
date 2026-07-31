@@ -19,6 +19,8 @@ export interface AcademicStructureSettings {
   /** How many classes a student passes through in one academic year. */
   termsPerYear: number;
   repeatScope: RepeatScope;
+  /** Removes the default Grade 1-12 list from every class picker entirely — not deleted, only hidden. Meaningless while customStructureEnabled is off. */
+  hideDefaultGrades: boolean;
 }
 
 export interface ApiAcademicStage {

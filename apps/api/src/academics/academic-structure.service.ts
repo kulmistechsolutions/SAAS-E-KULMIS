@@ -37,6 +37,7 @@ export class AcademicStructureService {
           customStructureEnabled: true,
           termsPerYear: true,
           repeatScope: true,
+          hideDefaultGrades: true,
         },
       }),
     );
@@ -56,11 +57,15 @@ export class AcademicStructureService {
             termsPerYear: dto.termsPerYear,
           }),
           ...(dto.repeatScope !== undefined && { repeatScope: dto.repeatScope }),
+          ...(dto.hideDefaultGrades !== undefined && {
+            hideDefaultGrades: dto.hideDefaultGrades,
+          }),
         },
         select: {
           customStructureEnabled: true,
           termsPerYear: true,
           repeatScope: true,
+          hideDefaultGrades: true,
         },
       }),
     );

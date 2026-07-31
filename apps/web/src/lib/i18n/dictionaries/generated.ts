@@ -2723,6 +2723,8 @@ export const generated = {
     ungrouped: "Not in any level",
     ungroupedHint: "Classes that belong to no level. Assign one, or leave them — promotion still walks them in order.",
     moveToLevel: "Move to level…",
+    hideDefaultGrades: "Hide the default Grade list from pickers",
+    hideDefaultGradesHint: "Once your own levels cover every class, turn this on to remove the leftover Grade 1-12 list from every picker. Nothing is deleted — a class already using a default Grade keeps it, and you can turn this back on to see it again.",
   },
   settingsAttendance: {
     attendanceSettings: "Attendance Settings",

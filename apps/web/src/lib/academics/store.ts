@@ -25,7 +25,11 @@ import {
   apiUpdateSubject,
   apiUpdateYear,
 } from "./api";
-import { apiStructureTree, type StructureTree } from "./structure-api";
+import {
+  apiGetStructureSettings,
+  apiStructureTree,
+  type StructureTree,
+} from "./structure-api";
 import type {
   AcademicsDashboardSummary,
   AcademicsState,
@@ -56,6 +60,7 @@ const EMPTY: AcademicsState = {
   subjectSeq: 0,
   yearSeq: 0,
   structureTrees: {},
+  hideDefaultGrades: false,
 };
 
 let state: AcademicsState | null = null;
@@ -81,7 +86,7 @@ export async function refreshAcademics(): Promise<void> {
   try {
     const years = await apiListYears();
 
-    const [classes, sections, subjects, classSubjects, structureTreesByYearId] =
+    const [classes, sections, subjects, classSubjects, structureTreesByYearId, structureSettings] =
       await Promise.all([
         apiListClasses(),
         apiListSections(),
@@ -96,6 +101,7 @@ export async function refreshAcademics(): Promise<void> {
             ),
           ),
         ),
+        apiGetStructureSettings().catch(() => null),
       ]);
 
     const yearName = new Map(years.map((y) => [y.id, y.name]));
@@ -151,6 +157,7 @@ export async function refreshAcademics(): Promise<void> {
       structureTrees: Object.fromEntries(
         years.map((y, i) => [y.name, structureTreesByYearId[i]!]),
       ),
+      hideDefaultGrades: structureSettings?.hideDefaultGrades ?? false,
     };
     setState(mapped);
   } catch {
@@ -347,8 +354,12 @@ export function groupClassesByStructure<T>(
     }
   }
 
+  // Only reachable once the school has at least one level, so `hideDefaultGrades`
+  // never hides the only ladder a default-ladder school has.
   const rest = items.filter((item) => byName.has(nameOf(item)));
-  if (rest.length) groups.push({ label: ungroupedLabel, items: rest });
+  if (rest.length && !ensure().hideDefaultGrades) {
+    groups.push({ label: ungroupedLabel, items: rest });
+  }
   return groups;
 }
 

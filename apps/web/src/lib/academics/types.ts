@@ -70,6 +70,8 @@ export interface AcademicsState {
   yearSeq: number;
   /** Keyed by academic year NAME (matching SchoolClass.academicYear), not id. Empty levels/ungrouped-only for a school not using a custom structure. */
   structureTrees: Record<string, StructureTree>;
+  /** Whether to drop the default Grade 1-12 group entirely from class pickers. */
+  hideDefaultGrades: boolean;
 }
 
 export interface AcademicsDashboardSummary {

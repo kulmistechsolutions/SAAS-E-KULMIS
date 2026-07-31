@@ -155,6 +155,10 @@ export const academicStructureSettingsSchema = z
     /// the classic yearly promotion, 2 the two-semester Arabic model.
     termsPerYear: z.number().int().min(1).max(6).optional(),
     repeatScope: repeatScopeSchema.optional(),
+    /// Removes the leftover default Grade 1-12 list from every class picker
+    /// once the school's own levels cover its classes. The classes themselves
+    /// are not deleted — only hidden from selection.
+    hideDefaultGrades: z.boolean().optional(),
   })
   .refine((o) => Object.keys(o).length > 0, { message: "Nothing to update" });
 export type AcademicStructureSettingsInput = z.infer<

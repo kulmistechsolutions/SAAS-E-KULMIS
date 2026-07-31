@@ -38,6 +38,7 @@ import {
 import {
   activeAcademicYear,
   classByName,
+  groupClassesByStructure,
   sectionsForClass,
   useAcademicsState,
 } from "@/lib/academics/store";
@@ -126,6 +127,16 @@ export default function StudentAttendancePage() {
     if (!assignedClassNames) return all;
     return all.filter((c) => assignedClassNames.has(c.name));
   }, [academics.classes, year, assignedClassNames]);
+  const yearClassGroups = useMemo(
+    () =>
+      groupClassesByStructure(
+        yearClasses,
+        (c) => c.name,
+        year,
+        t("common.defaultGrades"),
+      ),
+    [yearClasses, year, academics.structureTrees, t],
+  );
 
   const selectedMarkClass = useMemo(() => classByName(klass, year), [klass, year]);
   const markClassNeedsSection = selectedMarkClass?.hasSections ?? true;
@@ -297,7 +308,19 @@ export default function StudentAttendancePage() {
                   <label className="mb-1 block text-xs font-medium text-muted-foreground">{t("attendanceStudents.class")}</label>
                   <Select value={klass} onChange={(e) => { setKlass(e.target.value); setSection(""); setLoaded(false); }}>
                     <option value="">{t("attendanceStudents.selectClass")}</option>
-                    {yearClasses.map((c) => <option key={c.id} value={c.name}>{c.name}</option>)}
+                    {yearClassGroups.map((g) =>
+                      g.label === null ? (
+                        g.items.map((c) => (
+                          <option key={c.id} value={c.name}>{c.name}</option>
+                        ))
+                      ) : (
+                        <optgroup key={g.label} label={g.label}>
+                          {g.items.map((c) => (
+                            <option key={c.id} value={c.name}>{c.name}</option>
+                          ))}
+                        </optgroup>
+                      ),
+                    )}
                   </Select>
                 </div>
                 <div>
@@ -422,7 +445,19 @@ export default function StudentAttendancePage() {
                   className="h-10 rounded-lg border bg-background px-3 text-sm" />
                 <Select value={rClass} onChange={(e) => setRClass(e.target.value)} className="w-32">
                   <option value="">{t("attendanceStudents.allClasses")}</option>
-                  {yearClasses.map((c) => <option key={c.id} value={c.name}>{c.name}</option>)}
+                  {yearClassGroups.map((g) =>
+                    g.label === null ? (
+                      g.items.map((c) => (
+                        <option key={c.id} value={c.name}>{c.name}</option>
+                      ))
+                    ) : (
+                      <optgroup key={g.label} label={g.label}>
+                        {g.items.map((c) => (
+                          <option key={c.id} value={c.name}>{c.name}</option>
+                        ))}
+                      </optgroup>
+                    ),
+                  )}
                 </Select>
                 <Select value={rSection} onChange={(e) => setRSection(e.target.value)} className="w-32">
                   <option value="">{t("attendanceStudents.allSections")}</option>

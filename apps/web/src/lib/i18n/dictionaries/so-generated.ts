@@ -2723,6 +2723,8 @@ export const soGenerated: PartialDictionary = {
     ungrouped: "Heerna kuma jiraan",
     ungroupedHint: "Fasallo heerna aan ku jirin. Mid u qoondee, ama sidooda uga tag — kor u qaadistu weli kala horrayntooda ayay raacaysaa.",
     moveToLevel: "U wareeji heer…",
+    hideDefaultGrades: "Ka qari liiska Grade-ka caadiga ah dropdown-yada",
+    hideDefaultGradesHint: "Marka heerarkaaga ay ka koobmaan fasal kasta, tan shid si aad uga saarto liiska Grade 1-12 ee dropdown-yada oo dhan. Waxba lama tirtirin — fasal horeba Grade caadi ah isticmaalaya wuu sii haystaa, oo waad damin kartaa si aad mar kale u aragto.",
   },
   settingsAttendance: {
     attendanceSettings: "Dejinta Xaadiriska",

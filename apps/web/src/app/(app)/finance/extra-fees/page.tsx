@@ -34,6 +34,7 @@ import { refreshFees } from "@/lib/fees/store";
 import {
   activeAcademicYear,
   ensureAcademicsLoaded,
+  groupClassesByStructure,
   useAcademicsState,
 } from "@/lib/academics/store";
 import { toast } from "@/lib/toast";
@@ -90,6 +91,16 @@ export default function ExtraFeesPage() {
   const classes = useMemo(
     () => academics.classes.filter((c) => !year || c.academicYear === year),
     [academics.classes, year],
+  );
+  const classGroups = useMemo(
+    () =>
+      groupClassesByStructure(
+        classes,
+        (c) => c.name,
+        year || undefined,
+        tr("common.defaultGrades"),
+      ),
+    [classes, year, academics.structureTrees, tr],
   );
 
   const load = useCallback(async () => {
@@ -476,26 +487,35 @@ export default function ExtraFeesPage() {
                     {tr("financeExtraFees.noClassesFoundForTheActive")}
                   </p>
                 ) : (
-                  <div className="max-h-56 space-y-1.5 overflow-auto rounded-lg border bg-background p-2">
-                    {classes.map((c) => (
-                      <div key={c.id} className="flex items-center gap-2">
-                        <span className="flex-1 truncate text-sm">{c.name}</span>
-                        <Input
-                          type="number"
-                          min={0}
-                          className="h-8 w-28"
-                          placeholder="—"
-                          value={form.classAmounts[c.id] ?? ""}
-                          onChange={(e) =>
-                            setForm((f) => ({
-                              ...f,
-                              classAmounts: {
-                                ...f.classAmounts,
-                                [c.id]: e.target.value,
-                              },
-                            }))
-                          }
-                        />
+                  <div className="max-h-56 space-y-2 overflow-auto rounded-lg border bg-background p-2">
+                    {classGroups.map((g) => (
+                      <div key={g.label ?? "__flat"}>
+                        {g.label !== null && (
+                          <p className="mb-1 text-xs font-medium text-muted-foreground">{g.label}</p>
+                        )}
+                        <div className="space-y-1.5">
+                          {g.items.map((c) => (
+                            <div key={c.id} className="flex items-center gap-2">
+                              <span className="flex-1 truncate text-sm">{c.name}</span>
+                              <Input
+                                type="number"
+                                min={0}
+                                className="h-8 w-28"
+                                placeholder="—"
+                                value={form.classAmounts[c.id] ?? ""}
+                                onChange={(e) =>
+                                  setForm((f) => ({
+                                    ...f,
+                                    classAmounts: {
+                                      ...f.classAmounts,
+                                      [c.id]: e.target.value,
+                                    },
+                                  }))
+                                }
+                              />
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     ))}
                   </div>

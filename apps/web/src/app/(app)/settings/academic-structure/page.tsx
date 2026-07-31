@@ -138,6 +138,13 @@ export default function AcademicStructureSettingsPage() {
             </label>
           </div>
 
+          <SettingsToggle
+            label={t("settingsAcademicStructure.hideDefaultGrades")}
+            description={t("settingsAcademicStructure.hideDefaultGradesHint")}
+            checked={settings.hideDefaultGrades}
+            onChange={(v) => void patch({ hideDefaultGrades: v })}
+          />
+
           <div className="rounded-xl border bg-card p-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>

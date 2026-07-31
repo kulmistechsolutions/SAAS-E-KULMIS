@@ -29,6 +29,7 @@ import {
 import {
   ensureAcademicsLoaded,
   getAcademicsState,
+  groupClassesByStructure,
   useAcademicsState,
 } from "@/lib/academics/store";
 import { useAcademicYearSelect } from "@/lib/academics/year-select";
@@ -129,6 +130,16 @@ export function ExamCreationWizard({
     );
     return classes.filter((c) => assigned.has(c.id));
   }, [classes, isTeacher, teacherMe, yearId]);
+  const classGroups = useMemo(
+    () =>
+      groupClassesByStructure(
+        classOptions,
+        (c) => c.name,
+        academicYear,
+        tr("common.defaultGrades"),
+      ),
+    [classOptions, academicYear, tr],
+  );
 
   const sectionsByClass = useMemo(() => {
     const m = new Map<string, ApiSection[]>();
@@ -554,28 +565,37 @@ export function ExamCreationWizard({
               </div>
             </label>
             {!allClasses && (
-              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                {classOptions.map((c) => {
-                  const on = selectedClassIds.includes(c.id);
-                  return (
-                    <button
-                      key={c.id}
-                      type="button"
-                      onClick={() => toggleClass(c.id)}
-                      className={cn(
-                        "rounded-xl border p-4 text-start transition-all hover:-translate-y-0.5",
-                        on
-                          ? "border-primary bg-primary/10 ring-2 ring-primary/20"
-                          : "hover:bg-muted/50",
-                      )}
-                    >
-                      <p className="font-semibold">{c.name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {c.hasSections ? "Has sections" : "No sections"}
-                      </p>
-                    </button>
-                  );
-                })}
+              <div className="space-y-4">
+                {classGroups.map((g) => (
+                  <div key={g.label ?? "__flat"}>
+                    {g.label !== null && (
+                      <p className="mb-2 text-xs font-medium text-muted-foreground">{g.label}</p>
+                    )}
+                    <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                      {g.items.map((c) => {
+                        const on = selectedClassIds.includes(c.id);
+                        return (
+                          <button
+                            key={c.id}
+                            type="button"
+                            onClick={() => toggleClass(c.id)}
+                            className={cn(
+                              "rounded-xl border p-4 text-start transition-all hover:-translate-y-0.5",
+                              on
+                                ? "border-primary bg-primary/10 ring-2 ring-primary/20"
+                                : "hover:bg-muted/50",
+                            )}
+                          >
+                            <p className="font-semibold">{c.name}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {c.hasSections ? "Has sections" : "No sections"}
+                            </p>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
             {classOptions.length === 0 && (

@@ -98,6 +98,13 @@ model School {
   termsPerYear           Int         @default(1)
   /// What a student who fails repeats — just that class, or the whole stage.
   repeatScope            RepeatScope @default(CLASS)
+  /// Once a school's own levels cover its classes, it may want the leftover
+  /// default Grade 1–12 list gone from every picker entirely rather than
+  /// merely grouped under it — those classes are not deleted, only hidden
+  /// from selection. Meaningless (ignored) while customStructureEnabled is
+  /// off, since hiding the only ladder a default school has would leave
+  /// nothing selectable.
+  hideDefaultGrades      Boolean     @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
