@@ -16,6 +16,7 @@ import {
   deleteSection,
   exportSectionsCsv,
   getAcademicsState,
+  groupClassesByStructure,
   sectionRows,
   useAcademicsState,
 } from "@/lib/academics/store";
@@ -45,6 +46,16 @@ export default function SectionsPage() {
   const activeYearName = activeAcademicYear();
   const filterYear = year || activeYearName;
   const classes = classesForYear(filterYear);
+  const classGroups = useMemo(
+    () =>
+      groupClassesByStructure(
+        classes,
+        (c) => c.name,
+        filterYear,
+        t("common.defaultGrades"),
+      ),
+    [classes, filterYear, state.structureTrees, t],
+  );
 
   const rows = useMemo(() => {
     return sectionRows({
@@ -133,9 +144,19 @@ export default function SectionsPage() {
             </Select>
             <Select value={classId} onChange={(e) => setClassId(e.target.value)} className="lg:w-44">
               <option value="">{t("academicsSections.allClasses")}</option>
-              {classes.map((c) => (
-                <option key={c.id} value={c.id}>{c.name}</option>
-              ))}
+              {classGroups.map((g) =>
+                g.label === null ? (
+                  g.items.map((c) => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))
+                ) : (
+                  <optgroup key={g.label} label={g.label}>
+                    {g.items.map((c) => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </optgroup>
+                ),
+              )}
             </Select>
             <Select value={status} onChange={(e) => setStatus(e.target.value)} className="lg:w-32">
               <option value="">{t("academicsSections.allStatus")}</option>

@@ -17,7 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Pagination } from "@/components/ui/pagination";
-import { activeAcademicYear, classNamesForYear, getAcademicsState, sectionNamesForClass, useAcademicsState } from "@/lib/academics/store";
+import { activeAcademicYear, classNamesForYear, getAcademicsState, groupClassNames, sectionNamesForClass, useAcademicsState } from "@/lib/academics/store";
 import { api } from "@/lib/api";
 import { logReportAction } from "@/lib/reports/audit";
 import { fetchReport, fetchReportAsync } from "@/lib/reports/data";
@@ -70,6 +70,10 @@ export function ReportPageShell({ categoryId, categoryLabel, report }: Props) {
   const classOptions = useMemo(
     () => classNamesForYear(reportYear),
     [reportYear, academics.classes],
+  );
+  const classGroups = useMemo(
+    () => groupClassNames(classOptions, reportYear, t("common.defaultGrades")),
+    [classOptions, reportYear, academics.structureTrees, t],
   );
   const sectionOptions = useMemo(
     () =>
@@ -289,9 +293,19 @@ export function ReportPageShell({ categoryId, categoryLabel, report }: Props) {
                 <Label>{FILTER_LABELS.className}</Label>
                 <Select value={filters.className ?? ""} onChange={(e) => setFilters((f) => ({ ...f, className: e.target.value, section: "" }))}>
                   <option value="">{t("reportsReportPageShell.allClasses")}</option>
-                  {classOptions.map((c) => (
-                    <option key={c} value={c}>{c}</option>
-                  ))}
+                  {classGroups.map((g) =>
+                    g.label === null ? (
+                      g.names.map((c) => (
+                        <option key={c} value={c}>{c}</option>
+                      ))
+                    ) : (
+                      <optgroup key={g.label} label={g.label}>
+                        {g.names.map((c) => (
+                          <option key={c} value={c}>{c}</option>
+                        ))}
+                      </optgroup>
+                    ),
+                  )}
                 </Select>
               </div>
             )}

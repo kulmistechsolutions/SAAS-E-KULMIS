@@ -15,6 +15,7 @@ import { useStudentsState } from "@/lib/students/store";
 import type { StudentFeeRow } from "@/lib/fees/types";
 import {
   classNamesForYear,
+  groupClassNames,
   sectionNamesForClass,
   useAcademicsState,
 } from "@/lib/academics/store";
@@ -52,6 +53,10 @@ export function CollectFeesSection({
   const classOptions = useMemo(
     () => classNamesForYear(academicYear),
     [academicYear, academics.classes],
+  );
+  const classGroups = useMemo(
+    () => groupClassNames(classOptions, academicYear, t("common.defaultGrades")),
+    [classOptions, academicYear, academics.structureTrees, t],
   );
   const sectionOptions = useMemo(
     () => (klass ? sectionNamesForClass(klass, academicYear) : []),
@@ -112,11 +117,23 @@ export function CollectFeesSection({
           </label>
           <Select value={klass} onChange={(e) => onClassChange(e.target.value)}>
             <option value="">{t("feesCollectFeesSection.allClasses")}</option>
-            {classOptions.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
+            {classGroups.map((g) =>
+              g.label === null ? (
+                g.names.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))
+              ) : (
+                <optgroup key={g.label} label={g.label}>
+                  {g.names.map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
+                </optgroup>
+              ),
+            )}
           </Select>
         </div>
         <div className="min-w-[120px] flex-1">

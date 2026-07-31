@@ -12,6 +12,7 @@ import {
   activeAcademicYear,
   classNamesForYear,
   ensureAcademicsLoaded,
+  groupClassNames,
   sectionNamesForClass,
   useAcademicsState,
 } from "@/lib/academics/store";
@@ -140,6 +141,10 @@ export function AssignmentFormDialog({
   const classList = useMemo(
     () => classNamesForYear(year),
     [year, academics.classes],
+  );
+  const classGroups = useMemo(
+    () => groupClassNames(classList, year, tr("common.defaultGrades")),
+    [classList, year, academics.structureTrees, tr],
   );
 
   const editSectionList = useMemo(
@@ -370,11 +375,23 @@ export function AssignmentFormDialog({
                   setSection(sectionNamesForClass(nextClass, year)[0] ?? "");
                 }}
               >
-                {classList.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
+                {classGroups.map((g) =>
+                  g.label === null ? (
+                    g.names.map((c) => (
+                      <option key={c} value={c}>
+                        {c}
+                      </option>
+                    ))
+                  ) : (
+                    <optgroup key={g.label} label={g.label}>
+                      {g.names.map((c) => (
+                        <option key={c} value={c}>
+                          {c}
+                        </option>
+                      ))}
+                    </optgroup>
+                  ),
+                )}
               </Select>
             </div>
             <div>
@@ -486,11 +503,23 @@ export function AssignmentFormDialog({
                           });
                         }}
                       >
-                        {classList.map((c) => (
-                          <option key={c} value={c}>
-                            {c}
-                          </option>
-                        ))}
+                        {classGroups.map((g) =>
+                          g.label === null ? (
+                            g.names.map((c) => (
+                              <option key={c} value={c}>
+                                {c}
+                              </option>
+                            ))
+                          ) : (
+                            <optgroup key={g.label} label={g.label}>
+                              {g.names.map((c) => (
+                                <option key={c} value={c}>
+                                  {c}
+                                </option>
+                              ))}
+                            </optgroup>
+                          ),
+                        )}
                       </Select>
                     </div>
                     <div>

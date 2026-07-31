@@ -46,6 +46,7 @@ import {
 import {
   classNamesForYear,
   ensureAcademicsLoaded,
+  groupClassNames,
   sectionNamesForClass,
   useAcademicsState,
 } from "@/lib/academics/store";
@@ -106,6 +107,10 @@ export default function SchoolSmsPage() {
   const classes = useMemo(
     () => classNamesForYear(year),
     [year, academics.classes],
+  );
+  const classGroups = useMemo(
+    () => groupClassNames(classes, year, t("common.defaultGrades")),
+    [classes, year, academics.structureTrees, t],
   );
 
   const [tab, setTab] = useState<Tab>("send");
@@ -553,11 +558,23 @@ export default function SchoolSmsPage() {
                       }}
                     >
                       <option value="">{tr("sms.all")}</option>
-                      {classes.map((c) => (
-                        <option key={c} value={c}>
-                          {c}
-                        </option>
-                      ))}
+                      {classGroups.map((g) =>
+                        g.label === null ? (
+                          g.names.map((c) => (
+                            <option key={c} value={c}>
+                              {c}
+                            </option>
+                          ))
+                        ) : (
+                          <optgroup key={g.label} label={g.label}>
+                            {g.names.map((c) => (
+                              <option key={c} value={c}>
+                                {c}
+                              </option>
+                            ))}
+                          </optgroup>
+                        ),
+                      )}
                     </Select>
                   </div>
                   {(audience === "SECTION" || audience === "OUTSTANDING") && (

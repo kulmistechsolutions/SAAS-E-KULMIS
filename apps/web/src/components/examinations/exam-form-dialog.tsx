@@ -12,6 +12,7 @@ import { AcademicYearSelect } from "@/components/academics/academic-year-select"
 import {
   classNamesForYear,
   ensureAcademicsLoaded,
+  groupClassNames,
   sectionNamesForClass,
   useAcademicsState,
 } from "@/lib/academics/store";
@@ -36,6 +37,10 @@ export function ExamFormDialog({ open, onClose, onSuccess }: ExamFormDialogProps
   const classOptions = useMemo(
     () => classNamesForYear(academicYear),
     [academicYear, academics.classes],
+  );
+  const classGroups = useMemo(
+    () => groupClassNames(classOptions, academicYear, tr("common.defaultGrades")),
+    [classOptions, academicYear, academics.structureTrees, tr],
   );
   const sectionOptions = useMemo(() => {
     const names = new Set<string>();
@@ -175,20 +180,29 @@ export function ExamFormDialog({ open, onClose, onSuccess }: ExamFormDialogProps
         </div>
         <div className="sm:col-span-2">
           <Label>{tr("examinationsExamFormDialog.classesLeaveEmptyForAllWith")}</Label>
-          <div className="mt-2 flex flex-wrap gap-2">
-            {classOptions.map((c) => (
-              <button
-                key={c}
-                type="button"
-                onClick={() => toggleClass(c)}
-                className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${
-                  selectedClasses.includes(c)
-                    ? "border-primary bg-primary/10 text-primary"
-                    : "hover:bg-secondary"
-                }`}
-              >
-                {c}
-              </button>
+          <div className="mt-2 space-y-2">
+            {classGroups.map((g) => (
+              <div key={g.label ?? "__flat"}>
+                {g.label !== null && (
+                  <p className="mb-1 text-xs font-medium text-muted-foreground">{g.label}</p>
+                )}
+                <div className="flex flex-wrap gap-2">
+                  {g.names.map((c) => (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() => toggleClass(c)}
+                      className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${
+                        selectedClasses.includes(c)
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "hover:bg-secondary"
+                      }`}
+                    >
+                      {c}
+                    </button>
+                  ))}
+                </div>
+              </div>
             ))}
           </div>
         </div>

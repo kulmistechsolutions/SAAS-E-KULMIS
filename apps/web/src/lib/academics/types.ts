@@ -1,3 +1,5 @@
+import type { StructureTree } from "./structure-api";
+
 export type AcademicYearStatus = "ACTIVE" | "CLOSED";
 export type EntityStatus = "ACTIVE" | "INACTIVE";
 
@@ -66,6 +68,8 @@ export interface AcademicsState {
   sectionSeq: number;
   subjectSeq: number;
   yearSeq: number;
+  /** Keyed by academic year NAME (matching SchoolClass.academicYear), not id. Empty levels/ungrouped-only for a school not using a custom structure. */
+  structureTrees: Record<string, StructureTree>;
 }
 
 export interface AcademicsDashboardSummary {

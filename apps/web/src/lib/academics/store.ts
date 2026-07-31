@@ -25,6 +25,7 @@ import {
   apiUpdateSubject,
   apiUpdateYear,
 } from "./api";
+import { apiStructureTree, type StructureTree } from "./structure-api";
 import type {
   AcademicsDashboardSummary,
   AcademicsState,
@@ -54,6 +55,7 @@ const EMPTY: AcademicsState = {
   sectionSeq: 0,
   subjectSeq: 0,
   yearSeq: 0,
+  structureTrees: {},
 };
 
 let state: AcademicsState | null = null;
@@ -79,12 +81,22 @@ export async function refreshAcademics(): Promise<void> {
   try {
     const years = await apiListYears();
 
-    const [classes, sections, subjects, classSubjects] = await Promise.all([
-      apiListClasses(),
-      apiListSections(),
-      apiListSubjects(),
-      apiListClassSubjects(),
-    ]);
+    const [classes, sections, subjects, classSubjects, structureTreesByYearId] =
+      await Promise.all([
+        apiListClasses(),
+        apiListSections(),
+        apiListSubjects(),
+        apiListClassSubjects(),
+        // Empty {levels:[], ungrouped:[...]} for a school that never turned the
+        // custom structure on — always safe to fetch, never errors.
+        Promise.all(
+          years.map((y) =>
+            apiStructureTree(y.id).catch(
+              (): StructureTree => ({ levels: [], ungrouped: [] }),
+            ),
+          ),
+        ),
+      ]);
 
     const yearName = new Map(years.map((y) => [y.id, y.name]));
     const classYearName = new Map(
@@ -136,6 +148,9 @@ export async function refreshAcademics(): Promise<void> {
       sectionSeq: 0,
       subjectSeq: 0,
       yearSeq: 0,
+      structureTrees: Object.fromEntries(
+        years.map((y, i) => [y.name, structureTreesByYearId[i]!]),
+      ),
     };
     setState(mapped);
   } catch {
@@ -266,6 +281,86 @@ export function classesForYear(
       if (orderDiff !== 0) return orderDiff;
       return a.name.localeCompare(b.name, undefined, { numeric: true });
     });
+}
+
+export interface ClassNameGroup {
+  /** null = no header (a default-ladder school with no custom structure at all). */
+  label: string | null;
+  names: string[];
+}
+
+/**
+ * Re-groups an already-filtered list of class names (from classNamesForYear)
+ * by the school's custom Level/Stage structure, for rendering as <optgroup>s.
+ * Takes names rather than years+opts so every existing call site's filtering
+ * (includeInactive, dedup, sort) carries over unchanged — this only decides
+ * which header each name falls under.
+ *
+ * A school with no custom structure gets exactly one group with a null label,
+ * i.e. today's flat dropdown, unchanged.
+ */
+export interface ClassItemGroup<T> {
+  /** null = no header (a default-ladder school with no custom structure at all). */
+  label: string | null;
+  items: T[];
+}
+
+/**
+ * Generic version for pickers keyed by id rather than name (e.g. a class
+ * filter dropdown whose option value is the class id). `nameOf` extracts the
+ * name each item is matched against in the structure tree.
+ */
+export function groupClassesByStructure<T>(
+  items: T[],
+  nameOf: (item: T) => string,
+  year: string | undefined,
+  ungroupedLabel: string,
+): ClassItemGroup<T>[] {
+  const y = year ?? activeAcademicYear();
+  const tree = ensure().structureTrees[y];
+  if (!tree || tree.levels.length === 0) {
+    return [{ label: null, items }];
+  }
+
+  const byName = new Map(items.map((item) => [nameOf(item), item]));
+  const groups: ClassItemGroup<T>[] = [];
+  const takeMatching = (classNames: string[]) => {
+    const matched: T[] = [];
+    for (const n of classNames) {
+      const item = byName.get(n);
+      if (item !== undefined) {
+        matched.push(item);
+        byName.delete(n);
+      }
+    }
+    return matched;
+  };
+
+  for (const level of tree.levels) {
+    const direct = takeMatching(level.classes.map((c) => c.name));
+    if (direct.length) groups.push({ label: level.name, items: direct });
+    for (const stage of level.stages) {
+      const staged = takeMatching(stage.classes.map((c) => c.name));
+      if (staged.length) {
+        groups.push({ label: `${level.name} — ${stage.name}`, items: staged });
+      }
+    }
+  }
+
+  const rest = items.filter((item) => byName.has(nameOf(item)));
+  if (rest.length) groups.push({ label: ungroupedLabel, items: rest });
+  return groups;
+}
+
+/** The common case: grouping a plain list of class names for a <select>. */
+export function groupClassNames(
+  names: string[],
+  year: string | undefined,
+  ungroupedLabel: string,
+): ClassNameGroup[] {
+  return groupClassesByStructure(names, (n) => n, year, ungroupedLabel).map(
+    (g) => ({ label: g.label, names: g.items }),
+  );
 }
 
 export function classNamesForYear(

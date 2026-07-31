@@ -16,6 +16,7 @@ import {
   classByName,
   classNamesForYear,
   ensureAcademicsLoaded,
+  groupClassNames,
   sectionNamesForClass,
   useAcademicsState,
 } from "@/lib/academics/store";
@@ -121,6 +122,11 @@ export function StudentFormDialog({ open, onClose, student, onSaved }: Props) {
   const classList = useMemo(
     () => classNamesForYear(form.academicYear, { includeInactive: isEdit }),
     [form.academicYear, academics.classes, isEdit],
+  );
+  const classGroups = useMemo(
+    () =>
+      groupClassNames(classList, form.academicYear, t("common.defaultGrades")),
+    [classList, form.academicYear, academics.structureTrees, t],
   );
   const selectedClass = useMemo(
     () => classByName(form.className, form.academicYear, { allowInactive: true }),
@@ -415,11 +421,23 @@ export function StudentFormDialog({ open, onClose, student, onSaved }: Props) {
                 }))
               }
             >
-              {classList.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
+              {classGroups.map((g) =>
+                g.label === null ? (
+                  g.names.map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))
+                ) : (
+                  <optgroup key={g.label} label={g.label}>
+                    {g.names.map((c) => (
+                      <option key={c} value={c}>
+                        {c}
+                      </option>
+                    ))}
+                  </optgroup>
+                ),
+              )}
             </Select>
           </Field>
           <Field label={t("studentsStudentFormDialog.section")}>

@@ -40,6 +40,7 @@ import {
 import {
   classNamesForYear,
   ensureAcademicsLoaded,
+  groupClassNames,
   sectionNamesForClass,
   useAcademicsState,
 } from "@/lib/academics/store";
@@ -105,6 +106,10 @@ export default function StudentsPage() {
   const classOptions = useMemo(
     () => classNamesForYear(year || undefined),
     [year, academics.classes],
+  );
+  const classGroups = useMemo(
+    () => groupClassNames(classOptions, year || undefined, t("common.defaultGrades")),
+    [classOptions, year, academics.structureTrees, t],
   );
   const sectionOptions = useMemo(
     () => (klass ? sectionNamesForClass(klass, year || undefined) : []),
@@ -355,11 +360,23 @@ export default function StudentsPage() {
               className="lg:w-32"
             >
               <option value="">{t("students.allClasses")}</option>
-              {classOptions.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
+              {classGroups.map((g) =>
+                g.label === null ? (
+                  g.names.map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))
+                ) : (
+                  <optgroup key={g.label} label={g.label}>
+                    {g.names.map((c) => (
+                      <option key={c} value={c}>
+                        {c}
+                      </option>
+                    ))}
+                  </optgroup>
+                ),
+              )}
             </Select>
             <Select
               value={section}

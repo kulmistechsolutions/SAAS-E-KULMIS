@@ -13,6 +13,7 @@ import {
   activeAcademicYear,
   classesForYear,
   createSection,
+  groupClassesByStructure,
   updateSection,
 } from "@/lib/academics/store";
 import type { EntityStatus, Section } from "@/lib/academics/types";
@@ -34,6 +35,12 @@ export function SectionFormDialog({
   const t = useT();
   const isEdit = !!section;
   const classes = classesForYear(activeAcademicYear());
+  const classGroups = groupClassesByStructure(
+    classes,
+    (c) => c.name,
+    activeAcademicYear(),
+    t("common.defaultGrades"),
+  );
   const [name, setName] = useState("");
   const [classId, setClassId] = useState(defaultClassId ?? classes[0]?.id ?? "");
   const [status, setStatus] = useState<EntityStatus>("ACTIVE");
@@ -104,11 +111,23 @@ export function SectionFormDialog({
             onChange={(e) => setClassId(e.target.value)}
             disabled={isEdit}
           >
-            {classes.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
+            {classGroups.map((g) =>
+              g.label === null ? (
+                g.items.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))
+              ) : (
+                <optgroup key={g.label} label={g.label}>
+                  {g.items.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </optgroup>
+              ),
+            )}
           </Select>
         </div>
         <div>

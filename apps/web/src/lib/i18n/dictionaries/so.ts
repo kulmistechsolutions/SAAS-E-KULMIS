@@ -13,6 +13,7 @@ import { mergeDictionaries } from "./merge";
  */
 const curated: PartialDictionary = {
   common: {
+    defaultGrades: "Grade-ka Caadiga ah",
     save: "Kaydi",
     saving: "Waa la kaydinayaa…",
     cancel: "Jooji",

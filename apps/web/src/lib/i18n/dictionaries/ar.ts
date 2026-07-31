@@ -8,6 +8,7 @@ import { mergeDictionaries } from "./merge";
  */
 const curated: PartialDictionary = {
   common: {
+    defaultGrades: "الصفوف الافتراضية (Grade)",
     save: "حفظ",
     saving: "جارٍ الحفظ…",
     cancel: "إلغاء",

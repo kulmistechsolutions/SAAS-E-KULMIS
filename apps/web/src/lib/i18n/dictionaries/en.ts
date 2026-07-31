@@ -12,6 +12,8 @@ import { generated } from "./generated";
  */
 const core = {
   common: {
+    /** Header for the classic Grade 1-12 list in a class picker, alongside a custom structure's own groups. */
+    defaultGrades: "Grade (Default)",
     save: "Save",
     saving: "Saving…",
     cancel: "Cancel",

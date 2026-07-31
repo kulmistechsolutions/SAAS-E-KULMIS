@@ -16,7 +16,11 @@ import {
   useTeachersState,
 } from "@/lib/teachers/store";
 import { AcademicYearSelect } from "@/components/academics/academic-year-select";
-import { classNamesForYear, useAcademicsState } from "@/lib/academics/store";
+import {
+  classNamesForYear,
+  groupClassNames,
+  useAcademicsState,
+} from "@/lib/academics/store";
 import { assignmentShiftLabel, sectionLabel, statusLabel } from "@/lib/teachers/format";
 import type { TeacherAssignment } from "@/lib/teachers/types";
 import { toast } from "@/lib/toast";
@@ -43,6 +47,10 @@ export default function TeacherAssignmentsPage() {
   const classOptions = useMemo(
     () => classNamesForYear(year || undefined),
     [year, academics.classes],
+  );
+  const classGroups = useMemo(
+    () => groupClassNames(classOptions, year || undefined, tr("common.defaultGrades")),
+    [classOptions, year, academics.structureTrees, tr],
   );
 
   const filtered = useMemo(() => {
@@ -106,9 +114,19 @@ export default function TeacherAssignmentsPage() {
           <AcademicYearSelect value={year} onChange={setYear} allowAll className="sm:w-36" />
           <Select value={klass} onChange={(e) => setKlass(e.target.value)} className="sm:w-36">
             <option value="">{tr("teachersAssignments.allClasses")}</option>
-            {classOptions.map((c) => (
-              <option key={c} value={c}>{c}</option>
-            ))}
+            {classGroups.map((g) =>
+              g.label === null ? (
+                g.names.map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))
+              ) : (
+                <optgroup key={g.label} label={g.label}>
+                  {g.names.map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </optgroup>
+              ),
+            )}
           </Select>
           {(search || year || klass) && (
             <Button variant="ghost" onClick={() => { setSearch(""); setYear(""); setKlass(""); }}>

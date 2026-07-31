@@ -11,6 +11,7 @@ import { AcademicYearSelect } from "@/components/academics/academic-year-select"
 import {
   activeAcademicYear,
   classNamesForYear,
+  groupClassNames,
   setActiveAcademicYear,
   useAcademicsState,
 } from "@/lib/academics/store";
@@ -22,6 +23,11 @@ export default function AcademicSettingsPage() {
     useSettingsSection("academic");
   const academics = useAcademicsState();
   const classes = classNamesForYear(activeAcademicYear());
+  const classGroups = groupClassNames(
+    classes,
+    activeAcademicYear(),
+    t("common.defaultGrades"),
+  );
 
   async function handleSave() {
     const selected = draft.activeAcademicYear;
@@ -65,9 +71,19 @@ export default function AcademicSettingsPage() {
           <option value="ABSENT">{t("settingsAcademic.absent")}</option>
         </SettingsSelect>
         <SettingsSelect label={t("settingsAcademic.graduationClass")} value={draft.graduationClass} onChange={(e) => update({ graduationClass: e.target.value })}>
-          {classes.map((c) => (
-            <option key={c} value={c}>{c}</option>
-          ))}
+          {classGroups.map((g) =>
+            g.label === null ? (
+              g.names.map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))
+            ) : (
+              <optgroup key={g.label} label={g.label}>
+                {g.names.map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </optgroup>
+            ),
+          )}
         </SettingsSelect>
       </div>
 

@@ -111,5 +111,6 @@ export function buildSeed(): AcademicsState {
     sectionSeq,
     subjectSeq: subjects.length,
     yearSeq: academicYears.length,
+    structureTrees: {},
   };
 }
