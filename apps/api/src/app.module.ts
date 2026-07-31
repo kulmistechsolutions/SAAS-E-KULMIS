@@ -16,6 +16,7 @@ import { PrismaModule } from "./prisma/prisma.module";
 import { UsersModule } from "./users/users.module";
 import { SettingsModule } from "./settings/settings.module";
 import { AcademicsModule } from "./academics/academics.module";
+import { VillagesModule } from "./villages/villages.module";
 import { StudentsModule } from "./students/students.module";
 import { TeachersModule } from "./teachers/teachers.module";
 import { AttendanceModule } from "./attendance/attendance.module";
@@ -74,6 +75,7 @@ import { TenantModule } from "./tenant/tenant.module";
     UsersModule,
     SettingsModule,
     AcademicsModule,
+    VillagesModule,
     StudentsModule,
     TeachersModule,
     AttendanceModule,

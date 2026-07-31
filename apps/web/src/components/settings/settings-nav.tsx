@@ -21,6 +21,7 @@ import {
   FileUp,
   Info,
   Layers,
+  MapPin,
   Settings,
   TriangleAlert,
 } from "lucide-react";
@@ -42,6 +43,7 @@ const NAV: {
     label: "settingsSettingsNav.academicStructure",
     icon: Layers,
   },
+  { href: "/settings/villages", label: "settingsSettingsNav.villages", icon: MapPin },
   { href: "/settings/students", label: "settingsSettingsNav.students", icon: GraduationCap },
   { href: "/settings/teachers", label: "settingsSettingsNav.teachers", icon: Users },
   { href: "/settings/parents", label: "settingsSettingsNav.parents", icon: Users },

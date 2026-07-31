@@ -2979,6 +2979,7 @@ export const arGenerated: PartialDictionary = {
     license: "الترخيص",
     dangerZone: "منطقة الخطر",
     academicStructure: "الهيكل الأكاديمي",
+    villages: "الأحياء",
   },
   settingsSettingsSaveBar: {
     resetToDefault: "إعادة التعيين للافتراضي",
@@ -3075,6 +3076,19 @@ export const arGenerated: PartialDictionary = {
     grantViewStudentsByDefaultFor: "امنح صلاحية عرض الطلاب افتراضيًا للمعلمين الجدد",
     teacherProfileHeaderOptional: "ترويسة ملف المعلم (اختياري)",
     teacherProfileFooterOptional: "تذييل ملف المعلم (اختياري)",
+  },
+  settingsVillages: {
+    title: "الأحياء",
+    subtitle: "ابنِ قائمة الأحياء الخاصة بالمدرسة — تظهر كحقل اختياري عند تسجيل الطالب.",
+    namePlaceholder: "اسم الحي",
+    add: "إضافة",
+    addFailed: "تعذّر إضافة الحي",
+    renameFailed: "تعذّر إعادة تسمية الحي",
+    reorderFailed: "تعذّر إعادة الترتيب",
+    deleteFailed: "تعذّر حذف الحي",
+    deleteConfirm: "حذف هذا الحي؟ الطلاب الذين يستخدمونه بالفعل يبقى لديهم، لكن لن يكون قابلًا للاختيار للطلاب الجدد.",
+    newName: "الاسم الجديد",
+    noneYet: "لا توجد أحياء بعد. أضف واحدًا أعلاه.",
   },
   sms: {
     sms: "الرسائل النصية",
@@ -3440,6 +3454,9 @@ export const arGenerated: PartialDictionary = {
     startBillingFromNextMonth: "بدء الفوترة من الشهر القادم",
     agreementSpecialFee: "اتفاق / رسم خاص",
     chargeFullCurrentMonth: "تحصيل الشهر الحالي بالكامل",
+    village: "الحي",
+    none: "لا شيء",
+    noVillagesSetUp: "لم يتم إعداد أي حي بعد",
   },
   studentsStudentPhotoUpload: {
     studentPhotoPreview: "معاينة صورة الطالب",

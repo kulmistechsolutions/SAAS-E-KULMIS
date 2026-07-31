@@ -6,7 +6,9 @@ import { getCachedAuthUser } from "@/lib/auth";
 import {
   ensureAcademicsLoaded,
   getAcademicsState,
+  isHiddenDefaultClass,
 } from "@/lib/academics/store";
+import { ensureVillagesLoaded, villageIdByName } from "@/lib/villages/store";
 import {
   apiBulkDeleteStudents,
   apiDeleteStudent,
@@ -200,6 +202,11 @@ function resolveClassId(
   if (!cls) {
     return {
       error: `Class "${className}" was not found. Create it under Academics first.`,
+    };
+  }
+  if (isHiddenDefaultClass(className, academicYear)) {
+    return {
+      error: `"${className}" is a default grade, but this school no longer uses default grades. Use one of your school's own classes instead.`,
     };
   }
   return { classId: cls.id };
@@ -402,6 +409,18 @@ export async function registerStudent(
   const sec = resolveSectionId(classId, input.section);
   if (sec.error) return { ok: false, error: sec.error };
 
+  await ensureVillagesLoaded();
+  let villageId: string | null | undefined;
+  if (input.village?.trim()) {
+    villageId = villageIdByName(input.village.trim());
+    if (!villageId) {
+      return {
+        ok: false,
+        error: `Village "${input.village}" was not found. Add it under Settings first.`,
+      };
+    }
+  }
+
   if (!isValidPhone(input.parentPhone)) {
     return {
       ok: false,
@@ -436,6 +455,7 @@ export async function registerStudent(
       parentPhone: input.parentPhone.trim(),
       classId,
       sectionId: sec.sectionId,
+      villageId,
       monthlyFee: input.monthlyFee,
       feeStartMode: input.feeStartMode,
       agreementAmount: input.agreementAmount,
@@ -488,6 +508,7 @@ export type StudentPatch = Partial<
     | "phone"
     | "className"
     | "section"
+    | "village"
     | "monthlyFee"
     | "status"
     | "notes"
@@ -526,6 +547,22 @@ export async function updateStudent(
     }
   }
 
+  let villageId: string | null | undefined;
+  if (patch.village !== undefined) {
+    await ensureVillagesLoaded();
+    if (patch.village?.trim()) {
+      villageId = villageIdByName(patch.village.trim());
+      if (!villageId) {
+        return {
+          ok: false,
+          error: `Village "${patch.village}" was not found. Add it under Settings first.`,
+        };
+      }
+    } else {
+      villageId = null;
+    }
+  }
+
   try {
     // The parent details go to the student endpoint, which re-links the child
     // to whoever holds that phone. Sending them to the parent endpoint instead
@@ -542,6 +579,7 @@ export async function updateStudent(
         patch.notes !== undefined ? patch.notes?.trim() || null : undefined,
       classId,
       sectionId,
+      villageId,
       monthlyFee: patch.monthlyFee,
       status: patch.status,
       parentName: patch.parentName?.trim() || undefined,
@@ -647,6 +685,7 @@ export interface ImportRow {
   parentPhone?: string;
   className?: string;
   section?: string;
+  village?: string;
   monthlyFee?: string;
   [key: string]: string | undefined;
 }
@@ -741,6 +780,15 @@ function validateImportRow(
   if (sec.error) {
     return { row: line, data: row, status: "invalid", message: sec.error };
   }
+  const villageRaw = row.village?.trim();
+  if (villageRaw && !villageIdByName(villageRaw)) {
+    return {
+      row: line,
+      data: row,
+      status: "invalid",
+      message: `Village "${villageRaw}" was not found. Add it under Settings first, or leave the column blank.`,
+    };
+  }
 
   const st = ensure();
   if (isDuplicate(st, parentPhone, fullName, className, section)) {
@@ -760,6 +808,7 @@ export async function previewImport(
   academicYear: string,
 ): Promise<ImportPreviewRow[]> {
   await ensureAcademicsLoaded();
+  await ensureVillagesLoaded();
   const seenInFile = new Set<string>();
   return rows.map((row, i) =>
     validateImportRow(row, i + 2, academicYear, seenInFile),
@@ -771,6 +820,7 @@ export async function bulkImport(
   academicYear: string,
 ): Promise<ImportResult> {
   await ensureAcademicsLoaded();
+  await ensureVillagesLoaded();
   const result: ImportResult = {
     imported: 0,
     skipped: 0,
@@ -804,6 +854,7 @@ export async function bulkImport(
     const parentPhone = row.parentPhone!.trim();
     const className = row.className!.trim();
     const section = row.section?.trim() || null;
+    const village = row.village?.trim() || null;
     const monthlyFee = Number(row.monthlyFee!.trim());
 
     const res = await registerStudent(
@@ -814,6 +865,7 @@ export async function bulkImport(
         parentPhone,
         className,
         section,
+        village,
         monthlyFee,
         academicYear,
         status: "ACTIVE",

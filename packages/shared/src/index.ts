@@ -8,6 +8,7 @@ export * from "./schemas/auth";
 export * from "./schemas/user";
 export * from "./schemas/settings";
 export * from "./schemas/academics";
+export * from "./schemas/village";
 export * from "./schemas/student";
 export * from "./schemas/student-photo";
 export * from "./schemas/teacher";

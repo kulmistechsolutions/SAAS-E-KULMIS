@@ -72,6 +72,7 @@ const studentInclude = {
     },
   },
   section: { select: { id: true, name: true } },
+  village: { select: { id: true, name: true } },
 } satisfies Prisma.StudentInclude;
 
 type StudentRow = Prisma.StudentGetPayload<{ include: typeof studentInclude }>;
@@ -251,6 +252,7 @@ export class StudentsService {
             parentId: parent.id,
             classId: dto.classId,
             sectionId,
+            villageId: dto.villageId ?? null,
             monthlyFee: dto.monthlyFee ?? 0,
             feeStartMode: dto.feeStartMode ?? null,
             feeAgreementAmount: dto.agreementAmount ?? null,
@@ -504,6 +506,7 @@ export class StudentsService {
           notes: dto.notes,
           classId: dto.classId,
           sectionId: dto.sectionId,
+          villageId: dto.villageId,
           monthlyFee: dto.monthlyFee,
           status: dto.status,
           ...(move ? { parentId: move.parentId } : {}),

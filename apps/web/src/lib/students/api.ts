@@ -36,6 +36,7 @@ interface ApiStudent {
   parent: ApiParent;
   class: { id: string; name: string; academicYear: { name: string } | null };
   section: { id: string; name: string } | null;
+  village: { id: string; name: string } | null;
   photoUrl?: string | null;
   feeStartMode?: "FULL_CURRENT" | "AGREEMENT" | "NEXT_MONTH" | null;
   feeAgreementAmount?: number | null;
@@ -70,6 +71,7 @@ export function mapApiStudent(s: ApiStudent): Student {
     parentId: s.parentId,
     className: s.class?.name ?? "",
     section: s.section?.name ?? null,
+    village: s.village?.name ?? null,
     monthlyFee: s.monthlyFee,
     academicYear: s.class?.academicYear?.name ?? "",
     registrationDate: s.registrationDate,
@@ -161,6 +163,7 @@ export interface RegisterStudentApiInput {
   parentPhone: string;
   classId: string;
   sectionId?: string | null;
+  villageId?: string | null;
   monthlyFee: number;
   feeStartMode?: "FULL_CURRENT" | "AGREEMENT" | "NEXT_MONTH";
   agreementAmount?: number;
@@ -216,6 +219,7 @@ export interface UpdateStudentApiInput {
   notes?: string | null;
   classId?: string;
   sectionId?: string | null;
+  villageId?: string | null;
   monthlyFee?: number;
   status?: StudentStatus;
   /** Re-links the student to the parent on this phone — see the API schema. */

@@ -121,6 +121,7 @@ model School {
   smsGateway         SchoolSmsGateway?
   smsGatewayLicenses SmsGatewayLicense[]
   smsSenderRequests  SmsSenderIdRequest[]
+  villages           Village[]
 
   @@map("schools")
 }
@@ -494,6 +495,9 @@ model Student {
   parentId             String
   classId              String
   sectionId            String?
+  /// Optional neighborhood, from the school's own village list. Null on every
+  /// existing student until re-saved — nothing backfills it.
+  villageId            String?
   monthlyFee           Int           @default(0)
   annualFeeAmount      Int?
   feeStartMode         FeeStartMode?
@@ -508,6 +512,7 @@ model Student {
   parent       Parent              @relation(fields: [parentId], references: [id], onDelete: Cascade)
   class        Class               @relation(fields: [classId], references: [id], onDelete: Restrict)
   section      Section?            @relation(fields: [sectionId], references: [id], onDelete: Restrict)
+  village      Village?            @relation(fields: [villageId], references: [id], onDelete: SetNull)
   attendance   StudentAttendance[]
   feeCharges   FeeCharge[]
   payments     Payment[]
@@ -521,7 +526,28 @@ model Student {
   @@index([schoolId])
   @@index([parentId])
   @@index([classId])
+  @@index([villageId])
   @@map("students")
+}
+
+/// A school-defined neighborhood, offered as an optional field on Student
+/// registration. General-purpose — every school has this list, independent of
+/// whether it uses the custom academic structure.
+model Village {
+  id         String       @id @default(cuid())
+  schoolId   String
+  name       String
+  orderIndex Int          @default(0)
+  status     EntityStatus @default(ACTIVE)
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+
+  school   School    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  students Student[]
+
+  @@unique([schoolId, name])
+  @@index([schoolId])
+  @@map("villages")
 }
 
 /// Teacher (Module 3). Logs in via linked User (username = teacher code).

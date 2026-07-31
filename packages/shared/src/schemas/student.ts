@@ -23,6 +23,10 @@ export const registerStudentSchema = z.object({
   parentPhone: z.string().min(1, "Parent phone is required"),
   classId: z.string().min(1, "Class is required"),
   sectionId: z.string().min(1).nullable().optional(),
+  /// Optional — a school that hasn't set up its village list has nothing to
+  /// pick from, and an existing student re-imported or edited without one
+  /// keeps it null rather than being forced to choose.
+  villageId: z.string().min(1).nullable().optional(),
   monthlyFee: z.number().int().nonnegative().optional(),
   feeStartMode: z
     .enum(["FULL_CURRENT", "AGREEMENT", "NEXT_MONTH"])
@@ -57,6 +61,7 @@ export const updateStudentSchema = z
     notes: z.string().nullable().optional(),
     classId: z.string().min(1).optional(),
     sectionId: z.string().nullable().optional(),
+    villageId: z.string().min(1).nullable().optional(),
     monthlyFee: z.number().int().nonnegative().optional(),
     status: studentStatusSchema.optional(),
     /**

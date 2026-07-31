@@ -28,6 +28,7 @@ import {
 } from "@/lib/students/store";
 import type { FeeStartMode, Gender, StudentPhotoChange, StudentStatus } from "@/lib/students/types";
 import { useSettingsState } from "@/lib/settings/store";
+import { ensureVillagesLoaded, useVillagesState } from "@/lib/villages/store";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -46,6 +47,7 @@ interface FormState {
   parentPhone: string;
   className: string;
   section: string;
+  village: string;
   monthlyFee: string;
   academicYear: string;
   status: StudentStatus;
@@ -92,6 +94,7 @@ const empty = (year: string, className: string): FormState => ({
   parentPhone: "",
   className,
   section: "",
+  village: "",
   monthlyFee: String(DEFAULT_MONTHLY_FEE),
   academicYear: year,
   status: "ACTIVE",
@@ -136,10 +139,12 @@ export function StudentFormDialog({ open, onClose, student, onSaved }: Props) {
     if (!selectedClass?.hasSections) return [];
     return sectionNamesForClass(form.className, form.academicYear);
   }, [form.className, form.academicYear, selectedClass?.hasSections, academics.sections]);
+  const villages = useVillagesState();
 
   useEffect(() => {
     if (!open) return;
     void ensureAcademicsLoaded();
+    void ensureVillagesLoaded();
     setError(null);
     setSaving(false);
     setPhotoFile(null);
@@ -155,6 +160,7 @@ export function StudentFormDialog({ open, onClose, student, onSaved }: Props) {
         parentPhone: student.parent.phone,
         className: student.className,
         section: student.section ?? "",
+        village: student.village ?? "",
         monthlyFee: String(student.monthlyFee),
         academicYear: student.academicYear,
         status: student.status,
@@ -219,6 +225,7 @@ export function StudentFormDialog({ open, onClose, student, onSaved }: Props) {
             phone: form.phone || null,
             className: form.className,
             section: form.section || null,
+            village: form.village || null,
             monthlyFee: fee,
             status: form.status,
             academicYear: form.academicYear,
@@ -260,6 +267,7 @@ export function StudentFormDialog({ open, onClose, student, onSaved }: Props) {
           parentPhone: form.parentPhone,
           className: form.className,
           section: form.section || null,
+          village: form.village || null,
           monthlyFee: fee,
           academicYear: form.academicYear,
           status: form.status,
@@ -453,6 +461,25 @@ export function StudentFormDialog({ open, onClose, student, onSaved }: Props) {
               {sectionList.map((s) => (
                 <option key={s} value={s}>
                   {s}
+                </option>
+              ))}
+            </Select>
+          </Field>
+          <Field label={t("studentsStudentFormDialog.village")}>
+            <Select
+              className={inputClass}
+              value={form.village}
+              onChange={(e) => set("village", e.target.value)}
+              disabled={villages.length === 0}
+            >
+              <option value="">
+                {villages.length === 0
+                  ? t("studentsStudentFormDialog.noVillagesSetUp")
+                  : t("studentsStudentFormDialog.none")}
+              </option>
+              {villages.map((v) => (
+                <option key={v.id} value={v.name}>
+                  {v.name}
                 </option>
               ))}
             </Select>

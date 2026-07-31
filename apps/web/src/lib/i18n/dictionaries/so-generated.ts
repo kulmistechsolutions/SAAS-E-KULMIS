@@ -2979,6 +2979,7 @@ export const soGenerated: PartialDictionary = {
     license: "Shatiga",
     dangerZone: "Aagga Khatarta",
     academicStructure: "Qaab-dhismeedka Waxbarasho",
+    villages: "Xaafadaha",
   },
   settingsSettingsSaveBar: {
     resetToDefault: "Ku celi caadiga",
@@ -3075,6 +3076,19 @@ export const soGenerated: PartialDictionary = {
     grantViewStudentsByDefaultFor: "Si caadi ah sii Eegista Ardayda macallimiinta cusub",
     teacherProfileHeaderOptional: "Madaxa Xogta Macallinka (ikhtiyaari)",
     teacherProfileFooterOptional: "Hoosta Xogta Macallinka (ikhtiyaari)",
+  },
+  settingsVillages: {
+    title: "Xaafadaha",
+    subtitle: "U dhis dugsiga liiskiisa xaafadaha — waxay u muuqataa beer ikhtiyaari ah marka ardaygu diiwaan galinayo.",
+    namePlaceholder: "Magaca xaafadda",
+    add: "Ku dar",
+    addFailed: "Xaafadda lama dari karin",
+    renameFailed: "Xaafadda magaceeda lama beddeli karin",
+    reorderFailed: "Kala horreynta lama beddeli karin",
+    deleteFailed: "Xaafadda lama tirtiri karin",
+    deleteConfirm: "Xaafaddan ma tirtirayaa? Ardayda horeba isticmaalaysa way sii haysan doonaan, laakiin lama dooran doono kuwa cusub.",
+    newName: "Magac cusub",
+    noneYet: "Wali xaafado ma jiraan. Mid ku dar kor.",
   },
   sms: {
     sms: "SMS",
@@ -3440,6 +3454,9 @@ export const soGenerated: PartialDictionary = {
     startBillingFromNextMonth: "Biilasha Bilow Bisha Xigta",
     agreementSpecialFee: "Heshiis / Khidmad Gaar ah",
     chargeFullCurrentMonth: "Qaad Bisha Hadda oo Dhan",
+    village: "Xaafad",
+    none: "Midna",
+    noVillagesSetUp: "Wali xaafado lama dejin",
   },
   studentsStudentPhotoUpload: {
     studentPhotoPreview: "Horudhaca sawirka ardayga",

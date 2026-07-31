@@ -2979,6 +2979,7 @@ export const generated = {
     license: "License",
     dangerZone: "Danger Zone",
     academicStructure: "Academic Structure",
+    villages: "Villages",
   },
   settingsSettingsSaveBar: {
     resetToDefault: "Reset to Default",
@@ -3075,6 +3076,19 @@ export const generated = {
     grantViewStudentsByDefaultFor: "Grant View Students by default for new teachers",
     teacherProfileHeaderOptional: "Teacher Profile Header (optional)",
     teacherProfileFooterOptional: "Teacher Profile Footer (optional)",
+  },
+  settingsVillages: {
+    title: "Villages",
+    subtitle: "Build the school's own neighborhood list — shown as an optional field when registering a student.",
+    namePlaceholder: "Village name",
+    add: "Add",
+    addFailed: "Could not add village",
+    renameFailed: "Could not rename village",
+    reorderFailed: "Could not reorder",
+    deleteFailed: "Could not delete village",
+    deleteConfirm: "Delete this village? Students already using it keep it, but it won't be selectable for new ones.",
+    newName: "New name",
+    noneYet: "No villages yet. Add one above.",
   },
   sms: {
     sms: "SMS",
@@ -3440,6 +3454,9 @@ export const generated = {
     startBillingFromNextMonth: "Start Billing From Next Month",
     agreementSpecialFee: "Agreement / Special Fee",
     chargeFullCurrentMonth: "Charge Full Current Month",
+    village: "Village",
+    none: "None",
+    noVillagesSetUp: "No villages set up yet",
   },
   studentsStudentPhotoUpload: {
     studentPhotoPreview: "Student photo preview",

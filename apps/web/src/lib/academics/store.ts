@@ -363,6 +363,20 @@ export function groupClassesByStructure<T>(
   return groups;
 }
 
+/**
+ * Whether `className` is one of the school's leftover default classes (has no
+ * level) at a point where the school has said it no longer uses them. Used to
+ * reject a "Grade N" class named in an Excel import row — the row can still
+ * name a class that technically exists (nothing deletes it), but the school
+ * has declared it doesn't use that ladder anymore.
+ */
+export function isHiddenDefaultClass(className: string, year: string): boolean {
+  if (!ensure().hideDefaultGrades) return false;
+  const tree = ensure().structureTrees[year];
+  if (!tree || tree.levels.length === 0) return false;
+  return tree.ungrouped.some((c) => c.name === className);
+}
+
 /** The common case: grouping a plain list of class names for a <select>. */
 export function groupClassNames(
   names: string[],

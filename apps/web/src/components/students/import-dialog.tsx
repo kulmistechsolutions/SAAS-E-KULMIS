@@ -33,6 +33,7 @@ const HEADERS = [
   "Class",
   "Section",
   "Monthly Fee",
+  "Village",
 ];
 
 const COLUMNS: (keyof ImportRow)[] = [
@@ -43,11 +44,15 @@ const COLUMNS: (keyof ImportRow)[] = [
   "className",
   "section",
   "monthlyFee",
+  "village",
 ];
 
+// Village is appended last and optional — an old 7-column file from before
+// this field existed still parses correctly column-by-column; Village just
+// comes back undefined for every row instead of shifting the other columns.
 const TEMPLATE = `${HEADERS.join(",")}
-Amina Hassan,FEMALE,Mohamed Hassan,+252611000001,Grade 5,A,60
-Yusuf Ali,MALE,Fadumo Ali,+252611000002,Grade 3,B,50`;
+Amina Hassan,FEMALE,Mohamed Hassan,+252611000001,Grade 5,A,60,
+Yusuf Ali,MALE,Fadumo Ali,+252611000002,Grade 3,B,50,`;
 
 type Step = "upload" | "preview" | "result";
 

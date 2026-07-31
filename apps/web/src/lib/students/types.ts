@@ -29,6 +29,8 @@ export interface Student {
   parentId: string;
   className: string;
   section?: string | null;
+  /** From the school's own neighborhood list — optional, null on every student registered before it existed. */
+  village?: string | null;
   monthlyFee: number;
   academicYear: string;
   registrationDate: string;
@@ -56,6 +58,7 @@ export interface StudentInput {
   parentPhone: string;
   className: string;
   section?: string | null;
+  village?: string | null;
   monthlyFee: number;
   academicYear: string;
   status?: StudentStatus;
