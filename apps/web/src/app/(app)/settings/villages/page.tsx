@@ -5,6 +5,8 @@ import { ChevronDown, ChevronUp, Loader2, Pencil, Plus, Trash2 } from "lucide-re
 import { useT } from "@/lib/i18n/provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PromptDialog } from "@/components/ui/prompt-dialog";
+import { ConfirmDialog } from "@/components/students/confirm-dialog";
 import { toast } from "@/lib/toast";
 import {
   apiCreateVillage,
@@ -26,6 +28,8 @@ export default function VillagesSettingsPage() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [newName, setNewName] = useState("");
+  const [renaming, setRenaming] = useState<ApiVillage | null>(null);
+  const [deleting, setDeleting] = useState<ApiVillage | null>(null);
 
   async function load() {
     setLoading(true);
@@ -65,13 +69,6 @@ export default function VillagesSettingsPage() {
     );
   }
 
-  async function rename(v: ApiVillage) {
-    const name = window.prompt(t("settingsVillages.newName"), v.name);
-    if (!name || name.trim() === v.name) return;
-    await run(t("settingsVillages.renameFailed"), () =>
-      apiUpdateVillage(v.id, { name: name.trim() }),
-    );
-  }
 
   return (
     <div className="space-y-6">
@@ -151,7 +148,7 @@ export default function VillagesSettingsPage() {
                 <button
                   type="button"
                   disabled={busy}
-                  onClick={() => void rename(v)}
+                  onClick={() => setRenaming(v)}
                   className="rounded p-1 text-muted-foreground hover:bg-muted"
                 >
                   <Pencil className="h-3.5 w-3.5" />
@@ -159,12 +156,7 @@ export default function VillagesSettingsPage() {
                 <button
                   type="button"
                   disabled={busy}
-                  onClick={() => {
-                    if (!window.confirm(t("settingsVillages.deleteConfirm"))) return;
-                    void run(t("settingsVillages.deleteFailed"), () =>
-                      apiDeleteVillage(v.id),
-                    );
-                  }}
+                  onClick={() => setDeleting(v)}
                   className="rounded p-1 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
@@ -174,6 +166,33 @@ export default function VillagesSettingsPage() {
           </ul>
         )}
       </div>
+
+      <PromptDialog
+        open={!!renaming}
+        title={t("settingsVillages.newName")}
+        initialValue={renaming?.name ?? ""}
+        onSubmit={(name) => {
+          const v = renaming;
+          setRenaming(null);
+          if (v && name !== v.name) {
+            void run(t("settingsVillages.renameFailed"), () =>
+              apiUpdateVillage(v.id, { name }),
+            );
+          }
+        }}
+        onClose={() => setRenaming(null)}
+      />
+      <ConfirmDialog
+        open={!!deleting}
+        title={t("common.delete")}
+        message={t("settingsVillages.deleteConfirm")}
+        onConfirm={() => {
+          const v = deleting;
+          setDeleting(null);
+          if (v) void run(t("settingsVillages.deleteFailed"), () => apiDeleteVillage(v.id));
+        }}
+        onClose={() => setDeleting(null)}
+      />
     </div>
   );
 }

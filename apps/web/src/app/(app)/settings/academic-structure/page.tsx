@@ -169,7 +169,12 @@ export default function AcademicStructureSettingsPage() {
             </div>
 
             <div className="mt-4">
-              {yearId && <AcademicStructureBuilder academicYearId={yearId} />}
+              {yearId && (
+                <AcademicStructureBuilder
+                  academicYearId={yearId}
+                  hideDefaultGrades={settings.hideDefaultGrades}
+                />
+              )}
             </div>
           </div>
 

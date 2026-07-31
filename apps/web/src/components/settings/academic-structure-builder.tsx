@@ -13,6 +13,8 @@ import {
 import { useT } from "@/lib/i18n/provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PromptDialog } from "@/components/ui/prompt-dialog";
+import { ConfirmDialog } from "@/components/students/confirm-dialog";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import { apiCreateClass, apiDeleteClass, apiUpdateClass } from "@/lib/academics/api";
@@ -38,8 +40,12 @@ import {
  */
 export function AcademicStructureBuilder({
   academicYearId,
+  hideDefaultGrades,
 }: {
   academicYearId: string;
+  /** Mirrors School.hideDefaultGrades — once on, the leftover Grade ladder
+   *  should stay out of sight here too, not just in pickers elsewhere. */
+  hideDefaultGrades?: boolean;
 }) {
   const t = useT();
   const [tree, setTree] = useState<StructureTree | null>(null);
@@ -48,6 +54,18 @@ export function AcademicStructureBuilder({
   const [newLevel, setNewLevel] = useState("");
   const [addingTo, setAddingTo] = useState<string | null>(null);
   const [draftName, setDraftName] = useState("");
+  const [prompt, setPrompt] = useState<{
+    title: string;
+    label?: string;
+    placeholder?: string;
+    initialValue: string;
+    confirmLabel?: string;
+    onSubmit: (value: string) => void;
+  } | null>(null);
+  const [confirming, setConfirming] = useState<{
+    message: string;
+    onConfirm: () => void;
+  } | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -129,13 +147,28 @@ export function AcademicStructureBuilder({
     </span>
   );
 
-  async function rename(
+  function rename(
     current: string,
     save: (name: string) => Promise<unknown>,
   ) {
-    const name = window.prompt(t("settingsAcademicStructure.newName"), current);
-    if (!name || name.trim() === current) return;
-    await run("Rename failed", () => save(name.trim()));
+    setPrompt({
+      title: t("settingsAcademicStructure.newName"),
+      initialValue: current,
+      onSubmit: (name) => {
+        setPrompt(null);
+        if (name !== current) void run("Rename failed", () => save(name));
+      },
+    });
+  }
+
+  function confirmDelete(message: string, onConfirm: () => void) {
+    setConfirming({
+      message,
+      onConfirm: () => {
+        setConfirming(null);
+        onConfirm();
+      },
+    });
   }
 
   const classRow = (
@@ -168,11 +201,11 @@ export function AcademicStructureBuilder({
       <button
         type="button"
         disabled={busy}
-        onClick={() => {
-          if (!window.confirm(t("settingsAcademicStructure.deleteClassConfirm")))
-            return;
-          void run("Delete failed", () => apiDeleteClass(cls.id));
-        }}
+        onClick={() =>
+          confirmDelete(t("settingsAcademicStructure.deleteClassConfirm"), () =>
+            void run("Delete failed", () => apiDeleteClass(cls.id)),
+          )
+        }
         aria-label={t("common.delete")}
         className="rounded p-1 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30"
       >
@@ -290,11 +323,11 @@ export function AcademicStructureBuilder({
             <button
               type="button"
               disabled={busy}
-              onClick={() => {
-                if (!window.confirm(t("settingsAcademicStructure.deleteLevelConfirm")))
-                  return;
-                void run("Delete failed", () => apiDeleteLevel(level.id));
-              }}
+              onClick={() =>
+                confirmDelete(t("settingsAcademicStructure.deleteLevelConfirm"), () =>
+                  void run("Delete failed", () => apiDeleteLevel(level.id)),
+                )
+              }
               aria-label={t("common.delete")}
               className="rounded p-1 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30"
             >
@@ -341,11 +374,11 @@ export function AcademicStructureBuilder({
                 <button
                   type="button"
                   disabled={busy}
-                  onClick={() => {
-                    if (!window.confirm(t("settingsAcademicStructure.deleteStageConfirm")))
-                      return;
-                    void run("Delete failed", () => apiDeleteStage(stage.id));
-                  }}
+                  onClick={() =>
+                    confirmDelete(t("settingsAcademicStructure.deleteStageConfirm"), () =>
+                      void run("Delete failed", () => apiDeleteStage(stage.id)),
+                    )
+                  }
                   aria-label={t("common.delete")}
                   className="rounded p-1 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30"
                 >
@@ -369,15 +402,20 @@ export function AcademicStructureBuilder({
           <button
             type="button"
             disabled={busy}
-            onClick={() => {
-              const name = window.prompt(
-                t("settingsAcademicStructure.stageNamePrompt"),
-              );
-              if (!name?.trim()) return;
-              void run("Create failed", () =>
-                apiCreateStage({ levelId: level.id, name: name.trim() }),
-              );
-            }}
+            onClick={() =>
+              setPrompt({
+                title: t("settingsAcademicStructure.addStage"),
+                label: t("settingsAcademicStructure.stageNamePrompt"),
+                initialValue: "",
+                confirmLabel: t("common.add"),
+                onSubmit: (name) => {
+                  setPrompt(null);
+                  void run("Create failed", () =>
+                    apiCreateStage({ levelId: level.id, name }),
+                  );
+                },
+              })
+            }
             className="ms-6 mt-3 inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
           >
             <Plus className="h-3 w-3" /> {t("settingsAcademicStructure.addStage")}
@@ -385,8 +423,11 @@ export function AcademicStructureBuilder({
         </div>
       ))}
 
-      {/* Classes that belong to no level — everything a default-ladder school has. */}
-      {tree.ungrouped.length > 0 && (
+      {/* Classes that belong to no level — everything a default-ladder school has.
+          Once the school has said it no longer uses the default ladder (and has
+          at least one level of its own to prove it), keep this out of sight too —
+          not just out of pickers elsewhere. */}
+      {tree.ungrouped.length > 0 && !(hideDefaultGrades && tree.levels.length > 0) && (
         <div className={cn("rounded-xl border border-dashed p-4")}>
           <p className="text-sm font-medium">
             {t("settingsAcademicStructure.ungrouped")}
@@ -437,6 +478,24 @@ export function AcademicStructureBuilder({
           </ul>
         </div>
       )}
+
+      <PromptDialog
+        open={!!prompt}
+        title={prompt?.title ?? ""}
+        label={prompt?.label}
+        placeholder={prompt?.placeholder}
+        initialValue={prompt?.initialValue ?? ""}
+        confirmLabel={prompt?.confirmLabel}
+        onSubmit={(value) => prompt?.onSubmit(value)}
+        onClose={() => setPrompt(null)}
+      />
+      <ConfirmDialog
+        open={!!confirming}
+        title={t("common.delete")}
+        message={confirming?.message ?? ""}
+        onConfirm={() => confirming?.onConfirm()}
+        onClose={() => setConfirming(null)}
+      />
     </div>
   );
 }
