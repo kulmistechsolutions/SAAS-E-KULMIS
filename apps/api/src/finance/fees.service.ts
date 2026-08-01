@@ -7,6 +7,7 @@ import {
 import type {
   ChargeMonthInput,
   CreateExtraFeeInput,
+  PayFamilyInput,
   PayFeeInput,
   SetupAcademicYearFeesInput,
   SetupMonthInput,
@@ -1086,6 +1087,142 @@ export class FeesService {
 
       return { receiptNumber, payment, unallocated: remaining };
     });
+  }
+
+  /**
+   * One payment covering every active sibling under a parent at once — for
+   * a family that pays together rather than one child at a time. Applied
+   * oldest-first across the whole family's outstanding charges regardless of
+   * which sibling owns them (same rule pay() uses within one student, just
+   * spanning several). A separate receipt is issued per sibling that
+   * actually received money, since a receipt belongs to one student's
+   * ledger — but all of them come out of this single action and share a
+   * note identifying them as one family payment.
+   */
+  async payFamily(
+    schoolId: string,
+    dto: PayFamilyInput,
+    collectedByUserId: string,
+  ) {
+    return this.prisma.forTenant(
+      schoolId,
+      async (tx) => {
+        if (!(await this.hasAnyFeeSetup(tx))) {
+          throw new BadRequestException(
+            "Fee setup required — set up billing (Settings → Fees) before collecting any payment.",
+          );
+        }
+
+        const parent = await tx.parent.findFirst({
+          where: { id: dto.parentId },
+          select: { id: true, name: true },
+        });
+        if (!parent) throw new NotFoundException("Parent not found");
+
+        const students = await tx.student.findMany({
+          where: { parentId: dto.parentId, status: "ACTIVE" },
+          select: { id: true, fullName: true },
+        });
+        if (students.length === 0) {
+          throw new BadRequestException(
+            "This parent has no active students",
+          );
+        }
+        const studentIds = students.map((s) => s.id);
+        const studentNameById = new Map(
+          students.map((s) => [s.id, s.fullName]),
+        );
+
+        const outstanding = await tx.feeCharge.findMany({
+          where: {
+            studentId: { in: studentIds },
+            status: { in: ["UNPAID", "PARTIAL"] },
+          },
+          orderBy: [
+            { year: "asc" },
+            { month: "asc" },
+            { kind: "asc" },
+            { createdAt: "asc" },
+          ],
+        });
+
+        let remaining = dto.amount;
+        const appliedByStudent = new Map<string, number>();
+        for (const charge of outstanding) {
+          if (remaining <= 0) break;
+          const due = charge.amount - charge.paidAmount;
+          if (due <= 0) continue;
+          const applied = Math.min(due, remaining);
+          const paidAmount = charge.paidAmount + applied;
+          await tx.feeCharge.update({
+            where: { id: charge.id },
+            data: {
+              paidAmount,
+              status: paidAmount >= charge.amount ? "PAID" : "PARTIAL",
+            },
+          });
+          remaining -= applied;
+          appliedByStudent.set(
+            charge.studentId,
+            (appliedByStudent.get(charge.studentId) ?? 0) + applied,
+          );
+        }
+
+        if (appliedByStudent.size === 0) {
+          throw new BadRequestException(
+            "This family has no outstanding balance to apply a payment to",
+          );
+        }
+
+        const school = await tx.school.findUnique({
+          where: { id: schoolId },
+          select: { receiptPrefix: true },
+        });
+
+        const receipts: {
+          studentId: string;
+          studentName: string;
+          receiptNumber: string;
+          amountApplied: number;
+        }[] = [];
+        for (const [studentId, amountApplied] of appliedByStudent) {
+          const seq = await tx.counter.upsert({
+            where: { schoolId_name: { schoolId, name: "receipt" } },
+            create: { schoolId, name: "receipt", value: 1 },
+            update: { value: { increment: 1 } },
+          });
+          const receiptNumber = `${school?.receiptPrefix ?? "RCP"}${pad(seq.value)}`;
+          await tx.payment.create({
+            data: {
+              schoolId,
+              studentId,
+              receiptNumber,
+              type: "PARTIAL",
+              amount: amountApplied,
+              method: dto.method ?? null,
+              note: dto.note
+                ? `${dto.note} (family payment — ${parent.name})`
+                : `Family payment — ${parent.name}`,
+              collectedByUserId,
+            },
+          });
+          receipts.push({
+            studentId,
+            studentName: studentNameById.get(studentId) ?? "",
+            receiptNumber,
+            amountApplied,
+          });
+        }
+
+        return {
+          parentName: parent.name,
+          totalApplied: dto.amount - remaining,
+          unallocated: remaining,
+          receipts,
+        };
+      },
+      { timeout: 60_000, maxWait: 30_000 },
+    );
   }
 
   async ledger(schoolId: string, studentId: string) {

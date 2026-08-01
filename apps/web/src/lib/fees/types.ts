@@ -86,6 +86,27 @@ export interface StudentFeeRow {
   advanceMonthsLeft?: number;
 }
 
+/** One child within a FamilyFeeRow, kept lean since the family view lists many. */
+export interface FamilyChildRow {
+  studentId: string;
+  code: string;
+  fullName: string;
+  className: string;
+  section: string;
+  outstandingBalance: number;
+  status: FeeChargeStatus | "ADVANCE_MULTI";
+}
+
+/** A parent with every active sibling grouped under them, for the Family collect view. */
+export interface FamilyFeeRow {
+  parentId: string;
+  parentCode: string;
+  parentName: string;
+  parentPhone: string;
+  children: FamilyChildRow[];
+  totalOutstanding: number;
+}
+
 export interface RecentPaymentRow {
   payment: FeePayment;
   studentCode: string;

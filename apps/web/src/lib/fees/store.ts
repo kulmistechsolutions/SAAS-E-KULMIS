@@ -6,7 +6,7 @@ import {
   getAcademicsState,
   activeAcademicYear as getActiveAcademicYear,
 } from "@/lib/academics/store";
-import { getState as getStudentsState } from "@/lib/students/store";
+import { getState as getStudentsState, withParents } from "@/lib/students/store";
 import type { Student } from "@/lib/students/types";
 import {
   apiChargeMonth,
@@ -14,12 +14,14 @@ import {
   apiFinanceDashboard,
   apiListCharges,
   apiListPayments,
+  apiPayFamily,
   apiPayFee,
   mapApiCharge,
   mapApiPayment,
 } from "./api";
 import { monthKey, monthLabel, nextMonthKey, parseMonthKey } from "./format";
 import type {
+  FamilyFeeRow,
   FeeCharge,
   FeeChargeStatus,
   FeeDashboardSummary,
@@ -470,6 +472,40 @@ export async function collectPayment(input: PayInput): Promise<{
   }
 }
 
+export async function collectFamilyPayment(input: {
+  parentId: string;
+  amount: number;
+  collectedBy?: string;
+}): Promise<{
+  ok: boolean;
+  error?: string;
+  result?: {
+    parentName: string;
+    totalApplied: number;
+    unallocated: number;
+    receipts: { studentId: string; studentName: string; receiptNumber: string; amountApplied: number }[];
+  };
+}> {
+  if (!input.amount || input.amount <= 0) {
+    return { ok: false, error: "Enter a valid payment amount." };
+  }
+  try {
+    const res = await apiPayFamily({
+      parentId: input.parentId,
+      amount: input.amount,
+    });
+    await refreshFees();
+    logAudit(
+      "Family Fee Collection",
+      input.collectedBy ?? "Admin User",
+      `${res.parentName} — ${res.totalApplied} across ${res.receipts.length} student(s)`,
+    );
+    return { ok: true, result: res };
+  } catch (e) {
+    return { ok: false, error: apiErr(e, "Payment failed.") };
+  }
+}
+
 export function dashboardSummary(
   filterMonth?: string,
   academicYear?: string,
@@ -644,6 +680,69 @@ export function listStudentFees(opts: {
       };
     })
     .sort((a, b) => a.fullName.localeCompare(b.fullName));
+}
+
+/**
+ * Siblings often land in different classes, so the by-class Collect Fees
+ * screen can't find them together. This groups active students by parent —
+ * matching on parent name/phone as well as any child's name/ID — so a
+ * family can be found and settled in one place regardless of which classes
+ * its children are actually in.
+ */
+export function listFamilies(opts: {
+  academicYear?: string;
+  search?: string;
+  monthKey?: string;
+}): FamilyFeeRow[] {
+  const s = ensure();
+  const month = opts.monthKey ?? s.activeMonthKey;
+  const year = opts.academicYear || s.academicYear || activeAcademicYear();
+  const students = withParents(getStudentsState()).filter(
+    (x) => x.status === "ACTIVE" && x.academicYear === year,
+  );
+
+  const q = opts.search?.trim().toLowerCase();
+  const byParent = new Map<string, typeof students>();
+  for (const st of students) {
+    const matches =
+      !q ||
+      st.fullName.toLowerCase().includes(q) ||
+      st.code.toLowerCase().includes(q) ||
+      st.parent.name.toLowerCase().includes(q) ||
+      st.parent.phone.toLowerCase().includes(q);
+    if (!matches) continue;
+    const group = byParent.get(st.parentId) ?? [];
+    group.push(st);
+    byParent.set(st.parentId, group);
+  }
+
+  const families: FamilyFeeRow[] = [];
+  for (const [parentId, siblings] of byParent) {
+    const children = siblings
+      .map((st) => {
+        const agg = aggregateStudentStatus(st.id, month);
+        return {
+          studentId: st.id,
+          code: st.code,
+          fullName: st.fullName,
+          className: st.className,
+          section: st.section ?? "—",
+          outstandingBalance: outstandingBalance(st.id, month),
+          status: agg.status,
+        };
+      })
+      .sort((a, b) => a.fullName.localeCompare(b.fullName));
+    families.push({
+      parentId,
+      parentCode: siblings[0]!.parent.code,
+      parentName: siblings[0]!.parent.name,
+      parentPhone: siblings[0]!.parent.phone,
+      children,
+      totalOutstanding: children.reduce((sum, c) => sum + c.outstandingBalance, 0),
+    });
+  }
+
+  return families.sort((a, b) => a.parentName.localeCompare(b.parentName));
 }
 
 export function studentLedger(studentId: string): StudentLedgerRow[] {

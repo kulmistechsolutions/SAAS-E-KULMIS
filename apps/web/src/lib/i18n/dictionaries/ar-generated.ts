@@ -889,6 +889,27 @@ export const arGenerated: PartialDictionary = {
     view: "عرض",
     noStudentsMatchYourFilters: "لا يوجد طلاب يطابقون عوامل التصفية.",
   },
+  feesFamilyCollectSection: {
+    collectByFamily: "التحصيل حسب العائلة",
+    searchByParentNamePhoneOrAny: "ابحث باسم ولي الأمر أو الهاتف أو اسم أي طفل — يتم تجميع الإخوة معًا حتى لو كانوا في صفوف مختلفة.",
+    searchParentOrStudent: "ابحث عن ولي الأمر أو الطالب",
+    parentNamePhoneOrStudentName: "اسم ولي الأمر أو الهاتف أو اسم الطالب",
+    noFamilyMatchesThatSearch: "لا توجد عائلة تطابق هذا البحث.",
+    typeAParentOrStudentNameTo: "اكتب اسم ولي الأمر أو الطالب للعثور على العائلة.",
+    child: "طفل",
+    children: "أطفال",
+    totalOutstanding: "إجمالي المتبقي",
+    payFamily: "دفع للعائلة",
+  },
+  feesFamilyPaymentDialog: {
+    collectForFamily: "تحصيل للعائلة",
+    totalOutstandingForThisFamily: "إجمالي المتبقي لهذه العائلة",
+    student: "الطالب",
+    class: "الصف",
+    outstanding: "المتبقي",
+    amountToCollect: "المبلغ المراد تحصيله",
+    appliedOldestFirstAcrossEveryChild: "يُطبَّق أولاً على أقدم الأرصدة المستحقة لكل طفل.",
+  },
   feesFormat: {
     month1: "يناير",
     month2: "فبراير",
@@ -1032,6 +1053,8 @@ export const arGenerated: PartialDictionary = {
   financeCollect: {
     collectFees: "تحصيل الرسوم",
     searchStudentsByClassAndSection: "ابحث عن الطلاب حسب الصف والشعبة، ثم سجّل المدفوعات.",
+    byClass: "حسب الصف",
+    byFamily: "حسب العائلة",
   },
   financeExtraFees: {
     extraFees: "رسوم إضافية",

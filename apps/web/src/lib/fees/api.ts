@@ -220,6 +220,29 @@ export async function apiPayFee(input: PayFeeApiInput) {
   }>("/fees/pay", { method: "POST", body: input });
 }
 
+export interface PayFamilyApiInput {
+  parentId: string;
+  amount: number;
+  method?: string | null;
+  note?: string | null;
+}
+
+export interface FamilyPaymentReceipt {
+  studentId: string;
+  studentName: string;
+  receiptNumber: string;
+  amountApplied: number;
+}
+
+export async function apiPayFamily(input: PayFamilyApiInput) {
+  return api<{
+    parentName: string;
+    totalApplied: number;
+    unallocated: number;
+    receipts: FamilyPaymentReceipt[];
+  }>("/fees/pay-family", { method: "POST", body: input });
+}
+
 export async function apiFeeSettings() {
   return api<{
     billingMode: "MONTHLY" | "ACADEMIC_YEAR";

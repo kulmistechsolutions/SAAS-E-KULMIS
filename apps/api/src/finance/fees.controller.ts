@@ -12,6 +12,7 @@ import {
 import {
   chargeMonthSchema,
   createExtraFeeSchema,
+  payFamilySchema,
   payFeeSchema,
   setupAcademicYearFeesSchema,
   setupMonthSchema,
@@ -75,6 +76,13 @@ export class FeesController {
     const parsed = payFeeSchema.safeParse(body);
     if (!parsed.success) throw new BadRequestException(parsed.error.flatten());
     return this.fees.pay(me.schoolId, parsed.data, me.userId);
+  }
+
+  @Post("pay-family")
+  payFamily(@CurrentUser() me: AuthUser, @Body() body: unknown) {
+    const parsed = payFamilySchema.safeParse(body);
+    if (!parsed.success) throw new BadRequestException(parsed.error.flatten());
+    return this.fees.payFamily(me.schoolId, parsed.data, me.userId);
   }
 
   @Get("ledger/:studentId")

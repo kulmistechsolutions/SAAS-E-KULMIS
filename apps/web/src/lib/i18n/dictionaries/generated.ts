@@ -889,6 +889,27 @@ export const generated = {
     view: "View",
     noStudentsMatchYourFilters: "No students match your filters.",
   },
+  feesFamilyCollectSection: {
+    collectByFamily: "Collect by Family",
+    searchByParentNamePhoneOrAny: "Search by parent name, phone, or any child's name — siblings are grouped together even across different classes.",
+    searchParentOrStudent: "Search parent or student",
+    parentNamePhoneOrStudentName: "Parent name, phone, or student name",
+    noFamilyMatchesThatSearch: "No family matches that search.",
+    typeAParentOrStudentNameTo: "Type a parent or student name to find a family.",
+    child: "child",
+    children: "children",
+    totalOutstanding: "Total Outstanding",
+    payFamily: "Pay Family",
+  },
+  feesFamilyPaymentDialog: {
+    collectForFamily: "Collect for Family",
+    totalOutstandingForThisFamily: "Total outstanding for this family",
+    student: "Student",
+    class: "Class",
+    outstanding: "Outstanding",
+    amountToCollect: "Amount to Collect",
+    appliedOldestFirstAcrossEveryChild: "Applied oldest-first across every child's outstanding balance.",
+  },
   feesFormat: {
     month1: "January",
     month2: "February",
@@ -1032,6 +1053,8 @@ export const generated = {
   financeCollect: {
     collectFees: "Collect Fees",
     searchStudentsByClassAndSection: "Search students by class and section, then record payments.",
+    byClass: "By Class",
+    byFamily: "By Family",
   },
   financeExtraFees: {
     extraFees: "Extra Fees",

@@ -889,6 +889,27 @@ export const soGenerated: PartialDictionary = {
     view: "Eeg",
     noStudentsMatchYourFilters: "Arday shaandhadaada waafaqsan ma jiro.",
   },
+  feesFamilyCollectSection: {
+    collectByFamily: "Qaad Qoyska",
+    searchByParentNamePhoneOrAny: "Ku raadi magaca waalidka, taleefanka, ama magaca arday kasta — walaalaha waa la isku soo ururiyaa xitaa haddii ay fasallo kala duwan joogaan.",
+    searchParentOrStudent: "Raadi waalid ama arday",
+    parentNamePhoneOrStudentName: "Magaca waalidka, taleefanka, ama magaca ardayga",
+    noFamilyMatchesThatSearch: "Qoys kuma jiro raadintaas.",
+    typeAParentOrStudentNameTo: "Qor magaca waalid ama arday si aad qoyska u hesho.",
+    child: "ilmo",
+    children: "carruur",
+    totalOutstanding: "Wadarta Hadhaysa",
+    payFamily: "Bixi Qoyska",
+  },
+  feesFamilyPaymentDialog: {
+    collectForFamily: "Qaad Qoyska",
+    totalOutstandingForThisFamily: "Wadarta hadhaysa ee qoyskan",
+    student: "Arday",
+    class: "Fasalka",
+    outstanding: "Hadhaysa",
+    amountToCollect: "Qadarka La Qaadayo",
+    appliedOldestFirstAcrossEveryChild: "Waxaa loo dabaqi doonaa marka hore kuwii ugu horeeyay ee ilmaha oo dhan.",
+  },
   feesFormat: {
     month1: "Jannaayo",
     month2: "Febraayo",
@@ -1032,6 +1053,8 @@ export const soGenerated: PartialDictionary = {
   financeCollect: {
     collectFees: "Qaad Khidmadaha",
     searchStudentsByClassAndSection: "Ardayda ku raadi fasal iyo qayb, kadibna lacag-bixinta diiwaan geli.",
+    byClass: "Fasalka",
+    byFamily: "Qoyska",
   },
   financeExtraFees: {
     extraFees: "Khidmado Dheeraad ah",

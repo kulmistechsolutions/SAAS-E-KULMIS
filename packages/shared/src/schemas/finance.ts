@@ -57,6 +57,20 @@ export const payFeeSchema = z.object({
 });
 export type PayFeeInput = z.infer<typeof payFeeSchema>;
 
+/**
+ * One payment covering several siblings at once — a parent paying for every
+ * child under them in one go instead of one screen per class/section. The
+ * amount is applied across the family's outstanding charges oldest-first,
+ * regardless of which sibling each charge belongs to.
+ */
+export const payFamilySchema = z.object({
+  parentId: z.string().min(1),
+  amount: positiveAmount,
+  method: z.string().min(1).nullable().optional(),
+  note: z.string().min(1).nullable().optional(),
+});
+export type PayFamilyInput = z.infer<typeof payFamilySchema>;
+
 export const BillingMode = {
   MONTHLY: "MONTHLY",
   ACADEMIC_YEAR: "ACADEMIC_YEAR",
