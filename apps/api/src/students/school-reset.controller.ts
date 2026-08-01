@@ -4,6 +4,7 @@ import {
   Controller,
   Get,
   Param,
+  ParseIntPipe,
   Post,
 } from "@nestjs/common";
 import { UserRole } from "@ekulmis/shared";
@@ -71,5 +72,42 @@ export class SchoolResetController {
       );
     }
     return this.reset.resetClass(me.schoolId, classId, confirm);
+  }
+
+  @Get("fees/preview")
+  previewFees(@CurrentUser() me: AuthUser) {
+    return this.reset.previewFees(me.schoolId);
+  }
+
+  @Post("fees")
+  resetFees(@CurrentUser() me: AuthUser, @Body() body: unknown) {
+    const confirm = (body as { confirmName?: unknown } | null)?.confirmName;
+    if (typeof confirm !== "string" || !confirm.trim()) {
+      throw new BadRequestException(
+        "confirmName is required — type the school name to confirm",
+      );
+    }
+    return this.reset.resetFees(me.schoolId, confirm);
+  }
+
+  @Get("months")
+  listActivatedMonths(@CurrentUser() me: AuthUser) {
+    return this.reset.listActivatedMonths(me.schoolId);
+  }
+
+  @Post("months/:year/:month")
+  deleteMonth(
+    @CurrentUser() me: AuthUser,
+    @Param("year", ParseIntPipe) year: number,
+    @Param("month", ParseIntPipe) month: number,
+    @Body() body: unknown,
+  ) {
+    const confirm = (body as { confirmName?: unknown } | null)?.confirmName;
+    if (typeof confirm !== "string" || !confirm.trim()) {
+      throw new BadRequestException(
+        "confirmName is required — type the school name to confirm",
+      );
+    }
+    return this.reset.deleteMonth(me.schoolId, year, month, confirm);
   }
 }

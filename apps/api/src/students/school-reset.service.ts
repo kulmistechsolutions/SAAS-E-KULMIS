@@ -289,4 +289,168 @@ export class SchoolResetService {
     );
     return { success: true, ...result };
   }
+
+  /** Counts for a full fee-data reset — every charge, payment, and activation. */
+  async previewFees(schoolId: string) {
+    return this.prisma.forTenant(schoolId, async (tx) => {
+      const school = await tx.school.findUnique({
+        where: { id: schoolId },
+        select: { name: true },
+      });
+      if (!school) throw new NotFoundException("School not found");
+      const [charges, payments, monthlyActivations, yearlySetups, extraFees] =
+        await Promise.all([
+          tx.feeCharge.count(),
+          tx.payment.count(),
+          tx.monthlyFeeActivation.count(),
+          tx.academicYearFeeSetup.count(),
+          tx.extraFee.count(),
+        ]);
+      return {
+        scope: "fees" as const,
+        name: school.name,
+        counts: { charges, payments, monthlyActivations, yearlySetups, extraFees },
+      };
+    });
+  }
+
+  /**
+   * Erase every fee charge, payment, and billing activation in the school —
+   * a clean financial slate. Students, classes and fee settings are kept;
+   * only the money trail is wiped. Irreversible: once payments are gone,
+   * their receipt numbers cannot be recovered.
+   */
+  async resetFees(schoolId: string, confirmName: string) {
+    const result = await this.prisma.forTenant(
+      schoolId,
+      async (tx) => {
+        const school = await tx.school.findUnique({
+          where: { id: schoolId },
+          select: { name: true },
+        });
+        if (!school) throw new NotFoundException("School not found");
+        if (confirmName.trim() !== school.name) {
+          throw new BadRequestException(
+            `Type the school name exactly ("${school.name}") to confirm`,
+          );
+        }
+
+        const [charges, payments] = await Promise.all([
+          tx.feeCharge.deleteMany({ where: {} }),
+          tx.payment.deleteMany({ where: {} }),
+        ]);
+        await tx.monthlyFeeActivation.deleteMany({ where: {} });
+        await tx.academicYearFeeSetup.deleteMany({ where: {} });
+        // Cascades ExtraFeeClassAmount.
+        await tx.extraFee.deleteMany({ where: {} });
+
+        return {
+          name: school.name,
+          chargesDeleted: charges.count,
+          paymentsDeleted: payments.count,
+        };
+      },
+      { timeout: 120_000, maxWait: 30_000 },
+    );
+
+    this.logger.warn(
+      `RESET FEES in school ${schoolId} ("${result.name}"): ` +
+        `${result.chargesDeleted} charges, ${result.paymentsDeleted} payments erased`,
+    );
+    return { success: true, ...result };
+  }
+
+  /**
+   * Every month that has ever been activated, with enough detail to tell
+   * whether it can be safely undone — a month with any payment already
+   * collected against it can't be deleted without corrupting the ledger.
+   */
+  async listActivatedMonths(schoolId: string) {
+    return this.prisma.forTenant(schoolId, async (tx) => {
+      const activations = await tx.monthlyFeeActivation.groupBy({
+        by: ["year", "month"],
+        _count: { _all: true },
+        orderBy: [{ year: "desc" }, { month: "desc" }],
+      });
+      return Promise.all(
+        activations.map(async (a) => {
+          const charges = await tx.feeCharge.aggregate({
+            where: { year: a.year, month: a.month },
+            _count: { _all: true },
+            _sum: { amount: true, paidAmount: true },
+          });
+          return {
+            year: a.year,
+            month: a.month,
+            classesActivated: a._count._all,
+            chargesCount: charges._count._all,
+            totalCharged: charges._sum.amount ?? 0,
+            totalPaid: charges._sum.paidAmount ?? 0,
+            hasPayments: (charges._sum.paidAmount ?? 0) > 0,
+          };
+        }),
+      );
+    });
+  }
+
+  /**
+   * Undo a single month's activation — deletes the MonthlyFeeActivation and
+   * that month's FeeCharge rows so it can be activated again cleanly. This
+   * is for the specific mistake of turning a month on too early: nothing has
+   * been paid against it yet, and the next real month's carry-forward is
+   * about to combine with it. Blocked once any student has paid against that
+   * month — undoing after money has been collected would leave a payment on
+   * record with no charge left to explain it, which is worse than the
+   * mistake it's meant to fix.
+   */
+  async deleteMonth(
+    schoolId: string,
+    year: number,
+    month: number,
+    confirmName: string,
+  ) {
+    const result = await this.prisma.forTenant(
+      schoolId,
+      async (tx) => {
+        const school = await tx.school.findUnique({
+          where: { id: schoolId },
+          select: { name: true },
+        });
+        if (!school) throw new NotFoundException("School not found");
+        if (confirmName.trim() !== school.name) {
+          throw new BadRequestException(
+            `Type the school name exactly ("${school.name}") to confirm`,
+          );
+        }
+
+        const paidCheck = await tx.feeCharge.aggregate({
+          where: { year, month },
+          _sum: { paidAmount: true },
+        });
+        if ((paidCheck._sum.paidAmount ?? 0) > 0) {
+          throw new BadRequestException(
+            "Students have already paid against this month — it can't be undone without breaking the payment record. Use Reset All Fees if you need to clear everything.",
+          );
+        }
+
+        const [charges, activations] = await Promise.all([
+          tx.feeCharge.deleteMany({ where: { year, month } }),
+          tx.monthlyFeeActivation.deleteMany({ where: { year, month } }),
+        ]);
+
+        return {
+          name: school.name,
+          chargesDeleted: charges.count,
+          activationsDeleted: activations.count,
+        };
+      },
+      { timeout: 60_000, maxWait: 30_000 },
+    );
+
+    this.logger.warn(
+      `DELETE MONTH ${year}-${month} in school ${schoolId} ("${result.name}"): ` +
+        `${result.chargesDeleted} charges, ${result.activationsDeleted} activations erased`,
+    );
+    return { success: true, year, month, ...result };
+  }
 }

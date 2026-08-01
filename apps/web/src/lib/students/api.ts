@@ -330,6 +330,59 @@ export const apiResetClass = (classId: string, confirmName: string) =>
     { method: "POST", body: { confirmName } },
   );
 
+export interface ApiFeeResetPreview {
+  scope: "fees";
+  name: string;
+  counts: {
+    charges: number;
+    payments: number;
+    monthlyActivations: number;
+    yearlySetups: number;
+    extraFees: number;
+  };
+}
+
+export const apiFeeResetPreview = () =>
+  api<ApiFeeResetPreview>("/admin/reset/fees/preview");
+
+/** Erase every fee charge, payment, and billing activation; students and classes are kept. */
+export const apiResetFees = (confirmName: string) =>
+  api<{ success: true; name: string; chargesDeleted: number; paymentsDeleted: number }>(
+    "/admin/reset/fees",
+    { method: "POST", body: { confirmName } },
+  );
+
+export interface ApiActivatedMonth {
+  year: number;
+  month: number;
+  classesActivated: number;
+  chargesCount: number;
+  totalCharged: number;
+  totalPaid: number;
+  hasPayments: boolean;
+}
+
+export const apiListActivatedMonths = () =>
+  api<ApiActivatedMonth[]>("/admin/reset/months");
+
+/** Undo one month's activation — blocked once any payment has landed against it. */
+export const apiDeleteMonth = (
+  year: number,
+  month: number,
+  confirmName: string,
+) =>
+  api<{
+    success: true;
+    year: number;
+    month: number;
+    name: string;
+    chargesDeleted: number;
+    activationsDeleted: number;
+  }>(`/admin/reset/months/${year}/${month}`, {
+    method: "POST",
+    body: { confirmName },
+  });
+
 export interface UpdateParentApiInput {
   name?: string;
   phone?: string;
