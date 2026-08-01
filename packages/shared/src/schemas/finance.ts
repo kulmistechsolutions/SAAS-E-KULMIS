@@ -88,6 +88,10 @@ export const studentFeeStartSchema = z.object({
   agreementAmount: z.number().int().nonnegative().optional(),
   billingStartYear: year.optional(),
   billingStartMonth: month.optional(),
+  /// Charge the school's one-time registration fee now. Ignored if the
+  /// school has no registrationFeeAmount configured, or if it was already
+  /// charged for this student.
+  chargeRegistrationFee: z.boolean().optional(),
 });
 export type StudentFeeStartInput = z.infer<typeof studentFeeStartSchema>;
 

@@ -124,6 +124,8 @@ export interface FeeSettings {
   receiptPrefix: string;
   receiptHeader: string;
   receiptFooter: string;
+  /** One-time fee charged at registration, separate from the monthly fee. 0 = unused. */
+  registrationFeeAmount: number;
 }
 
 export interface SalarySettings {

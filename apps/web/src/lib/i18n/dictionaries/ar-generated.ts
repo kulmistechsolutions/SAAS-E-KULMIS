@@ -2883,6 +2883,8 @@ export const arGenerated: PartialDictionary = {
     shownOnEveryPrintedFeeReceipt: "يظهر على كل إيصال رسوم مطبوع.",
     receiptHeaderOptional: "ترويسة الإيصال (اختياري)",
     receiptFooter: "تذييل الإيصال",
+    registrationFee: "رسوم التسجيل",
+    registrationFeeHint: "رسوم تُحصَّل مرة واحدة عند التسجيل، منفصلة عن الرسوم الشهرية. 0 = غير مستخدمة.",
   },
   settingsImportExport: {
     importExport: "استيراد / تصدير",
@@ -3515,6 +3517,9 @@ export const arGenerated: PartialDictionary = {
     village: "الحي",
     none: "لا شيء",
     noVillagesSetUp: "لم يتم إعداد أي حي بعد",
+    feeWaived: "مجاني (بدون رسوم شهرية)",
+    feeWaivedHint: "لا تُحصَّل من هذا الطالب الرسوم الشهرية/الدراسية أبدًا، حتى يتم إيقاف هذا الخيار مرة أخرى. لا تزال الرسوم الإضافية (مثل رسوم الامتحان) قابلة للتطبيق.",
+    chargeRegistrationFee: "تحصيل رسوم التسجيل الآن",
   },
   studentsStudentPhotoUpload: {
     studentPhotoPreview: "معاينة صورة الطالب",

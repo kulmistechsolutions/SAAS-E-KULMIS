@@ -2883,6 +2883,8 @@ export const generated = {
     shownOnEveryPrintedFeeReceipt: "Shown on every printed fee receipt.",
     receiptHeaderOptional: "Receipt Header (optional)",
     receiptFooter: "Receipt Footer",
+    registrationFee: "Registration Fee",
+    registrationFeeHint: "One-time fee charged at registration, separate from the monthly fee. 0 = not used.",
   },
   settingsImportExport: {
     importExport: "Import / Export",
@@ -3515,6 +3517,9 @@ export const generated = {
     village: "Village",
     none: "None",
     noVillagesSetUp: "No villages set up yet",
+    feeWaived: "Free (no monthly fee)",
+    feeWaivedHint: "This student is never charged the monthly/tuition fee, until this is turned off again. Extra fees (e.g. exam fee) can still apply.",
+    chargeRegistrationFee: "Charge registration fee now",
   },
   studentsStudentPhotoUpload: {
     studentPhotoPreview: "Student photo preview",

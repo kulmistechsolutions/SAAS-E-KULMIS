@@ -262,6 +262,7 @@ export class StudentsService {
             monthlyFee: dto.monthlyFee ?? 0,
             feeStartMode: dto.feeStartMode ?? null,
             feeAgreementAmount: dto.agreementAmount ?? null,
+            feeWaived: dto.feeWaived ?? false,
           },
           include: studentInclude,
         });
@@ -283,6 +284,7 @@ export class StudentsService {
       await this.fees.initializeStudentFees(schoolId, student.id, {
         feeStartMode: dto.feeStartMode,
         agreementAmount: dto.agreementAmount,
+        chargeRegistrationFee: dto.chargeRegistrationFee,
       });
     } catch (err) {
       this.logger.warn(
@@ -514,6 +516,7 @@ export class StudentsService {
           sectionId: dto.sectionId,
           villageId: dto.villageId,
           monthlyFee: dto.monthlyFee,
+          feeWaived: dto.feeWaived,
           status: dto.status,
           ...(move ? { parentId: move.parentId } : {}),
         },

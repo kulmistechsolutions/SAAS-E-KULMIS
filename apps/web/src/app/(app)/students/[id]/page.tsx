@@ -498,7 +498,11 @@ function FeesTab({ student }: { student: StudentWithParent }) {
             {!loading &&
               rows.map((r) => (
                 <tr key={r.id} className="border-t">
-                  <td className="px-4 py-2.5">{monthLabel(monthKey(r.year, r.month))}</td>
+                  <td className="px-4 py-2.5">
+                    {r.kind && r.kind !== "MONTHLY" && r.label
+                      ? `${r.label} · ${monthLabel(monthKey(r.year, r.month))}`
+                      : monthLabel(monthKey(r.year, r.month))}
+                  </td>
                   <td className="px-4 py-2.5 tabular-nums">{feeMoney(r.amount)}</td>
                   <td className="px-4 py-2.5 tabular-nums">{feeMoney(r.paidAmount)}</td>
                   <td className="px-4 py-2.5 tabular-nums">

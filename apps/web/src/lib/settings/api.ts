@@ -67,6 +67,7 @@ export interface ApiSchool {
   feeAllowAdvance?: boolean;
   feeCarryForward?: boolean;
   feeMonthSetupDay?: number;
+  registrationFeeAmount?: number;
   // Branding — null means "not chosen", so the app default applies.
   primaryColor?: string | null;
   secondaryColor?: string | null;
@@ -125,6 +126,8 @@ export function mapApiSchoolToSettings(
       allowAdvancePayment: row.feeAllowAdvance ?? base.fees.allowAdvancePayment,
       carryForward: row.feeCarryForward ?? base.fees.carryForward,
       monthSetupDay: row.feeMonthSetupDay ?? base.fees.monthSetupDay,
+      registrationFeeAmount:
+        row.registrationFeeAmount ?? base.fees.registrationFeeAmount,
       receiptHeader: row.receiptHeader ?? base.fees.receiptHeader,
       receiptFooter: row.receiptFooter ?? base.fees.receiptFooter,
     },
@@ -219,6 +222,7 @@ export function mapSettingsSectionToPatch(
       feeAllowAdvance: f.allowAdvancePayment,
       feeCarryForward: f.carryForward,
       feeMonthSetupDay: f.monthSetupDay,
+      registrationFeeAmount: f.registrationFeeAmount,
       receiptHeader: f.receiptHeader || null,
       receiptFooter: f.receiptFooter || null,
     };

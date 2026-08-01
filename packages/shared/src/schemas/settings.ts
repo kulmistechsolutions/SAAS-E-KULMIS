@@ -55,6 +55,7 @@ export const updateSettingsSchema = z
     feeAllowAdvance: z.boolean().optional(),
     feeCarryForward: z.boolean().optional(),
     feeMonthSetupDay: z.number().int().min(1).max(28).optional(),
+    registrationFeeAmount: z.number().int().nonnegative().optional(),
     // Branding. Colours are hex ("#3b82f6" or "#fff"); null clears the choice
     // and returns that colour to the app default.
     primaryColor: hexColor.nullable().optional(),

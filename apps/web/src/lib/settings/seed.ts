@@ -107,6 +107,7 @@ export function buildSettingsSeed(): SettingsState {
       receiptHeader: "",
       receiptFooter:
         "This is a computer-generated receipt. Thank you for your payment.",
+      registrationFeeAmount: 0,
     },
     salary: {
       payrollDay: 28,

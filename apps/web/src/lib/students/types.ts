@@ -42,6 +42,8 @@ export interface Student {
   feeStartMode?: FeeStartMode | null;
   feeAgreementAmount?: number | null;
   annualFeeAmount?: number | null;
+  /** Permanent tuition exemption — never charged the monthly/tuition fee until turned off. */
+  feeWaived?: boolean;
 }
 
 /** A student joined with its parent, used by list/table views. */
@@ -65,6 +67,8 @@ export interface StudentInput {
   notes?: string | null;
   feeStartMode?: FeeStartMode;
   agreementAmount?: number;
+  feeWaived?: boolean;
+  chargeRegistrationFee?: boolean;
 }
 
 export interface StudentPhotoChange {

@@ -465,6 +465,8 @@ export async function registerStudent(
       monthlyFee: input.monthlyFee,
       feeStartMode: input.feeStartMode,
       agreementAmount: input.agreementAmount,
+      feeWaived: input.feeWaived,
+      chargeRegistrationFee: input.chargeRegistrationFee,
     });
 
     let student = res.student;
@@ -519,6 +521,7 @@ export type StudentPatch = Partial<
     | "status"
     | "notes"
     | "academicYear"
+    | "feeWaived"
   >
 > & { parentName?: string; parentPhone?: string };
 
@@ -587,6 +590,7 @@ export async function updateStudent(
       sectionId,
       villageId,
       monthlyFee: patch.monthlyFee,
+      feeWaived: patch.feeWaived,
       status: patch.status,
       parentName: patch.parentName?.trim() || undefined,
       parentPhone: patch.parentPhone?.trim() || undefined,

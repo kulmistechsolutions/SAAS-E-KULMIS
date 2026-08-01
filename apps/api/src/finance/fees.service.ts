@@ -128,7 +128,12 @@ export class FeesService {
       });
 
       const students = await tx.student.findMany({
-        where: { classId: dto.classId, sectionId, status: "ACTIVE" },
+        where: {
+          classId: dto.classId,
+          sectionId,
+          status: "ACTIVE",
+          feeWaived: false,
+        },
         select: { id: true, monthlyFee: true },
       });
 
@@ -238,7 +243,7 @@ export class FeesService {
           });
 
           const students = await tx.student.findMany({
-            where: { classId: cls.id, status: "ACTIVE" },
+            where: { classId: cls.id, status: "ACTIVE", feeWaived: false },
             select: { id: true, monthlyFee: true },
           });
           for (const s of students) {
@@ -397,7 +402,7 @@ export class FeesService {
         });
 
         const students = await tx.student.findMany({
-          where: { status: "ACTIVE" },
+          where: { status: "ACTIVE", feeWaived: false },
           select: {
             id: true,
             monthlyFee: true,
@@ -448,6 +453,7 @@ export class FeesService {
           feeBillingStartYear: true,
           feeBillingStartMonth: true,
           annualFeeAmount: true,
+          feeWaived: true,
           status: true,
         },
       });
@@ -470,6 +476,27 @@ export class FeesService {
           feeBillingStartYear: opts.billingStartYear ?? null,
           feeBillingStartMonth: opts.billingStartMonth ?? null,
         });
+      }
+
+      // The registration fee is a separate, one-time item — independent of
+      // billing mode and of whether tuition itself is waived below.
+      let registrationFeeCharged = 0;
+      if (opts?.chargeRegistrationFee) {
+        registrationFeeCharged = await this.chargeRegistrationFeeOnce(
+          tx,
+          schoolId,
+          studentId,
+        );
+      }
+
+      // A permanently-waived student gets no tuition charge, in any billing
+      // mode — that's the whole point of the flag. The registration fee
+      // above still applies if asked for; it isn't tuition.
+      if (student.feeWaived) {
+        return {
+          mode: config.billingMode,
+          chargesCreated: registrationFeeCharged,
+        };
       }
 
       const activeYear = await tx.academicYear.findFirst({
@@ -495,7 +522,10 @@ export class FeesService {
             config,
             defaultMonthlyFee: setup.monthlyFee,
           });
-          return { mode: "ACADEMIC_YEAR", chargesCreated: created };
+          return {
+            mode: "ACADEMIC_YEAR",
+            chargesCreated: created + registrationFeeCharged,
+          };
         }
       }
 
@@ -506,11 +536,52 @@ export class FeesService {
           student,
           classId,
         );
-        return { mode: "MONTHLY", chargesCreated: created };
+        return {
+          mode: "MONTHLY",
+          chargesCreated: created + registrationFeeCharged,
+        };
       }
 
-      return { mode: config.billingMode, chargesCreated: 0 };
+      return { mode: config.billingMode, chargesCreated: registrationFeeCharged };
     });
+  }
+
+  /**
+   * Charge the school's one-time registration fee, if it has one configured
+   * and this student hasn't already been charged it. Idempotent — safe to
+   * call more than once for the same student (e.g. a retried registration).
+   */
+  private async chargeRegistrationFeeOnce(
+    tx: TenantTx,
+    schoolId: string,
+    studentId: string,
+  ): Promise<number> {
+    const school = await tx.school.findFirst({
+      where: { id: schoolId },
+      select: { registrationFeeAmount: true },
+    });
+    if (!school || school.registrationFeeAmount <= 0) return 0;
+
+    const existing = await tx.feeCharge.findFirst({
+      where: { studentId, kind: "REGISTRATION" },
+      select: { id: true },
+    });
+    if (existing) return 0;
+
+    const now = currentCalendarMonth();
+    await tx.feeCharge.create({
+      data: {
+        schoolId,
+        studentId,
+        year: now.year,
+        month: now.month,
+        amount: school.registrationFeeAmount,
+        kind: "REGISTRATION",
+        label: "Registration Fee",
+        status: "UNPAID",
+      },
+    });
+    return 1;
   }
 
   private async createMonthlyAdmissionCharge(

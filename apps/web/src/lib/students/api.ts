@@ -41,6 +41,7 @@ interface ApiStudent {
   feeStartMode?: "FULL_CURRENT" | "AGREEMENT" | "NEXT_MONTH" | null;
   feeAgreementAmount?: number | null;
   annualFeeAmount?: number | null;
+  feeWaived?: boolean;
 }
 
 export function mapApiParent(p: ApiParent): Parent {
@@ -82,6 +83,7 @@ export function mapApiStudent(s: ApiStudent): Student {
     feeStartMode: s.feeStartMode ?? null,
     feeAgreementAmount: s.feeAgreementAmount ?? null,
     annualFeeAmount: s.annualFeeAmount ?? null,
+    feeWaived: s.feeWaived ?? false,
   };
 }
 
@@ -167,6 +169,8 @@ export interface RegisterStudentApiInput {
   monthlyFee: number;
   feeStartMode?: "FULL_CURRENT" | "AGREEMENT" | "NEXT_MONTH";
   agreementAmount?: number;
+  feeWaived?: boolean;
+  chargeRegistrationFee?: boolean;
 }
 
 export async function apiRegisterStudent(
@@ -221,6 +225,7 @@ export interface UpdateStudentApiInput {
   sectionId?: string | null;
   villageId?: string | null;
   monthlyFee?: number;
+  feeWaived?: boolean;
   status?: StudentStatus;
   /** Re-links the student to the parent on this phone — see the API schema. */
   parentName?: string;

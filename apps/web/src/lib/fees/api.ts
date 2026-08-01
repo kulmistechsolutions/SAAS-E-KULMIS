@@ -12,9 +12,9 @@ export interface ApiFeeCharge {
   amount: number;
   paidAmount: number;
   status: "UNPAID" | "PARTIAL" | "PAID" | "INACTIVE";
-  /** MONTHLY = the regular fee; EXTRA = an added charge such as an exam fee. */
-  kind?: "MONTHLY" | "EXTRA";
-  /** Name shown on the invoice for EXTRA rows, e.g. "Exam Fee". */
+  /** MONTHLY = the regular fee; EXTRA = an added charge such as an exam fee; REGISTRATION = the one-time admission fee. */
+  kind?: "MONTHLY" | "EXTRA" | "REGISTRATION";
+  /** Name shown on the invoice for EXTRA/REGISTRATION rows, e.g. "Exam Fee". */
   label?: string | null;
   extraFeeId?: string | null;
   student?: {

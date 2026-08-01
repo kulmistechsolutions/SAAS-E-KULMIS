@@ -89,6 +89,9 @@ model School {
   feeAllowAdvance      Boolean     @default(true)
   feeCarryForward      Boolean     @default(true)
   feeMonthSetupDay     Int         @default(25)
+  /// One-time fee charged at registration, separate from the recurring
+  /// tuition fee. 0 = the school doesn't use a registration fee.
+  registrationFeeAmount Int        @default(0)
 
   // ── Custom academic structure ──
   /// Off by default, so a school keeps the plain Grade 1–12 ladder and sees no
@@ -507,6 +510,13 @@ model Student {
   feeAgreementAmount   Int?
   feeBillingStartYear  Int?
   feeBillingStartMonth Int?
+  /// Permanent, ongoing exemption from monthly/academic-year tuition charges —
+  /// set once, stays until an admin changes it back. Not the same as a $0
+  /// monthlyFee (which still creates a $0 charge row every month); a waived
+  /// student gets no tuition charge row at all. Extra fees (exam fee, etc.)
+  /// are untouched — they are a separate, deliberate charge the school
+  /// pushes explicitly, not tuition.
+  feeWaived            Boolean       @default(false)
   status               StudentStatus @default(ACTIVE)
   registrationDate     DateTime      @default(now())
   createdAt            DateTime      @default(now())
@@ -1290,6 +1300,7 @@ enum FeeStatus {
 enum FeeChargeKind {
   MONTHLY
   EXTRA
+  REGISTRATION
 }
 
 enum BillingMode {

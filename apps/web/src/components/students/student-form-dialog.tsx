@@ -54,6 +54,8 @@ interface FormState {
   notes: string;
   feeStartMode: FeeStartMode;
   agreementAmount: string;
+  feeWaived: boolean;
+  chargeRegistrationFee: boolean;
 }
 
 function toDateInput(iso?: string | null): string {
@@ -101,6 +103,8 @@ const empty = (year: string, className: string): FormState => ({
   notes: "",
   feeStartMode: "FULL_CURRENT",
   agreementAmount: "",
+  feeWaived: false,
+  chargeRegistrationFee: false,
 });
 
 export function StudentFormDialog({ open, onClose, student, onSaved }: Props) {
@@ -167,11 +171,16 @@ export function StudentFormDialog({ open, onClose, student, onSaved }: Props) {
         notes: student.notes ?? "",
         feeStartMode: "FULL_CURRENT",
         agreementAmount: "",
+        feeWaived: student.feeWaived ?? false,
+        chargeRegistrationFee: false,
       });
     } else {
       const y = activeAcademicYear() || academicYearNames(academics)[0] || "";
       const classes = classNamesForYear(y);
-      setForm(empty(y, classes[0] ?? ""));
+      setForm({
+        ...empty(y, classes[0] ?? ""),
+        chargeRegistrationFee: settings.fees.registrationFeeAmount > 0,
+      });
       setPhotoPreview(null);
     }
     // Intentionally excludes `academics`/`years`: this effect should only
@@ -227,6 +236,7 @@ export function StudentFormDialog({ open, onClose, student, onSaved }: Props) {
             section: form.section || null,
             village: form.village || null,
             monthlyFee: fee,
+            feeWaived: form.feeWaived,
             status: form.status,
             academicYear: form.academicYear,
             notes: form.notes || null,
@@ -277,6 +287,8 @@ export function StudentFormDialog({ open, onClose, student, onSaved }: Props) {
             form.feeStartMode === "AGREEMENT"
               ? Number(form.agreementAmount)
               : undefined,
+          feeWaived: form.feeWaived,
+          chargeRegistrationFee: form.chargeRegistrationFee,
         },
         { photo },
       );
@@ -517,10 +529,19 @@ export function StudentFormDialog({ open, onClose, student, onSaved }: Props) {
                 className={cn(inputClass, "ps-6")}
                 type="number"
                 min={0}
+                disabled={form.feeWaived}
                 value={form.monthlyFee}
                 onChange={(e) => set("monthlyFee", e.target.value)}
               />
             </div>
+            <label className="mt-1.5 flex items-center gap-1.5 text-xs text-muted-foreground">
+              <input
+                type="checkbox"
+                checked={form.feeWaived}
+                onChange={(e) => set("feeWaived", e.target.checked)}
+              />
+              {t("studentsStudentFormDialog.feeWaived")}
+            </label>
           </Field>
           <Field label={t("studentsStudentFormDialog.status")}>
             <Select
@@ -611,6 +632,20 @@ export function StudentFormDialog({ open, onClose, student, onSaved }: Props) {
                   />
                 </div>
               </Field>
+            )}
+            {settings.fees.registrationFeeAmount > 0 && (
+              <label className="mt-3 flex cursor-pointer items-center gap-2 rounded-lg border border-transparent bg-card p-3 text-sm hover:bg-secondary/40">
+                <input
+                  type="checkbox"
+                  checked={form.chargeRegistrationFee}
+                  onChange={(e) => set("chargeRegistrationFee", e.target.checked)}
+                />
+                <span>
+                  {t("studentsStudentFormDialog.chargeRegistrationFee")}
+                  {" — $"}
+                  {settings.fees.registrationFeeAmount}
+                </span>
+              </label>
             )}
           </div>
         )}

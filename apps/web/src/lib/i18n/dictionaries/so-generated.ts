@@ -2883,6 +2883,8 @@ export const soGenerated: PartialDictionary = {
     shownOnEveryPrintedFeeReceipt: "Wuxuu ka muuqdaa rasiidh kasta oo khidmad ah oo la daabaco.",
     receiptHeaderOptional: "Madaxa Rasiidhka (ikhtiyaari)",
     receiptFooter: "Hoosta Rasiidhka",
+    registrationFee: "Diiwaangelinta Lacagteeda",
+    registrationFeeHint: "Lacag hal mar la qaado marka la diiwaan galinayo, kana duwan khidmadda bishii. 0 = lama isticmaalayo.",
   },
   settingsImportExport: {
     importExport: "Soo gelin / Soo saarid",
@@ -3515,6 +3517,9 @@ export const soGenerated: PartialDictionary = {
     village: "Xaafad",
     none: "Midna",
     noVillagesSetUp: "Wali xaafado lama dejin",
+    feeWaived: "Bilaash (khidmad bishii lama qaadeen)",
+    feeWaivedHint: "Ardaygan waligiis lagama qaadi doono khidmadda bishii/waxbarashada, ilaa tan la damiyo mar kale. Lacagaha dheeraadka ah (sida khidmadda imtixaanka) weli waa lagu dabaqi karaa.",
+    chargeRegistrationFee: "Hadda qaad diiwaangelinta lacagteeda",
   },
   studentsStudentPhotoUpload: {
     studentPhotoPreview: "Horudhaca sawirka ardayga",

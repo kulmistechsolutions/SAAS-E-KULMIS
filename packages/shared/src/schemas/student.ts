@@ -32,6 +32,11 @@ export const registerStudentSchema = z.object({
     .enum(["FULL_CURRENT", "AGREEMENT", "NEXT_MONTH"])
     .optional(),
   agreementAmount: z.number().int().nonnegative().optional(),
+  /// Permanent tuition exemption — see Student.feeWaived.
+  feeWaived: z.boolean().optional(),
+  /// Charge the school's one-time registration fee now, on top of whatever
+  /// feeStartMode decides for the recurring tuition fee.
+  chargeRegistrationFee: z.boolean().optional(),
 });
 export type RegisterStudentInput = z.infer<typeof registerStudentSchema>;
 
@@ -63,6 +68,10 @@ export const updateStudentSchema = z
     sectionId: z.string().nullable().optional(),
     villageId: z.string().min(1).nullable().optional(),
     monthlyFee: z.number().int().nonnegative().optional(),
+    /// Permanent tuition exemption — see Student.feeWaived. Editable any
+    /// time, not just at registration, since it's meant to be an ongoing
+    /// status an admin turns on or off as circumstances change.
+    feeWaived: z.boolean().optional(),
     status: studentStatusSchema.optional(),
     /**
      * Who the child answers to. Sending these re-links the student to the

@@ -101,7 +101,15 @@ export default function FeeSettingsPage() {
           value={draft.receiptPrefix}
           onChange={(e) => update({ receiptPrefix: e.target.value.toUpperCase() })}
         />
+        <SettingsInput
+          label={t("settingsFees.registrationFee")}
+          type="number"
+          min={0}
+          value={draft.registrationFeeAmount}
+          onChange={(e) => update({ registrationFeeAmount: Number(e.target.value) })}
+        />
       </div>
+      <p className="text-xs text-muted-foreground">{t("settingsFees.registrationFeeHint")}</p>
       {isAnnual && (
         <p className="rounded-lg border border-blue-200 bg-blue-50/80 p-3 text-sm text-blue-900">
           {t("settingsFees.annualTuitionMonthlyFeeAcademicMonths")}
