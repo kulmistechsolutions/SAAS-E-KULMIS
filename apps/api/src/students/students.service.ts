@@ -160,7 +160,11 @@ export class StudentsService {
       this.prisma.forTenant(schoolId, async (tx) => {
         const school = await tx.school.findUnique({
           where: { id: schoolId },
-          select: { studentPrefix: true, parentPrefix: true },
+          select: {
+            studentPrefix: true,
+            parentPrefix: true,
+            studentIdLength: true,
+          },
         });
         if (!school) throw new NotFoundException("School not found");
 
@@ -190,6 +194,7 @@ export class StudentsService {
             tx,
             schoolId,
             school.parentPrefix,
+            school.studentIdLength,
           );
           initialParentPassword = DEFAULT_PARENT_PASSWORD;
           const user = await tx.user.create({
@@ -236,6 +241,7 @@ export class StudentsService {
           tx,
           schoolId,
           school.studentPrefix,
+          school.studentIdLength,
         );
         const portalPasswordHash = await hashPassword(code);
 
@@ -618,10 +624,15 @@ export class StudentsService {
   ) {
     const school = await tx.school.findUnique({
       where: { id: schoolId },
-      select: { parentPrefix: true },
+      select: { parentPrefix: true, studentIdLength: true },
     });
     if (!school) throw new NotFoundException("School not found");
-    const { code } = await nextParentCode(tx, schoolId, school.parentPrefix);
+    const { code } = await nextParentCode(
+      tx,
+      schoolId,
+      school.parentPrefix,
+      school.studentIdLength,
+    );
     const user = await tx.user.create({
       data: {
         schoolId,

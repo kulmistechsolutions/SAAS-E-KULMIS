@@ -47,7 +47,7 @@ export function buildSettingsSeed(): SettingsState {
     students: {
       idPrefix: "SHMM",
       startingNumber: 1,
-      idLength: 6,
+      idLength: 4,
       portalLoginEnabled: true,
       requirePhone: false,
       allowPhotoUpload: true,

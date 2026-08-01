@@ -16,10 +16,11 @@ import type { PrismaClient } from "@prisma/client";
  * existing one — even right after the highest student was deleted.
  */
 
-const PAD_WIDTH = 4;
+/** Used only where no school-configured width is available (e.g. tests). */
+const DEFAULT_PAD_WIDTH = 4;
 
-export function padCode(n: number): string {
-  return String(n).padStart(PAD_WIDTH, "0");
+export function padCode(n: number, width: number = DEFAULT_PAD_WIDTH): string {
+  return String(n).padStart(width, "0");
 }
 
 /** Pull the numeric suffix out of a code, or null if it doesn't have one. */
@@ -69,6 +70,7 @@ async function allocate(
   name: "student" | "parent",
   prefix: string,
   maxUsed: number,
+  idLength: number,
 ): Promise<{ code: string; sequence: number }> {
   const counter = await tx.counter.findUnique({
     where: { schoolId_name: { schoolId, name } },
@@ -80,20 +82,23 @@ async function allocate(
     create: { schoolId, name, value: sequence },
     update: { value: sequence },
   });
-  return { code: `${prefix}${padCode(sequence)}`, sequence };
+  return { code: `${prefix}${padCode(sequence, idLength)}`, sequence };
 }
 
 /**
  * Next student code for a school. Runs inside the caller's tenant transaction
- * so the read and the following insert see the same rows.
+ * so the read and the following insert see the same rows. `idLength` is the
+ * school's own Settings > Students > "ID Length (padding)" — only new codes
+ * take a changed value; existing codes keep the width they were given.
  */
 export async function nextStudentCode(
   tx: PrismaClient,
   schoolId: string,
   prefix: string,
+  idLength: number = DEFAULT_PAD_WIDTH,
 ): Promise<{ code: string; sequence: number }> {
   const maxUsed = await highestStudentSuffix(tx, prefix);
-  return allocate(tx, schoolId, "student", prefix, maxUsed);
+  return allocate(tx, schoolId, "student", prefix, maxUsed, idLength);
 }
 
 /** Next parent code for a school. Same monotonic rule as students. */
@@ -101,9 +106,10 @@ export async function nextParentCode(
   tx: PrismaClient,
   schoolId: string,
   prefix: string,
+  idLength: number = DEFAULT_PAD_WIDTH,
 ): Promise<{ code: string; sequence: number }> {
   const maxUsed = await highestParentSuffix(tx, prefix);
-  return allocate(tx, schoolId, "parent", prefix, maxUsed);
+  return allocate(tx, schoolId, "parent", prefix, maxUsed, idLength);
 }
 
 /**

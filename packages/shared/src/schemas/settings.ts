@@ -39,6 +39,9 @@ export const updateSettingsSchema = z
     reportFooter: z.string().nullable().optional(),
     resultFooter: z.string().nullable().optional(),
     studentPrefix: z.string().min(1).max(10).optional(),
+    /// Digits the numeric part of a student/parent code is padded to
+    /// (STD0007 is 4). Only new codes take a changed value.
+    studentIdLength: z.number().int().min(3).max(8).optional(),
     teacherPrefix: z.string().min(1).max(10).optional(),
     parentPrefix: z.string().min(1).max(10).optional(),
     receiptPrefix: z.string().min(1).max(10).optional(),

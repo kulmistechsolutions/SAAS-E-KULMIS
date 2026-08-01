@@ -53,6 +53,7 @@ export interface ApiSchool {
   reportFooter: string | null;
   resultFooter: string | null;
   studentPrefix: string;
+  studentIdLength: number;
   teacherPrefix: string;
   parentPrefix: string;
   receiptPrefix: string;
@@ -140,6 +141,7 @@ export function mapApiSchoolToSettings(
     students: {
       ...base.students,
       idPrefix: row.studentPrefix,
+      idLength: row.studentIdLength ?? base.students.idLength,
       studentHeader: row.studentHeader ?? base.students.studentHeader,
       studentFooter: row.studentFooter ?? base.students.studentFooter,
     },
@@ -239,6 +241,7 @@ export function mapSettingsSectionToPatch(
     const s = section as SettingsState["students"];
     return {
       studentPrefix: s.idPrefix,
+      studentIdLength: s.idLength,
       studentHeader: s.studentHeader || null,
       studentFooter: s.studentFooter || null,
     };

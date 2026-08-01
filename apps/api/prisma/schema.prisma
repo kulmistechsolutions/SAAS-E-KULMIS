@@ -67,6 +67,9 @@ model School {
   receiptPrefix     String @default("RCP")
   invoicePrefix     String @default("INV")
   certificatePrefix String @default("CRT")
+  /// Digits the numeric part of a student/parent code is padded to (STD0007
+  /// is 4). Only new codes use a changed value — existing ones keep their width.
+  studentIdLength   Int    @default(4)
 
   /// Free-trial deadline set when Super Admin creates the school. The school
   /// works normally until this passes; after it, sign-in is blocked until a
