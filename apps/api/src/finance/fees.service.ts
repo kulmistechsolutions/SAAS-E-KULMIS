@@ -186,15 +186,32 @@ export class FeesService {
     return this.prisma.forTenant(
       schoolId,
       async (tx) => {
-        // "all" means every class in the school; otherwise exactly the ones
-        // picked. Unknown ids are ignored rather than failing the whole run.
-        const classes = await tx.class.findMany({
-          where:
-            dto.scope === "all"
-              ? { status: "ACTIVE" }
-              : { id: { in: dto.classIds ?? [] } },
-          select: { id: true, name: true },
-        });
+        // "all" means every class in the *current* school year; otherwise
+        // exactly the ones picked. Unknown ids are ignored rather than
+        // failing the whole run. Without the academicYear/levelId scoping,
+        // "all" pulled in every past year's classes too — a school on its
+        // second year of Grade 1-12 would activate billing for last year's
+        // graduated classes right alongside this year's.
+        let classes;
+        if (dto.scope === "all") {
+          const school = await tx.school.findFirst({
+            where: { id: schoolId },
+            select: { customStructureEnabled: true },
+          });
+          classes = await tx.class.findMany({
+            where: {
+              status: "ACTIVE",
+              academicYear: { isActive: true },
+              ...(!school?.customStructureEnabled && { levelId: null }),
+            },
+            select: { id: true, name: true },
+          });
+        } else {
+          classes = await tx.class.findMany({
+            where: { id: { in: dto.classIds ?? [] } },
+            select: { id: true, name: true },
+          });
+        }
         if (classes.length === 0) {
           throw new BadRequestException("No classes selected");
         }
@@ -271,9 +288,25 @@ export class FeesService {
    */
   async monthSetupStatus(schoolId: string, year: number, month: number) {
     return this.prisma.forTenant(schoolId, async (tx) => {
+      const school = await tx.school.findFirst({
+        where: { id: schoolId },
+        select: { customStructureEnabled: true },
+      });
       const [classes, activations] = await Promise.all([
         tx.class.findMany({
-          where: { status: "ACTIVE" },
+          where: {
+            status: "ACTIVE",
+            // A month's billing belongs to one academic year — without this,
+            // every past year's classes piled in here too (a school with two
+            // years of Grade 1-12 saw "Grade 11" and "Grade 12" listed
+            // twice, one per year, with no way to tell them apart).
+            academicYear: { isActive: true },
+            // Once the school has turned Academic Structure off, a class
+            // still carrying a levelId from when it was on shouldn't offer
+            // billing setup either — same "off means off" rule as every
+            // other class picker.
+            ...(!school?.customStructureEnabled && { levelId: null }),
+          },
           select: {
             id: true,
             name: true,
