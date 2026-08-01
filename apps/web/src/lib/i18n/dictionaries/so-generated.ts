@@ -405,6 +405,11 @@ export const soGenerated: PartialDictionary = {
     searchBlockedStudents: "Raadi ardayda la xannibay…",
     unblock: "Ka fur xannibaadda",
     noBlockedStudents: "Arday la xannibay ma jiro.",
+    class: "Fasalka",
+    allClasses: "Dhammaan Fasallada",
+    searchStudent: "Raadi Arday",
+    nameOrId: "Magaca ama Aqoonsiga",
+    noStudentsMatch: "Arday kuma jiro fasalkan/raadintan.",
   },
   examinationsCreate: {
     examinations: "Imtixaannada",
@@ -526,6 +531,7 @@ export const soGenerated: PartialDictionary = {
     exportExcel: "Soo Deji Excel",
     exportDownloaded: "Soo dejinta way dhammaatay",
     exportFailed: "Soo saarkii waa fashilmay",
+    unpublishAll: "Dhammaan Ka Qaad Daabacaadda",
   },
   examinationsManage: {
     examManagement: "Maaraynta Imtixaannada",

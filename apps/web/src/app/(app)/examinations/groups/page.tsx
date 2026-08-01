@@ -11,6 +11,7 @@ import {
   assignExamGroup,
   createExamGroup,
   publishExamGroup,
+  unpublishExamGroup,
   useExaminationsState,
 } from "@/lib/examinations/store";
 import { apiDownloadGroupResultsExcel } from "@/lib/examinations/api";
@@ -29,6 +30,7 @@ export default function ExamGroupsPage() {
   const [selectedExamIds, setSelectedExamIds] = useState<Set<string>>(new Set());
   const [adding, setAdding] = useState(false);
   const [publishingGroupId, setPublishingGroupId] = useState<string | null>(null);
+  const [unpublishingGroupId, setUnpublishingGroupId] = useState<string | null>(null);
   const [exportClassId, setExportClassId] = useState("");
   const [exporting, setExporting] = useState(false);
 
@@ -160,6 +162,27 @@ export default function ExamGroupsPage() {
     }
   }
 
+  async function handleUnpublishGroup(groupId: string, groupName: string) {
+    setUnpublishingGroupId(groupId);
+    const res = await unpublishExamGroup(groupId);
+    setUnpublishingGroupId(null);
+    if (!res.ok) {
+      toast(res.error ?? "Failed to unpublish exam group", "error");
+      return;
+    }
+    if (res.failed && res.failed > 0) {
+      toast(
+        `${groupName}: unpublished ${res.unpublished}, ${res.skipped} already unpublished, ${res.failed} failed`,
+        "error",
+      );
+    } else {
+      toast(
+        `${groupName}: unpublished ${res.unpublished} exam(s)${res.skipped ? `, ${res.skipped} already unpublished` : ""}`,
+        "success",
+      );
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div>
@@ -217,6 +240,13 @@ export default function ExamGroupsPage() {
                         onClick={() => handlePublishGroup(g.id, g.name)}
                       >
                         {publishingGroupId === g.id ? "…" : t("examinationsGroups.publishAll")}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        disabled={count === 0 || publishedCount === 0 || unpublishingGroupId === g.id}
+                        onClick={() => handleUnpublishGroup(g.id, g.name)}
+                      >
+                        {unpublishingGroupId === g.id ? "…" : t("examinationsGroups.unpublishAll")}
                       </Button>
                       <Button variant="outline" onClick={() => openManage(g.id)}>
                         {isOpen ? t("examinationsGroups.close") : t("examinationsGroups.manageExams")}

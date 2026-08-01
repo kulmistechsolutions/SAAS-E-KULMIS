@@ -16,6 +16,7 @@ import type { Teacher } from "@/lib/teachers/types";
 import {
   apiAssignExamGroup,
   apiBlockStudent,
+  apiUnblockStudent,
   apiCreateExam,
   apiCreateExamGroup,
   apiDeleteExam,
@@ -28,6 +29,7 @@ import {
   apiPublicResults,
   apiPublishExamGroup,
   apiStudentResults,
+  apiUnpublishExamGroup,
   apiUpdateExamStatus,
   apiUpsertMarks,
   type ApiExam,
@@ -604,6 +606,28 @@ export async function publishExamGroup(
   }
 }
 
+export async function unpublishExamGroup(
+  groupId: string,
+  user = "Admin User",
+): Promise<{ ok: boolean; error?: string; unpublished?: number; skipped?: number; failed?: number }> {
+  const s = ensure();
+  const group = s.examGroups.find((g) => g.id === groupId);
+  if (!group) return { ok: false, error: "Exam group not found." };
+  try {
+    const res = await apiUnpublishExamGroup(groupId);
+    await refreshExaminations();
+    logAudit(
+      "Exam Group Unpublished",
+      user,
+      "ADMINISTRATOR",
+      `${group.name} → ${res.unpublished} unpublished, ${res.skipped} already unpublished, ${res.failed} failed`,
+    );
+    return { ok: true, unpublished: res.unpublished, skipped: res.skipped, failed: res.failed };
+  } catch (e) {
+    return { ok: false, error: apiErr(e, "Failed to unpublish exam group.") };
+  }
+}
+
 export type SaveMarksOptions = {
   /** Resolved subject UUID (required when academics store is unavailable, e.g. teacher portal). */
   subjectId?: string;
@@ -932,11 +956,18 @@ export async function blockStudent(
   }
 }
 
-export function unblockStudent(
-  _blockId: string,
-  _user = "Admin User",
-): { ok: boolean; error?: string } {
-  return { ok: false, error: "Unblock is not supported via API yet." };
+export async function unblockStudent(
+  blockId: string,
+  user = "Admin User",
+): Promise<{ ok: boolean; error?: string }> {
+  try {
+    await apiUnblockStudent(blockId);
+    await refreshExaminations();
+    logAudit("Student Unblocked", user, "ADMINISTRATOR", blockId);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: apiErr(e, "Failed to unblock student.") };
+  }
 }
 
 export function teacherExams(teacherId: string): Exam[] {

@@ -2,7 +2,7 @@
 
 
 import { useT } from "@/lib/i18n/provider";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Search, ShieldBan, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,17 +14,49 @@ import {
   useExaminationsState,
 } from "@/lib/examinations/store";
 import { getState as getStudentsState } from "@/lib/students/store";
+import {
+  activeAcademicYear,
+  classNamesForYear,
+  groupClassNames,
+  useAcademicsState,
+} from "@/lib/academics/store";
 import { shortDate } from "@/lib/examinations/format";
 import { toast } from "@/lib/toast";
 
 export default function BlockedStudentsPage() {
   const t = useT();
   const { blockedStudents, exams } = useExaminationsState();
+  const academics = useAcademicsState();
   const students = getStudentsState().students;
   const [search, setSearch] = useState("");
+  const [classFilter, setClassFilter] = useState("");
+  const [studentSearch, setStudentSearch] = useState("");
   const [studentId, setStudentId] = useState("");
   const [examId, setExamId] = useState("");
   const [reason, setReason] = useState("Outstanding Fees");
+
+  const year = activeAcademicYear();
+  const classOptions = useMemo(() => classNamesForYear(year), [year, academics.classes]);
+  const classGroups = useMemo(
+    () => groupClassNames(classOptions, year, t("common.defaultGrades")),
+    [classOptions, year, academics.structureTrees, t],
+  );
+
+  const blockableStudents = useMemo(() => {
+    const q = studentSearch.trim().toLowerCase();
+    return students.filter((s) => {
+      if (s.status !== "ACTIVE") return false;
+      if (classFilter && s.className !== classFilter) return false;
+      if (
+        q &&
+        !s.fullName.toLowerCase().includes(q) &&
+        !s.code.toLowerCase().includes(q)
+      ) {
+        return false;
+      }
+      return true;
+    });
+  }, [students, classFilter, studentSearch]);
 
   const filtered = blockedStudents.filter((b) => {
     const st = students.find((s) => s.id === b.studentId);
@@ -64,15 +96,62 @@ export default function BlockedStudentsPage() {
           </h2>
           <div className="mt-4 space-y-4">
             <div>
+              <Label>{t("examinationsBlocked.class")}</Label>
+              <Select
+                className="mt-1.5"
+                value={classFilter}
+                onChange={(e) => {
+                  setClassFilter(e.target.value);
+                  setStudentId("");
+                }}
+              >
+                <option value="">{t("examinationsBlocked.allClasses")}</option>
+                {classGroups.map((g) =>
+                  g.label === null ? (
+                    g.names.map((c) => (
+                      <option key={c} value={c}>
+                        {c}
+                      </option>
+                    ))
+                  ) : (
+                    <optgroup key={g.label} label={g.label}>
+                      {g.names.map((c) => (
+                        <option key={c} value={c}>
+                          {c}
+                        </option>
+                      ))}
+                    </optgroup>
+                  ),
+                )}
+              </Select>
+            </div>
+            <div>
+              <Label>{t("examinationsBlocked.searchStudent")}</Label>
+              <div className="relative mt-1.5">
+                <Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  className="ps-9"
+                  placeholder={t("examinationsBlocked.nameOrId")}
+                  value={studentSearch}
+                  onChange={(e) => setStudentSearch(e.target.value)}
+                />
+              </div>
+            </div>
+            <div>
               <Label required>{t("examinationsBlocked.student")}</Label>
               <Select className="mt-1.5" value={studentId} onChange={(e) => setStudentId(e.target.value)}>
                 <option value="">{t("examinationsBlocked.selectStudent")}</option>
-                {students.filter((s) => s.status === "ACTIVE").map((s) => (
+                {blockableStudents.map((s) => (
                   <option key={s.id} value={s.id}>
-                    {s.fullName} ({s.code})
+                    {s.fullName} ({s.code}) — {s.className}
                   </option>
                 ))}
               </Select>
+              {blockableStudents.length === 0 && (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {t("examinationsBlocked.noStudentsMatch")}
+                </p>
+              )}
             </div>
             <div>
               <Label>{t("examinationsBlocked.examOptional")}</Label>
@@ -114,10 +193,10 @@ export default function BlockedStudentsPage() {
                       {ex?.name ?? "All exams"} · {shortDate(b.blockedAt)}
                     </p>
                   </div>
-                  <Button variant="outline" className="h-9 shrink-0" onClick={() => {
-                    const res = unblockStudent(b.id);
+                  <Button variant="outline" className="h-9 shrink-0" onClick={async () => {
+                    const res = await unblockStudent(b.id);
                     if (res.ok) toast("Student unblocked", "success");
-                    else toast(res.error ?? "Unblock not supported", "error");
+                    else toast(res.error ?? "Failed to unblock", "error");
                   }}>
                     <ShieldCheck className="me-2 h-4 w-4" />
                     {t("examinationsBlocked.unblock")}

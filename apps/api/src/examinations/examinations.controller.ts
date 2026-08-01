@@ -68,6 +68,15 @@ export class ExaminationsController {
     return this.exams.publishExamGroup(me.schoolId, groupId, me);
   }
 
+  @Roles(UserRole.ADMINISTRATOR, UserRole.EXAM_MANAGER)
+  @Patch("groups/:groupId/unpublish")
+  unpublishGroup(
+    @CurrentUser() me: AuthUser,
+    @Param("groupId") groupId: string,
+  ) {
+    return this.exams.unpublishExamGroup(me.schoolId, groupId, me);
+  }
+
   @Get("monitoring")
   monitoring(
     @CurrentUser() me: AuthUser,
@@ -238,6 +247,12 @@ export class ExaminationsController {
     const parsed = blockStudentSchema.safeParse(body);
     if (!parsed.success) throw new BadRequestException(parsed.error.flatten());
     return this.exams.blockStudent(me.schoolId, parsed.data, me.userId);
+  }
+
+  @Roles(UserRole.ADMINISTRATOR, UserRole.EXAM_MANAGER)
+  @Delete("blocked/:id")
+  unblockStudent(@CurrentUser() me: AuthUser, @Param("id") id: string) {
+    return this.exams.unblockStudent(me.schoolId, id);
   }
 
   @Roles(UserRole.ADMINISTRATOR, UserRole.EXAM_MANAGER, UserRole.TEACHER)

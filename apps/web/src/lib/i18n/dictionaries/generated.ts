@@ -405,6 +405,11 @@ export const generated = {
     searchBlockedStudents: "Search blocked students…",
     unblock: "Unblock",
     noBlockedStudents: "No blocked students.",
+    class: "Class",
+    allClasses: "All Classes",
+    searchStudent: "Search Student",
+    nameOrId: "Name or ID",
+    noStudentsMatch: "No students match this class/search.",
   },
   examinationsCreate: {
     examinations: "Examinations",
@@ -526,6 +531,7 @@ export const generated = {
     exportExcel: "Export Excel",
     exportDownloaded: "Export downloaded",
     exportFailed: "Export failed",
+    unpublishAll: "Unpublish All",
   },
   examinationsManage: {
     examManagement: "Exam Management",

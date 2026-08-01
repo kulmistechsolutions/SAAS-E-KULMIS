@@ -405,6 +405,11 @@ export const arGenerated: PartialDictionary = {
     searchBlockedStudents: "ابحث في الطلاب الممنوعين…",
     unblock: "رفع المنع",
     noBlockedStudents: "لا يوجد طلاب ممنوعون.",
+    class: "الصف",
+    allClasses: "جميع الصفوف",
+    searchStudent: "البحث عن طالب",
+    nameOrId: "الاسم أو الرقم التعريفي",
+    noStudentsMatch: "لا يوجد طلاب يطابقون هذا الصف/البحث.",
   },
   examinationsCreate: {
     examinations: "الامتحانات",
@@ -526,6 +531,7 @@ export const arGenerated: PartialDictionary = {
     exportExcel: "تصدير Excel",
     exportDownloaded: "تم تنزيل التصدير",
     exportFailed: "فشل التصدير",
+    unpublishAll: "إلغاء نشر الكل",
   },
   examinationsManage: {
     examManagement: "إدارة الامتحانات",

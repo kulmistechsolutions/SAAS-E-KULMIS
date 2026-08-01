@@ -321,6 +321,54 @@ export class ExaminationsService {
     return { total: exams.length, published, skipped, failed };
   }
 
+  /**
+   * Pull every published exam in a group back to LOCKED — the state it was
+   * in just before publishing, so results stop showing to parents/students
+   * without losing the marks or requiring the exam to be re-locked by hand.
+   */
+  async unpublishExamGroup(
+    schoolId: string,
+    examGroupId: string,
+    actor?: Pick<AuthUser, "userId" | "username" | "role">,
+  ) {
+    const group = await this.prisma.forTenant(schoolId, (tx) =>
+      tx.examGroup.findFirst({ where: { id: examGroupId } }),
+    );
+    if (!group) throw new NotFoundException("Exam group not found");
+
+    const exams = await this.prisma.forTenant(schoolId, (tx) =>
+      tx.exam.findMany({ where: { examGroupId }, select: { id: true, status: true } }),
+    );
+
+    let unpublished = 0;
+    let skipped = 0;
+    let failed = 0;
+    for (const exam of exams) {
+      if (exam.status !== "PUBLISHED") {
+        skipped++;
+        continue;
+      }
+      try {
+        await this.updateExamStatus(schoolId, exam.id, "LOCKED");
+        unpublished++;
+      } catch {
+        failed++;
+      }
+    }
+
+    await this.audit.record({
+      schoolId,
+      userId: actor?.userId ?? null,
+      username: actor?.username ?? null,
+      role: actor?.role ?? null,
+      module: "examinations",
+      action: "EXAM_GROUP_UNPUBLISHED",
+      metadata: { examGroupId, groupName: group.name, unpublished, skipped, failed },
+    });
+
+    return { total: exams.length, unpublished, skipped, failed };
+  }
+
   /** Excel export of a group's combined, weighted per-subject results — one class or every class that has exams in the group. */
   async exportGroupResultsExcel(
     schoolId: string,
@@ -1664,6 +1712,18 @@ export class ExaminationsService {
         orderBy: { blockedAt: "desc" },
       }),
     );
+  }
+
+  async unblockStudent(schoolId: string, blockId: string) {
+    return this.prisma.forTenant(schoolId, async (tx) => {
+      const row = await tx.blockedStudent.findFirst({
+        where: { id: blockId },
+        select: { id: true },
+      });
+      if (!row) throw new NotFoundException("Block record not found");
+      await tx.blockedStudent.delete({ where: { id: blockId } });
+      return { success: true };
+    });
   }
 
   async studentResults(schoolId: string, studentId: string, academicYearId?: string) {

@@ -259,6 +259,12 @@ export const apiPublishExamGroup = (groupId: string) =>
     { method: "PATCH" },
   );
 
+export const apiUnpublishExamGroup = (groupId: string) =>
+  api<{ total: number; unpublished: number; skipped: number; failed: number }>(
+    `/examinations/groups/${groupId}/unpublish`,
+    { method: "PATCH" },
+  );
+
 export const apiUpsertMarks = (body: {
   examId: string;
   records: { studentId: string; subjectId: string; marks: number | null }[];
@@ -275,6 +281,11 @@ export const apiBlockStudent = (body: {
   academicYearId: string;
   reason: string;
 }) => api<ApiBlockedStudent>("/examinations/blocked", { method: "POST", body });
+
+export const apiUnblockStudent = (blockId: string) =>
+  api<{ success: boolean }>(`/examinations/blocked/${blockId}`, {
+    method: "DELETE",
+  });
 
 export const apiPublicResults = (body: { code: string; academicYear?: string }) =>
   api<ApiStudentFinalResult>("/examinations/public-results", {
