@@ -287,8 +287,12 @@ export const apiUnblockStudent = (blockId: string) =>
     method: "DELETE",
   });
 
+export type ApiPublicResultResponse =
+  | ({ blocked: false } & ApiStudentFinalResult)
+  | { blocked: true; reason: string | null };
+
 export const apiPublicResults = (body: { code: string; academicYear?: string }) =>
-  api<ApiStudentFinalResult>("/examinations/public-results", {
+  api<ApiPublicResultResponse>("/examinations/public-results", {
     method: "POST",
     body,
     auth: false,

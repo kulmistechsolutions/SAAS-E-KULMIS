@@ -18,6 +18,7 @@ export default function PublicResultsPage() {
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [blocked, setBlocked] = useState(false);
+  const [blockedReason, setBlockedReason] = useState<string | null>(null);
   const [termResults, setTermResults] = useState<StudentExamResult[]>([]);
   const [finalResult, setFinalResult] = useState<StudentFinalResult | null>(null);
   const [searched, setSearched] = useState(false);
@@ -29,6 +30,7 @@ export default function PublicResultsPage() {
     setSearched(true);
     setNotFound(false);
     setBlocked(false);
+    setBlockedReason(null);
     setTermResults([]);
     setFinalResult(null);
 
@@ -42,6 +44,7 @@ export default function PublicResultsPage() {
     }
     if (res.blocked) {
       setBlocked(true);
+      setBlockedReason(res.blockedReason ?? null);
       return;
     }
     if (res.result) {
@@ -154,9 +157,14 @@ export default function PublicResultsPage() {
           <p className="mt-6 text-center text-rose-600">{t("results.studentIdNotFound")}</p>
         )}
 
-        {student && blocked && (
+        {searched && blocked && (
           <div className="mt-6 rounded-xl border border-rose-200 bg-rose-50 p-6 text-center text-rose-700 dark:border-rose-900 dark:bg-rose-950/30">
-            {t("results.resultsAreBlockedPleaseContactThe")}
+            <p>{t("results.resultsAreBlockedPleaseContactThe")}</p>
+            {blockedReason ? (
+              <p className="mt-2 text-sm font-medium">
+                {t("results.reason")}: {blockedReason}
+              </p>
+            ) : null}
           </div>
         )}
 

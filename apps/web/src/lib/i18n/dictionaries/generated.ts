@@ -2595,6 +2595,7 @@ export const generated = {
     finalAcademicResult: "Final Academic Result",
     calculatedFromWeightedTermMarksFinal: "Calculated from weighted term marks. Final % = Σ(weighted marks) ÷ Σ(weights).",
     noPublishedResultsYet: "No published results yet.",
+    reason: "Reason",
   },
   salary: {
     loadingSalaryModule: "Loading salary module…",

@@ -36,6 +36,7 @@ import {
   type ApiExamGroup,
   type ApiExamMark,
   type ApiStudentFinalResult,
+  type ApiPublicResultResponse,
 } from "./api";
 import { gradeFromAverage, passedFromAverage } from "./format";
 import type {
@@ -1029,14 +1030,16 @@ export function lookupStudentByCode(code: string): Student | undefined {
 export async function lookupPublicResults(
   code: string,
   academicYear?: string,
-): Promise<{ ok: boolean; error?: string; result?: StudentFinalResult; blocked?: boolean }> {
+): Promise<{
+  ok: boolean;
+  error?: string;
+  result?: StudentFinalResult;
+  blocked?: boolean;
+  blockedReason?: string | null;
+}> {
   try {
-    const data = await apiPublicResults({ code: code.trim(), academicYear });
-    const blocked = ensure().blockedStudents.some((b) => {
-      const st = getStudentsState().students.find((s) => s.code.toLowerCase() === code.trim().toLowerCase());
-      return st && b.studentId === st.id;
-    });
-    if (blocked) return { ok: true, blocked: true };
+    const data: ApiPublicResultResponse = await apiPublicResults({ code: code.trim(), academicYear });
+    if (data.blocked) return { ok: true, blocked: true, blockedReason: data.reason };
     return { ok: true, result: mapStudentResults(data) };
   } catch (e) {
     return { ok: false, error: apiErr(e, "Student ID not found.") };

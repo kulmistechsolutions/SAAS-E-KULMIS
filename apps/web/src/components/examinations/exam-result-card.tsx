@@ -223,10 +223,12 @@ export function ExamResultCard({ data }: { data: ExamResultCardData }) {
                       <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
                         {data.group!.examColumns.map((col) => (
                           <div key={col.examId} className="flex items-center justify-between gap-2">
-                            <span className="truncate text-muted-foreground">{col.label}</span>
-                            <span className="shrink-0 tabular-nums">
+                            <span className="truncate text-muted-foreground">
+                              {col.label}
+                              <span className="text-muted-foreground/70"> /{col.maxMarks}</span>
+                            </span>
+                            <span className="shrink-0 tabular-nums font-medium">
                               {row.perExam[col.examId] ?? "—"}
-                              <span className="text-muted-foreground">/{col.maxMarks}</span>
                             </span>
                           </div>
                         ))}
@@ -254,7 +256,10 @@ export function ExamResultCard({ data }: { data: ExamResultCardData }) {
                         <th className="px-4 py-2.5 font-medium">{t("examinationsExamResultCard.subject")}</th>
                         {data.group.examColumns.map((col) => (
                           <th key={col.examId} className="px-4 py-2.5 text-end font-medium whitespace-nowrap">
-                            {col.label}
+                            <div>{col.label}</div>
+                            <div className="text-[10px] font-normal normal-case text-muted-foreground/70">
+                              /{col.maxMarks}
+                            </div>
                           </th>
                         ))}
                         <th className="px-4 py-2.5 text-end font-medium">{t("examinationsExamResultCard.combined")}</th>
@@ -268,7 +273,6 @@ export function ExamResultCard({ data }: { data: ExamResultCardData }) {
                           {data.group!.examColumns.map((col) => (
                             <td key={col.examId} className="px-4 py-2.5 text-end tabular-nums">
                               {row.perExam[col.examId] ?? "—"}
-                              <span className="text-muted-foreground"> / {col.maxMarks}</span>
                             </td>
                           ))}
                           <td className="px-4 py-2.5 text-end font-semibold tabular-nums">
@@ -340,7 +344,11 @@ export function ExamResultCard({ data }: { data: ExamResultCardData }) {
             )}
 
             {/* Summary tiles */}
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <Tile
+                label={t("examinationsExamResultCard.total")}
+                value={`${data.totalObtained} / ${data.totalMax}`}
+              />
               <Tile label={t("examinationsExamResultCard.average")} value={data.average.toFixed(1)} />
               <Tile label={t("examinationsExamResultCard.percentage")} value={`${pct.toFixed(1)}%`} />
               <div className="rounded-xl border bg-secondary/20 p-3 text-center">

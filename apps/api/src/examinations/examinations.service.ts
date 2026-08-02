@@ -1809,23 +1809,39 @@ export class ExaminationsService {
   }
 
   async publicResultByCode(schoolId: string, code: string, academicYearName?: string) {
-    return this.prisma.forTenant(schoolId, async (tx) => {
-      const student = await tx.student.findFirst({
-        where: { code, status: { in: ["ACTIVE", "GRADUATED"] } },
-        select: { id: true },
-      });
-      if (!student) throw new NotFoundException("Student not found");
-
-      let yearId: string | undefined;
-      if (academicYearName) {
-        const year = await tx.academicYear.findFirst({
-          where: { name: academicYearName },
+    const { studentId, yearId, block } = await this.prisma.forTenant(
+      schoolId,
+      async (tx) => {
+        const student = await tx.student.findFirst({
+          where: { code, status: { in: ["ACTIVE", "GRADUATED"] } },
           select: { id: true },
         });
-        yearId = year?.id;
-      }
-      return this.studentResults(schoolId, student.id, yearId);
-    });
+        if (!student) throw new NotFoundException("Student not found");
+
+        let yearId: string | undefined;
+        if (academicYearName) {
+          const year = await tx.academicYear.findFirst({
+            where: { name: academicYearName },
+            select: { id: true },
+          });
+          yearId = year?.id;
+        }
+
+        const block = await tx.blockedStudent.findFirst({
+          where: { studentId: student.id },
+          orderBy: { blockedAt: "desc" },
+          select: { reason: true },
+        });
+
+        return { studentId: student.id, yearId, block };
+      },
+    );
+
+    if (block) {
+      return { blocked: true as const, reason: block.reason };
+    }
+    const result = await this.studentResults(schoolId, studentId, yearId);
+    return { blocked: false as const, ...result };
   }
 
   dashboard(schoolId: string) {

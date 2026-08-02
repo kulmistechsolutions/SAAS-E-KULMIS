@@ -2595,6 +2595,7 @@ export const soGenerated: PartialDictionary = {
     finalAcademicResult: "Natiijada Ugu Dambaysa",
     calculatedFromWeightedTermMarksFinal: "Waxaa lagu xisaabiyay dhibcaha miisaaman ee muddada. Boqolkiiba dhammaadka = Σ(dhibcaha miisaaman) ÷ Σ(miisaannada).",
     noPublishedResultsYet: "Wali natiijo la daabacay ma jirto.",
+    reason: "Sababta",
   },
   salary: {
     loadingSalaryModule: "Qaybta mushaharka waa la soo dejinayaa…",

@@ -2595,6 +2595,7 @@ export const arGenerated: PartialDictionary = {
     finalAcademicResult: "النتيجة الدراسية النهائية",
     calculatedFromWeightedTermMarksFinal: "محسوبة من درجات الفصول المرجّحة. النسبة النهائية = Σ(الدرجات المرجّحة) ÷ Σ(الأوزان).",
     noPublishedResultsYet: "لا توجد نتائج منشورة بعد.",
+    reason: "السبب",
   },
   salary: {
     loadingSalaryModule: "جارٍ تحميل وحدة الرواتب…",
