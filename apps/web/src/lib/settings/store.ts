@@ -70,18 +70,21 @@ export async function refreshSettings(): Promise<void> {
     }
   };
 
-  // On the parent portal, never even attempt the staff /settings call. The
-  // pathname is a reliable signal available immediately, whereas the cached
-  // auth user can still be null on this first call — and a request that 403s
-  // shows in the console even though we catch it. Teachers can read /settings,
-  // so they are not short-circuited here.
-  const onParentPortal =
+  // On the parent portal — and the public exam-results lookup, which any
+  // anonymous visitor can open — never even attempt the staff /settings call.
+  // The pathname is a reliable signal available immediately, whereas the
+  // cached auth user can still be null (or, on /results, hold a stale token
+  // left over from a staff session on the same browser/device) on this first
+  // call — and a request that 401s/403s shows in the console even though we
+  // catch it. Teachers can read /settings, so they are not short-circuited here.
+  const onPublicOnlyPage =
     typeof window !== "undefined" &&
-    window.location.pathname.startsWith("/parent-portal");
+    (window.location.pathname.startsWith("/parent-portal") ||
+      window.location.pathname.startsWith("/results"));
 
   if (
     !getAccessToken() ||
-    onParentPortal ||
+    onPublicOnlyPage ||
     getCachedAuthUser()?.role === "PARENT"
   ) {
     await brandingOnly();
