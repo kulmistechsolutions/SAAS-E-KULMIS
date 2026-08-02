@@ -220,15 +220,16 @@ export function ExamResultCard({ data }: { data: ExamResultCardData }) {
                         <span className="font-medium">{row.subject}</span>
                         <GradePill grade={row.grade} />
                       </div>
-                      <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
+                      <div className="space-y-1 text-xs">
                         {data.group!.examColumns.map((col) => (
-                          <div key={col.examId} className="flex items-center justify-between gap-2">
-                            <span className="truncate text-muted-foreground">
-                              {col.label}
-                              <span className="text-muted-foreground/70"> /{col.maxMarks}</span>
-                            </span>
+                          <div
+                            key={col.examId}
+                            className="flex items-center justify-between gap-2 rounded-md bg-secondary/30 px-2 py-1"
+                          >
+                            <span className="truncate text-muted-foreground">{col.label}</span>
                             <span className="shrink-0 tabular-nums font-medium">
                               {row.perExam[col.examId] ?? "—"}
+                              <span className="text-muted-foreground/70"> / {col.maxMarks}</span>
                             </span>
                           </div>
                         ))}
