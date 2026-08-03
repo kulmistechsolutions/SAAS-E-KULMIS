@@ -5,9 +5,10 @@ import {
   RequestMethod,
 } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
-import { APP_GUARD } from "@nestjs/core";
+import { APP_FILTER, APP_GUARD } from "@nestjs/core";
 import { ThrottlerGuard, ThrottlerModule } from "@nestjs/throttler";
 import { LoggerModule } from "nestjs-pino";
+import { AllExceptionsFilter } from "./common/all-exceptions.filter";
 import { validateEnv } from "./config/env.validation";
 import { AuthModule } from "./auth/auth.module";
 import { AuditModule } from "./audit/audit.module";
@@ -100,7 +101,10 @@ import { TenantModule } from "./tenant/tenant.module";
     TenantModule,
     HealthModule,
   ],
-  providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
+  providers: [
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
+    { provide: APP_FILTER, useClass: AllExceptionsFilter },
+  ],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer): void {

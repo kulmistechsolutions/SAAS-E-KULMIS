@@ -6,6 +6,7 @@ import { useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
+  AlertTriangle,
   Building2,
   CreditCard,
   LayoutDashboard,
@@ -28,6 +29,7 @@ const NAV = [
   { href: "/platform/sms/payments", label: "Waafi Payments", icon: CreditCard },
   { href: "/platform/sms", label: "SMS Packages", icon: MessageSquare, exact: true },
   { href: "/platform/ai", label: "AI Grading", icon: Sparkles },
+  { href: "/platform/error-logs", label: "Error Logs", icon: AlertTriangle },
 ];
 
 export function PlatformShell({ children }: { children: React.ReactNode }) {

@@ -1985,6 +1985,27 @@ model SubscriptionHistory {
   @@map("subscription_history")
 }
 
+/// Persistent record of unhandled server errors (5xx), across every school.
+/// Written by the global exception filter — see AllExceptionsFilter. System
+/// table, no RLS, cross-tenant by design (the Platform Super Admin needs to
+/// see errors across every school in one place).
+model ErrorLog {
+  id         String    @id @default(cuid())
+  schoolId   String?
+  userId     String?
+  role       UserRole?
+  method     String
+  path       String
+  statusCode Int
+  message    String
+  stack      String?
+  createdAt  DateTime  @default(now())
+
+  @@index([createdAt])
+  @@index([schoolId, createdAt])
+  @@map("error_logs")
+}
+
 /// Platform Super Admin audit trail (no schoolId required).
 model PlatformAuditLog {
   id        String   @id @default(cuid())

@@ -154,6 +154,42 @@ export async function fetchPlatformDashboard(): Promise<PlatformDashboard> {
   return platformFetch<PlatformDashboard>("/platform/dashboard");
 }
 
+// ── Error logs (every unhandled 5xx, across all schools) ──
+export interface PlatformErrorLogRow {
+  id: string;
+  schoolId: string | null;
+  schoolName: string | null;
+  schoolSubdomain: string | null;
+  userId: string | null;
+  role: string | null;
+  method: string;
+  path: string;
+  statusCode: number;
+  message: string;
+  stack: string | null;
+  createdAt: string;
+}
+
+export interface PlatformErrorLogs {
+  total: number;
+  since: string;
+  topPaths: { path: string; count: number }[];
+  rows: PlatformErrorLogRow[];
+}
+
+export async function fetchPlatformErrorLogs(opts?: {
+  schoolId?: string;
+  days?: number;
+}): Promise<PlatformErrorLogs> {
+  const params = new URLSearchParams();
+  if (opts?.schoolId) params.set("schoolId", opts.schoolId);
+  if (opts?.days) params.set("days", String(opts.days));
+  const q = params.toString();
+  return platformFetch<PlatformErrorLogs>(
+    `/platform/dashboard/error-logs${q ? `?${q}` : ""}`,
+  );
+}
+
 // ── AI (OpenAI) config for quiz auto-grading ──
 export interface PlatformAiConfig {
   enabled: boolean;
