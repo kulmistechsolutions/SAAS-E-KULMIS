@@ -49,6 +49,8 @@ export function buildSettingsSeed(): SettingsState {
       startingNumber: 1,
       idLength: 4,
       formTemplate: "STANDARD",
+      villageRequired: false,
+      districtRequired: false,
       portalLoginEnabled: true,
       requirePhone: false,
       allowPhotoUpload: true,

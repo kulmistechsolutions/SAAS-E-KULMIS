@@ -29,6 +29,7 @@ import {
 import type { FeeStartMode, Gender, StudentPhotoChange, StudentStatus } from "@/lib/students/types";
 import { useSettingsState } from "@/lib/settings/store";
 import { ensureVillagesLoaded, useVillagesState } from "@/lib/villages/store";
+import { ensureDistrictsLoaded, useDistrictsState } from "@/lib/districts/store";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -150,6 +151,7 @@ export function StudentFormDialog({ open, onClose, student, onSaved }: Props) {
     return sectionNamesForClass(form.className, form.academicYear);
   }, [form.className, form.academicYear, selectedClass?.hasSections, academics.sections]);
   const villages = useVillagesState();
+  const districts = useDistrictsState();
   // Which registration form this school fills in. The extra bio fields are
   // additive — everything the standard form asks for stays exactly as it is.
   const detailed = settings.students.formTemplate === "DETAILED";
@@ -158,6 +160,7 @@ export function StudentFormDialog({ open, onClose, student, onSaved }: Props) {
     if (!open) return;
     void ensureAcademicsLoaded();
     void ensureVillagesLoaded();
+    void ensureDistrictsLoaded();
     setError(null);
     setSaving(false);
     setPhotoFile(null);
@@ -221,6 +224,13 @@ export function StudentFormDialog({ open, onClose, student, onSaved }: Props) {
       return setError("Parent / guardian name is required.");
     if (!form.parentPhone.trim())
       return setError("Parent phone number is required.");
+    // Only enforced at registration — an already-registered student isn't
+    // retroactively blocked from being saved just because a school turned
+    // this requirement on afterwards.
+    if (!isEdit && settings.students.villageRequired && !form.village.trim())
+      return setError("Village is required.");
+    if (!isEdit && settings.students.districtRequired && !form.district.trim())
+      return setError("District is required.");
     const fee = Number(form.monthlyFee);
     if (Number.isNaN(fee) || fee < 0)
       return setError("Monthly fee must be a valid number.");
@@ -440,13 +450,27 @@ export function StudentFormDialog({ open, onClose, student, onSaved }: Props) {
                   placeholder={t("studentsStudentFormDialog.optional")}
                 />
               </Field>
-              <Field label={t("studentsStudentFormDialog.district")}>
-                <Input
+              <Field
+                label={t("studentsStudentFormDialog.district")}
+                required={settings.students.districtRequired}
+              >
+                <Select
                   className={inputClass}
                   value={form.district}
                   onChange={(e) => set("district", e.target.value)}
-                  placeholder={t("studentsStudentFormDialog.optional")}
-                />
+                  disabled={districts.length === 0}
+                >
+                  <option value="">
+                    {districts.length === 0
+                      ? t("studentsStudentFormDialog.noDistrictsSetUp")
+                      : t("studentsStudentFormDialog.selectDistrict")}
+                  </option>
+                  {districts.map((d) => (
+                    <option key={d.id} value={d.name}>
+                      {d.name}
+                    </option>
+                  ))}
+                </Select>
               </Field>
               <Field
                 label={t("studentsStudentFormDialog.motherName")}
@@ -527,7 +551,10 @@ export function StudentFormDialog({ open, onClose, student, onSaved }: Props) {
               ))}
             </Select>
           </Field>
-          <Field label={t("studentsStudentFormDialog.village")}>
+          <Field
+            label={t("studentsStudentFormDialog.village")}
+            required={settings.students.villageRequired}
+          >
             <Select
               className={inputClass}
               value={form.village}

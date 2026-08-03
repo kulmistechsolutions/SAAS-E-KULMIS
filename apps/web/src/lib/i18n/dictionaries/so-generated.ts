@@ -2857,6 +2857,19 @@ export const soGenerated: PartialDictionary = {
     resetFailed: "Dib u dejintii waa fashilantay",
     couldNotLoad: "Lama soo dejin karin",
   },
+  settingsDistricts: {
+    title: "Degmooyinka",
+    subtitle: "Samee liiska degmooyinka dugsigu leeyahay — waxaa loo isticmaalaa foomka diiwaangelinta dhaqanka.",
+    namePlaceholder: "Magaca degmada",
+    add: "Ku dar",
+    addFailed: "Degmada lama darin karin",
+    renameFailed: "Degmada magaceeda lama beddeli karin",
+    reorderFailed: "Habaynta lama sameyn karin",
+    deleteFailed: "Degmada lama tirtiri karin",
+    deleteConfirm: "Ma tirtirtaa degmadan? Ardayda hore u isticmaali jirtay way sii haynayaan, laakiin lama dooran doono kuwa cusub.",
+    newName: "Magac cusub",
+    noneYet: "Weli degmo lama darin. Middaan ka dar korkan.",
+  },
   settingsEmail: {
     emailSmtpSettings: "Dejinta Iimaylka / SMTP",
     smtpHost: "Martida SMTP",
@@ -3053,6 +3066,7 @@ export const soGenerated: PartialDictionary = {
     dangerZone: "Aagga Khatarta",
     academicStructure: "Qaab-dhismeedka Waxbarasho",
     villages: "Xaafadaha",
+    districts: "Degmooyinka",
   },
   settingsSettingsSaveBar: {
     resetToDefault: "Ku celi caadiga",
@@ -3089,6 +3103,8 @@ export const soGenerated: PartialDictionary = {
     excelTemplateColumns: "Tiirarka:",
     switchFormImportNote: "Foomka Excel ee soo dejinta ayaa isbeddelaya — soo dejiso kan cusub ka hor inta aadan soo dejin arday badan.",
     switchFormRecordsNote: "Xogta ardayda, warbixinnada, lacagaha iyo diiwaannada waxbarashada waxba kama beddelmayaan.",
+    villageRequired: "Tuulada waa lagama maarmaan marka la diiwaangelinayo",
+    districtRequired: "Degmada waa lagama maarmaan marka la diiwaangelinayo",
   },
   settingsSubscription: {
     remainingThisPeriod: "hadhay xilligan",
@@ -3575,6 +3591,9 @@ export const soGenerated: PartialDictionary = {
     placeOfBirth: "Goobta Dhalashada",
     district: "Degmada",
     motherName: "Magaca Hooyada",
+    selectDistrict: "Dooro degmo",
+    selectVillage: "Dooro tuulo",
+    noDistrictsSetUp: "Weli degmo lama diyaarin",
   },
   studentsStudentPhotoUpload: {
     studentPhotoPreview: "Horudhaca sawirka ardayga",

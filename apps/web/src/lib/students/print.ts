@@ -126,6 +126,20 @@ export function printStudentProfile(r: StudentWithParent) {
   if (!w) return;
   const row = (k: string, v: string) =>
     `<tr><td class="k">${k}</td><td>${escapeHtml(v)}</td></tr>`;
+  // Every field the registration form can collect, so the printed copy never
+  // silently drops something that was actually saved — place of birth,
+  // district and mother's name only ever have a value on the detailed form,
+  // and village/notes are optional on both, so each is skipped when empty
+  // rather than printed as a blank row.
+  const optionalRows = [
+    r.placeOfBirth ? row("Place of Birth", r.placeOfBirth) : "",
+    r.district ? row("District", r.district) : "",
+    r.village ? row("Village", r.village) : "",
+    r.motherName ? row("Mother's Name", r.motherName) : "",
+    r.notes ? row("Notes", r.notes) : "",
+  ]
+    .filter(Boolean)
+    .join("");
   w.document.write(`<!DOCTYPE html><html><head><title>${escapeHtml(r.fullName)} — Profile</title>
   <style>
     *{font-family:Arial,Helvetica,sans-serif;box-sizing:border-box}
@@ -150,6 +164,7 @@ export function printStudentProfile(r: StudentWithParent) {
     ${row("Gender", genderLabel(r.gender))}
     ${row("Date of Birth", shortDate(r.dob))}
     ${row("Phone", r.phone ?? "—")}
+    ${optionalRows}
     ${row("Class", r.className + (r.section ? " - " + r.section : ""))}
     ${row("Monthly Fee", money(r.monthlyFee))}
     ${row("Registration Date", shortDate(r.registrationDate))}

@@ -10,6 +10,7 @@ import {
   isHiddenDefaultClass,
 } from "@/lib/academics/store";
 import { ensureVillagesLoaded, villageIdByName } from "@/lib/villages/store";
+import { ensureDistrictsLoaded, districtIdByName } from "@/lib/districts/store";
 import {
   apiBulkDeleteStudents,
   apiDeleteStudent,
@@ -427,6 +428,18 @@ export async function registerStudent(
     }
   }
 
+  await ensureDistrictsLoaded();
+  let districtId: string | null | undefined;
+  if (input.district?.trim()) {
+    districtId = districtIdByName(input.district.trim());
+    if (!districtId) {
+      return {
+        ok: false,
+        error: `District "${input.district}" was not found. Add it under Settings first.`,
+      };
+    }
+  }
+
   if (!isValidPhone(input.parentPhone)) {
     return {
       ok: false,
@@ -458,13 +471,13 @@ export async function registerStudent(
       phone: input.phone?.trim() || null,
       notes: input.notes?.trim() || null,
       placeOfBirth: input.placeOfBirth?.trim() || null,
-      district: input.district?.trim() || null,
       motherName: input.motherName?.trim() || null,
       parentName: input.parentName.trim(),
       parentPhone: input.parentPhone.trim(),
       classId,
       sectionId: sec.sectionId,
       villageId,
+      districtId,
       monthlyFee: input.monthlyFee,
       feeStartMode: input.feeStartMode,
       agreementAmount: input.agreementAmount,
@@ -578,6 +591,22 @@ export async function updateStudent(
     }
   }
 
+  let districtId: string | null | undefined;
+  if (patch.district !== undefined) {
+    await ensureDistrictsLoaded();
+    if (patch.district?.trim()) {
+      districtId = districtIdByName(patch.district.trim());
+      if (!districtId) {
+        return {
+          ok: false,
+          error: `District "${patch.district}" was not found. Add it under Settings first.`,
+        };
+      }
+    } else {
+      districtId = null;
+    }
+  }
+
   try {
     // The parent details go to the student endpoint, which re-links the child
     // to whoever holds that phone. Sending them to the parent endpoint instead
@@ -596,10 +625,6 @@ export async function updateStudent(
         patch.placeOfBirth !== undefined
           ? patch.placeOfBirth?.trim() || null
           : undefined,
-      district:
-        patch.district !== undefined
-          ? patch.district?.trim() || null
-          : undefined,
       motherName:
         patch.motherName !== undefined
           ? patch.motherName?.trim() || null
@@ -607,6 +632,7 @@ export async function updateStudent(
       classId,
       sectionId,
       villageId,
+      districtId,
       monthlyFee: patch.monthlyFee,
       feeWaived: patch.feeWaived,
       status: patch.status,
@@ -838,6 +864,17 @@ function validateImportRow(
     };
   }
 
+  // Only present on the traditional template.
+  const districtRaw = row.district?.trim();
+  if (districtRaw && !districtIdByName(districtRaw)) {
+    return {
+      row: line,
+      data: row,
+      status: "invalid",
+      message: `District "${districtRaw}" was not found. Add it under Settings first, or leave the column blank.`,
+    };
+  }
+
   const st = ensure();
   if (isDuplicate(st, parentPhone, fullName, className, section)) {
     return {
@@ -857,6 +894,7 @@ export async function previewImport(
 ): Promise<ImportPreviewRow[]> {
   await ensureAcademicsLoaded();
   await ensureVillagesLoaded();
+  await ensureDistrictsLoaded();
   const seenInFile = new Set<string>();
   return rows.map((row, i) =>
     validateImportRow(row, i + 2, academicYear, seenInFile),
@@ -869,6 +907,7 @@ export async function bulkImport(
 ): Promise<ImportResult> {
   await ensureAcademicsLoaded();
   await ensureVillagesLoaded();
+  await ensureDistrictsLoaded();
   const result: ImportResult = {
     imported: 0,
     skipped: 0,

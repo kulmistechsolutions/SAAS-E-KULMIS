@@ -44,6 +44,7 @@ const NAV: {
     icon: Layers,
   },
   { href: "/settings/villages", label: "settingsSettingsNav.villages", icon: MapPin },
+  { href: "/settings/districts", label: "settingsSettingsNav.districts", icon: MapPin },
   { href: "/settings/students", label: "settingsSettingsNav.students", icon: GraduationCap },
   { href: "/settings/teachers", label: "settingsSettingsNav.teachers", icon: Users },
   { href: "/settings/parents", label: "settingsSettingsNav.parents", icon: Users },

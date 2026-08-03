@@ -73,6 +73,7 @@ const studentInclude = {
   },
   section: { select: { id: true, name: true } },
   village: { select: { id: true, name: true } },
+  district: { select: { id: true, name: true } },
 } satisfies Prisma.StudentInclude;
 
 type StudentRow = Prisma.StudentGetPayload<{ include: typeof studentInclude }>;
@@ -164,9 +165,17 @@ export class StudentsService {
             studentPrefix: true,
             parentPrefix: true,
             studentIdLength: true,
+            villageRequired: true,
+            districtRequired: true,
           },
         });
         if (!school) throw new NotFoundException("School not found");
+        if (school.villageRequired && !dto.villageId) {
+          throw new BadRequestException("Village is required.");
+        }
+        if (school.districtRequired && !dto.districtId) {
+          throw new BadRequestException("District is required.");
+        }
 
         const cls = await tx.class.findFirst({
           where: { id: dto.classId },
@@ -255,13 +264,13 @@ export class StudentsService {
             phone: dto.phone ?? null,
             notes: dto.notes ?? null,
             placeOfBirth: dto.placeOfBirth ?? null,
-            district: dto.district ?? null,
             motherName: dto.motherName ?? null,
             portalPasswordHash,
             parentId: parent.id,
             classId: dto.classId,
             sectionId,
             villageId: dto.villageId ?? null,
+            districtId: dto.districtId ?? null,
             monthlyFee: dto.monthlyFee ?? 0,
             feeStartMode: dto.feeStartMode ?? null,
             feeAgreementAmount: dto.agreementAmount ?? null,
@@ -516,11 +525,11 @@ export class StudentsService {
           phone: dto.phone,
           notes: dto.notes,
           placeOfBirth: dto.placeOfBirth,
-          district: dto.district,
           motherName: dto.motherName,
           classId: dto.classId,
           sectionId: dto.sectionId,
           villageId: dto.villageId,
+          districtId: dto.districtId,
           monthlyFee: dto.monthlyFee,
           feeWaived: dto.feeWaived,
           status: dto.status,

@@ -2857,6 +2857,19 @@ export const arGenerated: PartialDictionary = {
     resetFailed: "فشل إعادة التعيين",
     couldNotLoad: "تعذّر التحميل",
   },
+  settingsDistricts: {
+    title: "المناطق",
+    subtitle: "أنشئ قائمة المناطق الخاصة بالمدرسة — تُستخدم في نموذج التسجيل التقليدي.",
+    namePlaceholder: "اسم المنطقة",
+    add: "إضافة",
+    addFailed: "تعذرت إضافة المنطقة",
+    renameFailed: "تعذر إعادة تسمية المنطقة",
+    reorderFailed: "تعذر إعادة الترتيب",
+    deleteFailed: "تعذر حذف المنطقة",
+    deleteConfirm: "هل تريد حذف هذه المنطقة؟ يحتفظ بها الطلاب الذين يستخدمونها بالفعل، لكن لن يتم اختيارها للطلاب الجدد.",
+    newName: "اسم جديد",
+    noneYet: "لا توجد مناطق بعد. أضف واحدة أعلاه.",
+  },
   settingsEmail: {
     emailSmtpSettings: "إعدادات البريد / SMTP",
     smtpHost: "مضيف SMTP",
@@ -3053,6 +3066,7 @@ export const arGenerated: PartialDictionary = {
     dangerZone: "منطقة الخطر",
     academicStructure: "الهيكل الأكاديمي",
     villages: "الأحياء",
+    districts: "المناطق",
   },
   settingsSettingsSaveBar: {
     resetToDefault: "إعادة التعيين للافتراضي",
@@ -3089,6 +3103,8 @@ export const arGenerated: PartialDictionary = {
     excelTemplateColumns: "الأعمدة:",
     switchFormImportNote: "يتغير قالب استيراد Excel ليتطابق — قم بتنزيل القالب الجديد قبل الاستيراد المجمع التالي.",
     switchFormRecordsNote: "لا تتأثر ملفات الطلاب والتقارير والرسوم والسجلات الأكاديمية.",
+    villageRequired: "القرية مطلوبة عند التسجيل",
+    districtRequired: "المنطقة مطلوبة عند التسجيل",
   },
   settingsSubscription: {
     remainingThisPeriod: "متبقٍ هذه الفترة",
@@ -3575,6 +3591,9 @@ export const arGenerated: PartialDictionary = {
     placeOfBirth: "مكان الميلاد",
     district: "المنطقة",
     motherName: "اسم الأم",
+    selectDistrict: "اختر المنطقة",
+    selectVillage: "اختر القرية",
+    noDistrictsSetUp: "لم يتم إعداد مناطق بعد",
   },
   studentsStudentPhotoUpload: {
     studentPhotoPreview: "معاينة صورة الطالب",

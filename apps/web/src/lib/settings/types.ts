@@ -73,6 +73,9 @@ export interface StudentSettings {
   startingNumber: number;
   idLength: number;
   formTemplate: StudentFormTemplate;
+  /** See School.villageRequired/districtRequired — off by default, both fields have always been optional. */
+  villageRequired: boolean;
+  districtRequired: boolean;
   portalLoginEnabled: boolean;
   requirePhone: boolean;
   allowPhotoUpload: boolean;

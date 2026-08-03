@@ -76,6 +76,11 @@ model School {
   /// schools whose intake sheet asks for them. Defaults to STANDARD so every
   /// existing school keeps the form (and the data) it already has.
   studentFormTemplate StudentFormTemplate @default(STANDARD)
+  /// Whether Village/District must be picked at registration rather than left
+  /// blank. Off by default — both fields have always been optional, and
+  /// turning either on only affects registrations from then on.
+  villageRequired     Boolean              @default(false)
+  districtRequired    Boolean              @default(false)
 
   /// Free-trial deadline set when Super Admin creates the school. The school
   /// works normally until this passes; after it, sign-in is blocked until a
@@ -134,6 +139,7 @@ model School {
   smsGatewayLicenses SmsGatewayLicense[]
   smsSenderRequests  SmsSenderIdRequest[]
   villages           Village[]
+  districts          District[]
 
   @@map("schools")
 }
@@ -506,7 +512,6 @@ model Student {
   /// School.studentFormTemplate) — null for every student registered on the
   /// standard form.
   placeOfBirth         String?
-  district             String?
   motherName           String?
   photoKey             String?
   portalPasswordHash   String?
@@ -516,6 +521,9 @@ model Student {
   /// Optional neighborhood, from the school's own village list. Null on every
   /// existing student until re-saved — nothing backfills it.
   villageId            String?
+  /// District, from the school's own district list — collected only by the
+  /// DETAILED registration form, same as placeOfBirth/motherName above.
+  districtId            String?
   monthlyFee           Int           @default(0)
   annualFeeAmount      Int?
   feeStartMode         FeeStartMode?
@@ -538,6 +546,7 @@ model Student {
   class        Class               @relation(fields: [classId], references: [id], onDelete: Restrict)
   section      Section?            @relation(fields: [sectionId], references: [id], onDelete: Restrict)
   village      Village?            @relation(fields: [villageId], references: [id], onDelete: SetNull)
+  district     District?           @relation(fields: [districtId], references: [id], onDelete: SetNull)
   attendance   StudentAttendance[]
   feeCharges   FeeCharge[]
   payments     Payment[]
@@ -552,6 +561,7 @@ model Student {
   @@index([parentId])
   @@index([classId])
   @@index([villageId])
+  @@index([districtId])
   @@map("students")
 }
 
@@ -573,6 +583,26 @@ model Village {
   @@unique([schoolId, name])
   @@index([schoolId])
   @@map("villages")
+}
+
+/// A school-defined district list, offered on the DETAILED registration form
+/// (see School.studentFormTemplate). Mirrors Village exactly — same
+/// management page pattern, same optional-by-default relation to Student.
+model District {
+  id         String       @id @default(cuid())
+  schoolId   String
+  name       String
+  orderIndex Int          @default(0)
+  status     EntityStatus @default(ACTIVE)
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+
+  school   School    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  students Student[]
+
+  @@unique([schoolId, name])
+  @@index([schoolId])
+  @@map("districts")
 }
 
 /// Teacher (Module 3). Logs in via linked User (username = teacher code).

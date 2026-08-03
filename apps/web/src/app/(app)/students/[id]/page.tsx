@@ -263,6 +263,9 @@ function PersonalTab({ student }: { student: StudentWithParent }) {
       {student.motherName && (
         <Field label={tr("students.motherName")} value={student.motherName} />
       )}
+      {student.village && (
+        <Field label={tr("studentsStudentFormDialog.village")} value={student.village} />
+      )}
       <Field label={tr("students.class")} value={student.className} />
       <Field label={tr("students.section")} value={student.section ?? "—"} />
       <Field label={tr("students.monthlyFee")} value={money(student.monthlyFee)} />

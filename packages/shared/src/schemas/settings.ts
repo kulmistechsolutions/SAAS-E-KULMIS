@@ -46,6 +46,10 @@ export const updateSettingsSchema = z
     /// School.studentFormTemplate. Switching only changes which fields the
     /// form shows; already-saved students keep their data either way.
     studentFormTemplate: z.enum(["STANDARD", "DETAILED"]).optional(),
+    /// Makes Village/District mandatory at registration instead of optional.
+    /// See School.villageRequired/districtRequired.
+    villageRequired: z.boolean().optional(),
+    districtRequired: z.boolean().optional(),
     teacherPrefix: z.string().min(1).max(10).optional(),
     parentPrefix: z.string().min(1).max(10).optional(),
     receiptPrefix: z.string().min(1).max(10).optional(),

@@ -2857,6 +2857,19 @@ export const generated = {
     resetFailed: "Reset failed",
     couldNotLoad: "Could not load",
   },
+  settingsDistricts: {
+    title: "Districts",
+    subtitle: "Build the school's own district list — used on the Traditional registration form.",
+    namePlaceholder: "District name",
+    add: "Add",
+    addFailed: "Could not add district",
+    renameFailed: "Could not rename district",
+    reorderFailed: "Could not reorder",
+    deleteFailed: "Could not delete district",
+    deleteConfirm: "Delete this district? Students already using it keep it, but it won't be selectable for new ones.",
+    newName: "New name",
+    noneYet: "No districts yet. Add one above.",
+  },
   settingsEmail: {
     emailSmtpSettings: "Email / SMTP Settings",
     smtpHost: "SMTP Host",
@@ -3053,6 +3066,7 @@ export const generated = {
     dangerZone: "Danger Zone",
     academicStructure: "Academic Structure",
     villages: "Villages",
+    districts: "Districts",
   },
   settingsSettingsSaveBar: {
     resetToDefault: "Reset to Default",
@@ -3089,6 +3103,8 @@ export const generated = {
     excelTemplateColumns: "Columns:",
     switchFormImportNote: "The Excel import template changes to match — download the new one before your next bulk import.",
     switchFormRecordsNote: "Student profiles, reports, fees and academic records are not affected.",
+    villageRequired: "Village is required at registration",
+    districtRequired: "District is required at registration",
   },
   settingsSubscription: {
     remainingThisPeriod: "remaining this period",
@@ -3575,6 +3591,9 @@ export const generated = {
     placeOfBirth: "Place of Birth",
     district: "District",
     motherName: "Mother's Name",
+    selectDistrict: "Select district",
+    selectVillage: "Select village",
+    noDistrictsSetUp: "No districts set up yet",
   },
   studentsStudentPhotoUpload: {
     studentPhotoPreview: "Student photo preview",

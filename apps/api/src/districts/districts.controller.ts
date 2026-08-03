@@ -10,11 +10,11 @@ import {
   Query,
 } from "@nestjs/common";
 import {
-  createVillageSchema,
-  updateVillageSchema,
+  createDistrictSchema,
+  updateDistrictSchema,
   UserRole,
 } from "@ekulmis/shared";
-import { VillagesService } from "./villages.service";
+import { DistrictsService } from "./districts.service";
 import { Roles } from "../auth/roles.decorator";
 import { STAFF_ROLES } from "../auth/role-groups";
 import { CurrentUser } from "../auth/current-user.decorator";
@@ -22,9 +22,9 @@ import type { AuthUser } from "../auth/auth.types";
 
 /** Reads open to any signed-in staff member — the student form needs the list; writes are administrator-only, like the rest of the academics module. */
 @Roles(...STAFF_ROLES)
-@Controller("villages")
-export class VillagesController {
-  constructor(private readonly service: VillagesService) {}
+@Controller("districts")
+export class DistrictsController {
+  constructor(private readonly service: DistrictsService) {}
 
   @Get()
   findAll(
@@ -39,7 +39,7 @@ export class VillagesController {
   @Roles(UserRole.ADMINISTRATOR)
   @Post()
   create(@CurrentUser() me: AuthUser, @Body() body: unknown) {
-    const parsed = createVillageSchema.safeParse(body);
+    const parsed = createDistrictSchema.safeParse(body);
     if (!parsed.success) throw new BadRequestException(parsed.error.flatten());
     return this.service.create(me.schoolId, parsed.data);
   }
@@ -51,7 +51,7 @@ export class VillagesController {
     @Param("id") id: string,
     @Body() body: unknown,
   ) {
-    const parsed = updateVillageSchema.safeParse(body);
+    const parsed = updateDistrictSchema.safeParse(body);
     if (!parsed.success) throw new BadRequestException(parsed.error.flatten());
     return this.service.update(me.schoolId, id, parsed.data);
   }

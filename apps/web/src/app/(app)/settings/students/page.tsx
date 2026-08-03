@@ -113,6 +113,18 @@ export default function StudentSettingsPage() {
           {t("settingsStudents.excelTemplateColumns")}{" "}
           {importTemplateFor(draft.formTemplate).headers.join(", ")}
         </p>
+        <div className="mt-4 space-y-2">
+          <SettingsToggle
+            label={t("settingsStudents.villageRequired")}
+            checked={draft.villageRequired}
+            onChange={(v) => update({ villageRequired: v })}
+          />
+          <SettingsToggle
+            label={t("settingsStudents.districtRequired")}
+            checked={draft.districtRequired}
+            onChange={(v) => update({ districtRequired: v })}
+          />
+        </div>
       </div>
 
       <SettingsToggle label={t("settingsStudents.allowStudentPortalLogin")} checked={draft.portalLoginEnabled} onChange={(v) => update({ portalLoginEnabled: v })} />

@@ -18,6 +18,7 @@ import { UsersModule } from "./users/users.module";
 import { SettingsModule } from "./settings/settings.module";
 import { AcademicsModule } from "./academics/academics.module";
 import { VillagesModule } from "./villages/villages.module";
+import { DistrictsModule } from "./districts/districts.module";
 import { StudentsModule } from "./students/students.module";
 import { TeachersModule } from "./teachers/teachers.module";
 import { AttendanceModule } from "./attendance/attendance.module";
@@ -77,6 +78,7 @@ import { TenantModule } from "./tenant/tenant.module";
     SettingsModule,
     AcademicsModule,
     VillagesModule,
+    DistrictsModule,
     StudentsModule,
     TeachersModule,
     AttendanceModule,

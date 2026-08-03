@@ -26,7 +26,6 @@ interface ApiStudent {
   phone: string | null;
   notes: string | null;
   placeOfBirth?: string | null;
-  district?: string | null;
   motherName?: string | null;
   monthlyFee: number;
   status: StudentStatus;
@@ -40,6 +39,7 @@ interface ApiStudent {
   class: { id: string; name: string; academicYear: { name: string } | null };
   section: { id: string; name: string } | null;
   village: { id: string; name: string } | null;
+  district: { id: string; name: string } | null;
   photoUrl?: string | null;
   feeStartMode?: "FULL_CURRENT" | "AGREEMENT" | "NEXT_MONTH" | null;
   feeAgreementAmount?: number | null;
@@ -82,7 +82,7 @@ export function mapApiStudent(s: ApiStudent): Student {
     status: s.status,
     notes: s.notes,
     placeOfBirth: s.placeOfBirth ?? null,
-    district: s.district ?? null,
+    district: s.district?.name ?? null,
     motherName: s.motherName ?? null,
     hasPhoto: s.hasPhoto ?? !!(s.photoKey || s.photoUrl),
     photoUrl: s.photoUrl ?? null,
@@ -168,13 +168,13 @@ export interface RegisterStudentApiInput {
   phone?: string | null;
   notes?: string | null;
   placeOfBirth?: string | null;
-  district?: string | null;
   motherName?: string | null;
   parentName: string;
   parentPhone: string;
   classId: string;
   sectionId?: string | null;
   villageId?: string | null;
+  districtId?: string | null;
   monthlyFee: number;
   feeStartMode?: "FULL_CURRENT" | "AGREEMENT" | "NEXT_MONTH";
   agreementAmount?: number;
@@ -231,11 +231,11 @@ export interface UpdateStudentApiInput {
   phone?: string | null;
   notes?: string | null;
   placeOfBirth?: string | null;
-  district?: string | null;
   motherName?: string | null;
   classId?: string;
   sectionId?: string | null;
   villageId?: string | null;
+  districtId?: string | null;
   monthlyFee?: number;
   feeWaived?: boolean;
   status?: StudentStatus;

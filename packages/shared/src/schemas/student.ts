@@ -23,16 +23,19 @@ export const registerStudentSchema = z.object({
   /// School.studentFormTemplate. Always optional so the standard form, the
   /// Excel import and the parent portal all keep working unchanged.
   placeOfBirth: z.string().nullable().optional(),
-  district: z.string().nullable().optional(),
   motherName: z.string().nullable().optional(),
   parentName: z.string().min(1, "Parent name is required"),
   parentPhone: z.string().min(1, "Parent phone is required"),
   classId: z.string().min(1, "Class is required"),
   sectionId: z.string().min(1).nullable().optional(),
-  /// Optional — a school that hasn't set up its village list has nothing to
-  /// pick from, and an existing student re-imported or edited without one
-  /// keeps it null rather than being forced to choose.
+  /// Optional by default — a school that hasn't set up its village/district
+  /// list has nothing to pick from, and an existing student re-imported or
+  /// edited without one keeps it null rather than being forced to choose.
+  /// School.villageRequired/districtRequired can make either mandatory; that
+  /// is enforced in the service, not here, since it depends on school
+  /// settings the schema alone doesn't have.
   villageId: z.string().min(1).nullable().optional(),
+  districtId: z.string().min(1).nullable().optional(),
   monthlyFee: z.number().int().nonnegative().optional(),
   feeStartMode: z
     .enum(["FULL_CURRENT", "AGREEMENT", "NEXT_MONTH"])
@@ -72,11 +75,11 @@ export const updateStudentSchema = z
     notes: z.string().nullable().optional(),
     /// DETAILED-form bio fields — see registerStudentSchema.
     placeOfBirth: z.string().nullable().optional(),
-    district: z.string().nullable().optional(),
     motherName: z.string().nullable().optional(),
     classId: z.string().min(1).optional(),
     sectionId: z.string().nullable().optional(),
     villageId: z.string().min(1).nullable().optional(),
+    districtId: z.string().min(1).nullable().optional(),
     monthlyFee: z.number().int().nonnegative().optional(),
     /// Permanent tuition exemption — see Student.feeWaived. Editable any
     /// time, not just at registration, since it's meant to be an ongoing
