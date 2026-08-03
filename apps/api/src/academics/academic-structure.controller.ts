@@ -21,6 +21,7 @@ import {
 } from "@ekulmis/shared";
 import { AcademicStructureService } from "./academic-structure.service";
 import { Roles } from "../auth/roles.decorator";
+import { STAFF_ROLES } from "../auth/role-groups";
 import { CurrentUser } from "../auth/current-user.decorator";
 import type { AuthUser } from "../auth/auth.types";
 
@@ -33,6 +34,7 @@ import type { AuthUser } from "../auth/auth.types";
 export class AcademicStructureController {
   constructor(private readonly service: AcademicStructureService) {}
 
+  @Roles(...STAFF_ROLES)
   @Get("settings")
   getSettings(@CurrentUser() me: AuthUser) {
     return this.service.getSettings(me.schoolId);
@@ -46,6 +48,7 @@ export class AcademicStructureController {
     return this.service.updateSettings(me.schoolId, parsed.data);
   }
 
+  @Roles(...STAFF_ROLES)
   @Get("tree")
   tree(
     @CurrentUser() me: AuthUser,

@@ -24,6 +24,7 @@ export class TeacherAttendanceController {
     return this.attendance.mark(me.schoolId, parsed.data, me.userId);
   }
 
+  @Roles(UserRole.ADMINISTRATOR, UserRole.ATTENDANCE_OFFICER)
   @Get()
   list(
     @CurrentUser() me: AuthUser,
@@ -36,6 +37,7 @@ export class TeacherAttendanceController {
     return this.attendance.list(me.schoolId, shift, date);
   }
 
+  @Roles(UserRole.ADMINISTRATOR, UserRole.ATTENDANCE_OFFICER)
   @Get("dashboard")
   dashboard(
     @CurrentUser() me: AuthUser,

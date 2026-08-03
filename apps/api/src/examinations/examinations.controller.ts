@@ -38,11 +38,13 @@ import type { TenantContext } from "@ekulmis/shared";
 export class ExaminationsController {
   constructor(private readonly exams: ExaminationsService) {}
 
+  @Roles(UserRole.ADMINISTRATOR, UserRole.EXAM_MANAGER)
   @Get("dashboard")
   dashboard(@CurrentUser() me: AuthUser) {
     return this.exams.dashboard(me.schoolId);
   }
 
+  @Roles(UserRole.ADMINISTRATOR, UserRole.EXAM_MANAGER, UserRole.TEACHER)
   @Get("groups")
   listGroups(
     @CurrentUser() me: AuthUser,
@@ -77,6 +79,7 @@ export class ExaminationsController {
     return this.exams.unpublishExamGroup(me.schoolId, groupId, me);
   }
 
+  @Roles(UserRole.ADMINISTRATOR, UserRole.EXAM_MANAGER)
   @Get("monitoring")
   monitoring(
     @CurrentUser() me: AuthUser,
@@ -236,6 +239,7 @@ export class ExaminationsController {
     });
   }
 
+  @Roles(UserRole.ADMINISTRATOR, UserRole.EXAM_MANAGER)
   @Get("blocked")
   listBlocked(@CurrentUser() me: AuthUser) {
     return this.exams.listBlocked(me.schoolId);
@@ -263,6 +267,7 @@ export class ExaminationsController {
     return this.exams.upsertMarks(me.schoolId, parsed.data, me.userId, me.role);
   }
 
+  @Roles(UserRole.ADMINISTRATOR, UserRole.EXAM_MANAGER, UserRole.TEACHER)
   @Get("results/:studentId")
   studentResults(
     @CurrentUser() me: AuthUser,
@@ -272,6 +277,7 @@ export class ExaminationsController {
     return this.exams.studentResults(me.schoolId, studentId, academicYearId);
   }
 
+  @Roles(UserRole.ADMINISTRATOR, UserRole.EXAM_MANAGER, UserRole.TEACHER)
   @Get("results/:studentId/transcript/pdf")
   @Header("Content-Type", "application/pdf")
   async transcriptPdf(
@@ -304,6 +310,7 @@ export class ExaminationsController {
     );
   }
 
+  @Roles(UserRole.ADMINISTRATOR, UserRole.EXAM_MANAGER, UserRole.TEACHER)
   @Get()
   async listExams(
     @CurrentUser() me: AuthUser,
@@ -373,11 +380,13 @@ export class ExaminationsController {
     );
   }
 
+  @Roles(UserRole.ADMINISTRATOR, UserRole.EXAM_MANAGER, UserRole.TEACHER)
   @Get(":id")
   getExam(@CurrentUser() me: AuthUser, @Param("id") id: string) {
     return this.exams.getExam(me.schoolId, id);
   }
 
+  @Roles(UserRole.ADMINISTRATOR, UserRole.EXAM_MANAGER, UserRole.TEACHER)
   @Get(":id/marks")
   getMarks(@CurrentUser() me: AuthUser, @Param("id") id: string) {
     return this.exams.getMarks(me.schoolId, id);
