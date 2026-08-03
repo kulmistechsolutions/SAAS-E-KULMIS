@@ -17,12 +17,14 @@ import {
 import { TeacherAssignmentsService } from "./teacher-assignments.service";
 import { TeachersService } from "./teachers.service";
 import { Roles } from "../auth/roles.decorator";
-import { STAFF_ROLES } from "../auth/role-groups";
 import { CurrentUser } from "../auth/current-user.decorator";
 import type { AuthUser } from "../auth/auth.types";
 
-// Staff-only reads by default; mutation handlers override with ADMINISTRATOR.
-@Roles(...STAFF_ROLES)
+// Class-subject-teacher scheduling data is only relevant to whoever manages
+// the teacher directory (admin/academic manager) or the teacher themself
+// (own assignments, scoped inside each handler below) — not to Finance or
+// Attendance officers, whose own features never read this endpoint.
+@Roles(UserRole.ADMINISTRATOR, UserRole.ACADEMIC_MANAGER, UserRole.TEACHER)
 @Controller("teacher-assignments")
 export class TeacherAssignmentsController {
   constructor(

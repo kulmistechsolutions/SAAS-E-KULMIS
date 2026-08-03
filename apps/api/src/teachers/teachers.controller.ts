@@ -19,7 +19,6 @@ import {
 import { z } from "zod";
 import { TeachersService } from "./teachers.service";
 import { Roles } from "../auth/roles.decorator";
-import { STAFF_ROLES } from "../auth/role-groups";
 import { CurrentUser } from "../auth/current-user.decorator";
 import type { AuthUser } from "../auth/auth.types";
 
@@ -81,7 +80,14 @@ export class TeachersController {
     return this.teachers.findAll(me.schoolId, shift);
   }
 
-  @Roles(...STAFF_ROLES)
+  // Matches findAll above: only whoever manages the teacher directory can
+  // look one up by id. (STAFF_ROLES was too broad here — Finance/Attendance
+  // officers have no reason to read another staff member's profile.)
+  @Roles(
+    UserRole.ADMINISTRATOR,
+    UserRole.RECEPTION_OFFICER,
+    UserRole.ACADEMIC_MANAGER,
+  )
   @Get(":id")
   findOne(@CurrentUser() me: AuthUser, @Param("id") id: string) {
     if (me.role === "TEACHER") {
