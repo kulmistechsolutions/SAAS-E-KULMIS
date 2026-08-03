@@ -36,6 +36,10 @@ export interface Student {
   registrationDate: string;
   status: StudentStatus;
   notes?: string | null;
+  /** Collected only by the DETAILED registration form — null otherwise. */
+  placeOfBirth?: string | null;
+  district?: string | null;
+  motherName?: string | null;
   hasPhoto?: boolean;
   /** Supabase public/signed URL from the API when available. */
   photoUrl?: string | null;
@@ -65,6 +69,9 @@ export interface StudentInput {
   academicYear: string;
   status?: StudentStatus;
   notes?: string | null;
+  placeOfBirth?: string | null;
+  district?: string | null;
+  motherName?: string | null;
   feeStartMode?: FeeStartMode;
   agreementAmount?: number;
   feeWaived?: boolean;

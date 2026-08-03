@@ -1,16 +1,36 @@
 "use client";
 
 
+import { useState } from "react";
 import { useT } from "@/lib/i18n/provider";
+import { Dialog } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import { SettingsInput } from "@/components/settings/settings-field";
 import { SettingsSaveBar } from "@/components/settings/settings-save-bar";
 import { SettingsToggle } from "@/components/settings/settings-toggle";
 import { useSettingsSection } from "@/components/settings/use-settings-section";
+import type { StudentFormTemplate } from "@/lib/settings/types";
+import { cn } from "@/lib/utils";
 
 export default function StudentSettingsPage() {
   const t = useT();
   const { draft, update, dirty, cancel, resetToDefault, save, saving } =
     useSettingsSection("students");
+  // Switching the form is a visible change to how every future registration
+  // looks, so it is confirmed rather than flipped silently. Switching back to
+  // STANDARD needs no confirmation — nothing is lost, the extra fields simply
+  // stop being asked for.
+  const [pendingTemplate, setPendingTemplate] =
+    useState<StudentFormTemplate | null>(null);
+
+  function chooseTemplate(next: StudentFormTemplate) {
+    if (next === draft.formTemplate) return;
+    if (next === "DETAILED") {
+      setPendingTemplate(next);
+      return;
+    }
+    update({ formTemplate: next });
+  }
 
   return (
     <div className="space-y-6">
@@ -26,6 +46,55 @@ export default function StudentSettingsPage() {
           {t("settingsStudents.example")} {draft.idPrefix}{String(draft.startingNumber).padStart(draft.idLength, "0")}
         </div>
       </div>
+      <div>
+        <h2 className="text-sm font-semibold">
+          {t("settingsStudents.registrationForm")}
+        </h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {t("settingsStudents.registrationFormHelp")}
+        </p>
+        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+          {(
+            [
+              {
+                value: "STANDARD" as const,
+                title: t("settingsStudents.standardForm"),
+                desc: t("settingsStudents.standardFormDesc"),
+              },
+              {
+                value: "DETAILED" as const,
+                title: t("settingsStudents.detailedForm"),
+                desc: t("settingsStudents.detailedFormDesc"),
+              },
+            ] as const
+          ).map((opt) => (
+            <label
+              key={opt.value}
+              className={cn(
+                "flex cursor-pointer gap-3 rounded-lg border p-3 transition-colors",
+                draft.formTemplate === opt.value
+                  ? "border-primary bg-primary/5"
+                  : "border-border bg-card hover:bg-secondary/40",
+              )}
+            >
+              <input
+                type="radio"
+                name="studentFormTemplate"
+                className="mt-1"
+                checked={draft.formTemplate === opt.value}
+                onChange={() => chooseTemplate(opt.value)}
+              />
+              <span>
+                <span className="block text-sm font-medium">{opt.title}</span>
+                <span className="block text-xs text-muted-foreground">
+                  {opt.desc}
+                </span>
+              </span>
+            </label>
+          ))}
+        </div>
+      </div>
+
       <SettingsToggle label={t("settingsStudents.allowStudentPortalLogin")} checked={draft.portalLoginEnabled} onChange={(v) => update({ portalLoginEnabled: v })} />
       <SettingsToggle label={t("settingsStudents.requireStudentPhone")} checked={draft.requirePhone} onChange={(v) => update({ requirePhone: v })} />
       <SettingsToggle label={t("settingsStudents.allowStudentPhotoUpload")} checked={draft.allowPhotoUpload} onChange={(v) => update({ allowPhotoUpload: v })} />
@@ -34,6 +103,43 @@ export default function StudentSettingsPage() {
         <SettingsInput label={t("settingsStudents.studentProfileFooterOptional")} value={draft.studentFooter} onChange={(e) => update({ studentFooter: e.target.value })} />
       </div>
       <SettingsSaveBar dirty={dirty} saving={saving} onSave={save} onCancel={cancel} onResetDefault={resetToDefault} />
+
+      <Dialog
+        open={pendingTemplate !== null}
+        onClose={() => setPendingTemplate(null)}
+        title={t("settingsStudents.switchFormTitle")}
+        className="max-w-lg"
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setPendingTemplate(null)}>
+              {t("settingsStudents.cancel")}
+            </Button>
+            <Button
+              onClick={() => {
+                if (pendingTemplate) update({ formTemplate: pendingTemplate });
+                setPendingTemplate(null);
+              }}
+            >
+              {t("settingsStudents.useDetailedForm")}
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-3 text-sm">
+          <p>{t("settingsStudents.switchFormIntro")}</p>
+          <ul className="list-disc space-y-1 ps-5 text-muted-foreground">
+            <li>{t("settingsStudents.switchFormFieldPlaceOfBirth")}</li>
+            <li>{t("settingsStudents.switchFormFieldDistrict")}</li>
+            <li>{t("settingsStudents.switchFormFieldMotherName")}</li>
+          </ul>
+          <p className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-emerald-700 dark:text-emerald-400">
+            {t("settingsStudents.switchFormDataSafe")}
+          </p>
+          <p className="text-muted-foreground">
+            {t("settingsStudents.switchFormReversible")}
+          </p>
+        </div>
+      </Dialog>
     </div>
   );
 }

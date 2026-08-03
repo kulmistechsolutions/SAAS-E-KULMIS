@@ -42,6 +42,10 @@ export const updateSettingsSchema = z
     /// Digits the numeric part of a student/parent code is padded to
     /// (STD0007 is 4). Only new codes take a changed value.
     studentIdLength: z.number().int().min(3).max(8).optional(),
+    /// Which registration form the school fills in — see
+    /// School.studentFormTemplate. Switching only changes which fields the
+    /// form shows; already-saved students keep their data either way.
+    studentFormTemplate: z.enum(["STANDARD", "DETAILED"]).optional(),
     teacherPrefix: z.string().min(1).max(10).optional(),
     parentPrefix: z.string().min(1).max(10).optional(),
     receiptPrefix: z.string().min(1).max(10).optional(),

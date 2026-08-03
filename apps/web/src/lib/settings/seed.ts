@@ -48,6 +48,7 @@ export function buildSettingsSeed(): SettingsState {
       idPrefix: "SHMM",
       startingNumber: 1,
       idLength: 4,
+      formTemplate: "STANDARD",
       portalLoginEnabled: true,
       requirePhone: false,
       allowPhotoUpload: true,

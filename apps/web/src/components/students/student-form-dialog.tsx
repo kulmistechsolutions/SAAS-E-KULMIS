@@ -43,6 +43,9 @@ interface FormState {
   gender: Gender;
   dob: string;
   phone: string;
+  placeOfBirth: string;
+  district: string;
+  motherName: string;
   parentName: string;
   parentPhone: string;
   className: string;
@@ -92,6 +95,9 @@ const empty = (year: string, className: string): FormState => ({
   gender: "MALE",
   dob: "",
   phone: "",
+  placeOfBirth: "",
+  district: "",
+  motherName: "",
   parentName: "",
   parentPhone: "",
   className,
@@ -144,6 +150,9 @@ export function StudentFormDialog({ open, onClose, student, onSaved }: Props) {
     return sectionNamesForClass(form.className, form.academicYear);
   }, [form.className, form.academicYear, selectedClass?.hasSections, academics.sections]);
   const villages = useVillagesState();
+  // Which registration form this school fills in. The extra bio fields are
+  // additive — everything the standard form asks for stays exactly as it is.
+  const detailed = settings.students.formTemplate === "DETAILED";
 
   useEffect(() => {
     if (!open) return;
@@ -160,6 +169,9 @@ export function StudentFormDialog({ open, onClose, student, onSaved }: Props) {
         gender: student.gender,
         dob: toDateInput(student.dob),
         phone: student.phone ?? "",
+        placeOfBirth: student.placeOfBirth ?? "",
+        district: student.district ?? "",
+        motherName: student.motherName ?? "",
         parentName: student.parent.name,
         parentPhone: student.parent.phone,
         className: student.className,
@@ -232,6 +244,9 @@ export function StudentFormDialog({ open, onClose, student, onSaved }: Props) {
             gender: form.gender,
             dob: form.dob || null,
             phone: form.phone || null,
+            placeOfBirth: form.placeOfBirth || null,
+            district: form.district || null,
+            motherName: form.motherName || null,
             className: form.className,
             section: form.section || null,
             village: form.village || null,
@@ -273,6 +288,9 @@ export function StudentFormDialog({ open, onClose, student, onSaved }: Props) {
           gender: form.gender,
           dob: form.dob || null,
           phone: form.phone || null,
+          placeOfBirth: form.placeOfBirth || null,
+          district: form.district || null,
+          motherName: form.motherName || null,
           parentName: form.parentName,
           parentPhone: form.parentPhone,
           className: form.className,
@@ -411,6 +429,38 @@ export function StudentFormDialog({ open, onClose, student, onSaved }: Props) {
               placeholder={t("studentsStudentFormDialog.optional")}
             />
           </Field>
+
+          {detailed && (
+            <>
+              <Field label={t("studentsStudentFormDialog.placeOfBirth")}>
+                <Input
+                  className={inputClass}
+                  value={form.placeOfBirth}
+                  onChange={(e) => set("placeOfBirth", e.target.value)}
+                  placeholder={t("studentsStudentFormDialog.optional")}
+                />
+              </Field>
+              <Field label={t("studentsStudentFormDialog.district")}>
+                <Input
+                  className={inputClass}
+                  value={form.district}
+                  onChange={(e) => set("district", e.target.value)}
+                  placeholder={t("studentsStudentFormDialog.optional")}
+                />
+              </Field>
+              <Field
+                label={t("studentsStudentFormDialog.motherName")}
+                className="sm:col-span-2"
+              >
+                <Input
+                  className={inputClass}
+                  value={form.motherName}
+                  onChange={(e) => set("motherName", e.target.value)}
+                  placeholder={t("studentsStudentFormDialog.optional")}
+                />
+              </Field>
+            </>
+          )}
 
           <Field label={t("studentsStudentFormDialog.parentGuardianName")} required className="sm:col-span-2">
             <Input

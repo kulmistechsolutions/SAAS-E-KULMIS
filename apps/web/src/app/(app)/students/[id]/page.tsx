@@ -252,6 +252,17 @@ function PersonalTab({ student }: { student: StudentWithParent }) {
       <Field label={tr("students.gender")} value={genderLabel(student.gender)} />
       <Field label={tr("students.dateOfBirth")} value={shortDate(student.dob)} />
       <Field label={tr("students.phone")} value={student.phone ?? "—"} />
+      {/* Only collected by the detailed registration form — hidden entirely
+          rather than shown as an empty dash for schools that never use it. */}
+      {student.placeOfBirth && (
+        <Field label={tr("students.placeOfBirth")} value={student.placeOfBirth} />
+      )}
+      {student.district && (
+        <Field label={tr("students.district")} value={student.district} />
+      )}
+      {student.motherName && (
+        <Field label={tr("students.motherName")} value={student.motherName} />
+      )}
       <Field label={tr("students.class")} value={student.className} />
       <Field label={tr("students.section")} value={student.section ?? "—"} />
       <Field label={tr("students.monthlyFee")} value={money(student.monthlyFee)} />

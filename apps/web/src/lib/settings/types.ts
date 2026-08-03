@@ -65,10 +65,14 @@ export interface AcademicSettings {
   autoPromote: boolean;
 }
 
+/** Which registration form the school fills in — see School.studentFormTemplate. */
+export type StudentFormTemplate = "STANDARD" | "DETAILED";
+
 export interface StudentSettings {
   idPrefix: string;
   startingNumber: number;
   idLength: number;
+  formTemplate: StudentFormTemplate;
   portalLoginEnabled: boolean;
   requirePhone: boolean;
   allowPhotoUpload: boolean;

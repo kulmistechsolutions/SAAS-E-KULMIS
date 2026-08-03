@@ -19,6 +19,12 @@ export const registerStudentSchema = z.object({
   dob: z.coerce.date().nullable().optional(),
   phone: z.string().min(1).nullable().optional(),
   notes: z.string().nullable().optional(),
+  /// Only collected by the DETAILED registration form — see
+  /// School.studentFormTemplate. Always optional so the standard form, the
+  /// Excel import and the parent portal all keep working unchanged.
+  placeOfBirth: z.string().nullable().optional(),
+  district: z.string().nullable().optional(),
+  motherName: z.string().nullable().optional(),
   parentName: z.string().min(1, "Parent name is required"),
   parentPhone: z.string().min(1, "Parent phone is required"),
   classId: z.string().min(1, "Class is required"),
@@ -64,6 +70,10 @@ export const updateStudentSchema = z
     dob: z.coerce.date().nullable().optional(),
     phone: z.string().nullable().optional(),
     notes: z.string().nullable().optional(),
+    /// DETAILED-form bio fields — see registerStudentSchema.
+    placeOfBirth: z.string().nullable().optional(),
+    district: z.string().nullable().optional(),
+    motherName: z.string().nullable().optional(),
     classId: z.string().min(1).optional(),
     sectionId: z.string().nullable().optional(),
     villageId: z.string().min(1).nullable().optional(),

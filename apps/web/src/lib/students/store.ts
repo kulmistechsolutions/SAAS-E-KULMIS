@@ -457,6 +457,9 @@ export async function registerStudent(
       dob: input.dob ?? null,
       phone: input.phone?.trim() || null,
       notes: input.notes?.trim() || null,
+      placeOfBirth: input.placeOfBirth?.trim() || null,
+      district: input.district?.trim() || null,
+      motherName: input.motherName?.trim() || null,
       parentName: input.parentName.trim(),
       parentPhone: input.parentPhone.trim(),
       classId,
@@ -520,6 +523,9 @@ export type StudentPatch = Partial<
     | "monthlyFee"
     | "status"
     | "notes"
+    | "placeOfBirth"
+    | "district"
+    | "motherName"
     | "academicYear"
     | "feeWaived"
   >
@@ -586,6 +592,18 @@ export async function updateStudent(
         patch.phone !== undefined ? patch.phone?.trim() || null : undefined,
       notes:
         patch.notes !== undefined ? patch.notes?.trim() || null : undefined,
+      placeOfBirth:
+        patch.placeOfBirth !== undefined
+          ? patch.placeOfBirth?.trim() || null
+          : undefined,
+      district:
+        patch.district !== undefined
+          ? patch.district?.trim() || null
+          : undefined,
+      motherName:
+        patch.motherName !== undefined
+          ? patch.motherName?.trim() || null
+          : undefined,
       classId,
       sectionId,
       villageId,

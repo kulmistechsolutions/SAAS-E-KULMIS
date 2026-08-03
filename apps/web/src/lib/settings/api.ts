@@ -54,6 +54,7 @@ export interface ApiSchool {
   resultFooter: string | null;
   studentPrefix: string;
   studentIdLength: number;
+  studentFormTemplate?: "STANDARD" | "DETAILED";
   teacherPrefix: string;
   parentPrefix: string;
   receiptPrefix: string;
@@ -145,6 +146,7 @@ export function mapApiSchoolToSettings(
       ...base.students,
       idPrefix: row.studentPrefix,
       idLength: row.studentIdLength ?? base.students.idLength,
+      formTemplate: row.studentFormTemplate ?? base.students.formTemplate,
       studentHeader: row.studentHeader ?? base.students.studentHeader,
       studentFooter: row.studentFooter ?? base.students.studentFooter,
     },
@@ -246,6 +248,7 @@ export function mapSettingsSectionToPatch(
     return {
       studentPrefix: s.idPrefix,
       studentIdLength: s.idLength,
+      studentFormTemplate: s.formTemplate,
       studentHeader: s.studentHeader || null,
       studentFooter: s.studentFooter || null,
     };

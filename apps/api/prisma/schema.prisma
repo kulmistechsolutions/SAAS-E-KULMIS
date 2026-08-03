@@ -71,6 +71,12 @@ model School {
   /// is 4). Only new codes use a changed value — existing ones keep their width.
   studentIdLength   Int    @default(4)
 
+  /// Which registration form the school fills in. STANDARD is the original
+  /// form; DETAILED adds place of birth, district and mother's name for
+  /// schools whose intake sheet asks for them. Defaults to STANDARD so every
+  /// existing school keeps the form (and the data) it already has.
+  studentFormTemplate StudentFormTemplate @default(STANDARD)
+
   /// Free-trial deadline set when Super Admin creates the school. The school
   /// works normally until this passes; after it, sign-in is blocked until a
   /// subscription is assigned. Null = no trial was granted.
@@ -496,6 +502,12 @@ model Student {
   dob                  DateTime?
   phone                String?
   notes                String?
+  /// Collected only by the DETAILED registration form (see
+  /// School.studentFormTemplate) — null for every student registered on the
+  /// standard form.
+  placeOfBirth         String?
+  district             String?
+  motherName           String?
   photoKey             String?
   portalPasswordHash   String?
   parentId             String
@@ -1306,6 +1318,13 @@ enum FeeChargeKind {
 enum BillingMode {
   MONTHLY
   ACADEMIC_YEAR
+}
+
+/// Which student-registration form a school fills in. See
+/// School.studentFormTemplate.
+enum StudentFormTemplate {
+  STANDARD
+  DETAILED
 }
 
 enum FeeStartMode {

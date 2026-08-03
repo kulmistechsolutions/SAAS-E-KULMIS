@@ -25,6 +25,9 @@ interface ApiStudent {
   dob: string | null;
   phone: string | null;
   notes: string | null;
+  placeOfBirth?: string | null;
+  district?: string | null;
+  motherName?: string | null;
   monthlyFee: number;
   status: StudentStatus;
   registrationDate: string;
@@ -78,6 +81,9 @@ export function mapApiStudent(s: ApiStudent): Student {
     registrationDate: s.registrationDate,
     status: s.status,
     notes: s.notes,
+    placeOfBirth: s.placeOfBirth ?? null,
+    district: s.district ?? null,
+    motherName: s.motherName ?? null,
     hasPhoto: s.hasPhoto ?? !!(s.photoKey || s.photoUrl),
     photoUrl: s.photoUrl ?? null,
     feeStartMode: s.feeStartMode ?? null,
@@ -161,6 +167,9 @@ export interface RegisterStudentApiInput {
   dob?: string | null;
   phone?: string | null;
   notes?: string | null;
+  placeOfBirth?: string | null;
+  district?: string | null;
+  motherName?: string | null;
   parentName: string;
   parentPhone: string;
   classId: string;
@@ -221,6 +230,9 @@ export interface UpdateStudentApiInput {
   dob?: string | null;
   phone?: string | null;
   notes?: string | null;
+  placeOfBirth?: string | null;
+  district?: string | null;
+  motherName?: string | null;
   classId?: string;
   sectionId?: string | null;
   villageId?: string | null;
