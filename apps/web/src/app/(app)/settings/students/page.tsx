@@ -2,9 +2,14 @@
 
 
 import { useState } from "react";
+import { Download } from "lucide-react";
 import { useT } from "@/lib/i18n/provider";
 import { Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import {
+  downloadImportTemplate,
+  importTemplateFor,
+} from "@/lib/students/import-templates";
 import { SettingsInput } from "@/components/settings/settings-field";
 import { SettingsSaveBar } from "@/components/settings/settings-save-bar";
 import { SettingsToggle } from "@/components/settings/settings-toggle";
@@ -93,6 +98,21 @@ export default function StudentSettingsPage() {
             </label>
           ))}
         </div>
+        {/* The import layout follows whatever is selected above, so the
+            starter file is offered right here rather than only inside the
+            import dialog. */}
+        <Button
+          variant="outline"
+          className="mt-3"
+          onClick={() => downloadImportTemplate(draft.formTemplate)}
+        >
+          <Download className="me-2 h-4 w-4" />
+          {t("settingsStudents.downloadExcelTemplate")}
+        </Button>
+        <p className="mt-2 text-xs text-muted-foreground">
+          {t("settingsStudents.excelTemplateColumns")}{" "}
+          {importTemplateFor(draft.formTemplate).headers.join(", ")}
+        </p>
       </div>
 
       <SettingsToggle label={t("settingsStudents.allowStudentPortalLogin")} checked={draft.portalLoginEnabled} onChange={(v) => update({ portalLoginEnabled: v })} />
@@ -134,6 +154,12 @@ export default function StudentSettingsPage() {
           </ul>
           <p className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-emerald-700 dark:text-emerald-400">
             {t("settingsStudents.switchFormDataSafe")}
+          </p>
+          <p className="text-muted-foreground">
+            {t("settingsStudents.switchFormRecordsNote")}
+          </p>
+          <p className="text-muted-foreground">
+            {t("settingsStudents.switchFormImportNote")}
           </p>
           <p className="text-muted-foreground">
             {t("settingsStudents.switchFormReversible")}

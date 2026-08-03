@@ -18,6 +18,12 @@ import {
   type ImportResult,
   type ImportRow,
 } from "@/lib/students/store";
+import {
+  downloadImportTemplate,
+  importTemplateFor,
+  type ImportTemplate,
+} from "@/lib/students/import-templates";
+import { useSettingsState } from "@/lib/settings/store";
 
 interface Props {
   open: boolean;
@@ -25,54 +31,21 @@ interface Props {
   onDone?: (result: ImportResult) => void;
 }
 
-const HEADERS = [
-  "Student Name",
-  "Gender",
-  "Parent Name",
-  "Parent Phone",
-  "Class",
-  "Section",
-  "Monthly Fee",
-  "Village",
-];
-
-const COLUMNS: (keyof ImportRow)[] = [
-  "fullName",
-  "gender",
-  "parentName",
-  "parentPhone",
-  "className",
-  "section",
-  "monthlyFee",
-  "village",
-];
-
-// Village is appended last and optional — an old 7-column file from before
-// this field existed still parses correctly column-by-column; Village just
-// comes back undefined for every row instead of shifting the other columns.
-const TEMPLATE = `${HEADERS.join(",")}
-Amina Hassan,FEMALE,Mohamed Hassan,+252611000001,Grade 5,A,60,
-Yusuf Ali,MALE,Fadumo Ali,+252611000002,Grade 3,B,50,`;
-
 type Step = "upload" | "preview" | "result";
 
-function download(name: string, content: string) {
-  const blob = new Blob([content], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = name;
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
-function parseStudentCsv(text: string): {
+function parseStudentCsv(
+  text: string,
+  tpl: ImportTemplate,
+): {
   rows: ImportRow[];
   error?: string;
 } {
-  const { headers, rows, headerError } = csvToObjects<ImportRow>(text, COLUMNS);
+  const { headers, rows, headerError } = csvToObjects<ImportRow>(
+    text,
+    tpl.columns,
+  );
   if (headerError) return { rows: [], error: headerError };
-  const mismatch = headersMatch(headers, HEADERS);
+  const mismatch = headersMatch(headers, tpl.headers);
   if (mismatch && rows.length > 0) {
     return { rows, error: mismatch };
   }
@@ -84,6 +57,11 @@ function parseStudentCsv(text: string): {
 
 export function ImportDialog({ open, onClose, onDone }: Props) {
   const t = useT();
+  const settings = useSettingsState();
+  // The layout follows the school's active registration form — the admin
+  // never picks one, so a downloaded template and an uploaded file can't
+  // disagree about which columns are expected.
+  const tpl = importTemplateFor(settings.students.formTemplate);
   const { year: academicYear, setYear, years } = useAcademicYearSelect(
     "student-import-year",
   );
@@ -127,7 +105,7 @@ export function ImportDialog({ open, onClose, onDone }: Props) {
     setLoading(true);
     setParseError(null);
     try {
-      const { rows, error } = parseStudentCsv(text);
+      const { rows, error } = parseStudentCsv(text, tpl);
       if (error && rows.length === 0) {
         setParseError(error);
         return;
@@ -206,7 +184,9 @@ export function ImportDialog({ open, onClose, onDone }: Props) {
           <>
             <Button
               variant="outline"
-              onClick={() => download("students-template.csv", TEMPLATE)}
+              onClick={() =>
+                downloadImportTemplate(settings.students.formTemplate)
+              }
             >
               <Download className="me-2 h-4 w-4" />
               {t("studentsImportDialog.template")}
@@ -318,11 +298,11 @@ export function ImportDialog({ open, onClose, onDone }: Props) {
               }}
               rows={8}
               spellCheck={false}
-              placeholder={TEMPLATE}
+              placeholder={tpl.sample}
               className="w-full rounded-lg border border-input bg-background p-3 font-mono text-xs outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
             />
             <p className="mt-1.5 text-xs text-muted-foreground">
-              {t("studentsImportDialog.columns")} {HEADERS.join(", ")}
+              {t("studentsImportDialog.columns")} {tpl.headers.join(", ")}
             </p>
           </div>
         </div>

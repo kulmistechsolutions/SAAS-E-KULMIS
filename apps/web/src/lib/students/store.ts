@@ -715,6 +715,13 @@ export interface ImportRow {
   section?: string;
   village?: string;
   monthlyFee?: string;
+  /** Traditional-template columns — absent on a standard-template file. */
+  serial?: string;
+  dob?: string;
+  phone?: string;
+  placeOfBirth?: string;
+  district?: string;
+  motherName?: string;
   [key: string]: string | undefined;
 }
 
@@ -808,6 +815,19 @@ function validateImportRow(
   if (sec.error) {
     return { row: line, data: row, status: "invalid", message: sec.error };
   }
+  // Only present on the traditional template. Blank is fine — the field is
+  // optional — but a value that isn't a real date would silently import as
+  // "Invalid Date", so it is rejected with the row number instead.
+  const dobRaw = row.dob?.trim();
+  if (dobRaw && Number.isNaN(new Date(dobRaw).getTime())) {
+    return {
+      row: line,
+      data: row,
+      status: "invalid",
+      message: `Invalid date of birth "${dobRaw}". Use YYYY-MM-DD.`,
+    };
+  }
+
   const villageRaw = row.village?.trim();
   if (villageRaw && !villageIdByName(villageRaw)) {
     return {
@@ -897,6 +917,13 @@ export async function bulkImport(
         monthlyFee,
         academicYear,
         status: "ACTIVE",
+        // Traditional-template columns. Undefined on a standard-template
+        // file, so those imports behave exactly as they always have.
+        dob: row.dob?.trim() || null,
+        phone: row.phone?.trim() || null,
+        placeOfBirth: row.placeOfBirth?.trim() || null,
+        district: row.district?.trim() || null,
+        motherName: row.motherName?.trim() || null,
       },
       { skipRefresh: true },
     );
