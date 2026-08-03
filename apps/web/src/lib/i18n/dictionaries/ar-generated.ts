@@ -894,6 +894,8 @@ export const arGenerated: PartialDictionary = {
     pay: "دفع",
     view: "عرض",
     noStudentsMatchYourFilters: "لا يوجد طلاب يطابقون عوامل التصفية.",
+    allStatuses: "جميع الحالات",
+    advanceMultipleMonths: "دفع مقدم (عدة أشهر)",
   },
   feesFamilyCollectSection: {
     collectByFamily: "التحصيل حسب العائلة",
@@ -1119,6 +1121,10 @@ export const arGenerated: PartialDictionary = {
     collectedBy: "حصّلها",
     date: "التاريخ",
     actions: "إجراءات",
+    search: "بحث",
+    allTypes: "جميع الأنواع",
+    dateFrom: "من تاريخ",
+    dateTo: "إلى تاريخ",
   },
   financeMonthlySetup: {
     monthlySetup: "الإعداد الشهري",

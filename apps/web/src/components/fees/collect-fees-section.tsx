@@ -9,10 +9,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Pagination } from "@/components/ui/pagination";
-import { money } from "@/lib/fees/format";
+import { feeStatusLabel, money } from "@/lib/fees/format";
 import { listStudentFees, useFeesState } from "@/lib/fees/store";
 import { useStudentsState } from "@/lib/students/store";
-import type { StudentFeeRow } from "@/lib/fees/types";
+import type { FeeChargeStatus, StudentFeeRow } from "@/lib/fees/types";
 import {
   classNamesForYear,
   groupClassNames,
@@ -40,7 +40,8 @@ export function CollectFeesSection({
   const [klass, setKlass] = useState("");
   const [section, setSection] = useState("");
   const [search, setSearch] = useState("");
-  const [applied, setApplied] = useState({ klass: "", section: "", search: "" });
+  const [status, setStatus] = useState<FeeChargeStatus | "ADVANCE_MULTI" | "">("");
+  const [applied, setApplied] = useState({ klass: "", section: "", search: "", status: "" as FeeChargeStatus | "ADVANCE_MULTI" | "" });
   const [page, setPage] = useState(1);
   const [mounted, setMounted] = useState(false);
   const academics = useAcademicsState();
@@ -72,6 +73,7 @@ export function CollectFeesSection({
             className: applied.klass || undefined,
             section: applied.section || undefined,
             search: applied.search || undefined,
+            status: applied.status || undefined,
           })
         : [],
     // studentsState / feesState included so rows recompute when they hydrate.
@@ -82,7 +84,7 @@ export function CollectFeesSection({
   const pageRows = rows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   function applyFilters() {
-    setApplied({ klass, section, search });
+    setApplied({ klass, section, search, status });
     setPage(1);
   }
 
@@ -90,7 +92,8 @@ export function CollectFeesSection({
     setKlass("");
     setSection("");
     setSearch("");
-    setApplied({ klass: "", section: "", search: "" });
+    setStatus("");
+    setApplied({ klass: "", section: "", search: "", status: "" });
     setPage(1);
   }
 
@@ -167,6 +170,23 @@ export function CollectFeesSection({
               onKeyDown={(e) => e.key === "Enter" && applyFilters()}
             />
           </div>
+        </div>
+        <div className="min-w-[140px] flex-1">
+          <label className="mb-1 block text-xs font-medium text-muted-foreground">
+            {t("feesCollectFeesSection.status")}
+          </label>
+          <Select
+            value={status}
+            onChange={(e) => setStatus(e.target.value as FeeChargeStatus | "ADVANCE_MULTI" | "")}
+          >
+            <option value="">{t("feesCollectFeesSection.allStatuses")}</option>
+            <option value="UNPAID">{feeStatusLabel("UNPAID")}</option>
+            <option value="PARTIAL">{feeStatusLabel("PARTIAL")}</option>
+            <option value="PAID">{feeStatusLabel("PAID")}</option>
+            <option value="ADVANCE">{feeStatusLabel("ADVANCE")}</option>
+            <option value="ADVANCE_MULTI">{t("feesCollectFeesSection.advanceMultipleMonths")}</option>
+            <option value="INACTIVE">{feeStatusLabel("INACTIVE")}</option>
+          </Select>
         </div>
         <Button onClick={applyFilters}>{t("feesCollectFeesSection.search")}</Button>
         <Button variant="outline" onClick={resetFilters}>

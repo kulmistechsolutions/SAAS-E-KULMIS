@@ -59,6 +59,13 @@ export interface ReportDef {
   title: string;
   description: string;
   filters: ReportFilterKey[];
+  /**
+   * Chart the report's rows as a bar chart, when the data naturally groups
+   * into a handful of categories (a class, a section, a month) rather than
+   * one bar per row of a long list. `yKey` may point at a column formatted
+   * as currency ("$1,234.00") — the chart parses it back to a number.
+   */
+  chart?: { xKey: string; yKey: string; label: string };
 }
 
 export interface ReportCategoryDef {

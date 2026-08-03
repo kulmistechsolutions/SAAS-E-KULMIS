@@ -66,8 +66,8 @@ export const REPORT_CATEGORIES: ReportCategoryDef[] = [
       { slug: "agreement-fee", title: "Agreement Fee Report", description: "Students admitted with special fee agreements.", filters: ["academicYear", "className"] },
       { slug: "new-student-adjustment", title: "New Student Fee Adjustment", description: "Late admissions and billing start adjustments.", filters: ["academicYear", "className"] },
       { slug: "carry-forward", title: "Carry Forward Report", description: "Months with carried-forward balances.", filters: ["academicYear", "className", "section"] },
-      { slug: "by-class", title: "Collection by Class", description: "Fee summary grouped by class.", filters: ["academicYear", "month"] },
-      { slug: "by-section", title: "Collection by Section", description: "Fee summary grouped by section.", filters: ["academicYear", "className", "month"] },
+      { slug: "by-class", title: "Collection by Class", description: "Fee summary grouped by class.", filters: ["academicYear", "month"], chart: { xKey: "group", yKey: "total", label: "Collected" } },
+      { slug: "by-section", title: "Collection by Section", description: "Fee summary grouped by section.", filters: ["academicYear", "className", "month"], chart: { xKey: "group", yKey: "total", label: "Collected" } },
     ],
   },
   {

@@ -6,13 +6,16 @@ import { useEffect, useMemo, useState } from "react";
 import { Download, Eye, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 import { Pagination } from "@/components/ui/pagination";
 import { PaymentTypeBadge } from "@/components/fees/fee-status-badge";
 import { ReceiptDialog } from "@/components/fees/receipt-dialog";
-import { money, shortDate } from "@/lib/fees/format";
+import { money, paymentTypeLabel, shortDate } from "@/lib/fees/format";
 import { exportPaymentsCsv, printReceipt } from "@/lib/fees/print";
 import { getPayment, useFeesState } from "@/lib/fees/store";
 import { getState as getStudentsState } from "@/lib/students/store";
+import type { PaymentType } from "@/lib/fees/types";
+import { classNamesForYear, groupClassNames, useAcademicsState } from "@/lib/academics/store";
 
 const PAGE_SIZE = 15;
 
@@ -20,25 +23,51 @@ export default function FeeHistoryPage() {
   const t = useT();
   const [mounted, setMounted] = useState(false);
   const fees = useFeesState();
+  const academics = useAcademicsState();
   const [search, setSearch] = useState("");
+  const [klass, setKlass] = useState("");
+  const [paymentType, setPaymentType] = useState<PaymentType | "">("");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
   const [page, setPage] = useState(1);
   const [receiptNo, setReceiptNo] = useState<string | null>(null);
   useEffect(() => setMounted(true), []);
 
   const students = getStudentsState().students;
+  const classOptions = useMemo(
+    () => classNamesForYear(fees.academicYear),
+    [fees.academicYear, academics.classes],
+  );
+  const classGroups = useMemo(
+    () => groupClassNames(classOptions, fees.academicYear, t("common.defaultGrades")),
+    [classOptions, fees.academicYear, academics.structureTrees, t],
+  );
+
   const filtered = useMemo(() => {
     if (!mounted) return [];
     const q = search.trim().toLowerCase();
+    const from = dateFrom ? new Date(dateFrom) : null;
+    // End-of-day so a payment recorded any time on the "to" date is included.
+    const to = dateTo ? new Date(`${dateTo}T23:59:59.999`) : null;
     return fees.payments.filter((p) => {
-      if (!q) return true;
       const st = students.find((s) => s.id === p.studentId);
-      return (
-        p.receiptNo.toLowerCase().includes(q) ||
-        st?.fullName.toLowerCase().includes(q) ||
-        st?.code.toLowerCase().includes(q)
-      );
+      if (q) {
+        const matches =
+          p.receiptNo.toLowerCase().includes(q) ||
+          st?.fullName.toLowerCase().includes(q) ||
+          st?.code.toLowerCase().includes(q);
+        if (!matches) return false;
+      }
+      if (klass && st?.className !== klass) return false;
+      if (paymentType && p.paymentType !== paymentType) return false;
+      const at = new Date(p.collectedAt);
+      if (from && at < from) return false;
+      if (to && at > to) return false;
+      return true;
     });
-  }, [mounted, fees.payments, search, students]);
+  }, [mounted, fees.payments, search, klass, paymentType, dateFrom, dateTo, students]);
+  // Any filter change can shrink the result set below the current page.
+  useEffect(() => setPage(1), [search, klass, paymentType, dateFrom, dateTo]);
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const rows = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -65,15 +94,81 @@ export default function FeeHistoryPage() {
         </div>
       </div>
 
-      <Input
-        placeholder={t("financeHistory.searchReceiptStudentNameOrId")}
-        value={search}
-        onChange={(e) => {
-          setSearch(e.target.value);
-          setPage(1);
-        }}
-        className="max-w-md"
-      />
+      <div className="flex flex-wrap items-end gap-3 rounded-2xl border bg-card p-4">
+        <div className="min-w-[200px] flex-[2]">
+          <label className="mb-1 block text-xs font-medium text-muted-foreground">
+            {t("financeHistory.search")}
+          </label>
+          <Input
+            placeholder={t("financeHistory.searchReceiptStudentNameOrId")}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+        <div className="min-w-[140px] flex-1">
+          <label className="mb-1 block text-xs font-medium text-muted-foreground">
+            {t("feesCollectFeesSection.class")}
+          </label>
+          <Select value={klass} onChange={(e) => setKlass(e.target.value)}>
+            <option value="">{t("feesCollectFeesSection.allClasses")}</option>
+            {classGroups.map((g) =>
+              g.label === null ? (
+                g.names.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))
+              ) : (
+                <optgroup key={g.label} label={g.label}>
+                  {g.names.map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
+                </optgroup>
+              ),
+            )}
+          </Select>
+        </div>
+        <div className="min-w-[140px] flex-1">
+          <label className="mb-1 block text-xs font-medium text-muted-foreground">
+            {t("financeHistory.type")}
+          </label>
+          <Select
+            value={paymentType}
+            onChange={(e) => setPaymentType(e.target.value as PaymentType | "")}
+          >
+            <option value="">{t("financeHistory.allTypes")}</option>
+            <option value="THIS_MONTH">{paymentTypeLabel("THIS_MONTH")}</option>
+            <option value="PARTIAL">{paymentTypeLabel("PARTIAL")}</option>
+            <option value="ADVANCE">{paymentTypeLabel("ADVANCE")}</option>
+          </Select>
+        </div>
+        <div className="min-w-[130px]">
+          <label className="mb-1 block text-xs font-medium text-muted-foreground">
+            {t("financeHistory.dateFrom")}
+          </label>
+          <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
+        </div>
+        <div className="min-w-[130px]">
+          <label className="mb-1 block text-xs font-medium text-muted-foreground">
+            {t("financeHistory.dateTo")}
+          </label>
+          <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
+        </div>
+        <Button
+          variant="outline"
+          onClick={() => {
+            setSearch("");
+            setKlass("");
+            setPaymentType("");
+            setDateFrom("");
+            setDateTo("");
+          }}
+        >
+          {t("feesCollectFeesSection.reset")}
+        </Button>
+      </div>
 
       <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
         <div className="overflow-x-auto">

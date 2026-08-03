@@ -1,46 +1,22 @@
 "use client";
 
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 
-import { useT } from "@/lib/i18n/provider";
-import Link from "next/link";
-import { BarChart3, FileText, Users } from "lucide-react";
-
-const REPORTS = [
-  { title: "Monthly Collection Report", href: "/finance/history", icon: BarChart3 },
-  { title: "Outstanding Report", href: "/finance", icon: Users },
-  { title: "Partial Payment Report", href: "/finance/history", icon: FileText },
-  { title: "Advance Payment Report", href: "/finance/history", icon: FileText },
-  { title: "Student Ledger", href: "/students", icon: Users },
-  { title: "Daily Collection Report", href: "/finance/history", icon: BarChart3 },
-  { title: "Annual Collection Report", href: "/finance/history", icon: BarChart3 },
-  { title: "Collection by Class", href: "/finance/reports", icon: BarChart3 },
-  { title: "Collection by Section", href: "/finance/reports", icon: BarChart3 },
-];
-
-export default function FeeReportsPage() {
-  const t = useT();
-  return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">{t("financeReports.feeReports")}</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {t("financeReports.viewSearchFilterPrintAndExport")}
-        </p>
-      </div>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {REPORTS.map((r) => (
-          <Link
-            key={r.title}
-            href={r.href}
-            className="flex items-center gap-4 rounded-2xl border bg-card p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
-          >
-            <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
-              <r.icon className="h-5 w-5" />
-            </span>
-            <span className="font-medium">{r.title}</span>
-          </Link>
-        ))}
-      </div>
-    </div>
-  );
+/**
+ * This page used to be its own report list, but every card either linked to
+ * itself ("Collection by Class"/"Collection by Section" both pointed right
+ * back here — clicking did nothing) or to a page with no report-specific
+ * view at all. The real fee reports — 15 of them, each with working filters,
+ * print/PDF/CSV, and (for the grouped ones) a chart — already live in the
+ * Reports Center. Redirecting here keeps the old /finance/reports link
+ * working for anyone who has it bookmarked, without maintaining two parallel
+ * lists of the same reports.
+ */
+export default function FeeReportsRedirectPage() {
+  const router = useRouter();
+  useEffect(() => {
+    router.replace("/reports/fees");
+  }, [router]);
+  return null;
 }

@@ -894,6 +894,8 @@ export const generated = {
     pay: "Pay",
     view: "View",
     noStudentsMatchYourFilters: "No students match your filters.",
+    allStatuses: "All Statuses",
+    advanceMultipleMonths: "Advance (Multiple Months)",
   },
   feesFamilyCollectSection: {
     collectByFamily: "Collect by Family",
@@ -1119,6 +1121,10 @@ export const generated = {
     collectedBy: "Collected By",
     date: "Date",
     actions: "Actions",
+    search: "Search",
+    allTypes: "All Types",
+    dateFrom: "From Date",
+    dateTo: "To Date",
   },
   financeMonthlySetup: {
     monthlySetup: "Monthly Setup",

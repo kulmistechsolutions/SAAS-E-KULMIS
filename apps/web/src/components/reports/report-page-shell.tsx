@@ -22,6 +22,7 @@ import { api } from "@/lib/api";
 import { logReportAction } from "@/lib/reports/audit";
 import { fetchReport, fetchReportAsync } from "@/lib/reports/data";
 import { downloadReportPdf, exportReportCsv, printReport } from "@/lib/reports/print";
+import { ReportBarChart } from "./report-chart";
 import type { ReportDef, ReportFilterKey, ReportFilters } from "@/lib/reports/types";
 import { cn } from "@/lib/utils";
 import { toast } from "@/lib/toast";
@@ -432,6 +433,15 @@ export function ReportPageShell({ categoryId, categoryLabel, report }: Props) {
             </div>
           ))}
         </div>
+      )}
+
+      {report.chart && !dataLoading && (
+        <ReportBarChart
+          rows={data.rows}
+          xKey={report.chart.xKey}
+          yKey={report.chart.yKey}
+          label={report.chart.label}
+        />
       )}
 
       <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">

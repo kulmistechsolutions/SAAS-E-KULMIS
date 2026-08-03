@@ -643,6 +643,9 @@ export function listStudentFees(opts: {
   section?: string;
   search?: string;
   monthKey?: string;
+  /** Matches the badge shown per row — "ADVANCE_MULTI" included since that's
+   *  what a student paid several months ahead actually displays as. */
+  status?: FeeChargeStatus | "ADVANCE_MULTI";
 }): StudentFeeRow[] {
   const s = ensure();
   const month = opts.monthKey ?? s.activeMonthKey;
@@ -664,7 +667,7 @@ export function listStudentFees(opts: {
     );
   }
 
-  return students
+  let rows = students
     .map((st) => {
       const agg = aggregateStudentStatus(st.id, month);
       return {
@@ -680,6 +683,13 @@ export function listStudentFees(opts: {
       };
     })
     .sort((a, b) => a.fullName.localeCompare(b.fullName));
+
+  // Applied after the per-student status is computed — it isn't known until
+  // aggregateStudentStatus runs, so it can't join the earlier student-level
+  // filters above.
+  if (opts.status) rows = rows.filter((r) => r.status === opts.status);
+
+  return rows;
 }
 
 /**

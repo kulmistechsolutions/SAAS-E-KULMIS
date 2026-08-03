@@ -73,7 +73,7 @@ const ACTIONS: { label: TranslationKey; href: string; icon: LucideIcon; classNam
   },
   {
     label: "feesWidgets.feeReports",
-    href: "/finance/reports",
+    href: "/reports/fees",
     icon: FileText,
     className: "bg-blue-500 hover:bg-blue-600 text-white",
   },

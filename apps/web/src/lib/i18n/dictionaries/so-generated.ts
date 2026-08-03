@@ -894,6 +894,8 @@ export const soGenerated: PartialDictionary = {
     pay: "Bixi",
     view: "Eeg",
     noStudentsMatchYourFilters: "Arday shaandhadaada waafaqsan ma jiro.",
+    allStatuses: "Dhammaan Xaaladaha",
+    advanceMultipleMonths: "Hore u Bixin (Dhowr Bilood)",
   },
   feesFamilyCollectSection: {
     collectByFamily: "Qaad Qoyska",
@@ -1119,6 +1121,10 @@ export const soGenerated: PartialDictionary = {
     collectedBy: "Waxaa qaaday",
     date: "Taariikhda",
     actions: "Ficillo",
+    search: "Raadi",
+    allTypes: "Dhammaan Noocyada",
+    dateFrom: "Laga Bilaabo",
+    dateTo: "Ilaa Taariikhda",
   },
   financeMonthlySetup: {
     monthlySetup: "Dejinta Bishii",
