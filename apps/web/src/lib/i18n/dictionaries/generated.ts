@@ -3067,6 +3067,7 @@ export const generated = {
     academicStructure: "Academic Structure",
     villages: "Villages",
     districts: "Districts",
+    villagesDistricts: "Villages & Districts",
   },
   settingsSettingsSaveBar: {
     resetToDefault: "Reset to Default",

@@ -3067,6 +3067,7 @@ export const soGenerated: PartialDictionary = {
     academicStructure: "Qaab-dhismeedka Waxbarasho",
     villages: "Xaafadaha",
     districts: "Degmooyinka",
+    villagesDistricts: "Tuulooyinka & Degmooyinka",
   },
   settingsSettingsSaveBar: {
     resetToDefault: "Ku celi caadiga",

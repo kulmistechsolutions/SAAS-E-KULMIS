@@ -3067,6 +3067,7 @@ export const arGenerated: PartialDictionary = {
     academicStructure: "الهيكل الأكاديمي",
     villages: "الأحياء",
     districts: "المناطق",
+    villagesDistricts: "القرى والمناطق",
   },
   settingsSettingsSaveBar: {
     resetToDefault: "إعادة التعيين للافتراضي",
