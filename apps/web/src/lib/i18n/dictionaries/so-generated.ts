@@ -396,6 +396,13 @@ export const soGenerated: PartialDictionary = {
     status: "Xaaladda",
     group: "Kooxda",
     none: "Midna",
+    searchExamOrTerm: "Raadi imtixaan ama xilli…",
+    allClasses: "Dhammaan Fasallada",
+    allStatuses: "Dhammaan Xaaladaha",
+    actions: "Ficillada",
+    results: "Natiijooyinka",
+    examS: "imtixaan(no)",
+    noExaminationsMatchTheseFilters: "Ma jiraan imtixaano ku habboon shaandhadan.",
   },
   examinationsBlocked: {
     blockedStudents: "Ardayda la Xannibay",
@@ -536,6 +543,8 @@ export const soGenerated: PartialDictionary = {
     exportDownloaded: "Soo dejinta way dhammaatay",
     exportFailed: "Soo saarkii waa fashilmay",
     unpublishAll: "Dhammaan Ka Qaad Daabacaadda",
+    exportPdf: "Soo saar PDF",
+    pickAClassToExportAPdf: "Dooro fasal si aad PDF u soo saarto.",
   },
   examinationsManage: {
     examManagement: "Maaraynta Imtixaannada",
@@ -766,6 +775,8 @@ export const soGenerated: PartialDictionary = {
     examGroups: "Kooxaha Imtixaanka",
     enterMarks: "Geli Dhibcaha",
     createExam: "Abuur Imtixaan",
+    monitoring: "Kormeerka",
+    reports: "Warbixinnada",
   },
   expenses: {
     loadingExpenses: "Kharashaadka waa la soo dejinayaa…",
@@ -1476,6 +1487,8 @@ export const soGenerated: PartialDictionary = {
     obtained: "La helay",
     result: "Natiijada",
     total: "Wadarta",
+    viewIndividualExams: "Eeg imtixaannada gaarka ah",
+    hideIndividualExams: "Qari imtixaannada gaarka ah",
   },
   parentPortalFees: {
     selectAChildToViewFee: "Dooro ilmo si aad u aragto macluumaadka khidmadda.",

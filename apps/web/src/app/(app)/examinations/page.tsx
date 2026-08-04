@@ -12,6 +12,7 @@ import {
   RecentExamsList,
 } from "@/components/examinations/widgets";
 import { ExamStatusBadge } from "@/components/examinations/exam-status-badge";
+import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { examTypeLabel, shortDate } from "@/lib/examinations/format";
 import {
@@ -21,12 +22,16 @@ import {
   recentExams,
   useExaminationsState,
 } from "@/lib/examinations/store";
+import type { ExamStatus } from "@/lib/examinations/types";
 import { toast } from "@/lib/toast";
 
 export default function ExaminationsDashboardPage() {
   const t = useT();
   const [mounted, setMounted] = useState(false);
   const exams = useExaminationsState();
+  const [search, setSearch] = useState("");
+  const [classFilter, setClassFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState<ExamStatus | "">("");
 
   useEffect(() => setMounted(true), []);
 
@@ -42,6 +47,24 @@ export default function ExaminationsDashboardPage() {
     () => (mounted ? recentExams(6) : []),
     [mounted, exams],
   );
+
+  const classOptions = useMemo(
+    () => [...new Set(exams.exams.map((e) => e.className))].sort(),
+    [exams.exams],
+  );
+
+  // Every exam is visible by default — search/class/status just narrow the
+  // same table down, so admins manage the whole exam list from one place
+  // instead of navigating away to find a specific exam first.
+  const visibleExams = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return exams.exams.filter(
+      (e) =>
+        (!q || e.name.toLowerCase().includes(q) || e.term.toLowerCase().includes(q)) &&
+        (!classFilter || e.className === classFilter) &&
+        (!statusFilter || e.status === statusFilter),
+    );
+  }, [exams.exams, search, classFilter, statusFilter]);
 
   return (
     <div className="space-y-6">
@@ -67,14 +90,49 @@ export default function ExaminationsDashboardPage() {
         <div className="space-y-6 xl:col-span-2">
           {mounted && <MonitoringTable rows={monitoring.slice(0, 12)} />}
           <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
-            <div className="flex items-center justify-between border-b px-5 py-4">
-              <h2 className="font-semibold">{t("examinations.allExaminations")}</h2>
+            <div className="flex flex-col gap-3 border-b px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h2 className="font-semibold">{t("examinations.allExaminations")}</h2>
+                <p className="text-xs text-muted-foreground">
+                  {visibleExams.length} / {exams.exams.length} {t("examinations.examS")}
+                </p>
+              </div>
               <Link href="/examinations/monitoring" className="text-sm text-primary hover:underline">
                 {t("examinations.viewMonitoring")}
               </Link>
             </div>
+            <div className="flex flex-wrap gap-2 border-b px-5 py-3">
+              <Input
+                className="h-8 min-w-[10rem] flex-1 text-xs"
+                placeholder={t("examinations.searchExamOrTerm")}
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+              <Select
+                className="h-8 w-auto min-w-[8rem] text-xs"
+                value={classFilter}
+                onChange={(e) => setClassFilter(e.target.value)}
+              >
+                <option value="">{t("examinations.allClasses")}</option>
+                {classOptions.map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </Select>
+              <Select
+                className="h-8 w-auto min-w-[8rem] text-xs"
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value as ExamStatus | "")}
+              >
+                <option value="">{t("examinations.allStatuses")}</option>
+                {(["DRAFT", "OPEN", "IN_PROGRESS", "COMPLETED", "LOCKED", "PUBLISHED", "ARCHIVED"] as const).map(
+                  (s) => (
+                    <option key={s} value={s}>{s}</option>
+                  ),
+                )}
+              </Select>
+            </div>
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[720px] text-sm">
+              <table className="w-full min-w-[820px] text-sm">
                 <thead className="sticky top-0 bg-secondary/90 text-start text-xs text-muted-foreground backdrop-blur">
                   <tr>
                     <th className="px-4 py-2.5 font-medium">{t("examinations.exam")}</th>
@@ -85,10 +143,11 @@ export default function ExaminationsDashboardPage() {
                     <th className="px-4 py-2.5 font-medium">{t("examinations.period")}</th>
                     <th className="px-4 py-2.5 font-medium">{t("examinations.status")}</th>
                     <th className="px-4 py-2.5 font-medium">{t("examinations.group")}</th>
+                    <th className="px-4 py-2.5 font-medium">{t("examinations.actions")}</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {exams.exams.map((e) => (
+                  {visibleExams.map((e) => (
                     <tr key={e.id} className="border-t">
                       <td className="px-4 py-2.5">
                         <Link href={`/examinations/marks?exam=${e.id}`} className="font-medium text-primary hover:underline">
@@ -123,8 +182,23 @@ export default function ExaminationsDashboardPage() {
                           ))}
                         </Select>
                       </td>
+                      <td className="whitespace-nowrap px-4 py-2.5 text-xs">
+                        <Link
+                          href={`/examinations/results/${e.classId}?exam=${e.id}`}
+                          className="text-primary hover:underline"
+                        >
+                          {t("examinations.results")}
+                        </Link>
+                      </td>
                     </tr>
                   ))}
+                  {visibleExams.length === 0 && (
+                    <tr>
+                      <td colSpan={9} className="px-4 py-10 text-center text-muted-foreground">
+                        {t("examinations.noExaminationsMatchTheseFilters")}
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>

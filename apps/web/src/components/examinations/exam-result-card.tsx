@@ -92,7 +92,7 @@ function gradeTone(grade: string): string {
 function GradePill({ grade }: { grade: string }) {
   return (
     <span
-      className={`inline-flex min-w-[2.25rem] items-center justify-center rounded-md px-2 py-0.5 text-xs font-bold ${gradeTone(grade)}`}
+      className={`inline-flex min-w-[2.25rem] items-center justify-center rounded-md px-2 py-0.5 text-xs font-bold shadow-sm transition-transform duration-150 ${gradeTone(grade)}`}
     >
       {grade}
     </span>
@@ -152,7 +152,13 @@ export function ExamResultCard({ data }: { data: ExamResultCardData }) {
         }
       `}</style>
 
-      <div className="overflow-hidden rounded-2xl border bg-card">
+      <div
+        className={`animate-fade-up overflow-hidden rounded-2xl border shadow-sm ring-1 ring-transparent transition-shadow duration-300 hover:shadow-lg bg-card ${
+          data.passed
+            ? "border-t-4 border-t-emerald-500"
+            : "border-t-4 border-t-rose-500"
+        }`}
+      >
         {/* Header band */}
         <div className="flex items-center gap-4 bg-gradient-to-r from-primary/90 to-primary px-6 py-5 text-primary-foreground">
           {branding.logoUrl ? (
@@ -428,7 +434,7 @@ function Info({
 
 function Tile({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl border bg-secondary/20 p-3 text-center">
+    <div className="rounded-xl border bg-secondary/20 p-3 text-center transition-colors duration-150 hover:bg-secondary/30">
       <p className="text-xs text-muted-foreground">{label}</p>
       <p className="mt-1 text-lg font-bold tabular-nums">{value}</p>
     </div>

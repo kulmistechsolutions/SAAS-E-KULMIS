@@ -396,6 +396,13 @@ export const generated = {
     status: "Status",
     group: "Group",
     none: "None",
+    searchExamOrTerm: "Search exam or term…",
+    allClasses: "All Classes",
+    allStatuses: "All Statuses",
+    actions: "Actions",
+    results: "Results",
+    examS: "exam(s)",
+    noExaminationsMatchTheseFilters: "No examinations match these filters.",
   },
   examinationsBlocked: {
     blockedStudents: "Blocked Students",
@@ -536,6 +543,8 @@ export const generated = {
     exportDownloaded: "Export downloaded",
     exportFailed: "Export failed",
     unpublishAll: "Unpublish All",
+    exportPdf: "Export PDF",
+    pickAClassToExportAPdf: "Pick a class to export a PDF.",
   },
   examinationsManage: {
     examManagement: "Exam Management",
@@ -766,6 +775,8 @@ export const generated = {
     examGroups: "Exam Groups",
     enterMarks: "Enter Marks",
     createExam: "Create Exam",
+    monitoring: "Monitoring",
+    reports: "Reports",
   },
   expenses: {
     loadingExpenses: "Loading expenses…",
@@ -1476,6 +1487,8 @@ export const generated = {
     obtained: "Obtained",
     result: "Result",
     total: "Total",
+    viewIndividualExams: "View individual exams",
+    hideIndividualExams: "Hide individual exams",
   },
   parentPortalFees: {
     selectAChildToViewFee: "Select a child to view fee information.",

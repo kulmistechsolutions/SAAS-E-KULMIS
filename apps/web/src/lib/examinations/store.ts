@@ -797,7 +797,7 @@ export async function fetchStudentFinalResult(
 
 /** Combine every exam in `result.termResults` that shares `examGroupId`, weighted by weightPercent. */
 export function buildExamGroupBreakdown(
-  result: StudentFinalResult,
+  result: Pick<StudentFinalResult, "termResults">,
   examGroupId: string,
 ): ExamGroupResultBreakdown | null {
   const members = result.termResults.filter((t) => t.examGroupId === examGroupId);

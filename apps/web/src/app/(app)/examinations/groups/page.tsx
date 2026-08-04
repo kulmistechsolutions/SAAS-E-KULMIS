@@ -14,7 +14,7 @@ import {
   unpublishExamGroup,
   useExaminationsState,
 } from "@/lib/examinations/store";
-import { apiDownloadGroupResultsExcel } from "@/lib/examinations/api";
+import { apiDownloadGroupResultsExcel, apiDownloadGroupResultsPdf } from "@/lib/examinations/api";
 import { AcademicYearSelect } from "@/components/academics/academic-year-select";
 import { useAcademicYearSelect } from "@/lib/academics/year-select";
 import { toast } from "@/lib/toast";
@@ -33,6 +33,7 @@ export default function ExamGroupsPage() {
   const [unpublishingGroupId, setUnpublishingGroupId] = useState<string | null>(null);
   const [exportClassId, setExportClassId] = useState("");
   const [exporting, setExporting] = useState(false);
+  const [exportingPdf, setExportingPdf] = useState(false);
 
   async function handleCreate() {
     if (!name.trim()) {
@@ -138,6 +139,30 @@ export default function ExamGroupsPage() {
       toast(err instanceof Error ? err.message : "Export failed", "error");
     } finally {
       setExporting(false);
+    }
+  }
+
+  async function handleExportGroupPdf(groupId: string) {
+    // Unlike Excel (one sheet per class when "All Classes" is picked), a PDF
+    // is a single flat table — it needs one specific class to export.
+    if (!exportClassId) {
+      toast(t("examinationsGroups.pickAClassToExportAPdf"), "error");
+      return;
+    }
+    setExportingPdf(true);
+    try {
+      const { blob, filename } = await apiDownloadGroupResultsPdf(groupId, exportClassId);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast(t("examinationsGroups.exportDownloaded"), "success");
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Export failed", "error");
+    } finally {
+      setExportingPdf(false);
     }
   }
 
@@ -301,6 +326,14 @@ export default function ExamGroupsPage() {
                               onClick={() => handleExportGroup(g.id)}
                             >
                               {exporting ? "…" : t("examinationsGroups.exportExcel")}
+                            </Button>
+                            <Button
+                              variant="outline"
+                              className="h-8 px-3 text-xs"
+                              disabled={exportingPdf}
+                              onClick={() => handleExportGroupPdf(g.id)}
+                            >
+                              {exportingPdf ? "…" : t("examinationsGroups.exportPdf")}
                             </Button>
                           </div>
                         )}

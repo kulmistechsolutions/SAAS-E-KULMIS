@@ -370,11 +370,12 @@ export class ExaminationsService {
   }
 
   /** Excel export of a group's combined, weighted per-subject results — one class or every class that has exams in the group. */
-  async exportGroupResultsExcel(
+  /** Shared weighted-combine computation behind both group export formats. */
+  private async computeGroupResultsData(
     schoolId: string,
     examGroupId: string,
     classId?: string,
-  ): Promise<{ buffer: Buffer; filename: string }> {
+  ) {
     return this.prisma.forTenant(schoolId, async (tx) => {
       const group = await tx.examGroup.findFirst({ where: { id: examGroupId } });
       if (!group) throw new NotFoundException("Exam group not found");
@@ -476,72 +477,136 @@ export class ExaminationsService {
         classRows.set(cohort.className, rows);
       }
 
-      const school = await this.prisma.school.findFirst({
-        where: { id: schoolId },
-        select: { name: true },
-      });
+      return { group, exams, classSubjects, classRows };
+    });
+  }
 
-      const buildColumns = (className: string) => {
-        const subjectList = [...classSubjects.get(className)!].sort();
-        return [
-          { key: "section", label: "Section" },
-          { key: "code", label: "Student ID" },
-          { key: "name", label: "Student Name" },
-          ...subjectList.map((name) => ({ key: name, label: name })),
-          { key: "total", label: "Combined %" },
-          { key: "grade", label: "Grade" },
-          { key: "result", label: "Result" },
-        ];
-      };
+  async exportGroupResultsExcel(
+    schoolId: string,
+    examGroupId: string,
+    classId?: string,
+  ): Promise<{ buffer: Buffer; filename: string }> {
+    const { group, exams, classSubjects, classRows } =
+      await this.computeGroupResultsData(schoolId, examGroupId, classId);
 
-      const classNames = [...classRows.keys()];
+    const school = await this.prisma.school.findFirst({
+      where: { id: schoolId },
+      select: { name: true },
+    });
 
-      // A single class (either explicitly requested, or the group only touches one class):
-      // one flat sheet. Otherwise ("All Classes" spanning several grades): one sheet each.
-      if (classNames.length <= 1) {
-        const className = classNames[0] ?? exams[0].class.name;
-        const buffer = await this.docs.buildBrandedExcelReport({
-          sheetName: "Group Results",
-          headerLines: [
-            school?.name ?? "School",
-            `Exam Group: ${group.name}`,
-            `Class: ${className}`,
-            `Date: ${new Date().toLocaleDateString()}`,
-          ],
-          columns: buildColumns(className),
-          rows: classRows.get(className) ?? [],
-        });
-        const filename = `${group.name}-${className}-results.xlsx`.replace(/\s+/g, "-").toLowerCase();
-        return { buffer, filename };
-      }
+    const buildColumns = (className: string) => {
+      const subjectList = [...classSubjects.get(className)!].sort();
+      return [
+        { key: "section", label: "Section" },
+        { key: "code", label: "Student ID" },
+        { key: "name", label: "Student Name" },
+        ...subjectList.map((name) => ({ key: name, label: name })),
+        { key: "total", label: "Combined %" },
+        { key: "grade", label: "Grade" },
+        { key: "result", label: "Result" },
+      ];
+    };
 
-      const wb = new ExcelJS.Workbook();
-      for (const className of classNames) {
-        const columns = buildColumns(className);
-        const ws = wb.addWorksheet(className.slice(0, 31));
-        for (const line of [
+    const classNames = [...classRows.keys()];
+
+    // A single class (either explicitly requested, or the group only touches one class):
+    // one flat sheet. Otherwise ("All Classes" spanning several grades): one sheet each.
+    if (classNames.length <= 1) {
+      const className = classNames[0] ?? exams[0].class.name;
+      const buffer = await this.docs.buildBrandedExcelReport({
+        sheetName: "Group Results",
+        headerLines: [
           school?.name ?? "School",
           `Exam Group: ${group.name}`,
           `Class: ${className}`,
           `Date: ${new Date().toLocaleDateString()}`,
-        ]) {
-          const row = ws.addRow([line]);
-          row.font = { bold: true, size: 12 };
-        }
-        ws.addRow([]);
-        ws.addRow(columns.map((c) => c.label));
-        ws.getRow(ws.rowCount).font = { bold: true };
-        for (const row of classRows.get(className) ?? []) {
-          ws.addRow(columns.map((c) => row[c.key] ?? ""));
-        }
-        ws.columns.forEach((col) => {
-          col.width = 16;
-        });
+        ],
+        columns: buildColumns(className),
+        rows: classRows.get(className) ?? [],
+      });
+      const filename = `${group.name}-${className}-results.xlsx`.replace(/\s+/g, "-").toLowerCase();
+      return { buffer, filename };
+    }
+
+    const wb = new ExcelJS.Workbook();
+    for (const className of classNames) {
+      const columns = buildColumns(className);
+      const ws = wb.addWorksheet(className.slice(0, 31));
+      for (const line of [
+        school?.name ?? "School",
+        `Exam Group: ${group.name}`,
+        `Class: ${className}`,
+        `Date: ${new Date().toLocaleDateString()}`,
+      ]) {
+        const row = ws.addRow([line]);
+        row.font = { bold: true, size: 12 };
       }
-      const buf = await wb.xlsx.writeBuffer();
-      const filename = `${group.name}-results.xlsx`.replace(/\s+/g, "-").toLowerCase();
-      return { buffer: Buffer.from(buf as ArrayBuffer), filename };
+      ws.addRow([]);
+      ws.addRow(columns.map((c) => c.label));
+      ws.getRow(ws.rowCount).font = { bold: true };
+      for (const row of classRows.get(className) ?? []) {
+        ws.addRow(columns.map((c) => row[c.key] ?? ""));
+      }
+      ws.columns.forEach((col) => {
+        col.width = 16;
+      });
+    }
+    const buf = await wb.xlsx.writeBuffer();
+    const filename = `${group.name}-results.xlsx`.replace(/\s+/g, "-").toLowerCase();
+    return { buffer: Buffer.from(buf as ArrayBuffer), filename };
+  }
+
+  /** Branded PDF export for a group's combined, weighted results — one class per call. */
+  async exportGroupResultsPdf(
+    schoolId: string,
+    examGroupId: string,
+    classId: string,
+    preparedBy?: string,
+  ): Promise<{ buffer: Buffer; filename: string }> {
+    const { group, exams, classSubjects, classRows } =
+      await this.computeGroupResultsData(schoolId, examGroupId, classId);
+
+    const className = [...classRows.keys()][0] ?? exams[0].class.name;
+    const subjectList = [...(classSubjects.get(className) ?? [])].sort();
+    const columns = [
+      { key: "section", label: "Section", width: 50 },
+      { key: "code", label: "Student ID", width: 70 },
+      { key: "name", label: "Student Name", width: 120 },
+      ...subjectList.map((name) => ({ key: name, label: name, width: 56 })),
+      { key: "total", label: "Combined %", width: 56 },
+      { key: "grade", label: "Grade", width: 40 },
+      { key: "result", label: "Result", width: 48 },
+    ];
+
+    const school = await this.prisma.school.findFirst({
+      where: { id: schoolId },
+      select: { name: true, logoKey: true, resultFooter: true },
     });
+    let logoBuffer: Buffer | null = null;
+    if (school?.logoKey) {
+      try {
+        const bucket = this.config.get<string>("MINIO_BUCKET") ?? "ekulmis";
+        logoBuffer = await this.storage.getObject(bucket, school.logoKey);
+      } catch {
+        logoBuffer = null;
+      }
+    }
+
+    const buffer = await this.docs.buildBrandedPdfReport({
+      schoolName: school?.name,
+      logoBuffer,
+      title: "Combined Examination Results",
+      headerLines: [`Exam Group: ${group.name}`, `Class: ${className}`],
+      columns,
+      rows: classRows.get(className) ?? [],
+      footer: school?.resultFooter ?? undefined,
+      preparedBy,
+    });
+
+    const filename = `${group.name}-${className}-results.pdf`
+      .replace(/\s+/g, "-")
+      .toLowerCase();
+    return { buffer, filename };
   }
 
   /** Toggle teacher lock — prevents teachers from editing marks. */

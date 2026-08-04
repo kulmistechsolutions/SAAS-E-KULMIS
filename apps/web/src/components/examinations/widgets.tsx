@@ -4,11 +4,13 @@
 import { useT, type TranslationKey } from "@/lib/i18n/provider";
 import Link from "next/link";
 import {
+  BarChart3,
   ClipboardList,
   FileText,
   ListChecks,
   Lock,
   PenLine,
+  Radar,
   Users,
   type LucideIcon,
 } from "lucide-react";
@@ -69,6 +71,8 @@ const ACTIONS: { label: TranslationKey; href: string; icon: LucideIcon; classNam
   { label: "examinationsWidgets.enterMarks", href: "/examinations/marks", icon: PenLine, className: "bg-emerald-500 hover:bg-emerald-600 text-white" },
   { label: "examinationsWidgets.examGroups", href: "/examinations/groups", icon: Users, className: "bg-violet-500 hover:bg-violet-600 text-white" },
   { label: "examinationsWidgets.publishResults", href: "/examinations/results", icon: Lock, className: "bg-orange-500 hover:bg-orange-600 text-white" },
+  { label: "examinationsWidgets.monitoring", href: "/examinations/monitoring", icon: Radar, className: "bg-cyan-500 hover:bg-cyan-600 text-white" },
+  { label: "examinationsWidgets.reports", href: "/examinations/reports", icon: BarChart3, className: "bg-pink-500 hover:bg-pink-600 text-white" },
   { label: "examinationsWidgets.manageExams", href: "/examinations/manage", icon: ListChecks, className: "bg-slate-500 hover:bg-slate-600 text-white" },
 ];
 

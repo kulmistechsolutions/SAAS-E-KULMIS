@@ -2,14 +2,21 @@
 
 
 import { useT } from "@/lib/i18n/provider";
-import { useEffect, useState } from "react";
-import { Download, Printer } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { usePortal, usePortalAudit } from "@/components/parent-portal/portal-context";
 import { fetchChildExamResults } from "@/lib/parent-portal/store";
-import { printResultSlip } from "@/lib/parent-portal/print";
+import { buildExamGroupBreakdown } from "@/lib/examinations/store";
 import type { StudentExamResult } from "@/lib/examinations/types";
+import { ExamResultCard, type ExamResultCardData } from "@/components/examinations/exam-result-card";
+
+interface CardEntry {
+  key: string;
+  data: ExamResultCardData;
+  /** Set on the combined card of a group — lets the parent expand its members below. */
+  groupId?: string;
+}
 
 export default function ParentExamsPage() {
   const t = useT();
@@ -18,9 +25,13 @@ export default function ParentExamsPage() {
 
   const [blocked, setBlocked] = useState(false);
   const [results, setResults] = useState<StudentExamResult[]>([]);
+  const [studentCode, setStudentCode] = useState("");
+  const [className, setClassName] = useState("");
+  const [section, setSection] = useState<string | null>(null);
   const [finalGrade, setFinalGrade] = useState<string | null>(null);
   const [finalPassed, setFinalPassed] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(true);
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (!selectedChild) {
@@ -28,14 +39,96 @@ export default function ParentExamsPage() {
       return;
     }
     setLoading(true);
+    setExpandedGroups(new Set());
     void fetchChildExamResults(selectedChild.id).then((data) => {
       setBlocked(data.blocked);
       setResults(data.results);
+      setStudentCode(data.studentCode ?? selectedChild.code);
+      setClassName(data.className ?? selectedChild.className);
+      setSection(data.section ?? selectedChild.section ?? null);
       setFinalGrade(data.finalGrade ?? null);
       setFinalPassed(data.passed ?? null);
       setLoading(false);
     });
   }, [selectedChild]);
+
+  function toggleExpanded(groupId: string) {
+    setExpandedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(groupId)) next.delete(groupId);
+      else next.add(groupId);
+      return next;
+    });
+  }
+
+  const baseInfo = { studentName: selectedChild?.fullName ?? "", studentCode, className, section };
+
+  // One combined card per exam group (weighted, matching what the school
+  // publishes as the term result), one card per standalone exam — same
+  // shape and print/QR behaviour the student-facing lookup page uses.
+  const cards = useMemo<CardEntry[]>(() => {
+    const seenGroups = new Set<string>();
+    const entries: CardEntry[] = [];
+    for (const r of results) {
+      if (r.examGroupId) {
+        if (seenGroups.has(r.examGroupId)) continue;
+        seenGroups.add(r.examGroupId);
+        const breakdown = buildExamGroupBreakdown({ termResults: results }, r.examGroupId);
+        if (!breakdown) continue;
+        entries.push({
+          key: `group-${r.examGroupId}`,
+          groupId: r.examGroupId,
+          data: {
+            ...baseInfo,
+            examName: breakdown.groupName,
+            subjects: [],
+            totalObtained: breakdown.totalObtained,
+            totalMax: breakdown.totalMax,
+            average: breakdown.average,
+            grade: breakdown.grade,
+            passed: breakdown.passed,
+            group: { examColumns: breakdown.examColumns, subjectRows: breakdown.subjectRows },
+          },
+        });
+      } else {
+        entries.push({
+          key: `exam-${r.examId}`,
+          data: {
+            ...baseInfo,
+            examName: r.examName,
+            term: r.term,
+            subjects: r.subjects,
+            totalObtained: r.totalObtained,
+            totalMax: r.totalMax,
+            average: r.average,
+            grade: r.grade,
+            passed: r.passed,
+          },
+        });
+      }
+    }
+    return entries;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [results, studentCode, className, section]);
+
+  function groupMemberCards(groupId: string): CardEntry[] {
+    return results
+      .filter((r) => r.examGroupId === groupId)
+      .map((r) => ({
+        key: `exam-${r.examId}`,
+        data: {
+          ...baseInfo,
+          examName: r.examName,
+          term: r.term,
+          subjects: r.subjects,
+          totalObtained: r.totalObtained,
+          totalMax: r.totalMax,
+          average: r.average,
+          grade: r.grade,
+          passed: r.passed,
+        },
+      }));
+  }
 
   if (!selectedChild) {
     return <p className="text-muted-foreground">{t("parentPortalExams.selectAChildToViewExam")}</p>;
@@ -82,74 +175,46 @@ export default function ParentExamsPage() {
         </div>
       )}
 
-      {results.length === 0 && (
+      {cards.length === 0 && (
         <div className="rounded-xl border bg-card p-8 text-center text-muted-foreground">
           {t("parentPortalExams.noPublishedExaminationResultsYet")}
         </div>
       )}
 
-      {results.map((result) => (
-        <div key={result.examId} className="rounded-xl border bg-card p-5 shadow-sm">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <h2 className="text-lg font-semibold">{result.examName}</h2>
-              <p className="text-sm text-muted-foreground">
-                {result.term} {t("parentPortalExams.weight")} {result.weightPercent}%
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              <Badge tone={result.passed ? "success" : "danger"}>
-                {result.passed ? "Pass" : "Fail"}
-              </Badge>
-              <Badge tone="info">{t("parentPortalExams.grade")} {result.grade}</Badge>
-              <Button onClick={() => printResultSlip(selectedChild, result)}>
-                <Printer className="me-2 h-4 w-4" />
-                {t("parentPortalExams.print")}
-              </Button>
-              <Button onClick={() => printResultSlip(selectedChild, result)}>
-                <Download className="me-2 h-4 w-4" />
-                {t("parentPortalExams.pdf")}
-              </Button>
-            </div>
-          </div>
-
-          <div className="mt-4 overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b bg-secondary/50 text-start">
-                  <th className="px-3 py-2">{t("parentPortalExams.subject")}</th>
-                  <th className="px-3 py-2">{t("parentPortalExams.maxMarks")}</th>
-                  <th className="px-3 py-2">{t("parentPortalExams.obtained")}</th>
-                  <th className="px-3 py-2">{t("parentPortalExams.grade")}</th>
-                  <th className="px-3 py-2">{t("parentPortalExams.result")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {result.subjects.map((s) => (
-                  <tr key={s.subject} className="border-b">
-                    <td className="px-3 py-2">{s.subject}</td>
-                    <td className="px-3 py-2">{s.maxMarks}</td>
-                    <td className="px-3 py-2 font-medium">{s.marksObtained}</td>
-                    <td className="px-3 py-2">{s.grade}</td>
-                    <td className="px-3 py-2">
-                      {s.marksObtained >= s.maxMarks * 0.4 ? "Pass" : "Fail"}
-                    </td>
-                  </tr>
+      {cards.map((entry) => {
+        const expanded = entry.groupId ? expandedGroups.has(entry.groupId) : false;
+        const members = entry.groupId && expanded ? groupMemberCards(entry.groupId) : [];
+        return (
+          <div key={entry.key} className="space-y-3">
+            <ExamResultCard data={entry.data} />
+            {entry.groupId && (
+              <div className="flex justify-center">
+                <Button
+                  variant="outline"
+                  className="h-8 px-3 text-xs"
+                  onClick={() => toggleExpanded(entry.groupId!)}
+                >
+                  {expanded ? (
+                    <ChevronUp className="me-1.5 h-3.5 w-3.5" />
+                  ) : (
+                    <ChevronDown className="me-1.5 h-3.5 w-3.5" />
+                  )}
+                  {expanded
+                    ? t("parentPortalExams.hideIndividualExams")
+                    : t("parentPortalExams.viewIndividualExams")}
+                </Button>
+              </div>
+            )}
+            {members.length > 0 && (
+              <div className="space-y-3 border-s-2 border-dashed ps-4">
+                {members.map((m) => (
+                  <ExamResultCard key={m.key} data={m.data} />
                 ))}
-              </tbody>
-              <tfoot>
-                <tr className="bg-secondary/30 font-medium">
-                  <td className="px-3 py-2">{t("parentPortalExams.total")}</td>
-                  <td className="px-3 py-2">{result.totalMax}</td>
-                  <td className="px-3 py-2">{result.totalObtained}</td>
-                  <td className="px-3 py-2">{result.grade}</td>
-                  <td className="px-3 py-2">{result.passed ? "Pass" : "Fail"}</td>
-                </tr>
-              </tfoot>
-            </table>
+              </div>
+            )}
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

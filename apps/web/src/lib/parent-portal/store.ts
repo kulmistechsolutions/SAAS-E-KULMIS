@@ -324,6 +324,9 @@ export async function fetchChildFees(studentId: string) {
 export async function fetchChildExamResults(studentId: string): Promise<{
   blocked: boolean;
   results: StudentExamResult[];
+  studentCode?: string;
+  className?: string;
+  section?: string | null;
   finalAverage?: number;
   finalGrade?: string;
   passed?: boolean;
@@ -352,6 +355,9 @@ export async function fetchChildExamResults(studentId: string): Promise<{
     return {
       blocked: false,
       results,
+      studentCode: data.studentCode,
+      className: data.className,
+      section: data.section,
       finalAverage: data.finalAverage,
       finalGrade: data.finalGrade,
       passed: data.passed,

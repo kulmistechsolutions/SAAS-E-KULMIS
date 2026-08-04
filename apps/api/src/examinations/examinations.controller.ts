@@ -207,6 +207,28 @@ export class ExaminationsController {
   }
 
   @Roles(UserRole.ADMINISTRATOR, UserRole.EXAM_MANAGER)
+  @Get("groups/:groupId/export/pdf")
+  @Header("Content-Type", "application/pdf")
+  async exportGroupResultsPdf(
+    @CurrentUser() me: AuthUser,
+    @Param("groupId") groupId: string,
+    @Query("classId") classId: string,
+    @Res() res: Response,
+  ) {
+    if (!classId) {
+      throw new BadRequestException("classId is required");
+    }
+    const { buffer, filename } = await this.exams.exportGroupResultsPdf(
+      me.schoolId,
+      groupId,
+      classId,
+      me.username,
+    );
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+    res.send(buffer);
+  }
+
+  @Roles(UserRole.ADMINISTRATOR, UserRole.EXAM_MANAGER)
   @Get("results/classes")
   resultsClasses(
     @CurrentUser() me: AuthUser,

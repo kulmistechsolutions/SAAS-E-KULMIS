@@ -591,3 +591,28 @@ export async function apiDownloadGroupResultsExcel(
   const match = disposition.match(/filename="?([^"]+)"?/);
   return { blob: await res.blob(), filename: match?.[1] ?? "group-results.xlsx" };
 }
+
+/** Download a group's combined, weighted results as a branded PDF — one class per call. */
+export async function apiDownloadGroupResultsPdf(
+  groupId: string,
+  classId: string,
+): Promise<{ blob: Blob; filename: string }> {
+  const params = new URLSearchParams({ classId });
+  const token = getAccessToken();
+  const res = await fetch(
+    `${API_URL}/api/examinations/groups/${groupId}/export/pdf?${params}`,
+    {
+      headers: {
+        "x-tenant-subdomain": TENANT,
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    },
+  );
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new Error(body?.message ?? "Could not download PDF.");
+  }
+  const disposition = res.headers.get("content-disposition") ?? "";
+  const match = disposition.match(/filename="?([^"]+)"?/);
+  return { blob: await res.blob(), filename: match?.[1] ?? "group-results.pdf" };
+}

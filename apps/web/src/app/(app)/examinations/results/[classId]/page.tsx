@@ -64,8 +64,9 @@ function ClassResultsContent() {
   const searchParams = useSearchParams();
   const classId = params.classId as string;
   const yearName = searchParams.get("year") ?? "";
+  const examIdParam = searchParams.get("exam") ?? "";
 
-  const [examId, setExamId] = useState("");
+  const [examId, setExamId] = useState(examIdParam);
   const [sectionId, setSectionId] = useState("");
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState<SortKey>("name");
@@ -243,7 +244,7 @@ function ClassResultsContent() {
       }
     }
     if (records.length === 0) {
-      toast("No changes to save", "error");
+      toast("No changes to save", "info");
       return;
     }
     setSaving(true);
@@ -546,7 +547,16 @@ function ClassResultsContent() {
             <Button
               variant={editMode ? "default" : "outline"}
               className="h-9"
-              onClick={() => setEditMode((v) => !v)}
+              onClick={() => {
+                // Turning edit mode off used to leave unsaved keystrokes
+                // sitting in `draft` — they'd silently reappear (and could
+                // still be submitted) the next time edit mode was enabled.
+                if (editMode && Object.keys(draft).length > 0) {
+                  if (!confirm("Discard unsaved mark changes?")) return;
+                  setDraft({});
+                }
+                setEditMode((v) => !v);
+              }}
             >
               <Pencil className="me-2 h-4 w-4" />
               {editMode ? "Edit Mode On" : "Enable Edit Mode"}

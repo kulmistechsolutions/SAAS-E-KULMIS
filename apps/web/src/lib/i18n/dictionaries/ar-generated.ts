@@ -396,6 +396,13 @@ export const arGenerated: PartialDictionary = {
     status: "الحالة",
     group: "المجموعة",
     none: "بلا",
+    searchExamOrTerm: "بحث عن اختبار أو فصل دراسي…",
+    allClasses: "جميع الفصول",
+    allStatuses: "جميع الحالات",
+    actions: "الإجراءات",
+    results: "النتائج",
+    examS: "اختبار(ات)",
+    noExaminationsMatchTheseFilters: "لا توجد اختبارات مطابقة لهذه المرشحات.",
   },
   examinationsBlocked: {
     blockedStudents: "الطلاب الممنوعون",
@@ -536,6 +543,8 @@ export const arGenerated: PartialDictionary = {
     exportDownloaded: "تم تنزيل التصدير",
     exportFailed: "فشل التصدير",
     unpublishAll: "إلغاء نشر الكل",
+    exportPdf: "تصدير PDF",
+    pickAClassToExportAPdf: "اختر فصلاً لتصدير ملف PDF.",
   },
   examinationsManage: {
     examManagement: "إدارة الامتحانات",
@@ -766,6 +775,8 @@ export const arGenerated: PartialDictionary = {
     examGroups: "مجموعات الامتحانات",
     enterMarks: "إدخال الدرجات",
     createExam: "إنشاء امتحان",
+    monitoring: "المراقبة",
+    reports: "التقارير",
   },
   expenses: {
     loadingExpenses: "جارٍ تحميل المصروفات…",
@@ -1476,6 +1487,8 @@ export const arGenerated: PartialDictionary = {
     obtained: "المُحصّل",
     result: "النتيجة",
     total: "الإجمالي",
+    viewIndividualExams: "عرض الاختبارات الفردية",
+    hideIndividualExams: "إخفاء الاختبارات الفردية",
   },
   parentPortalFees: {
     selectAChildToViewFee: "اختر طفلًا لعرض معلومات الرسوم.",
