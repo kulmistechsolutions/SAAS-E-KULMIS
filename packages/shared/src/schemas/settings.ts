@@ -26,6 +26,9 @@ export const updateSettingsSchema = z
     timezone: z.string().min(1).optional(),
     language: z.string().min(1).optional(),
     documentHeaderLayout: z.enum(["LEFT", "CENTERED"]).optional(),
+    /// Minutes an access token stays valid before forcing a re-login. Null
+    /// resets to the platform default (JWT_ACCESS_TTL).
+    sessionTimeoutMinutes: z.number().int().min(5).max(1440).nullable().optional(),
     receiptHeader: z.string().nullable().optional(),
     receiptFooter: z.string().nullable().optional(),
     payslipHeader: z.string().nullable().optional(),

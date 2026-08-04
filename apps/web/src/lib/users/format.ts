@@ -46,6 +46,9 @@ const ROLE_LABELS: Record<string, string> = {
   EXAM_MANAGER: "Exam Manager",
   RECEPTION_OFFICER: "Reception Officer",
   LIBRARIAN: "Librarian",
+  // Legacy value kept only so an existing account created before Reception
+  // Officer existed still shows a real label instead of raw enum text.
+  RECEPTION: "Reception (Legacy)",
 };
 
 export function roleLabel(role: SystemRole): string {

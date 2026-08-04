@@ -157,13 +157,24 @@ export class AuthService {
     });
   }
 
-  private signAccessToken(user: User): Promise<string> {
+  private async signAccessToken(user: User): Promise<string> {
     const payload: JwtPayload = {
       sub: user.id,
       sid: user.schoolId,
       role: user.role,
       username: user.username,
     };
+    // A school can shorten/lengthen how long its staff stay signed in
+    // (Settings → Security). Null keeps the platform default (JWT_ACCESS_TTL).
+    const school = await this.prisma.school.findUnique({
+      where: { id: user.schoolId },
+      select: { sessionTimeoutMinutes: true },
+    });
+    if (school?.sessionTimeoutMinutes) {
+      return this.jwt.signAsync(payload, {
+        expiresIn: school.sessionTimeoutMinutes * 60,
+      });
+    }
     return this.jwt.signAsync(payload);
   }
 

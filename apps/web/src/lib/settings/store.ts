@@ -123,7 +123,9 @@ export async function refreshSettings(): Promise<void> {
       quiz: current.quiz,
       notifications: current.notifications,
       email: current.email,
-      security: current.security,
+      // Only sessionTimeoutMinutes is server-backed; the rest of this
+      // section (password rules, IP restriction, 2FA) stays local for now.
+      security: { ...current.security, ...remote.security },
       backup: current.backup,
       license: current.license,
       system: current.system,
@@ -252,6 +254,7 @@ const SECTION_AUDIT: Partial<Record<SettingsSectionKey, SettingsAuditAction>> =
 const API_SECTIONS = new Set<SettingsSectionKey>([
   "school",
   "branding",
+  "security",
   "fees",
   "salary",
   "expenses",
@@ -285,6 +288,9 @@ export async function updateSettingsSection<K extends SettingsSectionKey>(
           students: remote.students,
           teachers: remote.teachers,
           parents: remote.parents,
+          // Only sessionTimeoutMinutes is server-backed; the rest of this
+          // section stays whatever the school had set locally.
+          security: { ...next.security, ...remote.security },
           // Same rule as refreshSettings: the server's copy is authoritative,
           // except the two images it doesn't store — without this, saving any
           // branding change wiped the favicon the user had just picked.

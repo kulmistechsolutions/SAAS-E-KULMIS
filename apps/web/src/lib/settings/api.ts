@@ -40,6 +40,7 @@ export interface ApiSchool {
   timezone: string;
   language: string;
   documentHeaderLayout: "LEFT" | "CENTERED";
+  sessionTimeoutMinutes: number | null;
   receiptHeader: string | null;
   receiptFooter: string | null;
   payslipHeader: string | null;
@@ -184,6 +185,11 @@ export function mapApiSchoolToSettings(
         row.brandFooterText ??
         `© ${new Date().getFullYear()} ${row.name}. All rights reserved.`,
     },
+    security: {
+      ...base.security,
+      sessionTimeoutMinutes:
+        row.sessionTimeoutMinutes ?? base.security.sessionTimeoutMinutes,
+    },
   };
 }
 
@@ -224,6 +230,13 @@ export function mapSettingsSectionToPatch(
       brandLoginTitle: b.loginTitle || null,
       brandFooterText: b.footerText || null,
     };
+  }
+  if (key === "security") {
+    // Only the session timeout is backed by the database today — the other
+    // security fields (password rules, IP restriction, 2FA) are still
+    // display-only and aren't sent here.
+    const sec = section as SettingsState["security"];
+    return { sessionTimeoutMinutes: sec.sessionTimeoutMinutes || null };
   }
   if (key === "fees") {
     const f = section as SettingsState["fees"];

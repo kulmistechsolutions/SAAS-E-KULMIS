@@ -7,7 +7,7 @@ import type { SettingsSectionKey, SettingsState } from "@/lib/settings/types";
 import { toast } from "@/lib/toast";
 
 export function useSettingsSection<K extends SettingsSectionKey>(key: K) {
-  useSettingsState();
+  const globalState = useSettingsState();
   const [draft, setDraft] = useState<SettingsState[K]>(() => getSettings()[key]);
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -16,6 +16,16 @@ export function useSettingsSection<K extends SettingsSectionKey>(key: K) {
     setDraft(getSettings()[key]);
     setDirty(false);
   }, [key]);
+
+  // The initial mount above can run before refreshSettings() resolves (it's
+  // fire-and-forget), so `draft` is frequently frozen on seed defaults even
+  // once the real data has loaded. Keep following the store until the user
+  // actually starts editing — a save's own optimistic update also arrives
+  // through this same path, so it doesn't need separate handling.
+  useEffect(() => {
+    if (!dirty) setDraft(globalState[key]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [globalState, key]);
 
   const update = useCallback((patch: Partial<SettingsState[K]>) => {
     setDraft((prev) => ({ ...prev, ...patch }));

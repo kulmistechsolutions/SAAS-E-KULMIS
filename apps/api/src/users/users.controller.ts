@@ -9,6 +9,7 @@ import {
   Post,
 } from "@nestjs/common";
 import {
+  ASSIGNABLE_STAFF_ROLES,
   createUserSchema,
   resetPasswordSchema,
   updateUserSchema,
@@ -30,6 +31,11 @@ export class UsersController {
     const parsed = createUserSchema.safeParse(body);
     if (!parsed.success) {
       throw new BadRequestException(parsed.error.flatten());
+    }
+    if (!ASSIGNABLE_STAFF_ROLES.includes(parsed.data.role)) {
+      throw new BadRequestException(
+        "This role cannot be assigned through User Management.",
+      );
     }
     return this.users.create(me.schoolId, parsed.data);
   }
@@ -53,6 +59,14 @@ export class UsersController {
     const parsed = updateUserSchema.safeParse(body);
     if (!parsed.success) {
       throw new BadRequestException(parsed.error.flatten());
+    }
+    if (
+      parsed.data.role !== undefined &&
+      !ASSIGNABLE_STAFF_ROLES.includes(parsed.data.role)
+    ) {
+      throw new BadRequestException(
+        "This role cannot be assigned through User Management.",
+      );
     }
     return this.users.update(me.schoolId, id, parsed.data);
   }

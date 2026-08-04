@@ -25,3 +25,15 @@ export type UserRole = (typeof UserRole)[keyof typeof UserRole];
 export const userRoleSchema = z.nativeEnum(UserRole);
 
 export const ALL_ROLES = Object.values(UserRole);
+
+/**
+ * Roles a school admin may hand out through User Management. Excludes the
+ * owner-only account (SUPER_ADMINISTRATOR) and the auto-provisioned portal
+ * accounts (PARENT/STUDENT are created only when a student is registered).
+ */
+export const ASSIGNABLE_STAFF_ROLES: UserRole[] = ALL_ROLES.filter(
+  (r): r is UserRole =>
+    r !== UserRole.SUPER_ADMINISTRATOR &&
+    r !== UserRole.PARENT &&
+    r !== UserRole.STUDENT,
+);

@@ -38,6 +38,9 @@ model School {
   language             String  @default("en")
   /// "LEFT" (logo beside name) or "CENTERED" (logo above name) on every printed document.
   documentHeaderLayout String  @default("LEFT")
+  /// Minutes an access token stays valid before the app forces a re-login.
+  /// Null means "use the platform default" (JWT_ACCESS_TTL).
+  sessionTimeoutMinutes Int?
   receiptHeader        String?
   receiptFooter        String?
   payslipHeader        String?

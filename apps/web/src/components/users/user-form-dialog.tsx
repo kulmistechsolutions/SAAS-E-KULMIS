@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { ASSIGNABLE_ROLES, roleLabel } from "@/lib/users/format";
-import { createUser, getUsersState, updateUser } from "@/lib/users/store";
+import { createUser, updateUser } from "@/lib/users/store";
 import type { AccountStatus, SystemRole, SystemUser } from "@/lib/users/types";
 import { toast } from "@/lib/toast";
 
@@ -28,7 +28,6 @@ export function UserFormDialog({
 }: UserFormDialogProps) {
   const t = useT();
   const isEdit = !!user;
-  const roles = getUsersState().roles;
 
   const [fullName, setFullName] = useState("");
   const [username, setUsername] = useState("");
@@ -71,12 +70,19 @@ export function UserFormDialog({
 
   // Parent/Student logins come with student registration and Super
   // Administrator is the owner's own account — none of them are handed out here.
-  const roleOptions = [
+  // Custom roles created on the Roles & Permissions page aren't included: the
+  // backend only accepts the fixed built-in role values, so offering them here
+  // would let an admin "assign" a role that then fails to save.
+  const roleOptions: { id: SystemRole; label: string }[] = [
     ...ASSIGNABLE_ROLES.map((r) => ({ id: r, label: roleLabel(r) })),
-    ...roles
-      .filter((r) => !r.builtIn)
-      .map((r) => ({ id: r.name, label: r.label })),
   ];
+  // A user can carry a role no longer offered above (e.g. the legacy
+  // "RECEPTION" value from before Reception Officer existed). Without this,
+  // the <select> falls back to whichever option is first and silently
+  // reassigns the user's real role the moment the form is saved.
+  if (role && !roleOptions.some((r) => r.id === role)) {
+    roleOptions.push({ id: role, label: roleLabel(role) });
+  }
 
   return (
     <Dialog
