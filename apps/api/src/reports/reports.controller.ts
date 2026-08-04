@@ -38,7 +38,7 @@ export class ReportsController {
   ) {}
 
   /** Promotion and graduation reports, computed from the database. */
-  @Roles(UserRole.ADMINISTRATOR, UserRole.FINANCE_OFFICER, UserRole.EXAM_MANAGER)
+  @Roles(UserRole.ADMINISTRATOR, UserRole.FINANCE_OFFICER, UserRole.EXAM_MANAGER, UserRole.ACADEMIC_MANAGER)
   @Get("promotion-reports/:slug")
   promotionReportsBySlug(
     @CurrentUser() me: AuthUser,
@@ -106,7 +106,7 @@ export class ReportsController {
   }
 
   /** Exams for the report picker, so it stops depending on a browser store. */
-  @Roles(UserRole.ADMINISTRATOR, UserRole.FINANCE_OFFICER, UserRole.EXAM_MANAGER)
+  @Roles(UserRole.ADMINISTRATOR, UserRole.FINANCE_OFFICER, UserRole.EXAM_MANAGER, UserRole.ACADEMIC_MANAGER)
   @Get("exam-list")
   examList(@CurrentUser() me: AuthUser, @Query("academicYearId") yearId: string) {
     if (!yearId) return [];
@@ -114,7 +114,7 @@ export class ReportsController {
   }
 
   /** Examination reports: results, rankings, distribution, submission status. */
-  @Roles(UserRole.ADMINISTRATOR, UserRole.FINANCE_OFFICER, UserRole.EXAM_MANAGER)
+  @Roles(UserRole.ADMINISTRATOR, UserRole.FINANCE_OFFICER, UserRole.EXAM_MANAGER, UserRole.ACADEMIC_MANAGER)
   @Get("exam-reports/:slug")
   examReportsBySlug(
     @CurrentUser() me: AuthUser,
@@ -137,7 +137,7 @@ export class ReportsController {
   }
 
   /** Teacher list, salary and assignment reports, from the database. */
-  @Roles(UserRole.ADMINISTRATOR, UserRole.FINANCE_OFFICER, UserRole.EXAM_MANAGER)
+  @Roles(UserRole.ADMINISTRATOR, UserRole.FINANCE_OFFICER, UserRole.EXAM_MANAGER, UserRole.ACADEMIC_MANAGER)
   @Get("teacher-reports/:slug")
   teacherReportsBySlug(
     @CurrentUser() me: AuthUser,
@@ -160,7 +160,7 @@ export class ReportsController {
   }
 
   /** Student and parent reports, computed from the database. */
-  @Roles(UserRole.ADMINISTRATOR, UserRole.FINANCE_OFFICER, UserRole.EXAM_MANAGER)
+  @Roles(UserRole.ADMINISTRATOR, UserRole.FINANCE_OFFICER, UserRole.EXAM_MANAGER, UserRole.RECEPTION_OFFICER, UserRole.LIBRARIAN)
   @Get("student-reports/:slug")
   studentReportsBySlug(
     @CurrentUser() me: AuthUser,
@@ -210,7 +210,7 @@ export class ReportsController {
     });
   }
 
-  @Roles(UserRole.ADMINISTRATOR, UserRole.FINANCE_OFFICER, UserRole.EXAM_MANAGER)
+  @Roles(UserRole.ADMINISTRATOR, UserRole.FINANCE_OFFICER, UserRole.EXAM_MANAGER, UserRole.RECEPTION_OFFICER, UserRole.LIBRARIAN)
   @Get("students")
   students(
     @CurrentUser() me: AuthUser,
@@ -219,7 +219,7 @@ export class ReportsController {
     return this.reports.studentListReport(me.schoolId, classId);
   }
 
-  @Roles(UserRole.ADMINISTRATOR, UserRole.FINANCE_OFFICER, UserRole.EXAM_MANAGER)
+  @Roles(UserRole.ADMINISTRATOR, UserRole.FINANCE_OFFICER, UserRole.EXAM_MANAGER, UserRole.RECEPTION_OFFICER, UserRole.LIBRARIAN)
   @Get("students/export/pdf")
   @Header("Content-Type", "application/pdf")
   async studentsPdf(
@@ -232,7 +232,7 @@ export class ReportsController {
     res.send(buf);
   }
 
-  @Roles(UserRole.ADMINISTRATOR, UserRole.FINANCE_OFFICER, UserRole.EXAM_MANAGER)
+  @Roles(UserRole.ADMINISTRATOR, UserRole.FINANCE_OFFICER, UserRole.EXAM_MANAGER, UserRole.RECEPTION_OFFICER, UserRole.LIBRARIAN)
   @Get("students/export/excel")
   async studentsExcel(
     @CurrentUser() me: AuthUser,
@@ -248,7 +248,7 @@ export class ReportsController {
     res.send(buf);
   }
 
-  @Roles(UserRole.ADMINISTRATOR, UserRole.FINANCE_OFFICER, UserRole.EXAM_MANAGER)
+  @Roles(UserRole.ADMINISTRATOR, UserRole.FINANCE_OFFICER, UserRole.EXAM_MANAGER, UserRole.ATTENDANCE_OFFICER)
   @Get("attendance")
   attendance(
     @CurrentUser() me: AuthUser,
