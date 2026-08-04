@@ -3309,6 +3309,7 @@ export const soGenerated: PartialDictionary = {
     couldNotChangeThis: "Tan lama beddeli karin",
     connectionTestFailed: "Tijaabada xiriirku waa fashilantay",
     couldNotLoadGateway: "Gateway-ga lama soo dejin karin",
+    managedByThePlatformAdministrator: "Waxaa maamula maamulaha platform-ka — akhris kaliya.",
   },
   smsPackages: {
     smsPackages: "Xirmooyinka SMS",

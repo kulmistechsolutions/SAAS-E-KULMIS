@@ -3309,6 +3309,7 @@ export const generated = {
     couldNotChangeThis: "Could not change this",
     connectionTestFailed: "Connection test failed",
     couldNotLoadGateway: "Could not load gateway",
+    managedByThePlatformAdministrator: "Managed by the platform administrator — read only.",
   },
   smsPackages: {
     smsPackages: "SMS Packages",

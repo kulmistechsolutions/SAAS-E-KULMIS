@@ -8,19 +8,10 @@ import {
   CheckCircle2,
   Loader2,
   Lock,
-  PlugZap,
   ShieldCheck,
   XCircle,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  apiSmsGateway,
-  apiTestSmsGateway,
-  apiToggleSmsGateway,
-  type SchoolSmsGateway,
-} from "@/lib/sms/api";
+import { apiSmsGateway, type SchoolSmsGateway } from "@/lib/sms/api";
 import { toast } from "@/lib/toast";
 
 function fmtDate(v: string | null | undefined) {
@@ -33,27 +24,22 @@ function daysLeft(endDate: string): number {
   );
 }
 
+/**
+ * Read-only. A school can see whether its own Hormuud account is connected
+ * and in use, but entering the credentials, testing the connection, and
+ * switching it on/off is a Platform Super Admin action (Platform > SMS >
+ * Own gateways) — a school has no path to set or change its own sending
+ * credentials.
+ */
 export function GatewaySettings() {
   const t = useT();
   const [gw, setGw] = useState<SchoolSmsGateway | null>(null);
   const [loading, setLoading] = useState(true);
-  const [testing, setTesting] = useState(false);
-  const [toggling, setToggling] = useState(false);
-
-  const [baseUrl, setBaseUrl] = useState("");
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [senderId, setSenderId] = useState("");
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await apiSmsGateway();
-      setGw(res);
-      setBaseUrl(res.baseUrl);
-      setUsername(res.username);
-      setSenderId(res.senderId ?? "");
-      setPassword("");
+      setGw(await apiSmsGateway());
     } catch (e) {
       toast(e instanceof Error ? e.message : "Could not load gateway", "error");
     } finally {
@@ -64,49 +50,6 @@ export function GatewaySettings() {
   useEffect(() => {
     void load();
   }, [load]);
-
-  async function testAndSave() {
-    if (!username.trim()) return toast("Enter your Hormuud username", "error");
-    if (!gw?.hasPassword && !password.trim()) {
-      return toast("Enter your Hormuud API password", "error");
-    }
-    setTesting(true);
-    try {
-      const res = await apiTestSmsGateway({
-        baseUrl: baseUrl.trim() || undefined,
-        username: username.trim(),
-        password: password.trim() || undefined,
-        senderId: senderId.trim() || null,
-      });
-      setGw(res.gateway);
-      setPassword("");
-      toast(
-        res.test.ok ? "Connected — your account is now in use." : res.test.message,
-        res.test.ok ? "success" : "error",
-      );
-    } catch (e) {
-      toast(e instanceof Error ? e.message : "Connection test failed", "error");
-    } finally {
-      setTesting(false);
-    }
-  }
-
-  async function toggle(next: boolean) {
-    setToggling(true);
-    try {
-      setGw(await apiToggleSmsGateway(next));
-      toast(
-        next
-          ? "Now sending through your own account"
-          : "Switched back to the platform SMS credits",
-        "success",
-      );
-    } catch (e) {
-      toast(e instanceof Error ? e.message : "Could not change this", "error");
-    } finally {
-      setToggling(false);
-    }
-  }
 
   if (loading) {
     return (
@@ -174,7 +117,7 @@ export function GatewaySettings() {
             <p className="mt-0.5 text-sm text-muted-foreground">
               {gw.active
                 ? "Messages are sent through your account and billed by Hormuud — platform credits are not used."
-                : "Connect and switch on your own account below to stop using platform credits."}
+                : t("smsGatewaySettings.contactThePlatformAdministratorToActivate")}
             </p>
             {gw.license && (
               <p className="mt-2 text-xs text-muted-foreground">
@@ -193,61 +136,25 @@ export function GatewaySettings() {
         </div>
       </div>
 
-      {/* Credentials */}
+      {/* Read-only status — no credential fields, no Test & Save. */}
       <div className="space-y-4 rounded-2xl border bg-card p-5 shadow-sm">
         <div>
           <h2 className="font-semibold">{t("smsGatewaySettings.yourHormuudCredentials")}</h2>
           <p className="mt-0.5 text-xs text-muted-foreground">
-            {t("smsGatewaySettings.savedOnlyAfterASuccessfulConnection")}
+            {t("smsGatewaySettings.managedByThePlatformAdministrator")}
           </p>
         </div>
 
-        <div>
-          <Label htmlFor="gw-user">{t("smsGatewaySettings.username")}</Label>
-          <Input
-            id="gw-user"
-            className="mt-1.5"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-          />
-        </div>
-
-        <div>
-          <Label htmlFor="gw-pass">{t("smsGatewaySettings.apiPassword")}</Label>
-          <Input
-            id="gw-pass"
-            type="password"
-            className="mt-1.5"
-            placeholder={gw.hasPassword ? "•••••••• (leave blank to keep)" : ""}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-          <p className="mt-1 text-xs text-muted-foreground">
-            {t("smsGatewaySettings.theApiPasswordFromYourHormuud")}
-          </p>
-        </div>
-
-        <div className="grid gap-3 sm:grid-cols-2">
+        <dl className="grid gap-3 sm:grid-cols-2">
           <div>
-            <Label htmlFor="gw-sender">{t("smsGatewaySettings.senderIdOptional")}</Label>
-            <Input
-              id="gw-sender"
-              className="mt-1.5"
-              maxLength={20}
-              value={senderId}
-              onChange={(e) => setSenderId(e.target.value)}
-            />
+            <dt className="text-xs text-muted-foreground">{t("smsGatewaySettings.username")}</dt>
+            <dd className="mt-0.5 font-medium">{gw.username || "—"}</dd>
           </div>
           <div>
-            <Label htmlFor="gw-url">{t("smsGatewaySettings.apiUrl")}</Label>
-            <Input
-              id="gw-url"
-              className="mt-1.5"
-              value={baseUrl}
-              onChange={(e) => setBaseUrl(e.target.value)}
-            />
+            <dt className="text-xs text-muted-foreground">{t("smsGatewaySettings.senderIdOptional")}</dt>
+            <dd className="mt-0.5 font-medium">{gw.senderId || "—"}</dd>
           </div>
-        </div>
+        </dl>
 
         {/* Connection result */}
         <div className="flex items-start gap-2 rounded-lg border bg-secondary/40 px-3 py-2 text-xs">
@@ -276,21 +183,9 @@ export function GatewaySettings() {
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-2">
-          <Button onClick={() => void testAndSave()} disabled={testing}>
-            <PlugZap className="me-2 h-4 w-4" />
-            {testing ? "Testing…" : "Test & save"}
-          </Button>
-          {gw.connectionVerified && (
-            <Button
-              variant="outline"
-              onClick={() => void toggle(!gw.enabled)}
-              disabled={toggling}
-            >
-              {gw.enabled ? "Switch back to platform credits" : "Use my own account"}
-            </Button>
-          )}
-        </div>
+        <p className="text-xs text-muted-foreground">
+          {t("smsGatewaySettings.contactThePlatformAdministratorToActivate")}
+        </p>
       </div>
     </div>
   );

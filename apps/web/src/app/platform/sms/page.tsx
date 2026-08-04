@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { SenderIdReview } from "@/components/platform/sender-id-review";
+import { GatewayCredentialsDialog } from "@/components/platform/gateway-credentials-dialog";
 import {
   assignPlatformSmsPackage,
   createPlatformSmsPackage,
@@ -55,6 +56,9 @@ export default function PlatformSmsPackagesPage() {
   const [gwMonths, setGwMonths] = useState(12);
   const [gwPrice, setGwPrice] = useState("");
   const [gwNote, setGwNote] = useState("");
+  const [credsSchool, setCredsSchool] = useState<{ id: string; name: string } | null>(
+    null,
+  );
 
   const unlocked = Boolean(data?.config.packagesUnlocked);
 
@@ -530,13 +534,24 @@ export default function PlatformSmsPackagesPage() {
                         {l.status}
                       </span>
                       {l.status === "ACTIVE" && (
-                        <button
-                          type="button"
-                          onClick={() => void revokeGateway(l.id)}
-                          className="text-xs text-rose-300 hover:text-rose-200"
-                        >
-                          {t("platformSms.revoke")}
-                        </button>
+                        <>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setCredsSchool({ id: l.school.id, name: l.school.name })
+                            }
+                            className="text-xs text-sky-300 hover:text-sky-200"
+                          >
+                            Manage credentials
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => void revokeGateway(l.id)}
+                            className="text-xs text-rose-300 hover:text-rose-200"
+                          >
+                            {t("platformSms.revoke")}
+                          </button>
+                        </>
                       )}
                     </div>
                   </li>
@@ -607,6 +622,15 @@ export default function PlatformSmsPackagesPage() {
             </tbody>
           </table>
         </div>
+      )}
+
+      {credsSchool && (
+        <GatewayCredentialsDialog
+          open={Boolean(credsSchool)}
+          onClose={() => setCredsSchool(null)}
+          schoolId={credsSchool.id}
+          schoolName={credsSchool.name}
+        />
       )}
     </div>
   );

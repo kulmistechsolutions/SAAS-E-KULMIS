@@ -516,6 +516,64 @@ export const revokePlatformSmsGatewayLicense = (id: string) =>
     { method: "DELETE" },
   );
 
+// ── A school's own gateway credentials — entered by the platform, on the
+// school's behalf. A school can only view its own status (GET /sms/gateway
+// on the tenant side); this is the only path that can set or change them. ──
+
+export interface PlatformSchoolGateway {
+  licensed: boolean;
+  license: { id: string; endDate: string } | null;
+  history: { id: string; endDate: string }[];
+  enabled: boolean;
+  baseUrl: string;
+  username: string;
+  hasPassword: boolean;
+  senderId: string | null;
+  connectionStatus: "CONNECTED" | "DISCONNECTED" | "ERROR";
+  connectionMessage: string | null;
+  connectionVerified: boolean;
+  lastTestedAt: string | null;
+  lastSuccessAt: string | null;
+  providerBalance: string | null;
+  active: boolean;
+}
+
+export interface PlatformSchoolGatewayTestResult {
+  ok: boolean;
+  status: string;
+  message: string;
+  providerBalance?: string | null;
+}
+
+export const fetchPlatformSchoolGateway = (schoolId: string) =>
+  platformFetch<PlatformSchoolGateway>(
+    `/platform/sms/gateway-licenses/${schoolId}/gateway`,
+  );
+
+export const testPlatformSchoolGateway = (
+  schoolId: string,
+  body: {
+    baseUrl?: string;
+    username?: string;
+    password?: string;
+    senderId?: string | null;
+    enabled?: boolean;
+  },
+) =>
+  platformFetch<{
+    gateway: PlatformSchoolGateway;
+    test: PlatformSchoolGatewayTestResult;
+  }>(`/platform/sms/gateway-licenses/${schoolId}/gateway/test`, {
+    method: "POST",
+    body,
+  });
+
+export const togglePlatformSchoolGateway = (schoolId: string, enabled: boolean) =>
+  platformFetch<PlatformSchoolGateway>(
+    `/platform/sms/gateway-licenses/${schoolId}/gateway`,
+    { method: "PATCH", body: { enabled } },
+  );
+
 export async function fetchPlatformSmsMessages(params?: {
   schoolId?: string;
   status?: string;

@@ -3309,6 +3309,7 @@ export const arGenerated: PartialDictionary = {
     couldNotChangeThis: "تعذّر تغيير هذا",
     connectionTestFailed: "فشل اختبار الاتصال",
     couldNotLoadGateway: "تعذّر تحميل البوابة",
+    managedByThePlatformAdministrator: "يديرها مسؤول المنصة — للقراءة فقط.",
   },
   smsPackages: {
     smsPackages: "باقات الرسائل",

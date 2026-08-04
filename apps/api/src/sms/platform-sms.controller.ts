@@ -19,6 +19,7 @@ import {
   createSmsPackageSchema,
   grantSmsGatewayLicenseSchema,
   reviewSmsSenderIdSchema,
+  schoolSmsGatewaySchema,
   testSmsConnectionSchema,
   testWaafiConnectionSchema,
   updateSmsGlobalConfigSchema,
@@ -190,6 +191,34 @@ export class PlatformSmsController {
   @Delete("gateway-licenses/:id")
   revokeGatewayLicense(@Param("id") id: string) {
     return this.sms.revokeGatewayLicense(id);
+  }
+
+  // ── A school's own gateway credentials ──
+  // A school can only view its own gateway status (GET /sms/gateway on the
+  // tenant side) — entering, testing and switching on the actual Hormuud
+  // account is done here, by whoever holds the platform login, on the
+  // school's behalf.
+  @Get("gateway-licenses/:schoolId/gateway")
+  schoolGateway(@Param("schoolId") schoolId: string) {
+    return this.sms.getSchoolGateway(schoolId);
+  }
+
+  @Post("gateway-licenses/:schoolId/gateway/test")
+  testSchoolGateway(@Param("schoolId") schoolId: string, @Body() body: unknown) {
+    const parsed = schoolSmsGatewaySchema.safeParse(body);
+    if (!parsed.success) throw new BadRequestException(parsed.error.flatten());
+    return this.sms.testSchoolGateway(schoolId, parsed.data);
+  }
+
+  @Patch("gateway-licenses/:schoolId/gateway")
+  toggleSchoolGateway(
+    @Param("schoolId") schoolId: string,
+    @Body() body: { enabled?: boolean },
+  ) {
+    if (typeof body?.enabled !== "boolean") {
+      throw new BadRequestException("enabled must be true or false");
+    }
+    return this.sms.setSchoolGatewayEnabled(schoolId, body.enabled);
   }
 
   // ── Sender ID applications ──

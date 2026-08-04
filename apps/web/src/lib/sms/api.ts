@@ -96,22 +96,10 @@ export interface SmsGatewayTestResult {
   providerBalance?: string | null;
 }
 
+// Read-only for a school — entering/testing the Hormuud credentials and
+// switching the gateway on/off is a Platform Super Admin action now (see
+// lib/platform/api.ts), so there is no school-facing write path here.
 export const apiSmsGateway = () => api<SchoolSmsGateway>("/sms/gateway");
-
-export const apiTestSmsGateway = (body: {
-  baseUrl?: string;
-  username?: string;
-  password?: string;
-  senderId?: string | null;
-  enabled?: boolean;
-}) =>
-  api<{ gateway: SchoolSmsGateway; test: SmsGatewayTestResult }>(
-    "/sms/gateway/test",
-    { method: "POST", body },
-  );
-
-export const apiToggleSmsGateway = (enabled: boolean) =>
-  api<SchoolSmsGateway>("/sms/gateway", { method: "PATCH", body: { enabled } });
 
 export interface SmsTemplate {
   id: string;
