@@ -390,7 +390,14 @@ export interface ApiResultsClassOverview {
   teacherLocked: boolean;
   studentPortalOpen: boolean;
   examCount: number;
-  exams: { id: string; name: string; status: string; section: string | null }[];
+  exams: {
+    id: string;
+    name: string;
+    status: string;
+    section: string | null;
+    examGroupId: string | null;
+    examGroupName: string | null;
+  }[];
 }
 
 export interface ApiClassResultsMatrix {
@@ -489,6 +496,75 @@ export const apiClassResultsMatrix = (opts: {
   if (opts.sortDir) params.set("sortDir", opts.sortDir);
   return api<ApiClassResultsMatrix>(`/examinations/results/matrix?${params}`);
 };
+
+/** The "All Terms (Combined)" option in a report's term selector. */
+export const apiClassResultsMatrixCombined = (opts: {
+  classId: string;
+  examGroupId?: string;
+  sectionId?: string;
+  search?: string;
+  sortBy?: string;
+  sortDir?: "asc" | "desc";
+}) => {
+  const params = new URLSearchParams();
+  params.set("classId", opts.classId);
+  if (opts.examGroupId) params.set("examGroupId", opts.examGroupId);
+  if (opts.sectionId) params.set("sectionId", opts.sectionId);
+  if (opts.search) params.set("search", opts.search);
+  if (opts.sortBy) params.set("sortBy", opts.sortBy);
+  if (opts.sortDir) params.set("sortDir", opts.sortDir);
+  return api<ApiClassResultsMatrix>(`/examinations/results/matrix/combined?${params}`);
+};
+
+async function downloadBlob(
+  path: string,
+  params: URLSearchParams,
+  fallbackFilename: string,
+): Promise<{ blob: Blob; filename: string }> {
+  const token = getAccessToken();
+  const res = await fetch(`${API_URL}/api${path}?${params}`, {
+    headers: {
+      "x-tenant-subdomain": TENANT,
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  });
+  if (!res.ok) throw new Error("Could not download file.");
+  const disposition = res.headers.get("content-disposition") ?? "";
+  const match = disposition.match(/filename="?([^"]+)"?/);
+  return { blob: await res.blob(), filename: match?.[1] ?? fallbackFilename };
+}
+
+export async function apiDownloadClassResultsCombinedPdf(opts: {
+  classId: string;
+  examGroupId?: string;
+  sectionId?: string;
+}): Promise<{ blob: Blob; filename: string }> {
+  const params = new URLSearchParams();
+  params.set("classId", opts.classId);
+  if (opts.examGroupId) params.set("examGroupId", opts.examGroupId);
+  if (opts.sectionId) params.set("sectionId", opts.sectionId);
+  return downloadBlob(
+    "/examinations/results/matrix/combined/export/pdf",
+    params,
+    "combined-results.pdf",
+  );
+}
+
+export async function apiDownloadClassResultsCombinedExcel(opts: {
+  classId: string;
+  examGroupId?: string;
+  sectionId?: string;
+}): Promise<{ blob: Blob; filename: string }> {
+  const params = new URLSearchParams();
+  params.set("classId", opts.classId);
+  if (opts.examGroupId) params.set("examGroupId", opts.examGroupId);
+  if (opts.sectionId) params.set("sectionId", opts.sectionId);
+  return downloadBlob(
+    "/examinations/results/matrix/combined/export/xlsx",
+    params,
+    "combined-results.xlsx",
+  );
+}
 
 export const apiSetTeacherLock = (examId: string, locked: boolean) =>
   api(`/examinations/${examId}/teacher-lock`, {

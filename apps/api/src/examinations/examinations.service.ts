@@ -1455,6 +1455,7 @@ export class ExaminationsService {
         include: {
           class: { select: { id: true, name: true } },
           section: { select: { id: true, name: true } },
+          examGroup: { select: { id: true, name: true } },
         },
         orderBy: { createdAt: "desc" },
       });
@@ -1510,6 +1511,8 @@ export class ExaminationsService {
             name: e.name,
             status: e.status,
             section: e.section?.name ?? null,
+            examGroupId: e.examGroupId,
+            examGroupName: e.examGroup?.name ?? null,
           })),
         });
       }
@@ -1660,6 +1663,312 @@ export class ExaminationsService {
         rows,
       };
     });
+  }
+
+  /**
+   * Same shape as classResultsMatrix, but instead of one exam it weighs
+   * together several exams into one combined picture. Pass `examGroupId` to
+   * scope this to exactly that Exam Group's terms (the "All Terms
+   * (Combined)" option in a report's term selector) — the mandatory,
+   * weight-configured behaviour. Omit it and every non-draft exam the class
+   * has is combined instead, for schools that haven't set up a group.
+   * Subject marks come out as a 0-100 weighted percentage (exams can have
+   * different maxMarks), not raw marks.
+   */
+  async classResultsMatrixCombined(
+    schoolId: string,
+    opts: {
+      classId: string;
+      examGroupId?: string;
+      sectionId?: string;
+      search?: string;
+      sortBy?: string;
+      sortDir?: "asc" | "desc";
+    },
+  ) {
+    return this.prisma.forTenant(schoolId, async (tx) => {
+      const cls = await tx.class.findFirst({
+        where: { id: opts.classId },
+        include: { academicYear: { select: { name: true } } },
+      });
+      if (!cls) throw new NotFoundException("Class not found");
+
+      const exams = await tx.exam.findMany({
+        where: {
+          classId: opts.classId,
+          status: { notIn: ["DRAFT", "ARCHIVED"] },
+          ...(opts.examGroupId ? { examGroupId: opts.examGroupId } : {}),
+        },
+        include: {
+          section: { select: { name: true } },
+          subjects: { include: { subject: { select: { id: true, name: true } } } },
+        },
+      });
+      if (exams.length === 0) {
+        throw new BadRequestException("No exams found for this class.");
+      }
+
+      const sectionFilter = opts.sectionId ?? undefined;
+      const students = await tx.student.findMany({
+        where: {
+          classId: opts.classId,
+          ...(sectionFilter ? { sectionId: sectionFilter } : {}),
+          status: "ACTIVE",
+        },
+        select: { id: true, code: true, fullName: true },
+        orderBy: { fullName: "asc" },
+      });
+
+      const marks = await tx.examMark.findMany({
+        where: { examId: { in: exams.map((e) => e.id) } },
+      });
+      const markMap = new Map(
+        marks.map((m) => [`${m.examId}_${m.studentId}_${m.subjectId}`, m.marks]),
+      );
+
+      const subjectNames = [
+        ...new Set(exams.flatMap((e) => e.subjects.map((es) => es.subject.name))),
+      ].sort();
+      const subjectCols = subjectNames.map((name, i) => ({
+        subjectId: `combined-${i}`,
+        name,
+      }));
+
+      let rows = students.map((st) => {
+        const subjectMarks: Record<string, number | null> = {};
+        const missingSubjects: string[] = [];
+        let sumPercent = 0;
+        let presentCount = 0;
+
+        for (const col of subjectCols) {
+          let weightSum = 0;
+          let weightedPct = 0;
+          let present = false;
+          for (const exam of exams) {
+            const es = exam.subjects.find((s) => s.subject.name === col.name);
+            if (!es) continue;
+            const obtained = markMap.get(`${exam.id}_${st.id}_${es.subjectId}`);
+            if (obtained == null || exam.maxMarks <= 0) continue;
+            present = true;
+            const pct = (obtained / exam.maxMarks) * 100;
+            weightedPct += pct * exam.weightPercent;
+            weightSum += exam.weightPercent;
+          }
+          if (present && weightSum > 0) {
+            const combined = Math.round((weightedPct / weightSum) * 10) / 10;
+            subjectMarks[col.subjectId] = combined;
+            sumPercent += combined;
+            presentCount += 1;
+          } else {
+            subjectMarks[col.subjectId] = null;
+            missingSubjects.push(col.name);
+          }
+        }
+
+        const average =
+          presentCount > 0 ? Math.round((sumPercent / presentCount) * 10) / 10 : 0;
+        const grade = presentCount ? gradeFromAverage(average) : "—";
+        const passed = presentCount > 0 ? average >= 50 : false;
+        const complete = missingSubjects.length === 0;
+
+        return {
+          studentId: st.id,
+          studentCode: st.code,
+          studentName: st.fullName,
+          subjectMarks,
+          totalObtained: Math.round(sumPercent * 10) / 10,
+          totalMax: subjectCols.length * 100,
+          average,
+          grade,
+          passed,
+          remark: !presentCount ? "—" : passed ? "Pass" : "Fail",
+          missingSubjects,
+          complete,
+        };
+      });
+
+      const q = opts.search?.trim().toLowerCase();
+      if (q) {
+        rows = rows.filter(
+          (r) =>
+            r.studentCode.toLowerCase().includes(q) ||
+            r.studentName.toLowerCase().includes(q),
+        );
+      }
+
+      const dir = opts.sortDir === "desc" ? -1 : 1;
+      const sortBy = opts.sortBy ?? "name";
+      rows.sort((a, b) => {
+        switch (sortBy) {
+          case "total":
+            return (a.totalObtained - b.totalObtained) * dir;
+          case "average":
+            return (a.average - b.average) * dir;
+          case "grade":
+            return a.grade.localeCompare(b.grade) * dir;
+          case "name":
+          default:
+            return a.studentName.localeCompare(b.studentName) * dir;
+        }
+      });
+
+      const completed = rows.filter((r) => r.complete).length;
+      const incomplete = rows.length - completed;
+      const sectionNames = [...new Set(exams.map((e) => e.section?.name).filter(Boolean))];
+
+      return {
+        exam: {
+          id: "combined",
+          name: "All Terms (Combined)",
+          status: "COMBINED",
+          maxMarks: 100,
+          className: cls.name,
+          sectionName: sectionFilter
+            ? (exams.find((e) => e.sectionId === sectionFilter)?.section?.name ?? null)
+            : sectionNames.length === 1
+              ? (sectionNames[0] as string)
+              : null,
+          academicYear: cls.academicYear.name,
+          teacherLocked: true,
+          studentPortalOpen: false,
+        },
+        subjects: subjectCols,
+        summary: {
+          totalStudents: rows.length,
+          completed,
+          incomplete,
+          completionPercent: rows.length
+            ? Math.round((completed / rows.length) * 100)
+            : 0,
+        },
+        rows,
+      };
+    });
+  }
+
+  /** Branded PDF export for the "All Terms (Combined)" matrix. */
+  async exportClassResultsCombinedPdf(
+    schoolId: string,
+    opts: { classId: string; examGroupId?: string; sectionId?: string },
+    preparedBy?: string,
+  ): Promise<{ buffer: Buffer; filename: string }> {
+    const matrix = await this.classResultsMatrixCombined(schoolId, opts);
+    const school = await this.prisma.school.findFirst({
+      where: { id: schoolId },
+      select: { name: true, logoKey: true, resultFooter: true },
+    });
+    let logoBuffer: Buffer | null = null;
+    if (school?.logoKey) {
+      try {
+        const bucket = this.config.get<string>("MINIO_BUCKET") ?? "ekulmis";
+        logoBuffer = await this.storage.getObject(bucket, school.logoKey);
+      } catch {
+        logoBuffer = null;
+      }
+    }
+
+    const columns = [
+      { key: "code", label: "Student ID", width: 70 },
+      { key: "name", label: "Student Name", width: 120 },
+      ...matrix.subjects.map((s) => ({ key: s.subjectId, label: s.name, width: 56 })),
+      { key: "total", label: "Combined %", width: 56 },
+      { key: "average", label: "Avg", width: 40 },
+      { key: "grade", label: "Grade", width: 40 },
+      { key: "remark", label: "Remark", width: 48 },
+    ];
+
+    const rows = matrix.rows.map((r) => {
+      const row: Record<string, string | number> = {
+        code: r.studentCode,
+        name: r.studentName,
+        total: r.totalObtained,
+        average: r.average.toFixed(1),
+        grade: r.grade,
+        remark: r.remark,
+      };
+      for (const s of matrix.subjects) {
+        row[s.subjectId] = r.subjectMarks[s.subjectId] ?? "—";
+      }
+      return row;
+    });
+
+    const sectionLabel = matrix.exam.sectionName ? ` · Section ${matrix.exam.sectionName}` : "";
+    const buffer = await this.docs.buildBrandedPdfReport({
+      schoolName: school?.name,
+      logoBuffer,
+      title: "Combined Term Examination Results",
+      headerLines: [
+        `${matrix.exam.academicYear} · All Terms (Combined)`,
+        `${matrix.exam.className}${sectionLabel}`,
+        `Completion: ${matrix.summary.completionPercent}% (${matrix.summary.completed}/${matrix.summary.totalStudents} students)`,
+      ],
+      columns,
+      rows,
+      footer: school?.resultFooter ?? undefined,
+      preparedBy,
+    });
+
+    const filename = `${matrix.exam.className}-combined-results.pdf`
+      .replace(/\s+/g, "-")
+      .toLowerCase();
+    return { buffer, filename };
+  }
+
+  /** Branded Excel export for the "All Terms (Combined)" matrix. */
+  async exportClassResultsCombinedExcel(
+    schoolId: string,
+    opts: { classId: string; examGroupId?: string; sectionId?: string },
+    preparedBy?: string,
+  ): Promise<{ buffer: Buffer; filename: string }> {
+    const matrix = await this.classResultsMatrixCombined(schoolId, opts);
+    const school = await this.prisma.school.findFirst({
+      where: { id: schoolId },
+      select: { name: true, resultFooter: true },
+    });
+
+    const sectionLabel = matrix.exam.sectionName ? ` · Section ${matrix.exam.sectionName}` : "";
+    const columns = [
+      { key: "code", label: "Student ID" },
+      { key: "name", label: "Student Name" },
+      ...matrix.subjects.map((s) => ({ key: s.subjectId, label: s.name })),
+      { key: "total", label: "Combined %" },
+      { key: "average", label: "Average" },
+      { key: "grade", label: "Grade" },
+      { key: "remark", label: "Remark" },
+    ];
+
+    const rows = matrix.rows.map((r) => {
+      const row: Record<string, string | number> = {
+        code: r.studentCode,
+        name: r.studentName,
+        total: r.totalObtained,
+        average: r.average.toFixed(1),
+        grade: r.grade,
+        remark: r.remark,
+      };
+      for (const s of matrix.subjects) {
+        row[s.subjectId] = r.subjectMarks[s.subjectId] ?? "";
+      }
+      return row;
+    });
+
+    const buffer = await this.docs.buildBrandedExcelReport({
+      sheetName: "Combined Results",
+      headerLines: [
+        school?.name ?? "School",
+        `${matrix.exam.academicYear} · All Terms (Combined)`,
+        `${matrix.exam.className}${sectionLabel}`,
+        preparedBy ? `Prepared by: ${preparedBy}` : "",
+        `Date: ${new Date().toLocaleDateString()}`,
+      ].filter(Boolean),
+      columns,
+      rows,
+    });
+
+    const filename = `${matrix.exam.className}-combined-results.xlsx`
+      .replace(/\s+/g, "-")
+      .toLowerCase();
+    return { buffer, filename };
   }
 
   private async buildMonitoringRows(

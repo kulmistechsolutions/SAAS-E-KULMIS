@@ -717,6 +717,8 @@ export const generated = {
     exportFailed: "Export failed",
     actionFailed: "Action failed",
     saveFailed: "Save failed",
+    allTermsCombined: "All Terms (Combined)",
+    combinedReadOnlyView: "Combined view — read only",
   },
   examinationsResultsClassTable: {
     class: "Class",

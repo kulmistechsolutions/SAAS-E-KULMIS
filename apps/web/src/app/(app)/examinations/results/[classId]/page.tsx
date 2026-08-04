@@ -26,6 +26,9 @@ import {
 } from "@/components/examinations/exam-result-card";
 import {
   apiClassResultsMatrix,
+  apiClassResultsMatrixCombined,
+  apiDownloadClassResultsCombinedExcel,
+  apiDownloadClassResultsCombinedPdf,
   apiDownloadClassResultsExcel,
   apiDownloadClassResultsPdf,
   apiMonitoringClassDetail,
@@ -80,6 +83,8 @@ function ClassResultsContent() {
       name: string;
       status: string;
       section: string | null;
+      examGroupId: string | null;
+      examGroupName: string | null;
     }[];
   } | null>(null);
   const [sections, setSections] = useState<{ id: string; name: string }[]>([]);
@@ -97,6 +102,38 @@ function ClassResultsContent() {
     return getAcademicsState().academicYears.find((y) => y.name === yearName)
       ?.id;
   }, [yearName]);
+
+  // "All Terms (Combined)" — mandatory in every report's term selector. One
+  // option per Exam Group the class's exams belong to, weighted by each
+  // exam's configured weight; plus a plain ungrouped one whenever the class
+  // has exams that were never assigned to a group, so the option is never
+  // simply missing.
+  const COMBINED_PREFIX = "combined:";
+  const isCombined = examId.startsWith(COMBINED_PREFIX);
+  const combinedGroupId = isCombined
+    ? examId.slice(COMBINED_PREFIX.length) || undefined
+    : undefined;
+
+  const combinedOptions = useMemo(() => {
+    const exams = classMeta?.exams ?? [];
+    const groups = new Map<string, string>();
+    let hasUngrouped = false;
+    for (const e of exams) {
+      if (e.examGroupId) groups.set(e.examGroupId, e.examGroupName ?? e.examGroupId);
+      else hasUngrouped = true;
+    }
+    const opts = [...groups.entries()].map(([id, name]) => ({
+      value: `${COMBINED_PREFIX}${id}`,
+      label: `${t("examinationsResults.allTermsCombined")} — ${name}`,
+    }));
+    if (hasUngrouped || opts.length === 0) {
+      opts.push({
+        value: COMBINED_PREFIX,
+        label: t("examinationsResults.allTermsCombined"),
+      });
+    }
+    return opts;
+  }, [classMeta, t]);
 
   useEffect(() => {
     void ensureAcademicsLoaded().then(() => {
@@ -116,14 +153,24 @@ function ClassResultsContent() {
   const loadMatrix = useCallback(() => {
     if (!examId) return;
     setLoading(true);
-    void apiClassResultsMatrix({
-      classId,
-      examId,
-      sectionId: sectionId || undefined,
-      search: search.trim() || undefined,
-      sortBy,
-      sortDir,
-    })
+    const request = isCombined
+      ? apiClassResultsMatrixCombined({
+          classId,
+          examGroupId: combinedGroupId,
+          sectionId: sectionId || undefined,
+          search: search.trim() || undefined,
+          sortBy,
+          sortDir,
+        })
+      : apiClassResultsMatrix({
+          classId,
+          examId,
+          sectionId: sectionId || undefined,
+          search: search.trim() || undefined,
+          sortBy,
+          sortDir,
+        });
+    void request
       .then((res) => {
         setData(res);
         setEditMode(false);
@@ -134,7 +181,7 @@ function ClassResultsContent() {
         toast("Could not load results", "error");
       })
       .finally(() => setLoading(false));
-  }, [classId, examId, sectionId, search, sortBy, sortDir]);
+  }, [classId, examId, isCombined, combinedGroupId, sectionId, search, sortBy, sortDir]);
 
   useEffect(() => {
     loadMatrix();
@@ -336,18 +383,35 @@ function ClassResultsContent() {
     if (!examId) return;
     setExportBusy(true);
     try {
-      const opts = {
-        classId,
-        examId,
-        sectionId: sectionId || undefined,
-        search: search.trim() || undefined,
-        sortBy,
-        sortDir,
-      };
-      const { blob, filename } =
-        kind === "pdf"
-          ? await apiDownloadClassResultsPdf(opts)
-          : await apiDownloadClassResultsExcel(opts);
+      const { blob, filename } = isCombined
+        ? await (kind === "pdf"
+            ? apiDownloadClassResultsCombinedPdf({
+                classId,
+                examGroupId: combinedGroupId,
+                sectionId: sectionId || undefined,
+              })
+            : apiDownloadClassResultsCombinedExcel({
+                classId,
+                examGroupId: combinedGroupId,
+                sectionId: sectionId || undefined,
+              }))
+        : await (kind === "pdf"
+            ? apiDownloadClassResultsPdf({
+                classId,
+                examId,
+                sectionId: sectionId || undefined,
+                search: search.trim() || undefined,
+                sortBy,
+                sortDir,
+              })
+            : apiDownloadClassResultsExcel({
+                classId,
+                examId,
+                sectionId: sectionId || undefined,
+                search: search.trim() || undefined,
+                sortBy,
+                sortDir,
+              }));
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -379,7 +443,7 @@ function ClassResultsContent() {
             {t("examinationsResults.viewEditPublishAndExportClass")}
           </p>
         </div>
-        {data && (
+        {data && !isCombined && (
           <div className="flex flex-wrap gap-2">
             <Button
               variant="outline"
@@ -411,6 +475,11 @@ function ClassResultsContent() {
             </Button>
           </div>
         )}
+        {data && isCombined && (
+          <Badge tone="info" className="h-fit">
+            {t("examinationsResults.combinedReadOnlyView")}
+          </Badge>
+        )}
       </div>
 
       <div className="grid gap-3 rounded-xl border bg-card p-4 print:hidden sm:grid-cols-2 lg:grid-cols-6">
@@ -433,6 +502,11 @@ function ClassResultsContent() {
             {(classMeta?.exams ?? []).map((e) => (
               <option key={e.id} value={e.id}>
                 {e.name} {e.section ? `(${e.section})` : ""} — {e.status}
+              </option>
+            ))}
+            {combinedOptions.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
               </option>
             ))}
           </Select>
@@ -544,23 +618,25 @@ function ClassResultsContent() {
           )}
 
           <div className="flex flex-wrap gap-2 print:hidden">
-            <Button
-              variant={editMode ? "default" : "outline"}
-              className="h-9"
-              onClick={() => {
-                // Turning edit mode off used to leave unsaved keystrokes
-                // sitting in `draft` — they'd silently reappear (and could
-                // still be submitted) the next time edit mode was enabled.
-                if (editMode && Object.keys(draft).length > 0) {
-                  if (!confirm("Discard unsaved mark changes?")) return;
-                  setDraft({});
-                }
-                setEditMode((v) => !v);
-              }}
-            >
-              <Pencil className="me-2 h-4 w-4" />
-              {editMode ? "Edit Mode On" : "Enable Edit Mode"}
-            </Button>
+            {!isCombined && (
+              <Button
+                variant={editMode ? "default" : "outline"}
+                className="h-9"
+                onClick={() => {
+                  // Turning edit mode off used to leave unsaved keystrokes
+                  // sitting in `draft` — they'd silently reappear (and could
+                  // still be submitted) the next time edit mode was enabled.
+                  if (editMode && Object.keys(draft).length > 0) {
+                    if (!confirm("Discard unsaved mark changes?")) return;
+                    setDraft({});
+                  }
+                  setEditMode((v) => !v);
+                }}
+              >
+                <Pencil className="me-2 h-4 w-4" />
+                {editMode ? "Edit Mode On" : "Enable Edit Mode"}
+              </Button>
+            )}
             {editMode && (
               <Button
                 className="h-9"

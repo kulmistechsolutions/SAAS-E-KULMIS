@@ -717,6 +717,8 @@ export const arGenerated: PartialDictionary = {
     exportFailed: "فشل التصدير",
     actionFailed: "فشل الإجراء",
     saveFailed: "فشل الحفظ",
+    allTermsCombined: "جميع الفصول (مجمّعة)",
+    combinedReadOnlyView: "عرض مجمّع — للقراءة فقط",
   },
   examinationsResultsClassTable: {
     class: "الصف",

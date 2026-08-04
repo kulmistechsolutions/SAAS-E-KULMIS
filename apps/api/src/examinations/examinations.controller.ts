@@ -261,6 +261,78 @@ export class ExaminationsController {
     });
   }
 
+  /** The "All Terms (Combined)" view of a report's term selector. */
+  @Roles(UserRole.ADMINISTRATOR, UserRole.EXAM_MANAGER)
+  @Get("results/matrix/combined")
+  classResultsMatrixCombined(
+    @CurrentUser() me: AuthUser,
+    @Query("classId") classId: string,
+    @Query("examGroupId") examGroupId?: string,
+    @Query("sectionId") sectionId?: string,
+    @Query("search") search?: string,
+    @Query("sortBy") sortBy?: string,
+    @Query("sortDir") sortDir?: "asc" | "desc",
+  ) {
+    if (!classId) {
+      throw new BadRequestException("classId is required");
+    }
+    return this.exams.classResultsMatrixCombined(me.schoolId, {
+      classId,
+      examGroupId,
+      sectionId,
+      search,
+      sortBy,
+      sortDir,
+    });
+  }
+
+  @Roles(UserRole.ADMINISTRATOR, UserRole.EXAM_MANAGER)
+  @Get("results/matrix/combined/export/pdf")
+  @Header("Content-Type", "application/pdf")
+  async exportResultsCombinedPdf(
+    @CurrentUser() me: AuthUser,
+    @Query("classId") classId: string,
+    @Query("examGroupId") examGroupId: string | undefined,
+    @Query("sectionId") sectionId: string | undefined,
+    @Res() res: Response,
+  ) {
+    if (!classId) {
+      throw new BadRequestException("classId is required");
+    }
+    const { buffer, filename } = await this.exams.exportClassResultsCombinedPdf(
+      me.schoolId,
+      { classId, examGroupId, sectionId },
+      me.username,
+    );
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+    res.send(buffer);
+  }
+
+  @Roles(UserRole.ADMINISTRATOR, UserRole.EXAM_MANAGER)
+  @Get("results/matrix/combined/export/xlsx")
+  @Header(
+    "Content-Type",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  )
+  async exportResultsCombinedExcel(
+    @CurrentUser() me: AuthUser,
+    @Query("classId") classId: string,
+    @Query("examGroupId") examGroupId: string | undefined,
+    @Query("sectionId") sectionId: string | undefined,
+    @Res() res: Response,
+  ) {
+    if (!classId) {
+      throw new BadRequestException("classId is required");
+    }
+    const { buffer, filename } = await this.exams.exportClassResultsCombinedExcel(
+      me.schoolId,
+      { classId, examGroupId, sectionId },
+      me.username,
+    );
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+    res.send(buffer);
+  }
+
   @Roles(UserRole.ADMINISTRATOR, UserRole.EXAM_MANAGER)
   @Get("blocked")
   listBlocked(@CurrentUser() me: AuthUser) {

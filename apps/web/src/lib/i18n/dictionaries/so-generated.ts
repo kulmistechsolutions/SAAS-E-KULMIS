@@ -717,6 +717,8 @@ export const soGenerated: PartialDictionary = {
     exportFailed: "Soo saarkii waa fashilmay",
     actionFailed: "Ficilkii waa fashilmay",
     saveFailed: "Kaydintii waa fashilantay",
+    allTermsCombined: "Dhammaan Xilliyada (Isku-daran)",
+    combinedReadOnlyView: "Muuqaal isku-daran — akhris kaliya",
   },
   examinationsResultsClassTable: {
     class: "Fasalka",
