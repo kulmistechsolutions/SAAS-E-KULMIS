@@ -26,6 +26,9 @@ export interface ApiSchool {
   status: string;
   motto: string | null;
   address: string | null;
+  city: string | null;
+  country: string | null;
+  academicYear: string | null;
   phone: string | null;
   email: string | null;
   website: string | null;
@@ -104,6 +107,9 @@ export function mapApiSchoolToSettings(
       name: row.name,
       motto: row.motto ?? base.school.motto,
       address: row.address ?? base.school.address,
+      city: row.city ?? base.school.city,
+      country: row.country ?? base.school.country,
+      academicYear: row.academicYear ?? base.school.academicYear,
       phone: row.phone ?? base.school.phone,
       email: row.email ?? base.school.email,
       website: row.website ?? base.school.website,
@@ -191,6 +197,9 @@ export function mapSettingsSectionToPatch(
       name: s.name,
       motto: s.motto || null,
       address: s.address || null,
+      city: s.city || null,
+      country: s.country || null,
+      academicYear: s.academicYear || null,
       phone: s.phone || null,
       email: s.email || null,
       website: s.website || null,

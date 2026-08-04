@@ -24,6 +24,9 @@ model School {
   // ── Settings & branding (Module 16 / §7) ──
   motto                String?
   address              String?
+  city                 String?
+  country              String?
+  academicYear         String?
   phone                String?
   email                String?
   website              String?
