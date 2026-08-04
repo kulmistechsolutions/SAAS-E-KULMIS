@@ -4129,6 +4129,8 @@ export const generated = {
     roleNotFound: "Role not found.",
     roles: "Roles",
     savePermissions: "Save Permissions",
+    portalRole: "Portal role",
+    portalRoleNotice: "This is a portal role, not a staff role. These permissions describe what the person sees inside their own portal — a parent's \"Attendance: view\" means their own child's attendance, not the staff attendance register. Portal roles can never open the staff pages.",
   },
   usersSummaryCards: {
     viewDetails: "View details",

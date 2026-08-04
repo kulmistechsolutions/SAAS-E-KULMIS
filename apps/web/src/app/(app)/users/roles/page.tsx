@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { createCustomRole, useUsersState } from "@/lib/users/store";
 import { OWNER_ONLY_ROLES } from "@/lib/users/format";
+import { isPortalRole } from "@/lib/rbac/routes";
 import { useIsSuperAdministrator } from "@/lib/users/super-admin";
 import { toast } from "@/lib/toast";
 
@@ -77,10 +78,13 @@ export default function RolesPage() {
             <p className="mt-1 text-sm text-muted-foreground line-clamp-2">
               {role.description}
             </p>
-            <div className="mt-3">
+            <div className="mt-3 flex flex-wrap items-center gap-2">
               <Badge tone={role.builtIn ? "info" : "default"}>
                 {role.builtIn ? "Built-in" : "Custom"}
               </Badge>
+              {isPortalRole(role.name) && (
+                <Badge tone="warning">{t("usersRoles.portalRole")}</Badge>
+              )}
             </div>
           </Link>
         ))}

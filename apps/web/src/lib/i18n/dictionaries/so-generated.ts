@@ -4124,6 +4124,8 @@ export const soGenerated: PartialDictionary = {
     roleNotFound: "Doorka lama helin.",
     roles: "Doorarka",
     savePermissions: "Kaydi Oggolaanshaha",
+    portalRole: "Door portal",
+    portalRoleNotice: "Kani waa door portal, ma aha door shaqaale. Oggolaanshahani wuxuu qeexayaa waxa qofku ku arko portal-kiisa gaarka ah — \"Attendance: view\" ee waalidku waxay ka dhigan tahay xaadirinta ilmihiisa, ma aha diiwaanka xaadirinta shaqaalaha. Doorarka portal-ku marnaba ma furi karaan bogagga shaqaalaha.",
   },
   usersSummaryCards: {
     viewDetails: "Eeg faahfaahinta",

@@ -13,6 +13,7 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 import {
+  adoptParentSession,
   assertChildAccess,
   currentParent,
   getSelectedChildId,
@@ -59,8 +60,15 @@ export function PortalProvider({ children: node }: { children: ReactNode }) {
   useEffect(() => {
     if (!mounted) return;
     if (!portal.session) {
-      router.replace("/parent-portal/login");
-      return;
+      // A parent who signed in on the staff login form already holds a valid
+      // token — adopt it rather than making them log in a second time.
+      let cancelled = false;
+      void adoptParentSession().then((ok) => {
+        if (!ok && !cancelled) router.replace("/parent-portal/login");
+      });
+      return () => {
+        cancelled = true;
+      };
     }
     if (parent && selectedChild) {
       const key = getSelectedChildId(parent.id);

@@ -15,8 +15,10 @@ import { cn } from "@/lib/utils";
 import { SubscriptionBanner } from "@/components/subscriptions/subscription-banner";
 import {
   isFullAccessRole,
+  isPortalRole,
   isRouteAllowedForRole,
   landingRouteForRole,
+  portalHomeForRole,
 } from "@/lib/rbac/routes";
 
 /** Dictionary keys, not finished text — the topbar shows this to the user. */
@@ -53,13 +55,16 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     router.replace("/login");
   }, [mounted, loading, user, router]);
 
+  // Parents, students and teachers each have their own portal — none of them
+  // belong in the staff shell, and the staff data below would 403 for them.
   useEffect(() => {
-    if (!user || user.role !== "TEACHER") return;
-    router.replace("/teacher-portal");
+    if (!user) return;
+    const portal = portalHomeForRole(user.role);
+    if (portal) router.replace(portal);
   }, [user, router]);
 
   useEffect(() => {
-    if (user && user.role !== "TEACHER") {
+    if (user && !isPortalRole(user.role)) {
       void refreshAcademics();
       void refreshStudents();
       // The settings store may have already been touched by an unauthenticated
@@ -75,7 +80,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   }, [pathname]);
 
   useEffect(() => {
-    if (!user || !pathname || isFullAccessRole(user.role) || user.role === "TEACHER") return;
+    if (!user || !pathname || isFullAccessRole(user.role) || isPortalRole(user.role)) return;
     if (!isRouteAllowedForRole(user.role, pathname)) {
       router.replace(landingRouteForRole(user.role));
     }
@@ -105,7 +110,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     );
   }
 
-  if (!user || user.role === "TEACHER") return null;
+  if (!user || isPortalRole(user.role)) return null;
 
   const routeBlocked =
     pathname != null &&

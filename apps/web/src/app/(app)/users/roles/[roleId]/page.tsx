@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { PermissionMatrix } from "@/components/users/permission-matrix";
 import { getRole, updateRolePermissions } from "@/lib/users/store";
 import { OWNER_ONLY_ROLES } from "@/lib/users/format";
+import { isPortalRole } from "@/lib/rbac/routes";
 import { useIsSuperAdministrator } from "@/lib/users/super-admin";
 import type { PermissionMap } from "@/lib/users/types";
 import { toast } from "@/lib/toast";
@@ -66,9 +67,14 @@ export default function RolePermissionsPage({
           <p className="mt-1 text-sm text-muted-foreground">
             {role.description}
           </p>
-          <Badge className="mt-2" tone={role.builtIn ? "info" : "default"}>
-            {role.builtIn ? "Built-in Role" : "Custom Role"}
-          </Badge>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <Badge tone={role.builtIn ? "info" : "default"}>
+              {role.builtIn ? "Built-in Role" : "Custom Role"}
+            </Badge>
+            {isPortalRole(role.name) && (
+              <Badge tone="warning">{t("usersRoles.portalRole")}</Badge>
+            )}
+          </div>
         </div>
         {!readOnly && dirty && (
           <Button className="h-9" onClick={handleSave}>
@@ -76,6 +82,12 @@ export default function RolePermissionsPage({
           </Button>
         )}
       </div>
+
+      {isPortalRole(role.name) && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-200">
+          {t("usersRoles.portalRoleNotice")}
+        </div>
+      )}
 
       <PermissionMatrix
         permissions={perms}

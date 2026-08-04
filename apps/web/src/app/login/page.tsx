@@ -8,6 +8,7 @@ import { Eye, EyeOff } from "lucide-react";
 import { loginSchema, type LoginInput } from "@ekulmis/shared";
 import { useSchoolBranding } from "@/lib/settings/use-school-branding";
 import { useAuth } from "@/lib/auth";
+import { portalHomeForRole } from "@/lib/rbac/routes";
 import { ApiError, api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -54,7 +55,9 @@ export default function LoginPage() {
     setError(null);
     try {
       const me = await login(values.identifier, values.password);
-      router.push(me.role === "TEACHER" ? "/teacher-portal" : "/dashboard");
+      // Teachers, parents and students each land in their own portal; only
+      // staff belong on the admin dashboard.
+      router.push(portalHomeForRole(me.role) ?? "/dashboard");
     } catch (e) {
       setError(friendlyLoginError(e, t));
     }

@@ -135,6 +135,9 @@ export interface ApiPortalParent {
   createdAt: string;
 }
 
+/** Who the current token belongs to — used to adopt an existing session. */
+export const apiPortalAuthUser = () => api<PortalAuthUser>("/auth/me");
+
 export const apiPortalMe = () => api<ApiPortalParent>("/parent-portal/me");
 
 export const apiPortalChildren = () => api<ApiPortalChild[]>("/parent-portal/children");

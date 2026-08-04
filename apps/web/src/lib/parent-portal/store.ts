@@ -13,6 +13,7 @@ import type { Parent, Student } from "@/lib/students/types";
 import {
   apiPortalAnnouncements,
   apiPortalAttendance,
+  apiPortalAuthUser,
   apiPortalChildren,
   apiPortalFees,
   apiPortalLogin,
@@ -168,6 +169,36 @@ export async function loginParent(
     return { ok: true, parent: currentParent() ?? undefined };
   } catch (e) {
     return { ok: false, error: apiErr(e, "Invalid Parent ID or password.") };
+  }
+}
+
+/**
+ * Adopt an already-authenticated PARENT into the portal without a second
+ * sign-in. A parent who used the staff login form holds a perfectly valid
+ * token but no portal session, and would otherwise be bounced straight back
+ * to /parent-portal/login. Returns false when the current token isn't a
+ * parent's, leaving the normal login redirect to happen.
+ */
+export async function adoptParentSession(): Promise<boolean> {
+  if (ensure().session) return true;
+  if (typeof window === "undefined") return false;
+  try {
+    const [user, me, children] = await Promise.all([
+      apiPortalAuthUser(),
+      apiPortalMe(),
+      apiPortalChildren(),
+    ]);
+    if (user.role !== "PARENT" && user.role !== "ADMINISTRATOR") return false;
+    authUser = user;
+    childrenCache = children.map(mapPortalChild);
+    const parentId = me.id ?? children[0]?.parentId ?? user.userId;
+    const session: PortalSession = { parentId, loginAt: new Date().toISOString() };
+    localStorage.setItem("ekulmis_parent_portal_session_v1", JSON.stringify(session));
+    setState({ ...ensure(), session, parentProfile: me });
+    await refreshPortalData();
+    return true;
+  } catch {
+    return false;
   }
 }
 

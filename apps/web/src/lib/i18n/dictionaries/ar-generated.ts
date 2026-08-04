@@ -4124,6 +4124,8 @@ export const arGenerated: PartialDictionary = {
     roleNotFound: "لم يتم العثور على الدور.",
     roles: "الأدوار",
     savePermissions: "حفظ الصلاحيات",
+    portalRole: "دور البوابة",
+    portalRoleNotice: "هذا دور بوابة وليس دور موظف. تصف هذه الأذونات ما يراه الشخص داخل بوابته الخاصة — فـ\"الحضور: عرض\" لولي الأمر تعني حضور ابنه، وليس سجل حضور الموظفين. لا يمكن لأدوار البوابة فتح صفحات الموظفين أبدًا.",
   },
   usersSummaryCards: {
     viewDetails: "عرض التفاصيل",
