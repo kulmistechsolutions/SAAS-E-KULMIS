@@ -601,6 +601,7 @@ export class ExaminationsService {
       rows: classRows.get(className) ?? [],
       footer: school?.resultFooter ?? undefined,
       preparedBy,
+      signatures: ['Class Teacher', 'Principal', 'School Stamp'],
     });
 
     const filename = `${group.name}-${className}-results.pdf`
@@ -1906,6 +1907,7 @@ export class ExaminationsService {
       rows,
       footer: school?.resultFooter ?? undefined,
       preparedBy,
+      signatures: ['Class Teacher', 'Principal', 'School Stamp'],
     });
 
     const filename = `${matrix.exam.className}-combined-results.pdf`
@@ -2653,6 +2655,7 @@ export class ExaminationsService {
       rows,
       footer: school?.resultFooter ?? undefined,
       preparedBy,
+      signatures: ['Class Teacher', 'Principal', 'School Stamp'],
     });
 
     const filename = `${matrix.exam.name}-${matrix.exam.className}-results.pdf`
