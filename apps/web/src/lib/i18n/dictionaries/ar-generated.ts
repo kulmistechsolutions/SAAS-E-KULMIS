@@ -46,6 +46,10 @@ export const arGenerated: PartialDictionary = {
     assign: "إسناد",
     allActiveSubjectsAreAlreadyAssigned: "جميع المواد النشطة معينة بالفعل لهذا الصف.",
     subject: "المادة",
+    teacherOptional: "المعلم (اختياري)",
+    assignLater: "التعيين لاحقًا",
+    section: "الشعبة",
+    allSections: "جميع الشعب",
   },
   academicsClassFormDialog: {
     cancel: "إلغاء",

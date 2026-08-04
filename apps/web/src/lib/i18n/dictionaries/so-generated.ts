@@ -46,6 +46,10 @@ export const soGenerated: PartialDictionary = {
     assign: "Qoondee",
     allActiveSubjectsAreAlreadyAssigned: "Dhammaan maadooyinka firfircoon horeba waa loo qoondeeyay fasalkan.",
     subject: "Maadada",
+    teacherOptional: "Macalin (ikhtiyaari)",
+    assignLater: "Dib u dooro",
+    section: "Qeybta",
+    allSections: "Dhammaan qeybaha",
   },
   academicsClassFormDialog: {
     cancel: "Jooji",

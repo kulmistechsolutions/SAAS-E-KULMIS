@@ -46,6 +46,10 @@ export const generated = {
     assign: "Assign",
     allActiveSubjectsAreAlreadyAssigned: "All active subjects are already assigned to this class.",
     subject: "Subject",
+    teacherOptional: "Teacher (optional)",
+    assignLater: "Assign later",
+    section: "Section",
+    allSections: "All sections",
   },
   academicsClassFormDialog: {
     cancel: "Cancel",
