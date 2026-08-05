@@ -6,6 +6,8 @@ import { useEffect, useState } from "react";
 import { usePortal, usePortalAudit } from "@/components/parent-portal/portal-context";
 import { loadChildFeeSummary } from "@/lib/parent-portal/store";
 import { money } from "@/lib/students/format";
+import { receiptDate } from "@/lib/fees/format";
+import { Badge } from "@/components/ui/badge";
 
 export default function ParentFeesPage() {
   const t = useT();
@@ -84,6 +86,42 @@ export default function ParentFeesPage() {
               </tbody>
             </table>
           </div>
+
+          {fees.payments.length > 0 && (
+            <div className="overflow-x-auto rounded-xl border bg-card">
+              <div className="border-b bg-secondary/50 px-4 py-3 text-sm font-medium">
+                {t("parentPortalFees.paymentTransactions")}
+              </div>
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b bg-secondary/30 text-start">
+                    <th className="px-4 py-3">{t("parentPortalFees.receiptNo")}</th>
+                    <th className="px-4 py-3">{t("parentPortalFees.amount")}</th>
+                    <th className="px-4 py-3">{t("parentPortalFees.date")}</th>
+                    <th className="px-4 py-3">{t("parentPortalFees.status")}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {fees.payments.map((p) => (
+                    <tr key={p.id} className="border-b">
+                      <td className="px-4 py-3 font-medium">{p.receiptNumber}</td>
+                      <td className="px-4 py-3">{money(p.amount)}</td>
+                      <td className="px-4 py-3 text-muted-foreground">{receiptDate(p.paidAt)}</td>
+                      <td className="px-4 py-3">
+                        {p.isReversal ? (
+                          <Badge tone="danger">{t("feesPaymentStatus.reversal")}</Badge>
+                        ) : p.status === "REVERSED" ? (
+                          <Badge tone="muted">{t("feesPaymentStatus.reversed")}</Badge>
+                        ) : (
+                          <Badge tone="success">{t("parentPortalFees.paidStatus")}</Badge>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </>
       )}
     </div>

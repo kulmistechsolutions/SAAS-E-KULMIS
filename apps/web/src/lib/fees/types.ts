@@ -32,6 +32,13 @@ export interface FeePayment {
   collectedBy: string;
   collectedAt: string;
   outstandingAfter: number;
+  /** ACTIVE is a normal payment; REVERSED means a linked reversal entry now cancels it out. */
+  status?: "ACTIVE" | "REVERSED";
+  /** True for the reversal entry itself — a negative-amount transaction, never editable/reversible again. */
+  isReversal?: boolean;
+  reversalOfPaymentId?: string | null;
+  reversedAt?: string | null;
+  reversalReason?: string | null;
 }
 
 export interface BillingPeriod {

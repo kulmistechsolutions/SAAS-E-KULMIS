@@ -14,8 +14,9 @@ import type {
   StudentFeeStartInput,
   UpdateExtraFeeInput,
 } from "@ekulmis/shared";
-import type { Prisma } from "@prisma/client";
+import type { Prisma, UserRole } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
+import { AuditService } from "../audit/audit.service";
 import {
   buildMonthSlots,
   currentCalendarMonth,
@@ -53,7 +54,10 @@ type TenantTx = Parameters<Parameters<PrismaService["forTenant"]>[1]>[0];
 
 @Injectable()
 export class FeesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly audit: AuditService,
+  ) {}
 
   private async schoolConfig(schoolId: string): Promise<SchoolFeeConfig> {
     const school = await this.prisma.school.findUnique({
@@ -955,6 +959,10 @@ export class FeesService {
         );
       }
 
+      // Recorded alongside the payment so a later reversal knows exactly
+      // which charges this money went to, instead of guessing from the total.
+      const allocations: { feeChargeId: string; amount: number }[] = [];
+
       let remaining = dto.amount;
       for (const charge of outstanding) {
         if (remaining <= 0) break;
@@ -969,6 +977,7 @@ export class FeesService {
             status: paidAmount >= charge.amount ? "PAID" : "PARTIAL",
           },
         });
+        allocations.push({ feeChargeId: charge.id, amount: applied });
         remaining -= applied;
       }
 
@@ -1000,6 +1009,7 @@ export class FeesService {
                   : "PARTIAL",
             },
           });
+          allocations.push({ feeChargeId: charge.id, amount: applied });
           remaining -= applied;
         }
 
@@ -1041,11 +1051,12 @@ export class FeesService {
                     dup.paidAmount + applied >= dup.amount ? "PAID" : "PARTIAL",
                 },
               });
+              allocations.push({ feeChargeId: dup.id, amount: applied });
               remaining -= applied;
               continue;
             }
             const applied = Math.min(student.monthlyFee, remaining);
-            await tx.feeCharge.create({
+            const newCharge = await tx.feeCharge.create({
               data: {
                 schoolId,
                 studentId: student.id,
@@ -1056,6 +1067,7 @@ export class FeesService {
                 status: applied >= student.monthlyFee ? "PAID" : "PARTIAL",
               },
             });
+            allocations.push({ feeChargeId: newCharge.id, amount: applied });
             remaining -= applied;
           }
         }
@@ -1084,6 +1096,16 @@ export class FeesService {
           collectedByUserId,
         },
       });
+      if (allocations.length > 0) {
+        await tx.paymentAllocation.createMany({
+          data: allocations.map((a) => ({
+            schoolId,
+            paymentId: payment.id,
+            feeChargeId: a.feeChargeId,
+            amount: a.amount,
+          })),
+        });
+      }
 
       return { receiptNumber, payment, unallocated: remaining };
     });
@@ -1148,6 +1170,12 @@ export class FeesService {
 
         let remaining = dto.amount;
         const appliedByStudent = new Map<string, number>();
+        // Same purpose as pay()'s allocations array, grouped per student
+        // since payFamily() issues one receipt/payment row per sibling.
+        const allocationsByStudent = new Map<
+          string,
+          { feeChargeId: string; amount: number }[]
+        >();
         for (const charge of outstanding) {
           if (remaining <= 0) break;
           const due = charge.amount - charge.paidAmount;
@@ -1166,6 +1194,9 @@ export class FeesService {
             charge.studentId,
             (appliedByStudent.get(charge.studentId) ?? 0) + applied,
           );
+          const list = allocationsByStudent.get(charge.studentId) ?? [];
+          list.push({ feeChargeId: charge.id, amount: applied });
+          allocationsByStudent.set(charge.studentId, list);
         }
 
         if (appliedByStudent.size === 0) {
@@ -1192,7 +1223,7 @@ export class FeesService {
             update: { value: { increment: 1 } },
           });
           const receiptNumber = `${school?.receiptPrefix ?? "RCP"}${pad(seq.value)}`;
-          await tx.payment.create({
+          const familyPayment = await tx.payment.create({
             data: {
               schoolId,
               studentId,
@@ -1206,6 +1237,17 @@ export class FeesService {
               collectedByUserId,
             },
           });
+          const studentAllocations = allocationsByStudent.get(studentId) ?? [];
+          if (studentAllocations.length > 0) {
+            await tx.paymentAllocation.createMany({
+              data: studentAllocations.map((a) => ({
+                schoolId,
+                paymentId: familyPayment.id,
+                feeChargeId: a.feeChargeId,
+                amount: a.amount,
+              })),
+            });
+          }
           receipts.push({
             studentId,
             studentName: studentNameById.get(studentId) ?? "",
@@ -1223,6 +1265,147 @@ export class FeesService {
       },
       { timeout: 60_000, maxWait: 30_000 },
     );
+  }
+
+  /**
+   * Reverse a payment that was recorded wrong — wrong amount, wrong student,
+   * a mistaken entry. This never edits or deletes the original: it creates a
+   * second, negative Payment row linked back to it (its own receipt, its own
+   * "why"), and marks the original REVERSED. The receipt trail then shows
+   * both what was collected and that it was undone, which is the whole
+   * point — a school can prove to itself and to a parent exactly what
+   * happened, rather than history quietly changing shape.
+   */
+  async reversePayment(
+    schoolId: string,
+    paymentId: string,
+    reason: string,
+    actor: { userId: string; username: string; role: UserRole },
+  ) {
+    const result = await this.prisma.forTenant(schoolId, async (tx) => {
+      const original = await tx.payment.findFirst({
+        where: { id: paymentId },
+        include: { allocations: true },
+      });
+      if (!original) throw new NotFoundException("Payment not found");
+      if (original.isReversal) {
+        throw new BadRequestException(
+          "This is itself a reversal entry — it cannot be reversed again.",
+        );
+      }
+      if (original.status === "REVERSED") {
+        throw new ConflictException("This payment has already been reversed.");
+      }
+
+      // Undo exactly the charges this payment funded. Payments recorded
+      // before allocation tracking existed have none on file — fall back to
+      // unwinding the student's most recently touched paid/partial charges,
+      // newest first, up to the payment amount, as the best reconstruction
+      // available of what it most likely covered.
+      let toUndo: { feeChargeId: string; amount: number }[] =
+        original.allocations.map((a) => ({
+          feeChargeId: a.feeChargeId,
+          amount: a.amount,
+        }));
+      if (toUndo.length === 0) {
+        let remaining = original.amount;
+        const candidates = await tx.feeCharge.findMany({
+          where: {
+            studentId: original.studentId,
+            status: { in: ["PAID", "PARTIAL"] },
+          },
+          orderBy: [
+            { year: "desc" },
+            { month: "desc" },
+            { kind: "desc" },
+            { updatedAt: "desc" },
+          ],
+        });
+        for (const charge of candidates) {
+          if (remaining <= 0) break;
+          const undoable = Math.min(charge.paidAmount, remaining);
+          if (undoable <= 0) continue;
+          toUndo.push({ feeChargeId: charge.id, amount: undoable });
+          remaining -= undoable;
+        }
+      }
+
+      for (const u of toUndo) {
+        const charge = await tx.feeCharge.findUnique({
+          where: { id: u.feeChargeId },
+        });
+        if (!charge) continue;
+        const paidAmount = Math.max(0, charge.paidAmount - u.amount);
+        await tx.feeCharge.update({
+          where: { id: charge.id },
+          data: {
+            paidAmount,
+            status:
+              charge.status === "INACTIVE"
+                ? "INACTIVE"
+                : paidAmount <= 0
+                  ? "UNPAID"
+                  : paidAmount < charge.amount
+                    ? "PARTIAL"
+                    : "PAID",
+          },
+        });
+      }
+
+      // Deterministic and guaranteed unique per school: the original number
+      // is already unique, and no real receipt ends this way.
+      const reversalReceiptNumber = `${original.receiptNumber}-REV`;
+      const reversal = await tx.payment.create({
+        data: {
+          schoolId,
+          studentId: original.studentId,
+          receiptNumber: reversalReceiptNumber,
+          type: original.type,
+          amount: -original.amount,
+          method: original.method,
+          note: `Reversal of receipt ${original.receiptNumber}: ${reason}`,
+          collectedByUserId: actor.userId,
+          isReversal: true,
+          reversalOfPaymentId: original.id,
+        },
+      });
+
+      await tx.payment.update({
+        where: { id: original.id },
+        data: {
+          status: "REVERSED",
+          reversedAt: new Date(),
+          reversedByUserId: actor.userId,
+          reversalReason: reason,
+        },
+      });
+
+      return {
+        studentId: original.studentId,
+        originalReceiptNumber: original.receiptNumber,
+        reversalReceiptNumber,
+        amount: original.amount,
+        reversal,
+      };
+    });
+
+    await this.audit.record({
+      schoolId,
+      userId: actor.userId,
+      username: actor.username,
+      role: actor.role,
+      module: "finance",
+      action: "PAYMENT_REVERSED",
+      metadata: {
+        originalReceiptNumber: result.originalReceiptNumber,
+        reversalReceiptNumber: result.reversalReceiptNumber,
+        amount: result.amount,
+        studentId: result.studentId,
+        reason,
+      },
+    });
+
+    return result;
   }
 
   async ledger(schoolId: string, studentId: string) {

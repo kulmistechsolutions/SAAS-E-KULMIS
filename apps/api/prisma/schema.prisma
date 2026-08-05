@@ -751,9 +751,10 @@ model FeeCharge {
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 
-  student      Student       @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  academicYear AcademicYear? @relation(fields: [academicYearId], references: [id], onDelete: SetNull)
-  extraFee     ExtraFee?     @relation(fields: [extraFeeId], references: [id], onDelete: SetNull)
+  student      Student             @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  academicYear AcademicYear?       @relation(fields: [academicYearId], references: [id], onDelete: SetNull)
+  extraFee     ExtraFee?           @relation(fields: [extraFeeId], references: [id], onDelete: SetNull)
+  allocations  PaymentAllocation[]
 
   @@index([schoolId])
   @@index([studentId])
@@ -856,7 +857,7 @@ model MonthlyFeeActivation {
 
 /// A fee payment with a receipt (Module 7).
 model Payment {
-  id                String      @id @default(cuid())
+  id                String        @id @default(cuid())
   schoolId          String
   studentId         String
   receiptNumber     String
@@ -865,15 +866,50 @@ model Payment {
   method            String?
   collectedByUserId String?
   note              String?
-  paidAt            DateTime    @default(now())
-  createdAt         DateTime    @default(now())
+  paidAt            DateTime      @default(now())
+  createdAt         DateTime      @default(now())
 
-  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  // ── Reversal ── a wrong payment is never edited or deleted: it is marked
+  // REVERSED and a second Payment row (isReversal=true, negative amount) is
+  // created linking back to it, so the receipt trail proves both the
+  // original collection and its undo. reversalOfPaymentId is unique — an
+  // original can be reversed at most once.
+  status              PaymentStatus @default(ACTIVE)
+  isReversal          Boolean       @default(false)
+  reversalOfPaymentId String?       @unique
+  reversedAt          DateTime?
+  reversedByUserId    String?
+  reversalReason      String?
+
+  student       Student             @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  allocations   PaymentAllocation[]
+  reversalOf    Payment?            @relation("PaymentReversal", fields: [reversalOfPaymentId], references: [id])
+  reversalEntry Payment?            @relation("PaymentReversal")
 
   @@unique([schoolId, receiptNumber])
   @@index([schoolId])
   @@index([studentId])
   @@map("payments")
+}
+
+/// Which FeeCharge(s) a payment's money actually went to, so reversing it can
+/// undo exactly those charges instead of guessing from the total amount —
+/// one payment often spans several months in one collection.
+model PaymentAllocation {
+  id          String   @id @default(cuid())
+  schoolId    String
+  paymentId   String
+  feeChargeId String
+  amount      Int
+  createdAt   DateTime @default(now())
+
+  payment   Payment   @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  feeCharge FeeCharge @relation(fields: [feeChargeId], references: [id], onDelete: Cascade)
+
+  @@index([schoolId])
+  @@index([paymentId])
+  @@index([feeChargeId])
+  @@map("payment_allocations")
 }
 
 /// Salary record for an employee (Module 8).
@@ -1341,6 +1377,11 @@ enum FeeStatus {
   PARTIAL
   PAID
   INACTIVE
+}
+
+enum PaymentStatus {
+  ACTIVE
+  REVERSED
 }
 
 /// MONTHLY = the regular school fee. EXTRA = an additional charge (exam fee etc.)

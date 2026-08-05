@@ -34,6 +34,13 @@ export interface ApiPayment {
   method: string | null;
   note: string | null;
   paidAt: string;
+  // ── Reversal ── see packages/shared/src/schemas/finance.ts PaymentStatus.
+  status: "ACTIVE" | "REVERSED";
+  isReversal: boolean;
+  reversalOfPaymentId: string | null;
+  reversedAt: string | null;
+  reversedByUserId: string | null;
+  reversalReason: string | null;
   student?: {
     code: string;
     fullName: string;
@@ -116,6 +123,11 @@ export function mapApiPayment(p: ApiPayment, academicYear: string): FeePayment {
     collectedBy: "Finance Officer",
     collectedAt: p.paidAt,
     outstandingAfter: 0,
+    status: p.status,
+    isReversal: p.isReversal,
+    reversalOfPaymentId: p.reversalOfPaymentId,
+    reversedAt: p.reversedAt,
+    reversalReason: p.reversalReason,
   };
 }
 
@@ -132,6 +144,26 @@ export async function apiListCharges(
 
 export async function apiListPayments(limit = 100): Promise<ApiPayment[]> {
   return api<ApiPayment[]>(`/fees/payments?limit=${limit}`);
+}
+
+/**
+ * Reverse a payment recorded wrong. Never edits or deletes it — creates a
+ * linked, negative transaction and marks the original REVERSED, so the
+ * receipt trail proves both the collection and its undo.
+ */
+export async function apiReversePayment(
+  paymentId: string,
+  reason: string,
+): Promise<{
+  originalReceiptNumber: string;
+  reversalReceiptNumber: string;
+  amount: number;
+  studentId: string;
+}> {
+  return api(`/fees/payments/${paymentId}/reverse`, {
+    method: "POST",
+    body: { reason },
+  });
 }
 
 export async function apiOutstanding(

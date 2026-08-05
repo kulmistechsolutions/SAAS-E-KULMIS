@@ -14,6 +14,7 @@ import {
   Printer,
   Receipt,
   TrendingUp,
+  Undo2,
   User,
   Users,
 } from "lucide-react";
@@ -25,9 +26,10 @@ import { StudentAvatar } from "@/components/students/student-avatar";
 import { useStudentsState, withParents, ensureStudentLoaded } from "@/lib/students/store";
 import { genderLabel, longDate, money, shortDate, statusLabel } from "@/lib/students/format";
 import { exportStudentsCsv, printStudentProfile } from "@/lib/students/print";
-import { FeeStatusBadge } from "@/components/fees/fee-status-badge";
-import { apiStudentLedger, type ApiStudentLedger } from "@/lib/fees/api";
-import { monthKey, monthLabel, money as feeMoney } from "@/lib/fees/format";
+import { FeeStatusBadge, PaymentStatusBadge } from "@/components/fees/fee-status-badge";
+import { ReversePaymentDialog } from "@/components/fees/reverse-payment-dialog";
+import { apiStudentLedger, mapApiPayment, type ApiStudentLedger } from "@/lib/fees/api";
+import { monthKey, monthLabel, receiptDate, money as feeMoney } from "@/lib/fees/format";
 import {
   buildExamGroupBreakdown,
   fetchStudentFinalResult,
@@ -46,6 +48,7 @@ import { studentPromotionHistory } from "@/lib/promotions/store";
 import { PromotionTypeBadge } from "@/components/promotions/badges";
 import { dateTime } from "@/lib/promotions/format";
 import type { StudentStatus, StudentWithParent } from "@/lib/students/types";
+import type { FeePayment } from "@/lib/fees/types";
 import { toast } from "@/lib/toast";
 import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
@@ -402,6 +405,13 @@ function FeesTab({ student }: { student: StudentWithParent }) {
   const tr = useT();
   const [ledger, setLedger] = useState<ApiStudentLedger | null>(null);
   const [loading, setLoading] = useState(true);
+  const [reversingPayment, setReversingPayment] = useState<FeePayment | null>(null);
+
+  const loadLedger = () => {
+    return apiStudentLedger(student.id)
+      .then((data) => setLedger(data))
+      .catch(() => setLedger(null));
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -423,6 +433,7 @@ function FeesTab({ student }: { student: StudentWithParent }) {
 
   const summary = ledger?.summary;
   const rows = ledger?.charges ?? [];
+  const payments = ledger?.payments ?? [];
   const progressBlocks = summary
     ? Math.min(10, summary.totalMonths || 10)
     : 10;
@@ -537,6 +548,62 @@ function FeesTab({ student }: { student: StudentWithParent }) {
           </tbody>
         </table>
       </div>
+
+      {!loading && payments.length > 0 && (
+        <div className="overflow-hidden rounded-xl border">
+          <div className="border-b bg-secondary/40 px-4 py-2.5 text-xs font-medium text-muted-foreground">
+            {tr("students.paymentTransactions")}
+          </div>
+          <table className="w-full text-sm">
+            <thead className="bg-secondary text-start text-xs text-muted-foreground">
+              <tr>
+                <th className="px-4 py-2.5 font-medium">{tr("financeHistory.receiptNo")}</th>
+                <th className="px-4 py-2.5 font-medium">{tr("financeHistory.amount")}</th>
+                <th className="px-4 py-2.5 font-medium">{tr("financeHistory.type")}</th>
+                <th className="px-4 py-2.5 font-medium">{tr("financeHistory.date")}</th>
+                <th className="px-4 py-2.5 font-medium">{tr("financeHistory.actions")}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {payments.map((p) => (
+                <tr key={p.id} className="border-t">
+                  <td className="px-4 py-2.5 font-medium text-primary">{p.receiptNumber}</td>
+                  <td className="px-4 py-2.5 tabular-nums font-medium">{feeMoney(p.amount)}</td>
+                  <td className="px-4 py-2.5">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <PaymentStatusBadge isReversal={p.isReversal} status={p.status} />
+                    </div>
+                  </td>
+                  <td className="px-4 py-2.5 text-muted-foreground">{receiptDate(p.paidAt)}</td>
+                  <td className="px-4 py-2.5">
+                    {!p.isReversal && p.status !== "REVERSED" && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setReversingPayment(mapApiPayment(p, student.academicYear))
+                        }
+                        title={tr("financeHistory.reversePayment")}
+                        className="flex h-8 w-8 items-center justify-center rounded-lg text-destructive hover:bg-destructive/10"
+                      >
+                        <Undo2 className="h-4 w-4" />
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      <ReversePaymentDialog
+        payment={reversingPayment}
+        studentName={student.fullName}
+        onClose={() => {
+          setReversingPayment(null);
+          void loadLedger();
+        }}
+      />
     </div>
   );
 }

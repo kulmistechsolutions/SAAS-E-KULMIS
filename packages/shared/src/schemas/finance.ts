@@ -8,6 +8,14 @@ export const PaymentType = {
 export type PaymentType = (typeof PaymentType)[keyof typeof PaymentType];
 export const paymentTypeSchema = z.nativeEnum(PaymentType);
 
+/** ACTIVE is a normal payment; REVERSED means a reversal entry now cancels it out. */
+export const PaymentStatus = {
+  ACTIVE: "ACTIVE",
+  REVERSED: "REVERSED",
+} as const;
+export type PaymentStatus = (typeof PaymentStatus)[keyof typeof PaymentStatus];
+export const paymentStatusSchema = z.nativeEnum(PaymentStatus);
+
 export const SalaryStatus = {
   PENDING: "PENDING",
   PAID: "PAID",
@@ -70,6 +78,17 @@ export const payFamilySchema = z.object({
   note: z.string().min(1).nullable().optional(),
 });
 export type PayFamilyInput = z.infer<typeof payFamilySchema>;
+
+/**
+ * Reverse a payment that was recorded wrong (wrong amount, wrong student,
+ * mistaken entry). This never edits or deletes the original — it creates a
+ * second, negative transaction linked back to it, so the receipt trail shows
+ * both what was collected and that it was undone, and why.
+ */
+export const reversePaymentSchema = z.object({
+  reason: z.string().trim().min(3).max(300),
+});
+export type ReversePaymentInput = z.infer<typeof reversePaymentSchema>;
 
 export const BillingMode = {
   MONTHLY: "MONTHLY",

@@ -14,6 +14,7 @@ import {
   createExtraFeeSchema,
   payFamilySchema,
   payFeeSchema,
+  reversePaymentSchema,
   setupAcademicYearFeesSchema,
   setupMonthSchema,
   updateExtraFeeSchema,
@@ -102,6 +103,22 @@ export class FeesController {
   @Get("payments")
   payments(@CurrentUser() me: AuthUser, @Query("limit") limit?: string) {
     return this.fees.listPayments(me.schoolId, limit ? Number(limit) : 100);
+  }
+
+  /** Reverse a payment recorded wrong — never edits/deletes, creates a linked undo entry. */
+  @Post("payments/:id/reverse")
+  reversePayment(
+    @CurrentUser() me: AuthUser,
+    @Param("id") id: string,
+    @Body() body: unknown,
+  ) {
+    const parsed = reversePaymentSchema.safeParse(body);
+    if (!parsed.success) throw new BadRequestException(parsed.error.flatten());
+    return this.fees.reversePayment(me.schoolId, id, parsed.data.reason, {
+      userId: me.userId,
+      username: me.username,
+      role: me.role,
+    });
   }
 
   @Get("charges")

@@ -16,6 +16,7 @@ import {
   apiListPayments,
   apiPayFamily,
   apiPayFee,
+  apiReversePayment,
   mapApiCharge,
   mapApiPayment,
 } from "./api";
@@ -469,6 +470,31 @@ export async function collectPayment(input: PayInput): Promise<{
     return { ok: true, payment };
   } catch (e) {
     return { ok: false, error: apiErr(e, "Payment failed.") };
+  }
+}
+
+/**
+ * Reverse a payment recorded wrong (wrong amount, wrong student, mistaken
+ * entry). Never edits or deletes the original — the API creates a linked,
+ * negative transaction so the receipt trail proves both the collection and
+ * its undo.
+ */
+export async function reversePayment(
+  paymentId: string,
+  reason: string,
+  actorName?: string,
+): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const res = await apiReversePayment(paymentId, reason);
+    await refreshFees();
+    logAudit(
+      "Payment Reversal",
+      actorName ?? "Admin User",
+      `${res.originalReceiptNumber} reversed (${res.reversalReceiptNumber}) — ${reason}`,
+    );
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: apiErr(e, "Failed to reverse payment.") };
   }
 }
 

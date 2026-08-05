@@ -418,6 +418,16 @@ export function childFeeSummary(student: Student) {
       remainingBalance: number;
       status: string;
     }[],
+    payments: [] as {
+      id: string;
+      receiptNumber: string;
+      amount: number;
+      type: string;
+      paidAt: string;
+      status: "ACTIVE" | "REVERSED";
+      isReversal: boolean;
+      reversalReason: string | null;
+    }[],
   };
 }
 
@@ -447,6 +457,7 @@ export async function loadChildFeeSummary(student: Student) {
       advanceMonths: advance,
       carryForward: data.outstanding,
       ledger,
+      payments: data.payments,
     };
   } catch {
     return childFeeSummary(student);

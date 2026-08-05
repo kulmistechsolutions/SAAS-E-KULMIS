@@ -1,6 +1,7 @@
 import type { FeeChargeStatus } from "@/lib/fees/types";
 import { Badge } from "@/components/ui/badge";
 import { feeStatusLabel, paymentTypeLabel } from "@/lib/fees/format";
+import { useT } from "@/lib/i18n/provider";
 
 const TONE: Record<
   string,
@@ -42,4 +43,22 @@ export function PaymentTypeBadge({
         ? "warning"
         : "info";
   return <Badge tone={tone}>{paymentTypeLabel(type, advanceMonths)}</Badge>;
+}
+
+/** Shows whether a payment row is a normal collection, a reversal entry, or a reversed original. */
+export function PaymentStatusBadge({
+  isReversal,
+  status,
+}: {
+  isReversal?: boolean;
+  status?: "ACTIVE" | "REVERSED";
+}) {
+  const t = useT();
+  if (isReversal) {
+    return <Badge tone="danger">{t("feesPaymentStatus.reversal")}</Badge>;
+  }
+  if (status === "REVERSED") {
+    return <Badge tone="muted">{t("feesPaymentStatus.reversed")}</Badge>;
+  }
+  return null;
 }

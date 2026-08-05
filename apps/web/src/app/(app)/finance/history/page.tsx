@@ -3,13 +3,14 @@
 
 import { useT } from "@/lib/i18n/provider";
 import { useEffect, useMemo, useState } from "react";
-import { Download, Eye, Printer } from "lucide-react";
+import { Download, Eye, Printer, Undo2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Pagination } from "@/components/ui/pagination";
-import { PaymentTypeBadge } from "@/components/fees/fee-status-badge";
+import { PaymentStatusBadge, PaymentTypeBadge } from "@/components/fees/fee-status-badge";
 import { ReceiptDialog } from "@/components/fees/receipt-dialog";
+import { ReversePaymentDialog } from "@/components/fees/reverse-payment-dialog";
 import { money, paymentTypeLabel, shortDate } from "@/lib/fees/format";
 import { exportPaymentsCsv, printReceipt } from "@/lib/fees/print";
 import { getPayment, useFeesState } from "@/lib/fees/store";
@@ -31,6 +32,7 @@ export default function FeeHistoryPage() {
   const [dateTo, setDateTo] = useState("");
   const [page, setPage] = useState(1);
   const [receiptNo, setReceiptNo] = useState<string | null>(null);
+  const [reversingId, setReversingId] = useState<string | null>(null);
   useEffect(() => setMounted(true), []);
 
   const students = getStudentsState().students;
@@ -72,6 +74,12 @@ export default function FeeHistoryPage() {
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const rows = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
   const receipt = receiptNo ? getPayment(receiptNo) ?? null : null;
+  const reversingPayment = reversingId
+    ? fees.payments.find((p) => p.id === reversingId) ?? null
+    : null;
+  const reversingStudent = reversingPayment
+    ? students.find((s) => s.id === reversingPayment.studentId)
+    : undefined;
 
   return (
     <div className="space-y-6">
@@ -197,7 +205,10 @@ export default function FeeHistoryPage() {
                     </td>
                     <td className="px-4 py-2.5 tabular-nums font-medium">{money(p.amount)}</td>
                     <td className="px-4 py-2.5">
-                      <PaymentTypeBadge type={p.paymentType} advanceMonths={p.advanceMonths} />
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <PaymentTypeBadge type={p.paymentType} advanceMonths={p.advanceMonths} />
+                        <PaymentStatusBadge isReversal={p.isReversal} status={p.status} />
+                      </div>
                     </td>
                     <td className="px-4 py-2.5 text-muted-foreground">{p.collectedBy}</td>
                     <td className="px-4 py-2.5 text-muted-foreground">{shortDate(p.collectedAt)}</td>
@@ -217,6 +228,16 @@ export default function FeeHistoryPage() {
                         >
                           <Printer className="h-4 w-4" />
                         </button>
+                        {!p.isReversal && p.status !== "REVERSED" && (
+                          <button
+                            type="button"
+                            onClick={() => setReversingId(p.id)}
+                            title={t("financeHistory.reversePayment")}
+                            className="flex h-8 w-8 items-center justify-center rounded-lg text-destructive hover:bg-destructive/10"
+                          >
+                            <Undo2 className="h-4 w-4" />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -237,6 +258,11 @@ export default function FeeHistoryPage() {
       </div>
 
       <ReceiptDialog payment={receipt} onClose={() => setReceiptNo(null)} />
+      <ReversePaymentDialog
+        payment={reversingPayment}
+        studentName={reversingStudent?.fullName}
+        onClose={() => setReversingId(null)}
+      />
     </div>
   );
 }

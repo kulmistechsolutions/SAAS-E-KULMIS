@@ -37,7 +37,16 @@ export interface ApiPortalFeeLedger {
     paidAmount: number;
     status: string;
   }[];
-  payments: unknown[];
+  payments: {
+    id: string;
+    receiptNumber: string;
+    amount: number;
+    type: string;
+    paidAt: string;
+    status: "ACTIVE" | "REVERSED";
+    isReversal: boolean;
+    reversalReason: string | null;
+  }[];
   outstanding: number;
 }
 
