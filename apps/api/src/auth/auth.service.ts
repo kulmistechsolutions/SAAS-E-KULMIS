@@ -164,18 +164,27 @@ export class AuthService {
       role: user.role,
       username: user.username,
     };
-    // A school can shorten/lengthen how long its staff stay signed in
-    // (Settings → Security). Null keeps the platform default (JWT_ACCESS_TTL).
+    const minutes = await this.getSessionTimeoutMinutes(user.schoolId);
+    return this.jwt.signAsync(payload, { expiresIn: minutes * 60 });
+  }
+
+  /**
+   * A school can shorten/lengthen how long its staff stay signed in
+   * (Settings → Security). Null keeps the platform default (JWT_ACCESS_TTL).
+   * Also handed to the frontend (via /auth/me) so its idle-activity timer can
+   * log a user out the moment they've been inactive this long, instead of
+   * silently staying signed in via reactive refresh-on-401.
+   */
+  async getSessionTimeoutMinutes(schoolId: string): Promise<number> {
     const school = await this.prisma.school.findUnique({
-      where: { id: user.schoolId },
+      where: { id: schoolId },
       select: { sessionTimeoutMinutes: true },
     });
-    if (school?.sessionTimeoutMinutes) {
-      return this.jwt.signAsync(payload, {
-        expiresIn: school.sessionTimeoutMinutes * 60,
-      });
-    }
-    return this.jwt.signAsync(payload);
+    if (school?.sessionTimeoutMinutes) return school.sessionTimeoutMinutes;
+    const ttlMs = parseDurationMs(
+      this.config.get<string>("JWT_ACCESS_TTL") ?? "15m",
+    );
+    return Math.max(1, Math.round(ttlMs / 60_000));
   }
 
   private userSummary(user: User) {

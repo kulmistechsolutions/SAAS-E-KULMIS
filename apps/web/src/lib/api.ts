@@ -119,7 +119,7 @@ async function tryRefreshAccessToken(): Promise<boolean> {
   return refreshInFlight;
 }
 
-function redirectToLogin(): void {
+export function redirectToLogin(): void {
   if (typeof window === "undefined") return;
   const path = window.location.pathname;
   if (path.startsWith("/login") || path.startsWith("/platform")) return;

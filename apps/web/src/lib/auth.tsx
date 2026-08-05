@@ -2,19 +2,30 @@
 
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useState,
   type ReactNode,
 } from "react";
 import type { UserRole } from "@ekulmis/shared";
-import { api, clearAuthTokens, setAccessToken, setRefreshToken } from "./api";
+import {
+  api,
+  clearAuthTokens,
+  getRefreshToken,
+  redirectToLogin,
+  setAccessToken,
+  setRefreshToken,
+} from "./api";
+import { useIdleLogout } from "./session/use-idle-logout";
 
 export interface AuthUser {
   userId: string;
   schoolId: string;
   role: UserRole;
   username: string;
+  /** How many idle minutes this school allows before forcing a re-login. */
+  sessionTimeoutMinutes?: number;
 }
 
 interface LoginResponse {
@@ -138,11 +149,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   function logout() {
+    // Best-effort: revoke the refresh token server-side too, so a copy of it
+    // (stolen, or left in another tab) can't keep minting new access tokens
+    // for its full 7-day life after this device has logged out.
+    const refreshToken = getRefreshToken();
+    if (refreshToken) {
+      void api("/auth/logout", {
+        method: "POST",
+        body: { refreshToken },
+        auth: false,
+      }).catch(() => {});
+    }
     clearAuthTokens();
     void import("./teachers/session").then((m) => m.clearTeacherMeCache());
     syncCachedAuthUser(null);
     setUser(null);
   }
+
+  const handleIdleTimeout = useCallback(() => {
+    logout();
+    redirectToLogin();
+  }, []);
+
+  useIdleLogout(PREVIEW_AUTH ? undefined : user?.sessionTimeoutMinutes, handleIdleTimeout);
 
   return (
     <AuthContext.Provider value={{ user, loading, login, logout }}>

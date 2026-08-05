@@ -77,10 +77,17 @@ export class AuthController {
     return { success: true };
   }
 
-  /** Returns the authenticated principal (requires a valid access token). */
+  /**
+   * Returns the authenticated principal (requires a valid access token),
+   * plus how many idle minutes this school allows before forcing a
+   * re-login — the frontend's idle-activity timer uses it directly.
+   */
   @Get("me")
-  me(@CurrentUser() user: AuthUser) {
-    return user;
+  async me(@CurrentUser() user: AuthUser) {
+    const sessionTimeoutMinutes = await this.auth.getSessionTimeoutMinutes(
+      user.schoolId,
+    );
+    return { ...user, sessionTimeoutMinutes };
   }
 
   @Post("change-password")
