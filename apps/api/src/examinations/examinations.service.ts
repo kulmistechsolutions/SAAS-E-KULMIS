@@ -2249,6 +2249,150 @@ export class ExaminationsService {
     });
   }
 
+  /**
+   * School-wide examination performance for the Reports Center.
+   *
+   * Counts each student once, not once per exam: every published exam they
+   * sat is folded into a single weighted percentage (exams can have different
+   * maxMarks and weights), then graded. Everything is derived from three bulk
+   * queries and computed in memory — a per-student query loop here would be a
+   * few thousand round trips on a real school.
+   */
+  async reportsOverview(schoolId: string, academicYearId?: string) {
+    return this.prisma.forTenant(schoolId, async (tx) => {
+      const yearWhere = academicYearId ? { academicYearId } : {};
+
+      const [totalExams, draftExams, publishedExams, examGroups] =
+        await Promise.all([
+          tx.exam.count({ where: yearWhere }),
+          tx.exam.count({ where: { ...yearWhere, status: "DRAFT" } }),
+          tx.exam.count({ where: { ...yearWhere, status: "PUBLISHED" } }),
+          tx.examGroup.count(),
+        ]);
+
+      const exams = await tx.exam.findMany({
+        where: { ...yearWhere, status: "PUBLISHED" },
+        include: {
+          subjects: { select: { subjectId: true } },
+          class: { select: { id: true, name: true } },
+        },
+      });
+
+      const empty = {
+        totalExams,
+        draftExams,
+        publishedExams,
+        examGroups,
+        gradedStudents: 0,
+        studentsPassed: 0,
+        studentsFailed: 0,
+        averagePercent: 0,
+        passRate: 0,
+        gradeDistribution: [] as { grade: string; count: number }[],
+        byClass: [] as {
+          classId: string;
+          className: string;
+          gradedStudents: number;
+          averagePercent: number;
+          passed: number;
+          failed: number;
+          passRate: number;
+        }[],
+      };
+      if (exams.length === 0) return empty;
+
+      const marks = await tx.examMark.findMany({
+        where: { examId: { in: exams.map((e) => e.id) } },
+        select: { examId: true, studentId: true, marks: true },
+      });
+      if (marks.length === 0) return empty;
+
+      const examById = new Map(exams.map((e) => [e.id, e]));
+
+      // studentId -> weighted percentage accumulator
+      const acc = new Map<
+        string,
+        { classId: string; className: string; weighted: number; weight: number }
+      >();
+      for (const m of marks) {
+        if (m.marks == null) continue;
+        const exam = examById.get(m.examId);
+        if (!exam || exam.maxMarks <= 0) continue;
+        const pct = (m.marks / exam.maxMarks) * 100;
+        const entry = acc.get(m.studentId) ?? {
+          classId: exam.classId,
+          className: exam.class.name,
+          weighted: 0,
+          weight: 0,
+        };
+        entry.weighted += pct * exam.weightPercent;
+        entry.weight += exam.weightPercent;
+        acc.set(m.studentId, entry);
+      }
+
+      const grades = new Map<string, number>();
+      const classAgg = new Map<
+        string,
+        { className: string; sum: number; n: number; passed: number; failed: number }
+      >();
+      let sum = 0;
+      let passed = 0;
+
+      for (const entry of acc.values()) {
+        if (entry.weight <= 0) continue;
+        const avg = entry.weighted / entry.weight;
+        sum += avg;
+        const isPass = avg >= 50;
+        if (isPass) passed++;
+
+        const g = gradeFromAverage(avg);
+        grades.set(g, (grades.get(g) ?? 0) + 1);
+
+        const c = classAgg.get(entry.classId) ?? {
+          className: entry.className,
+          sum: 0,
+          n: 0,
+          passed: 0,
+          failed: 0,
+        };
+        c.sum += avg;
+        c.n += 1;
+        if (isPass) c.passed += 1;
+        else c.failed += 1;
+        classAgg.set(entry.classId, c);
+      }
+
+      const graded = acc.size;
+      const round1 = (n: number) => Math.round(n * 10) / 10;
+
+      return {
+        totalExams,
+        draftExams,
+        publishedExams,
+        examGroups,
+        gradedStudents: graded,
+        studentsPassed: passed,
+        studentsFailed: graded - passed,
+        averagePercent: graded ? round1(sum / graded) : 0,
+        passRate: graded ? round1((passed / graded) * 100) : 0,
+        gradeDistribution: [...grades.entries()]
+          .map(([grade, count]) => ({ grade, count }))
+          .sort((a, b) => a.grade.localeCompare(b.grade)),
+        byClass: [...classAgg.entries()]
+          .map(([classId, c]) => ({
+            classId,
+            className: c.className,
+            gradedStudents: c.n,
+            averagePercent: c.n ? round1(c.sum / c.n) : 0,
+            passed: c.passed,
+            failed: c.failed,
+            passRate: c.n ? round1((c.passed / c.n) * 100) : 0,
+          }))
+          .sort((a, b) => a.className.localeCompare(b.className)),
+      };
+    });
+  }
+
   async transcriptPdf(
     schoolId: string,
     studentId: string,

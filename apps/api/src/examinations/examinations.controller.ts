@@ -44,6 +44,16 @@ export class ExaminationsController {
     return this.exams.dashboard(me.schoolId);
   }
 
+  /** School-wide performance behind the Reports Center. */
+  @Roles(UserRole.ADMINISTRATOR, UserRole.EXAM_MANAGER, UserRole.ACADEMIC_MANAGER)
+  @Get("reports/overview")
+  reportsOverview(
+    @CurrentUser() me: AuthUser,
+    @Query("academicYearId") academicYearId?: string,
+  ) {
+    return this.exams.reportsOverview(me.schoolId, academicYearId);
+  }
+
   @Roles(UserRole.ADMINISTRATOR, UserRole.EXAM_MANAGER, UserRole.TEACHER)
   @Get("groups")
   listGroups(

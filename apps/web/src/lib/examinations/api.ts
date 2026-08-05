@@ -474,6 +474,34 @@ export const apiSendExamReminder = (body: {
     teacherName: string | null;
   }>("/examinations/monitoring/remind", { method: "POST", body });
 
+/** School-wide performance behind the Reports Center. */
+export interface ApiExamReportsOverview {
+  totalExams: number;
+  draftExams: number;
+  publishedExams: number;
+  examGroups: number;
+  gradedStudents: number;
+  studentsPassed: number;
+  studentsFailed: number;
+  averagePercent: number;
+  passRate: number;
+  gradeDistribution: { grade: string; count: number }[];
+  byClass: {
+    classId: string;
+    className: string;
+    gradedStudents: number;
+    averagePercent: number;
+    passed: number;
+    failed: number;
+    passRate: number;
+  }[];
+}
+
+export const apiExamReportsOverview = (academicYearId?: string) =>
+  api<ApiExamReportsOverview>(
+    `/examinations/reports/overview${academicYearId ? `?academicYearId=${encodeURIComponent(academicYearId)}` : ""}`,
+  );
+
 export const apiResultsClasses = (academicYearId?: string) =>
   api<ApiResultsClassOverview[]>(
     `/examinations/results/classes${academicYearId ? `?academicYearId=${encodeURIComponent(academicYearId)}` : ""}`,
