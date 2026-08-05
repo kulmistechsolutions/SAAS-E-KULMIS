@@ -210,6 +210,13 @@ export type RequestSmsSenderIdInput = z.infer<typeof requestSmsSenderIdSchema>;
 export const reviewSmsSenderIdSchema = z.object({
   approvedName: senderIdName.optional(),
   reviewNote: z.string().trim().max(500).optional().nullable(),
+  /**
+   * Required to approve (not to reject): a real phone number the approval
+   * flow sends one live test SMS to, using the candidate sender ID, so an
+   * unregistered-with-Hormuud name is caught before it goes live rather than
+   * discovered later from a school's failed delivery log.
+   */
+  testPhone: z.string().trim().min(6).max(20).optional(),
 });
 export type ReviewSmsSenderIdInput = z.infer<typeof reviewSmsSenderIdSchema>;
 

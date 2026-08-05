@@ -12,6 +12,7 @@ import type {
 } from "@ekulmis/shared";
 import { PrismaService } from "../prisma/prisma.service";
 import { StorageService } from "../storage/storage.service";
+import { SmsService } from "./sms.service";
 
 const MAX_DOC_BYTES = 5 * 1024 * 1024;
 
@@ -57,6 +58,7 @@ export class SmsSenderIdService {
     private readonly prisma: PrismaService,
     private readonly storage: StorageService,
     private readonly config: ConfigService,
+    private readonly sms: SmsService,
   ) {
     this.bucket =
       this.config.get<string>("SUPABASE_STORAGE_BUCKET") ??
@@ -227,10 +229,34 @@ export class SmsSenderIdService {
     if (row.status !== "PENDING") {
       throw new ConflictException(`This request is already ${row.status}.`);
     }
+    if (!dto.testPhone) {
+      throw new BadRequestException(
+        "A test phone number is required to approve — one live SMS is sent " +
+          "with this sender ID first, since our own approval has no bearing " +
+          "on whether Hormuud has actually registered the name.",
+      );
+    }
 
     // Default to what the school asked for, so approving a straightforward
     // application is one click.
     const approvedName = (dto.approvedName ?? row.requestedName).trim();
+
+    // Our own approval only ever updates our database — the operator still
+    // has to have this exact name registered against the account that sends
+    // for this school, or every message the school sends afterward silently
+    // fails with Hormuud's 203 "Invalid Sender ID". Catch that here, against
+    // the reviewer, instead of in a school's delivery log days later.
+    const test = await this.sms.testSenderIdWithRealSend(
+      row.schoolId,
+      approvedName,
+      dto.testPhone,
+    );
+    if (!test.ok) {
+      throw new BadRequestException(
+        `Hormuud rejected "${approvedName}": ${test.message}. Register this ` +
+          "name with Hormuud for this school's sending account before approving.",
+      );
+    }
 
     const [updated] = await this.prisma.$transaction([
       this.prisma.smsSenderIdRequest.update({
@@ -252,7 +278,7 @@ export class SmsSenderIdService {
     ]);
 
     this.logger.warn(
-      `Sender ID "${approvedName}" approved for school ${row.schoolId} by ${reviewer}`,
+      `Sender ID "${approvedName}" approved for school ${row.schoolId} by ${reviewer} (Hormuud-verified)`,
     );
     return updated;
   }

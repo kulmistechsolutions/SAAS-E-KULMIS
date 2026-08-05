@@ -1946,6 +1946,9 @@ export const arGenerated: PartialDictionary = {
     rejectFailed: "فشل الرفض",
     approveFailed: "فشل الموافقة",
     couldNotLoad: "تعذّر التحميل",
+    testPhoneApprovingSendsOneLive: "هاتف الاختبار — الموافقة ترسل رسالة نصية حقيقية واحدة إلى هذا الرقم",
+    eG615123456: "مثال: 61 5123456",
+    hormuudRejectsUnregisteredNames: "يرفض Hormuud الأسماء غير المسجلة حتى بعد موافقتنا عليها — هذا يكتشف ذلك قبل أن تعرف المدرسة من رسالة فاشلة.",
   },
   platformSms: {
     loadingSmsPackages: "جارٍ تحميل باقات الرسائل…",

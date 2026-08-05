@@ -1946,6 +1946,9 @@ export const soGenerated: PartialDictionary = {
     rejectFailed: "Diidmadii waa fashilantay",
     approveFailed: "Ansixintii waa fashilantay",
     couldNotLoad: "Lama soo dejin karin",
+    testPhoneApprovingSendsOneLive: "Taleefanka tijaabada — ansixintu waxay diri doontaa hal fariin dhab ah lambarkan",
+    eG615123456: "tus. 61 5123456",
+    hormuudRejectsUnregisteredNames: "Hormuud wuu diidaa magacyada aan diiwaan gashanayn xitaa markaan ansixinno — tan waxay ka gaadhaysaa xaaladdaas ka hor intii dugsigu ka ogaanayo fariin fashilantay.",
   },
   platformSms: {
     loadingSmsPackages: "Xirmooyinka SMS waa la soo dejinayaa…",

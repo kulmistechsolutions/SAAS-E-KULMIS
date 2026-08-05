@@ -954,7 +954,7 @@ export const fetchPlatformSenderIdRequests = (status?: string) =>
  */
 export const approvePlatformSenderId = (
   id: string,
-  body: { approvedName?: string; reviewNote?: string | null },
+  body: { approvedName?: string; reviewNote?: string | null; testPhone: string },
 ) =>
   platformFetch<{ id: string; approvedName: string; status: string }>(
     `/platform/sms/sender-id-requests/${id}/approve`,

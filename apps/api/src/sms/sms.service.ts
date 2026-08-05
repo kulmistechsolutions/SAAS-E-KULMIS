@@ -379,6 +379,40 @@ export class SmsService {
     };
   }
 
+  /**
+   * Send one real SMS with a candidate sender ID through the school's actual
+   * gateway and report whether Hormuud accepted it.
+   *
+   * Our own "approve this sender ID" decision only ever updated our
+   * database — it has no bearing on whether Hormuud has registered that name
+   * against the account being used to send, so an approved-but-unregistered
+   * name silently failed every message until someone noticed the delivery
+   * logs. Called from the approval flow so that gap surfaces immediately, to
+   * the person approving, instead of to the school days later.
+   */
+  async testSenderIdWithRealSend(
+    schoolId: string,
+    senderId: string,
+    testPhone: string,
+  ): Promise<{ ok: boolean; message: string }> {
+    const { config } = await this.resolveGateway(schoolId);
+    const result = await hormuudSendSms(config, {
+      mobile: testPhone,
+      message: `eKulmis: "${senderId}" sender ID verification test.`,
+      senderid: senderId,
+    });
+    if (result.ok) {
+      return { ok: true, message: "Hormuud accepted this sender ID." };
+    }
+    return {
+      ok: false,
+      message:
+        result.error ??
+        result.responseMessage ??
+        "Hormuud rejected this sender ID.",
+    };
+  }
+
   /** School-facing gateway state. Never returns the stored password. */
   async getSchoolGateway(schoolId: string) {
     const gateway = await this.ensureSchoolGateway(schoolId);

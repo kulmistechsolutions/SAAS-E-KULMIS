@@ -42,6 +42,8 @@ export function SenderIdReview() {
   /** Per-row editable approved name, seeded from what the school asked for. */
   const [names, setNames] = useState<Record<string, string>>({});
   const [notes, setNotes] = useState<Record<string, string>>({});
+  /** Where the live verification SMS goes, seeded from the school's contact phone. */
+  const [testPhones, setTestPhones] = useState<Record<string, string>>({});
 
   const load = useCallback(() => {
     setLoading(true);
@@ -49,12 +51,10 @@ export function SenderIdReview() {
       .then((res) => {
         setFeatureEnabled(res.featureEnabled);
         setRows(res.requests);
-        setNames(
-          Object.fromEntries(
-            res.requests
-              .filter((r) => r.status === "PENDING")
-              .map((r) => [r.id, r.requestedName]),
-          ),
+        const pendingRows = res.requests.filter((r) => r.status === "PENDING");
+        setNames(Object.fromEntries(pendingRows.map((r) => [r.id, r.requestedName])));
+        setTestPhones(
+          Object.fromEntries(pendingRows.map((r) => [r.id, r.contactPhone ?? ""])),
         );
       })
       .catch((e: unknown) =>
@@ -71,13 +71,25 @@ export function SenderIdReview() {
       toast("The sender name needs at least 3 characters.", "error");
       return;
     }
+    const testPhone = testPhones[row.id]?.trim();
+    if (!testPhone) {
+      toast(
+        "Enter a phone to send a live test to — approving without one is how an unregistered name goes live undetected.",
+        "error",
+      );
+      return;
+    }
     setBusyId(row.id);
     try {
       await approvePlatformSenderId(row.id, {
         approvedName,
         reviewNote: notes[row.id]?.trim() || null,
+        testPhone,
       });
-      toast(`${row.school.name} now sends as "${approvedName}".`, "success");
+      toast(
+        `Hormuud accepted "${approvedName}" — ${row.school.name} now sends under it.`,
+        "success",
+      );
       load();
     } catch (e) {
       toast(e instanceof Error ? e.message : "Approve failed", "error");
@@ -235,6 +247,22 @@ export function SenderIdReview() {
                     placeholder={t("platformSenderIdReview.eGLicenceUnreadableSendA")}
                     className="w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm text-white outline-none focus:border-violet-400"
                   />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="mb-1 block text-xs font-medium text-white/70">
+                    {t("platformSenderIdReview.testPhoneApprovingSendsOneLive")}
+                  </label>
+                  <input
+                    value={testPhones[r.id] ?? ""}
+                    onChange={(e) =>
+                      setTestPhones((p) => ({ ...p, [r.id]: e.target.value }))
+                    }
+                    placeholder={t("platformSenderIdReview.eG615123456")}
+                    className="w-full rounded-lg border border-white/15 bg-white/5 px-3 py-2 font-mono text-sm text-white outline-none focus:border-violet-400"
+                  />
+                  <p className="mt-1 text-xs text-white/40">
+                    {t("platformSenderIdReview.hormuudRejectsUnregisteredNames")}
+                  </p>
                 </div>
               </div>
 

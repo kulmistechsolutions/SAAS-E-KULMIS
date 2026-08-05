@@ -1946,6 +1946,9 @@ export const generated = {
     rejectFailed: "Reject failed",
     approveFailed: "Approve failed",
     couldNotLoad: "Could not load",
+    testPhoneApprovingSendsOneLive: "Test phone — approving sends one live SMS to this number",
+    eG615123456: "e.g. 61 5123456",
+    hormuudRejectsUnregisteredNames: "Hormuud rejects unregistered names even after we approve them — this catches that before the school finds out from a failed message.",
   },
   platformSms: {
     loadingSmsPackages: "Loading SMS packages…",
