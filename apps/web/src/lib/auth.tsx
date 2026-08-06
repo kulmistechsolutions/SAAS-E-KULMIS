@@ -72,6 +72,21 @@ function syncCachedAuthUser(user: AuthUser | null) {
   setCachedAuthUser(user);
 }
 
+/**
+ * Settings (e.g. Session Timeout) change what `/auth/me` returns, but the
+ * signed-in user's session was fetched once at login and never refetched —
+ * so saving a shorter/longer timeout had no visible effect until the next
+ * login. Any code that changes account-affecting settings should call this
+ * right after a successful save so the running session picks it up now.
+ */
+const AUTH_REFRESH_EVENT = "ekulmis-auth-refresh";
+
+export function requestAuthRefresh(): void {
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event(AUTH_REFRESH_EVENT));
+  }
+}
+
 function toAuthRole(role: string): UserRole {
   if (role === "SUPER_ADMINISTRATOR" || role === "ACADEMIC_MANAGER") {
     return "ADMINISTRATOR";
@@ -110,6 +125,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(null);
       })
       .finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => {
+    if (PREVIEW_AUTH) return;
+    function onRefresh() {
+      void api<AuthUser>("/auth/me")
+        .then((me) => {
+          syncCachedAuthUser(me);
+          setUser(me);
+        })
+        .catch(() => {});
+    }
+    window.addEventListener(AUTH_REFRESH_EVENT, onRefresh);
+    return () => window.removeEventListener(AUTH_REFRESH_EVENT, onRefresh);
   }, []);
 
   async function login(identifier: string, password: string): Promise<AuthUser> {

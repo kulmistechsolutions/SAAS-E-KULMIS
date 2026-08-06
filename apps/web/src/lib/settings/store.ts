@@ -2,7 +2,7 @@
 
 import { useSyncExternalStore } from "react";
 import { ApiError, getAccessToken } from "@/lib/api";
-import { getCachedAuthUser } from "@/lib/auth";
+import { getCachedAuthUser, requestAuthRefresh } from "@/lib/auth";
 import { activeAcademicYear as getActiveAcademicYear } from "@/lib/academics/store";
 import { updateSecuritySettings } from "@/lib/users/store";
 import {
@@ -334,6 +334,10 @@ export async function updateSettingsSection<K extends SettingsSectionKey>(
       requireUppercase: sec.requireUppercase,
       requireNumber: sec.requireNumber,
     });
+    // sessionTimeoutMinutes just changed server-side, but this signed-in
+    // session was fetched once at login — without this, the new value has
+    // no effect until the next login.
+    requestAuthRefresh();
   }
 
   return { ok: true };
