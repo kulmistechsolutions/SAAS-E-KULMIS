@@ -21,8 +21,13 @@ CREATE UNIQUE INDEX "attendance_shifts_schoolId_name_key" ON "attendance_shifts"
 CREATE INDEX "attendance_shifts_schoolId_idx" ON "attendance_shifts"("schoolId");
 
 -- Repoint student_attendance.shiftId from school_shifts to attendance_shifts.
--- No production data references the old FK yet (this feature just shipped),
--- so this is a plain swap, not a data migration.
+-- Any school that already tagged real attendance with a SchoolShift (the
+-- feature shipped briefly before this decoupling) has values that don't
+-- exist in the brand-new attendance_shifts table — clear them first so the
+-- new FK constraint can attach; those schools just re-pick a shift from the
+-- new Attendance Shift Management screen going forward.
+UPDATE "student_attendance" SET "shiftId" = NULL WHERE "shiftId" IS NOT NULL;
+
 ALTER TABLE "student_attendance" DROP CONSTRAINT "student_attendance_shiftId_fkey";
 
 ALTER TABLE "student_attendance"
