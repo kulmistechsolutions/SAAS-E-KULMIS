@@ -25,6 +25,7 @@ export interface ApiPortalAttendance {
   date: string;
   status: string;
   notes: string | null;
+  shift: { name: string } | null;
 }
 
 export interface ApiPortalFeeLedger {

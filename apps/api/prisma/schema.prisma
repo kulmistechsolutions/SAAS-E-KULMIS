@@ -686,13 +686,17 @@ model TeacherAssignment {
   @@map("teacher_assignments")
 }
 
-/// Daily student attendance (Module 5). One record per student per day.
+/// Daily student attendance (Module 5). One record per student per day —
+/// per shift for schools that run more than one (see SchoolShift).
 model StudentAttendance {
   id             String           @id @default(cuid())
   schoolId       String
   studentId      String
   classId        String
   sectionId      String?
+  /// The shift this record was taken in (Section.shiftId ?? Class.shiftId at
+  /// mark time). Null for schools that don't use shifts at all.
+  shiftId        String?
   academicYearId String
   date           DateTime         @db.Date
   status         AttendanceStatus
@@ -700,9 +704,10 @@ model StudentAttendance {
   createdAt      DateTime         @default(now())
   updatedAt      DateTime         @updatedAt
 
-  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  student Student      @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  shift   SchoolShift? @relation(fields: [shiftId], references: [id], onDelete: SetNull)
 
-  @@unique([schoolId, studentId, date])
+  @@unique([schoolId, studentId, date, shiftId])
   @@index([schoolId, date])
   @@index([classId, sectionId, date])
   @@map("student_attendance")
@@ -2219,11 +2224,12 @@ model SchoolShift {
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
-  academicYear AcademicYear  @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
-  periods      ShiftPeriod[]
-  classes      Class[]
-  sections     Section[]
-  timetables   Timetable[]
+  academicYear      AcademicYear        @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
+  periods           ShiftPeriod[]
+  classes           Class[]
+  sections          Section[]
+  timetables        Timetable[]
+  studentAttendance StudentAttendance[]
 
   @@unique([schoolId, academicYearId, name])
   @@index([schoolId])

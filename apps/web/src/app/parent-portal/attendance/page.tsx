@@ -57,6 +57,7 @@ export default function ParentAttendancePage() {
       return true;
     });
   }, [att, filter, search]);
+  const hasShifts = rows.some((r) => r.shiftName);
 
   if (!selectedChild) {
     return (
@@ -146,6 +147,9 @@ export default function ParentAttendancePage() {
           <thead>
             <tr className="border-b bg-secondary/50 text-start">
               <th className="px-4 py-3 font-medium">{t("parentPortalAttendance.date")}</th>
+              {hasShifts && (
+                <th className="px-4 py-3 font-medium">{t("parentPortalAttendance.shift")}</th>
+              )}
               <th className="px-4 py-3 font-medium">{t("parentPortalAttendance.status")}</th>
             </tr>
           </thead>
@@ -153,6 +157,9 @@ export default function ParentAttendancePage() {
             {rows.map((r) => (
               <tr key={r.date} className="border-b last:border-0">
                 <td className="px-4 py-3">{shortDate(r.date)}</td>
+                {hasShifts && (
+                  <td className="px-4 py-3 text-muted-foreground">{r.shiftName ?? "—"}</td>
+                )}
                 <td className="px-4 py-3">
                   <Badge tone={STATUS_TONE[r.status]}>{r.status}</Badge>
                 </td>
@@ -161,7 +168,7 @@ export default function ParentAttendancePage() {
             {rows.length === 0 && (
               <tr>
                 <td
-                  colSpan={2}
+                  colSpan={hasShifts ? 3 : 2}
                   className="px-4 py-8 text-center text-muted-foreground"
                 >
                   {t("parentPortalAttendance.noAttendanceRecordsMatchYourFilters")}

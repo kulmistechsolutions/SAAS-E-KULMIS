@@ -36,6 +36,18 @@ export class StudentAttendanceController {
     });
   }
 
+  /** Active shifts for a year, for the class/section/shift attendance picker. */
+  @Get("shifts")
+  listShifts(
+    @CurrentUser() me: AuthUser,
+    @Query("academicYearId") academicYearId: string,
+  ) {
+    if (!academicYearId) {
+      throw new BadRequestException("academicYearId is required");
+    }
+    return this.attendance.listShifts(me.schoolId, academicYearId);
+  }
+
   @Roles(
     UserRole.ADMINISTRATOR,
     UserRole.ATTENDANCE_OFFICER,
@@ -59,12 +71,19 @@ export class StudentAttendanceController {
     @Query("classId") classId: string,
     @Query("date") date: string,
     @Query("sectionId") sectionId?: string,
+    @Query("shiftId") shiftId?: string,
   ) {
     if (!classId || !date) {
       throw new BadRequestException("classId and date are required");
     }
     await this.assertTeacherClassAccess(me, classId, sectionId ?? null);
-    return this.attendance.list(me.schoolId, classId, sectionId ?? null, date);
+    return this.attendance.list(
+      me.schoolId,
+      classId,
+      sectionId ?? null,
+      date,
+      shiftId ?? null,
+    );
   }
 
   @Get("dashboard")
@@ -73,6 +92,7 @@ export class StudentAttendanceController {
     @Query("date") date: string,
     @Query("classId") classId?: string,
     @Query("sectionId") sectionId?: string,
+    @Query("shiftId") shiftId?: string,
   ) {
     if (!date) throw new BadRequestException("date is required");
     if (me.role === "TEACHER") {
@@ -83,6 +103,12 @@ export class StudentAttendanceController {
       }
       await this.assertTeacherClassAccess(me, classId, sectionId ?? null);
     }
-    return this.attendance.dashboard(me.schoolId, date, classId, sectionId);
+    return this.attendance.dashboard(
+      me.schoolId,
+      date,
+      classId,
+      sectionId,
+      shiftId,
+    );
   }
 }

@@ -441,7 +441,11 @@ export interface ApiAttendanceSummary {
   absent: number;
   late: number;
   percentage: number;
-  rows: { date: string; status: "PRESENT" | "ABSENT" | "LATE" }[];
+  rows: {
+    date: string;
+    status: "PRESENT" | "ABSENT" | "LATE";
+    shiftName: string | null;
+  }[];
 }
 
 export async function apiStudentAttendance(

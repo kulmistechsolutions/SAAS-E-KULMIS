@@ -23,6 +23,7 @@ const attendanceCache = new Map<string, AttendanceSummary>();
 export interface AttendanceRow {
   date: string;
   status: "PRESENT" | "ABSENT" | "LATE";
+  shiftName?: string | null;
 }
 export interface AttendanceSummary {
   present: number;
@@ -66,7 +67,7 @@ export async function loadPortalAttendanceHistory(
       r.status === "ABSENT" ||
       r.status === "LATE"
     ) {
-      mapped.push({ date: r.date, status: r.status });
+      mapped.push({ date: r.date, status: r.status, shiftName: r.shift?.name ?? null });
     }
   }
   const total = present + absent + late || 1;

@@ -19,6 +19,8 @@ const dateStr = z
 export const markStudentAttendanceSchema = z.object({
   classId: z.string().min(1),
   sectionId: z.string().min(1).nullable().optional(),
+  /** Which SchoolShift this attendance was taken in — null for schools with no shifts set up. */
+  shiftId: z.string().min(1).nullable().optional(),
   date: dateStr,
   records: z
     .array(

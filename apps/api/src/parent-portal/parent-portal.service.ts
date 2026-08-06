@@ -85,6 +85,7 @@ export class ParentPortalService {
         where: { studentId },
         orderBy: { date: "desc" },
         take: 60,
+        include: { shift: { select: { name: true } } },
       });
     });
   }

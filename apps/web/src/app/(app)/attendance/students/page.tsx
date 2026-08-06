@@ -20,12 +20,14 @@ import { StudentStatusPicker } from "@/components/attendance/status-picker";
 import { StudentAttendanceSummaryCards } from "@/components/attendance/summary-cards";
 import {
   filterStudentRecords,
+  listAttendanceShifts,
   loadStudentMarkingRows,
   saveStudentAttendance,
   studentDashboardToday,
   useAttendanceState,
   type AttendanceSummary,
 } from "@/lib/attendance/store";
+import type { ApiShift } from "@/lib/attendance/api";
 import {
   formatDisplayDate,
   studentStatusLabel,
@@ -85,6 +87,20 @@ export default function StudentAttendancePage() {
   const [date, setDate] = useState(todayISO());
   const [klass, setKlass] = useState("");
   const [section, setSection] = useState("");
+  const [shiftId, setShiftId] = useState("");
+  const [shifts, setShifts] = useState<ApiShift[]>([]);
+
+  // Shifts are per academic year — schools that never set any up simply get
+  // an empty list and the picker below stays hidden, no forced complexity.
+  useEffect(() => {
+    const yearId = academics.academicYears.find((y) => y.name === year)?.id;
+    if (!yearId) {
+      setShifts([]);
+      return;
+    }
+    void listAttendanceShifts(yearId).then(setShifts);
+  }, [year, academics.academicYears]);
+
   const [rows, setRows] = useState<StudentMarkRow[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -184,7 +200,7 @@ export default function StudentAttendancePage() {
       }
       const sec = sectionOptions.find((s) => s.name === section);
       setDashboardLoading(true);
-      void studentDashboardToday(todayISO(), cls.id, sec?.id)
+      void studentDashboardToday(todayISO(), cls.id, sec?.id, shiftId || undefined)
         .then(setDashboard)
         .finally(() => setDashboardLoading(false));
       return;
@@ -193,7 +209,7 @@ export default function StudentAttendancePage() {
     void studentDashboardToday(todayISO())
       .then(setDashboard)
       .finally(() => setDashboardLoading(false));
-  }, [tab, mounted, isTeacher, klass, section, year, sectionOptions]);
+  }, [tab, mounted, isTeacher, klass, section, year, sectionOptions, shiftId]);
 
   useEffect(() => {
     if (tab !== "reports" || !mounted || !year) return;
@@ -213,8 +229,9 @@ export default function StudentAttendancePage() {
   async function loadList() {
     if (!klass) return toast("Select a class.", "error");
     if (markClassNeedsSection && !section) return toast("Select a section.", "error");
+    if (shifts.length > 0 && !shiftId) return toast("Select a shift.", "error");
     setLoading(true);
-    const res = await loadStudentMarkingRows(year, klass, section, date);
+    const res = await loadStudentMarkingRows(year, klass, section, date, shiftId || null);
     setLoading(false);
     if (res.error) return toast(res.error, "error");
     setRows(res.rows);
@@ -241,6 +258,7 @@ export default function StudentAttendancePage() {
       section,
       date,
       eligible.map((r) => ({ studentId: r.studentId, status: r.status })),
+      shiftId || null,
     );
     setSaving(false);
     if (!res.ok) return toast(res.error ?? "Save failed.", "error");
@@ -292,10 +310,13 @@ export default function StudentAttendancePage() {
         <div className="p-6">
           {tab === "mark" && (
             <div className="space-y-5">
-              <div className="grid gap-3 rounded-xl border bg-secondary/20 p-4 sm:grid-cols-2 lg:grid-cols-5">
+              <div className={cn(
+                "grid gap-3 rounded-xl border bg-secondary/20 p-4 sm:grid-cols-2",
+                shifts.length > 0 ? "lg:grid-cols-6" : "lg:grid-cols-5",
+              )}>
                 <div>
                   <label className="mb-1 block text-xs font-medium text-muted-foreground">{t("attendanceStudents.academicYear")}</label>
-                  <Select value={year} onChange={(e) => { setYear(e.target.value); setLoaded(false); }}>
+                  <Select value={year} onChange={(e) => { setYear(e.target.value); setKlass(""); setSection(""); setShiftId(""); setLoaded(false); }}>
                     {academics.academicYears.map((y) => <option key={y.id} value={y.name}>{y.name}</option>)}
                   </Select>
                 </div>
@@ -308,18 +329,26 @@ export default function StudentAttendancePage() {
                   <label className="mb-1 block text-xs font-medium text-muted-foreground">{t("attendanceStudents.class")}</label>
                   <Select value={klass} onChange={(e) => { setKlass(e.target.value); setSection(""); setLoaded(false); }}>
                     <option value="">{t("attendanceStudents.selectClass")}</option>
-                    {yearClassGroups.map((g) =>
-                      g.label === null ? (
-                        g.items.map((c) => (
+                    {isTeacher && assignedClassNames ? (
+                      <optgroup label={t("attendanceStudents.myClasses")}>
+                        {yearClasses.map((c) => (
                           <option key={c.id} value={c.name}>{c.name}</option>
-                        ))
-                      ) : (
-                        <optgroup key={g.label} label={g.label}>
-                          {g.items.map((c) => (
+                        ))}
+                      </optgroup>
+                    ) : (
+                      yearClassGroups.map((g) =>
+                        g.label === null ? (
+                          g.items.map((c) => (
                             <option key={c.id} value={c.name}>{c.name}</option>
-                          ))}
-                        </optgroup>
-                      ),
+                          ))
+                        ) : (
+                          <optgroup key={g.label} label={g.label}>
+                            {g.items.map((c) => (
+                              <option key={c.id} value={c.name}>{c.name}</option>
+                            ))}
+                          </optgroup>
+                        ),
+                      )
                     )}
                   </Select>
                 </div>
@@ -338,6 +367,19 @@ export default function StudentAttendancePage() {
                     {sectionOptions.map((s) => <option key={s.id} value={s.name}>{t("attendanceStudents.section")} {s.name}</option>)}
                   </Select>
                 </div>
+                {shifts.length > 0 && (
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                      {t("attendanceStudents.shift")} *
+                    </label>
+                    <Select value={shiftId} onChange={(e) => { setShiftId(e.target.value); setLoaded(false); }}>
+                      <option value="">{t("attendanceStudents.selectShift")}</option>
+                      {shifts.map((s) => (
+                        <option key={s.id} value={s.id}>{s.name}</option>
+                      ))}
+                    </Select>
+                  </div>
+                )}
                 <div className="flex items-end">
                   <Button onClick={() => void loadList()} disabled={loading} className="w-full">
                     {loading ? <Loader2 className="me-2 h-4 w-4 animate-spin" /> : null}
@@ -350,7 +392,8 @@ export default function StudentAttendancePage() {
                 <>
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <p className="text-sm text-muted-foreground">
-                      {formatDisplayDate(date)} · {klass}{section ? ` · Section ${section}` : ""} · {eligibleRows.length} {t("attendanceStudents.students")}
+                      {formatDisplayDate(date)} · {klass}{section ? ` · Section ${section}` : ""}
+                      {shiftId ? ` · ${shifts.find((s) => s.id === shiftId)?.name ?? ""}` : ""} · {eligibleRows.length} {t("attendanceStudents.students")}
                     </p>
                     <div className="flex flex-wrap gap-2">
                       <Button variant="outline" onClick={() => markAll("PRESENT")}>

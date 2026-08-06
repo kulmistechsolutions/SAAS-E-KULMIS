@@ -454,6 +454,7 @@ export class StudentsService {
         where: { studentId },
         orderBy: { date: "desc" },
         take: limit,
+        include: { shift: { select: { name: true } } },
       });
       let present = 0;
       let absent = 0;
@@ -472,6 +473,7 @@ export class StudentsService {
         rows: records.map((r) => ({
           date: r.date.toISOString(),
           status: r.status as "PRESENT" | "ABSENT" | "LATE",
+          shiftName: r.shift?.name ?? null,
         })),
       };
     });

@@ -12,9 +12,26 @@ export class StudentAttendanceService {
   constructor(private readonly prisma: PrismaService) {}
 
   /**
-   * Mark attendance for a section on a date. One record per student per day
-   * (re-marking updates). Only ACTIVE students of the section are accepted;
-   * others are skipped (inactive/graduated/wrong-section cannot be marked).
+   * Active shifts for an academic year, for the attendance-marking picker.
+   * Kept minimal and open to any staff role — the full shift editor
+   * (`/timetable/shifts`) is administrator-only, but everyone who can mark
+   * attendance needs to see which shifts exist to pick one.
+   */
+  async listShifts(schoolId: string, academicYearId: string) {
+    return this.prisma.forTenant(schoolId, (tx) =>
+      tx.schoolShift.findMany({
+        where: { academicYearId, status: "ACTIVE" },
+        orderBy: { orderIndex: "asc" },
+        select: { id: true, name: true, orderIndex: true },
+      }),
+    );
+  }
+
+  /**
+   * Mark attendance for a section on a date, optionally scoped to a shift.
+   * One record per student per day per shift (re-marking the same day+shift
+   * updates it). Only ACTIVE students of the section are accepted; others
+   * are skipped (inactive/graduated/wrong-section cannot be marked).
    */
   async mark(
     schoolId: string,
@@ -23,6 +40,7 @@ export class StudentAttendanceService {
   ) {
     const date = parseDate(dto.date);
     const sectionId = dto.sectionId ?? null;
+    const shiftId = dto.shiftId ?? null;
 
     return this.prisma.forTenant(schoolId, async (tx) => {
       const cls = await tx.class.findFirst({
@@ -44,34 +62,62 @@ export class StudentAttendanceService {
           skipped++;
           continue;
         }
-        await tx.studentAttendance.upsert({
-          where: {
-            schoolId_studentId_date: { schoolId, studentId: rec.studentId, date },
-          },
-          create: {
-            schoolId,
-            studentId: rec.studentId,
-            classId: dto.classId,
-            sectionId,
-            academicYearId: cls.academicYearId,
-            date,
-            status: rec.status,
-            markedByUserId,
-          },
-          update: { status: rec.status, markedByUserId },
-        });
+        const create: Prisma.StudentAttendanceUncheckedCreateInput = {
+          schoolId,
+          studentId: rec.studentId,
+          classId: dto.classId,
+          sectionId,
+          shiftId,
+          academicYearId: cls.academicYearId,
+          date,
+          status: rec.status,
+          markedByUserId,
+        };
+        // Prisma's compound-unique `where` type requires a non-null shiftId
+        // (a known limitation with nullable fields in compound indexes), so
+        // the no-shift case falls back to a manual find-then-write — the
+        // partial unique index on (schoolId, studentId, date) WHERE shiftId
+        // IS NULL still guarantees one row per day at the DB level.
+        if (shiftId) {
+          await tx.studentAttendance.upsert({
+            where: {
+              schoolId_studentId_date_shiftId: {
+                schoolId,
+                studentId: rec.studentId,
+                date,
+                shiftId,
+              },
+            },
+            create,
+            update: { status: rec.status, markedByUserId },
+          });
+        } else {
+          const existing = await tx.studentAttendance.findFirst({
+            where: { schoolId, studentId: rec.studentId, date, shiftId: null },
+            select: { id: true },
+          });
+          if (existing) {
+            await tx.studentAttendance.update({
+              where: { id: existing.id },
+              data: { status: rec.status, markedByUserId },
+            });
+          } else {
+            await tx.studentAttendance.create({ data: create });
+          }
+        }
         marked++;
       }
       return { date: dto.date, marked, skipped };
     });
   }
 
-  /** Roster for a section on a date: every active student + their status. */
+  /** Roster for a section (+ shift) on a date: every active student + their status. */
   async list(
     schoolId: string,
     classId: string,
     sectionId: string | null,
     dateStr: string,
+    shiftId?: string | null,
   ) {
     const date = parseDate(dateStr);
     return this.prisma.forTenant(schoolId, async (tx) => {
@@ -81,7 +127,7 @@ export class StudentAttendanceService {
         select: { id: true, code: true, fullName: true },
       });
       const records = await tx.studentAttendance.findMany({
-        where: { classId, sectionId, date },
+        where: { classId, sectionId, date, shiftId: shiftId ?? null },
         select: { studentId: true, status: true },
       });
       const byStudent = new Map(records.map((r) => [r.studentId, r.status]));
@@ -95,17 +141,19 @@ export class StudentAttendanceService {
     });
   }
 
-  /** Daily dashboard counts (optionally scoped to a class/section). */
+  /** Daily dashboard counts (optionally scoped to a class/section/shift). */
   async dashboard(
     schoolId: string,
     dateStr: string,
     classId?: string,
     sectionId?: string,
+    shiftId?: string,
   ) {
     const date = parseDate(dateStr);
     const where: Prisma.StudentAttendanceWhereInput = { date };
     if (classId) where.classId = classId;
     if (sectionId) where.sectionId = sectionId;
+    if (shiftId) where.shiftId = shiftId;
 
     return this.prisma.forTenant(schoolId, async (tx) => {
       const grouped = await tx.studentAttendance.groupBy({

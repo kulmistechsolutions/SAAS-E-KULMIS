@@ -17,6 +17,12 @@ export interface ApiStudentRosterResponse {
   roster: ApiStudentRosterItem[];
 }
 
+export interface ApiShift {
+  id: string;
+  name: string;
+  orderIndex: number;
+}
+
 export interface ApiStudentDashboardResponse {
   date: string;
   PRESENT: number;
@@ -68,15 +74,18 @@ export async function apiStudentRoster(
   classId: string,
   date: string,
   sectionId?: string | null,
+  shiftId?: string | null,
 ): Promise<ApiStudentRosterResponse> {
   const params = new URLSearchParams({ classId, date });
   if (sectionId) params.set("sectionId", sectionId);
+  if (shiftId) params.set("shiftId", shiftId);
   return api<ApiStudentRosterResponse>(`/student-attendance?${params}`);
 }
 
 export async function apiMarkStudentAttendance(body: {
   classId: string;
   sectionId?: string | null;
+  shiftId?: string | null;
   date: string;
   records: { studentId: string; status: StudentAttendanceStatus }[];
 }): Promise<{ date: string; marked: number; skipped: number }> {
@@ -87,12 +96,23 @@ export async function apiStudentDashboard(
   date: string,
   classId?: string,
   sectionId?: string,
+  shiftId?: string,
 ): Promise<ApiStudentDashboardResponse> {
   const params = new URLSearchParams({ date });
   if (classId) params.set("classId", classId);
   if (sectionId) params.set("sectionId", sectionId);
+  if (shiftId) params.set("shiftId", shiftId);
   return api<ApiStudentDashboardResponse>(
     `/student-attendance/dashboard?${params}`,
+  );
+}
+
+/** Active shifts for a school year, for the class → section → shift picker. */
+export async function apiListStudentAttendanceShifts(
+  academicYearId: string,
+): Promise<ApiShift[]> {
+  return api<ApiShift[]>(
+    `/student-attendance/shifts?academicYearId=${academicYearId}`,
   );
 }
 

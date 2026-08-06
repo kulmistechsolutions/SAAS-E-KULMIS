@@ -11,6 +11,7 @@ import {
 import { getState as getStudentsState } from "@/lib/students/store";
 import { getTeachersState } from "@/lib/teachers/store";
 import {
+  apiListStudentAttendanceShifts,
   apiMarkStudentAttendance,
   apiMarkTeacherAttendance,
   apiStudentDashboard,
@@ -19,6 +20,7 @@ import {
   apiTeacherRoster,
   mapTeacherStatusFromApi,
   mapTeacherStatusToApi,
+  type ApiShift,
 } from "./api";
 import { todayISO } from "./format";
 import type {
@@ -166,11 +168,23 @@ function summarizeTeacher(
 // Student attendance
 // ---------------------------------------------------------------------------
 
+/** Active shifts for an academic year — empty for schools that don't use shifts. */
+export async function listAttendanceShifts(
+  academicYearId: string,
+): Promise<ApiShift[]> {
+  try {
+    return await apiListStudentAttendanceShifts(academicYearId);
+  } catch {
+    return [];
+  }
+}
+
 export async function loadStudentMarkingRows(
   academicYear: string,
   className: string,
   section: string,
   date: string,
+  shiftId?: string | null,
 ): Promise<{ rows: StudentMarkRow[]; error?: string }> {
   await ensureAcademicsLoaded();
   const { classId, error: classErr } = resolveClassId(className, academicYear);
@@ -180,7 +194,7 @@ export async function loadStudentMarkingRows(
   if (secErr) return { rows: [], error: secErr };
 
   try {
-    const res = await apiStudentRoster(classId, date, sectionId);
+    const res = await apiStudentRoster(classId, date, sectionId, shiftId);
     const rows = res.roster
       .sort((a, b) => a.fullName.localeCompare(b.fullName))
       .map((s) => ({
@@ -204,6 +218,7 @@ export async function saveStudentAttendance(
   section: string,
   date: string,
   rows: { studentId: string; status: StudentAttendanceStatus }[],
+  shiftId?: string | null,
 ): Promise<SaveStudentResult> {
   if (!className) return { ok: false, error: "Class is required." };
 
@@ -219,7 +234,7 @@ export async function saveStudentAttendance(
   const { sectionId, error: secErr } = resolveSectionId(classId, section);
   if (secErr) return { ok: false, error: secErr };
 
-  const mark = await loadStudentMarkingRows(academicYear, className, section, date);
+  const mark = await loadStudentMarkingRows(academicYear, className, section, date, shiftId);
   if (mark.error) return { ok: false, error: mark.error };
 
   const eligibleIds = new Set(
@@ -238,6 +253,7 @@ export async function saveStudentAttendance(
     await apiMarkStudentAttendance({
       classId,
       sectionId,
+      shiftId,
       date,
       records: rows,
     });
@@ -252,9 +268,10 @@ export async function studentDashboardToday(
   date = todayISO(),
   classId?: string,
   sectionId?: string,
+  shiftId?: string,
 ): Promise<AttendanceSummary & { totalStudents: number }> {
   try {
-    const dash = await apiStudentDashboard(date, classId, sectionId);
+    const dash = await apiStudentDashboard(date, classId, sectionId, shiftId);
     return {
       total: dash.total,
       present: dash.PRESENT,

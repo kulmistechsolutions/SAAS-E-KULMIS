@@ -359,6 +359,7 @@ function AttendanceTab({ student }: { student: StudentWithParent }) {
   useEffect(() => {
     void loadAttendanceHistory(student.id, 60).then(setA);
   }, [student.id]);
+  const hasShifts = a.rows.some((r) => r.shiftName);
   return (
     <div className="space-y-5">
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -372,6 +373,9 @@ function AttendanceTab({ student }: { student: StudentWithParent }) {
           <thead className="bg-secondary text-start text-xs text-muted-foreground">
             <tr>
               <th className="px-4 py-2.5 font-medium">{tr("students.date")}</th>
+              {hasShifts && (
+                <th className="px-4 py-2.5 font-medium">{tr("students.shift")}</th>
+              )}
               <th className="px-4 py-2.5 font-medium">{tr("students.status")}</th>
             </tr>
           </thead>
@@ -379,6 +383,11 @@ function AttendanceTab({ student }: { student: StudentWithParent }) {
             {a.rows.map((r, i) => (
               <tr key={i} className="border-t">
                 <td className="px-4 py-2.5">{shortDate(r.date)}</td>
+                {hasShifts && (
+                  <td className="px-4 py-2.5 text-muted-foreground">
+                    {r.shiftName ?? "—"}
+                  </td>
+                )}
                 <td className="px-4 py-2.5">
                   <Badge
                     tone={
