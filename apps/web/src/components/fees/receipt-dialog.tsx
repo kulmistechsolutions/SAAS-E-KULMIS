@@ -8,7 +8,7 @@ import { useSchoolBranding } from "@/lib/settings/use-school-branding";
 import { getState as getStudentsState } from "@/lib/students/store";
 import { money, monthLabel, paymentTypeLabel, receiptDate } from "@/lib/fees/format";
 import { printReceipt } from "@/lib/fees/print";
-import { outstandingBalance } from "@/lib/fees/store";
+import { outstandingBalance, recordReceiptPrint } from "@/lib/fees/store";
 import type { FeePayment } from "@/lib/fees/types";
 
 interface ReceiptDialogProps {
@@ -33,7 +33,14 @@ export function ReceiptDialog({ payment, onClose }: ReceiptDialogProps) {
           <Button variant="outline" onClick={onClose}>
             {t("feesReceiptDialog.close")}
           </Button>
-          <Button onClick={() => printReceipt(payment)}>{t("feesReceiptDialog.printReceipt")}</Button>
+          <Button
+            onClick={() => {
+              recordReceiptPrint(payment.id);
+              printReceipt(payment);
+            }}
+          >
+            {t("feesReceiptDialog.printReceipt")}
+          </Button>
         </>
       }
     >

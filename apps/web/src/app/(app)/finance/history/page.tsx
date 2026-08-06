@@ -3,6 +3,7 @@
 
 import { useT } from "@/lib/i18n/provider";
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { Download, Eye, Printer, Undo2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,7 +14,7 @@ import { ReceiptDialog } from "@/components/fees/receipt-dialog";
 import { ReversePaymentDialog } from "@/components/fees/reverse-payment-dialog";
 import { money, paymentTypeLabel, shortDate } from "@/lib/fees/format";
 import { exportPaymentsCsv, printReceipt } from "@/lib/fees/print";
-import { getPayment, useFeesState } from "@/lib/fees/store";
+import { getPayment, recordReceiptPrint, useFeesState } from "@/lib/fees/store";
 import { getState as getStudentsState } from "@/lib/students/store";
 import type { PaymentType } from "@/lib/fees/types";
 import { classNamesForYear, groupClassNames, useAcademicsState } from "@/lib/academics/store";
@@ -91,6 +92,12 @@ export default function FeeHistoryPage() {
           </p>
         </div>
         <div className="flex gap-2">
+          <Button variant="outline" className="h-9" asChild>
+            <Link href="/finance/print-history">
+              <Printer className="me-2 h-4 w-4" />
+              {t("financeHistory.printHistory")}
+            </Link>
+          </Button>
           <Button
             variant="outline"
             className="h-9"
@@ -223,7 +230,10 @@ export default function FeeHistoryPage() {
                         </button>
                         <button
                           type="button"
-                          onClick={() => printReceipt(p)}
+                          onClick={() => {
+                            recordReceiptPrint(p.id);
+                            printReceipt(p);
+                          }}
                           className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary"
                         >
                           <Printer className="h-4 w-4" />

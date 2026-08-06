@@ -16,9 +16,12 @@ import {
   apiListPayments,
   apiPayFamily,
   apiPayFee,
+  apiPrintHistory,
+  apiRecordReceiptPrint,
   apiReversePayment,
   mapApiCharge,
   mapApiPayment,
+  type ApiPrintHistory,
 } from "./api";
 import { monthKey, monthLabel, nextMonthKey, parseMonthKey } from "./format";
 import type {
@@ -495,6 +498,23 @@ export async function reversePayment(
     return { ok: true };
   } catch (e) {
     return { ok: false, error: apiErr(e, "Failed to reverse payment.") };
+  }
+}
+
+/** Fire-and-forget: records a receipt print so the school can count how many actually happened. */
+export function recordReceiptPrint(paymentId: string): void {
+  void apiRecordReceiptPrint(paymentId).catch(() => {});
+}
+
+export async function loadPrintHistory(filters: {
+  dateFrom?: string;
+  dateTo?: string;
+  type?: PaymentType;
+}): Promise<ApiPrintHistory> {
+  try {
+    return await apiPrintHistory(filters);
+  } catch {
+    return { total: 0, logs: [] };
   }
 }
 

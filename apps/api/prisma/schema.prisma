@@ -913,11 +913,30 @@ model Payment {
   allocations   PaymentAllocation[]
   reversalOf    Payment?            @relation("PaymentReversal", fields: [reversalOfPaymentId], references: [id])
   reversalEntry Payment?            @relation("PaymentReversal")
+  printLogs     PaymentPrintLog[]
 
   @@unique([schoolId, receiptNumber])
   @@index([schoolId])
   @@index([studentId])
   @@map("payments")
+}
+
+/// One row per time a receipt was printed, so the school can see how many
+/// receipts/invoices have actually been printed — not just recorded.
+model PaymentPrintLog {
+  id                String   @id @default(cuid())
+  schoolId          String
+  paymentId         String
+  printedByUserId   String?
+  printedByUsername String?
+  printedAt         DateTime @default(now())
+
+  payment Payment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+
+  @@index([schoolId])
+  @@index([paymentId])
+  @@index([schoolId, printedAt])
+  @@map("payment_print_logs")
 }
 
 /// Which FeeCharge(s) a payment's money actually went to, so reversing it can

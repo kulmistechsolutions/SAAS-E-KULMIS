@@ -14,7 +14,7 @@ import type {
   StudentFeeStartInput,
   UpdateExtraFeeInput,
 } from "@ekulmis/shared";
-import type { Prisma, UserRole } from "@prisma/client";
+import type { PaymentType, Prisma, UserRole } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { AuditService } from "../audit/audit.service";
 import {
@@ -1825,5 +1825,74 @@ export class FeesService {
       },
       { timeout: 120_000, maxWait: 30_000 },
     );
+  }
+
+  /** One row per time a receipt was actually printed — how many, not just recorded. */
+  async recordPrint(
+    schoolId: string,
+    paymentId: string,
+    userId: string,
+    username: string,
+  ) {
+    return this.prisma.forTenant(schoolId, async (tx) => {
+      const payment = await tx.payment.findFirst({ where: { id: paymentId } });
+      if (!payment) throw new NotFoundException("Payment not found");
+      return tx.paymentPrintLog.create({
+        data: {
+          schoolId,
+          paymentId,
+          printedByUserId: userId,
+          printedByUsername: username,
+        },
+      });
+    });
+  }
+
+  /** Print history — how many receipts were printed, filterable by date and type. */
+  async printHistory(
+    schoolId: string,
+    opts: { dateFrom?: string; dateTo?: string; type?: PaymentType },
+  ) {
+    const where: Prisma.PaymentPrintLogWhereInput = {};
+    if (opts.dateFrom || opts.dateTo) {
+      where.printedAt = {};
+      if (opts.dateFrom) where.printedAt.gte = new Date(`${opts.dateFrom}T00:00:00.000Z`);
+      if (opts.dateTo) where.printedAt.lte = new Date(`${opts.dateTo}T23:59:59.999Z`);
+    }
+    if (opts.type) {
+      where.payment = { type: opts.type };
+    }
+
+    return this.prisma.forTenant(schoolId, async (tx) => {
+      const [total, logs] = await Promise.all([
+        tx.paymentPrintLog.count({ where }),
+        tx.paymentPrintLog.findMany({
+          where,
+          orderBy: { printedAt: "desc" },
+          take: 500,
+          include: {
+            payment: {
+              include: { student: { select: { code: true, fullName: true } } },
+            },
+          },
+        }),
+      ]);
+      return {
+        total,
+        logs: logs.map((l) => ({
+          id: l.id,
+          printedAt: l.printedAt.toISOString(),
+          printedByUsername: l.printedByUsername,
+          receiptNumber: l.payment.receiptNumber,
+          amount: l.payment.amount,
+          type: l.payment.type,
+          isReversal: l.payment.isReversal,
+          status: l.payment.status,
+          student: l.payment.student
+            ? { code: l.payment.student.code, fullName: l.payment.student.fullName }
+            : null,
+        })),
+      };
+    });
   }
 }

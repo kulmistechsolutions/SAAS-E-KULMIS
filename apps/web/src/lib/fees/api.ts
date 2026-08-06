@@ -166,6 +166,41 @@ export async function apiReversePayment(
   });
 }
 
+/** Records that a receipt was printed — fire this alongside window.print(). */
+export async function apiRecordReceiptPrint(paymentId: string): Promise<void> {
+  await api(`/fees/payments/${paymentId}/print`, { method: "POST" });
+}
+
+export interface ApiPrintLogRow {
+  id: string;
+  printedAt: string;
+  printedByUsername: string | null;
+  receiptNumber: string;
+  amount: number;
+  type: PaymentType;
+  isReversal: boolean;
+  status: "ACTIVE" | "REVERSED";
+  student: { code: string; fullName: string } | null;
+}
+
+export interface ApiPrintHistory {
+  total: number;
+  logs: ApiPrintLogRow[];
+}
+
+export async function apiPrintHistory(filters: {
+  dateFrom?: string;
+  dateTo?: string;
+  type?: PaymentType;
+}): Promise<ApiPrintHistory> {
+  const params = new URLSearchParams();
+  if (filters.dateFrom) params.set("dateFrom", filters.dateFrom);
+  if (filters.dateTo) params.set("dateTo", filters.dateTo);
+  if (filters.type) params.set("type", filters.type);
+  const q = params.toString();
+  return api<ApiPrintHistory>(`/fees/print-history${q ? `?${q}` : ""}`);
+}
+
 export async function apiOutstanding(
   classId?: string,
   sectionId?: string,

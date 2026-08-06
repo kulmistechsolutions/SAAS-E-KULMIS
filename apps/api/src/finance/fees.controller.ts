@@ -121,6 +121,23 @@ export class FeesController {
     });
   }
 
+  /** Records that a receipt was printed, so the school can count how many actually were. */
+  @Post("payments/:id/print")
+  recordPrint(@CurrentUser() me: AuthUser, @Param("id") id: string) {
+    return this.fees.recordPrint(me.schoolId, id, me.userId, me.username);
+  }
+
+  /** How many receipts were printed, filterable by date range and payment type. */
+  @Get("print-history")
+  printHistory(
+    @CurrentUser() me: AuthUser,
+    @Query("dateFrom") dateFrom?: string,
+    @Query("dateTo") dateTo?: string,
+    @Query("type") type?: "THIS_MONTH" | "PARTIAL" | "ADVANCE",
+  ) {
+    return this.fees.printHistory(me.schoolId, { dateFrom, dateTo, type });
+  }
+
   @Get("charges")
   charges(
     @CurrentUser() me: AuthUser,
