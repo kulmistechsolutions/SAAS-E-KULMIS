@@ -29,6 +29,7 @@ export interface AttendanceSummary {
   present: number;
   absent: number;
   late: number;
+  totalMarked: number;
   percentage: number;
   rows: AttendanceRow[];
 }
@@ -70,12 +71,13 @@ export async function loadPortalAttendanceHistory(
       mapped.push({ date: r.date, status: r.status, shiftName: r.shift?.name ?? null });
     }
   }
-  const total = present + absent + late || 1;
+  const totalMarked = present + absent + late;
   const summary: AttendanceSummary = {
     present,
     absent,
     late,
-    percentage: Math.round((present / total) * 1000) / 10,
+    totalMarked,
+    percentage: Math.round((present / (totalMarked || 1)) * 1000) / 10,
     rows: mapped,
   };
   attendanceCache.set(`${studentId}:${days}`, summary);
@@ -95,6 +97,7 @@ export function attendanceHistory(
       present: 0,
       absent: 0,
       late: 0,
+      totalMarked: 0,
       percentage: 0,
       rows: [],
     }

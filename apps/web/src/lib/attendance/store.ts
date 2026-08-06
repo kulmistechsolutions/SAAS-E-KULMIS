@@ -11,16 +11,20 @@ import {
 import { getState as getStudentsState } from "@/lib/students/store";
 import { getTeachersState } from "@/lib/teachers/store";
 import {
-  apiListStudentAttendanceShifts,
+  apiCreateAttendanceShift,
+  apiDeleteAttendanceShift,
+  apiListAttendanceShifts,
   apiMarkStudentAttendance,
   apiMarkTeacherAttendance,
   apiStudentDashboard,
   apiStudentRoster,
   apiTeacherDashboard,
   apiTeacherRoster,
+  apiUpdateAttendanceShift,
   mapTeacherStatusFromApi,
   mapTeacherStatusToApi,
   type ApiShift,
+  type SaveAttendanceShiftBody,
 } from "./api";
 import { todayISO } from "./format";
 import type {
@@ -168,14 +172,49 @@ function summarizeTeacher(
 // Student attendance
 // ---------------------------------------------------------------------------
 
-/** Active shifts for an academic year — empty for schools that don't use shifts. */
-export async function listAttendanceShifts(
-  academicYearId: string,
-): Promise<ApiShift[]> {
+/** A school's attendance shifts — empty for schools that don't use shifts. */
+export async function listAttendanceShifts(): Promise<ApiShift[]> {
   try {
-    return await apiListStudentAttendanceShifts(academicYearId);
+    return await apiListAttendanceShifts();
   } catch {
     return [];
+  }
+}
+
+export async function createAttendanceShift(
+  body: SaveAttendanceShiftBody,
+): Promise<{ ok: boolean; error?: string; shift?: ApiShift }> {
+  try {
+    const shift = await apiCreateAttendanceShift(body);
+    notify();
+    return { ok: true, shift };
+  } catch (e) {
+    return { ok: false, error: apiErr(e, "Failed to create shift.") };
+  }
+}
+
+export async function updateAttendanceShift(
+  id: string,
+  body: SaveAttendanceShiftBody,
+): Promise<{ ok: boolean; error?: string; shift?: ApiShift }> {
+  try {
+    const shift = await apiUpdateAttendanceShift(id, body);
+    notify();
+    return { ok: true, shift };
+  } catch (e) {
+    return { ok: false, error: apiErr(e, "Failed to update shift.") };
+  }
+}
+
+export async function deleteAttendanceShift(
+  id: string,
+): Promise<{ ok: boolean; error?: string }> {
+  try {
+    await apiDeleteAttendanceShift(id);
+    notify();
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: apiErr(e, "Failed to remove shift.") };
   }
 }
 

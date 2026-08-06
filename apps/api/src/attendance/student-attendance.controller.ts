@@ -36,18 +36,6 @@ export class StudentAttendanceController {
     });
   }
 
-  /** Active shifts for a year, for the class/section/shift attendance picker. */
-  @Get("shifts")
-  listShifts(
-    @CurrentUser() me: AuthUser,
-    @Query("academicYearId") academicYearId: string,
-  ) {
-    if (!academicYearId) {
-      throw new BadRequestException("academicYearId is required");
-    }
-    return this.attendance.listShifts(me.schoolId, academicYearId);
-  }
-
   @Roles(
     UserRole.ADMINISTRATOR,
     UserRole.ATTENDANCE_OFFICER,

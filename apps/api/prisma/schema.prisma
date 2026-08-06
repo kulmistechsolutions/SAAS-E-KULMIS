@@ -687,15 +687,15 @@ model TeacherAssignment {
 }
 
 /// Daily student attendance (Module 5). One record per student per day —
-/// per shift for schools that run more than one (see SchoolShift).
+/// per shift for schools that run more than one (see AttendanceShift).
 model StudentAttendance {
   id             String           @id @default(cuid())
   schoolId       String
   studentId      String
   classId        String
   sectionId      String?
-  /// The shift this record was taken in (Section.shiftId ?? Class.shiftId at
-  /// mark time). Null for schools that don't use shifts at all.
+  /// Which attendance shift this record was taken in. Null for schools that
+  /// don't use shifts at all.
   shiftId        String?
   academicYearId String
   date           DateTime         @db.Date
@@ -704,13 +704,36 @@ model StudentAttendance {
   createdAt      DateTime         @default(now())
   updatedAt      DateTime         @updatedAt
 
-  student Student      @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  shift   SchoolShift? @relation(fields: [shiftId], references: [id], onDelete: SetNull)
+  student Student          @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  shift   AttendanceShift? @relation(fields: [shiftId], references: [id], onDelete: SetNull)
 
   @@unique([schoolId, studentId, date, shiftId])
   @@index([schoolId, date])
   @@index([classId, sectionId, date])
   @@map("student_attendance")
+}
+
+/// A named block of the school day used only for student attendance (e.g.
+/// "Morning", "Afternoon Session") — deliberately standalone from the
+/// timetable module's SchoolShift/period-grid machinery. A school that
+/// never creates one of these keeps the plain single-shift attendance flow.
+model AttendanceShift {
+  id         String       @id @default(cuid())
+  schoolId   String
+  name       String
+  /// Informational daily window, e.g. "08:00"–"12:00". Not enforced.
+  startTime  String?
+  endTime    String?
+  orderIndex Int          @default(0)
+  status     EntityStatus @default(ACTIVE)
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+
+  attendance StudentAttendance[]
+
+  @@unique([schoolId, name])
+  @@index([schoolId])
+  @@map("attendance_shifts")
 }
 
 /// Daily teacher attendance (Module 6). Shift-scoped. One record per day.
@@ -2224,12 +2247,11 @@ model SchoolShift {
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
-  academicYear      AcademicYear        @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
-  periods           ShiftPeriod[]
-  classes           Class[]
-  sections          Section[]
-  timetables        Timetable[]
-  studentAttendance StudentAttendance[]
+  academicYear AcademicYear  @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
+  periods      ShiftPeriod[]
+  classes      Class[]
+  sections     Section[]
+  timetables   Timetable[]
 
   @@unique([schoolId, academicYearId, name])
   @@index([schoolId])

@@ -3,7 +3,7 @@
 
 import { useT } from "@/lib/i18n/provider";
 import Link from "next/link";
-import { CalendarCheck, GraduationCap, Users } from "lucide-react";
+import { CalendarCheck, Clock, GraduationCap, Users } from "lucide-react";
 
 const SECTIONS = [
   {
@@ -19,6 +19,13 @@ const SECTIONS = [
     href: "/attendance/teachers",
     icon: GraduationCap,
     color: "from-violet-500 to-purple-600",
+  },
+  {
+    title: "Attendance Shift Management",
+    description: "Set up the sessions your school takes attendance for, e.g. Morning and Afternoon.",
+    href: "/attendance/shifts",
+    icon: Clock,
+    color: "from-amber-500 to-orange-600",
   },
 ];
 

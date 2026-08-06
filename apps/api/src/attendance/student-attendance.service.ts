@@ -12,22 +12,6 @@ export class StudentAttendanceService {
   constructor(private readonly prisma: PrismaService) {}
 
   /**
-   * Active shifts for an academic year, for the attendance-marking picker.
-   * Kept minimal and open to any staff role — the full shift editor
-   * (`/timetable/shifts`) is administrator-only, but everyone who can mark
-   * attendance needs to see which shifts exist to pick one.
-   */
-  async listShifts(schoolId: string, academicYearId: string) {
-    return this.prisma.forTenant(schoolId, (tx) =>
-      tx.schoolShift.findMany({
-        where: { academicYearId, status: "ACTIVE" },
-        orderBy: { orderIndex: "asc" },
-        select: { id: true, name: true, orderIndex: true },
-      }),
-    );
-  }
-
-  /**
    * Mark attendance for a section on a date, optionally scoped to a shift.
    * One record per student per day per shift (re-marking the same day+shift
    * updates it). Only ACTIVE students of the section are accepted; others

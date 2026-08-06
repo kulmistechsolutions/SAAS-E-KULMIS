@@ -7,6 +7,7 @@ import Link from "next/link";
 import {
   ArrowLeft,
   CheckCheck,
+  Clock,
   FileDown,
   Loader2,
   Printer,
@@ -90,16 +91,12 @@ export default function StudentAttendancePage() {
   const [shiftId, setShiftId] = useState("");
   const [shifts, setShifts] = useState<ApiShift[]>([]);
 
-  // Shifts are per academic year — schools that never set any up simply get
-  // an empty list and the picker below stays hidden, no forced complexity.
+  // A school's attendance shifts, independent of academic year — schools
+  // that never set any up simply get an empty list and the picker below
+  // stays hidden, no forced complexity.
   useEffect(() => {
-    const yearId = academics.academicYears.find((y) => y.name === year)?.id;
-    if (!yearId) {
-      setShifts([]);
-      return;
-    }
-    void listAttendanceShifts(yearId).then(setShifts);
-  }, [year, academics.academicYears]);
+    void listAttendanceShifts().then(setShifts);
+  }, []);
 
   const [rows, setRows] = useState<StudentMarkRow[]>([]);
   const [loaded, setLoaded] = useState(false);
@@ -297,11 +294,20 @@ export default function StudentAttendancePage() {
       </Link>
       )}
 
-      <div>
-        <h1 className="text-2xl font-bold">{t("attendanceStudents.studentAttendance")}</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {t("attendanceStudents.recordAttendancePerClassAndSection")}
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold">{t("attendanceStudents.studentAttendance")}</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {t("attendanceStudents.recordAttendancePerClassAndSection")}
+          </p>
+        </div>
+        {(user?.role === "ADMINISTRATOR" || user?.role === "ATTENDANCE_OFFICER") && (
+          <Button variant="outline" asChild>
+            <Link href="/attendance/shifts">
+              <Clock className="me-2 h-4 w-4" /> {t("attendanceStudents.manageShifts")}
+            </Link>
+          </Button>
+        )}
       </div>
 
       <div className="rounded-2xl border bg-card shadow-sm">

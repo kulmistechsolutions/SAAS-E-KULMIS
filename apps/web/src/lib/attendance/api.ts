@@ -20,7 +20,10 @@ export interface ApiStudentRosterResponse {
 export interface ApiShift {
   id: string;
   name: string;
+  startTime: string | null;
+  endTime: string | null;
   orderIndex: number;
+  status: "ACTIVE" | "INACTIVE";
 }
 
 export interface ApiStudentDashboardResponse {
@@ -107,13 +110,38 @@ export async function apiStudentDashboard(
   );
 }
 
-/** Active shifts for a school year, for the class → section → shift picker. */
-export async function apiListStudentAttendanceShifts(
-  academicYearId: string,
-): Promise<ApiShift[]> {
-  return api<ApiShift[]>(
-    `/student-attendance/shifts?academicYearId=${academicYearId}`,
-  );
+/**
+ * Attendance Shift Management — a school's own standalone list of named
+ * sessions ("Morning", "Afternoon") used to tag attendance, independent of
+ * the timetable module.
+ */
+export async function apiListAttendanceShifts(): Promise<ApiShift[]> {
+  return api<ApiShift[]>("/attendance-shifts");
+}
+
+export interface SaveAttendanceShiftBody {
+  name: string;
+  startTime?: string | null;
+  endTime?: string | null;
+}
+
+export async function apiCreateAttendanceShift(
+  body: SaveAttendanceShiftBody,
+): Promise<ApiShift> {
+  return api<ApiShift>("/attendance-shifts", { method: "POST", body });
+}
+
+export async function apiUpdateAttendanceShift(
+  id: string,
+  body: SaveAttendanceShiftBody,
+): Promise<ApiShift> {
+  return api<ApiShift>(`/attendance-shifts/${id}`, { method: "PATCH", body });
+}
+
+export async function apiDeleteAttendanceShift(
+  id: string,
+): Promise<{ success: boolean }> {
+  return api(`/attendance-shifts/${id}`, { method: "DELETE" });
 }
 
 export async function apiTeacherRoster(

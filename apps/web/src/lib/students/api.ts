@@ -440,6 +440,7 @@ export interface ApiAttendanceSummary {
   present: number;
   absent: number;
   late: number;
+  totalMarked: number;
   percentage: number;
   rows: {
     date: string;

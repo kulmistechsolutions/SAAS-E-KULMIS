@@ -464,12 +464,13 @@ export class StudentsService {
         else if (r.status === "ABSENT") absent++;
         else if (r.status === "LATE") late++;
       }
-      const total = present + absent + late || 1;
+      const totalMarked = present + absent + late;
       return {
         present,
         absent,
         late,
-        percentage: Math.round((present / total) * 1000) / 10,
+        totalMarked,
+        percentage: Math.round((present / (totalMarked || 1)) * 1000) / 10,
         rows: records.map((r) => ({
           date: r.date.toISOString(),
           status: r.status as "PRESENT" | "ABSENT" | "LATE",
