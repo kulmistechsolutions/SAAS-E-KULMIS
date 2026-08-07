@@ -457,6 +457,34 @@ export function normalizeWaafiAccount(phone: string): string {
   return p;
 }
 
+/**
+ * WaafiPay's raw responseMsg ("RCS_USER_REJECTED", "WaafiPay request timed
+ * out", …) means nothing to a school owner. This turns the handful of codes
+ * we actually see into a clear, actionable sentence — everything unrecognized
+ * still falls through to the raw message so nothing is silently swallowed.
+ */
+export function waafiFriendlyFailureMessage(result: {
+  errorCode?: string;
+  responseMsg?: string;
+}): string {
+  const code = String(result.errorCode ?? "").toUpperCase();
+  const msg = String(result.responseMsg ?? "").toUpperCase();
+
+  if (code === "5310" || msg === "RCS_USER_REJECTED") {
+    return "Payment was declined on your phone. Please try again and approve the USSD/PIN prompt when it arrives, and make sure your mobile wallet has enough balance.";
+  }
+  if (code === "NETWORK" || msg.includes("TIMED OUT") || msg.includes("TIMEOUT")) {
+    return "Could not reach WaafiPay in time. Please check your connection and try again in a moment.";
+  }
+  if (msg.includes("INSUFFICIENT")) {
+    return "Your mobile wallet doesn't have enough balance for this payment. Please top up and try again.";
+  }
+  if (msg.includes("INVALID") && msg.includes("ACCOUNT")) {
+    return "That mobile number isn't a valid wallet account. Double-check the number and try again.";
+  }
+  return result.responseMsg || "Payment failed. Please try again.";
+}
+
 export function isApprovedCallbackStatus(status: unknown): boolean {
   const s = String(status ?? "").toUpperCase();
   return (

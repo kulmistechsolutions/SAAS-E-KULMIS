@@ -18,6 +18,7 @@ import {
   isApprovedCallbackStatus,
   normalizeWaafiAccount,
   waafiApiPurchase,
+  waafiFriendlyFailureMessage,
   waafiGetTranInfo,
   waafiHppPurchase,
   waafiTestConnection,
@@ -427,10 +428,7 @@ export class SmsPaymentService {
       );
 
       if (!result.ok) {
-        throw new BadRequestException(
-          result.responseMsg ||
-            "Failed to create Waafi hosted payment session.",
-        );
+        throw new BadRequestException(waafiFriendlyFailureMessage(result));
       }
 
       return this.getOrderReceipt(schoolId, order.id);
@@ -475,9 +473,7 @@ export class SmsPaymentService {
     );
 
     if (!result.ok) {
-      throw new BadRequestException(
-        result.responseMsg || "Waafi payment was declined.",
-      );
+      throw new BadRequestException(waafiFriendlyFailureMessage(result));
     }
 
     // Auto-activate on successful API purchase
@@ -611,8 +607,9 @@ export class SmsPaymentService {
 
     if (!info.ok) {
       throw new BadRequestException(
-        info.raw.responseMsg ||
-          "Payment not yet confirmed by WaafiPay. Try again shortly.",
+        info.raw.responseMsg
+          ? waafiFriendlyFailureMessage(info.raw)
+          : "Payment not yet confirmed by WaafiPay. Try again shortly.",
       );
     }
 

@@ -22,6 +22,7 @@ import {
   isApprovedCallbackStatus,
   normalizeWaafiAccount,
   waafiApiPurchase,
+  waafiFriendlyFailureMessage,
   waafiGetTranInfo,
   waafiHppPurchase,
   type WaafiCredentials,
@@ -1342,9 +1343,7 @@ export class SubscriptionsService {
       );
 
       if (!result.ok) {
-        throw new BadRequestException(
-          result.responseMsg || "Failed to create Waafi hosted payment session.",
-        );
+        throw new BadRequestException(waafiFriendlyFailureMessage(result));
       }
 
       return this.getSubscriptionOrderReceipt(schoolId, order.id);
@@ -1385,9 +1384,7 @@ export class SubscriptionsService {
     );
 
     if (!result.ok) {
-      throw new BadRequestException(
-        result.responseMsg || "Waafi payment was declined.",
-      );
+      throw new BadRequestException(waafiFriendlyFailureMessage(result));
     }
 
     return this.activateSubscriptionOrder(order.id, {
@@ -1492,7 +1489,9 @@ export class SubscriptionsService {
 
     if (!info.ok) {
       throw new BadRequestException(
-        info.raw.responseMsg || "Payment not yet confirmed by WaafiPay. Try again shortly.",
+        info.raw.responseMsg
+          ? waafiFriendlyFailureMessage(info.raw)
+          : "Payment not yet confirmed by WaafiPay. Try again shortly.",
       );
     }
 
