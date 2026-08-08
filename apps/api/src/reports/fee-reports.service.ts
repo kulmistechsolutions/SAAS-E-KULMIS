@@ -1,5 +1,7 @@
 import { Injectable } from "@nestjs/common";
+import { formatMoney } from "@ekulmis/shared";
 import { PrismaService } from "../prisma/prisma.service";
+import { parseDateFrom, parseDateTo } from "../common/date-range.util";
 
 export interface ReportColumn {
   key: string;
@@ -25,8 +27,6 @@ export interface FeeReportFilters {
   search?: string;
 }
 
-const money = (n: number) => `$${n.toFixed(2)}`;
-
 /**
  * Fee reports, computed from the database.
  *
@@ -46,19 +46,24 @@ export class FeeReportsService {
     slug: string,
     filters: FeeReportFilters,
   ): Promise<ReportData> {
+    const school = await this.prisma.school.findFirst({
+      where: { id: schoolId },
+      select: { currency: true },
+    });
+    const money = (n: number) => formatMoney(n, school?.currency);
     switch (slug) {
       case "monthly-collections":
       case "daily-collections":
       case "by-class":
       case "by-section":
-        return this.collections(schoolId, slug, filters);
+        return this.collections(schoolId, slug, filters, money);
       case "outstanding":
       case "partial":
       case "advance":
       case "academic-year-summary":
-        return this.balances(schoolId, slug, filters);
+        return this.balances(schoolId, slug, filters, money);
       default:
-        return this.balances(schoolId, "outstanding", filters);
+        return this.balances(schoolId, "outstanding", filters, money);
     }
   }
 
@@ -67,6 +72,7 @@ export class FeeReportsService {
     schoolId: string,
     slug: string,
     filters: FeeReportFilters,
+    money: (n: number) => string,
   ): Promise<ReportData> {
     const rows = await this.prisma.forTenant(schoolId, async (tx) => {
       const students = await tx.student.findMany({
@@ -177,6 +183,7 @@ export class FeeReportsService {
     schoolId: string,
     slug: string,
     filters: FeeReportFilters,
+    money: (n: number) => string,
   ): Promise<ReportData> {
     const payments = await this.prisma.forTenant(schoolId, (tx) =>
       tx.payment.findMany({
@@ -184,8 +191,8 @@ export class FeeReportsService {
           ...(filters.dateFrom || filters.dateTo
             ? {
                 paidAt: {
-                  ...(filters.dateFrom ? { gte: new Date(filters.dateFrom) } : {}),
-                  ...(filters.dateTo ? { lte: new Date(`${filters.dateTo}T23:59:59`) } : {}),
+                  ...(filters.dateFrom ? { gte: parseDateFrom(filters.dateFrom) } : {}),
+                  ...(filters.dateTo ? { lte: parseDateTo(filters.dateTo) } : {}),
                 },
               }
             : {}),

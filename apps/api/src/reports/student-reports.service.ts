@@ -1,6 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import type { Prisma } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
+import { parseDateFrom, parseDateTo } from "../common/date-range.util";
 import type { ReportData } from "./fee-reports.service";
 
 export interface StudentReportFilters {
@@ -71,8 +72,8 @@ export class StudentReportsService {
     }
     if (slug === "registration" && (filters.dateFrom || filters.dateTo)) {
       where.registrationDate = {
-        ...(filters.dateFrom ? { gte: new Date(filters.dateFrom) } : {}),
-        ...(filters.dateTo ? { lte: new Date(`${filters.dateTo}T23:59:59`) } : {}),
+        ...(filters.dateFrom ? { gte: parseDateFrom(filters.dateFrom) } : {}),
+        ...(filters.dateTo ? { lte: parseDateTo(filters.dateTo) } : {}),
       };
     }
     return where;

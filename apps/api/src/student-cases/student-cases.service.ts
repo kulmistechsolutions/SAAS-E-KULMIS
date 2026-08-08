@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from "@nestjs/common";
 import type { CreateStudentCaseInput } from "@ekulmis/shared";
 import type { Prisma } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
+import { parseDateFrom, parseDateTo } from "../common/date-range.util";
 
 /**
  * Student Cases — a dated behavior/discipline note staff attach to a
@@ -54,8 +55,8 @@ export class StudentCasesService {
     if (opts.sectionId) where.sectionId = opts.sectionId;
     if (opts.dateFrom || opts.dateTo) {
       where.date = {};
-      if (opts.dateFrom) where.date.gte = new Date(`${opts.dateFrom}T00:00:00.000Z`);
-      if (opts.dateTo) where.date.lte = new Date(`${opts.dateTo}T23:59:59.999Z`);
+      if (opts.dateFrom) where.date.gte = parseDateFrom(opts.dateFrom);
+      if (opts.dateTo) where.date.lte = parseDateTo(opts.dateTo);
     }
 
     return this.prisma.forTenant(schoolId, async (tx) => {

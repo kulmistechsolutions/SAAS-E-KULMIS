@@ -1,5 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import type { Prisma } from "@prisma/client";
+import { formatMoney } from "@ekulmis/shared";
 import { PrismaService } from "../prisma/prisma.service";
 import type { ReportData } from "./fee-reports.service";
 
@@ -8,8 +9,6 @@ export interface SalaryReportFilters {
   shift?: string;
   status?: string;
 }
-
-const money = (n: number) => `$${n.toFixed(2)}`;
 
 /** "2026-07" → { year: 2026, month: 7 }. */
 function parseMonth(value?: string): { year: number; month: number } | null {
@@ -47,6 +46,11 @@ export class SalaryReportsService {
     schoolId: string,
     filters: SalaryReportFilters,
   ): Promise<ReportData> {
+    const school = await this.prisma.school.findFirst({
+      where: { id: schoolId },
+      select: { currency: true },
+    });
+    const money = (n: number) => formatMoney(n, school?.currency);
     const period = parseMonth(filters.month);
     const where: Prisma.SalaryWhereInput = {
       ...(period ? { year: period.year, month: period.month } : {}),

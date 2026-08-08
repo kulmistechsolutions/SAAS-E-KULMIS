@@ -29,6 +29,7 @@ import { TimetableAiService } from "./timetable-ai.service";
 import { Roles } from "../auth/roles.decorator";
 import { CurrentUser } from "../auth/current-user.decorator";
 import type { AuthUser } from "../auth/auth.types";
+import { contentDispositionHeader } from "../common/content-disposition.util";
 
 /** Timetable setup — the wizard behind the generator. Administrators only. */
 @Roles(UserRole.ADMINISTRATOR)
@@ -199,7 +200,7 @@ export class TimetableController {
     @Res() res: Response,
   ) {
     const { buffer, filename } = await this.pdf.build(me.schoolId, id);
-    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+    res.setHeader("Content-Disposition", contentDispositionHeader(filename));
     res.send(buffer);
   }
 }

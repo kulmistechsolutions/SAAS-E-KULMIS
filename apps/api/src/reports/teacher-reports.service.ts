@@ -1,5 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import type { Prisma } from "@prisma/client";
+import { formatMoney } from "@ekulmis/shared";
 import { PrismaService } from "../prisma/prisma.service";
 import type { ReportData } from "./fee-reports.service";
 
@@ -11,8 +12,6 @@ export interface TeacherReportFilters {
   subject?: string;
   search?: string;
 }
-
-const money = (n: number) => `$${n.toFixed(2)}`;
 
 /**
  * Teacher reports, computed from the database.
@@ -106,6 +105,11 @@ export class TeacherReportsService {
     schoolId: string,
     filters: TeacherReportFilters,
   ): Promise<ReportData> {
+    const school = await this.prisma.school.findFirst({
+      where: { id: schoolId },
+      select: { currency: true },
+    });
+    const money = (n: number) => formatMoney(n, school?.currency);
     const teachers = await this.prisma.forTenant(schoolId, (tx) =>
       tx.teacher.findMany({
         where: this.teacherWhere(filters),

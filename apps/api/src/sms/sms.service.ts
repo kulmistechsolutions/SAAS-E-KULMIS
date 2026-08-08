@@ -21,6 +21,7 @@ import type {
   UpdateSmsGlobalConfigInput,
   UpdateSmsPackageInput,
 } from "@ekulmis/shared";
+import { formatMoney } from "@ekulmis/shared";
 import { Prisma } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { resolveSendingName } from "./sender-id-feature";
@@ -1496,7 +1497,7 @@ export class SmsService {
                 section: st.section?.name ?? "",
                 schoolName,
                 academicYear: year?.name ?? "",
-                outstandingBalance: `$${total.toFixed(2)}`,
+                outstandingBalance: formatMoney(total, school?.currency),
               },
             },
           });

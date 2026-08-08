@@ -16,6 +16,7 @@ import { CurrentUser } from "../auth/current-user.decorator";
 import { CurrentTenant } from "../tenant/current-tenant.decorator";
 import type { AuthUser } from "../auth/auth.types";
 import type { TenantContext } from "@ekulmis/shared";
+import { contentDispositionHeader } from "../common/content-disposition.util";
 
 /**
  * Student-facing library portal. Separate from the staff `/library`
@@ -68,7 +69,7 @@ export class LibraryPortalController {
     const { buffer, doc } = await this.portal.getBookFile(me.schoolId, me.userId, id);
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader("Cache-Control", "private, no-store");
-    res.setHeader("Content-Disposition", `inline; filename="${encodeURIComponent(doc.title)}.pdf"`);
+    res.setHeader("Content-Disposition", contentDispositionHeader(`${doc.title}.pdf`, "inline"));
     res.send(buffer);
   }
 }

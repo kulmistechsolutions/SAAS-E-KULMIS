@@ -33,6 +33,7 @@ import { SmsService } from "./sms.service";
 import { SmsPaymentService } from "./sms-payment.service";
 import { SmsSenderIdService } from "./sms-sender-id.service";
 import { senderIdFeatureEnabled } from "./sender-id-feature";
+import { contentDispositionHeader } from "../common/content-disposition.util";
 
 @Public()
 @UseGuards(PlatformGuard)
@@ -244,7 +245,7 @@ export class PlatformSmsController {
     res.setHeader("Content-Type", doc.contentType);
     res.setHeader(
       "Content-Disposition",
-      `inline; filename="${doc.filename.replace(/"/g, "")}"`,
+      contentDispositionHeader(doc.filename, "inline"),
     );
     res.send(doc.buffer);
   }

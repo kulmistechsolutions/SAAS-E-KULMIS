@@ -1,12 +1,11 @@
 import { Injectable } from "@nestjs/common";
+import { formatMoney } from "@ekulmis/shared";
 import { PrismaService } from "../prisma/prisma.service";
 import type { ReportData } from "./fee-reports.service";
 
 export interface FinancialReportFilters {
   month?: string;
 }
-
-const money = (n: number) => `$${n.toFixed(2)}`;
 
 function monthRange(value?: string): { gte: Date; lt: Date } | null {
   const m = value ? /^(\d{4})-(\d{2})$/.exec(value) : null;
@@ -34,6 +33,11 @@ export class FinancialReportsService {
     filters: FinancialReportFilters,
   ): Promise<ReportData> {
     const range = monthRange(filters.month);
+    const school = await this.prisma.school.findFirst({
+      where: { id: schoolId },
+      select: { currency: true },
+    });
+    const money = (n: number) => formatMoney(n, school?.currency);
 
     const { income, expenses, salaries } = await this.prisma.forTenant(
       schoolId,

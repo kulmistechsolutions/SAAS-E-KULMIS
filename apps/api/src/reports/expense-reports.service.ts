@@ -1,6 +1,8 @@
 import { Injectable } from "@nestjs/common";
 import type { Prisma } from "@prisma/client";
+import { formatMoney } from "@ekulmis/shared";
 import { PrismaService } from "../prisma/prisma.service";
+import { parseDateFrom, parseDateTo } from "../common/date-range.util";
 import type { ReportData } from "./fee-reports.service";
 
 export interface ExpenseReportFilters {
@@ -9,8 +11,6 @@ export interface ExpenseReportFilters {
   month?: string;
   category?: string;
 }
-
-const money = (n: number) => `$${n.toFixed(2)}`;
 
 /**
  * Expense reports, computed from the database rather than the browser's
@@ -26,8 +26,13 @@ export class ExpenseReportsService {
     slug: string,
     filters: ExpenseReportFilters,
   ): Promise<ReportData> {
-    if (slug === "categories") return this.byCategory(schoolId, filters);
-    return this.list(schoolId, filters);
+    const school = await this.prisma.school.findFirst({
+      where: { id: schoolId },
+      select: { currency: true },
+    });
+    const money = (n: number) => formatMoney(n, school?.currency);
+    if (slug === "categories") return this.byCategory(schoolId, filters, money);
+    return this.list(schoolId, filters, money);
   }
 
   private dateRange(filters: ExpenseReportFilters): Prisma.ExpenseWhereInput {
@@ -47,8 +52,8 @@ export class ExpenseReportsService {
     if (filters.dateFrom || filters.dateTo) {
       return {
         spentAt: {
-          ...(filters.dateFrom ? { gte: new Date(filters.dateFrom) } : {}),
-          ...(filters.dateTo ? { lte: new Date(`${filters.dateTo}T23:59:59`) } : {}),
+          ...(filters.dateFrom ? { gte: parseDateFrom(filters.dateFrom) } : {}),
+          ...(filters.dateTo ? { lte: parseDateTo(filters.dateTo) } : {}),
         },
       };
     }
@@ -58,6 +63,7 @@ export class ExpenseReportsService {
   private async list(
     schoolId: string,
     filters: ExpenseReportFilters,
+    money: (n: number) => string,
   ): Promise<ReportData> {
     const expenses = await this.prisma.forTenant(schoolId, (tx) =>
       tx.expense.findMany({
@@ -101,6 +107,7 @@ export class ExpenseReportsService {
   private async byCategory(
     schoolId: string,
     filters: ExpenseReportFilters,
+    money: (n: number) => string,
   ): Promise<ReportData> {
     const expenses = await this.prisma.forTenant(schoolId, (tx) =>
       tx.expense.findMany({

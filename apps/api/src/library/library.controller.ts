@@ -27,6 +27,7 @@ import { LIBRARY_PDF_MAX_BYTES } from "./library-file.util";
 import { Roles } from "../auth/roles.decorator";
 import { CurrentUser } from "../auth/current-user.decorator";
 import type { AuthUser } from "../auth/auth.types";
+import { contentDispositionHeader } from "../common/content-disposition.util";
 
 /**
  * Minimal shape of a multer upload — @types/multer isn't installed and the
@@ -167,7 +168,7 @@ export class LibraryController {
     res.setHeader("Cache-Control", "private, max-age=300");
     res.setHeader(
       "Content-Disposition",
-      `inline; filename="${encodeURIComponent(doc.title)}.pdf"`,
+      contentDispositionHeader(`${doc.title}.pdf`, "inline"),
     );
     res.send(buffer);
   }

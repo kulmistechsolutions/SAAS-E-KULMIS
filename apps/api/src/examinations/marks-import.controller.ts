@@ -18,6 +18,7 @@ import { MarksImportService } from "./marks-import.service";
 import { Roles } from "../auth/roles.decorator";
 import { CurrentUser } from "../auth/current-user.decorator";
 import type { AuthUser } from "../auth/auth.types";
+import { contentDispositionHeader } from "../common/content-disposition.util";
 
 /** Bulk exam-marks import. Administrators and exam managers. */
 @Roles(UserRole.ADMINISTRATOR, UserRole.EXAM_MANAGER)
@@ -49,7 +50,7 @@ export class MarksImportController {
       me.schoolId,
       parsed.data.examIds,
     );
-    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+    res.setHeader("Content-Disposition", contentDispositionHeader(filename));
     res.send(buffer);
   }
 

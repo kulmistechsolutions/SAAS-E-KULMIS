@@ -16,6 +16,7 @@ import type {
 } from "@ekulmis/shared";
 import type { PaymentType, Prisma, UserRole } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
+import { parseDateFrom, parseDateTo } from "../common/date-range.util";
 import { AuditService } from "../audit/audit.service";
 import {
   buildMonthSlots,
@@ -1856,8 +1857,8 @@ export class FeesService {
     const where: Prisma.PaymentPrintLogWhereInput = {};
     if (opts.dateFrom || opts.dateTo) {
       where.printedAt = {};
-      if (opts.dateFrom) where.printedAt.gte = new Date(`${opts.dateFrom}T00:00:00.000Z`);
-      if (opts.dateTo) where.printedAt.lte = new Date(`${opts.dateTo}T23:59:59.999Z`);
+      if (opts.dateFrom) where.printedAt.gte = parseDateFrom(opts.dateFrom);
+      if (opts.dateTo) where.printedAt.lte = parseDateTo(opts.dateTo);
     }
     if (opts.type) {
       where.payment = { type: opts.type };

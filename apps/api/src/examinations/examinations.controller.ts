@@ -33,6 +33,7 @@ import type { AuthUser } from "../auth/auth.types";
 import { Public } from "../auth/public.decorator";
 import { CurrentTenant } from "../tenant/current-tenant.decorator";
 import type { TenantContext } from "@ekulmis/shared";
+import { contentDispositionHeader } from "../common/content-disposition.util";
 
 @Controller("examinations")
 export class ExaminationsController {
@@ -163,7 +164,7 @@ export class ExaminationsController {
       { classId, examId, sectionId, search, sortBy, sortDir },
       me.username,
     );
-    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+    res.setHeader("Content-Disposition", contentDispositionHeader(filename));
     res.send(buffer);
   }
 
@@ -191,7 +192,7 @@ export class ExaminationsController {
       { classId, examId, sectionId, search, sortBy, sortDir },
       me.username,
     );
-    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+    res.setHeader("Content-Disposition", contentDispositionHeader(filename));
     res.send(buffer);
   }
 
@@ -212,7 +213,7 @@ export class ExaminationsController {
       groupId,
       classId,
     );
-    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+    res.setHeader("Content-Disposition", contentDispositionHeader(filename));
     res.send(buffer);
   }
 
@@ -234,7 +235,7 @@ export class ExaminationsController {
       classId,
       me.username,
     );
-    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+    res.setHeader("Content-Disposition", contentDispositionHeader(filename));
     res.send(buffer);
   }
 
@@ -314,7 +315,7 @@ export class ExaminationsController {
       { classId, examGroupId, sectionId },
       me.username,
     );
-    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+    res.setHeader("Content-Disposition", contentDispositionHeader(filename));
     res.send(buffer);
   }
 
@@ -339,7 +340,7 @@ export class ExaminationsController {
       { classId, examGroupId, sectionId },
       me.username,
     );
-    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+    res.setHeader("Content-Disposition", contentDispositionHeader(filename));
     res.send(buffer);
   }
 
@@ -524,7 +525,7 @@ export class ExaminationsController {
       me.userId,
       me.role,
     );
-    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+    res.setHeader("Content-Disposition", contentDispositionHeader(filename));
     res.send(buffer);
   }
 
