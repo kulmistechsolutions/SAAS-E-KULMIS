@@ -75,6 +75,7 @@ const curated: PartialDictionary = {
     teacherPortal: "Bogga Macallinka",
     classesSections: "Fasallada & Qaybaha",
     attendance: "Xaadiriska",
+    studentCases: "Caseeska Ardayda",
     timetable: "Jadwalka",
     feeManagement: "Maaraynta Khidmadaha",
     salaryManagement: "Maaraynta Mushaharka",

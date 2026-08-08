@@ -17,6 +17,7 @@ export type PortalAuditAction =
   | "ATTENDANCE_VIEWED"
   | "RESULT_VIEWED"
   | "FEE_VIEWED"
+  | "CASES_VIEWED"
   | "RECEIPT_DOWNLOADED"
   | "PASSWORD_CHANGED";
 

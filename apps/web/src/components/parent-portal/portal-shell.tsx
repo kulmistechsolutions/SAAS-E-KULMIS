@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
+  AlertTriangle,
   Bell,
   BookOpen,
   CalendarCheck,
@@ -53,6 +54,7 @@ const NAV = [
     label: "Attendance",
     icon: CalendarCheck,
   },
+  { href: "/parent-portal/cases", label: "Student Cases", icon: AlertTriangle },
   { href: "/parent-portal/exams", label: "Exam Results", icon: BookOpen },
   {
     href: "/parent-portal/quizzes",

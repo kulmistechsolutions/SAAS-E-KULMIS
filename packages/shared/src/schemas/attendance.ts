@@ -51,6 +51,17 @@ export type SaveAttendanceShiftInput = z.infer<
   typeof saveAttendanceShiftSchema
 >;
 
+/** Record a disciplinary/behavior case (note) against a student. */
+export const createStudentCaseSchema = z.object({
+  studentId: z.string().min(1),
+  classId: z.string().min(1),
+  sectionId: z.string().min(1).nullable().optional(),
+  title: z.string().trim().min(1).max(120),
+  note: z.string().trim().max(2000).nullable().optional(),
+  date: dateStr,
+});
+export type CreateStudentCaseInput = z.infer<typeof createStudentCaseSchema>;
+
 /** Bulk-mark a shift's teachers for a day (Module 6). */
 export const markTeacherAttendanceSchema = z.object({
   shift: shiftSchema,

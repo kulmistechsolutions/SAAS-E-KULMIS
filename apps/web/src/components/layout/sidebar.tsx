@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import {
+  AlertTriangle,
   BarChart3,
   BookOpen,
   CalendarCheck,
@@ -153,6 +154,7 @@ const ADMIN_NAV: NavItem[] = [
   { label: "nav.teacherPortal", icon: BookOpen, href: "/teacher-portal/login" },
   { label: "nav.classesSections", icon: Library, children: ACADEMICS_CHILDREN },
   { label: "nav.attendance", icon: CalendarCheck, href: "/attendance" },
+  { label: "nav.studentCases", icon: AlertTriangle, href: "/student-cases" },
   { label: "nav.timetable", icon: CalendarClock, children: TIMETABLE_CHILDREN },
   { label: "nav.feeManagement", icon: Wallet, children: FEE_CHILDREN },
   { label: "nav.salaryManagement", icon: Receipt, children: SALARY_CHILDREN },
@@ -177,6 +179,7 @@ const TEACHER_NAV: NavItem[] = [
   { label: "nav.myTimetable", icon: CalendarClock, href: "/my-schedule" },
   { label: "nav.myAssignments", icon: CalendarDays, href: "/my-assignments" },
   { label: "nav.attendance", icon: CalendarCheck, href: "/attendance/students" },
+  { label: "nav.studentCases", icon: AlertTriangle, href: "/student-cases" },
   { label: "nav.examinations", icon: FileText, children: TEACHER_EXAM_CHILDREN },
   { label: "nav.onlineQuiz", icon: ClipboardList, children: TEACHER_QUIZ_CHILDREN },
   { label: "nav.announcements", icon: Megaphone, href: "/announcements" },

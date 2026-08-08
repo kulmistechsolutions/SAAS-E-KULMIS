@@ -34,6 +34,11 @@ export class ParentPortalController {
     return this.portal.childAttendance(me.schoolId, studentId, me.userId);
   }
 
+  @Get("children/:studentId/cases")
+  cases(@CurrentUser() me: AuthUser, @Param("studentId") studentId: string) {
+    return this.portal.childCases(me.schoolId, studentId, me.userId);
+  }
+
   @Get("children/:studentId/fees")
   fees(@CurrentUser() me: AuthUser, @Param("studentId") studentId: string) {
     return this.portal.childFees(me.schoolId, studentId, me.userId);

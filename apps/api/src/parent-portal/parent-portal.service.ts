@@ -90,6 +90,28 @@ export class ParentPortalService {
     });
   }
 
+  async childCases(schoolId: string, studentId: string, userId: string) {
+    const parentId = await this.parentIdForUser(schoolId, userId);
+    return this.prisma.forTenant(schoolId, async (tx) => {
+      const student = await tx.student.findFirst({
+        where: { id: studentId, parentId },
+      });
+      if (!student) throw new NotFoundException("Child not found");
+      const cases = await tx.studentCase.findMany({
+        where: { studentId },
+        orderBy: { date: "desc" },
+      });
+      return cases.map((c) => ({
+        id: c.id,
+        title: c.title,
+        note: c.note,
+        date: c.date.toISOString().slice(0, 10),
+        recordedByUsername: c.recordedByUsername,
+        createdAt: c.createdAt.toISOString(),
+      }));
+    });
+  }
+
   async childFees(schoolId: string, studentId: string, userId: string) {
     const parentId = await this.parentIdForUser(schoolId, userId);
     return this.prisma.forTenant(schoolId, async (tx) => {

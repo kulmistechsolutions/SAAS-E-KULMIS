@@ -561,6 +561,7 @@ model Student {
   promotions   PromotionRecord[]
   quizAttempts QuizAttempt[]
   bookLoans    BookLoan[]
+  cases        StudentCase[]
 
   @@unique([schoolId, code])
   @@index([schoolId])
@@ -937,6 +938,33 @@ model PaymentPrintLog {
   @@index([paymentId])
   @@index([schoolId, printedAt])
   @@map("payment_print_logs")
+}
+
+/// A disciplinary/behavior note recorded against a student — e.g. "skipped
+/// class", "fighting", "excellent conduct". Independent of attendance; just a
+/// dated note staff can attach to a student for the school (and that
+/// student's parent) to track over time.
+model StudentCase {
+  id                 String   @id @default(cuid())
+  schoolId           String
+  studentId          String
+  classId            String
+  sectionId          String?
+  title              String
+  note               String?
+  date               DateTime @db.Date
+  recordedByUserId   String?
+  recordedByUsername String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([schoolId])
+  @@index([schoolId, date])
+  @@index([studentId])
+  @@index([classId, sectionId])
+  @@map("student_cases")
 }
 
 /// Which FeeCharge(s) a payment's money actually went to, so reversing it can

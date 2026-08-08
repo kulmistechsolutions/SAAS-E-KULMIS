@@ -5,6 +5,7 @@ import { useT } from "@/lib/i18n/provider";
 import { use, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
+  AlertTriangle,
   ArrowLeft,
   CalendarCheck,
   Download,
@@ -47,6 +48,8 @@ import { studentQuizHistory } from "@/lib/quiz/store";
 import { studentPromotionHistory } from "@/lib/promotions/store";
 import { PromotionTypeBadge } from "@/components/promotions/badges";
 import { dateTime } from "@/lib/promotions/format";
+import { apiStudentCasesForStudent } from "@/lib/student-cases/api";
+import type { StudentOwnCase } from "@/lib/student-cases/types";
 import type { StudentStatus, StudentWithParent } from "@/lib/students/types";
 import type { FeePayment } from "@/lib/fees/types";
 import { toast } from "@/lib/toast";
@@ -68,6 +71,7 @@ function buildTabs(tr: ReturnType<typeof useT>) {
     { id: "exams", label: tr("students.tabExams"), icon: <FileText className="h-4 w-4" /> },
     { id: "quizzes", label: tr("students.tabQuizzes"), icon: <GraduationCap className="h-4 w-4" /> },
     { id: "promotion", label: tr("students.tabPromotion"), icon: <TrendingUp className="h-4 w-4" /> },
+    { id: "cases", label: tr("studentCases.tabCases"), icon: <AlertTriangle className="h-4 w-4" /> },
   ];
   return { all, teacher: all.filter((t) => t.id !== "fees" && t.id !== "promotion") };
 }
@@ -204,6 +208,7 @@ export default function StudentProfilePage({
           {tab === "exams" && <ExamsTab student={student} />}
           {tab === "quizzes" && <QuizzesTab student={student} />}
           {tab === "promotion" && <PromotionTab student={student} />}
+          {tab === "cases" && <CasesTab student={student} />}
         </div>
       </div>
 
@@ -407,6 +412,64 @@ function AttendanceTab({ student }: { student: StudentWithParent }) {
           </tbody>
         </table>
       </div>
+    </div>
+  );
+}
+
+function CasesTab({ student }: { student: StudentWithParent }) {
+  const tr = useT();
+  const [cases, setCases] = useState<StudentOwnCase[]>([]);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    setLoading(true);
+    void apiStudentCasesForStudent(student.id)
+      .then(setCases)
+      .finally(() => setLoading(false));
+  }, [student.id]);
+
+  return (
+    <div className="space-y-5">
+      <div className="grid grid-cols-1 sm:grid-cols-3">
+        <StatPill
+          label={tr("studentCases.totalCases")}
+          value={cases.length}
+          tone="bg-amber-500/10"
+        />
+      </div>
+      {loading ? (
+        <div className="flex h-32 items-center justify-center text-muted-foreground">
+          {tr("attendanceStudents.loading")}
+        </div>
+      ) : cases.length === 0 ? (
+        <div className="rounded-xl border bg-secondary/20 p-8 text-center text-muted-foreground">
+          {tr("studentCases.noCasesYet")}
+        </div>
+      ) : (
+        <div className="overflow-hidden rounded-xl border">
+          <table className="w-full text-sm">
+            <thead className="bg-secondary text-start text-xs text-muted-foreground">
+              <tr>
+                <th className="px-4 py-2.5 font-medium">{tr("studentCases.date")}</th>
+                <th className="px-4 py-2.5 font-medium">{tr("studentCases.caseTitle")}</th>
+                <th className="px-4 py-2.5 font-medium">{tr("studentCases.note")}</th>
+                <th className="px-4 py-2.5 font-medium">{tr("printHistory.printedBy")}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {cases.map((c) => (
+                <tr key={c.id} className="border-t">
+                  <td className="px-4 py-2.5">{shortDate(c.date)}</td>
+                  <td className="px-4 py-2.5 font-medium">{c.title}</td>
+                  <td className="px-4 py-2.5 text-muted-foreground">{c.note ?? "—"}</td>
+                  <td className="px-4 py-2.5 text-muted-foreground">
+                    {c.recordedByUsername ?? "—"}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }

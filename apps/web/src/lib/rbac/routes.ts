@@ -18,7 +18,7 @@ const MODULE_PREFIXES: Record<PermissionModule, string[]> = {
   students: ["/students"],
   teachers: ["/teachers"],
   parents: ["/parents"],
-  attendance: ["/attendance"],
+  attendance: ["/attendance", "/student-cases"],
   fees: ["/finance"],
   examinations: ["/examinations"],
   quiz: ["/quiz"],

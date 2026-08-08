@@ -12,6 +12,7 @@ export const TEACHER_ALLOWED_PREFIXES = [
   "/my-assignments",
   "/students",
   "/attendance/students",
+  "/student-cases",
   "/examinations/teacher",
   "/quiz",
   "/announcements",

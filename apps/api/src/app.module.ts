@@ -22,6 +22,7 @@ import { DistrictsModule } from "./districts/districts.module";
 import { StudentsModule } from "./students/students.module";
 import { TeachersModule } from "./teachers/teachers.module";
 import { AttendanceModule } from "./attendance/attendance.module";
+import { StudentCasesModule } from "./student-cases/student-cases.module";
 import { FinanceModule } from "./finance/finance.module";
 import { DashboardModule } from "./dashboard/dashboard.module";
 import { PlatformModule } from "./platform/platform.module";
@@ -82,6 +83,7 @@ import { TenantModule } from "./tenant/tenant.module";
     StudentsModule,
     TeachersModule,
     AttendanceModule,
+    StudentCasesModule,
     FinanceModule,
     DashboardModule,
     ExaminationsModule,

@@ -70,6 +70,7 @@ const curated: PartialDictionary = {
     teacherPortal: "بوابة المعلم",
     classesSections: "الصفوف والشعب",
     attendance: "الحضور",
+    studentCases: "حالات الطلاب",
     timetable: "الجدول الدراسي",
     feeManagement: "إدارة الرسوم",
     salaryManagement: "إدارة الرواتب",

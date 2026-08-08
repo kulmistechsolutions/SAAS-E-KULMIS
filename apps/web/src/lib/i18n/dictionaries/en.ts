@@ -75,6 +75,7 @@ const core = {
     teacherPortal: "Teacher Portal",
     classesSections: "Classes & Sections",
     attendance: "Attendance",
+    studentCases: "Student Cases",
     timetable: "Timetable",
     feeManagement: "Fee Management",
     salaryManagement: "Salary Management",
