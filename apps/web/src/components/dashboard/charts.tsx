@@ -1,5 +1,6 @@
 "use client";
 
+import { formatMoney, formatMoneyCompact } from "@/lib/settings/currency";
 import {
   Area,
   AreaChart,
@@ -29,8 +30,7 @@ const tooltipStyle = {
   boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
 };
 
-const compact = (n: number) =>
-  n >= 1000 ? `$${Math.round(n / 1000)}K` : `$${n}`;
+const compact = (n: number) => formatMoneyCompact(n);
 
 export function AttendanceDonut({
   segments,
@@ -88,7 +88,7 @@ export function FeeAreaChart({
         />
         <Tooltip
           contentStyle={tooltipStyle}
-          formatter={(v: number) => [`$${v.toLocaleString()}`, "Collected"]}
+          formatter={(v: number) => [formatMoney(v, { decimals: 0 }), "Collected"]}
         />
         <Area
           type="monotone"
@@ -125,7 +125,7 @@ export function IncomeExpenseBars({
           contentStyle={tooltipStyle}
           cursor={{ fill: "hsl(var(--muted))", opacity: 0.4 }}
           formatter={(v: number, name) => [
-            `$${v.toLocaleString()}`,
+            formatMoney(v, { decimals: 0 }),
             name === "income" ? "Income" : "Expense",
           ]}
         />

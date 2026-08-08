@@ -19,7 +19,7 @@ import {
   type ApiGraduatedStudent,
   type ApiPromotionRecord,
 } from "./api";
-import { isFinalClass, nextClassName } from "./format";
+import { isFinalClass, money, nextClassName } from "./format";
 import type {
   EligibilityIssue,
   GraduatedStudentRow,
@@ -270,7 +270,7 @@ export function evaluateStudent(student: Student): PromotionCandidate {
   }
 
   if (settings.requireNoOutstandingFees && outstanding > 0) {
-    issues.push({ code: "OUTSTANDING_FEES", label: `Outstanding fees ($${outstanding})` });
+    issues.push({ code: "OUTSTANDING_FEES", label: `Outstanding fees (${money(outstanding)})` });
   }
 
   if (settings.requireClearance && isStudentBlocked(student.id)) {

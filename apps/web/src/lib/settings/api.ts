@@ -1,6 +1,7 @@
 "use client";
 
 import { api, API_URL, TENANT } from "@/lib/api";
+import { currencyByCode } from "./currency-defs";
 import { buildSettingsSeed } from "./seed";
 import type { SettingsState } from "./types";
 
@@ -126,7 +127,7 @@ export function mapApiSchoolToSettings(
     fees: {
       ...base.fees,
       receiptPrefix: row.receiptPrefix,
-      currencySymbol: row.currency === "USD" ? "$" : row.currency,
+      currencySymbol: currencyByCode(row.currency).symbol,
       billingMode: row.billingMode ?? base.fees.billingMode,
       academicMonths: row.feeAcademicMonths ?? base.fees.academicMonths,
       billingStartMonth:

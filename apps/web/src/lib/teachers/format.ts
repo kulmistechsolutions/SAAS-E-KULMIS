@@ -1,4 +1,6 @@
-export const money = (n: number) => `$${n.toLocaleString()}`;
+import { formatMoney } from "@/lib/settings/currency";
+
+export const money = (n: number) => formatMoney(n, { decimals: 0 });
 
 export function shortDate(iso: string | null | undefined): string {
   if (!iso) return "—";

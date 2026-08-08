@@ -1,3 +1,4 @@
+import { formatMoney } from "@/lib/settings/currency";
 import type { PromotionType } from "./types";
 
 export function shortDate(iso: string | null | undefined): string {
@@ -24,7 +25,7 @@ export function dateTime(iso: string | null | undefined): string {
   });
 }
 
-export const money = (n: number) => `$${n.toLocaleString()}`;
+export const money = (n: number) => formatMoney(n, { decimals: 0 });
 
 export function promotionTypeLabel(t: PromotionType): string {
   switch (t) {

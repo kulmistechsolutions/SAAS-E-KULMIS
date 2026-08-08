@@ -1,4 +1,5 @@
 import { getStoredLang, translateIn } from "@/lib/i18n/provider";
+import { formatMoney } from "@/lib/settings/currency";
 
 const MONTH_KEYS = [
   "feesFormat.month1",
@@ -15,10 +16,11 @@ const MONTH_KEYS = [
   "feesFormat.month12",
 ] as const satisfies readonly Parameters<typeof translateIn>[1][];
 
-export const money = (n: number) =>
-  `$${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+/** Full precision — receipts, ledgers, anywhere the exact amount matters. */
+export const money = (n: number) => formatMoney(n);
 
-export const moneyPlain = (n: number) => `$${n.toLocaleString()}`;
+/** Rounded, for compact listings and summary tiles. */
+export const moneyPlain = (n: number) => formatMoney(n, { decimals: 0 });
 
 export function monthKey(year: number, month: number): string {
   return `${year}-${String(month).padStart(2, "0")}`;

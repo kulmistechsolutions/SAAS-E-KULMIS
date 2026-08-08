@@ -4,6 +4,7 @@ import { useSyncExternalStore } from "react";
 import { ApiError } from "@/lib/api";
 import { activeAcademicYear as getActiveAcademicYear } from "@/lib/academics/store";
 import { monthKey as buildMonthKey } from "@/lib/fees/format";
+import { formatMoney } from "@/lib/settings/currency";
 import { getTeachersState } from "@/lib/teachers/store";
 import {
   apiCreateSalary,
@@ -373,7 +374,7 @@ export async function paySalary(input: PaySalaryInput): Promise<{
 }
 
 function money(n: number) {
-  return `$${n.toLocaleString()}`;
+  return formatMoney(n, { decimals: 0 });
 }
 
 export function recentPayments(

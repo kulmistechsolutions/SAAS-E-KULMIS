@@ -1,6 +1,7 @@
+import { formatMoney } from "@/lib/settings/currency";
 import type { PaymentMethod, PayrollStatus, Position } from "./types";
 
-export const money = (n: number) => `$${n.toLocaleString()}`;
+export const money = (n: number) => formatMoney(n, { decimals: 0 });
 
 export function monthKey(d = new Date()): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;

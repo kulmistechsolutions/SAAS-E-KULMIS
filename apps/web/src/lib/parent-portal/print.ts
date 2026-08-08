@@ -1,6 +1,7 @@
 "use client";
 
 import { schoolBranding } from "@/lib/settings/store";
+import { formatMoney } from "@/lib/settings/currency";
 import { shortDate, statusLabel } from "@/lib/students/format";
 import type { Student } from "@/lib/students/types";
 import type { FeePayment } from "@/lib/fees/types";
@@ -82,10 +83,10 @@ export function printFeeReceipt(payment: FeePayment, studentName: string) {
     `<table>
     <tr><th>Receipt No</th><td>${escapeHtml(payment.receiptNo)}</td></tr>
     <tr><th>Student</th><td>${escapeHtml(studentName)}</td></tr>
-    <tr><th>Amount</th><td>$${payment.amount.toLocaleString()}</td></tr>
+    <tr><th>Amount</th><td>${formatMoney(payment.amount, { decimals: 0 })}</td></tr>
     <tr><th>Type</th><td>${escapeHtml(payment.paymentType.replace(/_/g, " "))}</td></tr>
     <tr><th>Date</th><td>${shortDate(payment.collectedAt)}</td></tr>
-    <tr><th>Outstanding After</th><td>$${payment.outstandingAfter.toLocaleString()}</td></tr>
+    <tr><th>Outstanding After</th><td>${formatMoney(payment.outstandingAfter, { decimals: 0 })}</td></tr>
     </table>`,
   );
 }
@@ -94,7 +95,7 @@ export function printFeeStatement(student: Student, rows: { monthLabel: string; 
   const body = rows
     .map(
       (r) =>
-        `<tr><td>${escapeHtml(r.monthLabel)}</td><td>$${r.monthlyCharge}</td><td>$${r.amountPaid}</td><td>$${r.remainingBalance}</td><td>${escapeHtml(r.status)}</td></tr>`,
+        `<tr><td>${escapeHtml(r.monthLabel)}</td><td>${formatMoney(r.monthlyCharge, { decimals: 0 })}</td><td>${formatMoney(r.amountPaid, { decimals: 0 })}</td><td>${formatMoney(r.remainingBalance, { decimals: 0 })}</td><td>${escapeHtml(r.status)}</td></tr>`,
     )
     .join("");
   printWindow(

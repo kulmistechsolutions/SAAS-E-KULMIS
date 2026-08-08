@@ -37,6 +37,7 @@ import {
   groupClassesByStructure,
   useAcademicsState,
 } from "@/lib/academics/store";
+import { formatMoney } from "@/lib/settings/currency";
 import { toast } from "@/lib/toast";
 
 const MONTHS = [
@@ -44,7 +45,7 @@ const MONTHS = [
   "July", "August", "September", "October", "November", "December",
 ];
 
-const money = (n: number) => `$${n.toLocaleString()}`;
+const money = (n: number) => formatMoney(n, { decimals: 0 });
 
 interface FormState {
   id: string | null;

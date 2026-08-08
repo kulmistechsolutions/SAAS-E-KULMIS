@@ -1,7 +1,9 @@
+import { formatMoney } from "@/lib/settings/currency";
+
 export const statusLabel = (s: string) =>
   s.charAt(0) + s.slice(1).toLowerCase();
 
-export const money = (n: number) => `$${n.toLocaleString()}`;
+export const money = (n: number) => formatMoney(n, { decimals: 0 });
 
 export function shortDate(iso: string | null | undefined): string {
   if (!iso) return "—";

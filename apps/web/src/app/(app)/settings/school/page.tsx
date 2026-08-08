@@ -77,8 +77,10 @@ export default function SchoolSettingsPage() {
             <SettingsInput label={t("settingsSchool.academicYear")} value={draft.academicYear} onChange={(e) => update({ academicYear: e.target.value })} />
             <SettingsSelect label={t("settingsSchool.currency")} value={draft.currency} onChange={(e) => update({ currency: e.target.value })}>
               <option value="USD">{t("settingsSchool.usd")}</option>
-              <option value="EUR">{t("settingsSchool.eur")}</option>
+              <option value="ETB">{t("settingsSchool.etb")}</option>
+              <option value="KES">{t("settingsSchool.kes")}</option>
               <option value="SOS">{t("settingsSchool.sos")}</option>
+              <option value="EUR">{t("settingsSchool.eur")}</option>
             </SettingsSelect>
             <SettingsInput label={t("settingsSchool.timeZone")} value={draft.timezone} onChange={(e) => update({ timezone: e.target.value })} />
             <SettingsSelect label={t("settingsSchool.language")} value={draft.language} onChange={(e) => update({ language: e.target.value })}>

@@ -34,6 +34,9 @@ function subscribe(cb: () => void) {
   return () => listeners.delete(cb);
 }
 
+/** Same subscription, for stores layered on top of settings (e.g. currency). */
+export const subscribeSettings = subscribe;
+
 function emit() {
   listeners.forEach((l) => l());
 }

@@ -11,6 +11,7 @@ import { useAcademicYearSelect } from "@/lib/academics/year-select";
 import { ensureAcademicsLoaded, useAcademicsState } from "@/lib/academics/store";
 import { apiSetupAcademicYear, apiFeeSettings } from "@/lib/fees/api";
 import { ApiError } from "@/lib/api";
+import { formatMoney } from "@/lib/settings/currency";
 import { toast } from "@/lib/toast";
 
 export default function AcademicYearSetupPage() {
@@ -106,7 +107,7 @@ export default function AcademicYearSetupPage() {
         <div className="rounded-xl bg-secondary/40 p-4">
           <p className="text-xs text-muted-foreground">{t("financeAcademicYearSetup.totalAnnualTuitionPerStudent")}</p>
           <p className="text-2xl font-bold tabular-nums">
-            {fee > 0 ? `$${totalAnnual}` : "Monthly Fee × " + months}
+            {fee > 0 ? formatMoney(totalAnnual, { decimals: 0 }) : "Monthly Fee × " + months}
           </p>
         </div>
         <Button className="w-full" disabled={loading || !yearId} onClick={() => void handleActivate()}>

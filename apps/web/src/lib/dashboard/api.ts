@@ -1,6 +1,7 @@
 "use client";
 
 import { api } from "@/lib/api";
+import { formatMoney } from "@/lib/settings/currency";
 
 export interface AdminDashboardResponse {
   students: {
@@ -156,5 +157,4 @@ export async function apiTeacherDashboard(): Promise<TeacherDashboardResponse> {
   return api<TeacherDashboardResponse>("/dashboard/teacher");
 }
 
-export const money = (n: number) =>
-  `$${n.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
+export const money = (n: number) => formatMoney(n, { decimals: 0 });

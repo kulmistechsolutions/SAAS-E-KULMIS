@@ -1,4 +1,5 @@
 import { activeAcademicYear } from "@/lib/academics/store";
+import { formatMoney } from "@/lib/settings/currency";
 import { getState as getStudentsState, withParents } from "@/lib/students/store";
 import type { StudentStatus } from "@/lib/students/types";
 import type { ReportData, ReportFilters } from "../types";
@@ -15,7 +16,7 @@ export function shortDate(iso: string | null | undefined): string {
 }
 
 export function money(n: number): string {
-  return `$${n.toLocaleString()}`;
+  return formatMoney(n, { decimals: 0 });
 }
 
 export function filterStudents(filters: ReportFilters, status?: StudentStatus | StudentStatus[]) {

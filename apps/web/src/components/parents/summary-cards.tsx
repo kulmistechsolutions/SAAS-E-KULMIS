@@ -1,4 +1,5 @@
 import { useT, type TranslationKey } from "@/lib/i18n/provider";
+import { formatMoney } from "@/lib/settings/currency";
 import type { ParentAdminSummary, ParentDashboardSummary } from "@/lib/students/store";
 import {
   BookOpen,
@@ -54,8 +55,8 @@ const DASH_CARDS: {
 }[] = [
   { key: "totalChildren", label: "parentsSummaryCards.totalChildren", icon: Users, chip: "bg-violet-500/15 text-violet-600" },
   { key: "activeStudents", label: "parentsSummaryCards.activeStudents", icon: UserCheck, chip: "bg-emerald-500/15 text-emerald-600" },
-  { key: "outstandingFees", label: "parentsSummaryCards.outstandingFees", icon: DollarSign, chip: "bg-rose-500/15 text-rose-600", format: (v) => `$${Number(v).toLocaleString()}` },
-  { key: "totalFeesPaid", label: "parentsSummaryCards.totalFeesPaid", icon: DollarSign, chip: "bg-teal-500/15 text-teal-600", format: (v) => `$${Number(v).toLocaleString()}` },
+  { key: "outstandingFees", label: "parentsSummaryCards.outstandingFees", icon: DollarSign, chip: "bg-rose-500/15 text-rose-600", format: (v) => formatMoney(Number(v), { decimals: 0 }) },
+  { key: "totalFeesPaid", label: "parentsSummaryCards.totalFeesPaid", icon: DollarSign, chip: "bg-teal-500/15 text-teal-600", format: (v) => formatMoney(Number(v), { decimals: 0 }) },
   { key: "upcomingExams", label: "parentsSummaryCards.upcomingExams", icon: BookOpen, chip: "bg-sky-500/15 text-sky-600" },
   { key: "activeQuizzes", label: "parentsSummaryCards.activeQuizzes", icon: ClipboardList, chip: "bg-indigo-500/15 text-indigo-600" },
   { key: "attendancePercentage", label: "parentsSummaryCards.attendance", icon: CalendarCheck, chip: "bg-amber-500/15 text-amber-600", format: (v) => `${v}%` },

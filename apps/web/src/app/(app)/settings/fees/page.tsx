@@ -2,7 +2,8 @@
 
 
 import { useT } from "@/lib/i18n/provider";
-import { SettingsInput, SettingsSelect, SettingsTextarea } from "@/components/settings/settings-field";
+import { SettingsField, SettingsInput, SettingsSelect, SettingsTextarea } from "@/components/settings/settings-field";
+import { Input } from "@/components/ui/input";
 import { SettingsSaveBar } from "@/components/settings/settings-save-bar";
 import { SettingsToggle } from "@/components/settings/settings-toggle";
 import { useSettingsSection } from "@/components/settings/use-settings-section";
@@ -91,11 +92,13 @@ export default function FeeSettingsPage() {
             </SettingsSelect>
           </>
         )}
-        <SettingsInput
-          label={t("settingsFees.currencySymbol")}
-          value={draft.currencySymbol}
-          onChange={(e) => update({ currencySymbol: e.target.value })}
-        />
+        {/* Derived from the school's currency — one source of truth, set in School Settings. */}
+        <SettingsField label={t("settingsFees.currencySymbol")}>
+          <Input value={draft.currencySymbol} readOnly disabled />
+          <p className="text-xs text-muted-foreground">
+            {t("settingsFees.currencySymbolHint")}
+          </p>
+        </SettingsField>
         <SettingsInput
           label={t("settingsFees.receiptPrefix")}
           value={draft.receiptPrefix}
