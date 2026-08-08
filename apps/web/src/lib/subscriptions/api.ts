@@ -8,6 +8,8 @@ export type SubscriptionPaymentStatus =
   | "EXPIRED"
   | "CANCELLED";
 
+export type BillingCycle = "MONTHLY" | "YEARLY";
+
 export interface AvailableSubscriptionPlan {
   id: string;
   name: string;
@@ -16,6 +18,11 @@ export interface AvailableSubscriptionPlan {
   durationDays: number;
   aiGradingMonthlyQuota: number | null;
   priceUsd: string | number | null;
+  /** Monthly rate per student. When set, drives the price instead of priceUsd. */
+  pricePerStudentUsd: string | number | null;
+  /** What this school would actually pay right now, computed off its live student count. */
+  computedMonthlyPriceUsd: number | null;
+  computedYearlyPriceUsd: number | null;
   isActive: boolean;
 }
 
@@ -27,6 +34,8 @@ export interface SubscriptionPaymentReceipt {
   status: SubscriptionPaymentStatus;
   amount: string | number;
   currency: string;
+  billingCycle: BillingCycle;
+  studentCountAtPurchase: number | null;
   channel: string;
   paymentMethod: string;
   payerAccount: string | null;
@@ -79,6 +88,7 @@ export const apiPurchaseSubscriptionPlan = (body: {
   payerAccount?: string;
   channel?: "API_PURCHASE" | "HPP_PURCHASE";
   paymentMethod?: string;
+  billingCycle?: BillingCycle;
 }) =>
   api<SubscriptionPaymentReceipt>("/subscriptions/purchase", {
     method: "POST",

@@ -444,7 +444,20 @@ export default function PlatformSubscriptionsPage() {
                       : "Unlimited"}
                   </td>
                   <td className="px-4 py-3 text-slate-300">
-                    {p.priceUsd != null ? `$${p.priceUsd}` : "—"}
+                    {p.pricePerStudentUsd != null ? (
+                      <span>
+                        ${p.pricePerStudentUsd}/{t("platformSubscriptions.studentMonth")}
+                        {p.computedMonthlyPriceUsd != null && (
+                          <span className="ms-1 text-xs text-slate-500">
+                            (${p.computedMonthlyPriceUsd}/{t("platformSubscriptions.month")})
+                          </span>
+                        )}
+                      </span>
+                    ) : p.priceUsd != null ? (
+                      `$${p.priceUsd}`
+                    ) : (
+                      "—"
+                    )}
                   </td>
                   <td className="px-4 py-3">
                     <span

@@ -2068,6 +2068,12 @@ model SubscriptionPlan {
   /// Total size of all uploaded library PDFs a school may store. Null = unlimited.
   libraryStorageMb      Int?
   priceUsd              Decimal? @db.Decimal(12, 2)
+  /// When set, this — not priceUsd — drives self-service pricing: a school
+  /// pays this rate times its actual live student count every month, so
+  /// growing past the plan's nominal size just costs more instead of
+  /// silently exceeding a limit nobody was watching. Null keeps the plan on
+  /// flat priceUsd billing.
+  pricePerStudentUsd    Decimal? @db.Decimal(10, 4)
   isActive              Boolean  @default(true)
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
@@ -2084,6 +2090,13 @@ enum SchoolSubscriptionStatus {
   CANCELLED
 }
 
+/// How often a self-purchased subscription is billed. Admin-assigned
+/// subscriptions ignore this and use their own custom-duration override.
+enum BillingCycle {
+  MONTHLY
+  YEARLY
+}
+
 /// A school's currently assigned plan. One active row per school — Super
 /// Admin assigns/renews manually (no self-service billing yet). Enforcement
 /// (student cap, AI grading quota) is per-feature, not a whole-tenant lockout.
@@ -2094,6 +2107,9 @@ model SchoolSubscription {
   status               SchoolSubscriptionStatus @default(ACTIVE)
   startDate            DateTime                 @default(now())
   endDate              DateTime
+  /// Only meaningful for self-purchased subscriptions; admin-assigned ones
+  /// default to MONTHLY but their real term comes from a custom duration.
+  billingCycle         BillingCycle             @default(MONTHLY)
   aiGradingUsed        Int                      @default(0)
   aiGradingResetAt     DateTime                 @default(now())
   assignedByAdminId    String?
@@ -2189,6 +2205,10 @@ model SubscriptionPaymentOrder {
   invoiceId          String
   amount             Decimal                   @db.Decimal(12, 2)
   currency           String                    @default("USD")
+  billingCycle       BillingCycle              @default(MONTHLY)
+  /// The school's live student count at purchase time — what pricePerStudentUsd
+  /// (if the plan uses it) was actually multiplied by, kept for the receipt.
+  studentCountAtPurchase Int?
   status             SubscriptionPaymentStatus @default(PENDING)
   paymentMethod      String                    @default("MWALLET_ACCOUNT")
   /// API_PURCHASE | HPP_PURCHASE

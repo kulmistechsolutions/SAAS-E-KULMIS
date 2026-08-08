@@ -1,5 +1,13 @@
 import { z } from "zod";
 
+/** How often a self-purchased subscription is billed. */
+export const BillingCycle = {
+  MONTHLY: "MONTHLY",
+  YEARLY: "YEARLY",
+} as const;
+export type BillingCycle = (typeof BillingCycle)[keyof typeof BillingCycle];
+export const billingCycleSchema = z.nativeEnum(BillingCycle);
+
 /** Super Admin: create/update a subscription plan tier. */
 export const createSubscriptionPlanSchema = z.object({
   name: z.string().min(1, "Plan name is required").max(80),
@@ -10,6 +18,8 @@ export const createSubscriptionPlanSchema = z.object({
   /** Total library PDF storage in MB. Null = unlimited. */
   libraryStorageMb: z.number().int().nonnegative().nullable().optional(),
   priceUsd: z.number().nonnegative().nullable().optional(),
+  /** Monthly rate per student. When set, this drives self-service pricing instead of priceUsd. */
+  pricePerStudentUsd: z.number().nonnegative().nullable().optional(),
   isActive: z.boolean().optional(),
 });
 export type CreateSubscriptionPlanInput = z.infer<
@@ -25,6 +35,7 @@ export const updateSubscriptionPlanSchema = z
     aiGradingMonthlyQuota: z.number().int().nonnegative().nullable().optional(),
     libraryStorageMb: z.number().int().nonnegative().nullable().optional(),
     priceUsd: z.number().nonnegative().nullable().optional(),
+    pricePerStudentUsd: z.number().nonnegative().nullable().optional(),
     isActive: z.boolean().optional(),
   })
   .refine((o) => Object.keys(o).length > 0, { message: "Nothing to update" });
@@ -40,6 +51,7 @@ export const purchaseSubscriptionPlanSchema = z.object({
   /** Override channel; defaults to Super Admin Waafi config. */
   channel: z.enum(["API_PURCHASE", "HPP_PURCHASE"]).optional(),
   paymentMethod: z.string().min(3).max(40).optional(),
+  billingCycle: billingCycleSchema.default("MONTHLY"),
 });
 export type PurchaseSubscriptionPlanInput = z.infer<
   typeof purchaseSubscriptionPlanSchema

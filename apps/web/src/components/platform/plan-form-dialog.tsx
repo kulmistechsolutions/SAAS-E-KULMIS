@@ -17,6 +17,7 @@ export interface PlanFormValues {
   aiGradingMonthlyQuota: number | null;
   libraryStorageMb: number | null;
   priceUsd: number | null;
+  pricePerStudentUsd: number | null;
   isActive?: boolean;
 }
 
@@ -40,6 +41,7 @@ export function PlanFormDialog({ open, onClose, plan, onSubmit }: Props) {
   const [aiQuota, setAiQuota] = useState("");
   const [libraryStorageMb, setLibraryStorageMb] = useState("");
   const [priceUsd, setPriceUsd] = useState("");
+  const [pricePerStudentUsd, setPricePerStudentUsd] = useState("");
   const [isActive, setIsActive] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -53,6 +55,7 @@ export function PlanFormDialog({ open, onClose, plan, onSubmit }: Props) {
     setAiQuota(toStr(plan?.aiGradingMonthlyQuota));
     setLibraryStorageMb(toStr(plan?.libraryStorageMb));
     setPriceUsd(toStr(plan?.priceUsd));
+    setPricePerStudentUsd(toStr(plan?.pricePerStudentUsd));
     setIsActive(plan?.isActive ?? true);
     setError(null);
   }, [open, plan]);
@@ -76,6 +79,8 @@ export function PlanFormDialog({ open, onClose, plan, onSubmit }: Props) {
         libraryStorageMb:
           libraryStorageMb.trim() === "" ? null : Number(libraryStorageMb),
         priceUsd: priceUsd.trim() === "" ? null : Number(priceUsd),
+        pricePerStudentUsd:
+          pricePerStudentUsd.trim() === "" ? null : Number(pricePerStudentUsd),
         isActive,
       });
       onClose();
@@ -180,6 +185,29 @@ export function PlanFormDialog({ open, onClose, plan, onSubmit }: Props) {
               onChange={(e) => setPriceUsd(e.target.value)}
               placeholder={t("platformPlanFormDialog.informationalOnly")}
             />
+          </div>
+          <div className="sm:col-span-2">
+            <Label>{t("platformPlanFormDialog.pricePerStudentOptional")}</Label>
+            <Input
+              type="number"
+              min={0}
+              step="0.0001"
+              value={pricePerStudentUsd}
+              onChange={(e) => setPricePerStudentUsd(e.target.value)}
+              placeholder={t("platformPlanFormDialog.usesFlatPriceInstead")}
+            />
+            <p className="mt-1 text-xs text-muted-foreground">
+              {t("platformPlanFormDialog.pricePerStudentHint")}
+              {Number(pricePerStudentUsd) > 0 && Number(maxStudents) > 0 && (
+                <>
+                  {" "}
+                  {t("platformPlanFormDialog.exampleAt", {
+                    students: maxStudents,
+                    amount: (Number(pricePerStudentUsd) * Number(maxStudents)).toFixed(2),
+                  })}
+                </>
+              )}
+            </p>
           </div>
         </div>
         <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-input bg-background px-3 py-3 text-sm">

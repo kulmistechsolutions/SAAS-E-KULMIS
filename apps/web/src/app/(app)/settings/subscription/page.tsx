@@ -116,6 +116,9 @@ export default function SubscriptionSettingsPage() {
   const [plans, setPlans] = useState<AvailableSubscriptionPlan[]>([]);
   const [orders, setOrders] = useState<SubscriptionPaymentOrderRow[]>([]);
   const [selectedPlan, setSelectedPlan] = useState("");
+  const [billingCycle, setBillingCycle] = useState<"MONTHLY" | "YEARLY">(
+    "MONTHLY",
+  );
   const [payerAccount, setPayerAccount] = useState("");
   const [channel, setChannel] = useState<"API_PURCHASE" | "HPP_PURCHASE">(
     "API_PURCHASE",
@@ -174,6 +177,7 @@ export default function SubscriptionSettingsPage() {
         planId: selectedPlan,
         payerAccount: payerAccount.trim() || undefined,
         channel,
+        billingCycle,
       });
       setReceipt(res);
       if (res.status === "SUCCESS") {
@@ -325,6 +329,15 @@ export default function SubscriptionSettingsPage() {
                     {data.startDate || data.endDate
                       ? `${shortDate(data.startDate)} → ${shortDate(data.endDate)}`
                       : "—"}
+                    {data.billingCycle && (
+                      <span className="ms-2 text-xs font-normal text-muted-foreground">
+                        (
+                        {data.billingCycle === "YEARLY"
+                          ? t("settingsSubscription.yearly")
+                          : t("settingsSubscription.monthly")}
+                        )
+                      </span>
+                    )}
                   </dd>
                 </div>
                 <div className="rounded-xl border bg-card p-4">
@@ -383,41 +396,80 @@ export default function SubscriptionSettingsPage() {
       {tab === "plans" && (
         <div className="grid gap-4 lg:grid-cols-2">
           <div className="space-y-3">
+            <div className="flex justify-center rounded-lg bg-secondary p-1">
+              {(["MONTHLY", "YEARLY"] as const).map((cycle) => (
+                <button
+                  key={cycle}
+                  type="button"
+                  onClick={() => setBillingCycle(cycle)}
+                  className={cn(
+                    "flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition",
+                    billingCycle === cycle
+                      ? "bg-card text-foreground shadow-sm"
+                      : "text-muted-foreground",
+                  )}
+                >
+                  {cycle === "MONTHLY"
+                    ? t("settingsSubscription.monthly")
+                    : t("settingsSubscription.yearly")}
+                </button>
+              ))}
+            </div>
             {plans.length === 0 ? (
               <div className="rounded-2xl border bg-card p-8 text-center text-muted-foreground">
                 {t("settingsSubscription.noPlansPublishedYetContactYour")}
               </div>
             ) : (
-              plans.map((p) => (
-                <button
-                  key={p.id}
-                  type="button"
-                  onClick={() => setSelectedPlan(p.id)}
-                  className={cn(
-                    "w-full rounded-2xl border p-4 text-start shadow-sm transition",
-                    selectedPlan === p.id
-                      ? "border-primary bg-primary/5 ring-2 ring-primary/30"
-                      : "bg-card hover:border-primary/40",
-                  )}
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="font-semibold">{p.name}</p>
-                      <p className="mt-2 text-sm text-muted-foreground">
-                        {p.maxStudents ?? "Unlimited"} {t("settingsSubscription.students")}{" "}
-                        {p.maxTeachers ?? "Unlimited"} {t("settingsSubscription.teachers")}{" "}
-                        {p.aiGradingMonthlyQuota ?? "Unlimited"} {t("settingsSubscription.aiGradesMo")}
-                      </p>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        {p.durationDays} {t("settingsSubscription.days")}
-                      </p>
+              plans.map((p) => {
+                const price =
+                  billingCycle === "YEARLY"
+                    ? p.computedYearlyPriceUsd
+                    : p.computedMonthlyPriceUsd;
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => setSelectedPlan(p.id)}
+                    className={cn(
+                      "w-full rounded-2xl border p-4 text-start shadow-sm transition",
+                      selectedPlan === p.id
+                        ? "border-primary bg-primary/5 ring-2 ring-primary/30"
+                        : "bg-card hover:border-primary/40",
+                    )}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="font-semibold">{p.name}</p>
+                        <p className="mt-2 text-sm text-muted-foreground">
+                          {p.maxStudents ?? "Unlimited"} {t("settingsSubscription.students")}{" "}
+                          {p.maxTeachers ?? "Unlimited"} {t("settingsSubscription.teachers")}{" "}
+                          {p.aiGradingMonthlyQuota ?? "Unlimited"} {t("settingsSubscription.aiGradesMo")}
+                        </p>
+                        {p.pricePerStudentUsd != null ? (
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            {t("settingsSubscription.perStudentRate", {
+                              rate: String(p.pricePerStudentUsd),
+                            })}
+                          </p>
+                        ) : (
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            {p.durationDays} {t("settingsSubscription.days")}
+                          </p>
+                        )}
+                      </div>
+                      <div className="text-end">
+                        <p className="text-lg font-bold text-primary">{money(price)}</p>
+                        <p className="text-xs text-muted-foreground">
+                          /
+                          {billingCycle === "YEARLY"
+                            ? t("settingsSubscription.yr")
+                            : t("settingsSubscription.mo")}
+                        </p>
+                      </div>
                     </div>
-                    <p className="text-lg font-bold text-primary">
-                      {money(p.priceUsd)}
-                    </p>
-                  </div>
-                </button>
-              ))
+                  </button>
+                );
+              })
             )}
           </div>
 

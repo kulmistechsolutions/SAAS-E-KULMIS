@@ -182,8 +182,8 @@ export class SubscriptionsController {
 
   @Roles(UserRole.ADMINISTRATOR)
   @Get("plans")
-  listPlans() {
-    return this.subscriptions.listAvailablePlans();
+  listPlans(@CurrentUser() me: AuthUser) {
+    return this.subscriptions.listAvailablePlans(me.schoolId);
   }
 
   @Roles(UserRole.ADMINISTRATOR)

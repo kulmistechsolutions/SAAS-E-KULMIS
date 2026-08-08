@@ -715,6 +715,11 @@ export interface PlatformSubscriptionPlan {
   aiGradingMonthlyQuota: number | null;
   libraryStorageMb: number | null;
   priceUsd: string | number | null;
+  /** Monthly rate per student. When set, drives self-service pricing instead of priceUsd. */
+  pricePerStudentUsd: string | number | null;
+  /** Illustrative example price at the plan's own capacity (or the requesting school's live count). */
+  computedMonthlyPriceUsd?: number | null;
+  computedYearlyPriceUsd?: number | null;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -858,6 +863,7 @@ export const createPlatformSubscriptionPlan = (body: {
   aiGradingMonthlyQuota: number | null;
   libraryStorageMb?: number | null;
   priceUsd?: number | null;
+  pricePerStudentUsd?: number | null;
   isActive?: boolean;
 }) =>
   platformFetch<PlatformSubscriptionPlan>("/platform/subscriptions/plans", {
@@ -875,6 +881,7 @@ export const updatePlatformSubscriptionPlan = (
     aiGradingMonthlyQuota: number | null;
     libraryStorageMb: number | null;
     priceUsd: number | null;
+    pricePerStudentUsd: number | null;
     isActive: boolean;
   }>,
 ) =>

@@ -68,6 +68,48 @@ function resolveEndDate(
     : addDays(startDate, customDuration.value);
 }
 
+/**
+ * A plan's monthly price: pricePerStudentUsd (when set) times the school's
+ * actual student count, so growing past the plan's nominal maxStudents just
+ * costs more instead of silently exceeding a limit nobody was watching.
+ * Falls back to the flat priceUsd for plans that don't use per-student
+ * pricing. Null means "no price set" — same meaning as the old flat check.
+ */
+function planMonthlyAmount(
+  plan: { priceUsd: Prisma.Decimal | null; pricePerStudentUsd: Prisma.Decimal | null },
+  studentCount: number,
+): number | null {
+  if (plan.pricePerStudentUsd != null) {
+    return Number(plan.pricePerStudentUsd) * Math.max(studentCount, 1);
+  }
+  return plan.priceUsd != null ? Number(plan.priceUsd) : null;
+}
+
+function planAmountForCycle(
+  plan: { priceUsd: Prisma.Decimal | null; pricePerStudentUsd: Prisma.Decimal | null },
+  cycle: "MONTHLY" | "YEARLY",
+  studentCount: number,
+): number | null {
+  const monthly = planMonthlyAmount(plan, studentCount);
+  if (monthly == null) return null;
+  const amount = cycle === "YEARLY" ? monthly * 12 : monthly;
+  return Math.round(amount * 100) / 100;
+}
+
+/** Adds computedMonthlyPriceUsd/computedYearlyPriceUsd for display — the
+ * actual charge (see planAmountForCycle) is recomputed fresh at purchase
+ * time, never trusted from a stale client-shown number. */
+function withPricePreview<
+  T extends { priceUsd: Prisma.Decimal | null; pricePerStudentUsd: Prisma.Decimal | null; maxStudents: number | null },
+>(plan: T, studentCountForPreview: number) {
+  const count = studentCountForPreview > 0 ? studentCountForPreview : (plan.maxStudents ?? 1);
+  return {
+    ...plan,
+    computedMonthlyPriceUsd: planAmountForCycle(plan, "MONTHLY", count),
+    computedYearlyPriceUsd: planAmountForCycle(plan, "YEARLY", count),
+  };
+}
+
 function startOfUtcDay(d = new Date()): Date {
   return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
 }
@@ -112,10 +154,13 @@ export class SubscriptionsService {
 
   // ── Super Admin: plan catalog ────────────────────────────────────────
 
-  listPlans() {
-    return this.prisma.subscriptionPlan.findMany({
+  async listPlans() {
+    const plans = await this.prisma.subscriptionPlan.findMany({
       orderBy: { createdAt: "asc" },
     });
+    // No single school in this context — preview at the plan's own nominal
+    // capacity, same number an admin already sees as "Max Students".
+    return plans.map((p) => withPricePreview(p, 0));
   }
 
   async createPlan(dto: CreateSubscriptionPlanInput, admin: PlatformAdminActor) {
@@ -131,6 +176,7 @@ export class SubscriptionsService {
           aiGradingMonthlyQuota: dto.aiGradingMonthlyQuota,
           libraryStorageMb: dto.libraryStorageMb ?? null,
           priceUsd: dto.priceUsd ?? null,
+          pricePerStudentUsd: dto.pricePerStudentUsd ?? null,
           isActive: dto.isActive ?? true,
         },
       });
@@ -167,6 +213,7 @@ export class SubscriptionsService {
           aiGradingMonthlyQuota: dto.aiGradingMonthlyQuota,
           libraryStorageMb: dto.libraryStorageMb,
           priceUsd: dto.priceUsd,
+          pricePerStudentUsd: dto.pricePerStudentUsd,
           isActive: dto.isActive,
         },
       });
@@ -1032,6 +1079,7 @@ export class SubscriptionsService {
       banner: { tone, message },
       startDate: sub.startDate,
       endDate: sub.endDate,
+      billingCycle: sub.billingCycle,
       daysRemaining: remaining,
       studentCount,
       studentLimit: maxStudents,
@@ -1101,12 +1149,20 @@ export class SubscriptionsService {
   // / merchant account) — just activates a SchoolSubscription instead of
   // SMS credits.
 
-  /** Active plans a school can browse/purchase. No pricing secrets involved. */
-  listAvailablePlans() {
-    return this.prisma.subscriptionPlan.findMany({
-      where: { isActive: true },
-      orderBy: { priceUsd: "asc" },
-    });
+  /**
+   * Active plans a school can browse/purchase, with the price it would
+   * actually pay right now — computed off its own live student count for
+   * plans that bill per-student, so the number on screen is never a guess.
+   */
+  async listAvailablePlans(schoolId: string) {
+    const [plans, studentCount] = await Promise.all([
+      this.prisma.subscriptionPlan.findMany({
+        where: { isActive: true },
+        orderBy: { priceUsd: "asc" },
+      }),
+      this.prisma.student.count({ where: { schoolId } }),
+    ]);
+    return plans.map((p) => withPricePreview(p, studentCount));
   }
 
   private async ensureWaafiConfig() {
@@ -1203,7 +1259,11 @@ export class SubscriptionsService {
     if (!plan || !plan.isActive) {
       throw new NotFoundException("Plan not found or inactive.");
     }
-    if (plan.priceUsd == null) {
+
+    const billingCycle = input.billingCycle ?? "MONTHLY";
+    const studentCount = await this.prisma.student.count({ where: { schoolId } });
+    const amount = planAmountForCycle(plan, billingCycle, studentCount);
+    if (amount == null) {
       throw new BadRequestException(
         "This plan has no price set — contact Platform Administrator.",
       );
@@ -1231,7 +1291,6 @@ export class SubscriptionsService {
     await this.expireStaleSubscriptionOrders(schoolId);
 
     const referenceId = this.makeSubscriptionReferenceId();
-    const amount = Number(plan.priceUsd);
     const expiresAt = new Date(Date.now() + ORDER_TTL_MS);
 
     const order = await this.prisma.subscriptionPaymentOrder.create({
@@ -1240,8 +1299,10 @@ export class SubscriptionsService {
         planId: plan.id,
         referenceId,
         invoiceId: referenceId,
-        amount: plan.priceUsd,
+        amount,
         currency: cfg.currency || "USD",
+        billingCycle,
+        studentCountAtPurchase: studentCount,
         status: "PENDING",
         paymentMethod,
         channel,
@@ -1558,9 +1619,12 @@ export class SubscriptionsService {
         include: { plan: true },
       });
 
-      // Activate/renew the school's subscription to this plan.
+      // Activate/renew the school's subscription to this plan. Self-purchase
+      // always follows the buyer's chosen calendar cycle (1 or 12 months),
+      // not the plan's own durationDays — that field is only consulted for
+      // admin manual assignment, which has its own custom-duration override.
       const startDate = new Date();
-      const endDate = addDays(startDate, order.plan.durationDays);
+      const endDate = addMonths(startDate, order.billingCycle === "YEARLY" ? 12 : 1);
       await tx.schoolSubscription.upsert({
         where: { schoolId: order.schoolId },
         create: {
@@ -1569,6 +1633,7 @@ export class SubscriptionsService {
           status: "ACTIVE",
           startDate,
           endDate,
+          billingCycle: order.billingCycle,
           aiGradingUsed: 0,
           aiGradingResetAt: startDate,
           assignedByAdminId: null,
@@ -1579,6 +1644,7 @@ export class SubscriptionsService {
           status: "ACTIVE",
           startDate,
           endDate,
+          billingCycle: order.billingCycle,
           aiGradingUsed: 0,
           aiGradingResetAt: startDate,
           assignedByAdminId: null,
@@ -1681,6 +1747,8 @@ export class SubscriptionsService {
       status: order.status,
       amount: order.amount,
       currency: order.currency,
+      billingCycle: order.billingCycle,
+      studentCountAtPurchase: order.studentCountAtPurchase,
       channel: order.channel,
       paymentMethod: order.paymentMethod,
       payerAccount: order.payerAccount,

@@ -9,6 +9,7 @@ export interface SchoolSubscriptionMe {
   };
   startDate: string | null;
   endDate: string | null;
+  billingCycle?: "MONTHLY" | "YEARLY";
   daysRemaining: number | null;
   studentCount: number;
   studentLimit: number | null;
