@@ -6,6 +6,7 @@ import { AuthProvider } from "@/lib/auth";
 import { I18nProvider } from "@/lib/i18n/provider";
 import type { Lang } from "@/lib/i18n/config";
 import { SettingsBrandingEffect } from "@/components/settings/branding-effect";
+import { ChunkErrorReloader } from "@/components/layout/chunk-error-reloader";
 
 /** Global client-side providers (language + TanStack Query + auth session). */
 export function Providers({
@@ -29,6 +30,7 @@ export function Providers({
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
           <SettingsBrandingEffect />
+          <ChunkErrorReloader />
           {children}
         </AuthProvider>
       </QueryClientProvider>
