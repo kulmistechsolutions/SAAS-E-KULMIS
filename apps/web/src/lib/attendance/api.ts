@@ -9,6 +9,7 @@ export interface ApiStudentRosterItem {
   id: string;
   code: string;
   fullName: string;
+  gender: string;
   status: ApiAttendanceStatus | null;
 }
 

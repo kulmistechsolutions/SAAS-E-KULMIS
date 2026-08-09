@@ -108,7 +108,7 @@ export class StudentAttendanceService {
       const students = await tx.student.findMany({
         where: { classId, sectionId, status: "ACTIVE" },
         orderBy: { fullName: "asc" },
-        select: { id: true, code: true, fullName: true },
+        select: { id: true, code: true, fullName: true, gender: true },
       });
       const records = await tx.studentAttendance.findMany({
         where: { classId, sectionId, date, shiftId: shiftId ?? null },

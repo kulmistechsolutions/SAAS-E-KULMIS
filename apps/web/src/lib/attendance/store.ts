@@ -240,7 +240,7 @@ export async function loadStudentMarkingRows(
         studentId: s.id,
         code: s.code,
         fullName: s.fullName,
-        gender: "MALE" as const,
+        gender: s.gender,
         status: s.status ?? state.defaultStudentStatus,
         eligible: true,
       }));
