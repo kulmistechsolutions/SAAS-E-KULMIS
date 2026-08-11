@@ -27,6 +27,8 @@ const CATEGORIES: PortalAnnouncement["category"][] = [
   "EMERGENCY",
 ];
 
+type NotifyAudience = "ALL" | "PARENTS" | "TEACHERS";
+
 export default function AnnouncementsPage() {
   const t = useT();
   const { user } = useAuth();
@@ -37,6 +39,7 @@ export default function AnnouncementsPage() {
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [category, setCategory] = useState<PortalAnnouncement["category"]>("GENERAL");
+  const [notifyAudience, setNotifyAudience] = useState<NotifyAudience>("ALL");
   const [pinned, setPinned] = useState(false);
   const [publishing, setPublishing] = useState(false);
 
@@ -50,7 +53,11 @@ export default function AnnouncementsPage() {
   }, [mounted, isTeacher]);
 
   const sorted = useMemo(
-    () => [...items].sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()),
+    () =>
+      [...items].sort((a, b) => {
+        if (!!a.pinned !== !!b.pinned) return a.pinned ? -1 : 1;
+        return new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime();
+      }),
     [items],
   );
 
@@ -58,8 +65,15 @@ export default function AnnouncementsPage() {
     setTitle("");
     setBody("");
     setCategory("GENERAL");
+    setNotifyAudience("ALL");
     setPinned(false);
   }
+
+  const AUDIENCE_TOAST: Record<NotifyAudience, string> = {
+    ALL: "Notice sent to everyone",
+    PARENTS: "Notice sent to all parents",
+    TEACHERS: "Notice sent to all teachers",
+  };
 
   async function handlePublish() {
     if (!title.trim() || !body.trim()) {
@@ -72,10 +86,12 @@ export default function AnnouncementsPage() {
         title: title.trim(),
         body: body.trim(),
         audience: category,
+        pinned,
+        notifyAudience,
       });
       const next = await fetchAnnouncements();
       setItems(next);
-      toast("Notice sent to all parents", "success");
+      toast(AUDIENCE_TOAST[notifyAudience], "success");
       setComposeOpen(false);
       resetForm();
     } catch {
@@ -166,6 +182,18 @@ export default function AnnouncementsPage() {
               onChange={(e) => setTitle(e.target.value)}
               placeholder={t("announcements.eGParentTeacherMeeting")}
             />
+          </div>
+          <div>
+            <Label htmlFor="notice-send-to">{t("announcements.sendTo")}</Label>
+            <Select
+              id="notice-send-to"
+              value={notifyAudience}
+              onChange={(e) => setNotifyAudience(e.target.value as NotifyAudience)}
+            >
+              <option value="ALL">{t("announcements.everyone")}</option>
+              <option value="PARENTS">{t("announcements.parentsOnly")}</option>
+              <option value="TEACHERS">{t("announcements.teachersOnly")}</option>
+            </Select>
           </div>
           <div>
             <Label htmlFor="notice-category">{t("announcements.category")}</Label>

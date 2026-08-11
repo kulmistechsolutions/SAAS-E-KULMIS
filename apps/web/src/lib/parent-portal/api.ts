@@ -97,6 +97,7 @@ export interface ApiAnnouncement {
   title: string;
   body: string;
   audience: string;
+  pinned: boolean;
   publishedAt: string;
 }
 
@@ -199,13 +200,26 @@ export function mapPortalNotification(n: ApiNotification, parentId: string): Por
   };
 }
 
+const ANNOUNCEMENT_CATEGORIES = new Set<PortalAnnouncement["category"]>([
+  "HOLIDAY",
+  "EXAM",
+  "MEETING",
+  "EVENT",
+  "FEE",
+  "EMERGENCY",
+  "GENERAL",
+]);
+
 export function mapPortalAnnouncement(a: ApiAnnouncement): PortalAnnouncement {
+  const category = ANNOUNCEMENT_CATEGORIES.has(a.audience as PortalAnnouncement["category"])
+    ? (a.audience as PortalAnnouncement["category"])
+    : "GENERAL";
   return {
     id: a.id,
     title: a.title,
     body: a.body,
-    category: "GENERAL",
+    category,
     publishedAt: a.publishedAt,
-    pinned: false,
+    pinned: a.pinned,
   };
 }

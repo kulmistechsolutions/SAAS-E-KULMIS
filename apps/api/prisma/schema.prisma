@@ -1316,7 +1316,11 @@ model Announcement {
   schoolId        String
   title           String
   body            String
+  /// Reused as the display category (e.g. "EXAM", "HOLIDAY") — see
+  /// AnnouncementsPage. Who actually receives a Notification for this
+  /// announcement is decided at creation time, not stored here.
   audience        String   @default("ALL")
+  pinned          Boolean  @default(false)
   publishedAt     DateTime @default(now())
   createdByUserId String?
   createdAt       DateTime @default(now())

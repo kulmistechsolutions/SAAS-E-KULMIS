@@ -242,6 +242,10 @@ export const arGenerated: PartialDictionary = {
     message: "الرسالة",
     writeTheAnnouncementForParents: "اكتب الإعلان لأولياء الأمور…",
     pinToTopOfParentPortal: "تثبيت أعلى بوابة ولي الأمر",
+    sendTo: "إرسال إلى",
+    everyone: "الجميع",
+    parentsOnly: "أولياء الأمور فقط",
+    teachersOnly: "المعلمون فقط",
   },
   attendance: {
     attendance: "الحضور",

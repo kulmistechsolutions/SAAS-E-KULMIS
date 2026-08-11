@@ -242,6 +242,10 @@ export const soGenerated: PartialDictionary = {
     message: "Farriinta",
     writeTheAnnouncementForParents: "Qor ogeysiiska waalidiinta…",
     pinToTopOfParentPortal: "Ku dheji bogga waalidka dusha sare",
+    sendTo: "U Dir",
+    everyone: "Dhammaan",
+    parentsOnly: "Waalidiinta Kaliya",
+    teachersOnly: "Macallimiinta Kaliya",
   },
   attendance: {
     attendance: "Xaadiriska",

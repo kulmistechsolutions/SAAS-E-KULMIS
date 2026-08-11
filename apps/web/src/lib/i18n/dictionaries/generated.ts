@@ -242,6 +242,10 @@ export const generated = {
     message: "Message",
     writeTheAnnouncementForParents: "Write the announcement for parents…",
     pinToTopOfParentPortal: "Pin to top of parent portal",
+    sendTo: "Send To",
+    everyone: "Everyone",
+    parentsOnly: "Parents Only",
+    teachersOnly: "Teachers Only",
   },
   attendance: {
     attendance: "Attendance",

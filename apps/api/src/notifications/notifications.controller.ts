@@ -19,6 +19,8 @@ const createAnnouncementSchema = z.object({
   title: z.string().min(1),
   body: z.string().min(1),
   audience: z.string().optional(),
+  pinned: z.boolean().optional(),
+  notifyAudience: z.enum(["ALL", "PARENTS", "TEACHERS"]).optional(),
 });
 
 @Controller("notifications")
@@ -55,13 +57,15 @@ export class NotificationsController {
 
   @Roles(UserRole.ADMINISTRATOR)
   @Post("announcements")
-  createAnnouncement(@CurrentUser() me: AuthUser, @Body() body: unknown) {
+  async createAnnouncement(@CurrentUser() me: AuthUser, @Body() body: unknown) {
     const parsed = createAnnouncementSchema.safeParse(body);
     if (!parsed.success) throw new BadRequestException(parsed.error.flatten());
-    return this.notifications.createAnnouncement(
+    const announcement = await this.notifications.createAnnouncement(
       me.schoolId,
       parsed.data,
       me.userId,
     );
+    this.gateway.emitToSchool(me.schoolId, "notification", announcement);
+    return announcement;
   }
 }

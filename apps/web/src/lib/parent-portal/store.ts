@@ -311,9 +311,10 @@ export function portalChangePassword(
 }
 
 export function listAnnouncements(): PortalAnnouncement[] {
-  return [...ensure().announcements].sort(
-    (a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime(),
-  );
+  return [...ensure().announcements].sort((a, b) => {
+    if (!!a.pinned !== !!b.pinned) return a.pinned ? -1 : 1;
+    return new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime();
+  });
 }
 
 export function parentNotifications(parentId: string): PortalNotification[] {
