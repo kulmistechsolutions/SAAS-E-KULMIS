@@ -164,6 +164,7 @@ const ADMIN_NAV: NavItem[] = [
   { label: "nav.promotions", icon: TrendingUp, children: PROMOTION_CHILDREN },
   { label: "nav.onlineQuiz", icon: ClipboardList, children: QUIZ_CHILDREN },
   { label: "nav.finance", icon: DollarSign, href: "/reports/financial" },
+  { label: "nav.announcements", icon: Megaphone, href: "/announcements" },
   { label: "nav.sms", icon: MessageSquare, href: "/sms" },
   { label: "nav.smsPackages", icon: Package, href: "/sms/packages" },
   { label: "nav.library", icon: BookOpen, href: "/library" },
