@@ -8,6 +8,7 @@ import { Printer } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useSchoolBranding } from "@/lib/settings/use-school-branding";
+import { printExamResultCard } from "@/lib/examinations/print";
 
 /** One subject line on the card. */
 export interface ResultCardSubject {
@@ -137,28 +138,17 @@ export function ExamResultCard({ data }: { data: ExamResultCardData }) {
   const pct = data.totalMax > 0 ? (data.totalObtained / data.totalMax) * 100 : 0;
 
   function handlePrint() {
-    window.print();
+    printExamResultCard(data, qr);
   }
 
   return (
-    <div className="result-card-print">
-      {/* Print rules: hide the app chrome, show only the card. */}
-      <style>{`
-        @media print {
-          body * { visibility: hidden !important; }
-          .result-card-print, .result-card-print * { visibility: visible !important; }
-          .result-card-print { position: absolute; inset: 0; margin: 0; padding: 24px; }
-          .result-card-noprint { display: none !important; }
-        }
-      `}</style>
-
-      <div
-        className={`animate-fade-up overflow-hidden rounded-2xl border shadow-sm ring-1 ring-transparent transition-shadow duration-300 hover:shadow-lg bg-card ${
-          data.passed
-            ? "border-t-4 border-t-emerald-500"
-            : "border-t-4 border-t-rose-500"
-        }`}
-      >
+    <div
+      className={`animate-fade-up overflow-hidden rounded-2xl border shadow-sm ring-1 ring-transparent transition-shadow duration-300 hover:shadow-lg bg-card ${
+        data.passed
+          ? "border-t-4 border-t-emerald-500"
+          : "border-t-4 border-t-rose-500"
+      }`}
+    >
         {/* Header band */}
         <div className="flex items-center gap-4 bg-gradient-to-r from-primary/90 to-primary px-6 py-5 text-primary-foreground">
           {branding.logoUrl ? (
@@ -399,13 +389,12 @@ export function ExamResultCard({ data }: { data: ExamResultCardData }) {
           <Button
             variant="outline"
             onClick={handlePrint}
-            className="result-card-noprint h-9 px-3 text-sm"
+            className="h-9 px-3 text-sm"
           >
             <Printer className="me-1.5 h-4 w-4" />
             {t("examinationsExamResultCard.print")}
           </Button>
         </div>
-      </div>
     </div>
   );
 }
