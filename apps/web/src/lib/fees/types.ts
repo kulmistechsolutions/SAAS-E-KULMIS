@@ -88,6 +88,7 @@ export interface StudentFeeRow {
   className: string;
   section: string;
   monthlyFee: number;
+  feeWaived?: boolean;
   outstandingBalance: number;
   status: FeeChargeStatus | "ADVANCE_MULTI";
   advanceMonthsLeft?: number;

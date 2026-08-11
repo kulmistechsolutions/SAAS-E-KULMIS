@@ -723,6 +723,7 @@ export function listStudentFees(opts: {
         className: st.className,
         section: st.section ?? "—",
         monthlyFee: st.monthlyFee,
+        feeWaived: st.feeWaived ?? false,
         outstandingBalance: outstandingBalance(st.id, month),
         status: agg.status,
         advanceMonthsLeft: agg.advanceMonthsLeft,

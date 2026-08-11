@@ -1111,6 +1111,23 @@ export const arGenerated: PartialDictionary = {
     feeReports: "تقارير الرسوم",
     monthlySetup: "الإعداد الشهري",
     collectFees: "تحصيل الرسوم",
+    freeStudents: "الطلاب المجانيون",
+  },
+  feesStatusBadge: {
+    free: "مجاني",
+  },
+  financeFreeStudents: {
+    backToFeeManagement: "العودة إلى إدارة الرسوم",
+    title: "الطلاب المجانيون",
+    description: "الطلاب الذين لا تُحصَّل منهم الرسوم الشهرية أبدًا — إما مُعفون، أو مسجلون برسوم قدرها 0$.",
+    totalFreeStudents: "إجمالي الطلاب المجانيين",
+    search: "بحث",
+    parent: "ولي الأمر",
+    reason: "السبب",
+    registered: "تاريخ التسجيل",
+    noFreeStudents: "لا يوجد طلاب مجانيون.",
+    reasonWaived: "مُعفى",
+    reasonZeroFee: "رسوم 0$",
   },
   finance: {
     feeManagement: "إدارة الرسوم",

@@ -1111,6 +1111,23 @@ export const generated = {
     feeReports: "Fee Reports",
     monthlySetup: "Monthly Setup",
     collectFees: "Collect Fees",
+    freeStudents: "Free Students",
+  },
+  feesStatusBadge: {
+    free: "Free",
+  },
+  financeFreeStudents: {
+    backToFeeManagement: "Back to Fee Management",
+    title: "Free Students",
+    description: "Students who are never charged the monthly fee — waived, or registered with a $0 fee.",
+    totalFreeStudents: "Total Free Students",
+    search: "Search",
+    parent: "Parent",
+    reason: "Reason",
+    registered: "Registered",
+    noFreeStudents: "No free students found.",
+    reasonWaived: "Waived",
+    reasonZeroFee: "$0 Fee",
   },
   finance: {
     feeManagement: "Fee Management",

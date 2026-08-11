@@ -6,6 +6,7 @@ import Link from "next/link";
 import {
   Calendar,
   FileText,
+  Gift,
   Printer,
   Wallet,
   type LucideIcon,
@@ -82,6 +83,12 @@ const ACTIONS: { label: TranslationKey; href: string; icon: LucideIcon; classNam
     href: "/finance/receipts",
     icon: Printer,
     className: "bg-orange-500 hover:bg-orange-600 text-white",
+  },
+  {
+    label: "feesWidgets.freeStudents",
+    href: "/finance/free-students",
+    icon: Gift,
+    className: "bg-teal-500 hover:bg-teal-600 text-white",
   },
 ];
 

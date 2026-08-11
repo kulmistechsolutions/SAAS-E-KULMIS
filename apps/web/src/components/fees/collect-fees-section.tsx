@@ -19,7 +19,7 @@ import {
   sectionNamesForClass,
   useAcademicsState,
 } from "@/lib/academics/store";
-import { FeeStatusBadge } from "./fee-status-badge";
+import { FeeStatusBadge, FreeStudentBadge } from "./fee-status-badge";
 
 const PAGE_SIZE = 8;
 
@@ -225,10 +225,14 @@ export function CollectFeesSection({
                     {money(r.outstandingBalance)}
                   </td>
                   <td className="px-4 py-2.5">
-                    <FeeStatusBadge
-                      status={r.status}
-                      advanceMonthsLeft={r.advanceMonthsLeft}
-                    />
+                    {r.feeWaived || r.monthlyFee === 0 ? (
+                      <FreeStudentBadge />
+                    ) : (
+                      <FeeStatusBadge
+                        status={r.status}
+                        advanceMonthsLeft={r.advanceMonthsLeft}
+                      />
+                    )}
                   </td>
                   <td className="px-4 py-2.5">
                     {canPay ? (

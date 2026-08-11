@@ -1,3 +1,4 @@
+import { Gift } from "lucide-react";
 import type { FeeChargeStatus } from "@/lib/fees/types";
 import { Badge } from "@/components/ui/badge";
 import { feeStatusLabel, paymentTypeLabel } from "@/lib/fees/format";
@@ -25,6 +26,17 @@ export function FeeStatusBadge({
   return (
     <Badge tone={TONE[status] ?? "muted"}>
       {feeStatusLabel(status, advanceMonthsLeft)}
+    </Badge>
+  );
+}
+
+/** A student whose fee is $0 — never actually "paid", just never charged. */
+export function FreeStudentBadge() {
+  const t = useT();
+  return (
+    <Badge tone="info">
+      <Gift className="h-3 w-3" />
+      {t("feesStatusBadge.free")}
     </Badge>
   );
 }

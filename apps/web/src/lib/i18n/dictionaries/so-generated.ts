@@ -1111,6 +1111,23 @@ export const soGenerated: PartialDictionary = {
     feeReports: "Warbixinnada Khidmadaha",
     monthlySetup: "Dejinta Bishii",
     collectFees: "Qaad Khidmadaha",
+    freeStudents: "Ardayda Bilaashka ah",
+  },
+  feesStatusBadge: {
+    free: "Bilaash",
+  },
+  financeFreeStudents: {
+    backToFeeManagement: "Ku Noqo Maaraynta Khidmadaha",
+    title: "Ardayda Bilaashka ah",
+    description: "Ardayda aan waligood laga qaadin khidmadda bishii — ha noqoto mid la iska dhaafay, ama loo diiwaan geliyay khidmad $0 ah.",
+    totalFreeStudents: "Wadarta Ardayda Bilaashka ah",
+    search: "Raadi",
+    parent: "Waalidka",
+    reason: "Sababta",
+    registered: "Diiwaan Gelinta",
+    noFreeStudents: "Ma jiraan ardayda bilaashka ah.",
+    reasonWaived: "La Iska Dhaafay",
+    reasonZeroFee: "Khidmad $0 ah",
   },
   finance: {
     feeManagement: "Maaraynta Khidmadaha",
