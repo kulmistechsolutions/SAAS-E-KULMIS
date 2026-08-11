@@ -101,6 +101,7 @@ const curated: PartialDictionary = {
     setup: "الإعداد",
     collectFees: "تحصيل الرسوم",
     feeHistory: "سجل الرسوم",
+    freeStudents: "الطلاب المجانيون",
     monthlySetup: "الإعداد الشهري",
     academicYearSetup: "إعداد العام الدراسي",
     extraFees: "رسوم إضافية",

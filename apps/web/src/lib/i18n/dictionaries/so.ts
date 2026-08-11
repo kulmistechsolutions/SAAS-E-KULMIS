@@ -106,6 +106,7 @@ const curated: PartialDictionary = {
     setup: "Dejinta",
     collectFees: "Qaadista Khidmadaha",
     feeHistory: "Taariikhda Khidmadaha",
+    freeStudents: "Ardayda Bilaashka ah",
     monthlySetup: "Dejinta Bishii",
     academicYearSetup: "Dejinta Sannad-dugsiyeedka",
     extraFees: "Khidmado Dheeraad ah",

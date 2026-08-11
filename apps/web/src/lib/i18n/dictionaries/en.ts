@@ -107,6 +107,7 @@ const core = {
     setup: "Setup",
     collectFees: "Collect Fees",
     feeHistory: "Fee History",
+    freeStudents: "Free Students",
     monthlySetup: "Monthly Setup",
     academicYearSetup: "Academic Year Setup",
     extraFees: "Extra Fees",
