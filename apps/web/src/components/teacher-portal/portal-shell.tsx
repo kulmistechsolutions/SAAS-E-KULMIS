@@ -25,6 +25,7 @@ import { useSchoolBranding } from "@/lib/settings/use-school-branding";
 import { logoutTeacher } from "@/lib/teacher-portal/store";
 import { TEACHER_PORTAL_NAV } from "@/lib/teacher-portal/routes";
 import { useTeacherPortal } from "./portal-context";
+import { LanguageSwitcher } from "@/components/ui/language-switcher";
 import { cn } from "@/lib/utils";
 
 const ICONS: Record<string, typeof LayoutDashboard> = {
@@ -149,9 +150,12 @@ export function TeacherPortalShell({
               <p className="text-xs text-muted-foreground">{t("teacherPortalPortalShell.teacherPortal")}</p>
               <p className="truncate font-semibold">{teacher.fullName}</p>
             </div>
-            <div className="shrink-0 text-end text-xs text-muted-foreground">
-              <p>{teacher.code}</p>
-              <p>{teacher.shift} {t("teacherPortalPortalShell.shift")}</p>
+            <div className="flex shrink-0 items-center gap-3">
+              <LanguageSwitcher />
+              <div className="text-end text-xs text-muted-foreground">
+                <p>{teacher.code}</p>
+                <p>{teacher.shift} {t("teacherPortalPortalShell.shift")}</p>
+              </div>
             </div>
           </div>
         </header>

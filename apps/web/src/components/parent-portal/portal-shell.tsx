@@ -32,6 +32,7 @@ import {
   unreadNotificationCount,
 } from "@/lib/parent-portal/store";
 import { usePortal } from "./portal-context";
+import { LanguageSwitcher } from "@/components/ui/language-switcher";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 
@@ -191,6 +192,7 @@ export function PortalShell({ children }: { children: React.ReactNode }) {
               <p className="truncate font-semibold">{parent.name}</p>
             </div>
             <div className="flex shrink-0 items-center gap-3">
+              <LanguageSwitcher />
               {unread > 0 && (
                 <Link
                   href="/parent-portal/notifications"
