@@ -68,6 +68,7 @@ export const generated = {
     loadingClasses: "Loading classes…",
     classesGrades: "Classes / Grades",
     eachAcademicYearHasUpTo: "Each academic year has up to 12 grades. Rename grades to match your school's naming — sections are managed separately.",
+    customStructureUnlimitedClasses: "This school uses a custom class structure — add as many classes as you need, grouped however fits your school.",
     print: "Print",
     export: "Export",
     addClass: "Add Class",

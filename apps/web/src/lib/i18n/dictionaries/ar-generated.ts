@@ -68,6 +68,7 @@ export const arGenerated: PartialDictionary = {
     loadingClasses: "جارٍ تحميل الصفوف…",
     classesGrades: "الصفوف / المراحل",
     eachAcademicYearHasUpTo: "كل عام دراسي يضم حتى 12 مرحلة. أعد تسمية المراحل لتطابق تسمية مدرستك — تُدار الشعب بشكل منفصل.",
+    customStructureUnlimitedClasses: "تستخدم هذه المدرسة هيكلاً دراسياً مخصصاً — أضف عدد الصفوف الذي تحتاجه بالشكل الذي يناسب مدرستك.",
     print: "طباعة",
     export: "تصدير",
     addClass: "إضافة صف",

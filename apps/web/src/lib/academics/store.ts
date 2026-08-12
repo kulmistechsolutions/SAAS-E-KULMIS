@@ -432,6 +432,11 @@ export function classNamesForYear(
 }
 
 export function canCreateClassInYear(year?: string): boolean {
+  // A school running its own custom structure isn't held to the 12-grade
+  // default ladder — the backend already lifts this cap for them
+  // (class-structure.service.ts), so the frontend must match or "Add Class"
+  // silently disappears/rejects once they legitimately need a 13th+ class.
+  if (ensure().customStructureEnabled) return true;
   const y = year ?? activeAcademicYear();
   const count = ensure().classes.filter(
     (c) => c.academicYear === y && c.status === "ACTIVE",

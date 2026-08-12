@@ -68,6 +68,7 @@ export const soGenerated: PartialDictionary = {
     loadingClasses: "Fasallada waa la soo dejinayaa…",
     classesGrades: "Fasallada / Heerarka",
     eachAcademicYearHasUpTo: "Sannad-dugsiyeed kastaa wuxuu leeyahay ilaa 12 heer. Beddel magacyada heerarka si ay ula mid noqdaan kuwa dugsigaaga — qaybaha si gaar ah ayaa loo maamulaa.",
+    customStructureUnlimitedClasses: "Dugsigan wuxuu isticmaalaa qaab-dhismeed fasallo oo gaar ah — ku dar fasallo intaad u baahan tahay, si kastoo ku habboon dugsigaaga.",
     print: "Daabac",
     export: "Soo saar",
     addClass: "Ku dar Fasal",

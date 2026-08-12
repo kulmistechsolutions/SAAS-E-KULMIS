@@ -16,6 +16,7 @@ import {
   createClass,
   getAcademicsState,
   updateClass,
+  useAcademicsState,
 } from "@/lib/academics/store";
 import type { EntityStatus, SchoolClass } from "@/lib/academics/types";
 
@@ -29,6 +30,7 @@ export function ClassFormDialog({ open, onClose, cls }: Props) {
   const t = useT();
   const isEdit = !!cls;
   const years = getAcademicsState().academicYears;
+  const { customStructureEnabled } = useAcademicsState();
   const [name, setName] = useState("");
   const [academicYear, setAcademicYear] = useState<string>(activeAcademicYear());
   const [hasSections, setHasSections] = useState(true);
@@ -86,7 +88,9 @@ export function ClassFormDialog({ open, onClose, cls }: Props) {
       description={
         isEdit
           ? "Update the display name for this grade. The class record stays the same — no duplicate is created."
-          : "Class names must be unique within an academic year. Each year supports up to 12 grades."
+          : customStructureEnabled
+            ? "Class names must be unique within an academic year. This school uses a custom class structure, so you can add as many classes as you need."
+            : "Class names must be unique within an academic year. Each year supports up to 12 grades."
       }
       footer={
         <>
