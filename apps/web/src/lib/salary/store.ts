@@ -5,7 +5,8 @@ import { ApiError } from "@/lib/api";
 import { activeAcademicYear as getActiveAcademicYear } from "@/lib/academics/store";
 import { monthKey as buildMonthKey } from "@/lib/fees/format";
 import { formatMoney } from "@/lib/settings/currency";
-import { getTeachersState } from "@/lib/teachers/store";
+import { getTeachersState, refreshTeachers } from "@/lib/teachers/store";
+import { ensureEmployeesLoaded, getEmployeesState } from "@/lib/employees/store";
 import {
   apiCreateSalary,
   apiListSalaries,
@@ -273,17 +274,28 @@ export async function generatePayroll(
     return { year: y!, month: m! };
   })();
 
+  // Both stores are lazily fetched on first read and may still be empty on a
+  // cold tab (e.g. landing straight on /salary without visiting Teachers or
+  // Employees first) — reading them synchronously here would silently skip
+  // everyone instead of generating their payroll.
+  await Promise.all([refreshTeachers(), ensureEmployeesLoaded()]);
   const teachers = getTeachersState().teachers.filter((t) => t.status === "ACTIVE");
+  const staff = getEmployeesState().employees.filter((e) => e.status === "ACTIVE");
   const existing = new Set(
     s.payroll
       .filter((p) => p.payrollMonth === payrollMonth)
       .map((p) => p.employeeId),
   );
 
+  // One person with a bad row (e.g. $0 salary, which the backend rejects as
+  // not a positive amount) must never block payroll for everyone else — each
+  // creation is independent, so a single failure is skipped and reported
+  // rather than aborting the whole batch.
   let created = 0;
-  try {
-    for (const t of teachers) {
-      if (existing.has(t.id)) continue;
+  const skipped: string[] = [];
+  for (const t of teachers) {
+    if (existing.has(t.id)) continue;
+    try {
       await apiCreateSalary({
         teacherId: t.id,
         employeeName: t.fullName,
@@ -294,24 +306,53 @@ export async function generatePayroll(
         status: "PENDING",
       });
       created += 1;
+    } catch (e) {
+      skipped.push(`${t.fullName} (${apiErr(e, "unknown error")})`);
     }
-    if (created === 0) {
-      return {
-        ok: false,
-        error: "Payroll already generated for all active employees this month.",
-        created: 0,
-      };
-    }
-    await refreshSalaries(year, mo);
-    logAudit(
-      "Salary Generated",
-      undefined,
-      `${created} records for ${monthLabel(payrollMonth)}`,
-    );
-    return { ok: true, created };
-  } catch (e) {
-    return { ok: false, error: apiErr(e, "Failed to generate payroll."), created: 0 };
   }
+  for (const e of staff) {
+    if (existing.has(e.id)) continue;
+    try {
+      await apiCreateSalary({
+        employeeId: e.id,
+        employeeName: e.fullName,
+        position: e.position,
+        amount: e.salary,
+        year,
+        month: mo,
+        status: "PENDING",
+      });
+      created += 1;
+    } catch (err) {
+      skipped.push(`${e.fullName} (${apiErr(err, "unknown error")})`);
+    }
+  }
+
+  if (created > 0) await refreshSalaries(year, mo);
+
+  if (created === 0) {
+    return {
+      ok: false,
+      error:
+        skipped.length > 0
+          ? `Could not generate payroll: ${skipped.join("; ")}`
+          : "Payroll already generated for all active employees this month.",
+      created: 0,
+    };
+  }
+  logAudit(
+    "Salary Generated",
+    undefined,
+    `${created} records for ${monthLabel(payrollMonth)}` +
+      (skipped.length > 0 ? ` (${skipped.length} skipped: ${skipped.join("; ")})` : ""),
+  );
+  return {
+    ok: true,
+    created,
+    ...(skipped.length > 0
+      ? { error: `Skipped ${skipped.length}: ${skipped.join("; ")}` }
+      : {}),
+  };
 }
 
 export async function paySalary(input: PaySalaryInput): Promise<{

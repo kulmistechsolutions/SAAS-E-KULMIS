@@ -13,6 +13,7 @@ export * from "./schemas/district";
 export * from "./schemas/student";
 export * from "./schemas/student-photo";
 export * from "./schemas/teacher";
+export * from "./schemas/employee";
 export * from "./schemas/attendance";
 export * from "./schemas/finance";
 export * from "./schemas/platform";

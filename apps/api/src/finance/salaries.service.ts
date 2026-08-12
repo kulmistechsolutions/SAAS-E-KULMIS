@@ -14,6 +14,7 @@ export class SalariesService {
         data: {
           schoolId,
           teacherId: dto.teacherId ?? null,
+          employeeId: dto.employeeId ?? null,
           employeeName: dto.employeeName,
           position: dto.position ?? null,
           amount: dto.amount,

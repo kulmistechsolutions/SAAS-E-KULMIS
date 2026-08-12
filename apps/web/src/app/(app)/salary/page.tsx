@@ -63,7 +63,11 @@ export default function SalaryDashboardPage() {
       toast(res.error ?? "Could not generate payroll", "error");
       return;
     }
-    toast(`Generated ${res.created} payroll records for ${monthLabel(month)}`, "success");
+    toast(
+      `Generated ${res.created} payroll records for ${monthLabel(month)}` +
+        (res.error ? ` — ${res.error}` : ""),
+      res.error ? "info" : "success",
+    );
   }
 
   if (!mounted) {

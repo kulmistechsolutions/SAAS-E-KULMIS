@@ -992,6 +992,7 @@ model Salary {
   id           String       @id @default(cuid())
   schoolId     String
   teacherId    String?
+  employeeId   String?
   employeeName String
   position     String?
   amount       Int
@@ -1005,6 +1006,27 @@ model Salary {
 
   @@index([schoolId])
   @@map("salaries")
+}
+
+/// Non-teaching staff (guards, cleaners, and similar roles) who draw a
+/// monthly salary but don't need a portal login — kept separate from
+/// Teacher so Generate Payroll can pick them up without granting access.
+model Employee {
+  id        String           @id @default(cuid())
+  schoolId  String
+  code      String
+  fullName  String
+  position  String
+  phone     String?
+  salary    Int              @default(0)
+  status    EmploymentStatus @default(ACTIVE)
+  notes     String?
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  @@unique([schoolId, code])
+  @@index([schoolId])
+  @@map("employees")
 }
 
 /// Expense category (Module 9).

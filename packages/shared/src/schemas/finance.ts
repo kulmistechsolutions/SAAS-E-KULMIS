@@ -131,6 +131,7 @@ export type StudentFeeStartInput = z.infer<typeof studentFeeStartSchema>;
 // ── Salary (Module 8) ──
 export const createSalarySchema = z.object({
   teacherId: z.string().min(1).nullable().optional(),
+  employeeId: z.string().min(1).nullable().optional(),
   employeeName: z.string().min(1),
   position: z.string().min(1).nullable().optional(),
   amount: positiveAmount,

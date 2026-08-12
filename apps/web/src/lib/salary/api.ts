@@ -12,6 +12,7 @@ import type {
 export interface ApiSalary {
   id: string;
   teacherId: string | null;
+  employeeId: string | null;
   employeeName: string;
   position: string | null;
   amount: number;
@@ -32,9 +33,14 @@ export function mapApiSalary(s: ApiSalary, academicYear: string): {
   const amountPaid = s.status === "PAID" ? s.amount : 0;
   const remainingBalance = s.status === "PAID" ? 0 : s.amount;
 
+  // Prefer the persistent employeeId/teacherId over the per-month salary
+  // row's own id so re-generating payroll next month can tell "this same
+  // person already has a row this month" apart from "this is a new person" —
+  // falling back to the row id only for old rows created before employeeId
+  // existed, which have neither.
   const employee: Employee = {
-    id: s.teacherId ?? s.id,
-    code: s.teacherId ?? s.id.slice(0, 8).toUpperCase(),
+    id: s.teacherId ?? s.employeeId ?? s.id,
+    code: s.teacherId ?? s.employeeId ?? s.id.slice(0, 8).toUpperCase(),
     fullName: s.employeeName,
     type: s.teacherId ? "TEACHER" : "STAFF",
     teacherId: s.teacherId,
@@ -77,6 +83,7 @@ export async function apiListSalaries(year?: number, month?: number): Promise<Ap
 
 export interface CreateSalaryApiInput {
   teacherId?: string | null;
+  employeeId?: string | null;
   employeeName: string;
   position?: string | null;
   amount: number;
