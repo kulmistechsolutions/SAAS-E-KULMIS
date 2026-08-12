@@ -1233,6 +1233,9 @@ export const arGenerated: PartialDictionary = {
     paid: "مدفوع",
     partial: "جزئي",
   },
+  topbarNotificationsBell: {
+    noNotificationsYet: "لا توجد إشعارات بعد.",
+  },
   studentCases: {
     title: "حالات الطلاب",
     description: "تسجيل ومتابعة ملاحظات السلوك والانضباط الخاصة بالطلاب.",

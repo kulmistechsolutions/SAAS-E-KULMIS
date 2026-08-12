@@ -1233,6 +1233,9 @@ export const generated = {
     paid: "Paid",
     partial: "Partial",
   },
+  topbarNotificationsBell: {
+    noNotificationsYet: "No notifications yet.",
+  },
   studentCases: {
     title: "Student Cases",
     description: "Record and track behavior/discipline notes for students.",

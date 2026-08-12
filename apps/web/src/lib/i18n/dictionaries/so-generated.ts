@@ -1233,6 +1233,9 @@ export const soGenerated: PartialDictionary = {
     paid: "La Bixiyay",
     partial: "Qayb Ahaan",
   },
+  topbarNotificationsBell: {
+    noNotificationsYet: "Weli ogeysiis lama helin.",
+  },
   studentCases: {
     title: "Caseeska Ardayda",
     description: "Diiwaangeli oo la soco qoraallada dhaqanka/anshaxa ardayda.",

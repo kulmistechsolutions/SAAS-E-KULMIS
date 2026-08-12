@@ -19,3 +19,20 @@ export async function fetchAnnouncements(): Promise<PortalAnnouncement[]> {
   const rows = await apiListAnnouncements();
   return rows.map(mapPortalAnnouncement);
 }
+
+export interface ApiUserNotification {
+  id: string;
+  title: string;
+  body: string;
+  type: string;
+  readAt: string | null;
+  createdAt: string;
+}
+
+/** The current staff user's own notifications — admin/teacher/etc, matched
+ *  server-side by the logged-in user's id (see NotificationsService.list). */
+export const apiListMyNotifications = () =>
+  api<ApiUserNotification[]>("/notifications");
+
+export const apiMarkNotificationRead = (id: string) =>
+  api<ApiUserNotification>(`/notifications/${id}/read`, { method: "PATCH" });

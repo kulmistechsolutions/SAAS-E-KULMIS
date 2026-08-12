@@ -3,12 +3,13 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Bell, ChevronDown, LogOut, Menu, Search, User } from "lucide-react";
+import { ChevronDown, LogOut, Menu, Search, User } from "lucide-react";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { useAuth } from "@/lib/auth";
 import { activeAcademicYear, ensureAcademicsLoaded, useAcademicsState } from "@/lib/academics/store";
 import { toast } from "@/lib/toast";
 import { LanguageSwitcher } from "@/components/ui/language-switcher";
+import { NotificationsBell } from "./notifications-bell";
 import { useT } from "@/lib/i18n/provider";
 
 interface TopbarProps {
@@ -90,17 +91,7 @@ export function Topbar({ onMenuClick, userName, userRole }: TopbarProps) {
         <LanguageSwitcher />
         <ThemeToggle />
 
-        {/* Notifications */}
-        <button
-          onClick={() => toast("You have 12 unread notifications", "info")}
-          aria-label={t("topbar.notifications")}
-          className="relative flex h-9 w-9 items-center justify-center rounded-lg border border-input text-muted-foreground transition-colors hover:bg-secondary"
-        >
-          <Bell className="h-4 w-4" />
-          <span className="absolute -end-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-semibold text-white">
-            12
-          </span>
-        </button>
+        <NotificationsBell />
 
         {/* User */}
         <div className="relative">
