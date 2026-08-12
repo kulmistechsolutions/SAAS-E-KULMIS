@@ -152,7 +152,6 @@ export default function StudentAttendancePage() {
   );
 
   const selectedMarkClass = useMemo(() => classByName(klass, year), [klass, year]);
-  const markClassNeedsSection = selectedMarkClass?.hasSections ?? true;
 
   const sectionOptions = useMemo(() => {
     const cls = classByName(klass, year);
@@ -178,6 +177,13 @@ export default function StudentAttendancePage() {
     if (hasAllSections) return all;
     return all.filter((s) => allowed.has(s.name));
   }, [klass, year, academics.sections, isTeacher, teacherMe]);
+
+  // A class flagged hasSections=true but with zero actual Section rows (e.g.
+  // the toggle was left on at creation and no section was ever added) must
+  // still be markable as a whole — otherwise the required Section field has
+  // no options to satisfy itself with.
+  const markClassNeedsSection =
+    (selectedMarkClass?.hasSections ?? true) && sectionOptions.length > 0;
 
   useEffect(() => {
     if (tab !== "dashboard" || !mounted) return;

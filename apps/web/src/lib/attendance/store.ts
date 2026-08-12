@@ -266,7 +266,7 @@ export async function saveStudentAttendance(
   if (classErr || !classId) return { ok: false, error: classErr };
 
   const cls = classByName(className, academicYear);
-  if (cls?.hasSections && !section) {
+  if (cls?.hasSections && sectionsForClass(classId).length > 0 && !section) {
     return { ok: false, error: "Section is required for this class." };
   }
 
