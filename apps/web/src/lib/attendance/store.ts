@@ -333,15 +333,17 @@ export async function studentDashboardToday(
   }
 }
 
+interface StudentAttendanceRecordWithStudent extends StudentAttendanceRecord {
+  student: { id: string; code: string; fullName: string; gender: string };
+}
+
 async function fetchStudentRecordsForDate(
   date: string,
   academicYear: string,
   className?: string,
   section?: string,
-): Promise<StudentAttendanceRecord[]> {
+): Promise<StudentAttendanceRecordWithStudent[]> {
   const a = getAcademicsState();
-  const st = getStudentsState();
-  const smap = new Map(st.students.map((s) => [s.id, s]));
 
   let pairs: { className: string; section: string; classId: string; sectionId: string | null }[] = [];
 
@@ -379,7 +381,7 @@ async function fetchStudentRecordsForDate(
       });
   }
 
-  const records: StudentAttendanceRecord[] = [];
+  const records: StudentAttendanceRecordWithStudent[] = [];
   const now = new Date().toISOString();
 
   for (const pair of pairs) {
@@ -387,8 +389,6 @@ async function fetchStudentRecordsForDate(
       const res = await apiStudentRoster(pair.classId, date, pair.sectionId);
       for (const row of res.roster) {
         if (!row.status) continue;
-        const student = smap.get(row.id);
-        if (!student) continue;
         records.push({
           id: `${row.id}_${date}`,
           studentId: row.id,
@@ -398,6 +398,12 @@ async function fetchStudentRecordsForDate(
           date,
           status: row.status,
           markedAt: now,
+          student: {
+            id: row.id,
+            code: row.code,
+            fullName: row.fullName,
+            gender: row.gender,
+          },
         });
       }
     } catch {
@@ -416,8 +422,6 @@ export async function filterStudentRecords(opts: {
   status?: StudentAttendanceStatus;
   search?: string;
 }) {
-  const st = getStudentsState();
-  const smap = new Map(st.students.map((s) => [s.id, s]));
   const q = opts.search?.trim().toLowerCase() ?? "";
   const year = opts.academicYear ?? "";
   const date = opts.date ?? todayISO();
@@ -431,17 +435,14 @@ export async function filterStudentRecords(opts: {
 
   return all
     .filter((r) => {
-      const s = smap.get(r.studentId);
-      if (!s) return false;
       if (opts.academicYear && r.academicYear !== opts.academicYear) return false;
       if (opts.status && r.status !== opts.status) return false;
       if (q) {
-        const hay = `${s.code} ${s.fullName}`.toLowerCase();
+        const hay = `${r.student.code} ${r.student.fullName}`.toLowerCase();
         if (!hay.includes(q)) return false;
       }
       return true;
     })
-    .map((r) => ({ ...r, student: smap.get(r.studentId)! }))
     .sort((a, b) => a.student.fullName.localeCompare(b.student.fullName));
 }
 
