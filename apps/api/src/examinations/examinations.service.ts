@@ -1448,10 +1448,14 @@ export class ExaminationsService {
   /** Class-level result management overview. */
   async resultsClassesOverview(schoolId: string, academicYearId?: string) {
     return this.prisma.forTenant(schoolId, async (tx) => {
+      // Must match the status filter classResultsMatrix/classResultsMatrixCombined
+      // use to actually serve results — otherwise this overview offers an exam
+      // (or a "Combined" group) that those endpoints then find nothing for and
+      // reject with a 400, because every exam in it is still DRAFT.
       const exams = await tx.exam.findMany({
         where: {
           ...(academicYearId ? { academicYearId } : {}),
-          status: { not: "ARCHIVED" },
+          status: { notIn: ["DRAFT", "ARCHIVED"] },
         },
         include: {
           class: { select: { id: true, name: true } },
