@@ -14,6 +14,7 @@ import { Dialog } from "@/components/ui/dialog";
 import { announcementCategoryLabel, relativeTime } from "@/lib/parent-portal/format";
 import type { PortalAnnouncement } from "@/lib/parent-portal/types";
 import { apiCreateAnnouncement, fetchAnnouncements } from "@/lib/notifications/api";
+import { apiSendAudienceSms } from "@/lib/sms/api";
 import { useAuth } from "@/lib/auth";
 import { toast } from "@/lib/toast";
 
@@ -41,6 +42,7 @@ export default function AnnouncementsPage() {
   const [category, setCategory] = useState<PortalAnnouncement["category"]>("GENERAL");
   const [notifyAudience, setNotifyAudience] = useState<NotifyAudience>("ALL");
   const [pinned, setPinned] = useState(false);
+  const [alsoSendSms, setAlsoSendSms] = useState(false);
   const [publishing, setPublishing] = useState(false);
 
   useEffect(() => setMounted(true), []);
@@ -67,6 +69,7 @@ export default function AnnouncementsPage() {
     setCategory("GENERAL");
     setNotifyAudience("ALL");
     setPinned(false);
+    setAlsoSendSms(false);
   }
 
   const AUDIENCE_TOAST: Record<NotifyAudience, string> = {
@@ -74,6 +77,37 @@ export default function AnnouncementsPage() {
     PARENTS: "Notice sent to all parents",
     TEACHERS: "Notice sent to all teachers",
   };
+
+  /**
+   * Fires the SMS(es) for the chosen audience. "Everyone" has no single
+   * matching SmsAudience value on the backend, so it's two sends (parents,
+   * then teachers) with the results combined into one report to the admin.
+   */
+  async function sendSmsForAudience(smsBody: string): Promise<{
+    sent: number;
+    failed: number;
+    creditsUsed: number;
+  }> {
+    const targets: ("ALL_PARENTS" | "TEACHERS")[] =
+      notifyAudience === "ALL"
+        ? ["ALL_PARENTS", "TEACHERS"]
+        : notifyAudience === "PARENTS"
+          ? ["ALL_PARENTS"]
+          : ["TEACHERS"];
+    const results = await Promise.all(
+      targets.map((audience) =>
+        apiSendAudienceSms({ category: "ANNOUNCEMENT", body: smsBody, audience }),
+      ),
+    );
+    return results.reduce(
+      (acc, r) => ({
+        sent: acc.sent + r.sent,
+        failed: acc.failed + r.failed,
+        creditsUsed: acc.creditsUsed + r.creditsUsed,
+      }),
+      { sent: 0, failed: 0, creditsUsed: 0 },
+    );
+  }
 
   async function handlePublish() {
     if (!title.trim() || !body.trim()) {
@@ -92,6 +126,22 @@ export default function AnnouncementsPage() {
       const next = await fetchAnnouncements();
       setItems(next);
       toast(AUDIENCE_TOAST[notifyAudience], "success");
+
+      if (alsoSendSms) {
+        try {
+          const r = await sendSmsForAudience(`${title.trim()}\n${body.trim()}`);
+          toast(
+            `SMS sent: ${r.sent}${r.failed > 0 ? `, failed: ${r.failed}` : ""} (${r.creditsUsed} credits used)`,
+            r.failed > 0 ? "info" : "success",
+          );
+        } catch {
+          toast(
+            "Notice was sent, but the SMS could not be sent (check SMS credits/settings).",
+            "error",
+          );
+        }
+      }
+
       setComposeOpen(false);
       resetForm();
     } catch {
@@ -229,6 +279,19 @@ export default function AnnouncementsPage() {
             />
             {t("announcements.pinToTopOfParentPortal")}
           </label>
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={alsoSendSms}
+              onChange={(e) => setAlsoSendSms(e.target.checked)}
+            />
+            {t("announcements.alsoSendViaSms")}
+          </label>
+          {alsoSendSms && (
+            <p className="rounded-lg bg-amber-500/10 px-3 py-2 text-xs text-amber-600 dark:text-amber-400">
+              {t("announcements.smsUsesCreditsWarning")}
+            </p>
+          )}
         </div>
       </Dialog>
       )}

@@ -7,6 +7,7 @@ import {
   Banknote,
   CircleDollarSign,
   ClipboardList,
+  Gift,
   PieChart,
   TrendingUp,
   UserCheck,
@@ -86,6 +87,14 @@ const CARDS: {
     icon: ArrowUpRight,
     chip: "bg-purple-100 text-purple-600 dark:bg-purple-500/15",
     value: "text-purple-600 dark:text-purple-400",
+    format: (v) => v.toLocaleString(),
+  },
+  {
+    key: "freeStudents",
+    label: "feesSummaryCards.totalFreeStudents",
+    icon: Gift,
+    chip: "bg-teal-100 text-teal-600 dark:bg-teal-500/15",
+    value: "text-teal-600 dark:text-teal-400",
     format: (v) => v.toLocaleString(),
   },
   {

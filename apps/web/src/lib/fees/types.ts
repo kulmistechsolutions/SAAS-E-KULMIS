@@ -76,6 +76,10 @@ export interface FeeDashboardSummary {
   fullyPaidStudents: number;
   partialPayments: number;
   advancePayments: number;
+  /** Never charged the monthly fee at all (waived, or registered at $0) — has
+   *  no bearing on payment behavior, so it's counted apart from fullyPaid/
+   *  partial/advance rather than trivially showing up as "fully paid". */
+  freeStudents: number;
   expectedMonthlyIncome: number;
   netFeeCollection: number;
   totalActiveStudents: number;

@@ -584,12 +584,24 @@ export function dashboardSummary(
     .reduce((sum, p) => sum + p.amount, 0);
 
   const collectedThisMonth = monthPayments.reduce((sum, p) => sum + p.amount, 0);
-  const expectedMonthlyIncome = students.reduce((sum, st) => sum + st.monthlyFee, 0);
+  // A waived student's stored monthlyFee is never actually charged, so it
+  // would inflate "expected income" with money that can never arrive.
+  const expectedMonthlyIncome = students.reduce(
+    (sum, st) => sum + (st.feeWaived ? 0 : st.monthlyFee),
+    0,
+  );
 
   let fullyPaid = 0;
   let partial = 0;
   let advance = 0;
+  let free = 0;
   for (const st of students) {
+    // Never charged anything — has no payment behavior to report, so it
+    // doesn't belong in fullyPaid/partial/advance at all.
+    if (st.feeWaived || st.monthlyFee === 0) {
+      free += 1;
+      continue;
+    }
     const adv = advanceMonthsLeft(st.id, month);
     const out = outstandingBalance(st.id, month);
     if (adv > 0) advance += 1;
@@ -611,6 +623,7 @@ export function dashboardSummary(
     fullyPaidStudents: fullyPaid,
     partialPayments: partial,
     advancePayments: advance,
+    freeStudents: free,
     expectedMonthlyIncome,
     netFeeCollection: collectedThisMonth,
     totalActiveStudents: students.length,
@@ -636,11 +649,20 @@ export function paymentSummary(filterMonth?: string): PaymentSummarySlice[] {
   let paidCount = 0;
   let unpaidCount = 0;
   let advanceCount = 0;
+  let freeCount = 0;
   let paidAmount = 0;
   let unpaidAmount = 0;
   let advanceAmount = 0;
 
   for (const st of students) {
+    // Never charged anything — money never moved for this student, so it
+    // can't count as "Paid" (that would credit them with income that was
+    // never actually collected, especially when a waived student still has
+    // a nonzero stored monthlyFee from before they were waived).
+    if (st.feeWaived || st.monthlyFee === 0) {
+      freeCount += 1;
+      continue;
+    }
     const adv = advanceMonthsLeft(st.id, month);
     const out = outstandingBalance(st.id, month);
     if (adv > 0) {
@@ -660,6 +682,7 @@ export function paymentSummary(filterMonth?: string): PaymentSummarySlice[] {
     { name: "Paid", value: paidCount, amount: paidAmount, color: "#22c55e" },
     { name: "Unpaid", value: unpaidCount, amount: unpaidAmount, color: "#ef4444" },
     { name: "Advance", value: advanceCount, amount: advanceAmount, color: "#a855f7" },
+    { name: "Free", value: freeCount, amount: 0, color: "#14b8a6" },
   ];
 
   return slices.map((sl) => ({
