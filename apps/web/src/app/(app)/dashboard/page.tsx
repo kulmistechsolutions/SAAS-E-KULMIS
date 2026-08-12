@@ -168,7 +168,7 @@ function buildStats(data: AdminDashboardResponse, t: Translate) {
       label: "Fees Outstanding",
       labelKey: "dashboard.feesOutstanding" as TranslationKey,
       value: money(data.fees.totalOutstanding),
-      hint: `${outstandingStudents} partial`,
+      hint: `${outstandingStudents} partial · ${data.fees.freeStudents} free`,
       hintTone: "muted" as const,
       icon: "fees" as const,
       theme: "rose" as const,

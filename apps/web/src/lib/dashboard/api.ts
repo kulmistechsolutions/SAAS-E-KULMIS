@@ -29,6 +29,7 @@ export interface AdminDashboardResponse {
     collectedThisMonth: number;
     partialPayments: number;
     advancePayments: number;
+    freeStudents: number;
   };
   finance: {
     totalIncome: number;

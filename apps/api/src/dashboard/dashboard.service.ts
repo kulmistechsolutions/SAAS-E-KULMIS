@@ -343,6 +343,7 @@ export class DashboardService {
         collectedToday,
         collectedThisMonth,
         partialCount,
+        freeStudentsCount,
       ] = await Promise.all([
         tx.feeCharge.aggregate({
           _sum: { amount: true, paidAmount: true },
@@ -365,6 +366,12 @@ export class DashboardService {
           where: { paidAt: { gte: startOfMonth } },
         }),
         tx.feeCharge.count({ where: { status: "PARTIAL" } }),
+        tx.student.count({
+          where: {
+            status: "ACTIVE",
+            OR: [{ feeWaived: true }, { monthlyFee: 0 }],
+          },
+        }),
       ]);
 
       const [
@@ -534,6 +541,7 @@ export class DashboardService {
           collectedThisMonth: collectedThisMonth._sum.amount ?? 0,
           partialPayments: partialCount,
           advancePayments: advanceCount,
+          freeStudents: freeStudentsCount,
         },
         finance: {
           totalIncome,
