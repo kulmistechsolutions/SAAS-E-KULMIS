@@ -993,6 +993,17 @@ export const generated = {
     amountToCollect: "Amount to Collect",
     appliedOldestFirstAcrossEveryChild: "Applied oldest-first across every child's outstanding balance.",
   },
+  feesParentContact: {
+    call: "Call",
+    sendSms: "Send SMS",
+    noPhoneOnFile: "No phone on file",
+    composeSmsTo: "Send SMS to {name}",
+    message: "Message",
+    send: "Send",
+    sending: "Sending…",
+    smsSent: "SMS sent successfully",
+    smsFailed: "Could not send SMS. Check SMS credits/settings.",
+  },
   feesFormat: {
     month1: "January",
     month2: "February",

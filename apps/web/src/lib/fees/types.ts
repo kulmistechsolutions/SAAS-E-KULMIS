@@ -96,6 +96,9 @@ export interface StudentFeeRow {
   outstandingBalance: number;
   status: FeeChargeStatus | "ADVANCE_MULTI";
   advanceMonthsLeft?: number;
+  parentId: string;
+  parentName: string;
+  parentPhone: string;
 }
 
 /** One child within a FamilyFeeRow, kept lean since the family view lists many. */

@@ -993,6 +993,17 @@ export const soGenerated: PartialDictionary = {
     amountToCollect: "Qadarka La Qaadayo",
     appliedOldestFirstAcrossEveryChild: "Waxaa loo dabaqi doonaa marka hore kuwii ugu horeeyay ee ilmaha oo dhan.",
   },
+  feesParentContact: {
+    call: "Wac",
+    sendSms: "Dir SMS",
+    noPhoneOnFile: "Lambar telefoon lama helin",
+    composeSmsTo: "SMS u dir {name}",
+    message: "Fariinta",
+    send: "Dir",
+    sending: "Diritaanka…",
+    smsSent: "SMS-ka si guul leh ayaa loo diray",
+    smsFailed: "SMS-ka lama diri karin. Hubi kaararka SMS-ka/dejinta.",
+  },
   feesFormat: {
     month1: "Jannaayo",
     month2: "Febraayo",

@@ -993,6 +993,17 @@ export const arGenerated: PartialDictionary = {
     amountToCollect: "المبلغ المراد تحصيله",
     appliedOldestFirstAcrossEveryChild: "يُطبَّق أولاً على أقدم الأرصدة المستحقة لكل طفل.",
   },
+  feesParentContact: {
+    call: "اتصال",
+    sendSms: "إرسال رسالة",
+    noPhoneOnFile: "لا يوجد رقم هاتف مسجل",
+    composeSmsTo: "إرسال رسالة إلى {name}",
+    message: "الرسالة",
+    send: "إرسال",
+    sending: "جارٍ الإرسال…",
+    smsSent: "تم إرسال الرسالة بنجاح",
+    smsFailed: "تعذر إرسال الرسالة. تحقق من رصيد الرسائل/الإعدادات.",
+  },
   feesFormat: {
     month1: "يناير",
     month2: "فبراير",

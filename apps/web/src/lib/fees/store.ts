@@ -723,7 +723,9 @@ export function listStudentFees(opts: {
   // never silently filters every student out.
   const year =
     opts.academicYear || s.academicYear || activeAcademicYear();
-  let students = activeStudents(year);
+  let students = withParents(getStudentsState()).filter(
+    (x) => x.status === "ACTIVE" && x.academicYear === year,
+  );
 
   if (opts.className) students = students.filter((x) => x.className === opts.className);
   if (opts.section) students = students.filter((x) => (x.section ?? "") === opts.section);
@@ -750,6 +752,9 @@ export function listStudentFees(opts: {
         outstandingBalance: outstandingBalance(st.id, month),
         status: agg.status,
         advanceMonthsLeft: agg.advanceMonthsLeft,
+        parentId: st.parentId,
+        parentName: st.parent.name,
+        parentPhone: st.parent.phone,
       };
     })
     .sort((a, b) => a.fullName.localeCompare(b.fullName));

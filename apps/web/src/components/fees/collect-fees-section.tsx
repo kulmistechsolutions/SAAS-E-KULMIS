@@ -20,6 +20,7 @@ import {
   useAcademicsState,
 } from "@/lib/academics/store";
 import { FeeStatusBadge, FreeStudentBadge } from "./fee-status-badge";
+import { ParentContactActions } from "./parent-contact-actions";
 
 const PAGE_SIZE = 8;
 
@@ -204,6 +205,7 @@ export function CollectFeesSection({
               <th className="px-4 py-2.5 font-medium">{t("feesCollectFeesSection.monthlyFee")}</th>
               <th className="px-4 py-2.5 font-medium">{t("feesCollectFeesSection.outstandingBalance")}</th>
               <th className="px-4 py-2.5 font-medium">{t("feesCollectFeesSection.status")}</th>
+              <th className="px-4 py-2.5 font-medium">{t("students.parentPhone")}</th>
               <th className="px-4 py-2.5 font-medium">{t("feesCollectFeesSection.action")}</th>
             </tr>
           </thead>
@@ -235,6 +237,15 @@ export function CollectFeesSection({
                     )}
                   </td>
                   <td className="px-4 py-2.5">
+                    <ParentContactActions
+                      parentPhone={r.parentPhone}
+                      parentName={r.parentName}
+                      subject={`${r.fullName} (${r.className})`}
+                      outstandingBalance={r.outstandingBalance}
+                      status={r.status}
+                    />
+                  </td>
+                  <td className="px-4 py-2.5">
                     {canPay ? (
                       <Button
                         className="h-8 bg-emerald-600 px-3 text-xs hover:bg-emerald-700"
@@ -257,7 +268,7 @@ export function CollectFeesSection({
             })}
             {mounted && pageRows.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-4 py-10 text-center text-muted-foreground">
+                <td colSpan={8} className="px-4 py-10 text-center text-muted-foreground">
                   {t("feesCollectFeesSection.noStudentsMatchYourFilters")}
                 </td>
               </tr>

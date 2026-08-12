@@ -259,7 +259,12 @@ export async function apiSendSms(body: {
   category?: SmsCategory;
   body: string;
   templateId?: string;
-  recipients: { phone: string; name?: string; type?: string }[];
+  recipients: {
+    phone: string;
+    name?: string;
+    type?: string;
+    variables?: Record<string, string>;
+  }[];
   scheduledAt?: string | null;
 }) {
   return api<{

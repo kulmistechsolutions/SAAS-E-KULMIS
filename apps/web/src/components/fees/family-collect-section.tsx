@@ -11,6 +11,7 @@ import { listFamilies, useFeesState } from "@/lib/fees/store";
 import { useStudentsState } from "@/lib/students/store";
 import type { FamilyFeeRow } from "@/lib/fees/types";
 import { FeeStatusBadge } from "./fee-status-badge";
+import { ParentContactActions } from "./parent-contact-actions";
 
 interface FamilyCollectSectionProps {
   academicYear: string;
@@ -119,6 +120,21 @@ export function FamilyCollectSection({
                       ? t("feesFamilyCollectSection.child")
                       : t("feesFamilyCollectSection.children")}
                   </p>
+                </div>
+                <div
+                  className="flex shrink-0 items-center"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <ParentContactActions
+                    parentPhone={f.parentPhone}
+                    parentName={f.parentName}
+                    subject={
+                      f.children.length === 1
+                        ? `${f.children[0]!.fullName} (${f.children[0]!.className})`
+                        : `${f.children.length} ${t("feesFamilyCollectSection.children")}`
+                    }
+                    outstandingBalance={f.totalOutstanding}
+                  />
                 </div>
                 <div className="flex shrink-0 items-center gap-3">
                   <div className="text-end">
