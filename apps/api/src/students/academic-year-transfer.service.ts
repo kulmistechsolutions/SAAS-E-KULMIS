@@ -6,6 +6,7 @@ interface ClassPlanEntry {
   fromClassName: string;
   toClassId: string | null;
   studentCount: number;
+  assignmentCount: number;
 }
 
 /**
@@ -71,15 +72,25 @@ export class AcademicYearTransferService {
       );
 
       const classIds = fromClasses.map((c) => c.id);
-      const studentCounts = classIds.length
-        ? await tx.student.groupBy({
-            by: ["classId"],
-            where: { classId: { in: classIds }, status: "ACTIVE" },
-            _count: { _all: true },
-          })
-        : [];
+      const [studentCounts, assignmentCounts] = classIds.length
+        ? await Promise.all([
+            tx.student.groupBy({
+              by: ["classId"],
+              where: { classId: { in: classIds }, status: "ACTIVE" },
+              _count: { _all: true },
+            }),
+            tx.teacherAssignment.groupBy({
+              by: ["classId"],
+              where: { classId: { in: classIds }, academicYearId: fromYearId },
+              _count: { _all: true },
+            }),
+          ])
+        : [[], []];
       const countByClassId = new Map(
         studentCounts.map((s) => [s.classId, s._count._all]),
+      );
+      const assignmentCountByClassId = new Map(
+        assignmentCounts.map((a) => [a.classId, a._count._all]),
       );
 
       const classes: ClassPlanEntry[] = fromClasses.map((c) => {
@@ -89,6 +100,7 @@ export class AcademicYearTransferService {
           fromClassName: c.name,
           toClassId: match?.id ?? null,
           studentCount: countByClassId.get(c.id) ?? 0,
+          assignmentCount: assignmentCountByClassId.get(c.id) ?? 0,
         };
       });
 
@@ -96,8 +108,15 @@ export class AcademicYearTransferService {
       const matchedStudents = classes
         .filter((c) => c.toClassId)
         .reduce((sum, c) => sum + c.studentCount, 0);
+      const totalAssignments = classes.reduce(
+        (sum, c) => sum + c.assignmentCount,
+        0,
+      );
+      const matchedAssignments = classes
+        .filter((c) => c.toClassId)
+        .reduce((sum, c) => sum + c.assignmentCount, 0);
       const unmatchedClasses = classes.filter(
-        (c) => !c.toClassId && c.studentCount > 0,
+        (c) => !c.toClassId && (c.studentCount > 0 || c.assignmentCount > 0),
       );
 
       return {
@@ -108,6 +127,8 @@ export class AcademicYearTransferService {
         classes,
         totalStudents,
         matchedStudents,
+        totalAssignments,
+        matchedAssignments,
         unmatchedClasses,
       };
     });
@@ -122,35 +143,46 @@ export class AcademicYearTransferService {
       totalStudents: plan.totalStudents,
       transferable: plan.matchedStudents,
       unmatched: plan.totalStudents - plan.matchedStudents,
+      totalAssignments: plan.totalAssignments,
+      transferableAssignments: plan.matchedAssignments,
       unmatchedClasses: plan.unmatchedClasses.map((c) => ({
         name: c.fromClassName,
         studentCount: c.studentCount,
+        assignmentCount: c.assignmentCount,
       })),
       classes: plan.classes
-        .filter((c) => c.studentCount > 0)
+        .filter((c) => c.studentCount > 0 || c.assignmentCount > 0)
         .map((c) => ({
           name: c.fromClassName,
           studentCount: c.studentCount,
+          assignmentCount: c.assignmentCount,
           matched: !!c.toClassId,
         })),
     };
   }
 
-  /** Moves every matched student; classes with no same-named match are skipped. */
+  /**
+   * Moves every matched student AND every teacher assignment (teacher ×
+   * class × section × subject) for that class — the school asked for a real
+   * "nothing is left behind" move, not just the students. Classes with no
+   * same-named match in the destination year are skipped entirely.
+   */
   async execute(schoolId: string, fromYearId: string, toYearId: string) {
     const plan = await this.buildPlan(schoolId, fromYearId, toYearId);
-    if (plan.matchedStudents === 0) {
+    if (plan.matchedStudents === 0 && plan.matchedAssignments === 0) {
       throw new BadRequestException(
-        "No students could be matched to a class in the destination year.",
+        "Nothing could be matched to a class in the destination year.",
       );
     }
 
-    let transferred = 0;
+    let studentsTransferred = 0;
+    let assignmentsTransferred = 0;
+    let assignmentsMerged = 0;
     await this.prisma.forTenant(
       schoolId,
       async (tx) => {
         for (const cp of plan.classes) {
-          if (!cp.toClassId || cp.studentCount === 0) continue;
+          if (!cp.toClassId) continue;
           const toClass = plan.toClasses.find((c) => c.id === cp.toClassId)!;
           const fromClass = plan.fromClasses.find(
             (c) => c.id === cp.fromClassId,
@@ -158,35 +190,77 @@ export class AcademicYearTransferService {
           const toSectionsByName = new Map(
             toClass.sections.map((s) => [s.name.trim().toLowerCase(), s.id]),
           );
+          const resolveDestSectionId = (fromSectionId: string | null) => {
+            if (!toClass.hasSections || !fromSectionId) return null;
+            const srcSection = fromClass.sections.find(
+              (s) => s.id === fromSectionId,
+            );
+            return srcSection
+              ? (toSectionsByName.get(srcSection.name.trim().toLowerCase()) ?? null)
+              : null;
+          };
 
-          const students = await tx.student.findMany({
-            where: { classId: cp.fromClassId, status: "ACTIVE" },
-            select: { id: true, sectionId: true },
-          });
-
-          // Group by resolved destination section so each group moves in one
-          // updateMany instead of one query per student.
-          const bySection = new Map<string | null, string[]>();
-          for (const st of students) {
-            let destSectionId: string | null = null;
-            if (toClass.hasSections && st.sectionId) {
-              const srcSection = fromClass.sections.find(
-                (s) => s.id === st.sectionId,
-              );
-              destSectionId = srcSection
-                ? (toSectionsByName.get(srcSection.name.trim().toLowerCase()) ?? null)
-                : null;
-            }
-            const arr = bySection.get(destSectionId) ?? [];
-            arr.push(st.id);
-            bySection.set(destSectionId, arr);
-          }
-          for (const [destSectionId, ids] of bySection) {
-            await tx.student.updateMany({
-              where: { id: { in: ids } },
-              data: { classId: cp.toClassId, sectionId: destSectionId },
+          if (cp.studentCount > 0) {
+            const students = await tx.student.findMany({
+              where: { classId: cp.fromClassId, status: "ACTIVE" },
+              select: { id: true, sectionId: true },
             });
-            transferred += ids.length;
+            // Group by resolved destination section so each group moves in
+            // one updateMany instead of one query per student.
+            const bySection = new Map<string | null, string[]>();
+            for (const st of students) {
+              const destSectionId = resolveDestSectionId(st.sectionId);
+              const arr = bySection.get(destSectionId) ?? [];
+              arr.push(st.id);
+              bySection.set(destSectionId, arr);
+            }
+            for (const [destSectionId, ids] of bySection) {
+              await tx.student.updateMany({
+                where: { id: { in: ids } },
+                data: { classId: cp.toClassId, sectionId: destSectionId },
+              });
+              studentsTransferred += ids.length;
+            }
+          }
+
+          if (cp.assignmentCount > 0) {
+            const [assignments, existingInDest] = await Promise.all([
+              tx.teacherAssignment.findMany({
+                where: { classId: cp.fromClassId, academicYearId: fromYearId },
+                select: { id: true, teacherId: true, sectionId: true, subjectId: true },
+              }),
+              tx.teacherAssignment.findMany({
+                where: { classId: cp.toClassId, academicYearId: toYearId },
+                select: { teacherId: true, sectionId: true, subjectId: true },
+              }),
+            ]);
+            const destKeys = new Set(
+              existingInDest.map(
+                (a) => `${a.teacherId}|${a.sectionId ?? ""}|${a.subjectId}`,
+              ),
+            );
+            for (const a of assignments) {
+              const destSectionId = resolveDestSectionId(a.sectionId);
+              const key = `${a.teacherId}|${destSectionId ?? ""}|${a.subjectId}`;
+              if (destKeys.has(key)) {
+                // The teacher is already assigned to this class/section/subject
+                // in the destination year — moving would create a duplicate,
+                // so the stale source-year row is dropped instead.
+                await tx.teacherAssignment.delete({ where: { id: a.id } });
+                assignmentsMerged += 1;
+                continue;
+              }
+              await tx.teacherAssignment.update({
+                where: { id: a.id },
+                data: {
+                  academicYearId: toYearId,
+                  classId: cp.toClassId,
+                  sectionId: destSectionId,
+                },
+              });
+              destKeys.add(key);
+              assignmentsTransferred += 1;
+            }
           }
         }
       },
@@ -196,9 +270,11 @@ export class AcademicYearTransferService {
     return {
       fromYear: plan.fromYear.name,
       toYear: plan.toYear.name,
-      transferred,
-      skipped: plan.totalStudents - transferred,
+      transferred: studentsTransferred,
+      skipped: plan.totalStudents - studentsTransferred,
       skippedClasses: plan.unmatchedClasses.map((c) => c.fromClassName),
+      assignmentsTransferred,
+      assignmentsMerged,
     };
   }
 }

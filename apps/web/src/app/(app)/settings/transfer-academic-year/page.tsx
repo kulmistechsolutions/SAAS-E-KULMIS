@@ -67,11 +67,26 @@ export default function TransferAcademicYearPage() {
     setBusy(true);
     try {
       const res = await apiExecuteAcademicYearTransfer(fromYearId, toYearId);
+      const parts = [
+        `${res.transferred} ${t("settingsTransferAcademicYear.studentsMovedFrom")} ${res.fromYear} ${t("settingsTransferAcademicYear.to")} ${res.toYear}`,
+      ];
+      if (res.assignmentsTransferred > 0) {
+        parts.push(
+          `${res.assignmentsTransferred} ${t("settingsTransferAcademicYear.teacherAssignmentsMoved")}`,
+        );
+      }
+      if (res.assignmentsMerged > 0) {
+        parts.push(
+          `${res.assignmentsMerged} ${t("settingsTransferAcademicYear.assignmentsAlreadyExisted")}`,
+        );
+      }
+      if (res.skipped > 0) {
+        parts.push(
+          `${res.skipped} ${t("settingsTransferAcademicYear.skippedNoMatchingClass")}`,
+        );
+      }
       toast(
-        `${res.transferred} ${t("settingsTransferAcademicYear.studentsMovedFrom")} ${res.fromYear} ${t("settingsTransferAcademicYear.to")} ${res.toYear}` +
-          (res.skipped > 0
-            ? ` — ${res.skipped} ${t("settingsTransferAcademicYear.skippedNoMatchingClass")}`
-            : ""),
+        parts.join(" — "),
         res.skipped > 0 ? "info" : "success",
       );
       setConfirmOpen(false);
@@ -175,6 +190,12 @@ export default function TransferAcademicYearPage() {
                 {t("settingsTransferAcademicYear.to")}{" "}
                 <span className="font-semibold">{preview.toYear}</span>.
               </p>
+              {preview.transferableAssignments > 0 && (
+                <p className="mt-1">
+                  <span className="font-bold">{preview.transferableAssignments}</span>{" "}
+                  {t("settingsTransferAcademicYear.teacherAssignmentsWillMoveToo")}
+                </p>
+              )}
               {preview.unmatched > 0 && (
                 <p className="mt-2 text-xs text-amber-600 dark:text-amber-400">
                   {preview.unmatched}{" "}
@@ -188,7 +209,10 @@ export default function TransferAcademicYearPage() {
                 <ul className="mt-2 space-y-0.5 text-xs text-muted-foreground">
                   {preview.classes.map((c) => (
                     <li key={c.name}>
-                      {c.name} — {c.studentCount}{" "}
+                      {c.name} — {c.studentCount} {t("settingsTransferAcademicYear.students")}
+                      {c.assignmentCount > 0
+                        ? `, ${c.assignmentCount} ${t("settingsTransferAcademicYear.teacherAssignments")}`
+                        : ""}{" "}
                       {c.matched
                         ? t("settingsTransferAcademicYear.willMove")
                         : t("settingsTransferAcademicYear.noMatchingClass")}
@@ -210,7 +234,10 @@ export default function TransferAcademicYearPage() {
               </Button>
               <Button
                 variant="destructive"
-                disabled={busy || preview.transferable === 0}
+                disabled={
+                  busy ||
+                  (preview.transferable === 0 && preview.transferableAssignments === 0)
+                }
                 onClick={() => void handleTransfer()}
               >
                 {busy ? (

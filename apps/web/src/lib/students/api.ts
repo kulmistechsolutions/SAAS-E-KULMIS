@@ -298,8 +298,19 @@ export interface ApiAcademicYearTransferPreview {
   totalStudents: number;
   transferable: number;
   unmatched: number;
-  unmatchedClasses: { name: string; studentCount: number }[];
-  classes: { name: string; studentCount: number; matched: boolean }[];
+  totalAssignments: number;
+  transferableAssignments: number;
+  unmatchedClasses: {
+    name: string;
+    studentCount: number;
+    assignmentCount: number;
+  }[];
+  classes: {
+    name: string;
+    studentCount: number;
+    assignmentCount: number;
+    matched: boolean;
+  }[];
 }
 
 export const apiAcademicYearTransferPreview = (
@@ -316,6 +327,8 @@ export interface ApiAcademicYearTransferResult {
   transferred: number;
   skipped: number;
   skippedClasses: string[];
+  assignmentsTransferred: number;
+  assignmentsMerged: number;
 }
 
 export const apiExecuteAcademicYearTransfer = (
