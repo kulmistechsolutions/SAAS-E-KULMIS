@@ -177,6 +177,20 @@ export default function ClassesPage() {
         </div>
       </div>
 
+      {!canAddClass && (
+        <div className="rounded-xl border border-amber-300 bg-amber-50/50 px-4 py-3 text-sm dark:border-amber-900/50 dark:bg-amber-950/20">
+          <p className="text-amber-800 dark:text-amber-300">
+            {t("academicsClasses.addClassHiddenReason")}
+          </p>
+          <Link
+            href="/settings/academic-structure"
+            className="mt-1 inline-block font-medium text-primary hover:underline"
+          >
+            {t("academicsClasses.enableCustomStructureLink")}
+          </Link>
+        </div>
+      )}
+
       <div className="rounded-2xl border bg-card p-4 shadow-sm">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
           <div className="relative flex-1">

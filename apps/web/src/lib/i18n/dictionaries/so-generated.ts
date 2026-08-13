@@ -69,6 +69,8 @@ export const soGenerated: PartialDictionary = {
     classesGrades: "Fasallada / Heerarka",
     eachAcademicYearHasUpTo: "Sannad-dugsiyeed kastaa wuxuu leeyahay ilaa 12 heer. Beddel magacyada heerarka si ay ula mid noqdaan kuwa dugsigaaga — qaybaha si gaar ah ayaa loo maamulaa.",
     customStructureUnlimitedClasses: "Dugsigan wuxuu isticmaalaa qaab-dhismeed fasallo oo gaar ah — ku dar fasallo intaad u baahan tahay, si kastoo ku habboon dugsigaaga.",
+    addClassHiddenReason: "Sannad-dugsiyeedkan horeba wuxuu leeyahay 12+ fasal, sidaas darteed badhanka Ku Dar Fasal waa la qariyay si loo ilaaliyo sarreenka caadiga ah ee Grade 1-12. Haddii qaar ka mid ah fasalladan la beddelay magacooda ama la nuqulay waqti ka dib, oo aad u baahan tahay inaad sii darto fasallo, u beddel qaab-dhismeed gaar ah — waxay ka saaraysaa xaddidaadan, wax kalena kama beddelayo fasalladaada hore.",
+    enableCustomStructureLink: "Fur qaab-dhismeed fasallo oo gaar ah →",
     print: "Daabac",
     export: "Soo saar",
     addClass: "Ku dar Fasal",

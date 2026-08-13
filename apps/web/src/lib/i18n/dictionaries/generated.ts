@@ -69,6 +69,8 @@ export const generated = {
     classesGrades: "Classes / Grades",
     eachAcademicYearHasUpTo: "Each academic year has up to 12 grades. Rename grades to match your school's naming — sections are managed separately.",
     customStructureUnlimitedClasses: "This school uses a custom class structure — add as many classes as you need, grouped however fits your school.",
+    addClassHiddenReason: "This academic year already has 12+ classes, so Add Class is hidden to protect the default Grade 1-12 ladder. If some of these classes were renamed or duplicated over time and you need to keep adding classes, switch to a custom structure — it removes this limit and nothing about your existing classes changes.",
+    enableCustomStructureLink: "Enable a custom class structure →",
     print: "Print",
     export: "Export",
     addClass: "Add Class",
