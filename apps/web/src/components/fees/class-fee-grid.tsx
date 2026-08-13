@@ -127,7 +127,7 @@ export function ClassFeeGrid({ academicYear, monthKey, onSelectClass }: Props) {
       )}
 
       {view === "grid" ? (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {filtered.map((c) => (
             <ClassCard key={c.className} summary={c} onSelect={() => onSelectClass(c.className)} />
           ))}
@@ -286,7 +286,7 @@ function Metric({
   tone: string;
 }) {
   return (
-    <div className="flex items-center gap-2 rounded-xl bg-secondary/40 px-2.5 py-2">
+    <div className="flex items-start gap-2 rounded-xl bg-secondary/40 px-2.5 py-2">
       <span
         className={cn(
           "flex h-7 w-7 shrink-0 items-center justify-center rounded-full",
@@ -296,10 +296,10 @@ function Metric({
         <Icon className="h-3.5 w-3.5" />
       </span>
       <div className="min-w-0">
-        <div className="truncate text-[10px] uppercase tracking-wide text-muted-foreground">
+        <div className="text-[10px] font-medium uppercase leading-tight tracking-wide text-muted-foreground">
           {label}
         </div>
-        <div className="truncate text-sm font-semibold tabular-nums text-foreground">{value}</div>
+        <div className="text-sm font-semibold tabular-nums text-foreground">{value}</div>
       </div>
     </div>
   );

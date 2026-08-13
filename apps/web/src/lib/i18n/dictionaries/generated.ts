@@ -981,7 +981,7 @@ export const generated = {
     noClasses: "No classes with active students yet.",
     class: "Class",
     totalStudents: "Students",
-    outstanding: "Outstanding",
+    outstanding: "Outstanding Balance",
     paid: "Paid",
     advance: "Advance",
     partial: "Partial",

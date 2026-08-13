@@ -981,7 +981,7 @@ export const arGenerated: PartialDictionary = {
     noClasses: "لا توجد صفوف بها طلاب نشطون بعد.",
     class: "الصف",
     totalStudents: "الطلاب",
-    outstanding: "المستحق",
+    outstanding: "الرصيد المستحق",
     paid: "مدفوع",
     advance: "دفع مقدم",
     partial: "دفع جزئي",

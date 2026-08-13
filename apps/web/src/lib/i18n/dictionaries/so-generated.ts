@@ -981,7 +981,7 @@ export const soGenerated: PartialDictionary = {
     noClasses: "Weli ma jiraan fasallo leh arday firfircoon.",
     class: "Fasalka",
     totalStudents: "Ardayda",
-    outstanding: "Lacagta Hadhay",
+    outstanding: "Hadhaaga Aan Bixin",
     paid: "La Bixiyay",
     advance: "Hore u Bixin",
     partial: "Qayb Bixin",
