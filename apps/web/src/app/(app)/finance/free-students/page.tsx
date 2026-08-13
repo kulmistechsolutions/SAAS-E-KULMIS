@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { refreshStudents, useStudentsState, withParents } from "@/lib/students/store";
-import { exportStudentsCsv, printStudentsList } from "@/lib/students/print";
+import { DEFAULT_STUDENT_EXPORT_FIELDS, exportStudentsCsv, printStudentsList } from "@/lib/students/print";
 import { shortDate } from "@/lib/students/format";
 import {
   activeAcademicYear,
@@ -115,7 +115,9 @@ export default function FreeStudentsPage() {
           </Button>
           <Button
             variant="outline"
-            onClick={() => exportStudentsCsv(freeStudents, "free-students.csv")}
+            onClick={() =>
+              exportStudentsCsv(freeStudents, DEFAULT_STUDENT_EXPORT_FIELDS, "free-students.csv")
+            }
           >
             <Download className="me-2 h-4 w-4" /> {t("students.download")}
           </Button>

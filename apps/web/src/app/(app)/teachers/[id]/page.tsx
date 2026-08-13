@@ -63,7 +63,7 @@ import {
 import {
   teacherAttendanceHistory,
 } from "@/lib/teachers/history";
-import { exportTeachersCsv, printTeacherProfile } from "@/lib/teachers/print";
+import { DEFAULT_TEACHER_EXPORT_FIELDS, exportTeachersCsv, printTeacherProfile } from "@/lib/teachers/print";
 import type { EmploymentStatus, TeacherAssignment } from "@/lib/teachers/types";
 import { toast } from "@/lib/toast";
 import { DEFAULT_TEACHER_PASSWORD } from "@/lib/teachers/constants";
@@ -206,7 +206,12 @@ function TeacherProfileContent({ id }: { id: string }) {
           <Button variant="outline" onClick={() => printTeacherProfile(teacher, assignments)}>
             <Printer className="me-2 h-4 w-4" /> {t("teachers.print")}
           </Button>
-          <Button variant="outline" onClick={() => exportTeachersCsv([teacher], `${teacher.code}.csv`)}>
+          <Button
+            variant="outline"
+            onClick={() =>
+              exportTeachersCsv([teacher], assignments, DEFAULT_TEACHER_EXPORT_FIELDS, `${teacher.code}.csv`)
+            }
+          >
             <Download className="me-2 h-4 w-4" /> {t("teachers.download")}
           </Button>
         </div>

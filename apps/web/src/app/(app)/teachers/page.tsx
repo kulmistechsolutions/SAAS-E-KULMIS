@@ -40,7 +40,14 @@ import { AcademicYearSelect } from "@/components/academics/academic-year-select"
 import { activeAcademicYear } from "@/lib/academics/store";
 import { money, shiftLabel, shortDate } from "@/lib/teachers/format";
 import { DEFAULT_TEACHER_PASSWORD } from "@/lib/teachers/constants";
-import { exportTeachersCsv, printTeacherProfile, printTeachersList } from "@/lib/teachers/print";
+import {
+  DEFAULT_TEACHER_EXPORT_FIELDS,
+  TEACHER_EXPORT_FIELDS,
+  exportTeachersCsv,
+  printTeacherProfile,
+  printTeachersList,
+} from "@/lib/teachers/print";
+import { FieldSelectDialog } from "@/components/shared/field-select-dialog";
 import type { EmploymentStatus, Teacher } from "@/lib/teachers/types";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
@@ -90,6 +97,8 @@ export default function TeachersPage() {
   const [importOpen, setImportOpen] = useState(false);
   const [deleting, setDeleting] = useState<Teacher | null>(null);
   const [assignTeacher, setAssignTeacher] = useState<Teacher | null>(null);
+  const [fieldDialogMode, setFieldDialogMode] = useState<"print" | "export" | null>(null);
+  const [lastFields, setLastFields] = useState<string[]>(DEFAULT_TEACHER_EXPORT_FIELDS);
 
   const summary = useMemo(() => summarize(state), [state]);
 
@@ -151,6 +160,22 @@ export default function TeachersPage() {
     setDeleting(null);
   }
 
+  function handleExport(fields: string[]) {
+    setLastFields(fields);
+    exportTeachersCsv(filtered, state.assignments, fields);
+    toast(`Exported ${filtered.length} teachers.`, "info");
+  }
+
+  function handlePrint(fields: string[]) {
+    setLastFields(fields);
+    printTeachersList(
+      filtered,
+      { shift: shift || "All", status: status || "All" },
+      state.assignments,
+      fields,
+    );
+  }
+
   async function handleResetPassword(t: Teacher) {
     const res = await resetTeacherPassword(t.id, DEFAULT_TEACHER_PASSWORD);
     if (res.ok && res.password) {
@@ -187,10 +212,10 @@ export default function TeachersPage() {
           >
             <BookOpen className="me-2 h-4 w-4" /> {tr("teachers.assignments")}
           </Link>
-          <Button variant="outline" onClick={() => printTeachersList(filtered, { shift: shift || "All", status: status || "All" })}>
+          <Button variant="outline" onClick={() => setFieldDialogMode("print")}>
             <Printer className="me-2 h-4 w-4" /> {tr("teachers.print")}
           </Button>
-          <Button variant="outline" onClick={() => { exportTeachersCsv(filtered); toast(`Exported ${filtered.length} teachers.`, "info"); }}>
+          <Button variant="outline" onClick={() => setFieldDialogMode("export")}>
             <FileDown className="me-2 h-4 w-4" /> {tr("teachers.export")}
           </Button>
           <Button variant="outline" onClick={() => setImportOpen(true)}>
@@ -286,7 +311,7 @@ export default function TeachersPage() {
                         <Action href={`/teachers/${t.id}?tab=assignments`} title={tr("teachers.viewAssignments")} icon={BookOpen} />
                         <Action title={tr("teachers.resetPassword")} icon={KeyRound} onClick={() => handleResetPassword(t)} />
                         <Action title={tr("teachers.printProfile")} icon={Printer} onClick={() => printTeacherProfile(t, state.assignments.filter((a) => a.teacherId === t.id))} />
-                        <Action title={tr("teachers.download")} icon={Download} onClick={() => exportTeachersCsv([t], `${t.code}.csv`)} />
+                        <Action title={tr("teachers.download")} icon={Download} onClick={() => exportTeachersCsv([t], state.assignments, lastFields, `${t.code}.csv`)} />
                         <Action title={tr("teachers.delete")} icon={Trash2} danger onClick={() => setDeleting(t)} />
                       </div>
                     </td>
@@ -316,6 +341,29 @@ export default function TeachersPage() {
         message={deleting ? `Delete ${deleting.fullName} (${deleting.code})? This removes assignments and login access. Historical records are preserved in audit logs.` : ""}
         onConfirm={handleDelete}
         onClose={() => setDeleting(null)}
+      />
+      <FieldSelectDialog
+        open={fieldDialogMode !== null}
+        onClose={() => setFieldDialogMode(null)}
+        title={
+          fieldDialogMode === "print"
+            ? tr("teachers.selectFieldsToPrint")
+            : tr("teachers.selectFieldsToExport")
+        }
+        description={
+          fieldDialogMode === "print"
+            ? tr("teachers.selectFieldsToPrintDesc")
+            : tr("teachers.selectFieldsToExportDesc")
+        }
+        fields={TEACHER_EXPORT_FIELDS}
+        defaultSelected={lastFields}
+        confirmLabel={
+          fieldDialogMode === "print" ? tr("teachers.print") : tr("teachers.export")
+        }
+        onConfirm={(fields) => {
+          if (fieldDialogMode === "print") handlePrint(fields);
+          else if (fieldDialogMode === "export") handleExport(fields);
+        }}
       />
     </div>
   );

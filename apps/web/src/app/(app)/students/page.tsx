@@ -48,10 +48,13 @@ import { defaultAcademicYear } from "@/lib/academics/year-select";
 import { AcademicYearSelect } from "@/components/academics/academic-year-select";
 import { genderLabel, money, shortDate } from "@/lib/students/format";
 import {
+  DEFAULT_STUDENT_EXPORT_FIELDS,
+  STUDENT_EXPORT_FIELDS,
   exportStudentsCsv,
   printStudentProfile,
   printStudentsList,
 } from "@/lib/students/print";
+import { FieldSelectDialog } from "@/components/shared/field-select-dialog";
 import type { StudentStatus, StudentWithParent } from "@/lib/students/types";
 import {
   studentClassLabel,
@@ -128,6 +131,8 @@ export default function StudentsPage() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkConfirm, setBulkConfirm] = useState(false);
   const [bulkBusy, setBulkBusy] = useState(false);
+  const [fieldDialogMode, setFieldDialogMode] = useState<"print" | "export" | null>(null);
+  const [lastFields, setLastFields] = useState<string[]>(DEFAULT_STUDENT_EXPORT_FIELDS);
 
   // Cards reflect the selected academic year so they always agree with the
   // table below (an all-years total next to an empty year-filtered table reads
@@ -269,17 +274,23 @@ export default function StudentsPage() {
     setBulkConfirm(false);
   }
 
-  function handleExport() {
-    exportStudentsCsv(filtered);
+  function handleExport(fields: string[]) {
+    setLastFields(fields);
+    exportStudentsCsv(filtered, fields);
     toast(`Exported ${filtered.length} students to CSV.`, "info");
   }
 
-  function handlePrint() {
-    printStudentsList(filtered, {
-      academicYear: year || "All",
-      className: klass || "All",
-      section: section || "All",
-    });
+  function handlePrint(fields: string[]) {
+    setLastFields(fields);
+    printStudentsList(
+      filtered,
+      {
+        academicYear: year || "All",
+        className: klass || "All",
+        section: section || "All",
+      },
+      fields,
+    );
   }
 
   if (!mounted) {
@@ -318,10 +329,10 @@ export default function StudentsPage() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Button variant="outline" onClick={handlePrint}>
+          <Button variant="outline" onClick={() => setFieldDialogMode("print")}>
             <Printer className="me-2 h-4 w-4" /> {t("students.print")}
           </Button>
-          <Button variant="outline" onClick={handleExport}>
+          <Button variant="outline" onClick={() => setFieldDialogMode("export")}>
             <FileDown className="me-2 h-4 w-4" /> {t("students.export")}
           </Button>
           <Button variant="outline" onClick={() => setImportOpen(true)}>
@@ -611,7 +622,7 @@ export default function StudentsPage() {
                           title={t("students.downloadProfile")}
                           icon={Download}
                           onClick={() =>
-                            exportStudentsCsv([s], `${s.code}.csv`)
+                            exportStudentsCsv([s], lastFields, `${s.code}.csv`)
                           }
                         />
                         <RowAction
@@ -686,6 +697,29 @@ export default function StudentsPage() {
         }? Their IDs are retired and never reused. A parent is removed only if none of their children remain. This cannot be undone.`}
         onConfirm={handleBulkDelete}
         onClose={() => setBulkConfirm(false)}
+      />
+      <FieldSelectDialog
+        open={fieldDialogMode !== null}
+        onClose={() => setFieldDialogMode(null)}
+        title={
+          fieldDialogMode === "print"
+            ? t("students.selectFieldsToPrint")
+            : t("students.selectFieldsToExport")
+        }
+        description={
+          fieldDialogMode === "print"
+            ? t("students.selectFieldsToPrintDesc")
+            : t("students.selectFieldsToExportDesc")
+        }
+        fields={STUDENT_EXPORT_FIELDS}
+        defaultSelected={lastFields}
+        confirmLabel={
+          fieldDialogMode === "print" ? t("students.print") : t("students.export")
+        }
+        onConfirm={(fields) => {
+          if (fieldDialogMode === "print") handlePrint(fields);
+          else if (fieldDialogMode === "export") handleExport(fields);
+        }}
       />
     </div>
   );

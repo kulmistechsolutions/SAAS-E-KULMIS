@@ -3,41 +3,84 @@
 import { getSettings, schoolBranding } from "@/lib/settings/store";
 import { genderLabel, money, shortDate, statusLabel } from "./format";
 import type { StudentWithParent } from "./types";
+import { studentClassLabel, studentSectionNames } from "./types";
 
-export function exportStudentsCsv(rows: StudentWithParent[], fileName = "students.csv") {
-  const headers = [
-    "Serial",
-    "Student ID",
-    "Student Name",
-    "Gender",
-    "Parent",
-    "Parent Phone",
-    "Class",
-    "Section",
-    "Monthly Fee",
-    "Registration Date",
-    "Status",
-  ];
+export interface StudentFieldDef {
+  key: string;
+  label: string;
+  value: (r: StudentWithParent) => string;
+}
+
+/**
+ * Every column a student's print/export can offer, in canonical output
+ * order. Covers fields from both registration forms — the detailed-only
+ * ones (placeOfBirth/district/motherName) simply fall back to "—" for
+ * students registered on the simple form, so picking them never breaks.
+ */
+export const STUDENT_EXPORT_FIELDS: StudentFieldDef[] = [
+  { key: "code", label: "Student ID", value: (r) => r.code },
+  { key: "fullName", label: "Full Name", value: (r) => r.fullName },
+  { key: "gender", label: "Gender", value: (r) => genderLabel(r.gender) },
+  { key: "dob", label: "Date of Birth", value: (r) => shortDate(r.dob) },
+  { key: "phone", label: "Phone", value: (r) => r.phone ?? "—" },
+  { key: "parentName", label: "Parent Name", value: (r) => r.parent.name },
+  { key: "parentPhone", label: "Parent Phone", value: (r) => r.parent.phone },
+  { key: "className", label: "Class", value: (r) => studentClassLabel(r) },
+  {
+    key: "section",
+    label: "Section",
+    value: (r) => studentSectionNames(r).filter(Boolean).join(" + ") || "—",
+  },
+  { key: "village", label: "Village", value: (r) => r.village ?? "—" },
+  { key: "monthlyFee", label: "Monthly Fee", value: (r) => money(r.monthlyFee) },
+  { key: "academicYear", label: "Academic Year", value: (r) => r.academicYear },
+  {
+    key: "registrationDate",
+    label: "Registration Date",
+    value: (r) => shortDate(r.registrationDate),
+  },
+  { key: "status", label: "Status", value: (r) => statusLabel(r.status) },
+  { key: "placeOfBirth", label: "Place of Birth", value: (r) => r.placeOfBirth ?? "—" },
+  { key: "district", label: "District", value: (r) => r.district ?? "—" },
+  { key: "motherName", label: "Mother's Name", value: (r) => r.motherName ?? "—" },
+  { key: "notes", label: "Notes", value: (r) => r.notes ?? "—" },
+];
+
+/** Matches what the list print/export used to show unconditionally. */
+export const DEFAULT_STUDENT_EXPORT_FIELDS = [
+  "code",
+  "fullName",
+  "gender",
+  "parentName",
+  "parentPhone",
+  "className",
+  "section",
+  "monthlyFee",
+  "registrationDate",
+  "status",
+];
+
+function resolveStudentFields(fieldKeys: string[]): StudentFieldDef[] {
+  const byKey = new Map(STUDENT_EXPORT_FIELDS.map((f) => [f.key, f]));
+  const resolved = fieldKeys.map((k) => byKey.get(k)).filter((f): f is StudentFieldDef => !!f);
+  return resolved.length > 0
+    ? resolved
+    : STUDENT_EXPORT_FIELDS.filter((f) => DEFAULT_STUDENT_EXPORT_FIELDS.includes(f.key));
+}
+
+export function exportStudentsCsv(
+  rows: StudentWithParent[],
+  fieldKeys: string[] = DEFAULT_STUDENT_EXPORT_FIELDS,
+  fileName = "students.csv",
+) {
+  const fields = resolveStudentFields(fieldKeys);
+  const headers = ["Serial", ...fields.map((f) => f.label)];
   const esc = (v: string | number) => {
     const s = String(v);
     return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
   };
   const lines = rows.map((r, i) =>
-    [
-      i + 1,
-      r.code,
-      r.fullName,
-      genderLabel(r.gender),
-      r.parent.name,
-      r.parent.phone,
-      r.className,
-      r.section ?? "",
-      r.monthlyFee,
-      shortDate(r.registrationDate),
-      statusLabel(r.status),
-    ]
-      .map(esc)
-      .join(","),
+    [i + 1, ...fields.map((f) => f.value(r))].map(esc).join(","),
   );
   const csv = [headers.join(","), ...lines].join("\n");
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
@@ -55,7 +98,12 @@ interface PrintMeta {
   section: string;
 }
 
-export function printStudentsList(rows: StudentWithParent[], meta: PrintMeta) {
+export function printStudentsList(
+  rows: StudentWithParent[],
+  meta: PrintMeta,
+  fieldKeys: string[] = DEFAULT_STUDENT_EXPORT_FIELDS,
+) {
+  const fields = resolveStudentFields(fieldKeys);
   const school = schoolBranding();
   const logo = school.logoUrl
     ? `<img src="${school.logoUrl}" alt="" class="logo" style="object-fit:contain"/>`
@@ -63,16 +111,11 @@ export function printStudentsList(rows: StudentWithParent[], meta: PrintMeta) {
   const centered = school.headerLayout === "CENTERED";
   const w = window.open("", "_blank", "width=900,height=700");
   if (!w) return;
+  const headCells = fields.map((f) => `<th>${escapeHtml(f.label)}</th>`).join("");
   const body = rows
     .map(
-      (r, i) => `<tr>
-        <td>${i + 1}</td>
-        <td>${r.code}</td>
-        <td>${escapeHtml(r.fullName)}</td>
-        <td>${escapeHtml(r.parent.name)}</td>
-        <td>${escapeHtml(r.parent.phone)}</td>
-        <td>${escapeHtml(r.className)}${r.section ? " - " + r.section : ""}</td>
-      </tr>`,
+      (r, i) =>
+        `<tr><td>${i + 1}</td>${fields.map((f) => `<td>${escapeHtml(f.value(r))}</td>`).join("")}</tr>`,
     )
     .join("");
   w.document.write(`<!DOCTYPE html><html><head><title>Student List</title>
@@ -98,8 +141,8 @@ export function printStudentsList(rows: StudentWithParent[], meta: PrintMeta) {
     </div>
   </div>
   <table>
-    <thead><tr><th>#</th><th>Student ID</th><th>Student Name</th><th>Parent Name</th><th>Parent Phone</th><th>Class</th></tr></thead>
-    <tbody>${body || '<tr><td colspan="6">No students</td></tr>'}</tbody>
+    <thead><tr><th>#</th>${headCells}</tr></thead>
+    <tbody>${body || `<tr><td colspan="${fields.length + 1}">No students</td></tr>`}</tbody>
   </table>
   <div class="foot">Total: ${rows.length} students · Generated ${new Date().toLocaleString()}</div>
   <script>window.onload=function(){window.print()}</script>

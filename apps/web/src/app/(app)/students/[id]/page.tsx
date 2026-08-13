@@ -39,7 +39,7 @@ import {
   useAcademicsState,
 } from "@/lib/academics/store";
 import { genderLabel, longDate, money, shortDate, statusLabel } from "@/lib/students/format";
-import { exportStudentsCsv, printStudentProfile } from "@/lib/students/print";
+import { DEFAULT_STUDENT_EXPORT_FIELDS, exportStudentsCsv, printStudentProfile } from "@/lib/students/print";
 import { FeeStatusBadge, PaymentStatusBadge } from "@/components/fees/fee-status-badge";
 import { ReversePaymentDialog } from "@/components/fees/reverse-payment-dialog";
 import { apiStudentLedger, mapApiPayment, type ApiStudentLedger } from "@/lib/fees/api";
@@ -202,7 +202,9 @@ export default function StudentProfilePage({
               </Button>
               <Button
                 variant="outline"
-                onClick={() => exportStudentsCsv([student], `${student.code}.csv`)}
+                onClick={() =>
+                  exportStudentsCsv([student], DEFAULT_STUDENT_EXPORT_FIELDS, `${student.code}.csv`)
+                }
               >
                 <Download className="me-2 h-4 w-4" /> {tr("students.download")}
               </Button>
