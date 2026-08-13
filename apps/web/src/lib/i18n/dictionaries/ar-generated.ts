@@ -987,6 +987,11 @@ export const arGenerated: PartialDictionary = {
     partial: "دفع جزئي",
     total: "الإجمالي",
     collectionListTitle: "قائمة تحصيل الرسوم",
+    searchClass: "بحث عن صف…",
+    gridView: "عرض الشبكة",
+    listView: "عرض القائمة",
+    noClassesMatchSearch: "لا يوجد صف يطابق هذا البحث.",
+    view: "عرض",
   },
   feesFamilyCollectSection: {
     collectByFamily: "التحصيل حسب العائلة",

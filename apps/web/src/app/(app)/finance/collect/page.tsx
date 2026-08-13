@@ -40,30 +40,32 @@ export default function CollectFeesPage() {
         </p>
       </div>
 
-      <div className="inline-flex rounded-xl border bg-card p-1">
-        <button
-          type="button"
-          onClick={() => setTab("class")}
-          className={cn(
-            "inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
-            tab === "class" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-secondary",
-          )}
-        >
-          <UserSquare2 className="h-4 w-4" />
-          {t("financeCollect.byClass")}
-        </button>
-        <button
-          type="button"
-          onClick={() => setTab("family")}
-          className={cn(
-            "inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
-            tab === "family" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-secondary",
-          )}
-        >
-          <Users className="h-4 w-4" />
-          {t("financeCollect.byFamily")}
-        </button>
-      </div>
+      {selectedClass === null && (
+        <div className="inline-flex rounded-xl border bg-card p-1">
+          <button
+            type="button"
+            onClick={() => setTab("class")}
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
+              tab === "class" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-secondary",
+            )}
+          >
+            <UserSquare2 className="h-4 w-4" />
+            {t("financeCollect.byClass")}
+          </button>
+          <button
+            type="button"
+            onClick={() => setTab("family")}
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
+              tab === "family" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-secondary",
+            )}
+          >
+            <Users className="h-4 w-4" />
+            {t("financeCollect.byFamily")}
+          </button>
+        </div>
+      )}
 
       {mounted && tab === "class" && selectedClass === null && (
         <ClassFeeGrid

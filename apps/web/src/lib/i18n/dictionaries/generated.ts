@@ -987,6 +987,11 @@ export const generated = {
     partial: "Partial",
     total: "Total",
     collectionListTitle: "Fee Collection List",
+    searchClass: "Search class…",
+    gridView: "Grid view",
+    listView: "List view",
+    noClassesMatchSearch: "No classes match that search.",
+    view: "View",
   },
   feesFamilyCollectSection: {
     collectByFamily: "Collect by Family",

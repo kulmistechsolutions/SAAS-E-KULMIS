@@ -987,6 +987,11 @@ export const soGenerated: PartialDictionary = {
     partial: "Qayb Bixin",
     total: "Wadarta",
     collectionListTitle: "Liiska Ururinta Lacagaha",
+    searchClass: "Raadi fasal…",
+    gridView: "Aragtida Cardska",
+    listView: "Aragtida Liiska",
+    noClassesMatchSearch: "Fasal kuma jiro raadintaas.",
+    view: "Eeg",
   },
   feesFamilyCollectSection: {
     collectByFamily: "Qaad Qoyska",
