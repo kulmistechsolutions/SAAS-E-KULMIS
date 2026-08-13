@@ -1,10 +1,18 @@
 import { getSettings, schoolBranding } from "@/lib/settings/store";
 import { getState as getStudentsState } from "@/lib/students/store";
-import { monthLabel, money, paymentTypeLabel, receiptDate } from "./format";
-import type { FeePayment } from "./types";
+import { feeStatusLabel, monthLabel, money, paymentTypeLabel, receiptDate } from "./format";
+import type { ClassFeeSummary, FeePayment, StudentFeeRow } from "./types";
 import { outstandingBalance } from "./store";
 import { dirOf } from "@/lib/i18n/config";
 import { getStoredLang, translateIn } from "@/lib/i18n/provider";
+
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
 
 export function receiptHtml(payment: FeePayment): string {
   const school = schoolBranding();
@@ -105,4 +113,151 @@ export function exportPaymentsCsv(payments: FeePayment[]) {
   a.download = "fee-payments.csv";
   a.click();
   URL.revokeObjectURL(url);
+}
+
+export function printClassFeeSummaries(
+  summaries: ClassFeeSummary[],
+  meta: { academicYear: string; monthLabel: string },
+) {
+  const school = schoolBranding();
+  const logo = school.logoUrl
+    ? `<img src="${school.logoUrl}" alt="" class="logo" style="object-fit:contain"/>`
+    : `<div class="logo">${school.name.slice(0, 2).toUpperCase()}</div>`;
+  const centered = school.headerLayout === "CENTERED";
+  const w = window.open("", "_blank", "width=900,height=700");
+  if (!w) return;
+  const lang = getStoredLang();
+  const tr = (key: Parameters<typeof translateIn>[1]) => translateIn(lang, key);
+  const body = summaries
+    .map(
+      (c) => `<tr>
+        <td>${escapeHtml(c.className)}</td>
+        <td>${c.totalStudents}</td>
+        <td>${money(c.outstandingAmount)}</td>
+        <td>${c.paidStudents}</td>
+        <td>${c.advanceStudents}</td>
+        <td>${c.partialStudents}</td>
+      </tr>`,
+    )
+    .join("");
+  const totals = summaries.reduce(
+    (acc, c) => ({
+      students: acc.students + c.totalStudents,
+      outstanding: acc.outstanding + c.outstandingAmount,
+      paid: acc.paid + c.paidStudents,
+      advance: acc.advance + c.advanceStudents,
+      partial: acc.partial + c.partialStudents,
+    }),
+    { students: 0, outstanding: 0, paid: 0, advance: 0, partial: 0 },
+  );
+  w.document.write(`<!DOCTYPE html><html><head><title>${tr("feesClassFeeSummary.title")}</title>
+  <style>
+    *{font-family:Arial,Helvetica,sans-serif;box-sizing:border-box}
+    body{padding:32px;color:#0f172a}
+    .head{display:flex;align-items:center;gap:16px;border-bottom:2px solid #4f46e5;padding-bottom:16px;margin-bottom:16px}
+    .head.centered{flex-direction:column;text-align:center}
+    .logo{width:52px;height:52px;border-radius:12px;background:linear-gradient(135deg,#3b82f6,#4f46e5);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:20px}
+    h1{margin:0;font-size:20px}
+    .meta{color:#475569;font-size:13px;margin-top:4px}
+    table{width:100%;border-collapse:collapse;margin-top:8px;font-size:13px}
+    th,td{border:1px solid #cbd5e1;padding:7px 10px;text-align:left}
+    th{background:#f1f5f9}
+    tfoot td{font-weight:700;background:#f8fafc}
+    @media print{body{padding:0}}
+  </style></head><body>
+  <div class="head${centered ? " centered" : ""}">
+    ${logo}
+    <div>
+      <h1>${escapeHtml(school.name)}</h1>
+      <div class="meta">${tr("feesClassFeeSummary.title")} · ${meta.academicYear} · ${meta.monthLabel}</div>
+    </div>
+  </div>
+  <table>
+    <thead><tr>
+      <th>${tr("feesClassFeeSummary.class")}</th>
+      <th>${tr("feesClassFeeSummary.totalStudents")}</th>
+      <th>${tr("feesClassFeeSummary.outstanding")}</th>
+      <th>${tr("feesClassFeeSummary.paid")}</th>
+      <th>${tr("feesClassFeeSummary.advance")}</th>
+      <th>${tr("feesClassFeeSummary.partial")}</th>
+    </tr></thead>
+    <tbody>${body || '<tr><td colspan="6">No classes</td></tr>'}</tbody>
+    <tfoot><tr>
+      <td>${tr("feesClassFeeSummary.total")}</td>
+      <td>${totals.students}</td>
+      <td>${money(totals.outstanding)}</td>
+      <td>${totals.paid}</td>
+      <td>${totals.advance}</td>
+      <td>${totals.partial}</td>
+    </tr></tfoot>
+  </table>
+  <script>window.onload=function(){window.print()}</script>
+  </body></html>`);
+  w.document.close();
+}
+
+export function printClassCollectionList(
+  rows: StudentFeeRow[],
+  meta: { academicYear: string; monthLabel: string; className: string; section: string; status: string },
+) {
+  const school = schoolBranding();
+  const logo = school.logoUrl
+    ? `<img src="${school.logoUrl}" alt="" class="logo" style="object-fit:contain"/>`
+    : `<div class="logo">${school.name.slice(0, 2).toUpperCase()}</div>`;
+  const centered = school.headerLayout === "CENTERED";
+  const w = window.open("", "_blank", "width=900,height=700");
+  if (!w) return;
+  const lang = getStoredLang();
+  const tr = (key: Parameters<typeof translateIn>[1]) => translateIn(lang, key);
+  const body = rows
+    .map(
+      (r, i) => `<tr>
+        <td>${i + 1}</td>
+        <td>${escapeHtml(r.code)}</td>
+        <td>${escapeHtml(r.fullName)}</td>
+        <td>${escapeHtml(r.className)}${r.section && r.section !== "—" ? " - " + escapeHtml(r.section) : ""}</td>
+        <td>${money(r.monthlyFee)}</td>
+        <td>${money(r.outstandingBalance)}</td>
+        <td>${feeStatusLabel(r.status, r.advanceMonthsLeft)}</td>
+      </tr>`,
+    )
+    .join("");
+  w.document.write(`<!DOCTYPE html><html><head><title>${tr("feesClassFeeSummary.collectionListTitle")}</title>
+  <style>
+    *{font-family:Arial,Helvetica,sans-serif;box-sizing:border-box}
+    body{padding:32px;color:#0f172a}
+    .head{display:flex;align-items:center;gap:16px;border-bottom:2px solid #4f46e5;padding-bottom:16px;margin-bottom:16px}
+    .head.centered{flex-direction:column;text-align:center}
+    .logo{width:52px;height:52px;border-radius:12px;background:linear-gradient(135deg,#3b82f6,#4f46e5);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:20px}
+    h1{margin:0;font-size:20px}
+    .meta{color:#475569;font-size:13px;margin-top:4px}
+    table{width:100%;border-collapse:collapse;margin-top:8px;font-size:13px}
+    th,td{border:1px solid #cbd5e1;padding:7px 10px;text-align:left}
+    th{background:#f1f5f9}
+    .foot{margin-top:24px;font-size:11px;color:#94a3b8}
+    @media print{body{padding:0}}
+  </style></head><body>
+  <div class="head${centered ? " centered" : ""}">
+    ${logo}
+    <div>
+      <h1>${escapeHtml(school.name)}</h1>
+      <div class="meta">${tr("feesClassFeeSummary.collectionListTitle")} · ${meta.academicYear} · ${meta.monthLabel} · ${escapeHtml(meta.className)}${meta.section ? " - " + escapeHtml(meta.section) : ""} · ${meta.status}</div>
+    </div>
+  </div>
+  <table>
+    <thead><tr>
+      <th>#</th>
+      <th>${tr("feesCollectFeesSection.studentId")}</th>
+      <th>${tr("feesCollectFeesSection.studentName")}</th>
+      <th>${tr("feesCollectFeesSection.class")}</th>
+      <th>${tr("feesCollectFeesSection.monthlyFee")}</th>
+      <th>${tr("feesCollectFeesSection.outstandingBalance")}</th>
+      <th>${tr("feesCollectFeesSection.status")}</th>
+    </tr></thead>
+    <tbody>${body || `<tr><td colspan="7">${tr("feesCollectFeesSection.noStudentsMatchYourFilters")}</td></tr>`}</tbody>
+  </table>
+  <div class="foot">Total: ${rows.length} · Generated ${new Date().toLocaleString()}</div>
+  <script>window.onload=function(){window.print()}</script>
+  </body></html>`);
+  w.document.close();
 }

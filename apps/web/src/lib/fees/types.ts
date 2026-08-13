@@ -145,6 +145,22 @@ export interface StudentLedgerRow {
   label?: string | null;
 }
 
+/** Per-class fee snapshot for the given month, shown as a card in Collect Fees. */
+export interface ClassFeeSummary {
+  className: string;
+  totalStudents: number;
+  /** Students with no outstanding balance for the month and no advance credit. */
+  paidStudents: number;
+  /** Students carrying an advance payment ahead of the month. */
+  advanceStudents: number;
+  /** Students who paid part of the month's charge but still owe a balance. */
+  partialStudents: number;
+  /** Never charged (waived or $0 fee) — excluded from paid/partial/advance. */
+  freeStudents: number;
+  /** Total money still owed across this class for the month. */
+  outstandingAmount: number;
+}
+
 export interface PaymentSummarySlice {
   name: string;
   value: number;

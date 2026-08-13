@@ -26,6 +26,7 @@ import {
 } from "./api";
 import { monthKey, monthLabel, nextMonthKey, parseMonthKey } from "./format";
 import type {
+  ClassFeeSummary,
   FamilyFeeRow,
   FeeCharge,
   FeeChargeStatus,
@@ -766,6 +767,58 @@ export function listStudentFees(opts: {
   if (opts.status) rows = rows.filter((r) => r.status === opts.status);
 
   return rows;
+}
+
+/**
+ * One card per class for the Collect Fees entry screen — this month's
+ * students/paid/advance/partial counts and the money still owed, so an admin
+ * sees which classes need attention before drilling into any one of them.
+ * Grouped by each student's home class (the one billing is keyed to), same
+ * as `listStudentFees` — a student's extra classes never split their charge.
+ */
+export function classFeeSummaries(
+  academicYear?: string,
+  monthKey?: string,
+): ClassFeeSummary[] {
+  const s = ensure();
+  const year = academicYear || s.academicYear || activeAcademicYear();
+  const month = monthKey ?? s.activeMonthKey;
+  const rows = listStudentFees({ academicYear: year, monthKey: month });
+
+  const byClass = new Map<string, ClassFeeSummary>();
+  for (const r of rows) {
+    const key = r.className.split(" + ")[0];
+    let summary = byClass.get(key);
+    if (!summary) {
+      summary = {
+        className: key,
+        totalStudents: 0,
+        paidStudents: 0,
+        advanceStudents: 0,
+        partialStudents: 0,
+        freeStudents: 0,
+        outstandingAmount: 0,
+      };
+      byClass.set(key, summary);
+    }
+    summary.totalStudents++;
+    if (r.feeWaived || r.monthlyFee === 0) {
+      summary.freeStudents++;
+    } else if (r.status === "ADVANCE_MULTI" || r.status === "ADVANCE") {
+      summary.advanceStudents++;
+    } else if (r.status === "PARTIAL") {
+      summary.partialStudents++;
+      summary.outstandingAmount += r.outstandingBalance;
+    } else if (r.status === "PAID") {
+      summary.paidStudents++;
+    } else {
+      summary.outstandingAmount += r.outstandingBalance;
+    }
+  }
+
+  return [...byClass.values()].sort((a, b) =>
+    a.className.localeCompare(b.className, undefined, { numeric: true }),
+  );
 }
 
 /**

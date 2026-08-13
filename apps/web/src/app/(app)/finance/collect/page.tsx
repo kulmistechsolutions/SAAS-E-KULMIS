@@ -5,6 +5,7 @@ import { useT } from "@/lib/i18n/provider";
 import { useEffect, useState } from "react";
 import { Users, UserSquare2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ClassFeeGrid } from "@/components/fees/class-fee-grid";
 import { CollectFeesSection } from "@/components/fees/collect-fees-section";
 import { FamilyCollectSection } from "@/components/fees/family-collect-section";
 import { FamilyPaymentDialog } from "@/components/fees/family-payment-dialog";
@@ -19,6 +20,7 @@ type Tab = "class" | "family";
 export default function CollectFeesPage() {
   const t = useT();
   const [tab, setTab] = useState<Tab>("class");
+  const [selectedClass, setSelectedClass] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
   const fees = useFeesState();
   const [payStudent, setPayStudent] = useState<StudentFeeRow | null>(null);
@@ -63,11 +65,21 @@ export default function CollectFeesPage() {
         </button>
       </div>
 
-      {mounted && tab === "class" && (
+      {mounted && tab === "class" && selectedClass === null && (
+        <ClassFeeGrid
+          academicYear={fees.academicYear}
+          monthKey={fees.activeMonthKey}
+          onSelectClass={setSelectedClass}
+        />
+      )}
+      {mounted && tab === "class" && selectedClass !== null && (
         <CollectFeesSection
+          key={selectedClass}
           academicYear={fees.academicYear}
           monthKey={fees.activeMonthKey}
           onPay={setPayStudent}
+          initialClass={selectedClass}
+          onBack={() => setSelectedClass(null)}
         />
       )}
       {mounted && tab === "family" && (

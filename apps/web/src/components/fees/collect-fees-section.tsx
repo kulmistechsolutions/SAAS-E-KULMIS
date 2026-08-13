@@ -4,13 +4,14 @@
 import { useT } from "@/lib/i18n/provider";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Eye, Search } from "lucide-react";
+import { ArrowLeft, Eye, Printer, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Pagination } from "@/components/ui/pagination";
-import { feeStatusLabel, money } from "@/lib/fees/format";
+import { feeStatusLabel, money, monthLabel } from "@/lib/fees/format";
 import { listStudentFees, useFeesState } from "@/lib/fees/store";
+import { printClassCollectionList } from "@/lib/fees/print";
 import { useStudentsState } from "@/lib/students/store";
 import type { FeeChargeStatus, StudentFeeRow } from "@/lib/fees/types";
 import {
@@ -29,6 +30,10 @@ interface CollectFeesSectionProps {
   monthKey: string;
   onPay: (row: StudentFeeRow) => void;
   compact?: boolean;
+  /** Preselects the class filter, e.g. when arriving from a class card. */
+  initialClass?: string;
+  /** Shows a "back" affordance above the filters, e.g. to return to the class grid. */
+  onBack?: () => void;
 }
 
 export function CollectFeesSection({
@@ -36,13 +41,20 @@ export function CollectFeesSection({
   monthKey,
   onPay,
   compact = false,
+  initialClass,
+  onBack,
 }: CollectFeesSectionProps) {
   const t = useT();
-  const [klass, setKlass] = useState("");
+  const [klass, setKlass] = useState(initialClass ?? "");
   const [section, setSection] = useState("");
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<FeeChargeStatus | "ADVANCE_MULTI" | "">("");
-  const [applied, setApplied] = useState({ klass: "", section: "", search: "", status: "" as FeeChargeStatus | "ADVANCE_MULTI" | "" });
+  const [applied, setApplied] = useState({
+    klass: initialClass ?? "",
+    section: "",
+    search: "",
+    status: "" as FeeChargeStatus | "ADVANCE_MULTI" | "",
+  });
   const [page, setPage] = useState(1);
   const [mounted, setMounted] = useState(false);
   const academics = useAcademicsState();
@@ -103,15 +115,40 @@ export function CollectFeesSection({
     setSection("");
   }
 
+  function handlePrint() {
+    printClassCollectionList(rows, {
+      academicYear,
+      monthLabel: monthLabel(monthKey),
+      className: applied.klass || t("feesCollectFeesSection.allClasses"),
+      section: applied.section,
+      status: applied.status ? feeStatusLabel(applied.status) : t("feesCollectFeesSection.allStatuses"),
+    });
+  }
+
   return (
     <div className="rounded-2xl border bg-card shadow-sm">
-      <div className="border-b px-5 py-4">
-        <h2 className="text-base font-semibold">{t("feesCollectFeesSection.collectFees")}</h2>
-        {!compact && (
-          <p className="mt-0.5 text-sm text-muted-foreground">
-            {t("feesCollectFeesSection.filterByClassAndSectionThen")}
-          </p>
-        )}
+      <div className="flex items-start justify-between gap-3 border-b px-5 py-4">
+        <div>
+          {onBack && (
+            <button
+              type="button"
+              onClick={onBack}
+              className="mb-1.5 inline-flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground"
+            >
+              <ArrowLeft className="h-3.5 w-3.5" />
+              {t("feesCollectFeesSection.backToClasses")}
+            </button>
+          )}
+          <h2 className="text-base font-semibold">{t("feesCollectFeesSection.collectFees")}</h2>
+          {!compact && (
+            <p className="mt-0.5 text-sm text-muted-foreground">
+              {t("feesCollectFeesSection.filterByClassAndSectionThen")}
+            </p>
+          )}
+        </div>
+        <Button variant="outline" disabled={rows.length === 0} onClick={handlePrint}>
+          <Printer className="me-2 h-4 w-4" /> {t("feesCollectFeesSection.print")}
+        </Button>
       </div>
 
       <div className="flex flex-wrap items-end gap-3 border-b bg-secondary/20 px-5 py-4">
