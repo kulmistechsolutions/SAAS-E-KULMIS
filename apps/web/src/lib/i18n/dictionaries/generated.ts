@@ -985,6 +985,7 @@ export const generated = {
     paid: "Paid",
     advance: "Advance",
     partial: "Partial",
+    free: "Free Students",
     total: "Total",
     collectionListTitle: "Fee Collection List",
     searchClass: "Search class…",

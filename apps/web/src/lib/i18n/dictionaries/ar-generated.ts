@@ -985,6 +985,7 @@ export const arGenerated: PartialDictionary = {
     paid: "مدفوع",
     advance: "دفع مقدم",
     partial: "دفع جزئي",
+    free: "طلاب معفون",
     total: "الإجمالي",
     collectionListTitle: "قائمة تحصيل الرسوم",
     searchClass: "بحث عن صف…",

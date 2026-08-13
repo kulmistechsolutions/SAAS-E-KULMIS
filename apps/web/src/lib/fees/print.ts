@@ -137,6 +137,7 @@ export function printClassFeeSummaries(
         <td>${c.paidStudents}</td>
         <td>${c.advanceStudents}</td>
         <td>${c.partialStudents}</td>
+        <td>${c.freeStudents}</td>
       </tr>`,
     )
     .join("");
@@ -147,8 +148,9 @@ export function printClassFeeSummaries(
       paid: acc.paid + c.paidStudents,
       advance: acc.advance + c.advanceStudents,
       partial: acc.partial + c.partialStudents,
+      free: acc.free + c.freeStudents,
     }),
-    { students: 0, outstanding: 0, paid: 0, advance: 0, partial: 0 },
+    { students: 0, outstanding: 0, paid: 0, advance: 0, partial: 0, free: 0 },
   );
   w.document.write(`<!DOCTYPE html><html><head><title>${tr("feesClassFeeSummary.title")}</title>
   <style>
@@ -180,8 +182,9 @@ export function printClassFeeSummaries(
       <th>${tr("feesClassFeeSummary.paid")}</th>
       <th>${tr("feesClassFeeSummary.advance")}</th>
       <th>${tr("feesClassFeeSummary.partial")}</th>
+      <th>${tr("feesClassFeeSummary.free")}</th>
     </tr></thead>
-    <tbody>${body || '<tr><td colspan="6">No classes</td></tr>'}</tbody>
+    <tbody>${body || '<tr><td colspan="7">No classes</td></tr>'}</tbody>
     <tfoot><tr>
       <td>${tr("feesClassFeeSummary.total")}</td>
       <td>${totals.students}</td>
@@ -189,6 +192,7 @@ export function printClassFeeSummaries(
       <td>${totals.paid}</td>
       <td>${totals.advance}</td>
       <td>${totals.partial}</td>
+      <td>${totals.free}</td>
     </tr></tfoot>
   </table>
   <script>window.onload=function(){window.print()}</script>

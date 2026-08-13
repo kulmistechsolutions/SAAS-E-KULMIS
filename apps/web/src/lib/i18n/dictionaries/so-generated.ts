@@ -985,6 +985,7 @@ export const soGenerated: PartialDictionary = {
     paid: "La Bixiyay",
     advance: "Hore u Bixin",
     partial: "Qayb Bixin",
+    free: "Ardayda Bilaashka ah",
     total: "Wadarta",
     collectionListTitle: "Liiska Ururinta Lacagaha",
     searchClass: "Raadi fasal…",

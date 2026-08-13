@@ -6,6 +6,7 @@ import {
   ChevronRight,
   CircleDollarSign,
   Clock3,
+  Gift,
   LayoutGrid,
   List,
   Printer,
@@ -144,6 +145,7 @@ export function ClassFeeGrid({ academicYear, monthKey, onSelectClass }: Props) {
                   <th className="px-4 py-3 font-medium">{t("feesClassFeeSummary.paid")}</th>
                   <th className="px-4 py-3 font-medium">{t("feesClassFeeSummary.advance")}</th>
                   <th className="px-4 py-3 font-medium">{t("feesClassFeeSummary.partial")}</th>
+                  <th className="px-4 py-3 font-medium">{t("feesClassFeeSummary.free")}</th>
                   <th className="px-4 py-3" />
                 </tr>
               </thead>
@@ -167,6 +169,9 @@ export function ClassFeeGrid({ academicYear, monthKey, onSelectClass }: Props) {
                     </td>
                     <td className="px-4 py-3 tabular-nums text-amber-600 dark:text-amber-400">
                       {c.partialStudents}
+                    </td>
+                    <td className="px-4 py-3 tabular-nums text-teal-600 dark:text-teal-400">
+                      {c.freeStudents}
                     </td>
                     <td className="px-4 py-3 text-end">
                       <ChevronRight className="ms-auto h-4 w-4 text-muted-foreground" />
@@ -257,6 +262,14 @@ function ClassCard({
           value={String(c.partialStudents)}
           tone="warning"
         />
+        <div className="col-span-2">
+          <Metric
+            icon={Gift}
+            label={t("feesClassFeeSummary.free")}
+            value={String(c.freeStudents)}
+            tone="teal"
+          />
+        </div>
       </div>
 
       <div className="flex items-center justify-end gap-1 text-xs font-medium text-primary opacity-0 transition-opacity group-hover:opacity-100">
@@ -272,6 +285,7 @@ const TONE_CHIP: Record<string, string> = {
   success: "bg-emerald-100 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-400",
   info: "bg-sky-100 text-sky-600 dark:bg-sky-500/15 dark:text-sky-400",
   warning: "bg-amber-100 text-amber-600 dark:bg-amber-500/15 dark:text-amber-400",
+  teal: "bg-teal-100 text-teal-600 dark:bg-teal-500/15 dark:text-teal-400",
 };
 
 function Metric({
