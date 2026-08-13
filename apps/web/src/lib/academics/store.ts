@@ -268,8 +268,6 @@ export function academicYearNames(): string[] {
     .sort((a, b) => b.localeCompare(a));
 }
 
-export const DEFAULT_GRADE_COUNT = 12;
-
 export function classesForYear(
   year?: string,
   opts?: { includeInactive?: boolean },
@@ -429,19 +427,6 @@ export function classNamesForYear(
   opts?: { includeInactive?: boolean },
 ): string[] {
   return classesForYear(year, opts).map((c) => c.name);
-}
-
-export function canCreateClassInYear(year?: string): boolean {
-  // A school running its own custom structure isn't held to the 12-grade
-  // default ladder — the backend already lifts this cap for them
-  // (class-structure.service.ts), so the frontend must match or "Add Class"
-  // silently disappears/rejects once they legitimately need a 13th+ class.
-  if (ensure().customStructureEnabled) return true;
-  const y = year ?? activeAcademicYear();
-  const count = ensure().classes.filter(
-    (c) => c.academicYear === y && c.status === "ACTIVE",
-  ).length;
-  return count < DEFAULT_GRADE_COUNT;
 }
 
 export function sectionNamesForClass(className: string, year?: string): string[] {
@@ -834,12 +819,6 @@ export async function setActiveAcademicYear(id: string): Promise<{ ok: boolean; 
 export async function createClass(
   input: ClassInput,
 ): Promise<{ ok: boolean; error?: string; cls?: SchoolClass }> {
-  if (!canCreateClassInYear(input.academicYear)) {
-    return {
-      ok: false,
-      error: `This year already has ${DEFAULT_GRADE_COUNT} classes. Rename an existing class instead.`,
-    };
-  }
   const academicYearId = yearIdByName(input.academicYear);
   if (!academicYearId) return { ok: false, error: "Academic year not found." };
   try {

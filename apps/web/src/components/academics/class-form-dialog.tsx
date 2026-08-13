@@ -12,11 +12,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/lib/toast";
 import {
   activeAcademicYear,
-  canCreateClassInYear,
   createClass,
   getAcademicsState,
   updateClass,
-  useAcademicsState,
 } from "@/lib/academics/store";
 import type { EntityStatus, SchoolClass } from "@/lib/academics/types";
 
@@ -30,15 +28,12 @@ export function ClassFormDialog({ open, onClose, cls }: Props) {
   const t = useT();
   const isEdit = !!cls;
   const years = getAcademicsState().academicYears;
-  const { customStructureEnabled } = useAcademicsState();
   const [name, setName] = useState("");
   const [academicYear, setAcademicYear] = useState<string>(activeAcademicYear());
   const [hasSections, setHasSections] = useState(true);
   const [status, setStatus] = useState<EntityStatus>("ACTIVE");
   const [notes, setNotes] = useState("");
   const [error, setError] = useState<string | null>(null);
-
-  const allowCreate = canCreateClassInYear(academicYear);
 
   useEffect(() => {
     if (!open) return;
@@ -61,11 +56,6 @@ export function ClassFormDialog({ open, onClose, cls }: Props) {
   async function submit() {
     setError(null);
     if (!name.trim()) return setError("Class name is required.");
-    if (!isEdit && !allowCreate) {
-      return setError(
-        "This academic year already has 12 classes. Rename an existing class instead.",
-      );
-    }
     const input = {
       name,
       academicYear,
@@ -88,16 +78,14 @@ export function ClassFormDialog({ open, onClose, cls }: Props) {
       description={
         isEdit
           ? "Update the display name for this grade. The class record stays the same — no duplicate is created."
-          : customStructureEnabled
-            ? "Class names must be unique within an academic year. This school uses a custom class structure, so you can add as many classes as you need."
-            : "Class names must be unique within an academic year. Each year supports up to 12 grades."
+          : "Class names must be unique within an academic year."
       }
       footer={
         <>
           <Button variant="outline" onClick={onClose}>
             {t("academicsClassFormDialog.cancel")}
           </Button>
-          <Button onClick={submit} disabled={!isEdit && !allowCreate}>
+          <Button onClick={submit}>
             {isEdit ? "Save Name" : "Create Class"}
           </Button>
         </>

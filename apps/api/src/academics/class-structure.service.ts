@@ -105,7 +105,6 @@ export class ClassStructureService {
   ): Promise<void> {
     const normalized = normalizeAcademicName(name);
     const key = academicNameKey(normalized);
-    const custom = await this.usesCustomStructure(schoolId);
 
     await this.prisma.forTenant(schoolId, async (tx) => {
       const existing = await tx.class.findMany({
@@ -118,15 +117,6 @@ export class ClassStructureService {
       ) {
         throw new ConflictException(
           "A class with this name already exists in this academic year.",
-        );
-      }
-
-      // The twelve-class ceiling belongs to the default ladder. A school that
-      // defines its own structure sets its own length — the Arabic example
-      // that prompted this runs fourteen classes.
-      if (!custom && existing.length >= DEFAULT_GRADE_COUNT) {
-        throw new ConflictException(
-          `This academic year already has ${DEFAULT_GRADE_COUNT} classes. Rename an existing class instead of creating a new one.`,
         );
       }
     });

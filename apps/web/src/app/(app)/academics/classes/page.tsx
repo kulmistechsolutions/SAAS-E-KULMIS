@@ -24,7 +24,6 @@ import { ClassFormDialog } from "@/components/academics/class-form-dialog";
 import { ConfirmDialog } from "@/components/students/confirm-dialog";
 import {
   classRows,
-  canCreateClassInYear,
   deleteClass,
   exportClassesCsv,
   getAcademicsState,
@@ -57,9 +56,6 @@ export default function ClassesPage() {
   const [deleting, setDeleting] = useState<ClassRow | null>(null);
 
   const years = getAcademicsState().academicYears;
-  const activeYearName = years.find((y) => y.status === "ACTIVE")?.name ?? "";
-  const filterYear = year || activeYearName;
-  const canAddClass = canCreateClassInYear(filterYear);
 
   const rows = useMemo(() => {
     const list = classRows({
@@ -118,9 +114,7 @@ export default function ClassesPage() {
         <div>
           <h1 className="text-2xl font-bold">{t("academicsClasses.classesGrades")}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            {state.customStructureEnabled
-              ? t("academicsClasses.customStructureUnlimitedClasses")
-              : t("academicsClasses.eachAcademicYearHasUpTo")}
+            {t("academicsClasses.renameGradesHint")}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -164,32 +158,16 @@ export default function ClassesPage() {
           >
             <FileDown className="me-2 h-4 w-4" /> {t("academicsClasses.export")}
           </Button>
-          {canAddClass ? (
-            <Button
-              onClick={() => {
-                setEditing(null);
-                setFormOpen(true);
-              }}
-            >
-              <Plus className="me-2 h-4 w-4" /> {t("academicsClasses.addClass")}
-            </Button>
-          ) : null}
+          <Button
+            onClick={() => {
+              setEditing(null);
+              setFormOpen(true);
+            }}
+          >
+            <Plus className="me-2 h-4 w-4" /> {t("academicsClasses.addClass")}
+          </Button>
         </div>
       </div>
-
-      {!canAddClass && (
-        <div className="rounded-xl border border-amber-300 bg-amber-50/50 px-4 py-3 text-sm dark:border-amber-900/50 dark:bg-amber-950/20">
-          <p className="text-amber-800 dark:text-amber-300">
-            {t("academicsClasses.addClassHiddenReason")}
-          </p>
-          <Link
-            href="/settings/academic-structure"
-            className="mt-1 inline-block font-medium text-primary hover:underline"
-          >
-            {t("academicsClasses.enableCustomStructureLink")}
-          </Link>
-        </div>
-      )}
 
       <div className="rounded-2xl border bg-card p-4 shadow-sm">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
