@@ -13,6 +13,7 @@ import {
 } from "@nestjs/common";
 import type { Response } from "express";
 import {
+  addStudentClassSchema,
   registerStudentSchema,
   updateStudentSchema,
   uploadStudentPhotoSchema,
@@ -171,5 +172,28 @@ export class StudentsController {
   @Delete(":id")
   remove(@CurrentUser() me: AuthUser, @Param("id") id: string) {
     return this.students.remove(me.schoolId, id);
+  }
+
+  /** Put an existing student into one more class (they keep one record). */
+  @Roles(UserRole.ADMINISTRATOR, UserRole.RECEPTION_OFFICER)
+  @Post(":id/classes")
+  addClass(
+    @CurrentUser() me: AuthUser,
+    @Param("id") id: string,
+    @Body() body: unknown,
+  ) {
+    const parsed = addStudentClassSchema.safeParse(body);
+    if (!parsed.success) throw new BadRequestException(parsed.error.flatten());
+    return this.students.addClass(me.schoolId, id, parsed.data);
+  }
+
+  @Roles(UserRole.ADMINISTRATOR, UserRole.RECEPTION_OFFICER)
+  @Delete(":id/classes/:enrollmentId")
+  removeClass(
+    @CurrentUser() me: AuthUser,
+    @Param("id") id: string,
+    @Param("enrollmentId") enrollmentId: string,
+  ) {
+    return this.students.removeClass(me.schoolId, id, enrollmentId);
   }
 }

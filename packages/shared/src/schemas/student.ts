@@ -98,3 +98,13 @@ export const updateStudentSchema = z
   })
   .refine((o) => Object.keys(o).length > 0, { message: "Nothing to update" });
 export type UpdateStudentInput = z.infer<typeof updateStudentSchema>;
+
+/**
+ * Add a student to an ADDITIONAL class alongside their home class.
+ * The home class stays Student.classId — this only ever adds extras.
+ */
+export const addStudentClassSchema = z.object({
+  classId: z.string().min(1, "Class is required"),
+  sectionId: z.string().min(1).nullable().optional(),
+});
+export type AddStudentClassInput = z.infer<typeof addStudentClassSchema>;

@@ -45,6 +45,14 @@ interface ApiStudent {
   feeAgreementAmount?: number | null;
   annualFeeAmount?: number | null;
   feeWaived?: boolean;
+  /** Classes this student also sits in, on top of `class` above. */
+  extraClasses?: {
+    id: string;
+    classId: string;
+    sectionId: string | null;
+    class: { id: string; name: string; academicYear: { name: string } | null };
+    section: { id: string; name: string } | null;
+  }[];
 }
 
 export function mapApiParent(p: ApiParent): Parent {
@@ -90,8 +98,39 @@ export function mapApiStudent(s: ApiStudent): Student {
     feeAgreementAmount: s.feeAgreementAmount ?? null,
     annualFeeAmount: s.annualFeeAmount ?? null,
     feeWaived: s.feeWaived ?? false,
+    extraClasses: (s.extraClasses ?? []).map((e) => ({
+      id: e.id,
+      classId: e.classId,
+      className: e.class?.name ?? "",
+      sectionId: e.sectionId,
+      section: e.section?.name ?? null,
+    })),
   };
 }
+
+export interface AddStudentClassApiInput {
+  classId: string;
+  sectionId?: string | null;
+}
+
+/** Put an existing student into one more class — never a second record. */
+export const apiAddStudentClass = (
+  studentId: string,
+  input: AddStudentClassApiInput,
+) =>
+  api<{ id: string; classId: string; sectionId: string | null }>(
+    `/students/${studentId}/classes`,
+    { method: "POST", body: input },
+  );
+
+export const apiRemoveStudentClass = (
+  studentId: string,
+  enrollmentId: string,
+) =>
+  api<{ success: boolean }>(
+    `/students/${studentId}/classes/${enrollmentId}`,
+    { method: "DELETE" },
+  );
 
 export async function apiListStudents(): Promise<Student[]> {
   const rows = await api<ApiStudent[]>("/students?lite=1");

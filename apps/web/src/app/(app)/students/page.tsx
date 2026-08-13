@@ -53,6 +53,11 @@ import {
   printStudentsList,
 } from "@/lib/students/print";
 import type { StudentStatus, StudentWithParent } from "@/lib/students/types";
+import {
+  studentClassLabel,
+  studentClassNames,
+  studentSectionNames,
+} from "@/lib/students/types";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 
@@ -142,8 +147,11 @@ export default function StudentsPage() {
     const q = search.trim().toLowerCase();
     const rows = all.filter((s) => {
       if (year && s.academicYear !== year) return false;
-      if (klass && s.className !== klass) return false;
-      if (section && (s.section ?? "") !== section) return false;
+      // A student can sit in more than one class, so filtering by a class
+      // must match any of them — they still appear once in the unfiltered
+      // list, as a single record.
+      if (klass && !studentClassNames(s).includes(klass)) return false;
+      if (section && !studentSectionNames(s).includes(section)) return false;
       if (gender && s.gender !== gender) return false;
       if (status && s.status !== status) return false;
       if (q) {
@@ -564,9 +572,9 @@ export default function StudentsPage() {
                     <td className="px-4 py-3 text-muted-foreground">
                       {s.parent.phone}
                     </td>
-                    <td className="px-4 py-3">{s.className}</td>
+                    <td className="px-4 py-3">{studentClassLabel(s)}</td>
                     <td className="px-4 py-3 text-muted-foreground">
-                      {s.section ?? "—"}
+                      {studentSectionNames(s).filter(Boolean).join(" + ") || "—"}
                     </td>
                     <td className="px-4 py-3 tabular-nums">
                       {money(s.monthlyFee)}

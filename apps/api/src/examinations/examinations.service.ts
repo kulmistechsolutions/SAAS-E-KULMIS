@@ -21,6 +21,7 @@ import { NotificationsService } from "../notifications/notifications.service";
 import { AuditService } from "../audit/audit.service";
 import { SmsService } from "../sms/sms.service";
 import { StorageService } from "../storage/storage.service";
+import { studentInClassWhere } from "../students/student-class.util";
 import type { AuthUser } from "../auth/auth.types";
 
 export interface MonitoringDetailRow {
@@ -830,8 +831,7 @@ export class ExaminationsService {
 
     const studentCount = await tx.student.count({
       where: {
-        classId: exam.classId,
-        sectionId: exam.sectionId,
+        ...studentInClassWhere(exam.classId, exam.sectionId),
         status: "ACTIVE",
       },
     });
@@ -969,8 +969,7 @@ export class ExaminationsService {
   ) {
     return tx.student.findMany({
       where: {
-        classId: exam.classId,
-        sectionId: exam.sectionId,
+        ...studentInClassWhere(exam.classId, exam.sectionId),
         status: "ACTIVE",
       },
       select: { id: true, code: true, fullName: true },
@@ -1267,7 +1266,7 @@ export class ExaminationsService {
       const [studentCount, sectionCount] = await Promise.all([
         this.prisma.forTenant(schoolId, (tx) =>
           tx.student.count({
-            where: { classId: entry.classId, status: "ACTIVE" },
+            where: { ...studentInClassWhere(entry.classId), status: "ACTIVE" },
           }),
         ),
         this.prisma.forTenant(schoolId, (tx) =>
@@ -1494,7 +1493,7 @@ export class ExaminationsService {
       for (const entry of byClass.values()) {
         const [studentCount, sectionCount] = await Promise.all([
           tx.student.count({
-            where: { classId: entry.classId, status: "ACTIVE" },
+            where: { ...studentInClassWhere(entry.classId), status: "ACTIVE" },
           }),
           tx.section.count({ where: { classId: entry.classId } }),
         ]);

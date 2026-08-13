@@ -2,6 +2,7 @@ import { BadRequestException, Injectable } from "@nestjs/common";
 import type { Prisma } from "@prisma/client";
 import type { MarkStudentAttendanceInput } from "@ekulmis/shared";
 import { PrismaService } from "../prisma/prisma.service";
+import { studentInClassWhere } from "../students/student-class.util";
 
 function parseDate(s: string): Date {
   return new Date(`${s}T00:00:00.000Z`);
@@ -34,7 +35,10 @@ export class StudentAttendanceService {
       if (!cls) throw new BadRequestException("Invalid class");
 
       const active = await tx.student.findMany({
-        where: { classId: dto.classId, sectionId, status: "ACTIVE" },
+        where: {
+          ...studentInClassWhere(dto.classId, sectionId),
+          status: "ACTIVE",
+        },
         select: { id: true },
       });
       const activeIds = new Set(active.map((s) => s.id));
@@ -106,7 +110,10 @@ export class StudentAttendanceService {
     const date = parseDate(dateStr);
     return this.prisma.forTenant(schoolId, async (tx) => {
       const students = await tx.student.findMany({
-        where: { classId, sectionId, status: "ACTIVE" },
+        where: {
+          ...studentInClassWhere(classId, sectionId),
+          status: "ACTIVE",
+        },
         orderBy: { fullName: "asc" },
         select: { id: true, code: true, fullName: true, gender: true },
       });

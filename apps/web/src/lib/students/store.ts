@@ -12,6 +12,7 @@ import {
 import { ensureVillagesLoaded, villageIdByName } from "@/lib/villages/store";
 import { ensureDistrictsLoaded, districtIdByName } from "@/lib/districts/store";
 import {
+  apiAddStudentClass,
   apiBulkDeleteStudents,
   apiDeleteStudent,
   apiDeleteStudentPhoto,
@@ -19,6 +20,7 @@ import {
   apiListParents,
   apiListStudentsWithParents,
   apiRegisterStudent,
+  apiRemoveStudentClass,
   apiResetParentPassword,
   apiUpdateParent,
   apiUpdateStudent,
@@ -176,6 +178,46 @@ export async function ensureStudentLoaded(
     console.error(`[students] failed to load student ${id}:`, e);
   }
   return getStudentWithParent(id);
+}
+
+/**
+ * Put an existing student into one more class. Never registers a second
+ * student — same id, same record, they just also show up in this class.
+ */
+export async function addStudentClass(
+  studentId: string,
+  className: string,
+  academicYear: string,
+  section?: string | null,
+): Promise<{ ok: boolean; error?: string }> {
+  await ensureAcademicsLoaded();
+  const r = resolveClassId(className, academicYear);
+  if (!r.classId) return { ok: false, error: r.error };
+  const sec = resolveSectionId(r.classId, section);
+  if (sec.error) return { ok: false, error: sec.error };
+  try {
+    await apiAddStudentClass(studentId, {
+      classId: r.classId,
+      sectionId: sec.sectionId,
+    });
+    await ensureStudentLoaded(studentId);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: apiErr(e, "Could not add that class.") };
+  }
+}
+
+export async function removeStudentClass(
+  studentId: string,
+  enrollmentId: string,
+): Promise<{ ok: boolean; error?: string }> {
+  try {
+    await apiRemoveStudentClass(studentId, enrollmentId);
+    await ensureStudentLoaded(studentId);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: apiErr(e, "Could not remove that class.") };
+  }
 }
 
 function ensure(): StudentsState {

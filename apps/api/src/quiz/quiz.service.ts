@@ -18,6 +18,7 @@ import type {
 } from "@ekulmis/shared";
 import { ConfigService } from "@nestjs/config";
 import { PrismaService } from "../prisma/prisma.service";
+import { studentInClassWhere } from "../students/student-class.util";
 import { TeachersService } from "../teachers/teachers.service";
 import { AiService } from "../ai/ai.service";
 import { SubscriptionsService } from "../subscriptions/subscriptions.service";
@@ -411,16 +412,23 @@ export class QuizService {
       status: string;
       classId: string;
       sectionId: string | null;
+      extraClasses?: { classId: string; sectionId: string | null }[];
     },
     quiz: { classId: string; sectionId: string | null },
   ) {
     if (student.status !== "ACTIVE") {
       throw new ForbiddenException("Student account is not active");
     }
-    if (student.classId !== quiz.classId) {
+    // A student may sit in more than one class, so the quiz's class can be
+    // either their home class or one of the extras.
+    const seats = [
+      { classId: student.classId, sectionId: student.sectionId },
+      ...(student.extraClasses ?? []),
+    ].filter((s) => s.classId === quiz.classId);
+    if (seats.length === 0) {
       throw new ForbiddenException("Student is not in the assigned class");
     }
-    if (quiz.sectionId && student.sectionId !== quiz.sectionId) {
+    if (quiz.sectionId && !seats.some((s) => s.sectionId === quiz.sectionId)) {
       throw new ForbiddenException("Student is not in the assigned section");
     }
   }
@@ -536,7 +544,7 @@ export class QuizService {
       this.assertQuizWindow(quiz);
       const student = await tx.student.findFirst({
         where: { code: dto.studentCode.trim() },
-        select: { id: true, status: true, classId: true, sectionId: true },
+        select: { id: true, status: true, classId: true, sectionId: true, extraClasses: { select: { classId: true, sectionId: true } } },
       });
       if (!student) throw new UnauthorizedException("Invalid student ID");
       this.assertStudentEligible(student, quiz);
@@ -586,6 +594,7 @@ export class QuizService {
           classId: true,
           sectionId: true,
           photoKey: true,
+          extraClasses: { select: { classId: true, sectionId: true } },
         },
       });
       if (!student) throw new UnauthorizedException("Invalid Student ID");
@@ -834,8 +843,10 @@ export class QuizService {
 
       const students = await tx.student.findMany({
         where: {
-          classId: quiz.classId,
-          ...(quiz.sectionId ? { sectionId: quiz.sectionId } : {}),
+          ...studentInClassWhere(
+            quiz.classId,
+            quiz.sectionId ?? undefined,
+          ),
           status: "ACTIVE",
         },
         orderBy: { fullName: "asc" },
@@ -984,7 +995,7 @@ export class QuizService {
 
       const student = await tx.student.findFirst({
         where: { id: dto.studentId },
-        select: { id: true, status: true, classId: true, sectionId: true },
+        select: { id: true, status: true, classId: true, sectionId: true, extraClasses: { select: { classId: true, sectionId: true } } },
       });
       if (!student) throw new NotFoundException("Student not found");
       this.assertStudentEligible(student, quiz);
@@ -1394,7 +1405,7 @@ export class QuizService {
 
       const student = await tx.student.findFirst({
         where: { id: dto.studentId },
-        select: { id: true, status: true, classId: true, sectionId: true },
+        select: { id: true, status: true, classId: true, sectionId: true, extraClasses: { select: { classId: true, sectionId: true } } },
       });
       if (!student) throw new NotFoundException("Student not found");
       this.assertStudentEligible(student, quiz);

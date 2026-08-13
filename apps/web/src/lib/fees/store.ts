@@ -8,6 +8,7 @@ import {
 } from "@/lib/academics/store";
 import { getState as getStudentsState, withParents } from "@/lib/students/store";
 import type { Student } from "@/lib/students/types";
+import { studentClassLabel } from "@/lib/students/types";
 import {
   apiChargeMonth,
   apiFeeSettings,
@@ -700,7 +701,7 @@ export function recentPayments(limit = 5): RecentPaymentRow[] {
       payment: p,
       studentCode: st?.code ?? "—",
       studentName: st?.fullName ?? "Unknown",
-      className: st?.className ?? "—",
+      className: st ? studentClassLabel(st) : "—",
       section: st?.section ?? "—",
     };
   });
@@ -745,7 +746,7 @@ export function listStudentFees(opts: {
         studentId: st.id,
         code: st.code,
         fullName: st.fullName,
-        className: st.className,
+        className: studentClassLabel(st),
         section: st.section ?? "—",
         monthlyFee: st.monthlyFee,
         feeWaived: st.feeWaived ?? false,
@@ -810,7 +811,7 @@ export function listFamilies(opts: {
           studentId: st.id,
           code: st.code,
           fullName: st.fullName,
-          className: st.className,
+          className: studentClassLabel(st),
           section: st.section ?? "—",
           outstandingBalance: outstandingBalance(st.id, month),
           status: agg.status,

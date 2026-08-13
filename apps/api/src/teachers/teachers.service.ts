@@ -9,6 +9,7 @@ import { PrismaService } from "../prisma/prisma.service";
 import { hashPassword } from "../auth/password.util";
 import { normalizeName, normalizePhone } from "../common/person-identity.util";
 import { SubscriptionsService } from "../subscriptions/subscriptions.service";
+import { studentSitsIn } from "../students/student-class.util";
 
 const meInclude = {
   assignments: {
@@ -234,7 +235,12 @@ export class TeachersService {
       tx.student.findMany({
         where: {
           status: "ACTIVE",
-          classId: { in: classIds },
+          // A student may sit in a taught class either as their home class or
+          // as an additional one — both belong on the teacher's roster.
+          OR: [
+            { classId: { in: classIds } },
+            { extraClasses: { some: { classId: { in: classIds } } } },
+          ],
         },
         include: {
           class: {
@@ -248,6 +254,14 @@ export class TeachersService {
           parent: {
             select: { id: true, name: true, phone: true, code: true },
           },
+          extraClasses: {
+            select: {
+              classId: true,
+              sectionId: true,
+              class: { select: { id: true, name: true } },
+              section: { select: { id: true, name: true } },
+            },
+          },
         },
         orderBy: { fullName: "asc" },
       }),
@@ -256,10 +270,10 @@ export class TeachersService {
     // Keep students whose class+section matches at least one assignment
     // (null section on assignment = all sections of that class).
     return students.filter((s) =>
-      teacher.assignments.some(
-        (a) =>
-          a.classId === s.classId &&
-          (a.sectionId === null || a.sectionId === s.sectionId),
+      teacher.assignments.some((a) =>
+        a.sectionId === null
+          ? studentSitsIn(s, a.classId)
+          : studentSitsIn(s, a.classId, a.sectionId),
       ),
     );
   }

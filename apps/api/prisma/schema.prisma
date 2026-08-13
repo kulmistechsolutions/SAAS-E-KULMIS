@@ -303,6 +303,7 @@ model Class {
   academicYear     AcademicYear            @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
   sections         Section[]
   students         Student[]
+  extraStudents    StudentClassEnrollment[]
   assignments      TeacherAssignment[]
   classSubjects    ClassSubject[]
   exams            Exam[]
@@ -341,6 +342,7 @@ model Section {
 
   class            Class               @relation(fields: [classId], references: [id], onDelete: Cascade)
   students         Student[]
+  extraStudents    StudentClassEnrollment[]
   assignments      TeacherAssignment[]
   classSubjects    ClassSubject[]
   exams            Exam[]
@@ -562,6 +564,7 @@ model Student {
   quizAttempts QuizAttempt[]
   bookLoans    BookLoan[]
   cases        StudentCase[]
+  extraClasses StudentClassEnrollment[]
 
   @@unique([schoolId, code])
   @@index([schoolId])
@@ -570,6 +573,34 @@ model Student {
   @@index([villageId])
   @@index([districtId])
   @@map("students")
+}
+
+/// An ADDITIONAL class a student sits in, on top of their home class
+/// (Student.classId). One student, one record, several classes — so the
+/// student appears in each class's roster without ever being registered
+/// twice.
+///
+/// Deliberately additive: Student.classId stays the single home class that
+/// billing, promotion and year-transfer all key off, so a student in two
+/// classes is still charged once and promoted once. Attendance, exams,
+/// quizzes and class rosters read both.
+model StudentClassEnrollment {
+  id        String   @id @default(cuid())
+  schoolId  String
+  studentId String
+  classId   String
+  sectionId String?
+  createdAt DateTime @default(now())
+
+  student Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  class   Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+  section Section? @relation(fields: [sectionId], references: [id], onDelete: SetNull)
+
+  @@unique([studentId, classId])
+  @@index([schoolId])
+  @@index([classId])
+  @@index([studentId])
+  @@map("student_class_enrollments")
 }
 
 /// A school-defined neighborhood, offered as an optional field on Student

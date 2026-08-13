@@ -20,11 +20,24 @@ import {
   Users,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Select } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Tabs } from "@/components/ui/tabs";
 import { StudentFormDialog } from "@/components/students/student-form-dialog";
 import { StudentAvatar } from "@/components/students/student-avatar";
-import { useStudentsState, withParents, ensureStudentLoaded } from "@/lib/students/store";
+import {
+  useStudentsState,
+  withParents,
+  ensureStudentLoaded,
+  addStudentClass,
+  removeStudentClass,
+} from "@/lib/students/store";
+import {
+  classNamesForYear,
+  ensureAcademicsLoaded,
+  sectionNamesForClass,
+  useAcademicsState,
+} from "@/lib/academics/store";
 import { genderLabel, longDate, money, shortDate, statusLabel } from "@/lib/students/format";
 import { exportStudentsCsv, printStudentProfile } from "@/lib/students/print";
 import { FeeStatusBadge, PaymentStatusBadge } from "@/components/fees/fee-status-badge";
@@ -51,6 +64,7 @@ import { dateTime } from "@/lib/promotions/format";
 import { apiStudentCasesForStudent } from "@/lib/student-cases/api";
 import type { StudentOwnCase } from "@/lib/student-cases/types";
 import type { StudentStatus, StudentWithParent } from "@/lib/students/types";
+import { studentClassLabel } from "@/lib/students/types";
 import type { FeePayment } from "@/lib/fees/types";
 import { toast } from "@/lib/toast";
 import { useAuth } from "@/lib/auth";
@@ -167,7 +181,7 @@ export default function StudentProfilePage({
               </div>
               <p className="mt-2 text-sm text-muted-foreground">
                 <span className="font-mono">{student.code}</span> ·{" "}
-                {student.className}
+                {studentClassLabel(student)}
                 {student.section ? ` · ${tr("students.section")} ${student.section}` : ""} ·{" "}
                 {genderLabel(student.gender)}
               </p>
@@ -201,7 +215,9 @@ export default function StudentProfilePage({
       <div className="rounded-2xl border bg-card shadow-sm">
         <Tabs tabs={TABS} active={tab} onChange={setTab} className="px-2" />
         <div className="p-6">
-          {tab === "personal" && <PersonalTab student={student} />}
+          {tab === "personal" && (
+            <PersonalTab student={student} canEdit={!isTeacher} />
+          )}
           {tab === "parent" && <ParentTab student={student} state={state} />}
           {tab === "attendance" && <AttendanceTab student={student} />}
           {tab === "fees" && <FeesTab student={student} />}
@@ -233,7 +249,13 @@ function Field({ label, value }: { label: string; value: React.ReactNode }) {
   );
 }
 
-function PersonalTab({ student }: { student: StudentWithParent }) {
+function PersonalTab({
+  student,
+  canEdit,
+}: {
+  student: StudentWithParent;
+  canEdit: boolean;
+}) {
   const tr = useT();
   return (
     <div className="space-y-6">
@@ -282,6 +304,177 @@ function PersonalTab({ student }: { student: StudentWithParent }) {
       <Field label={tr("students.status")} value={statusLabel(student.status)} />
       <Field label={tr("students.notes")} value={student.notes ?? "—"} />
       </div>
+      <ExtraClassesSection student={student} canEdit={canEdit} />
+    </div>
+  );
+}
+
+/**
+ * Lets a student sit in more than one class at once — the home class from
+ * the Field grid above stays as-is; this only adds/removes extras. Still one
+ * student record: they just show up in each class's own roster.
+ */
+function ExtraClassesSection({
+  student,
+  canEdit,
+}: {
+  student: StudentWithParent;
+  canEdit: boolean;
+}) {
+  const tr = useT();
+  const academics = useAcademicsState();
+  const [open, setOpen] = useState(false);
+  const [className, setClassName] = useState("");
+  const [section, setSection] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [removingId, setRemovingId] = useState<string | null>(null);
+
+  useEffect(() => {
+    void ensureAcademicsLoaded();
+  }, []);
+
+  const classOptions = useMemo(
+    () =>
+      classNamesForYear(student.academicYear).filter(
+        (c) =>
+          c !== student.className &&
+          !(student.extraClasses ?? []).some((e) => e.className === c),
+      ),
+    // academics included so this recomputes once the store finishes its
+    // async load — reading it synchronously on a cold page load returns [].
+    [student.academicYear, student.className, student.extraClasses, academics],
+  );
+  const sectionOptions = useMemo(
+    () => (className ? sectionNamesForClass(className, student.academicYear) : []),
+    [className, student.academicYear, academics],
+  );
+
+  async function handleAdd() {
+    if (!className) return;
+    setSaving(true);
+    const res = await addStudentClass(
+      student.id,
+      className,
+      student.academicYear,
+      section || null,
+    );
+    setSaving(false);
+    if (!res.ok) return toast(res.error ?? tr("students.couldNotAddClass"), "error");
+    toast(tr("students.classAdded"), "success");
+    setOpen(false);
+    setClassName("");
+    setSection("");
+  }
+
+  async function handleRemove(enrollmentId: string) {
+    setRemovingId(enrollmentId);
+    const res = await removeStudentClass(student.id, enrollmentId);
+    setRemovingId(null);
+    if (!res.ok) return toast(res.error ?? tr("students.couldNotRemoveClass"), "error");
+    toast(tr("students.classRemoved"), "success");
+  }
+
+  return (
+    <div className="rounded-xl border p-4">
+      <div className="flex items-center justify-between gap-2">
+        <div>
+          <h3 className="text-sm font-semibold text-foreground">
+            {tr("students.additionalClasses")}
+          </h3>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            {tr("students.additionalClassesHint")}
+          </p>
+        </div>
+        {canEdit && !open && (
+          <Button variant="outline" className="h-8 shrink-0 text-xs" onClick={() => setOpen(true)}>
+            {tr("students.addClass")}
+          </Button>
+        )}
+      </div>
+
+      {(student.extraClasses ?? []).length > 0 && (
+        <ul className="mt-3 space-y-2">
+          {(student.extraClasses ?? []).map((e) => (
+            <li
+              key={e.id}
+              className="flex items-center justify-between gap-2 rounded-lg bg-secondary/30 px-3 py-2 text-sm"
+            >
+              <span>
+                {e.className}
+                {e.section ? ` — ${e.section}` : ""}
+              </span>
+              {canEdit && (
+                <button
+                  type="button"
+                  onClick={() => void handleRemove(e.id)}
+                  disabled={removingId === e.id}
+                  className="text-xs text-muted-foreground hover:text-destructive"
+                >
+                  {removingId === e.id ? tr("students.removing") : tr("students.remove")}
+                </button>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {open && (
+        <div className="mt-3 flex flex-wrap items-end gap-2 rounded-lg border bg-secondary/20 p-3">
+          <div className="min-w-[160px]">
+            <label className="mb-1 block text-xs font-medium text-muted-foreground">
+              {tr("students.class")}
+            </label>
+            <Select
+              value={className}
+              onChange={(e) => {
+                setClassName(e.target.value);
+                setSection("");
+              }}
+            >
+              <option value="">{tr("students.selectClass")}</option>
+              {classOptions.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </Select>
+          </div>
+          {sectionOptions.length > 0 && (
+            <div className="min-w-[140px]">
+              <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                {tr("students.section")}
+              </label>
+              <Select value={section} onChange={(e) => setSection(e.target.value)}>
+                <option value="">{tr("students.selectSection")}</option>
+                {sectionOptions.map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
+              </Select>
+            </div>
+          )}
+          <Button
+            className="h-9"
+            disabled={!className || saving}
+            onClick={() => void handleAdd()}
+          >
+            {saving ? tr("students.saving") : tr("students.addClass")}
+          </Button>
+          <Button
+            variant="outline"
+            className="h-9"
+            disabled={saving}
+            onClick={() => {
+              setOpen(false);
+              setClassName("");
+              setSection("");
+            }}
+          >
+            {tr("common.cancel")}
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
@@ -327,7 +520,7 @@ function ParentTab({
                     </Link>
                   </td>
                   <td className="px-4 py-2.5">
-                    {s.className}
+                    {studentClassLabel(s)}
                     {s.section ? ` - ${s.section}` : ""}
                   </td>
                   <td className="px-4 py-2.5">{statusLabel(s.status)}</td>

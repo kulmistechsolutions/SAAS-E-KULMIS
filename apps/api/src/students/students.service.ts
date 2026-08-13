@@ -8,7 +8,11 @@ import {
 } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import type { Prisma, PrismaClient } from "@prisma/client";
-import type { RegisterStudentInput, UpdateStudentInput } from "@ekulmis/shared";
+import type {
+  AddStudentClassInput,
+  RegisterStudentInput,
+  UpdateStudentInput,
+} from "@ekulmis/shared";
 import { PrismaService } from "../prisma/prisma.service";
 import { StorageService } from "../storage/storage.service";
 import { FeesService } from "../finance/fees.service";
@@ -22,6 +26,7 @@ import {
   STUDENT_PHOTO_MAX_BYTES,
   studentPhotoKey,
 } from "./student-photo.util";
+import { studentInClassWhere } from "./student-class.util";
 
 import { nextParentCode, nextStudentCode } from "./code-allocator";
 import { decideParentChange } from "./parent-link";
@@ -74,7 +79,27 @@ const studentInclude = {
   section: { select: { id: true, name: true } },
   village: { select: { id: true, name: true } },
   district: { select: { id: true, name: true } },
+  extraClasses: {
+    select: {
+      id: true,
+      classId: true,
+      sectionId: true,
+      class: {
+        select: {
+          id: true,
+          name: true,
+          academicYearId: true,
+          academicYear: { select: { name: true } },
+        },
+      },
+      section: { select: { id: true, name: true } },
+    },
+  },
 } satisfies Prisma.StudentInclude;
+
+// Re-exported for callers that already import from this service.
+export { studentSitsIn } from "./student-class.util";
+
 
 type StudentRow = Prisma.StudentGetPayload<{ include: typeof studentInclude }>;
 
@@ -325,8 +350,7 @@ export class StudentsService {
     const rows = await this.prisma.forTenant(schoolId, (tx) =>
       tx.student.findMany({
         where: {
-          classId: filters.classId,
-          sectionId: filters.sectionId,
+          ...studentInClassWhere(filters.classId, filters.sectionId),
           status: filters.status as never,
           gender: filters.gender as never,
         },
@@ -350,6 +374,102 @@ export class StudentsService {
     );
     if (!student) throw new NotFoundException("Student not found");
     return this.attachPhotoMeta(student);
+  }
+
+  /**
+   * Put an existing student into one more class. This is the supported way to
+   * have a child sit in two classes — registering them a second time is still
+   * refused, so their ID, fees and history stay on the one record.
+   */
+  async addClass(
+    schoolId: string,
+    studentId: string,
+    dto: AddStudentClassInput,
+  ) {
+    return this.prisma.forTenant(schoolId, async (tx) => {
+      const student = await tx.student.findFirst({
+        where: { id: studentId },
+        select: {
+          id: true,
+          classId: true,
+          fullName: true,
+          class: { select: { academicYearId: true } },
+        },
+      });
+      if (!student) throw new NotFoundException("Student not found");
+
+      if (student.classId === dto.classId) {
+        throw new ConflictException(
+          "That is already this student's main class.",
+        );
+      }
+
+      const cls = await tx.class.findFirst({
+        where: { id: dto.classId },
+        select: { id: true, name: true, hasSections: true, academicYearId: true },
+      });
+      if (!cls) throw new NotFoundException("Class not found");
+      // An extra class must sit in the same academic year as the student's
+      // home class — mixing years here would silently duplicate what
+      // Transfer Academic Year is for, and orphan the enrollment once the
+      // school moves on to the next year.
+      if (cls.academicYearId !== student.class.academicYearId) {
+        throw new BadRequestException(
+          "Choose a class from the student's own academic year.",
+        );
+      }
+
+      if (dto.sectionId) {
+        const section = await tx.section.findFirst({
+          where: { id: dto.sectionId, classId: dto.classId },
+          select: { id: true },
+        });
+        if (!section) {
+          throw new BadRequestException(
+            "That section does not belong to the chosen class.",
+          );
+        }
+      }
+
+      const existing = await tx.studentClassEnrollment.findFirst({
+        where: { studentId, classId: dto.classId },
+        select: { id: true },
+      });
+      if (existing) {
+        throw new ConflictException(
+          `${student.fullName} is already in ${cls.name}.`,
+        );
+      }
+
+      return tx.studentClassEnrollment.create({
+        data: {
+          schoolId,
+          studentId,
+          classId: dto.classId,
+          sectionId: dto.sectionId ?? null,
+        },
+        select: {
+          id: true,
+          classId: true,
+          sectionId: true,
+          class: { select: { id: true, name: true } },
+          section: { select: { id: true, name: true } },
+        },
+      });
+    });
+  }
+
+  /** Take a student out of an additional class. The home class is untouched. */
+  async removeClass(schoolId: string, studentId: string, enrollmentId: string) {
+    return this.prisma.forTenant(schoolId, async (tx) => {
+      const row = await tx.studentClassEnrollment.findFirst({
+        where: { id: enrollmentId, studentId },
+        select: { id: true },
+      });
+      if (!row) throw new NotFoundException("Extra class not found");
+      await tx.studentClassEnrollment.delete({ where: { id: enrollmentId } });
+      return { success: true };
+    });
   }
 
   async getPhoto(
