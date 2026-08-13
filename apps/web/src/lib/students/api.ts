@@ -290,6 +290,43 @@ export async function apiBulkDeleteStudents(
   }>("/students/bulk-delete", { method: "POST", body: { ids } });
 }
 
+// ── Academic Year Transfer: fix students registered under the wrong year ──
+
+export interface ApiAcademicYearTransferPreview {
+  fromYear: string;
+  toYear: string;
+  totalStudents: number;
+  transferable: number;
+  unmatched: number;
+  unmatchedClasses: { name: string; studentCount: number }[];
+  classes: { name: string; studentCount: number; matched: boolean }[];
+}
+
+export const apiAcademicYearTransferPreview = (
+  fromYearId: string,
+  toYearId: string,
+) =>
+  api<ApiAcademicYearTransferPreview>(
+    `/students/academic-year-transfer/preview?fromYearId=${encodeURIComponent(fromYearId)}&toYearId=${encodeURIComponent(toYearId)}`,
+  );
+
+export interface ApiAcademicYearTransferResult {
+  fromYear: string;
+  toYear: string;
+  transferred: number;
+  skipped: number;
+  skippedClasses: string[];
+}
+
+export const apiExecuteAcademicYearTransfer = (
+  fromYearId: string,
+  toYearId: string,
+) =>
+  api<ApiAcademicYearTransferResult>("/students/academic-year-transfer", {
+    method: "POST",
+    body: { fromYearId, toYearId },
+  });
+
 // ── Danger Zone: deliberate resets (admin only) ────────────────────────────
 
 export interface ApiSchoolResetPreview {

@@ -24,6 +24,7 @@ import {
   MapPin,
   Settings,
   TriangleAlert,
+  ArrowLeftRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { LucideIcon } from "lucide-react";
@@ -65,6 +66,11 @@ const NAV: {
   { href: "/settings/import-export", label: "settingsSettingsNav.importExport", icon: FileUp },
   { href: "/settings/subscription", label: "settingsSettingsNav.subscription", icon: Layers },
   { href: "/settings/license", label: "settingsSettingsNav.license", icon: KeyRound },
+  {
+    href: "/settings/transfer-academic-year",
+    label: "settingsSettingsNav.transferAcademicYear",
+    icon: ArrowLeftRight,
+  },
   { href: "/settings/danger-zone", label: "settingsSettingsNav.dangerZone", icon: TriangleAlert },
 ];
 
