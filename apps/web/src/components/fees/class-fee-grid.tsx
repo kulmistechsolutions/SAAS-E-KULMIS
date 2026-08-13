@@ -1,7 +1,18 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { ChevronRight, LayoutGrid, List, Printer, Search, Users } from "lucide-react";
+import {
+  ArrowUpRight,
+  ChevronRight,
+  CircleDollarSign,
+  Clock3,
+  LayoutGrid,
+  List,
+  Printer,
+  Search,
+  UserCheck,
+  Users,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useT } from "@/lib/i18n/provider";
@@ -181,45 +192,67 @@ function ClassCard({
   const t = useT();
   const billable = c.totalStudents - c.freeStudents;
   const collectedPct = billable > 0 ? Math.round((c.paidStudents / billable) * 100) : 100;
-  const barTone =
-    collectedPct >= 75 ? "bg-emerald-500" : collectedPct >= 40 ? "bg-amber-500" : "bg-rose-500";
+  const ringTone =
+    collectedPct >= 75
+      ? "text-emerald-500"
+      : collectedPct >= 40
+        ? "text-amber-500"
+        : "text-rose-500";
 
   return (
     <button
       type="button"
       onClick={onSelect}
-      className="group relative flex flex-col gap-3.5 overflow-hidden rounded-2xl border bg-card p-4 text-start shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"
+      className="group relative flex flex-col gap-4 rounded-2xl border bg-card p-4 text-start shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5"
     >
-      <div className="flex items-start justify-between gap-2">
-        <h3 className="break-words text-[15px] font-semibold leading-snug text-foreground">
-          {c.className}
-        </h3>
-        <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-secondary px-2 py-0.5 text-xs font-medium text-muted-foreground">
-          <Users className="h-3 w-3" />
-          {c.totalStudents}
+      <div className="flex items-center gap-3">
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+          <Users className="h-5 w-5" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <h3 className="truncate text-[15px] font-semibold leading-tight text-foreground">
+            {c.className}
+          </h3>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            {c.totalStudents} {t("feesClassFeeSummary.totalStudents").toLowerCase()}
+          </p>
+        </div>
+        <span className={cn("shrink-0 text-xs font-bold tabular-nums", ringTone)}>
+          {collectedPct}%
         </span>
       </div>
 
       <div className="h-1.5 w-full overflow-hidden rounded-full bg-secondary">
         <div
-          className={cn("h-full rounded-full transition-all", barTone)}
+          className={cn(
+            "h-full rounded-full transition-all",
+            collectedPct >= 75 ? "bg-emerald-500" : collectedPct >= 40 ? "bg-amber-500" : "bg-rose-500",
+          )}
           style={{ width: `${collectedPct}%` }}
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-2 text-xs">
+      <div className="grid grid-cols-2 gap-2">
         <Metric
+          icon={CircleDollarSign}
           label={t("feesClassFeeSummary.outstanding")}
           value={moneyPlain(c.outstandingAmount)}
           tone="danger"
         />
-        <Metric label={t("feesClassFeeSummary.paid")} value={String(c.paidStudents)} tone="success" />
         <Metric
+          icon={UserCheck}
+          label={t("feesClassFeeSummary.paid")}
+          value={String(c.paidStudents)}
+          tone="success"
+        />
+        <Metric
+          icon={ArrowUpRight}
           label={t("feesClassFeeSummary.advance")}
           value={String(c.advanceStudents)}
           tone="info"
         />
         <Metric
+          icon={Clock3}
           label={t("feesClassFeeSummary.partial")}
           value={String(c.partialStudents)}
           tone="warning"
@@ -234,18 +267,40 @@ function ClassCard({
   );
 }
 
-const TONE_CLASS: Record<string, string> = {
-  danger: "text-rose-600 dark:text-rose-400",
-  success: "text-emerald-600 dark:text-emerald-400",
-  info: "text-sky-600 dark:text-sky-400",
-  warning: "text-amber-600 dark:text-amber-400",
+const TONE_CHIP: Record<string, string> = {
+  danger: "bg-rose-100 text-rose-600 dark:bg-rose-500/15 dark:text-rose-400",
+  success: "bg-emerald-100 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-400",
+  info: "bg-sky-100 text-sky-600 dark:bg-sky-500/15 dark:text-sky-400",
+  warning: "bg-amber-100 text-amber-600 dark:bg-amber-500/15 dark:text-amber-400",
 };
 
-function Metric({ label, value, tone }: { label: string; value: string; tone: string }) {
+function Metric({
+  icon: Icon,
+  label,
+  value,
+  tone,
+}: {
+  icon: typeof Users;
+  label: string;
+  value: string;
+  tone: string;
+}) {
   return (
-    <div className="rounded-lg bg-secondary/40 px-2.5 py-1.5">
-      <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</div>
-      <div className={`font-semibold tabular-nums ${TONE_CLASS[tone] ?? ""}`}>{value}</div>
+    <div className="flex items-center gap-2 rounded-xl bg-secondary/40 px-2.5 py-2">
+      <span
+        className={cn(
+          "flex h-7 w-7 shrink-0 items-center justify-center rounded-full",
+          TONE_CHIP[tone] ?? "",
+        )}
+      >
+        <Icon className="h-3.5 w-3.5" />
+      </span>
+      <div className="min-w-0">
+        <div className="truncate text-[10px] uppercase tracking-wide text-muted-foreground">
+          {label}
+        </div>
+        <div className="truncate text-sm font-semibold tabular-nums text-foreground">{value}</div>
+      </div>
     </div>
   );
 }

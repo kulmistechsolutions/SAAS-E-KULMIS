@@ -40,7 +40,7 @@ export default function CollectFeesPage() {
         </p>
       </div>
 
-      {selectedClass === null && (
+      {!(tab === "class" && selectedClass === null) && (
         <div className="inline-flex rounded-xl border bg-card p-1">
           <button
             type="button"
