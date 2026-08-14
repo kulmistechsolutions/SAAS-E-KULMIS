@@ -6,7 +6,7 @@ import type { CreateClassInput, UpdateClassInput } from "@ekulmis/shared";
 import { normalizeAcademicName } from "@ekulmis/shared";
 import { PrismaService } from "../prisma/prisma.service";
 import { ClassStructureService } from "./class-structure.service";
-import { onUniqueViolation } from "./prisma-errors";
+import { onRecordNotFound, onUniqueViolation } from "./prisma-errors";
 
 @Injectable()
 export class ClassService {
@@ -117,9 +117,9 @@ export class ClassService {
 
   async remove(schoolId: string, id: string) {
     await this.findOne(schoolId, id);
-    await this.prisma.forTenant(schoolId, (tx) =>
-      tx.class.delete({ where: { id } }),
-    );
+    await this.prisma
+      .forTenant(schoolId, (tx) => tx.class.delete({ where: { id } }))
+      .catch(onRecordNotFound("Class not found"));
     return { success: true };
   }
 

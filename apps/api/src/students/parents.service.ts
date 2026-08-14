@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from "@nestjs/common";
 import type { UpdateParentInput } from "@ekulmis/shared";
 import { PrismaService } from "../prisma/prisma.service";
 import { hashPassword } from "../auth/password.util";
+import { onUniqueViolation } from "../academics/prisma-errors";
 
 /** The password every parent account starts on, and the reset falls back to. */
 const DEFAULT_PARENT_PASSWORD = "12345";
@@ -44,20 +45,22 @@ export class ParentsService {
       tx.parent.findFirst({ where: { id }, select: { id: true } }),
     );
     if (!existing) throw new NotFoundException("Parent not found");
-    return this.prisma.forTenant(schoolId, (tx) =>
-      tx.parent.update({
-        where: { id },
-        data: {
-          name: dto.name,
-          phone: dto.phone,
-          altPhone: dto.altPhone,
-          email: dto.email,
-          address: dto.address,
-          occupation: dto.occupation,
-          status: dto.status,
-        },
-      }),
-    );
+    return this.prisma
+      .forTenant(schoolId, (tx) =>
+        tx.parent.update({
+          where: { id },
+          data: {
+            name: dto.name,
+            phone: dto.phone,
+            altPhone: dto.altPhone,
+            email: dto.email,
+            address: dto.address,
+            occupation: dto.occupation,
+            status: dto.status,
+          },
+        }),
+      )
+      .catch(onUniqueViolation("Another parent already uses this phone number"));
   }
 
   findAll(schoolId: string) {

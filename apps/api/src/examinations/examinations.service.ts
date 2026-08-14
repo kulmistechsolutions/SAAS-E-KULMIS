@@ -18,6 +18,7 @@ import { PrismaService } from "../prisma/prisma.service";
 import { DocumentsService } from "../documents/documents.service";
 import { TeachersService } from "../teachers/teachers.service";
 import { NotificationsService } from "../notifications/notifications.service";
+import { onRecordNotFound } from "../academics/prisma-errors";
 import { AuditService } from "../audit/audit.service";
 import { SmsService } from "../sms/sms.service";
 import { StorageService } from "../storage/storage.service";
@@ -2724,7 +2725,9 @@ export class ExaminationsService {
         }
       }
 
-      await tx.exam.delete({ where: { id: examId } });
+      await tx.exam
+        .delete({ where: { id: examId } })
+        .catch(onRecordNotFound("Exam not found"));
       return { success: true };
     });
   }
