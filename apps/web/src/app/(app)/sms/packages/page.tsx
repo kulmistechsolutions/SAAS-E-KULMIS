@@ -23,11 +23,13 @@ import {
   apiSmsPackages,
   apiSmsPaymentOrders,
   apiSmsPaymentReceipt,
+  apiSmsPaymentStatus,
   apiVerifySmsPayment,
   type SmsBalance,
   type SmsPackage,
   type SmsPaymentOrderRow,
   type SmsPaymentReceipt,
+  type SmsPaymentStatusInfo,
 } from "@/lib/sms/api";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
@@ -61,18 +63,23 @@ export default function SchoolSmsPackagesPage() {
   const [selectedPkg, setSelectedPkg] = useState<string>("");
   const [receipt, setReceipt] = useState<SmsPaymentReceipt | null>(null);
   const [tab, setTab] = useState<"buy" | "history" | "receipt">("buy");
+  const [paymentStatus, setPaymentStatus] = useState<SmsPaymentStatusInfo | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [b, pkgs, ords] = await Promise.all([
+      const [b, pkgs, ords, status] = await Promise.all([
         apiSmsBalance(),
         apiSmsPackages(),
         apiSmsPaymentOrders().catch(() => [] as SmsPaymentOrderRow[]),
+        apiSmsPaymentStatus().catch(
+          () => ({ paymentsUnlocked: true, manualPaymentNumber: null, manualPaymentInstructions: null }) as SmsPaymentStatusInfo,
+        ),
       ]);
       setBalance(b);
       setPackages(pkgs);
       setOrders(ords);
+      setPaymentStatus(status);
       setSelectedPkg((prev) => prev || pkgs.find((p) => p.isActive)?.id || "");
     } catch (e) {
       toast(e instanceof Error ? e.message : "Failed to load packages", "error");
@@ -270,53 +277,84 @@ export default function SchoolSmsPackagesPage() {
             )}
           </div>
 
-          <div className="space-y-4 rounded-2xl border bg-card p-5 shadow-sm">
-            <h2 className="flex items-center gap-2 font-semibold">
-              <CreditCard className="h-4 w-4" /> {t("smsPackages.payWithWaafipay")}
-            </h2>
-            <div>
-              <Label>{t("smsPackages.paymentChannel")}</Label>
-              <Select
-                className="mt-1.5"
-                value={channel}
-                onChange={(e) =>
-                  setChannel(e.target.value as "API_PURCHASE" | "HPP_PURCHASE")
-                }
-              >
-                <option value="API_PURCHASE">
-                  {t("smsPackages.directMobileWalletEvcZaadSahal")}
-                </option>
-                <option value="HPP_PURCHASE">{t("smsPackages.hostedPaymentPage")}</option>
-              </Select>
+          {paymentStatus && !paymentStatus.paymentsUnlocked ? (
+            <div className="space-y-4 rounded-2xl border bg-card p-5 shadow-sm">
+              <h2 className="flex items-center gap-2 font-semibold">
+                <Wallet className="h-4 w-4" /> Pay manually
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                Automatic payment is temporarily off. Send the package amount
+                to the number below, then contact your school administrator —
+                the Super Admin will activate your credits once the transfer
+                is confirmed.
+              </p>
+              {paymentStatus.manualPaymentNumber ? (
+                <div className="rounded-xl border bg-secondary/40 p-4">
+                  <p className="text-xs text-muted-foreground">Send money to</p>
+                  <p className="mt-1 font-mono text-2xl font-bold text-primary">
+                    {paymentStatus.manualPaymentNumber}
+                  </p>
+                </div>
+              ) : (
+                <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-700">
+                  No manual payment number has been set up yet — contact the platform administrator.
+                </div>
+              )}
+              {paymentStatus.manualPaymentInstructions ? (
+                <p className="text-sm text-muted-foreground">
+                  {paymentStatus.manualPaymentInstructions}
+                </p>
+              ) : null}
             </div>
-            <div>
-              <Label>{t("smsPackages.payerMobileNumber")}</Label>
-              <Input
-                className="mt-1.5"
-                value={payerAccount}
-                onChange={(e) => setPayerAccount(e.target.value)}
-                placeholder="252611111111"
-              />
-              <p className="mt-1 text-xs text-muted-foreground">
-                {t("smsPackages.internationalFormatNoRequiredForDirect")}
+          ) : (
+            <div className="space-y-4 rounded-2xl border bg-card p-5 shadow-sm">
+              <h2 className="flex items-center gap-2 font-semibold">
+                <CreditCard className="h-4 w-4" /> {t("smsPackages.payWithWaafipay")}
+              </h2>
+              <div>
+                <Label>{t("smsPackages.paymentChannel")}</Label>
+                <Select
+                  className="mt-1.5"
+                  value={channel}
+                  onChange={(e) =>
+                    setChannel(e.target.value as "API_PURCHASE" | "HPP_PURCHASE")
+                  }
+                >
+                  <option value="API_PURCHASE">
+                    {t("smsPackages.directMobileWalletEvcZaadSahal")}
+                  </option>
+                  <option value="HPP_PURCHASE">{t("smsPackages.hostedPaymentPage")}</option>
+                </Select>
+              </div>
+              <div>
+                <Label>{t("smsPackages.payerMobileNumber")}</Label>
+                <Input
+                  className="mt-1.5"
+                  value={payerAccount}
+                  onChange={(e) => setPayerAccount(e.target.value)}
+                  placeholder="252611111111"
+                />
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {t("smsPackages.internationalFormatNoRequiredForDirect")}
+                </p>
+              </div>
+              <Button
+                className="w-full"
+                disabled={!selectedPkg || payingId !== null}
+                onClick={() => void buy()}
+              >
+                {payingId ? (
+                  <Loader2 className="me-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <CreditCard className="me-2 h-4 w-4" />
+                )}
+                {t("smsPackages.payActivatePackage")}
+              </Button>
+              <p className="text-xs text-muted-foreground">
+                {t("smsPackages.afterWaafiConfirmsPaymentCreditsAre")}
               </p>
             </div>
-            <Button
-              className="w-full"
-              disabled={!selectedPkg || payingId !== null}
-              onClick={() => void buy()}
-            >
-              {payingId ? (
-                <Loader2 className="me-2 h-4 w-4 animate-spin" />
-              ) : (
-                <CreditCard className="me-2 h-4 w-4" />
-              )}
-              {t("smsPackages.payActivatePackage")}
-            </Button>
-            <p className="text-xs text-muted-foreground">
-              {t("smsPackages.afterWaafiConfirmsPaymentCreditsAre")}
-            </p>
-          </div>
+          )}
         </div>
       ) : null}
 

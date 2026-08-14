@@ -43,6 +43,18 @@ export class SmsPaymentController {
     return this.payments.handleCallback("failure", query ?? {});
   }
 
+  /** Whether automatic (Waafi) payment is currently on, and the manual
+   *  fallback number/instructions to show when it's off. No credentials. */
+  @Roles(
+    UserRole.ADMINISTRATOR,
+    UserRole.SUPER_ADMINISTRATOR,
+    UserRole.FINANCE_OFFICER,
+  )
+  @Get("status")
+  status() {
+    return this.payments.getPublicPaymentStatus();
+  }
+
   @Roles(
     UserRole.ADMINISTRATOR,
     UserRole.SUPER_ADMINISTRATOR,

@@ -240,6 +240,10 @@ export const updateWaafiConfigSchema = z.object({
     .nullable()
     .optional()
     .or(z.literal("").transform(() => null)),
+  /** Shown to schools instead of the automatic payment form when `enabled`
+   *  is off — the mobile money number to send payment to manually. */
+  manualPaymentNumber: z.string().max(30).nullable().optional(),
+  manualPaymentInstructions: z.string().max(500).nullable().optional(),
 });
 
 export const testWaafiConnectionSchema = z.object({

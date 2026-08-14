@@ -56,6 +56,8 @@ export class SmsPaymentService {
     lastSuccessAt: Date | null;
     connectionVerified: boolean;
     simulationMode: boolean;
+    manualPaymentNumber: string | null;
+    manualPaymentInstructions: string | null;
     updatedAt: Date;
   }) {
     const paymentsUnlocked =
@@ -79,13 +81,33 @@ export class SmsPaymentService {
       lastSuccessAt: row.lastSuccessAt,
       connectionVerified: row.connectionVerified,
       simulationMode: row.simulationMode,
+      manualPaymentNumber: row.manualPaymentNumber,
+      manualPaymentInstructions: row.manualPaymentInstructions,
       paymentsUnlocked,
       updatedAt: row.updatedAt,
     };
   }
 
+  /** Safe, minimal payment status for schools — no Waafi credentials. */
+  async getPublicPaymentStatus() {
+    const cfg = await this.ensureWaafiConfig();
+    const paymentsUnlocked =
+      cfg.simulationMode || (cfg.connectionVerified && cfg.enabled);
+    return {
+      paymentsUnlocked,
+      manualPaymentNumber: cfg.manualPaymentNumber,
+      manualPaymentInstructions: cfg.manualPaymentInstructions,
+    };
+  }
+
   private async ensureWaafiConfig() {
-    const existing = await this.prisma.waafiPaymentConfig.findFirst();
+    // Meant to be a singleton row, but the id has no fixed value, so a race
+    // between two near-simultaneous first requests can create two rows —
+    // orderBy makes which one we read/write deterministic (always the
+    // oldest) instead of whichever findFirst() happens to return.
+    const existing = await this.prisma.waafiPaymentConfig.findFirst({
+      orderBy: { createdAt: "asc" },
+    });
     if (existing) return existing;
     return this.prisma.waafiPaymentConfig.create({
       data: {
@@ -220,6 +242,14 @@ export class SmsPaymentService {
       currency: input.currency,
       callbackBaseUrl:
         input.callbackBaseUrl === undefined ? undefined : input.callbackBaseUrl,
+      manualPaymentNumber:
+        input.manualPaymentNumber === undefined
+          ? undefined
+          : input.manualPaymentNumber,
+      manualPaymentInstructions:
+        input.manualPaymentInstructions === undefined
+          ? undefined
+          : input.manualPaymentInstructions,
     };
 
     if (input.simulationMode !== undefined) {

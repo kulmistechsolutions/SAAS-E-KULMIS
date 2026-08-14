@@ -96,6 +96,9 @@ export default function PlatformWaafiPaymentsPage() {
   const [callbackBaseUrl, setCallbackBaseUrl] = useState("");
   const [enabled, setEnabled] = useState(false);
   const [simulationMode, setSimulationMode] = useState(false);
+  const [manualPaymentNumber, setManualPaymentNumber] = useState("");
+  const [manualPaymentInstructions, setManualPaymentInstructions] = useState("");
+  const [savingManual, setSavingManual] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -115,6 +118,8 @@ export default function PlatformWaafiPaymentsPage() {
       setCallbackBaseUrl(cfg.callbackBaseUrl ?? "");
       setEnabled(cfg.enabled);
       setSimulationMode(cfg.simulationMode);
+      setManualPaymentNumber(cfg.manualPaymentNumber ?? "");
+      setManualPaymentInstructions(cfg.manualPaymentInstructions ?? "");
       setApiKey("");
       setHppKey("");
     } catch (e) {
@@ -188,9 +193,30 @@ export default function PlatformWaafiPaymentsPage() {
       const updated = await updatePlatformWaafiConfig({ enabled: next });
       setConfig(updated);
       setEnabled(updated.enabled);
-      toast(updated.enabled ? "Waafi payments enabled" : "Waafi payments disabled", "success");
+      toast(
+        updated.enabled
+          ? "Automatic payment is ON — schools pay through WaafiPay as usual"
+          : "Automatic payment is OFF — schools now see the manual payment number instead",
+        "success",
+      );
     } catch (e) {
       toast(e instanceof Error ? e.message : "Update failed", "error");
+    }
+  }
+
+  async function saveManualPayment() {
+    setSavingManual(true);
+    try {
+      const updated = await updatePlatformWaafiConfig({
+        manualPaymentNumber: manualPaymentNumber.trim() || null,
+        manualPaymentInstructions: manualPaymentInstructions.trim() || null,
+      });
+      setConfig(updated);
+      toast("Manual payment details saved", "success");
+    } catch (e) {
+      toast(e instanceof Error ? e.message : "Save failed", "error");
+    } finally {
+      setSavingManual(false);
     }
   }
 
@@ -506,7 +532,52 @@ export default function PlatformWaafiPaymentsPage() {
             </div>
           </section>
         </div>
-      ) : (
+      ) : null}
+
+      {tab === "gateway" ? (
+        <section className="space-y-4 rounded-2xl border border-white/10 bg-[#0f172a] p-5">
+          <div>
+            <h2 className="font-semibold text-white">Manual payment (when automatic is OFF)</h2>
+            <p className="mt-1 text-xs text-slate-400">
+              While automatic payment is disabled above, schools see this number
+              and instructions instead of the WaafiPay form — they send money
+              manually, then a Super Admin activates their credits (Platform →
+              SMS Packages → Assign Package / Adjust credits) once the
+              transfer is confirmed.
+            </p>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div>
+              <Label className="text-slate-300">Number to send money to</Label>
+              <Input
+                value={manualPaymentNumber}
+                onChange={(e) => setManualPaymentNumber(e.target.value)}
+                className="mt-1 border-white/10 bg-black/20 text-white"
+                placeholder="252611111111"
+              />
+            </div>
+            <div>
+              <Label className="text-slate-300">Instructions (optional)</Label>
+              <Input
+                value={manualPaymentInstructions}
+                onChange={(e) => setManualPaymentInstructions(e.target.value)}
+                className="mt-1 border-white/10 bg-black/20 text-white"
+                placeholder="e.g. Send via EVC Plus, then message the school office"
+              />
+            </div>
+          </div>
+          <Button onClick={() => void saveManualPayment()} disabled={savingManual}>
+            {savingManual ? (
+              <Loader2 className="me-1.5 h-4 w-4 animate-spin" />
+            ) : (
+              <CheckCircle2 className="me-1.5 h-4 w-4" />
+            )}
+            Save manual payment details
+          </Button>
+        </section>
+      ) : null}
+
+      {tab === "transactions" ? (
         <section className="overflow-hidden rounded-2xl border border-white/10 bg-[#0f172a]">
           <div className="overflow-x-auto">
             <table className="w-full min-w-[900px] text-start text-sm">
@@ -576,7 +647,7 @@ export default function PlatformWaafiPaymentsPage() {
             </table>
           </div>
         </section>
-      )}
+      ) : null}
     </div>
   );
 }

@@ -19,6 +19,7 @@ import { Select } from "@/components/ui/select";
 import { SenderIdReview } from "@/components/platform/sender-id-review";
 import { GatewayCredentialsDialog } from "@/components/platform/gateway-credentials-dialog";
 import {
+  adjustPlatformSmsCredits,
   assignPlatformSmsPackage,
   createPlatformSmsPackage,
   fetchPlatformSmsGatewayLicenses,
@@ -50,6 +51,11 @@ export default function PlatformSmsPackagesPage() {
 
   const [assignSchool, setAssignSchool] = useState("");
   const [assignPkg, setAssignPkg] = useState("");
+
+  const [adjustSchool, setAdjustSchool] = useState("");
+  const [adjustCredits, setAdjustCredits] = useState("");
+  const [adjustNote, setAdjustNote] = useState("");
+  const [adjusting, setAdjusting] = useState(false);
 
   const [gwLicenses, setGwLicenses] = useState<PlatformSmsGatewayLicense[]>([]);
   const [gwSchool, setGwSchool] = useState("");
@@ -162,6 +168,31 @@ export default function PlatformSmsPackagesPage() {
       await load();
     } catch (e) {
       toast(e instanceof Error ? e.message : "Assign failed", "error");
+    }
+  }
+
+  async function adjustCreditsForSchool() {
+    const credits = Number(adjustCredits);
+    if (!adjustSchool || !Number.isInteger(credits) || credits === 0) {
+      toast("Select a school and enter a non-zero whole number of credits", "error");
+      return;
+    }
+    setAdjusting(true);
+    try {
+      await adjustPlatformSmsCredits({
+        schoolId: adjustSchool,
+        credits,
+        description: adjustNote.trim() || "Manual payment confirmed",
+      });
+      const school = data?.schools.find((s) => s.id === adjustSchool);
+      toast(`${credits > 0 ? "+" : ""}${credits} credits applied${school ? ` to ${school.name}` : ""}`, "success");
+      setAdjustCredits("");
+      setAdjustNote("");
+      await load();
+    } catch (e) {
+      toast(e instanceof Error ? e.message : "Adjust failed", "error");
+    } finally {
+      setAdjusting(false);
     }
   }
 
@@ -413,6 +444,61 @@ export default function PlatformSmsPackagesPage() {
               {t("platformSms.assignPackage")}
             </Button>
           </div>
+          <div className="mt-6 border-t border-white/10 pt-5">
+            <h2 className="font-semibold text-white">Adjust credits manually</h2>
+            <p className="mt-1 text-xs text-slate-400">
+              Tops up (or corrects) a school's existing balance once you've
+              confirmed their manual payment (Waafi Payments → Gateway
+              settings → Manual payment). If this school has never had a
+              package before, use Assign Package above first — this only
+              adjusts an existing wallet.
+            </p>
+            <div className="mt-3 space-y-3">
+              <div>
+                <Label className="text-slate-400">{t("platformSms.school")}</Label>
+                <Select
+                  className="mt-1 border-white/10 bg-[#0b1120] text-white"
+                  value={adjustSchool}
+                  onChange={(e) => setAdjustSchool(e.target.value)}
+                >
+                  <option value="">{t("platformSms.selectASchool")}</option>
+                  {data.schools.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name} ({s.creditsRemaining} {t("platformSms.left")})
+                    </option>
+                  ))}
+                </Select>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-slate-400">Credits (+/-)</Label>
+                  <Input
+                    type="number"
+                    className="mt-1 border-white/10 bg-[#0b1120] text-white"
+                    value={adjustCredits}
+                    onChange={(e) => setAdjustCredits(e.target.value)}
+                    placeholder="e.g. 500"
+                  />
+                </div>
+                <div>
+                  <Label className="text-slate-400">Note (optional)</Label>
+                  <Input
+                    className="mt-1 border-white/10 bg-[#0b1120] text-white"
+                    value={adjustNote}
+                    onChange={(e) => setAdjustNote(e.target.value)}
+                    placeholder="e.g. EVC Plus transfer confirmed"
+                  />
+                </div>
+              </div>
+              <Button
+                onClick={() => void adjustCreditsForSchool()}
+                disabled={!adjustSchool || !adjustCredits || adjusting}
+              >
+                Apply credits
+              </Button>
+            </div>
+          </div>
+
           <div className="mt-6">
             <h3 className="text-sm font-medium text-slate-300">
               {t("platformSms.recentPurchases")}

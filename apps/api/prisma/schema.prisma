@@ -1904,6 +1904,10 @@ model WaafiPaymentConfig {
   connectionVerified Boolean   @default(false)
   /// When true, purchases succeed without calling Waafi (dev / demo only).
   simulationMode     Boolean   @default(false)
+  /// Shown to schools instead of the automatic payment form whenever
+  /// `enabled` is off — the mobile money number to send payment to manually.
+  manualPaymentNumber       String?
+  manualPaymentInstructions String?
   updatedAt          DateTime  @updatedAt
   createdAt          DateTime  @default(now())
 

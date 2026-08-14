@@ -408,6 +408,16 @@ export interface SmsPaymentOrderRow {
   } | null;
 }
 
+export interface SmsPaymentStatusInfo {
+  paymentsUnlocked: boolean;
+  manualPaymentNumber: string | null;
+  manualPaymentInstructions: string | null;
+}
+
+export async function apiSmsPaymentStatus() {
+  return api<SmsPaymentStatusInfo>("/sms/payments/status");
+}
+
 export async function apiPurchaseSmsPackage(body: {
   packageId: string;
   payerAccount?: string;

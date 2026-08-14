@@ -479,6 +479,16 @@ export async function assignPlatformSmsPackage(body: {
   return platformFetch("/platform/sms/assign", { method: "POST", body });
 }
 
+/** Grants (or removes, with a negative number) SMS credits directly — used
+ *  to activate a school's credits after confirming a manual payment. */
+export async function adjustPlatformSmsCredits(body: {
+  schoolId: string;
+  credits: number;
+  description?: string;
+}) {
+  return platformFetch("/platform/sms/adjust", { method: "POST", body });
+}
+
 // ── Own-gateway licences (paid add-on sold to schools) ──
 
 export interface PlatformSmsGatewayLicense {
@@ -620,6 +630,8 @@ export interface PlatformWaafiConfig {
   lastSuccessAt: string | null;
   connectionVerified: boolean;
   simulationMode: boolean;
+  manualPaymentNumber: string | null;
+  manualPaymentInstructions: string | null;
   paymentsUnlocked: boolean;
   updatedAt: string;
 }
@@ -689,6 +701,8 @@ export async function updatePlatformWaafiConfig(body: {
   defaultMethod?: "API_PURCHASE" | "HPP_PURCHASE";
   currency?: string;
   callbackBaseUrl?: string | null;
+  manualPaymentNumber?: string | null;
+  manualPaymentInstructions?: string | null;
 }) {
   return platformFetch<PlatformWaafiConfig>("/platform/sms/waafi/config", {
     method: "PATCH",
