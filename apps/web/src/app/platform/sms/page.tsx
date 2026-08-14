@@ -447,8 +447,8 @@ export default function PlatformSmsPackagesPage() {
           <div className="mt-6 border-t border-white/10 pt-5">
             <h2 className="font-semibold text-white">Adjust credits manually</h2>
             <p className="mt-1 text-xs text-slate-400">
-              Tops up (or corrects) a school's existing balance once you've
-              confirmed their manual payment (Waafi Payments → Gateway
+              Tops up (or corrects) a school&apos;s existing balance once
+              you&apos;ve confirmed their manual payment (Waafi Payments → Gateway
               settings → Manual payment). If this school has never had a
               package before, use Assign Package above first — this only
               adjusts an existing wallet.
