@@ -73,6 +73,8 @@ export function buildClassReportData(classId: string): ClassReportData | null {
       maleStudents: stats.maleStudents,
       femaleStudents: stats.femaleStudents,
       totalSections: stats.totalSections,
+      totalSubjects: stats.assignedSubjects,
+      totalTeachers: stats.assignedTeachers,
       attendancePercentage: stats.attendancePercentage,
       examAverage: stats.examAverage,
       feeCollected: stats.feeCollected,

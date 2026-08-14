@@ -112,6 +112,8 @@ export interface ClassReportData {
     maleStudents: number;
     femaleStudents: number;
     totalSections: number;
+    totalSubjects: number;
+    totalTeachers: number;
     attendancePercentage: number;
     examAverage: number;
     feeCollected: number;
@@ -144,6 +146,8 @@ export function printClassReport(selectedKeys: string[], data: ClassReportData) 
           <tr><td class="k">Status</td><td>${escapeHtml(data.status)}</td></tr>
           <tr><td class="k">Has Sections</td><td>${data.hasSections ? "Yes" : "No"}</td></tr>
           <tr><td class="k">Total Students</td><td>${data.stats.totalStudents} (${data.stats.maleStudents} male, ${data.stats.femaleStudents} female)</td></tr>
+          <tr><td class="k">Total Subjects</td><td>${data.stats.totalSubjects}</td></tr>
+          <tr><td class="k">Total Teachers</td><td>${data.stats.totalTeachers}</td></tr>
           <tr><td class="k">Notes</td><td>${escapeHtml(data.notes || "—")}</td></tr>
         </tbody>
       </table>`);
@@ -161,7 +165,7 @@ export function printClassReport(selectedKeys: string[], data: ClassReportData) 
       )
       .join("");
     parts.push(`
-      <h2>Subjects &amp; Teachers</h2>
+      <h2>Subjects &amp; Teachers (${data.stats.totalSubjects} subjects, ${data.stats.totalTeachers} teachers)</h2>
       <table>
         <thead><tr><th>Subject</th><th>Code</th><th>Teacher</th><th></th></tr></thead>
         <tbody>${rows || '<tr><td colspan="4">No subjects assigned.</td></tr>'}</tbody>
