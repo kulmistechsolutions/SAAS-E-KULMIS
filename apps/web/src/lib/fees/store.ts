@@ -554,6 +554,21 @@ export async function collectFamilyPayment(input: {
   }
 }
 
+/** Whether a student has ever actually been billed for/through this month —
+ *  distinct from owing nothing. A student with no monthly fee setup yet has
+ *  no charge rows at all, so outstandingBalance() trivially reads 0; without
+ *  this check they'd be miscounted as "fully paid" despite never having paid
+ *  (or owed) anything. */
+function hasBeenCharged(studentId: string, upToMonth?: string): boolean {
+  const charges = studentCharges(studentId);
+  const allBillable =
+    feeSettingsCache.billingMode === "ACADEMIC_YEAR" && upToMonth === undefined;
+  const month = upToMonth ?? ensure().activeMonthKey;
+  return charges.some(
+    (c) => c.status !== "INACTIVE" && (allBillable || c.monthKey <= month),
+  );
+}
+
 export function dashboardSummary(
   filterMonth?: string,
   academicYear?: string,
@@ -604,6 +619,9 @@ export function dashboardSummary(
       free += 1;
       continue;
     }
+    // No monthly fee setup activated for this student yet — they haven't
+    // been billed, so they can't be "fully paid" either.
+    if (!hasBeenCharged(st.id, month)) continue;
     const adv = advanceMonthsLeft(st.id, month);
     const out = outstandingBalance(st.id, month);
     if (adv > 0) advance += 1;
