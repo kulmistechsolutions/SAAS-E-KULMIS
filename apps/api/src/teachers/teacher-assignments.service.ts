@@ -131,6 +131,29 @@ export class TeacherAssignmentsService {
     }
   }
 
+  /**
+   * A teacher assignment implies its subject belongs on the class's own
+   * subject list — nothing should be teachable in a class without also
+   * showing up there. Idempotent: swallows the unique-constraint violation
+   * when the class/section already has this subject listed.
+   */
+  private async ensureClassSubject(
+    tx: Tx,
+    schoolId: string,
+    academicYearId: string,
+    classId: string,
+    sectionId: string | null,
+    subjectId: string,
+  ): Promise<void> {
+    try {
+      await tx.classSubject.create({
+        data: { schoolId, academicYearId, classId, sectionId, subjectId },
+      });
+    } catch (e) {
+      if (!isUniqueViolation(e)) throw e;
+    }
+  }
+
   async create(schoolId: string, dto: CreateAssignmentInput) {
     return this.prisma.forTenant(schoolId, async (tx) => {
       const sectionId = dto.sectionId ?? null;
@@ -163,8 +186,9 @@ export class TeacherAssignmentsService {
         );
       }
 
+      let created;
       try {
-        return await tx.teacherAssignment.create({
+        created = await tx.teacherAssignment.create({
           data: {
             schoolId,
             teacherId: dto.teacherId,
@@ -187,6 +211,17 @@ export class TeacherAssignmentsService {
         }
         throw e;
       }
+
+      await this.ensureClassSubject(
+        tx,
+        schoolId,
+        dto.academicYearId,
+        dto.classId,
+        sectionId,
+        dto.subjectId,
+      );
+
+      return created;
     });
   }
 
@@ -360,6 +395,36 @@ export class TeacherAssignmentsService {
           skipDuplicates: true,
         });
         insertedCount = res.count;
+
+        // Every assigned subject belongs on its class's subject list too —
+        // same one-round-trip approach as the assignments above, deduped by
+        // (classId, sectionId, subjectId) since several slots can share one.
+        const classSubjectKeys = new Set<string>();
+        const classSubjectRows: {
+          schoolId: string;
+          academicYearId: string;
+          classId: string;
+          sectionId: string | null;
+          subjectId: string;
+        }[] = [];
+        for (const item of toCreate) {
+          const key = `${item.classId}|${item.sectionId ?? ""}|${item.subjectId}`;
+          if (classSubjectKeys.has(key)) continue;
+          classSubjectKeys.add(key);
+          classSubjectRows.push({
+            schoolId,
+            academicYearId: dto.academicYearId,
+            classId: item.classId,
+            sectionId: item.sectionId,
+            subjectId: item.subjectId,
+          });
+        }
+        if (classSubjectRows.length > 0) {
+          await tx.classSubject.createMany({
+            data: classSubjectRows,
+            skipDuplicates: true,
+          });
+        }
       }
 
       // Re-fetch the rows for this batch (with relations) for the response.

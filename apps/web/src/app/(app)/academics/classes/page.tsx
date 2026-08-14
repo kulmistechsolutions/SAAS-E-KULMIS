@@ -29,7 +29,14 @@ import {
   getAcademicsState,
   useAcademicsState,
 } from "@/lib/academics/store";
-import { printTable } from "@/lib/academics/print";
+import {
+  CLASS_REPORT_SECTIONS,
+  DEFAULT_CLASS_REPORT_SECTIONS,
+  printClassReport,
+  printTable,
+} from "@/lib/academics/print";
+import { buildClassReportData } from "@/lib/academics/class-report-data";
+import { FieldSelectDialog } from "@/components/shared/field-select-dialog";
 import type { ClassRow, SchoolClass } from "@/lib/academics/types";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
@@ -54,6 +61,7 @@ export default function ClassesPage() {
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<SchoolClass | null>(null);
   const [deleting, setDeleting] = useState<ClassRow | null>(null);
+  const [reportClassId, setReportClassId] = useState<string | null>(null);
 
   const years = getAcademicsState().academicYears;
 
@@ -296,6 +304,11 @@ export default function ClassesPage() {
                     <td className="px-4 py-3">
                       <div className="flex justify-end gap-1">
                         <Action
+                          title={t("academicsClasses.printClassReport")}
+                          icon={Printer}
+                          onClick={() => setReportClassId(r.id)}
+                        />
+                        <Action
                           href={`/academics/classes/${r.id}`}
                           title={t("academicsClasses.viewProfile")}
                           icon={Eye}
@@ -352,6 +365,20 @@ export default function ClassesPage() {
         }
         onConfirm={handleDelete}
         onClose={() => setDeleting(null)}
+      />
+      <FieldSelectDialog
+        open={reportClassId !== null}
+        onClose={() => setReportClassId(null)}
+        title={t("academicsClasses.selectReportSections")}
+        description={t("academicsClasses.selectReportSectionsDesc")}
+        fields={CLASS_REPORT_SECTIONS}
+        defaultSelected={DEFAULT_CLASS_REPORT_SECTIONS}
+        confirmLabel={t("academicsClasses.print")}
+        onConfirm={(keys) => {
+          if (!reportClassId) return;
+          const data = buildClassReportData(reportClassId);
+          if (data) printClassReport(keys, data);
+        }}
       />
     </div>
   );

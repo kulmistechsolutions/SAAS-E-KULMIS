@@ -42,8 +42,8 @@ import {
   DEFAULT_CLASS_REPORT_SECTIONS,
   printClassReport,
   printTable,
-  type ClassReportSubjectRow,
 } from "@/lib/academics/print";
+import { buildClassReportData } from "@/lib/academics/class-report-data";
 import { FieldSelectDialog } from "@/components/shared/field-select-dialog";
 import { getState as getStudentsState } from "@/lib/students/store";
 import { getTeachersState } from "@/lib/teachers/store";
@@ -112,30 +112,6 @@ export default function ClassProfilePage() {
         teacherName: tt.teachers.find((t) => t.id === a.teacherId)?.fullName ?? "—",
       }));
   }, [state, cls]);
-
-  /**
-   * The Subjects tab and the Teachers tab are two independent lists — a
-   * subject can sit on the class's subject list with nobody assigned to
-   * teach it, and a teacher assignment can reference a subject name that was
-   * never actually added to the class. Merging them here (matched by subject
-   * name, the only link the data model gives us) is what lets the printed
-   * report show each subject next to its real teacher instead of two
-   * disconnected tables, and flags the mismatch case instead of hiding it.
-   */
-  const subjectTeacherRows: ClassReportSubjectRow[] = useMemo(() => {
-    const names = new Set<string>([
-      ...subjects.map((s) => s.name),
-      ...teacherRows.map((a) => a.subject),
-    ]);
-    return [...names].sort().map((name) => {
-      const subj = subjects.find((s) => s.name === name);
-      const assigned = teacherRows.filter((a) => a.subject === name);
-      const teacher = assigned.length
-        ? [...new Set(assigned.map((a) => `${a.teacherName}${a.section ? ` (Section ${a.section})` : ""}`))].join(", ")
-        : "Not assigned";
-      return { subject: name, code: subj?.code ?? "", teacher, unlisted: !subj };
-    });
-  }, [subjects, teacherRows]);
 
   const exams = useMemo(() => {
     if (!cls) return [];
@@ -511,38 +487,10 @@ export default function ClassProfilePage() {
         fields={CLASS_REPORT_SECTIONS}
         defaultSelected={DEFAULT_CLASS_REPORT_SECTIONS}
         confirmLabel={tr("academicsClasses.print")}
-        onConfirm={(keys) =>
-          printClassReport(keys, {
-            className: cls.name,
-            academicYear: cls.academicYear,
-            status: cls.status,
-            hasSections: cls.hasSections,
-            notes: cls.notes,
-            stats: {
-              totalStudents: stats.totalStudents,
-              maleStudents: stats.maleStudents,
-              femaleStudents: stats.femaleStudents,
-              totalSections: stats.totalSections,
-              attendancePercentage: stats.attendancePercentage,
-              examAverage: stats.examAverage,
-              feeCollected: stats.feeCollected,
-              feeExpected: stats.feeExpected,
-            },
-            sections: sections.map((s) => ({ name: `Section ${s.name}`, status: s.status })),
-            students: students.map((s) => ({
-              code: s.code,
-              fullName: s.fullName,
-              gender: s.gender,
-              section: s.section ?? "—",
-            })),
-            subjectRows: subjectTeacherRows,
-            exams: exams.map((e) => ({
-              name: e.name,
-              section: e.section ? `Section ${e.section}` : "—",
-              status: e.status,
-            })),
-          })
-        }
+        onConfirm={(keys) => {
+          const data = buildClassReportData(id);
+          if (data) printClassReport(keys, data);
+        }}
       />
     </div>
   );
