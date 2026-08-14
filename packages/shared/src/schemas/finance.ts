@@ -216,3 +216,6 @@ export const createExpenseSchema = z.object({
   spentAt: z.coerce.date().optional(),
 });
 export type CreateExpenseInput = z.infer<typeof createExpenseSchema>;
+
+export const updateExpenseSchema = createExpenseSchema.partial();
+export type UpdateExpenseInput = z.infer<typeof updateExpenseSchema>;

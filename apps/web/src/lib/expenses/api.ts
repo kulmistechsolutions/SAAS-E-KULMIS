@@ -113,6 +113,36 @@ export async function apiCreateExpense(
   return mapApiExpense(row, academicYear);
 }
 
+export async function apiUpdateExpense(
+  id: string,
+  input: {
+    title: string;
+    categoryId: string;
+    amount: number;
+    expenseDate: string;
+    paymentMethod: PaymentMethod;
+    paidTo: string;
+    description?: string | null;
+  },
+  academicYear: string,
+): Promise<Expense> {
+  const note = [input.paidTo?.trim(), input.description?.trim()]
+    .filter(Boolean)
+    .join(" — ") || null;
+  const row = await api<ApiExpense>(`/expenses/${id}`, {
+    method: "PATCH",
+    body: {
+      categoryId: input.categoryId || null,
+      title: input.title.trim(),
+      amount: input.amount,
+      method: input.paymentMethod,
+      note,
+      spentAt: input.expenseDate,
+    },
+  });
+  return mapApiExpense(row, academicYear);
+}
+
 export async function apiDeleteExpense(id: string): Promise<void> {
   await api<{ success: boolean }>(`/expenses/${id}`, { method: "DELETE" });
 }

@@ -12,6 +12,7 @@ import {
   apiDeleteExpense,
   apiListCategories,
   apiListExpenses,
+  apiUpdateExpense,
   mapApiExpense,
 } from "./api";
 import { monthKey } from "./format";
@@ -329,7 +330,6 @@ export async function createExpense(
   }
 }
 
-/** Backend has no PATCH — updates are local-only until delete+recreate is added. */
 export async function updateExpense(
   input: UpdateExpenseInput,
 ): Promise<{ ok: boolean; error?: string; expense?: Expense }> {
@@ -341,6 +341,9 @@ export async function updateExpense(
   if (input.amount !== undefined && input.amount <= 0) {
     return { ok: false, error: "Amount must be greater than zero." };
   }
+  if (input.amount !== undefined && !Number.isInteger(input.amount)) {
+    return { ok: false, error: "Amount must be a whole number (no cents)." };
+  }
   if (input.categoryId) {
     const cat = getCategory(input.categoryId);
     if (!cat) return { ok: false, error: "Invalid category." };
@@ -349,8 +352,7 @@ export async function updateExpense(
     }
   }
 
-  const updated: Expense = {
-    ...existing,
+  const merged = {
     title: input.title?.trim() ?? existing.title,
     categoryId: input.categoryId ?? existing.categoryId,
     amount: input.amount ?? existing.amount,
@@ -358,21 +360,16 @@ export async function updateExpense(
     paymentMethod: input.paymentMethod ?? existing.paymentMethod,
     paidTo: input.paidTo?.trim() ?? existing.paidTo,
     description: input.description !== undefined ? input.description : existing.description,
-    attachment: input.attachment !== undefined ? input.attachment : existing.attachment,
-    status: input.status ?? existing.status,
-    updatedAt: new Date().toISOString(),
   };
 
-  setState({
-    ...s,
-    expenses: s.expenses.map((e) => (e.id === existing.id ? updated : e)),
-  });
-  logAudit("Expense Updated", updated.referenceNo);
-  return {
-    ok: true,
-    expense: updated,
-    error: "Changes saved locally only — expense update API is not available yet.",
-  };
+  try {
+    const expense = await apiUpdateExpense(existing.id, merged, existing.academicYear ?? s.academicYear);
+    await refreshExpenses();
+    logAudit("Expense Updated", expense.referenceNo);
+    return { ok: true, expense };
+  } catch (e) {
+    return { ok: false, error: apiErr(e, "Failed to update expense.") };
+  }
 }
 
 export async function deleteExpense(id: string): Promise<{ ok: boolean; error?: string }> {

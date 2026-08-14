@@ -3,6 +3,7 @@ import { Prisma } from "@prisma/client";
 import type {
   CreateExpenseCategoryInput,
   CreateExpenseInput,
+  UpdateExpenseInput,
 } from "@ekulmis/shared";
 import { PrismaService } from "../prisma/prisma.service";
 import { onUniqueViolation } from "../academics/prisma-errors";
@@ -50,6 +51,27 @@ export class ExpensesService {
           note: dto.note ?? null,
           spentAt: dto.spentAt ?? new Date(),
           recordedByUserId,
+        },
+      }),
+    );
+  }
+
+  async update(schoolId: string, id: string, dto: UpdateExpenseInput) {
+    const existing = await this.prisma.forTenant(schoolId, (tx) =>
+      tx.expense.findFirst({ where: { id }, select: { id: true } }),
+    );
+    if (!existing) throw new NotFoundException("Expense not found");
+
+    return this.prisma.forTenant(schoolId, (tx) =>
+      tx.expense.update({
+        where: { id },
+        data: {
+          ...(dto.categoryId !== undefined ? { categoryId: dto.categoryId } : {}),
+          ...(dto.title !== undefined ? { title: dto.title } : {}),
+          ...(dto.amount !== undefined ? { amount: dto.amount } : {}),
+          ...(dto.method !== undefined ? { method: dto.method } : {}),
+          ...(dto.note !== undefined ? { note: dto.note } : {}),
+          ...(dto.spentAt !== undefined ? { spentAt: dto.spentAt } : {}),
         },
       }),
     );

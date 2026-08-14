@@ -5,12 +5,14 @@ import {
   Delete,
   Get,
   Param,
+  Patch,
   Post,
   Query,
 } from "@nestjs/common";
 import {
   createExpenseCategorySchema,
   createExpenseSchema,
+  updateExpenseSchema,
   UserRole,
 } from "@ekulmis/shared";
 import { ExpensesService } from "./expenses.service";
@@ -50,6 +52,17 @@ export class ExpensesController {
   @Get()
   findAll(@CurrentUser() me: AuthUser, @Query("categoryId") categoryId?: string) {
     return this.expenses.findAll(me.schoolId, categoryId);
+  }
+
+  @Patch(":id")
+  update(
+    @CurrentUser() me: AuthUser,
+    @Param("id") id: string,
+    @Body() body: unknown,
+  ) {
+    const parsed = updateExpenseSchema.safeParse(body);
+    if (!parsed.success) throw new BadRequestException(parsed.error.flatten());
+    return this.expenses.update(me.schoolId, id, parsed.data);
   }
 
   @Delete(":id")

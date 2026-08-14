@@ -105,11 +105,21 @@ export function ExpenseFormDialog({
   }
 
   async function handleSubmit() {
+    const numericAmount = Number(amount);
+    // The backend stores amounts as whole currency units (no cents), same as
+    // every other money field in the app (fees, salaries) — reject a decimal
+    // here with a clear message instead of letting it 400 at the API with an
+    // opaque "Bad Request".
+    if (!Number.isInteger(numericAmount)) {
+      toast("Amount must be a whole number (no cents) — e.g. 150.", "error");
+      return;
+    }
+
     setSubmitting(true);
     const payload = {
       title,
       categoryId,
-      amount: Number(amount),
+      amount: numericAmount,
       expenseDate,
       academicYear,
       paymentMethod,
@@ -182,8 +192,8 @@ export function ExpenseFormDialog({
             <Input
               id="exp-amount"
               type="number"
-              min={0.01}
-              step="0.01"
+              min={1}
+              step={1}
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
             />
