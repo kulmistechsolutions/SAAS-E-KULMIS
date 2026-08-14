@@ -20,6 +20,7 @@ const core = {
     close: "Close",
     delete: "Delete",
     edit: "Edit",
+    view: "View",
     add: "Add",
     create: "Create",
     update: "Update",

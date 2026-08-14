@@ -2844,6 +2844,8 @@ export const generated = {
     status: "Status",
     joiningDatesRangeFrom: "Joining dates range from",
     teachersAreSyncedFromTeacherManagement: "Synced from Teacher Management",
+    viaTeacherManagement: "via Teacher Management",
+    history: "History",
     staffDirectoryDescription: "Teachers and registered staff — guards, cleaners, and similar roles. Everyone active here is included when you Generate Payroll.",
     noEmployeesFound: "No employees found.",
     removeEmployee: "Remove Employee",

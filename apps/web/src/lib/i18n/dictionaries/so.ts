@@ -20,6 +20,7 @@ const curated: PartialDictionary = {
     close: "Xir",
     delete: "Tirtir",
     edit: "Wax ka beddel",
+    view: "Eeg",
     add: "Ku dar",
     create: "Abuur",
     update: "Cusboonaysii",

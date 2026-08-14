@@ -15,6 +15,7 @@ const curated: PartialDictionary = {
     close: "إغلاق",
     delete: "حذف",
     edit: "تعديل",
+    view: "عرض",
     add: "إضافة",
     create: "إنشاء",
     update: "تحديث",

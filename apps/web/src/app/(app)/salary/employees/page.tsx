@@ -4,7 +4,7 @@
 import { useT } from "@/lib/i18n/provider";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { Eye, Pencil, Plus, Receipt, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Pagination } from "@/components/ui/pagination";
@@ -165,13 +165,12 @@ export default function SalaryEmployeesPage() {
                 <tr key={`${r.type}-${r.id}`} className="border-t">
                   <td className="px-4 py-2.5 font-mono text-xs">{r.code}</td>
                   <td className="px-4 py-2.5 font-medium">
-                    {r.type === "TEACHER" ? (
-                      <Link href={`/teachers/${r.id}`} className="text-primary hover:underline">
-                        {r.fullName}
-                      </Link>
-                    ) : (
-                      r.fullName
-                    )}
+                    <Link
+                      href={r.type === "TEACHER" ? `/teachers/${r.id}` : `/salary/employees/${r.id}`}
+                      className="text-primary hover:underline"
+                    >
+                      {r.fullName}
+                    </Link>
                   </td>
                   <td className="px-4 py-2.5 text-muted-foreground">{r.position}</td>
                   <td className="px-4 py-2.5 text-muted-foreground">{r.phone ?? "—"}</td>
@@ -180,33 +179,56 @@ export default function SalaryEmployeesPage() {
                     <Badge tone={r.status === "ACTIVE" ? "success" : "muted"}>{r.status}</Badge>
                   </td>
                   <td className="px-4 py-2.5">
-                    {r.employee ? (
-                      <div className="flex items-center gap-1">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setEditing(r.employee!);
-                            setFormOpen(true);
-                          }}
-                          className="flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-                          title={t("common.edit")}
+                    <div className="flex items-center gap-1">
+                      <Link
+                        href={r.type === "TEACHER" ? `/teachers/${r.id}` : `/salary/employees/${r.id}`}
+                        className="flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+                        title={t("common.view")}
+                      >
+                        <Eye className="h-3.5 w-3.5" />
+                      </Link>
+                      <Link
+                        href={
+                          r.type === "TEACHER"
+                            ? `/teachers/${r.id}?tab=salary`
+                            : `/salary/employees/${r.id}?tab=history`
+                        }
+                        className="flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+                        title={t("salaryEmployees.history")}
+                      >
+                        <Receipt className="h-3.5 w-3.5" />
+                      </Link>
+                      {r.employee ? (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditing(r.employee!);
+                              setFormOpen(true);
+                            }}
+                            className="flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+                            title={t("common.edit")}
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setDeleting(r.employee!)}
+                            className="flex h-7 w-7 items-center justify-center rounded-lg text-rose-500 transition-colors hover:bg-rose-500/10"
+                            title={t("common.delete")}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </>
+                      ) : (
+                        <span
+                          className="ms-1 text-xs text-muted-foreground"
+                          title={t("salaryEmployees.teachersAreSyncedFromTeacherManagement")}
                         >
-                          <Pencil className="h-3.5 w-3.5" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setDeleting(r.employee!)}
-                          className="flex h-7 w-7 items-center justify-center rounded-lg text-rose-500 transition-colors hover:bg-rose-500/10"
-                          title={t("common.delete")}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-                    ) : (
-                      <span className="text-xs text-muted-foreground">
-                        {t("salaryEmployees.teachersAreSyncedFromTeacherManagement")}
-                      </span>
-                    )}
+                          {t("salaryEmployees.viaTeacherManagement")}
+                        </span>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}

@@ -2844,6 +2844,8 @@ export const arGenerated: PartialDictionary = {
     status: "الحالة",
     joiningDatesRangeFrom: "تتراوح تواريخ الالتحاق من",
     teachersAreSyncedFromTeacherManagement: "تتم مزامنته من إدارة المعلمين",
+    viaTeacherManagement: "عبر إدارة المعلمين",
+    history: "السجل",
     staffDirectoryDescription: "المعلمون والموظفون المسجلون — الحراس وعمال النظافة وما شابه. كل نشط هنا يُدرج عند إنشاء كشف الرواتب.",
     noEmployeesFound: "لم يتم العثور على موظفين.",
     removeEmployee: "إزالة الموظف",

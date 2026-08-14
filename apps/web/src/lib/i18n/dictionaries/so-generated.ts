@@ -2844,6 +2844,8 @@ export const soGenerated: PartialDictionary = {
     status: "Xaaladda",
     joiningDatesRangeFrom: "Taariikhaha ku biiritaanku waxay u dhexeeyaan",
     teachersAreSyncedFromTeacherManagement: "Waxaa laga soo qaataa Maaraynta Macallimiinta",
+    viaTeacherManagement: "Maaraynta Macallimiinta",
+    history: "Taariikhda",
     staffDirectoryDescription: "Macallimiinta iyo shaqaalaha diiwaangashan — waardiyayaasha, dadka nadaafadda iyo kuwa la mid ah. Qof kasta oo shaqaynaya halkan ayaa ku jiraya marka aad Generate Payroll gasho.",
     noEmployeesFound: "Shaqaale lama helin.",
     removeEmployee: "Ka Saar Shaqaalaha",
