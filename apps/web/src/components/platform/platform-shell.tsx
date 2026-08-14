@@ -2,11 +2,12 @@
 
 
 import { useT } from "@/lib/i18n/provider";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   AlertTriangle,
+  Bell,
   Building2,
   CreditCard,
   LayoutDashboard,
@@ -19,10 +20,12 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { usePlatformAuth } from "@/lib/platform/auth";
+import { countUnread, fetchPlatformEvents, getLastSeenAt } from "@/lib/platform/notifications";
 import { cn } from "@/lib/utils";
 
 const NAV = [
   { href: "/platform", label: "Dashboard", icon: LayoutDashboard, exact: true },
+  { href: "/platform/notifications", label: "Notifications", icon: Bell },
   { href: "/platform/schools", label: "Schools", icon: Building2 },
   { href: "/platform/subscriptions", label: "Subscriptions", icon: Layers },
   { href: "/platform/sms/settings", label: "SMS Settings", icon: Settings2 },
@@ -32,11 +35,34 @@ const NAV = [
   { href: "/platform/error-logs", label: "Error Logs", icon: AlertTriangle },
 ];
 
+const UNREAD_POLL_MS = 60_000;
+
 export function PlatformShell({ children }: { children: React.ReactNode }) {
   const t = useT();
   const pathname = usePathname();
   const router = useRouter();
   const { admin, logout, isPreview } = usePlatformAuth();
+  const [unread, setUnread] = useState(0);
+
+  async function refreshUnread() {
+    try {
+      const events = await fetchPlatformEvents();
+      setUnread(countUnread(events, getLastSeenAt()));
+    } catch {
+      /* keep previous count */
+    }
+  }
+
+  useEffect(() => {
+    void refreshUnread();
+    const id = setInterval(() => void refreshUnread(), UNREAD_POLL_MS);
+    return () => clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (pathname === "/platform/notifications") setUnread(0);
+  }, [pathname]);
 
   async function handleLogout() {
     await logout();
@@ -75,6 +101,11 @@ export function PlatformShell({ children }: { children: React.ReactNode }) {
               >
                 <item.icon className="h-4 w-4" />
                 {item.label}
+                {item.href === "/platform/notifications" && unread > 0 && (
+                  <span className="ms-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-500 px-1.5 text-[11px] font-semibold text-white">
+                    {unread > 99 ? "99+" : unread}
+                  </span>
+                )}
               </Link>
             );
           })}
