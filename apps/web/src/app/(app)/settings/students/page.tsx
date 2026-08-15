@@ -1,8 +1,8 @@
 "use client";
 
 
-import { useState } from "react";
-import { Download } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Check, Copy, Download } from "lucide-react";
 import { useT } from "@/lib/i18n/provider";
 import { Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -128,6 +128,7 @@ export default function StudentSettingsPage() {
       </div>
 
       <SettingsToggle label={t("settingsStudents.allowStudentPortalLogin")} checked={draft.portalLoginEnabled} onChange={(v) => update({ portalLoginEnabled: v })} />
+      {draft.portalLoginEnabled && <StudentPortalLinkCard pendingSave={dirty} />}
       <SettingsToggle label={t("settingsStudents.requireStudentPhone")} checked={draft.requirePhone} onChange={(v) => update({ requirePhone: v })} />
       <SettingsToggle label={t("settingsStudents.allowStudentPhotoUpload")} checked={draft.allowPhotoUpload} onChange={(v) => update({ allowPhotoUpload: v })} />
       <div className="grid gap-4 sm:grid-cols-2">
@@ -178,6 +179,57 @@ export default function StudentSettingsPage() {
           </p>
         </div>
       </Dialog>
+    </div>
+  );
+}
+
+function StudentPortalLinkCard({ pendingSave }: { pendingSave: boolean }) {
+  const [link, setLink] = useState("");
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    setLink(`${window.location.origin}/student-portal/login`);
+  }, []);
+
+  async function copyLink() {
+    try {
+      await navigator.clipboard.writeText(link);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      /* clipboard unavailable — the link is still selectable/copyable by hand */
+    }
+  }
+
+  return (
+    <div className="rounded-xl border bg-secondary/30 px-4 py-3">
+      <p className="text-xs text-muted-foreground">Student Portal login link</p>
+      <p className="mt-1 text-sm text-muted-foreground">
+        Share this with students — each one signs in with their own Student ID and
+        portal password (their Student ID by default, unless you&apos;ve reset it).
+      </p>
+      <div className="mt-2 flex items-center gap-2">
+        <code className="min-w-0 flex-1 truncate rounded-lg border bg-background px-3 py-2 text-sm">
+          {link}
+        </code>
+        <Button
+          type="button"
+          variant="outline"
+          className="h-9 shrink-0 px-3"
+          onClick={() => void copyLink()}
+        >
+          {copied ? (
+            <Check className="h-4 w-4 text-emerald-600" />
+          ) : (
+            <Copy className="h-4 w-4" />
+          )}
+        </Button>
+      </div>
+      {pendingSave && (
+        <p className="mt-2 text-xs text-amber-600 dark:text-amber-400">
+          Save your changes above to activate this link for students.
+        </p>
+      )}
     </div>
   );
 }

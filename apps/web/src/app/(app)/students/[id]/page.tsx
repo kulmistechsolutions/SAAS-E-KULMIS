@@ -8,6 +8,8 @@ import {
   AlertTriangle,
   ArrowLeft,
   CalendarCheck,
+  Check,
+  Copy,
   Download,
   FileText,
   GraduationCap,
@@ -321,6 +323,17 @@ function StudentPortalLoginCard({ student }: { student: StudentWithParent }) {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [customPw, setCustomPw] = useState("");
   const [revealedPassword, setRevealedPassword] = useState<string | null>(null);
+  const [linkCopied, setLinkCopied] = useState(false);
+
+  async function copyLoginLink() {
+    try {
+      await navigator.clipboard.writeText(`${window.location.origin}/student-portal/login`);
+      setLinkCopied(true);
+      setTimeout(() => setLinkCopied(false), 2000);
+    } catch {
+      toast("Could not copy — the link is /student-portal/login", "info");
+    }
+  }
 
   async function doReset(custom?: string) {
     setResetting(true);
@@ -357,6 +370,19 @@ function StudentPortalLoginCard({ student }: { student: StudentWithParent }) {
         >
           <KeyRound className="me-2 h-4 w-4" />
           {resetting ? "Resetting…" : "Reset Portal Password"}
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          className="h-8 px-3 text-xs"
+          onClick={() => void copyLoginLink()}
+        >
+          {linkCopied ? (
+            <Check className="me-2 h-4 w-4 text-emerald-600" />
+          ) : (
+            <Copy className="me-2 h-4 w-4" />
+          )}
+          {linkCopied ? "Copied" : "Copy Login Link"}
         </Button>
       </div>
 
