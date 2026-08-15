@@ -16,6 +16,7 @@ export interface ApiSalary {
   employeeName: string;
   position: string | null;
   amount: number;
+  amountPaid: number;
   year: number;
   month: number;
   status: PayrollStatus;
@@ -30,8 +31,8 @@ export function mapApiSalary(s: ApiSalary, academicYear: string): {
   payroll: PayrollRecord;
 } {
   const payrollMonth = monthKey(s.year, s.month);
-  const amountPaid = s.status === "PAID" ? s.amount : 0;
-  const remainingBalance = s.status === "PAID" ? 0 : s.amount;
+  const amountPaid = s.amountPaid;
+  const remainingBalance = Math.max(0, s.amount - s.amountPaid);
 
   // Prefer the persistent employeeId/teacherId over the per-month salary
   // row's own id so re-generating payroll next month can tell "this same
@@ -106,6 +107,28 @@ export async function apiUpdateSalary(
 
 export async function apiDeleteSalary(id: string): Promise<void> {
   await api<{ success: boolean }>(`/salaries/${id}`, { method: "DELETE" });
+}
+
+export interface ApiSalaryPayment {
+  id: string;
+  salaryId: string;
+  employeeName: string;
+  amount: number;
+  paymentMethod: string | null;
+  note: string | null;
+  paidAt: string;
+  createdAt: string;
+}
+
+export async function apiPaySalary(
+  id: string,
+  body: { amount: number; paymentMethod?: string | null; note?: string | null },
+): Promise<{ salary: ApiSalary; payment: ApiSalaryPayment }> {
+  return api(`/salaries/${id}/pay`, { method: "POST", body });
+}
+
+export async function apiSalaryPayments(id: string): Promise<ApiSalaryPayment[]> {
+  return api<ApiSalaryPayment[]>(`/salaries/${id}/payments`);
 }
 
 export type { PaymentMethod };

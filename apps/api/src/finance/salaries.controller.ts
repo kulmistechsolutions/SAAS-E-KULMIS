@@ -11,6 +11,7 @@ import {
 } from "@nestjs/common";
 import {
   createSalarySchema,
+  paySalarySchema,
   updateSalarySchema,
   UserRole,
 } from "@ekulmis/shared";
@@ -58,5 +59,21 @@ export class SalariesController {
   @Delete(":id")
   remove(@CurrentUser() me: AuthUser, @Param("id") id: string) {
     return this.salaries.remove(me.schoolId, id);
+  }
+
+  @Post(":id/pay")
+  pay(
+    @CurrentUser() me: AuthUser,
+    @Param("id") id: string,
+    @Body() body: unknown,
+  ) {
+    const parsed = paySalarySchema.safeParse(body);
+    if (!parsed.success) throw new BadRequestException(parsed.error.flatten());
+    return this.salaries.pay(me.schoolId, id, parsed.data, me.userId);
+  }
+
+  @Get(":id/payments")
+  payments(@CurrentUser() me: AuthUser, @Param("id") id: string) {
+    return this.salaries.paymentsFor(me.schoolId, id);
   }
 }

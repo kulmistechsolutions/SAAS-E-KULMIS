@@ -151,6 +151,14 @@ export const updateSalarySchema = z
   .refine((o) => Object.keys(o).length > 0, { message: "Nothing to update" });
 export type UpdateSalaryInput = z.infer<typeof updateSalarySchema>;
 
+/** Records one collection against a Salary row — see SalaryPayment. */
+export const paySalarySchema = z.object({
+  amount: positiveAmount,
+  paymentMethod: z.string().min(1).nullable().optional(),
+  note: z.string().min(1).nullable().optional(),
+});
+export type PaySalaryInput = z.infer<typeof paySalarySchema>;
+
 // ── Extra fees (additional charges billed on top of the monthly fee) ──
 
 const extraFeeClassAmountSchema = z.object({

@@ -10,12 +10,14 @@ import { ensureEmployeesLoaded, getEmployeesState } from "@/lib/employees/store"
 import {
   apiCreateSalary,
   apiListSalaries,
-  apiUpdateSalary,
+  apiPaySalary,
+  apiSalaryPayments,
   mapApiSalary,
 } from "./api";
 import { monthKey, monthLabel } from "./format";
 import type {
   Employee,
+  PaymentMethod,
   PaySalaryInput,
   PayrollRecord,
   PayrollRow,
@@ -372,12 +374,11 @@ export async function paySalary(input: PaySalaryInput): Promise<{
   }
 
   const emp = s.employees.find((e) => e.id === payroll.employeeId);
-  const isFull = input.amount >= payroll.remainingBalance;
-  const status: PayrollStatus = isFull ? "PAID" : "PARTIAL";
 
   try {
-    await apiUpdateSalary(payroll.id, {
-      status,
+    const res = await apiPaySalary(payroll.id, {
+      amount: input.amount,
+      paymentMethod: input.paymentMethod,
       note: input.notes ?? undefined,
     });
     const { year, month: payrollMo } = (() => {
@@ -387,14 +388,14 @@ export async function paySalary(input: PaySalaryInput): Promise<{
     await refreshSalaries(year, payrollMo);
 
     const payment: SalaryPayment = {
-      id: `sp_${Date.now()}`,
+      id: res.payment.id,
       payrollId: payroll.id,
       employeeId: payroll.employeeId,
-      amount: input.amount,
+      amount: res.payment.amount,
       paymentMethod: input.paymentMethod,
-      paidAt: new Date().toISOString(),
+      paidAt: res.payment.paidAt,
       paidBy: input.paidBy ?? "Admin User",
-      notes: input.notes ?? null,
+      notes: res.payment.note,
     };
 
     setState({
@@ -403,7 +404,7 @@ export async function paySalary(input: PaySalaryInput): Promise<{
     });
 
     logAudit(
-      status === "PAID" ? "Salary Paid" : "Partial Salary Paid",
+      res.salary.status === "PAID" ? "Salary Paid" : "Partial Salary Paid",
       emp?.fullName,
       `${money(input.amount)} for ${monthLabel(payroll.payrollMonth)}`,
     );
@@ -411,6 +412,28 @@ export async function paySalary(input: PaySalaryInput): Promise<{
     return { ok: true, payment };
   } catch (e) {
     return { ok: false, error: apiErr(e, "Failed to record salary payment.") };
+  }
+}
+
+/** Loads the real payment history for one payroll row from the server —
+ *  local `payments` state only ever holds what this session itself recorded. */
+export async function loadPayrollPayments(payrollId: string): Promise<SalaryPayment[]> {
+  try {
+    const rows = await apiSalaryPayments(payrollId);
+    const s = ensure();
+    const payroll = s.payroll.find((p) => p.id === payrollId);
+    return rows.map((r) => ({
+      id: r.id,
+      payrollId,
+      employeeId: payroll?.employeeId ?? "",
+      amount: r.amount,
+      paymentMethod: (r.paymentMethod as PaymentMethod) ?? "BANK_TRANSFER",
+      paidAt: r.paidAt,
+      paidBy: "—",
+      notes: r.note,
+    }));
+  } catch {
+    return paymentsForPayroll(payrollId);
   }
 }
 

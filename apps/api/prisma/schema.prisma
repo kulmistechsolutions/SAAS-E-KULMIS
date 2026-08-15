@@ -1031,6 +1031,11 @@ model Salary {
   employeeName String
   position     String?
   amount       Int
+  /// Running total actually collected against `amount` — drives PARTIAL vs
+  /// PAID. Previously nothing tracked this: `status` could say PARTIAL while
+  /// the paid amount was silently 0 on every reload, because the individual
+  /// payment record was kept client-side only. See SalaryPayment.
+  amountPaid   Int          @default(0)
   year         Int
   month        Int
   status       SalaryStatus @default(PENDING)
@@ -1039,8 +1044,39 @@ model Salary {
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
 
+  payments SalaryPayment[]
+
+  // One payroll row per person per month — Generate Payroll must be safe to
+  // click again without creating duplicates. Nullable columns mean Postgres
+  // treats every NULL as distinct, so a teacher row (employeeId always null)
+  // never collides with the employeeId index and vice versa — each index
+  // only ever constrains the rows where its own column is actually set.
+  @@unique([schoolId, teacherId, year, month])
+  @@unique([schoolId, employeeId, year, month])
   @@index([schoolId])
   @@map("salaries")
+}
+
+/// A single collection against a Salary row — mirrors Payment/FeeCharge for
+/// student fees. Salary.amountPaid is the running total; this is the ledger
+/// of individual transactions that add up to it.
+model SalaryPayment {
+  id                String   @id @default(cuid())
+  schoolId          String
+  salaryId          String
+  employeeName      String
+  amount            Int
+  paymentMethod     String?
+  note              String?
+  collectedByUserId String?
+  paidAt            DateTime @default(now())
+  createdAt         DateTime @default(now())
+
+  salary Salary @relation(fields: [salaryId], references: [id], onDelete: Cascade)
+
+  @@index([schoolId])
+  @@index([salaryId])
+  @@map("salary_payments")
 }
 
 /// Non-teaching staff (guards, cleaners, and similar roles) who draw a
