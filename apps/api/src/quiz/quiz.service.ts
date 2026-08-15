@@ -1315,6 +1315,92 @@ export class QuizService {
     );
   }
 
+  /**
+   * Quizzes visible to one student — published/closed quizzes targeting
+   * their home class or any additional class they sit in (see
+   * studentInClassWhere's twin, studentSitsIn), each annotated with that
+   * student's own attempt history. This is what backs both the student
+   * portal's Quizzes tab and the staff-side "preview as student" tool —
+   * previously both called a stub that always returned an empty list.
+   */
+  async listForStudent(schoolId: string, studentId: string) {
+    return this.prisma.forTenant(schoolId, async (tx) => {
+      const student = await tx.student.findFirst({
+        where: { id: studentId },
+        select: {
+          classId: true,
+          sectionId: true,
+          extraClasses: { select: { classId: true, sectionId: true } },
+        },
+      });
+      if (!student) throw new NotFoundException("Student not found");
+
+      const seats = [
+        { classId: student.classId, sectionId: student.sectionId },
+        ...student.extraClasses,
+      ];
+
+      const quizzes = await tx.quiz.findMany({
+        where: {
+          status: { in: ["PUBLISHED", "CLOSED"] },
+          OR: seats.map((seat) => ({
+            AND: [
+              { classId: seat.classId },
+              { OR: [{ sectionId: null }, { sectionId: seat.sectionId }] },
+            ],
+          })),
+        },
+        orderBy: { createdAt: "desc" },
+        include: {
+          subject: { select: { name: true } },
+          teacher: { select: { fullName: true } },
+          _count: { select: { questions: true } },
+        },
+      });
+
+      const attempts = await tx.quizAttempt.findMany({
+        where: { studentId, quizId: { in: quizzes.map((q) => q.id) } },
+        orderBy: { startedAt: "desc" },
+      });
+      const attemptsByQuiz = new Map<string, typeof attempts>();
+      for (const a of attempts) {
+        const arr = attemptsByQuiz.get(a.quizId) ?? [];
+        arr.push(a);
+        attemptsByQuiz.set(a.quizId, arr);
+      }
+
+      return quizzes.map((q) => {
+        const mine = attemptsByQuiz.get(q.id) ?? [];
+        const best =
+          mine.find((a) => a.status === "GRADED") ??
+          mine.find((a) => a.status === "SUBMITTED" || a.status === "PENDING_REVIEW") ??
+          null;
+        return {
+          id: q.id,
+          code: q.code,
+          title: q.title,
+          subject: q.subject?.name ?? null,
+          teacherName: q.teacher.fullName,
+          status: q.status,
+          timeLimitMin: q.timeLimitMin,
+          startAt: q.startAt,
+          endAt: q.endAt,
+          maxAttempts: q.maxAttempts,
+          questionCount: q._count.questions,
+          attemptsUsed: mine.length,
+          canAttempt:
+            q.status === "PUBLISHED" &&
+            mine.length < q.maxAttempts &&
+            (!q.startAt || q.startAt <= new Date()) &&
+            (!q.endAt || q.endAt >= new Date()),
+          lastResult: best
+            ? { status: best.status, score: best.score, percentage: best.percentage, result: best.result }
+            : null,
+        };
+      });
+    });
+  }
+
   private normalizeText(s: string | null | undefined): string {
     return (s ?? "").trim().toLowerCase().replace(/\s+/g, " ");
   }

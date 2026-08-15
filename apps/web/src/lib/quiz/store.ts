@@ -15,9 +15,11 @@ import {
   apiPublishQuiz,
   apiQuizAttempts,
   apiQuizByCode,
+  apiQuizzesForStudent,
   apiSubmitQuizAttempt,
   type ApiQuiz,
   type ApiQuizQuestion,
+  type QuizForStudentRow,
 } from "./api";
 import { gradeFromPercentage, quizStatusLabel } from "./format";
 import type {
@@ -31,7 +33,6 @@ import type {
   QuizRow,
   QuizState,
   QuizStatus,
-  StudentQuizRow,
 } from "./types";
 
 const EMPTY: QuizState = {
@@ -394,8 +395,12 @@ export function deleteQuiz(id: string) {
   return { ok: true };
 }
 
-export function quizzesForStudent(_studentId: string): StudentQuizRow[] {
-  return [];
+export async function quizzesForStudent(studentId: string): Promise<QuizForStudentRow[]> {
+  try {
+    return await apiQuizzesForStudent(studentId);
+  } catch {
+    return [];
+  }
 }
 
 export function startAttempt(

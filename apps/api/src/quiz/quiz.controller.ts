@@ -79,6 +79,14 @@ export class QuizController {
     return this.quiz.studentAttempts(me.schoolId, studentId);
   }
 
+  @Get("student/:studentId/quizzes")
+  quizzesForStudent(
+    @CurrentUser() me: AuthUser,
+    @Param("studentId") studentId: string,
+  ) {
+    return this.quiz.listForStudent(me.schoolId, studentId);
+  }
+
   @Public()
   @Get("code/:code/landing")
   landing(@CurrentTenant() tenant: TenantContext, @Param("code") code: string) {

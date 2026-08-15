@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useStudentPortalAuth } from "@/lib/student-portal/use-student-portal-auth";
 import {
   apiStudentPortalAttendance,
   type StudentPortalAttendanceRow,
@@ -16,17 +15,15 @@ const STATUS_TONE: Record<string, "success" | "danger" | "warning" | "muted"> = 
 };
 
 export default function StudentPortalAttendancePage() {
-  const { me } = useStudentPortalAuth();
   const [rows, setRows] = useState<StudentPortalAttendanceRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!me) return;
     setLoading(true);
     void apiStudentPortalAttendance()
       .then(setRows)
       .finally(() => setLoading(false));
-  }, [me]);
+  }, []);
 
   const stats = useMemo(() => {
     const present = rows.filter((r) => r.status === "PRESENT").length;

@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useStudentPortalAuth } from "@/lib/student-portal/use-student-portal-auth";
 import { apiStudentPortalFees } from "@/lib/student-portal/api";
 import { money } from "@/lib/students/format";
 import { Badge } from "@/components/ui/badge";
@@ -54,17 +53,15 @@ const STATUS_TONE: Record<string, "success" | "danger" | "warning" | "muted"> = 
 };
 
 export default function StudentPortalFeesPage() {
-  const { me } = useStudentPortalAuth();
   const [fees, setFees] = useState<FeesResponse | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!me) return;
     setLoading(true);
     void (apiStudentPortalFees() as Promise<FeesResponse>)
       .then(setFees)
       .finally(() => setLoading(false));
-  }, [me]);
+  }, []);
 
   if (loading) {
     return <p className="text-muted-foreground">Loading fee information…</p>;

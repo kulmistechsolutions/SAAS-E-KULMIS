@@ -1,8 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { Loader2 } from "lucide-react";
-import { useStudentPortalAuth } from "@/lib/student-portal/use-student-portal-auth";
+import { StudentPortalProvider, useStudentPortal } from "@/components/student-portal/portal-context";
 import { StudentPortalShell } from "@/components/student-portal/portal-shell";
 
 export default function StudentPortalLayout({
@@ -15,19 +14,14 @@ export default function StudentPortalLayout({
 
   if (isLogin) return <>{children}</>;
 
-  return <Guarded>{children}</Guarded>;
+  return (
+    <StudentPortalProvider>
+      <ShellWithMe>{children}</ShellWithMe>
+    </StudentPortalProvider>
+  );
 }
 
-function Guarded({ children }: { children: React.ReactNode }) {
-  const { me, loading } = useStudentPortalAuth();
-
-  if (loading || !me) {
-    return (
-      <div className="flex min-h-screen items-center justify-center gap-2 text-muted-foreground">
-        <Loader2 className="h-4 w-4 animate-spin" /> Loading…
-      </div>
-    );
-  }
-
+function ShellWithMe({ children }: { children: React.ReactNode }) {
+  const { me } = useStudentPortal();
   return <StudentPortalShell me={me}>{children}</StudentPortalShell>;
 }

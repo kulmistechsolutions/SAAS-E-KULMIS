@@ -1,6 +1,7 @@
 "use client";
 
 import { api } from "@/lib/api";
+import type { QuizStatus } from "./types";
 
 export interface QuizMatchPair {
   left: string;
@@ -381,6 +382,33 @@ export const apiQuizLanding = (code: string) =>
   api<QuizLandingResponse>(`/quiz/code/${encodeURIComponent(code)}/landing`, {
     auth: false,
   });
+
+export interface QuizForStudentRow {
+  id: string;
+  code: string;
+  title: string;
+  subject: string | null;
+  teacherName: string;
+  status: QuizStatus;
+  timeLimitMin: number | null;
+  startAt: string | null;
+  endAt: string | null;
+  maxAttempts: number;
+  questionCount: number;
+  attemptsUsed: number;
+  canAttempt: boolean;
+  lastResult: {
+    status: string;
+    score: number | null;
+    percentage: number | null;
+    result: string | null;
+  } | null;
+}
+
+/** Staff-side "what would this student see" preview — same data the
+ *  student portal's Quizzes tab shows the student directly. */
+export const apiQuizzesForStudent = (studentId: string) =>
+  api<QuizForStudentRow[]>(`/quiz/student/${studentId}/quizzes`);
 
 export const apiQuizLinkOpened = (body: { quizCode: string; studentCode: string }) =>
   api<{ ok: boolean }>("/quiz/link-opened", {

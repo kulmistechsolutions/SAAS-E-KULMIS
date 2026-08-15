@@ -123,3 +123,28 @@ export const apiStudentPortalResults = () =>
 
 export const apiStudentPortalTimetable = () =>
   studentApi<unknown[]>("/student-portal/timetable");
+
+export interface StudentPortalQuizRow {
+  id: string;
+  code: string;
+  title: string;
+  subject: string | null;
+  teacherName: string;
+  status: string;
+  timeLimitMin: number | null;
+  startAt: string | null;
+  endAt: string | null;
+  maxAttempts: number;
+  questionCount: number;
+  attemptsUsed: number;
+  canAttempt: boolean;
+  lastResult: {
+    status: string;
+    score: number | null;
+    percentage: number | null;
+    result: string | null;
+  } | null;
+}
+
+export const apiStudentPortalQuizzes = () =>
+  studentApi<StudentPortalQuizRow[]>("/student-portal/quizzes");

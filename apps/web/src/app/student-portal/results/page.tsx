@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useStudentPortalAuth } from "@/lib/student-portal/use-student-portal-auth";
 import { apiStudentPortalResults, type StudentPortalResults } from "@/lib/student-portal/api";
 import { buildExamGroupBreakdown } from "@/lib/examinations/store";
 import type { StudentExamResult } from "@/lib/examinations/types";
@@ -16,18 +15,16 @@ interface CardEntry {
 }
 
 export default function StudentPortalResultsPage() {
-  const { me } = useStudentPortalAuth();
   const [data, setData] = useState<StudentPortalResults | null>(null);
   const [loading, setLoading] = useState(true);
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    if (!me) return;
     setLoading(true);
     void apiStudentPortalResults()
       .then(setData)
       .finally(() => setLoading(false));
-  }, [me]);
+  }, []);
 
   const results: StudentExamResult[] = data?.termResults ?? [];
   const baseInfo = useMemo(

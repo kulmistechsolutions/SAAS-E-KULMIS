@@ -5,6 +5,7 @@ import { PrismaService } from "../prisma/prisma.service";
 import { ExaminationsService } from "../examinations/examinations.service";
 import { FeesService } from "../finance/fees.service";
 import { TimetableViewService } from "../timetable/timetable-view.service";
+import { QuizService } from "../quiz/quiz.service";
 import { verifyPassword } from "../auth/password.util";
 import type { JwtPayload } from "../auth/auth.types";
 
@@ -26,6 +27,7 @@ export class StudentPortalService {
     private readonly exams: ExaminationsService,
     private readonly fees: FeesService,
     private readonly timetable: TimetableViewService,
+    private readonly quiz: QuizService,
   ) {}
 
   async login(schoolId: string, dto: StudentPortalLoginInput) {
@@ -137,5 +139,10 @@ export class StudentPortalService {
   async timetableForStudent(schoolId: string, studentId: string) {
     await this.requireActiveStudent(schoolId, studentId);
     return this.timetable.forStudent(schoolId, studentId);
+  }
+
+  async quizzes(schoolId: string, studentId: string) {
+    await this.requireActiveStudent(schoolId, studentId);
+    return this.quiz.listForStudent(schoolId, studentId);
   }
 }

@@ -53,4 +53,10 @@ export class StudentPortalController {
   timetable(@CurrentUser() me: AuthUser) {
     return this.portal.timetableForStudent(me.schoolId, me.userId);
   }
+
+  @Roles(UserRole.STUDENT)
+  @Get("quizzes")
+  quizzes(@CurrentUser() me: AuthUser) {
+    return this.portal.quizzes(me.schoolId, me.userId);
+  }
 }
