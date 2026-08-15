@@ -15,6 +15,7 @@ import type { Response } from "express";
 import {
   addStudentClassSchema,
   registerStudentSchema,
+  resetStudentPortalPasswordSchema,
   updateStudentSchema,
   uploadStudentPhotoSchema,
   UserRole,
@@ -172,6 +173,18 @@ export class StudentsController {
   @Delete(":id")
   remove(@CurrentUser() me: AuthUser, @Param("id") id: string) {
     return this.students.remove(me.schoolId, id);
+  }
+
+  @Roles(UserRole.ADMINISTRATOR, UserRole.RECEPTION_OFFICER)
+  @Post(":id/reset-portal-password")
+  resetPortalPassword(
+    @CurrentUser() me: AuthUser,
+    @Param("id") id: string,
+    @Body() body: unknown,
+  ) {
+    const parsed = resetStudentPortalPasswordSchema.safeParse(body ?? {});
+    if (!parsed.success) throw new BadRequestException(parsed.error.flatten());
+    return this.students.resetPortalPassword(me.schoolId, id, parsed.data.password);
   }
 
   /** Put an existing student into one more class (they keep one record). */

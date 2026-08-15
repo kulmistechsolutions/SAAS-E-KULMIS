@@ -318,6 +318,17 @@ export async function apiDeleteStudent(
   });
 }
 
+/** Resets a student's Student Portal login password (defaults to their Student ID). */
+export async function apiResetStudentPortalPassword(
+  id: string,
+  password?: string,
+): Promise<{ password: string }> {
+  return api<{ password: string }>(`/students/${id}/reset-portal-password`, {
+    method: "POST",
+    body: password ? { password } : {},
+  });
+}
+
 /** Delete several students at once (multi-select). IDs are not reused. */
 export async function apiBulkDeleteStudents(
   ids: string[],

@@ -897,4 +897,24 @@ export class StudentsService {
 
     return { success: true, deletedCount, parentsDeleted };
   }
+
+  /**
+   * Resets a student's portal login password. Unlike teacher/parent resets,
+   * there's no linked User row or refresh token to revoke — a student portal
+   * session is a single 24h access token (see StudentPortalService), so an
+   * old token stays valid until it naturally expires even after this runs.
+   */
+  async resetPortalPassword(schoolId: string, id: string, customPassword?: string) {
+    const student = await this.prisma.forTenant(schoolId, (tx) =>
+      tx.student.findFirst({ where: { id }, select: { id: true, code: true } }),
+    );
+    if (!student) throw new NotFoundException("Student not found");
+
+    const password = customPassword?.trim() || student.code;
+    const portalPasswordHash = await hashPassword(password);
+    await this.prisma.forTenant(schoolId, (tx) =>
+      tx.student.update({ where: { id }, data: { portalPasswordHash } }),
+    );
+    return { password };
+  }
 }

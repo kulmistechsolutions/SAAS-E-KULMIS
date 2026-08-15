@@ -87,6 +87,10 @@ model School {
   /// turning either on only affects registrations from then on.
   villageRequired     Boolean              @default(false)
   districtRequired    Boolean              @default(false)
+  /// Whether students can sign in to their own portal (class, exam results,
+  /// attendance, fees) with their Student ID + portal password. Off by
+  /// default — a school opts in explicitly.
+  studentPortalEnabled Boolean             @default(false)
 
   /// Free-trial deadline set when Super Admin creates the school. The school
   /// works normally until this passes; after it, sign-in is blocked until a

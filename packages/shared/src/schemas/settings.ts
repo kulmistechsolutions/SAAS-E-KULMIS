@@ -56,6 +56,9 @@ export const updateSettingsSchema = z
     /// See School.villageRequired/districtRequired.
     villageRequired: z.boolean().optional(),
     districtRequired: z.boolean().optional(),
+    /// Lets students sign in to their own portal — see
+    /// School.studentPortalEnabled.
+    studentPortalEnabled: z.boolean().optional(),
     teacherPrefix: z.string().min(1).max(10).optional(),
     parentPrefix: z.string().min(1).max(10).optional(),
     receiptPrefix: z.string().min(1).max(10).optional(),

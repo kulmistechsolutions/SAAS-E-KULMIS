@@ -11,6 +11,7 @@ import {
   Download,
   FileText,
   GraduationCap,
+  KeyRound,
   Pencil,
   Printer,
   Receipt,
@@ -20,6 +21,7 @@ import {
   Users,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Tabs } from "@/components/ui/tabs";
@@ -62,6 +64,8 @@ import { studentPromotionHistory } from "@/lib/promotions/store";
 import { PromotionTypeBadge } from "@/components/promotions/badges";
 import { dateTime } from "@/lib/promotions/format";
 import { apiStudentCasesForStudent } from "@/lib/student-cases/api";
+import { apiResetStudentPortalPassword } from "@/lib/students/api";
+import { ApiError } from "@/lib/api";
 import type { StudentOwnCase } from "@/lib/student-cases/types";
 import type { StudentStatus, StudentWithParent } from "@/lib/students/types";
 import { studentClassLabel } from "@/lib/students/types";
@@ -307,6 +311,95 @@ function PersonalTab({
       <Field label={tr("students.notes")} value={student.notes ?? "—"} />
       </div>
       <ExtraClassesSection student={student} canEdit={canEdit} />
+      {canEdit && <StudentPortalLoginCard student={student} />}
+    </div>
+  );
+}
+
+function StudentPortalLoginCard({ student }: { student: StudentWithParent }) {
+  const [resetting, setResetting] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [customPw, setCustomPw] = useState("");
+  const [revealedPassword, setRevealedPassword] = useState<string | null>(null);
+
+  async function doReset(custom?: string) {
+    setResetting(true);
+    try {
+      const { password } = await apiResetStudentPortalPassword(student.id, custom);
+      setRevealedPassword(password);
+      setCustomPw("");
+      toast(`New portal password: ${password}`, "info");
+    } catch (e) {
+      toast(e instanceof ApiError ? e.message : "Reset failed", "error");
+    } finally {
+      setResetting(false);
+      setConfirmOpen(false);
+    }
+  }
+
+  return (
+    <div className="rounded-xl border bg-secondary/30 px-4 py-3">
+      <p className="text-xs text-muted-foreground">Student Portal Login</p>
+      <p className="mt-0.5 font-mono font-medium">
+        {revealedPassword ? revealedPassword : "••••••••••"}
+      </p>
+      <p className="mt-1 text-xs text-muted-foreground">
+        Students start on their Student ID (<span className="font-mono">{student.code}</span>) as
+        their portal password. Reset only if the student says they can&apos;t sign in —
+        most of the time it means they simply forgot it, not that something is broken.
+      </p>
+      <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
+        <Button
+          variant="outline"
+          className="h-8 px-3 text-xs"
+          disabled={resetting}
+          onClick={() => setConfirmOpen(true)}
+        >
+          <KeyRound className="me-2 h-4 w-4" />
+          {resetting ? "Resetting…" : "Reset Portal Password"}
+        </Button>
+      </div>
+
+      <Dialog
+        open={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        title="Reset Portal Password?"
+        className="max-w-md"
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setConfirmOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={resetting}
+              onClick={() => void doReset(customPw.trim() || undefined)}
+            >
+              {resetting ? "Resetting…" : "Reset Password"}
+            </Button>
+          </>
+        }
+      >
+        <div className="flex items-start gap-4">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-rose-500/12 text-rose-600 dark:text-rose-400">
+            <AlertTriangle className="h-5 w-5" />
+          </span>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              This student may have simply forgotten their password — resetting it
+              invalidates the old one and gives {student.fullName} a new one to sign
+              in with. Leave the field below blank to reset to their Student ID (
+              {student.code}), or set a custom password.
+            </p>
+            <Input
+              className="h-9 text-sm"
+              placeholder="Custom password (optional)"
+              value={customPw}
+              onChange={(e) => setCustomPw(e.target.value)}
+            />
+          </div>
+        </div>
+      </Dialog>
     </div>
   );
 }

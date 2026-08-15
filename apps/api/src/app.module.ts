@@ -42,6 +42,7 @@ import { ReportsModule } from "./reports/reports.module";
 import { NotificationsModule } from "./notifications/notifications.module";
 import { ParentPortalModule } from "./parent-portal/parent-portal.module";
 import { TeacherPortalModule } from "./teacher-portal/teacher-portal.module";
+import { StudentPortalModule } from "./student-portal/student-portal.module";
 import { BackupModule } from "./backup/backup.module";
 import { ImportsModule } from "./imports/imports.module";
 import { SmsModule } from "./sms/sms.module";
@@ -99,6 +100,7 @@ import { TenantModule } from "./tenant/tenant.module";
     NotificationsModule,
     ParentPortalModule,
     TeacherPortalModule,
+    StudentPortalModule,
     BackupModule,
     ImportsModule,
     SmsModule,

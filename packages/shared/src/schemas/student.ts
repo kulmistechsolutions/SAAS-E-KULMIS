@@ -108,3 +108,19 @@ export const addStudentClassSchema = z.object({
   sectionId: z.string().min(1).nullable().optional(),
 });
 export type AddStudentClassInput = z.infer<typeof addStudentClassSchema>;
+
+// ── Student portal (student-facing, password sign-in) ───────────────────────
+
+export const studentPortalLoginSchema = z.object({
+  studentCode: z.string().trim().min(1, "Student ID is required"),
+  password: z.string().min(1, "Password is required"),
+});
+export type StudentPortalLoginInput = z.infer<typeof studentPortalLoginSchema>;
+
+/** Admin-triggered reset of a student's portal password (Student.portalPasswordHash). */
+export const resetStudentPortalPasswordSchema = z.object({
+  password: z.string().min(4).max(60).optional(),
+});
+export type ResetStudentPortalPasswordInput = z.infer<
+  typeof resetStudentPortalPasswordSchema
+>;
