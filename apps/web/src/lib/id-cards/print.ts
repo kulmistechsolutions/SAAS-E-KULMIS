@@ -4,7 +4,13 @@ import { PAGE_A4, paginate, type ResolvedGrid } from "./layout";
 import { CARD_CSS, darken } from "./templates";
 import type { CardContext, CardTemplate } from "./types";
 
-/** Markup for one card, sized to its physical footprint. */
+/**
+ * Markup for one card, sized to its physical footprint.
+ *
+ * Orientation is read off the geometry rather than passed separately, so the
+ * shape that is actually being printed is always the shape the template lays
+ * itself out for — the two can never disagree.
+ */
 export function renderCard(
   ctx: CardContext,
   template: CardTemplate,
@@ -20,7 +26,8 @@ export function renderCard(
     `--idc-accent:${ctx.accent}`,
     `--idc-accent-dark:${darken(ctx.accent)}`,
   ].join(";");
-  return `<div class="${classes.join(" ")}" style="${style}">${template.render(ctx)}</div>`;
+  const orientation = grid.cardWidth < grid.cardHeight ? "PORTRAIT" : "LANDSCAPE";
+  return `<div class="${classes.join(" ")}" style="${style}">${template.render(ctx, orientation)}</div>`;
 }
 
 /**

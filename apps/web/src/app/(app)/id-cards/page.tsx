@@ -1,6 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   BadgeCheck,
   CreditCard,
@@ -166,10 +173,10 @@ export default function IdCardsPage() {
   }, [allStudents, studentsState.parents]);
 
   // ── Layout ──
+  // Orientation is the admin's choice and is never overridden by the template:
+  // every template renders in both, so picking a design must not silently
+  // change the shape of the card.
   const [layout, setLayout] = useState<PrintLayoutSettings>(DEFAULT_LAYOUT);
-  useEffect(() => {
-    if (template) setLayout((l) => ({ ...l, orientation: template.orientation }));
-  }, [template]);
 
   const grid = useMemo(() => resolveGrid(layout), [layout]);
 
@@ -295,7 +302,7 @@ export default function IdCardsPage() {
 
       <div className="grid gap-5 xl:grid-cols-12">
         {/* ── Configuration ── */}
-        <div className="space-y-5 xl:col-span-5">
+        <div className="space-y-5 xl:col-span-7">
           <Section title={`1. ${t("idCards.selectCardType")}`}>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
               {CARD_TYPES.map((ct) => {
@@ -322,7 +329,33 @@ export default function IdCardsPage() {
             </div>
           </Section>
 
-          <Section title={`2. ${t("idCards.selectTemplate")}`}>
+          <Section
+            title={`2. ${t("idCards.selectTemplate")}`}
+            right={
+              <div className="flex rounded-lg border p-0.5">
+                {(
+                  [
+                    ["PORTRAIT", t("idCards.portrait")],
+                    ["LANDSCAPE", t("idCards.landscape")],
+                  ] as [PrintLayoutSettings["orientation"], string][]
+                ).map(([o, label]) => (
+                  <button
+                    key={o}
+                    type="button"
+                    onClick={() => setLayoutField("orientation", o)}
+                    className={cn(
+                      "rounded-md px-2.5 py-1 text-xs font-medium transition",
+                      layout.orientation === o
+                        ? "bg-primary text-primary-foreground"
+                        : "text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            }
+          >
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               {templates.map((tpl) => (
                 <button
@@ -336,7 +369,7 @@ export default function IdCardsPage() {
                       : "hover:border-primary/40",
                   )}
                 >
-                  <MiniCard ctx={previewCtx} templateId={tpl.id} accent={accent} />
+                  <MiniCard ctx={previewCtx} templateId={tpl.id} accent={accent} layout={layout} />
                   <p className="mt-1.5 truncate text-xs font-medium">{tpl.name}</p>
                 </button>
               ))}
@@ -592,26 +625,20 @@ export default function IdCardsPage() {
           </Section>
         </div>
 
-        {/* ── Single-card preview ── */}
-        <div className="xl:col-span-3">
-          <Section title={t("idCards.templatePreview")} sticky>
+        {/* ── Previews: one column, so neither panel is squeezed ── */}
+        <div className="space-y-5 xl:col-span-5 xl:sticky xl:top-4 xl:self-start">
+          <Section title={t("idCards.templatePreview")}>
             {previewCtx && template ? (
-              <div className="flex justify-center">
-                <ScaledCard ctx={previewCtx} templateId={template.id} targetWidth={240} layout={layout} />
-              </div>
+              <ScaledCard ctx={previewCtx} templateId={template.id} layout={layout} />
             ) : (
               <p className="py-10 text-center text-xs text-muted-foreground">
                 {t("idCards.selectStudentsFirst")}
               </p>
             )}
           </Section>
-        </div>
 
-        {/* ── A4 print layout ── */}
-        <div className="xl:col-span-4">
           <Section
             title={`${t("idCards.printLayout")} (A4 — ${grid.perPage} ${t("idCards.cardsPerPage")})`}
-            sticky
             right={
               totalPages > 0 ? (
                 <span className="rounded-full bg-emerald-500/15 px-2.5 py-1 text-xs font-medium text-emerald-600 dark:text-emerald-400">
@@ -819,121 +846,121 @@ function Info({ label, value }: { label: string; value: string }) {
   );
 }
 
+
 /**
- * One card rendered at the largest zoom that still fits the panel.
+ * Scales its children down (or up) to exactly fill the width it is given.
  *
- * The scale is derived from the card's own width rather than fixed: a portrait
- * card is 54mm and a landscape one 86mm, so a single zoom that suits one
- * overflows the column for the other.
+ * The previews used fixed zoom factors, which meant guessing how wide each
+ * panel would be — and the guesses were wrong: portrait thumbnails overflowed
+ * their tile by 25px and landscape ones by 100px, and the card preview spilled
+ * under the neighbouring panel. Measuring the real container removes the guess,
+ * so a card of any size or orientation fits any panel at any viewport width.
  */
+function FitBox({
+  contentWidth,
+  contentHeight,
+  html,
+  maxScale = 3,
+  className,
+}: {
+  contentWidth: number;
+  contentHeight: number;
+  html: string;
+  maxScale?: number;
+  className?: string;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [avail, setAvail] = useState(0);
+
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const measure = () => setAvail(el.getBoundingClientRect().width);
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  const scale = avail > 0 ? Math.min(maxScale, avail / contentWidth) : 0;
+
+  return (
+    <div ref={ref} className={cn("w-full", className)}>
+      {/* Hidden until measured, so nothing flashes at the wrong size. */}
+      <div
+        className="relative mx-auto overflow-hidden"
+        style={{
+          width: contentWidth * scale,
+          height: contentHeight * scale,
+          visibility: scale > 0 ? "visible" : "hidden",
+        }}
+      >
+        <div
+          className="absolute left-0 top-0 origin-top-left"
+          style={{ width: contentWidth, height: contentHeight, transform: `scale(${scale})` }}
+          dangerouslySetInnerHTML={{ __html: html }}
+        />
+      </div>
+    </div>
+  );
+}
+
+/** The selected template at full size, filling the preview panel. */
 function ScaledCard({
   ctx,
   templateId,
-  targetWidth,
   layout,
 }: {
   ctx: CardContext;
   templateId: string;
-  targetWidth: number;
   layout: PrintLayoutSettings;
 }) {
   const grid = resolveGrid(layout);
   const tpl = templateById(templateId);
   if (!tpl) return null;
-  const scale = Math.min(2.2, targetWidth / (grid.cardWidth * MM));
-  const html = renderCard({ ...ctx, accent: ctx.accent }, tpl, grid, {
-    border: layout.showCardBorder,
-    cutLines: false,
-  });
-  const w = grid.cardWidth * MM * scale;
-  const h = grid.cardHeight * MM * scale;
   return (
-    <div className="idc-preview-wrap" style={{ width: w, height: h }}>
-      <div
-        className="idc-scaled"
-        style={{ transform: `scale(${scale})` }}
-        dangerouslySetInnerHTML={{ __html: html }}
-      />
-    </div>
+    <FitBox
+      contentWidth={grid.cardWidth * MM}
+      contentHeight={grid.cardHeight * MM}
+      maxScale={2.4}
+      html={renderCard(ctx, tpl, grid, { border: layout.showCardBorder, cutLines: false })}
+    />
   );
 }
 
-/** Template thumbnail — the actual template, shrunk. */
+/**
+ * Template thumbnail, rendered in the orientation currently selected — the
+ * chooser shows the shape that will actually be printed, not a fixed one.
+ */
 function MiniCard({
   ctx,
   templateId,
   accent,
+  layout,
 }: {
   ctx: CardContext | null;
   templateId: string;
   accent: string;
+  layout: PrintLayoutSettings;
 }) {
   const tpl = templateById(templateId);
   if (!tpl) return null;
-  const layout: PrintLayoutSettings = {
-    ...DEFAULT_LAYOUT,
-    orientation: tpl.orientation,
-    showCardBorder: true,
-    showCutLines: false,
-  };
-  const grid = resolveGrid(layout);
-  const scale = 0.62;
-  const sample: CardContext =
-    ctx ??
-    ({
-      studentId: "STD-0000",
-      studentName: "Student Name",
-      className: "Grade 12",
-      section: "A",
-      academicYear: "—",
-      gender: "MALE",
-      dob: "—",
-      photoDataUrl: null,
-      guardianName: "",
-      guardianPhone: "",
-      schoolName: "School",
-      schoolMotto: "",
-      schoolAddress: "",
-      schoolPhone: "",
-      schoolEmail: "",
-      schoolWebsite: "",
-      logoDataUrl: null,
-      principalName: "",
-      accent: tpl.accent,
-      cardTitle: "ID CARD",
-      idLabel: "ID",
-      footerText: "",
-      issueDate: "",
-      qrDataUrl: null,
-      examName: "",
-      examDate: "",
-      examSession: "",
-      examOffice: "",
-      clearanceStatus: "",
-      customLine1: "",
-      customLine2: "",
-    } as CardContext);
-  const html = renderCard(
-    { ...sample, accent: accent || tpl.accent },
-    tpl,
-    grid,
-    { border: true, cutLines: false },
-  );
+  const grid = resolveGrid({ ...layout, showCardBorder: true, showCutLines: false });
+  const sample: CardContext = ctx ?? PLACEHOLDER_CTX;
   return (
-    <div
-      className="idc-preview-wrap mx-auto"
-      style={{ width: grid.cardWidth * MM * scale, height: grid.cardHeight * MM * scale }}
-    >
-      <div
-        className="idc-scaled"
-        style={{ transform: `scale(${scale})` }}
-        dangerouslySetInnerHTML={{ __html: html }}
-      />
-    </div>
+    <FitBox
+      contentWidth={grid.cardWidth * MM}
+      contentHeight={grid.cardHeight * MM}
+      maxScale={1}
+      html={renderCard({ ...sample, accent: accent || tpl.accent }, tpl, grid, {
+        border: true,
+        cutLines: false,
+      })}
+    />
   );
 }
 
-/** A full A4 sheet, shrunk to fit the panel — a true print preview. */
+/** A full A4 sheet scaled to the panel — a true print preview. */
 function SheetPreview({
   contexts,
   templateId,
@@ -946,9 +973,6 @@ function SheetPreview({
   const grid = resolveGrid(layout);
   const tpl = templateById(templateId);
   if (!tpl) return null;
-  // Fit the A4 sheet to the panel rather than a fixed zoom, so the preview
-  // never spills past its column on a narrow screen.
-  const scale = 300 / (PAGE_A4.width * MM);
   const cards = contexts
     .map((c) =>
       renderCard(c, tpl, grid, {
@@ -964,15 +988,47 @@ function SheetPreview({
       grid-auto-rows:${grid.cardHeight}mm;gap:${grid.gap}mm;
       justify-content:center;align-content:start;overflow:hidden;">${cards}</div>`;
   return (
-    <div
-      className="idc-preview-wrap mx-auto overflow-hidden rounded-lg border shadow-sm"
-      style={{ width: PAGE_A4.width * MM * scale, height: PAGE_A4.height * MM * scale }}
-    >
-      <div
-        className="idc-scaled"
-        style={{ transform: `scale(${scale})` }}
-        dangerouslySetInnerHTML={{ __html: sheet }}
-      />
-    </div>
+    <FitBox
+      contentWidth={PAGE_A4.width * MM}
+      contentHeight={PAGE_A4.height * MM}
+      maxScale={1}
+      className="[&>div]:rounded-lg [&>div]:border [&>div]:shadow-sm"
+      html={sheet}
+    />
   );
 }
+
+/** Stand-in used for thumbnails before a student is selected. */
+const PLACEHOLDER_CTX: CardContext = {
+  studentId: "STD-0000",
+  studentName: "Student Name",
+  className: "Grade 12",
+  section: "A",
+  academicYear: "—",
+  gender: "MALE",
+  dob: "—",
+  photoDataUrl: null,
+  guardianName: "",
+  guardianPhone: "",
+  schoolName: "School",
+  schoolMotto: "",
+  schoolAddress: "",
+  schoolPhone: "",
+  schoolEmail: "",
+  schoolWebsite: "",
+  logoDataUrl: null,
+  principalName: "",
+  accent: "#1d4ed8",
+  cardTitle: "ID CARD",
+  idLabel: "ID",
+  footerText: "",
+  issueDate: "",
+  qrDataUrl: null,
+  examName: "",
+  examDate: "",
+  examSession: "",
+  examOffice: "",
+  clearanceStatus: "",
+  customLine1: "",
+  customLine2: "",
+};

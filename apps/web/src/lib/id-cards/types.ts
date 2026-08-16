@@ -73,13 +73,16 @@ export interface CardTemplate {
   id: string;
   name: string;
   cardType: CardType;
-  orientation: CardOrientation;
   /** Template has a dedicated photo frame; without a photo it prints a placeholder. */
   usesPhoto: boolean;
   /** Default accent colour; overridden by the school's brand colour when set. */
   accent: string;
-  /** Renders the INNER html of one card. The fixed-size wrapper is added by the layout engine. */
-  render: (c: CardContext) => string;
+  /**
+   * Renders the INNER html of one card, in the orientation asked for. Every
+   * template supports both, so a school is never forced into one shape by its
+   * choice of design. The fixed-size wrapper is added by the layout engine.
+   */
+  render: (c: CardContext, orientation: CardOrientation) => string;
 }
 
 /** Physical card sizes, in millimetres. */

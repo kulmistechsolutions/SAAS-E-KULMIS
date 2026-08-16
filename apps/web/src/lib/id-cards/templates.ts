@@ -1,6 +1,6 @@
 "use client";
 
-import type { CardContext, CardTemplate } from "./types";
+import type { CardContext, CardOrientation, CardTemplate, CardType } from "./types";
 
 export function escapeHtml(s: string): string {
   return String(s ?? "")
@@ -11,103 +11,150 @@ export function escapeHtml(s: string): string {
 }
 
 /**
- * One stylesheet, used by BOTH the on-screen preview and the print window, so
- * what the admin approves is exactly what comes out of the printer. Everything
- * is in mm/pt because a card is a physical object — px would drift with the
- * browser's print DPI.
+ * One stylesheet, shared by the on-screen preview and the print window, so what
+ * an admin approves is exactly what leaves the printer. Everything is in mm/pt
+ * because a card is a physical object — px would drift with print DPI.
  *
- * All colours are painted with `print-color-adjust: exact`; without it browsers
- * drop background fills when printing and every card comes out plain white.
+ * `print-color-adjust: exact` is required: without it browsers drop background
+ * fills when printing and every card comes out plain white.
  */
 export const CARD_CSS = `
 .idc {
-  position: relative;
-  overflow: hidden;
-  background: #fff;
-  color: #0f172a;
+  position: relative; overflow: hidden; background: #fff; color: #0f172a;
   font-family: Arial, Helvetica, sans-serif;
-  -webkit-print-color-adjust: exact;
-  print-color-adjust: exact;
-  display: flex;
-  flex-direction: column;
+  -webkit-print-color-adjust: exact; print-color-adjust: exact;
+  display: flex; flex-direction: column;
 }
 .idc * { box-sizing: border-box; }
-.idc-head {
-  background: linear-gradient(135deg, var(--idc-accent), var(--idc-accent-dark));
-  color: #fff;
-  padding: 2mm 2.5mm;
-  display: flex;
-  align-items: center;
-  gap: 1.8mm;
-}
-.idc-head-c { flex-direction: column; text-align: center; gap: 0.8mm; padding: 2.2mm 2mm; }
-.idc-logo { width: 7mm; height: 7mm; border-radius: 1.2mm; object-fit: contain; background: #fff; padding: 0.4mm; flex: 0 0 auto; }
-.idc-logo-ph { width: 7mm; height: 7mm; border-radius: 1.2mm; background: rgba(255,255,255,.25); display: flex; align-items: center; justify-content: center; font-size: 5pt; font-weight: 700; flex: 0 0 auto; }
-.idc-school { font-size: 6.5pt; font-weight: 700; line-height: 1.1; letter-spacing: .01em; }
-.idc-motto { font-size: 4.4pt; opacity: .9; line-height: 1.15; margin-top: .3mm; }
-.idc-title { font-size: 5.6pt; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
-/* Solid accent, not a translucent overlay: the title bar is a sibling of the
-   gradient header and sits on the white card body, so rgba() black rendered as
-   pale grey and the white text on it was effectively unreadable. */
-.idc-titlebar { background: var(--idc-accent-dark); color: #fff; text-align: center; padding: 1mm; font-size: 5.6pt; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
-.idc-body { flex: 1; padding: 2mm 2.5mm; display: flex; flex-direction: column; min-height: 0; }
-.idc-photo { border-radius: 1.2mm; object-fit: cover; border: 0.4mm solid var(--idc-accent); background: #f1f5f9; display: block; }
-.idc-photo-ph {
-  border-radius: 1.2mm; border: 0.4mm dashed #cbd5e1; background: #f8fafc; color: #94a3b8;
-  display: flex; align-items: center; justify-content: center; font-size: 4.5pt; text-align: center; line-height: 1.2;
-}
-.idc-name { font-size: 8pt; font-weight: 700; color: var(--idc-accent-dark); line-height: 1.15; }
-.idc-name-sm { font-size: 7pt; }
-.idc-lbl { font-size: 4.2pt; letter-spacing: .1em; text-transform: uppercase; color: #64748b; }
-.idc-pill {
-  background: var(--idc-accent); color: #fff; border-radius: 1mm; padding: 1mm 2mm;
-  font-size: 7.5pt; font-weight: 700; font-family: "Courier New", monospace; letter-spacing: .04em;
-  display: inline-block; white-space: nowrap;
-}
-.idc-pill-o { background: #fff; color: var(--idc-accent-dark); border: 0.4mm solid var(--idc-accent); }
-.idc-rows { width: 100%; border-collapse: collapse; font-size: 5.4pt; }
-.idc-rows td { padding: .5mm 0; vertical-align: top; }
-.idc-rows .k { color: #64748b; width: 42%; }
-.idc-rows .v { font-weight: 700; text-align: right; }
-.idc-qr { width: 11mm; height: 11mm; display: block; }
-.idc-qr-sm { width: 9mm; height: 9mm; }
+
+/* ── Header ── */
+.idc-head { background: linear-gradient(135deg, var(--idc-accent), var(--idc-accent-dark)); color: #fff; display: flex; align-items: center; gap: 1.8mm; padding: 1.8mm 2.4mm; flex: 0 0 auto; }
+.idc-head.c { flex-direction: column; text-align: center; gap: .7mm; }
+.idc-head.plain { background: #fff; color: #0f172a; border-bottom: .3mm solid #e2e8f0; }
+.idc-head.tall { padding-top: 2.6mm; padding-bottom: 2.6mm; }
+.idc-logo { width: 6.6mm; height: 6.6mm; border-radius: 1.1mm; object-fit: contain; background: #fff; padding: .35mm; flex: 0 0 auto; }
+.idc-logo.lg { width: 8.4mm; height: 8.4mm; }
+.idc-logo-ph { width: 6.6mm; height: 6.6mm; border-radius: 1.1mm; background: rgba(255,255,255,.25); display: flex; align-items: center; justify-content: center; font-size: 4.6pt; font-weight: 700; flex: 0 0 auto; }
+.idc-head.plain .idc-logo-ph { background: var(--idc-accent); color: #fff; }
+.idc-htxt { min-width: 0; flex: 1; }
+.idc-head.c .idc-htxt { flex: none; }
+.idc-school { font-size: 6.2pt; font-weight: 700; line-height: 1.12; }
+.idc-school.lg { font-size: 7pt; }
+.idc-motto { font-size: 4.2pt; opacity: .88; line-height: 1.15; margin-top: .25mm; }
+.idc-head.plain .idc-motto { color: #64748b; opacity: 1; }
+
+/* Solid accent, never a translucent overlay: the title bar sits on the white
+   card body, so rgba() black rendered as pale grey with unreadable white text. */
+.idc-titlebar { background: var(--idc-accent-dark); color: #fff; text-align: center; padding: .9mm; font-size: 5.2pt; font-weight: 700; letter-spacing: .11em; text-transform: uppercase; flex: 0 0 auto; }
+.idc-strip { height: 1.2mm; background: var(--idc-accent); flex: 0 0 auto; }
+
+/* ── Body ── */
+.idc-body { flex: 1 1 auto; min-height: 0; padding: 1.8mm 2.4mm; display: flex; flex-direction: column; gap: 1mm; }
+.idc-body.c { align-items: center; text-align: center; }
+.idc-cols { display: flex; gap: 2.2mm; flex: 1 1 auto; min-height: 0; align-items: flex-start; }
+.idc-col { min-width: 0; flex: 1 1 auto; display: flex; flex-direction: column; }
+
+.idc-photo { border-radius: 1.2mm; object-fit: cover; border: .4mm solid var(--idc-accent); background: #f1f5f9; display: block; flex: 0 0 auto; }
+.idc-photo-ph { border-radius: 1.2mm; border: .4mm dashed #cbd5e1; background: #f8fafc; color: #94a3b8; display: flex; align-items: center; justify-content: center; font-size: 4.2pt; text-align: center; line-height: 1.15; flex: 0 0 auto; }
+
+.idc-name { font-size: 7.6pt; font-weight: 700; color: var(--idc-accent-dark); line-height: 1.12; }
+.idc-name.sm { font-size: 6.6pt; }
+.idc-lbl { font-size: 4pt; letter-spacing: .09em; text-transform: uppercase; color: #64748b; line-height: 1.2; }
+.idc-pill { background: var(--idc-accent); color: #fff; border-radius: 1mm; padding: .9mm 1.8mm; font-size: 7pt; font-weight: 700; font-family: "Courier New", monospace; letter-spacing: .03em; display: inline-block; white-space: nowrap; }
+.idc-pill.o { background: #fff; color: var(--idc-accent-dark); border: .4mm solid var(--idc-accent); }
+
+.idc-rows { width: 100%; border-collapse: collapse; font-size: 5pt; }
+.idc-rows td { padding: .42mm 0; vertical-align: top; }
+.idc-rows .k { color: #64748b; width: 44%; }
+.idc-rows .v { font-weight: 700; text-align: end; }
+
+.idc-qr { width: 10mm; height: 10mm; display: block; flex: 0 0 auto; }
+.idc-qr.sm { width: 8.4mm; height: 8.4mm; }
 .idc-sig { text-align: center; }
-.idc-sig-line { border-top: 0.3mm solid #94a3b8; width: 18mm; margin: 0 auto .4mm; }
-.idc-sig-txt { font-size: 4pt; color: #64748b; }
-.idc-foot {
-  background: var(--idc-accent-dark); color: #fff; text-align: center;
-  padding: .9mm; font-size: 4.4pt; letter-spacing: .02em;
-}
-.idc-foot-l { background: #f1f5f9; color: #475569; }
-.idc-strip { height: 1.4mm; background: var(--idc-accent); }
-.idc-badge {
-  display: inline-block; border-radius: 5mm; padding: .7mm 2mm;
-  font-size: 5.2pt; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
-}
-.idc-row { display: flex; gap: 2mm; }
-.idc-between { display: flex; align-items: flex-end; justify-content: space-between; }
-.idc-mt { margin-top: auto; }
+.idc-sig-line { border-top: .3mm solid #94a3b8; width: 16mm; margin: 0 auto .35mm; }
+.idc-sig-txt { font-size: 3.8pt; color: #64748b; line-height: 1.15; }
+.idc-badge { display: inline-block; border-radius: 5mm; padding: .6mm 1.8mm; font-size: 4.8pt; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; }
+
+.idc-foot { background: var(--idc-accent-dark); color: #fff; text-align: center; padding: .8mm; font-size: 4.1pt; flex: 0 0 auto; }
+.idc-foot.light { background: #f1f5f9; color: #475569; }
+
+.idc-between { display: flex; align-items: flex-end; justify-content: space-between; gap: 1.5mm; width: 100%; }
+.idc-push { margin-top: auto; }
 `;
 
-// ── Shared building blocks ────────────────────────────────────────────────
+// ── Shared pieces ─────────────────────────────────────────────────────────
 
-function logo(c: CardContext): string {
-  return c.logoDataUrl
-    ? `<img class="idc-logo" src="${c.logoDataUrl}" alt=""/>`
-    : `<div class="idc-logo-ph">${escapeHtml(c.schoolName.slice(0, 2).toUpperCase())}</div>`;
+type HeaderStyle = "gradient-center" | "gradient-left" | "plain" | "tall";
+type PhotoScale = "sm" | "md" | "lg";
+
+interface TemplateSpec {
+  id: string;
+  name: string;
+  cardType: CardType;
+  accent: string;
+  header: HeaderStyle;
+  titlebar: boolean;
+  strip: boolean;
+  pillOutline: boolean;
+  footer: "accent" | "light" | "none";
+  photo: PhotoScale;
+  rows: (c: CardContext) => [string, string][];
+  /** Optional block shown above the QR row (status badge, validity, …). */
+  extra?: (c: CardContext) => string;
 }
 
-function header(c: CardContext, centered: boolean): string {
-  return `<div class="idc-head${centered ? " idc-head-c" : ""}">
-    ${logo(c)}
-    <div>
-      <div class="idc-school">${escapeHtml(c.schoolName)}</div>
+/** Photo box in mm, sized for the space the orientation actually leaves. */
+function photoBox(scale: PhotoScale, o: CardOrientation): { w: string; h: string } {
+  const p = { sm: [17, 21], md: [21, 25], lg: [25, 29] } as const;
+  const l = { sm: [14, 17], md: [16, 20], lg: [19, 23] } as const;
+  const [w, h] = o === "PORTRAIT" ? p[scale] : l[scale];
+  return { w: `${w}mm`, h: `${h}mm` };
+}
+
+function logo(c: CardContext, big = false): string {
+  const cls = big ? "idc-logo lg" : "idc-logo";
+  return c.logoDataUrl
+    ? `<img class="${cls}" src="${c.logoDataUrl}" alt=""/>`
+    : `<div class="idc-logo-ph"${big ? ' style="width:8.4mm;height:8.4mm"' : ""}>${escapeHtml(
+        c.schoolName.slice(0, 2).toUpperCase(),
+      )}</div>`;
+}
+
+function header(spec: TemplateSpec, c: CardContext, o: CardOrientation): string {
+  // Landscape has only ~54mm of height, so the tall/centred treatments collapse
+  // to the compact left-aligned one rather than eating the whole card.
+  const style: HeaderStyle =
+    o === "LANDSCAPE" && (spec.header === "tall" || spec.header === "gradient-center")
+      ? "gradient-left"
+      : spec.header;
+
+  const centered = style === "gradient-center" || style === "tall";
+  const cls = [
+    "idc-head",
+    centered ? "c" : "",
+    style === "plain" ? "plain" : "",
+    style === "tall" ? "tall" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  const title =
+    style === "tall"
+      ? `<div class="idc-lbl" style="color:inherit;opacity:.85;margin-top:.4mm">${escapeHtml(c.cardTitle)}</div>`
+      : "";
+
+  return `<div class="${cls}">
+    ${logo(c, style === "tall")}
+    <div class="idc-htxt">
+      <div class="idc-school${style === "tall" ? " lg" : ""}">${escapeHtml(c.schoolName)}</div>
       ${c.schoolMotto ? `<div class="idc-motto">${escapeHtml(c.schoolMotto)}</div>` : ""}
+      ${title}
     </div>
   </div>`;
 }
 
-function photo(c: CardContext, w: string, h: string): string {
+function photo(c: CardContext, spec: TemplateSpec, o: CardOrientation): string {
+  const { w, h } = photoBox(spec.photo, o);
   const style = `width:${w};height:${h}`;
   return c.photoDataUrl
     ? `<img class="idc-photo" style="${style}" src="${c.photoDataUrl}" alt=""/>`
@@ -115,369 +162,198 @@ function photo(c: CardContext, w: string, h: string): string {
 }
 
 function qr(c: CardContext, small = false): string {
-  if (!c.qrDataUrl) return "";
-  return `<img class="idc-qr${small ? " idc-qr-sm" : ""}" src="${c.qrDataUrl}" alt=""/>`;
+  return c.qrDataUrl ? `<img class="idc-qr${small ? " sm" : ""}" src="${c.qrDataUrl}" alt=""/>` : "";
 }
 
 function signature(c: CardContext): string {
   return `<div class="idc-sig">
     <div class="idc-sig-line"></div>
-    <div class="idc-sig-txt">${escapeHtml(c.principalName || "Principal Signature")}</div>
+    <div class="idc-sig-txt">${escapeHtml(c.principalName || "Authorised Signature")}</div>
   </div>`;
 }
 
-function rows(pairs: [string, string][]): string {
+function rowsTable(pairs: [string, string][]): string {
   const body = pairs
-    .filter(([, v]) => v && v !== "—")
-    .map(
-      ([k, v]) =>
-        `<tr><td class="k">${escapeHtml(k)}</td><td class="v">${escapeHtml(v)}</td></tr>`,
-    )
+    .filter(([k, v]) => k && v && v !== "—")
+    .map(([k, v]) => `<tr><td class="k">${escapeHtml(k)}</td><td class="v">${escapeHtml(v)}</td></tr>`)
     .join("");
-  return `<table class="idc-rows">${body}</table>`;
+  return body ? `<table class="idc-rows">${body}</table>` : "";
 }
 
-function idBlock(c: CardContext, outline = false): string {
-  return `<div>
+function idBlock(c: CardContext, spec: TemplateSpec, center: boolean): string {
+  return `<div${center ? "" : ' style="align-self:flex-start"'}>
     <div class="idc-lbl">${escapeHtml(c.idLabel)}</div>
-    <div class="idc-pill${outline ? " idc-pill-o" : ""}" style="margin-top:.6mm">${escapeHtml(c.studentId)}</div>
+    <div class="idc-pill${spec.pillOutline ? " o" : ""}" style="margin-top:.5mm">${escapeHtml(c.studentId)}</div>
   </div>`;
 }
 
-function footer(c: CardContext, light = false): string {
+function footer(spec: TemplateSpec, c: CardContext): string {
+  if (spec.footer === "none") return "";
   const text = c.footerText || c.schoolWebsite || c.schoolPhone || "";
   if (!text) return "";
-  return `<div class="idc-foot${light ? " idc-foot-l" : ""}">${escapeHtml(text)}</div>`;
+  return `<div class="idc-foot${spec.footer === "light" ? " light" : ""}">${escapeHtml(text)}</div>`;
 }
 
-// ── Student ID templates ──────────────────────────────────────────────────
+function titlebar(spec: TemplateSpec, c: CardContext, o: CardOrientation): string {
+  // The tall header already prints the title, so a bar under it would repeat it.
+  if (!spec.titlebar) return "";
+  if (spec.header === "tall" && o === "PORTRAIT") return "";
+  return `<div class="idc-titlebar">${escapeHtml(c.cardTitle)}</div>`;
+}
 
-const modernBlue: CardTemplate = {
-  id: "modern-blue",
-  name: "Modern Blue",
-  cardType: "STUDENT_ID",
-  orientation: "PORTRAIT",
-  usesPhoto: true,
-  accent: "#1d4ed8",
-  render: (c) => `
-    ${header(c, true)}
-    <div class="idc-titlebar">${escapeHtml(c.cardTitle)}</div>
-    <div class="idc-body" style="align-items:center;text-align:center">
-      <div style="margin:1.2mm 0">${photo(c, "22mm", "26mm")}</div>
-      <div class="idc-name">${escapeHtml(c.studentName)}</div>
-      <div style="margin-top:1.4mm">${idBlock(c)}</div>
-      <div style="width:100%;margin-top:1.6mm;text-align:left">
-        ${rows([
-          ["Class", c.className],
-          ["Section", c.section],
-          ["Academic Year", c.academicYear],
-        ])}
-      </div>
-      <div class="idc-between idc-mt" style="width:100%;padding-top:1.2mm">
+// ── Orientation layouts ───────────────────────────────────────────────────
+
+/** 54 × 86 mm — a vertical stack: identity on top, details beneath. */
+function portrait(spec: TemplateSpec, c: CardContext): string {
+  return `
+    ${header(spec, c, "PORTRAIT")}
+    ${titlebar(spec, c, "PORTRAIT")}
+    ${spec.strip ? '<div class="idc-strip"></div>' : ""}
+    <div class="idc-body c">
+      ${photo(c, spec, "PORTRAIT")}
+      <div class="idc-name" style="margin-top:.4mm">${escapeHtml(c.studentName)}</div>
+      ${idBlock(c, spec, true)}
+      ${spec.extra ? spec.extra(c) : ""}
+      <div style="width:100%;text-align:start">${rowsTable(spec.rows(c))}</div>
+      <div class="idc-between idc-push">
         ${qr(c)}
         ${signature(c)}
       </div>
     </div>
-    ${footer(c)}`,
-};
-
-const classicStyle: CardTemplate = {
-  id: "classic",
-  name: "Classic Style",
-  cardType: "STUDENT_ID",
-  orientation: "PORTRAIT",
-  usesPhoto: true,
-  accent: "#0f766e",
-  render: (c) => `
-    ${header(c, false)}
-    <div class="idc-strip"></div>
-    <div class="idc-body">
-      <div class="idc-row">
-        ${photo(c, "18mm", "22mm")}
-        <div style="flex:1;min-width:0">
-          <div class="idc-lbl">${escapeHtml(c.cardTitle)}</div>
-          <div class="idc-name idc-name-sm" style="margin-top:.6mm">${escapeHtml(c.studentName)}</div>
-          <div style="margin-top:1.2mm">${idBlock(c, true)}</div>
-        </div>
-      </div>
-      <div style="margin-top:1.6mm">
-        ${rows([
-          ["Class", c.className],
-          ["Section", c.section],
-          ["Academic Year", c.academicYear],
-          ["Guardian", c.guardianName],
-        ])}
-      </div>
-      <div class="idc-between idc-mt" style="padding-top:1mm">
-        ${qr(c, true)}
-        ${signature(c)}
-      </div>
-    </div>
-    ${footer(c, true)}`,
-};
-
-const minimalStyle: CardTemplate = {
-  id: "minimal",
-  name: "Minimal Style",
-  cardType: "STUDENT_ID",
-  orientation: "LANDSCAPE",
-  usesPhoto: true,
-  accent: "#334155",
-  render: (c) => `
-    <div class="idc-body" style="padding:3mm">
-      <div class="idc-between" style="align-items:center">
-        <div class="idc-row" style="align-items:center;gap:1.5mm">
-          ${logo(c)}
-          <div>
-            <div class="idc-school" style="color:#0f172a">${escapeHtml(c.schoolName)}</div>
-            <div class="idc-lbl">${escapeHtml(c.cardTitle)}</div>
-          </div>
-        </div>
-        ${qr(c, true)}
-      </div>
-      <div class="idc-row" style="margin-top:2mm;flex:1">
-        ${photo(c, "16mm", "20mm")}
-        <div style="flex:1;min-width:0;display:flex;flex-direction:column">
-          <div class="idc-name idc-name-sm">${escapeHtml(c.studentName)}</div>
-          <div style="margin-top:.8mm">
-            <span class="idc-lbl">${escapeHtml(c.idLabel)}</span>
-            <div class="idc-pill idc-pill-o" style="margin-top:.4mm">${escapeHtml(c.studentId)}</div>
-          </div>
-          <div style="margin-top:auto">
-            ${rows([
-              ["Class", `${c.className}${c.section ? ` · ${c.section}` : ""}`],
-              ["Academic Year", c.academicYear],
-            ])}
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="idc-strip"></div>`,
-};
-
-const premiumStyle: CardTemplate = {
-  id: "premium",
-  name: "Premium Style",
-  cardType: "STUDENT_ID",
-  orientation: "PORTRAIT",
-  usesPhoto: true,
-  accent: "#6d28d9",
-  render: (c) => `
-    <div class="idc-head idc-head-c" style="padding:2.6mm 2mm 3.4mm">
-      ${logo(c)}
-      <div class="idc-school" style="margin-top:.6mm">${escapeHtml(c.schoolName)}</div>
-      <div class="idc-title" style="margin-top:.4mm">${escapeHtml(c.cardTitle)}</div>
-    </div>
-    <div class="idc-body" style="align-items:center;text-align:center;margin-top:-3mm">
-      <div style="background:#fff;border-radius:1.6mm;padding:.8mm;box-shadow:0 0 0 .3mm rgba(0,0,0,.08)">
-        ${photo(c, "21mm", "25mm")}
-      </div>
-      <div class="idc-name" style="margin-top:1.2mm">${escapeHtml(c.studentName)}</div>
-      <div class="idc-lbl">${escapeHtml(c.className)}${c.section ? ` · ${escapeHtml(c.section)}` : ""}</div>
-      <div style="margin-top:1.2mm">${idBlock(c)}</div>
-      <div class="idc-between idc-mt" style="width:100%;padding-top:1.4mm">
-        ${qr(c)}
-        <div style="text-align:right">
-          <div class="idc-lbl">Valid For</div>
-          <div style="font-size:6pt;font-weight:700">${escapeHtml(c.academicYear)}</div>
-        </div>
-      </div>
-    </div>
-    ${footer(c)}`,
-};
-
-const photoFocused: CardTemplate = {
-  id: "photo-focused",
-  name: "Photo Focused",
-  cardType: "STUDENT_ID",
-  orientation: "PORTRAIT",
-  usesPhoto: true,
-  accent: "#b91c1c",
-  render: (c) => `
-    <div class="idc-head" style="padding:1.6mm 2mm">
-      ${logo(c)}
-      <div class="idc-school">${escapeHtml(c.schoolName)}</div>
-    </div>
-    <div class="idc-body" style="align-items:center;text-align:center;padding-top:1.4mm">
-      ${photo(c, "26mm", "30mm")}
-      <div class="idc-name" style="margin-top:1.2mm">${escapeHtml(c.studentName)}</div>
-      <div class="idc-pill" style="margin-top:1mm">${escapeHtml(c.studentId)}</div>
-      <div class="idc-lbl" style="margin-top:1mm">${escapeHtml(c.className)}${c.section ? ` · ${escapeHtml(c.section)}` : ""} · ${escapeHtml(c.academicYear)}</div>
-      <div class="idc-mt" style="padding-top:1mm">${qr(c, true)}</div>
-    </div>
-    ${footer(c)}`,
-};
-
-// ── Exam card templates ───────────────────────────────────────────────────
-
-const examOffice: CardTemplate = {
-  id: "exam-office",
-  name: "Exam Card — Blue",
-  cardType: "EXAM_CARD",
-  orientation: "PORTRAIT",
-  usesPhoto: true,
-  accent: "#1e40af",
-  render: (c) => `
-    ${header(c, true)}
-    <div class="idc-titlebar">${escapeHtml(c.cardTitle)}</div>
-    <div class="idc-body">
-      <div class="idc-row">
-        ${photo(c, "17mm", "21mm")}
-        <div style="flex:1;min-width:0">
-          <div class="idc-name idc-name-sm">${escapeHtml(c.studentName)}</div>
-          <div style="margin-top:.8mm">${idBlock(c, true)}</div>
-        </div>
-      </div>
-      <div style="margin-top:1.4mm">
-        ${rows([
-          ["Exam", c.examName],
-          ["Session", c.examSession],
-          ["Date", c.examDate],
-          ["Class", `${c.className}${c.section ? ` · ${c.section}` : ""}`],
-          ["Academic Year", c.academicYear],
-        ])}
-      </div>
-      <div class="idc-between idc-mt" style="padding-top:1mm">
-        ${qr(c, true)}
-        <div style="text-align:right">
-          <div class="idc-sig-line" style="margin-inline:0 0"></div>
-          <div class="idc-sig-txt">${escapeHtml(c.examOffice || "Exam Office")}</div>
-        </div>
-      </div>
-    </div>
-    ${footer(c)}`,
-};
-
-const examAcademic: CardTemplate = {
-  id: "exam-academic",
-  name: "Exam Card — Academic",
-  cardType: "EXAM_CARD",
-  orientation: "LANDSCAPE",
-  usesPhoto: true,
-  accent: "#155e75",
-  render: (c) => `
-    <div class="idc-head" style="padding:1.6mm 2.5mm">
-      ${logo(c)}
-      <div style="flex:1">
-        <div class="idc-school">${escapeHtml(c.schoolName)}</div>
-        <div class="idc-motto">${escapeHtml(c.cardTitle)}</div>
-      </div>
-      ${qr(c, true)}
-    </div>
-    <div class="idc-body">
-      <div class="idc-row" style="flex:1">
-        ${photo(c, "15mm", "19mm")}
-        <div style="flex:1;min-width:0">
-          <div class="idc-name idc-name-sm">${escapeHtml(c.studentName)}</div>
-          <div class="idc-pill idc-pill-o" style="margin-top:.6mm">${escapeHtml(c.studentId)}</div>
-          <div style="margin-top:.8mm">
-            ${rows([
-              ["Exam", c.examName],
-              ["Date", c.examDate],
-              ["Class", `${c.className}${c.section ? ` · ${c.section}` : ""}`],
-            ])}
-          </div>
-        </div>
-      </div>
-    </div>
-    ${footer(c, true)}`,
-};
-
-// ── Clearance template ────────────────────────────────────────────────────
-
-function clearanceTone(status: string): { bg: string; fg: string } {
-  const s = status.toUpperCase();
-  if (s.includes("CLEAR")) return { bg: "#dcfce7", fg: "#166534" };
-  if (s.includes("PEND")) return { bg: "#fef9c3", fg: "#854d0e" };
-  return { bg: "#fee2e2", fg: "#991b1b" };
+    ${footer(spec, c)}`;
 }
 
-const clearanceOfficial: CardTemplate = {
-  id: "clearance-official",
-  name: "Clearance Card",
-  cardType: "CLEARANCE_CARD",
-  orientation: "PORTRAIT",
-  usesPhoto: true,
-  accent: "#047857",
-  render: (c) => {
-    const tone = clearanceTone(c.clearanceStatus);
-    return `
-    ${header(c, true)}
-    <div class="idc-titlebar">${escapeHtml(c.cardTitle)}</div>
-    <div class="idc-body" style="align-items:center;text-align:center">
-      <div style="margin:1mm 0">${photo(c, "19mm", "23mm")}</div>
-      <div class="idc-name idc-name-sm">${escapeHtml(c.studentName)}</div>
-      <div class="idc-pill idc-pill-o" style="margin-top:.8mm">${escapeHtml(c.studentId)}</div>
-      <div class="idc-badge" style="margin-top:1.4mm;background:${tone.bg};color:${tone.fg}">
-        ${escapeHtml(c.clearanceStatus || "Pending")}
-      </div>
-      <div style="width:100%;margin-top:1.4mm;text-align:left">
-        ${rows([
-          ["Class", `${c.className}${c.section ? ` · ${c.section}` : ""}`],
-          ["Academic Year", c.academicYear],
-          ["Issued", c.issueDate],
-        ])}
-      </div>
-      <div class="idc-between idc-mt" style="width:100%;padding-top:1mm">
-        ${qr(c, true)}
-        ${signature(c)}
-      </div>
-    </div>
-    ${footer(c)}`;
-  },
-};
-
-// ── Custom card template ──────────────────────────────────────────────────
-
-const customBasic: CardTemplate = {
-  id: "custom-basic",
-  name: "Custom Card",
-  cardType: "CUSTOM_CARD",
-  orientation: "LANDSCAPE",
-  usesPhoto: true,
-  accent: "#c2410c",
-  render: (c) => `
-    <div class="idc-head" style="padding:1.8mm 2.5mm">
-      ${logo(c)}
-      <div style="flex:1">
-        <div class="idc-school">${escapeHtml(c.schoolName)}</div>
-        <div class="idc-motto">${escapeHtml(c.cardTitle)}</div>
-      </div>
-    </div>
+/** 86 × 54 mm — two columns: photo beside the identity block. */
+function landscape(spec: TemplateSpec, c: CardContext): string {
+  return `
+    ${header(spec, c, "LANDSCAPE")}
+    ${titlebar(spec, c, "LANDSCAPE")}
+    ${spec.strip ? '<div class="idc-strip"></div>' : ""}
     <div class="idc-body">
-      <div class="idc-row" style="flex:1">
-        ${photo(c, "15mm", "19mm")}
-        <div style="flex:1;min-width:0;display:flex;flex-direction:column">
-          <div class="idc-name idc-name-sm">${escapeHtml(c.studentName)}</div>
-          <div class="idc-pill idc-pill-o" style="margin-top:.6mm">${escapeHtml(c.studentId)}</div>
-          <div style="margin-top:.8mm">
-            ${rows([
-              ["Class", `${c.className}${c.section ? ` · ${c.section}` : ""}`],
-              [c.customLine1 ? "Detail" : "", c.customLine1],
-              [c.customLine2 ? "Note" : "", c.customLine2],
-              ["Valid", c.academicYear],
-            ])}
-          </div>
-        </div>
-        <div style="display:flex;flex-direction:column;justify-content:space-between;align-items:flex-end">
+      <div class="idc-cols">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:1mm">
+          ${photo(c, spec, "LANDSCAPE")}
           ${qr(c, true)}
         </div>
+        <div class="idc-col">
+          <div class="idc-name sm">${escapeHtml(c.studentName)}</div>
+          <div style="margin-top:.6mm">${idBlock(c, spec, false)}</div>
+          ${spec.extra ? `<div style="margin-top:.6mm">${spec.extra(c)}</div>` : ""}
+          <div style="margin-top:.8mm">${rowsTable(spec.rows(c))}</div>
+          <div class="idc-push" style="display:flex;justify-content:flex-end;padding-top:.6mm">
+            ${signature(c)}
+          </div>
+        </div>
       </div>
     </div>
-    ${footer(c, true)}`,
-};
+    ${footer(spec, c)}`;
+}
 
-export const CARD_TEMPLATES: CardTemplate[] = [
-  modernBlue,
-  classicStyle,
-  minimalStyle,
-  premiumStyle,
-  photoFocused,
-  examOffice,
-  examAcademic,
-  clearanceOfficial,
-  customBasic,
+// ── Template specs ────────────────────────────────────────────────────────
+
+const studentRows = (c: CardContext): [string, string][] => [
+  ["Class", c.className],
+  ["Section", c.section],
+  ["Academic Year", c.academicYear],
 ];
+
+const SPECS: TemplateSpec[] = [
+  {
+    id: "modern-blue", name: "Modern Blue", cardType: "STUDENT_ID", accent: "#1d4ed8",
+    header: "gradient-center", titlebar: true, strip: false, pillOutline: false,
+    footer: "accent", photo: "md", rows: studentRows,
+  },
+  {
+    id: "classic", name: "Classic Style", cardType: "STUDENT_ID", accent: "#0f766e",
+    header: "gradient-left", titlebar: true, strip: true, pillOutline: true,
+    footer: "light", photo: "sm",
+    rows: (c) => [...studentRows(c), ["Guardian", c.guardianName]],
+  },
+  {
+    id: "minimal", name: "Minimal Style", cardType: "STUDENT_ID", accent: "#334155",
+    header: "plain", titlebar: false, strip: false, pillOutline: true,
+    footer: "none", photo: "sm",
+    rows: (c) => [["Class", c.className], ["Section", c.section], ["Year", c.academicYear]],
+  },
+  {
+    id: "premium", name: "Premium Style", cardType: "STUDENT_ID", accent: "#6d28d9",
+    header: "tall", titlebar: true, strip: false, pillOutline: false,
+    footer: "accent", photo: "md", rows: studentRows,
+    extra: (c) =>
+      `<div class="idc-lbl">Valid for ${escapeHtml(c.academicYear)}</div>`,
+  },
+  {
+    id: "photo-focused", name: "Photo Focused", cardType: "STUDENT_ID", accent: "#b91c1c",
+    header: "gradient-left", titlebar: false, strip: true, pillOutline: false,
+    footer: "accent", photo: "lg",
+    rows: (c) => [["Class", c.className], ["Section", c.section], ["Year", c.academicYear]],
+  },
+  {
+    id: "exam-office", name: "Exam Card — Blue", cardType: "EXAM_CARD", accent: "#1e40af",
+    header: "gradient-center", titlebar: true, strip: false, pillOutline: true,
+    footer: "accent", photo: "sm",
+    rows: (c) => [
+      ["Exam", c.examName], ["Session", c.examSession], ["Date", c.examDate],
+      ["Class", c.className], ["Section", c.section],
+    ],
+  },
+  {
+    id: "exam-academic", name: "Exam Card — Academic", cardType: "EXAM_CARD", accent: "#155e75",
+    header: "gradient-left", titlebar: true, strip: true, pillOutline: true,
+    footer: "light", photo: "sm",
+    rows: (c) => [
+      ["Exam", c.examName], ["Date", c.examDate],
+      ["Class", c.className], ["Academic Year", c.academicYear],
+    ],
+  },
+  {
+    id: "clearance-official", name: "Clearance Card", cardType: "CLEARANCE_CARD", accent: "#047857",
+    header: "gradient-center", titlebar: true, strip: false, pillOutline: true,
+    footer: "accent", photo: "sm",
+    rows: (c) => [
+      ["Class", c.className], ["Section", c.section],
+      ["Academic Year", c.academicYear], ["Issued", c.issueDate],
+    ],
+    extra: (c) => {
+      const s = (c.clearanceStatus || "Pending").toUpperCase();
+      const tone = s.includes("CLEAR")
+        ? { bg: "#dcfce7", fg: "#166534" }
+        : s.includes("PEND")
+          ? { bg: "#fef9c3", fg: "#854d0e" }
+          : { bg: "#fee2e2", fg: "#991b1b" };
+      return `<div class="idc-badge" style="background:${tone.bg};color:${tone.fg}">${escapeHtml(
+        c.clearanceStatus || "Pending",
+      )}</div>`;
+    },
+  },
+  {
+    id: "custom-basic", name: "Custom Card", cardType: "CUSTOM_CARD", accent: "#c2410c",
+    header: "gradient-left", titlebar: true, strip: false, pillOutline: true,
+    footer: "light", photo: "sm",
+    rows: (c) => [
+      ["Class", c.className],
+      ["Detail", c.customLine1],
+      ["Note", c.customLine2],
+      ["Valid", c.academicYear],
+    ],
+  },
+];
+
+/**
+ * Every template renders in BOTH orientations from the same spec, so a school
+ * can print any card portrait or landscape without losing the design — the
+ * layout functions rearrange the same blocks rather than each template owning
+ * a hand-tuned copy per orientation.
+ */
+export const CARD_TEMPLATES: CardTemplate[] = SPECS.map((spec) => ({
+  id: spec.id,
+  name: spec.name,
+  cardType: spec.cardType,
+  accent: spec.accent,
+  usesPhoto: true,
+  render: (c: CardContext, o: CardOrientation) =>
+    o === "PORTRAIT" ? portrait(spec, c) : landscape(spec, c),
+}));
 
 export function templatesForType(cardType: string): CardTemplate[] {
   return CARD_TEMPLATES.filter((t) => t.cardType === cardType);
