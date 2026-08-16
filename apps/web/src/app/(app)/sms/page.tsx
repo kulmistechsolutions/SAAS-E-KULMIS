@@ -741,35 +741,54 @@ export default function SchoolSmsPage() {
 
           <div className="rounded-2xl border bg-card p-5 shadow-sm">
             <h2 className="font-semibold">{tr("sms.activePackages")}</h2>
-            <ul className="mt-3 space-y-2 text-sm">
-              {(balance?.purchases ?? [])
-                .filter((p) => p.status === "ACTIVE")
-                .map((p) => (
-                  <li key={p.id} className="rounded-lg border px-3 py-2">
-                    <p className="font-medium">{p.package.name}</p>
-                    <p className="text-muted-foreground">
-                      {p.creditsRemaining} / {p.creditsTotal} {tr("sms.creditsRemaining")}
-                    </p>
-                  </li>
-                ))}
-              {(balance?.purchases ?? []).filter((p) => p.status === "ACTIVE")
-                .length === 0 && (
-                <p className="text-muted-foreground">
-                  {tr("sms.noActiveSmsPackageAskThe")}
-                </p>
-              )}
-            </ul>
+            {balance?.gateway?.active ? (
+              <p className="mt-3 text-sm text-muted-foreground">
+                Using your own {balance.gateway.provider === "DHAMBAAL" ? "Dhambaal" : "Hormuud"} account —
+                sent directly through your provider, no platform package needed.
+              </p>
+            ) : (
+              <ul className="mt-3 space-y-2 text-sm">
+                {(balance?.purchases ?? [])
+                  .filter((p) => p.status === "ACTIVE")
+                  .map((p) => (
+                    <li key={p.id} className="rounded-lg border px-3 py-2">
+                      <p className="font-medium">{p.package.name}</p>
+                      <p className="text-muted-foreground">
+                        {p.creditsRemaining} / {p.creditsTotal} {tr("sms.creditsRemaining")}
+                      </p>
+                    </li>
+                  ))}
+                {(balance?.purchases ?? []).filter((p) => p.status === "ACTIVE")
+                  .length === 0 && (
+                  <p className="text-muted-foreground">
+                    {tr("sms.noActiveSmsPackageAskThe")}
+                  </p>
+                )}
+              </ul>
+            )}
             <h2 className="mt-6 font-semibold">{tr("sms.deliveryStats")}</h2>
             <ul className="mt-2 space-y-1 text-sm">
+              {(balance?.deliveryStats ?? []).length === 0 && (
+                <li className="text-muted-foreground">No messages sent yet.</li>
+              )}
               {(balance?.deliveryStats ?? []).map((s) => (
                 <li key={s.status} className="flex justify-between">
                   <span>{s.status}</span>
                   <span className="font-mono">
-                    {s.count} ({s.credits} {tr("sms.cr")}
+                    {s.count}
+                    {!balance?.gateway?.active && ` (${s.credits} ${tr("sms.cr")})`}
                   </span>
                 </li>
               ))}
             </ul>
+            {(balance?.deliveryStats ?? []).length > 0 && (
+              <p className="mt-3 border-t pt-3 text-sm font-medium">
+                Total sent:{" "}
+                {(balance?.deliveryStats ?? [])
+                  .filter((s) => s.status === "SENT" || s.status === "DELIVERED")
+                  .reduce((sum, s) => sum + s.count, 0)}
+              </p>
+            )}
           </div>
         </div>
       )}

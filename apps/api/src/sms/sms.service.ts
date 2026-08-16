@@ -1002,6 +1002,7 @@ export class SmsService {
           licensed: gateway.licensed,
           active: gateway.active,
           enabled: gateway.enabled,
+          provider: gateway.provider,
           connectionStatus: gateway.connectionStatus,
           expiresAt: gateway.license?.endDate ?? null,
         },

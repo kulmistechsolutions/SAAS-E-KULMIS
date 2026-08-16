@@ -49,6 +49,7 @@ export interface SmsBalance {
     licensed: boolean;
     active: boolean;
     enabled: boolean;
+    provider: "HORMUUD" | "DHAMBAAL";
     connectionStatus: string;
     expiresAt: string | null;
   };
