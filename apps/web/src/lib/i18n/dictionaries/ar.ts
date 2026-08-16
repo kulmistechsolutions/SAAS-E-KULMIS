@@ -83,6 +83,7 @@ const curated: PartialDictionary = {
     sms: "الرسائل النصية",
     smsPackages: "باقات الرسائل",
     library: "المكتبة",
+    idGenerator: "مولّد البطاقات",
     reports: "التقارير",
     usersRoles: "المستخدمون والصلاحيات",
     settings: "الإعدادات",

@@ -15,12 +15,17 @@ import type { BuiltInRole, PermissionModule } from "@/lib/users/types";
 
 /** Map a permission module to the route prefix(es) that surface it. */
 const MODULE_PREFIXES: Record<PermissionModule, string[]> = {
-  students: ["/students"],
+  // The ID Generator prints student documents, so it follows student access —
+  // and is listed again under `examinations` so an Exam Manager can print exam
+  // cards without being handed the whole student register (PRD §28). A route is
+  // allowed when ANY granted module claims it, so listing it twice widens
+  // access to exactly those two roles rather than to everyone.
+  students: ["/students", "/id-cards"],
   teachers: ["/teachers"],
   parents: ["/parents"],
   attendance: ["/attendance", "/student-cases"],
   fees: ["/finance"],
-  examinations: ["/examinations"],
+  examinations: ["/examinations", "/id-cards"],
   quiz: ["/quiz"],
   reports: ["/reports"],
   finance: ["/finance"],

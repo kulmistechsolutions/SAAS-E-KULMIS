@@ -88,6 +88,7 @@ const core = {
     sms: "SMS",
     smsPackages: "SMS Packages",
     library: "Library",
+    idGenerator: "ID Generator",
     reports: "Reports",
     usersRoles: "Users & Roles",
     settings: "Settings",

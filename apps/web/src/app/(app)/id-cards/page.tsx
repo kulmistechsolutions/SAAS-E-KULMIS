@@ -1,0 +1,969 @@
+"use client";
+
+import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  BadgeCheck,
+  CreditCard,
+  FileCheck2,
+  FileDown,
+  Layers,
+  Loader2,
+  Printer,
+  ScanLine,
+  Search,
+  Sparkles,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Select } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useT } from "@/lib/i18n/provider";
+import { toast } from "@/lib/toast";
+import { cn } from "@/lib/utils";
+import {
+  activeAcademicYear,
+  classByName,
+  classNamesForYear,
+  sectionsForClass,
+  useAcademicsState,
+} from "@/lib/academics/store";
+import { useStudentsState } from "@/lib/students/store";
+import type { Student } from "@/lib/students/types";
+import {
+  CARD_SIZES,
+  CARD_TYPES,
+  DEFAULT_LAYOUT,
+  type CardContext,
+  type CardType,
+  type PrintLayoutSettings,
+} from "@/lib/id-cards/types";
+import { CARD_CSS, templateById, templatesForType } from "@/lib/id-cards/templates";
+import { PAGE_A4, paginate, resolveGrid } from "@/lib/id-cards/layout";
+import {
+  buildCardContexts,
+  studentsMissingPhotos,
+} from "@/lib/id-cards/data";
+import {
+  downloadCardsPdf,
+  openFullPreview,
+  pageCount,
+  printCards,
+  renderCard,
+} from "@/lib/id-cards/print";
+
+/** Millimetres → CSS pixels at the 96dpi the browser lays out with. */
+const MM = 96 / 25.4;
+
+const CARD_TYPE_ICONS: Record<CardType, typeof CreditCard> = {
+  STUDENT_ID: CreditCard,
+  EXAM_CARD: FileCheck2,
+  CLEARANCE_CARD: BadgeCheck,
+  CUSTOM_CARD: Layers,
+};
+
+const DEFAULT_TITLES: Record<CardType, string> = {
+  STUDENT_ID: "Student ID Card",
+  EXAM_CARD: "Examination Card",
+  CLEARANCE_CARD: "Clearance Card",
+  CUSTOM_CARD: "Access Card",
+};
+
+type SelectionMode = "INDIVIDUAL" | "CLASS" | "MULTIPLE";
+
+export default function IdCardsPage() {
+  const t = useT();
+  const academics = useAcademicsState();
+  const studentsState = useStudentsState();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
+  const year = activeAcademicYear();
+
+  // ── Card type + template ──
+  const [cardType, setCardType] = useState<CardType>("STUDENT_ID");
+  const templates = useMemo(() => templatesForType(cardType), [cardType]);
+  const [templateId, setTemplateId] = useState("modern-blue");
+  const template = templateById(templateId) ?? templates[0];
+
+  useEffect(() => {
+    if (!templates.some((tpl) => tpl.id === templateId)) {
+      setTemplateId(templates[0]?.id ?? "");
+    }
+  }, [templates, templateId]);
+
+  // ── Labels (admin may relabel, never the ID value itself) ──
+  const [cardTitle, setCardTitle] = useState(DEFAULT_TITLES.STUDENT_ID);
+  const [idLabel, setIdLabel] = useState("Student ID");
+  const [footerText, setFooterText] = useState("");
+  useEffect(() => {
+    setCardTitle(DEFAULT_TITLES[cardType]);
+    setIdLabel(cardType === "EXAM_CARD" ? "Exam ID" : "Student ID");
+  }, [cardType]);
+
+  const [accent, setAccent] = useState("");
+  const effectiveAccent = accent || template?.accent || "#1d4ed8";
+
+  // ── Type-specific meta ──
+  const [examName, setExamName] = useState("");
+  const [examDate, setExamDate] = useState("");
+  const [examSession, setExamSession] = useState("");
+  const [examOffice, setExamOffice] = useState("Exam Office");
+  const [clearanceStatus, setClearanceStatus] = useState("Cleared");
+  const [customLine1, setCustomLine1] = useState("");
+  const [customLine2, setCustomLine2] = useState("");
+
+  // ── Student selection ──
+  const [mode, setMode] = useState<SelectionMode>("CLASS");
+  const [klass, setKlass] = useState("");
+  const [section, setSection] = useState("");
+  const [search, setSearch] = useState("");
+  const [picked, setPicked] = useState<string[]>([]);
+
+  const classOptions = useMemo(() => classNamesForYear(year), [year, academics.classes]);
+  const sectionOptions = useMemo(() => {
+    const cls = classByName(klass, year);
+    return cls ? sectionsForClass(cls.id) : [];
+  }, [klass, year, academics.sections]);
+
+  const allStudents = studentsState.students;
+
+  const classFiltered = useMemo(() => {
+    return allStudents.filter(
+      (s) =>
+        s.status === "ACTIVE" &&
+        (!klass || s.className === klass) &&
+        (!section || s.section === section),
+    );
+  }, [allStudents, klass, section]);
+
+  const searchResults = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return [] as Student[];
+    return allStudents
+      .filter(
+        (s) =>
+          s.status === "ACTIVE" &&
+          (s.fullName.toLowerCase().includes(q) || s.code.toLowerCase().includes(q)),
+      )
+      .slice(0, 25);
+  }, [allStudents, search]);
+
+  const selected: Student[] = useMemo(() => {
+    if (mode === "CLASS") return classFiltered;
+    const byId = new Map(allStudents.map((s) => [s.id, s]));
+    const rows = picked.map((id) => byId.get(id)).filter((s): s is Student => !!s);
+    return mode === "INDIVIDUAL" ? rows.slice(0, 1) : rows;
+  }, [mode, classFiltered, picked, allStudents]);
+
+  const guardians = useMemo(() => {
+    const byParent = new Map(studentsState.parents.map((p) => [p.id, p]));
+    const out = new Map<string, { name: string; phone: string }>();
+    for (const s of allStudents) {
+      const p = byParent.get(s.parentId);
+      if (p) out.set(s.id, { name: p.name, phone: p.phone });
+    }
+    return out;
+  }, [allStudents, studentsState.parents]);
+
+  // ── Layout ──
+  const [layout, setLayout] = useState<PrintLayoutSettings>(DEFAULT_LAYOUT);
+  useEffect(() => {
+    if (template) setLayout((l) => ({ ...l, orientation: template.orientation }));
+  }, [template]);
+
+  const grid = useMemo(() => resolveGrid(layout), [layout]);
+
+  const setLayoutField = <K extends keyof PrintLayoutSettings>(
+    key: K,
+    value: PrintLayoutSettings[K],
+  ) => setLayout((l) => ({ ...l, [key]: value }));
+
+  // ── Generated cards ──
+  const [contexts, setContexts] = useState<CardContext[]>([]);
+  const [generating, setGenerating] = useState(false);
+  const [previewCtx, setPreviewCtx] = useState<CardContext | null>(null);
+  const [page, setPage] = useState(0);
+
+  const buildOptions = useCallback(
+    () => ({
+      template: template!,
+      labels: { cardTitle, idLabel, footerText },
+      accent: effectiveAccent,
+      includePhotos: true,
+      includeQr: true,
+      exam: { examName, examDate, examSession, examOffice },
+      clearance: { status: clearanceStatus },
+      custom: { line1: customLine1, line2: customLine2 },
+      guardians,
+    }),
+    [
+      template, cardTitle, idLabel, footerText, effectiveAccent, examName, examDate,
+      examSession, examOffice, clearanceStatus, customLine1, customLine2, guardians,
+    ],
+  );
+
+  // A single-card preview, so the design can be judged before committing to a
+  // full batch (which fetches a photo per student).
+  useEffect(() => {
+    if (!mounted || !template) return;
+    const sample = selected[0];
+    if (!sample) {
+      setPreviewCtx(null);
+      return;
+    }
+    let cancelled = false;
+    void buildCardContexts([sample], buildOptions()).then((ctxs) => {
+      if (!cancelled) setPreviewCtx(ctxs[0] ?? null);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [mounted, template, selected, buildOptions]);
+
+  // Any change to what would be printed invalidates an earlier batch, so the
+  // Print button can never send a stale set of cards to the printer.
+  useEffect(() => {
+    setContexts([]);
+    setPage(0);
+  }, [selected, template, cardTitle, idLabel, footerText, effectiveAccent]);
+
+  async function handleGenerate() {
+    if (!template) return;
+    if (selected.length === 0) {
+      toast(t("idCards.selectStudentsFirst"), "error");
+      return;
+    }
+    setGenerating(true);
+    try {
+      const ctxs = await buildCardContexts(selected, buildOptions());
+      setContexts(ctxs);
+      setPage(0);
+      const missing = studentsMissingPhotos(selected).length;
+      toast(
+        missing > 0
+          ? `${ctxs.length} cards generated · ${missing} without a photo`
+          : `${ctxs.length} cards generated`,
+        missing > 0 ? "info" : "success",
+      );
+    } catch {
+      toast("Could not generate cards", "error");
+    } finally {
+      setGenerating(false);
+    }
+  }
+
+  const printReq = template
+    ? {
+        contexts,
+        template,
+        grid,
+        border: layout.showCardBorder,
+        cutLines: layout.showCutLines,
+      }
+    : null;
+
+  function guard(): boolean {
+    if (!printReq || contexts.length === 0) {
+      toast(t("idCards.generateFirst"), "error");
+      return false;
+    }
+    return true;
+  }
+
+  const pages = useMemo(() => paginate(contexts, grid.perPage), [contexts, grid.perPage]);
+  const totalPages = pageCount(contexts.length, grid.perPage);
+  const missingPhotoCount = studentsMissingPhotos(selected).length;
+
+  if (!mounted) {
+    return (
+      <div className="flex h-64 items-center justify-center text-muted-foreground">
+        <Loader2 className="me-2 h-5 w-5 animate-spin" /> {t("idCards.loading")}
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* The card markup is raw HTML from the template engine, so the same
+          stylesheet the print window uses is injected here for a true preview. */}
+      <style dangerouslySetInnerHTML={{ __html: CARD_CSS + PREVIEW_EXTRA_CSS }} />
+
+      <div>
+        <h1 className="text-2xl font-bold">{t("idCards.title")}</h1>
+        <p className="mt-1 text-sm text-muted-foreground">{t("idCards.subtitle")}</p>
+      </div>
+
+      <div className="grid gap-5 xl:grid-cols-12">
+        {/* ── Configuration ── */}
+        <div className="space-y-5 xl:col-span-5">
+          <Section title={`1. ${t("idCards.selectCardType")}`}>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              {CARD_TYPES.map((ct) => {
+                const Icon = CARD_TYPE_ICONS[ct.id];
+                const active = ct.id === cardType;
+                return (
+                  <button
+                    key={ct.id}
+                    type="button"
+                    onClick={() => setCardType(ct.id)}
+                    title={ct.description}
+                    className={cn(
+                      "flex flex-col items-center gap-1.5 rounded-xl border p-3 text-center text-xs font-medium transition",
+                      active
+                        ? "border-primary bg-primary/10 text-primary"
+                        : "hover:border-primary/40 hover:bg-secondary/40",
+                    )}
+                  >
+                    <Icon className="h-5 w-5" />
+                    {ct.label}
+                  </button>
+                );
+              })}
+            </div>
+          </Section>
+
+          <Section title={`2. ${t("idCards.selectTemplate")}`}>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              {templates.map((tpl) => (
+                <button
+                  key={tpl.id}
+                  type="button"
+                  onClick={() => setTemplateId(tpl.id)}
+                  className={cn(
+                    "rounded-xl border p-2 text-start transition",
+                    tpl.id === templateId
+                      ? "border-primary ring-2 ring-primary/30"
+                      : "hover:border-primary/40",
+                  )}
+                >
+                  <MiniCard ctx={previewCtx} templateId={tpl.id} accent={accent} />
+                  <p className="mt-1.5 truncate text-xs font-medium">{tpl.name}</p>
+                </button>
+              ))}
+            </div>
+          </Section>
+
+          <Section title={`3. ${t("idCards.selectStudents")}`}>
+            <div className="flex flex-wrap gap-2">
+              {(
+                [
+                  ["INDIVIDUAL", t("idCards.individualStudent")],
+                  ["CLASS", t("idCards.byClassSection")],
+                  ["MULTIPLE", t("idCards.multipleStudents")],
+                ] as [SelectionMode, string][]
+              ).map(([m, label]) => (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => setMode(m)}
+                  className={cn(
+                    "rounded-lg border px-3 py-1.5 text-xs font-medium transition",
+                    mode === m ? "border-primary bg-primary/10 text-primary" : "hover:bg-secondary/50",
+                  )}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            {mode === "CLASS" ? (
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                <div>
+                  <Label>{t("idCards.class")}</Label>
+                  <Select value={klass} onChange={(e) => { setKlass(e.target.value); setSection(""); }}>
+                    <option value="">{t("idCards.allClasses")}</option>
+                    {classOptions.map((c) => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </Select>
+                </div>
+                <div>
+                  <Label>{t("idCards.section")}</Label>
+                  <Select
+                    value={section}
+                    onChange={(e) => setSection(e.target.value)}
+                    disabled={!klass || sectionOptions.length === 0}
+                  >
+                    <option value="">{t("idCards.allSections")}</option>
+                    {sectionOptions.map((s) => (
+                      <option key={s.id} value={s.name}>{s.name}</option>
+                    ))}
+                  </Select>
+                </div>
+              </div>
+            ) : (
+              <div className="mt-3 space-y-2">
+                <div className="relative">
+                  <Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder={t("idCards.searchStudent")}
+                    className="ps-9"
+                  />
+                </div>
+                {searchResults.length > 0 && (
+                  <div className="max-h-44 overflow-auto rounded-lg border scrollbar-slim">
+                    {searchResults.map((s) => {
+                      const on = picked.includes(s.id);
+                      return (
+                        <button
+                          key={s.id}
+                          type="button"
+                          onClick={() =>
+                            setPicked((p) =>
+                              mode === "INDIVIDUAL"
+                                ? [s.id]
+                                : on
+                                  ? p.filter((x) => x !== s.id)
+                                  : [...p, s.id],
+                            )
+                          }
+                          className={cn(
+                            "flex w-full items-center justify-between gap-2 border-b px-3 py-2 text-start text-xs last:border-b-0",
+                            on ? "bg-primary/10 text-primary" : "hover:bg-secondary/50",
+                          )}
+                        >
+                          <span className="truncate">{s.fullName}</span>
+                          <span className="font-mono text-[11px] opacity-70">{s.code}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+                {picked.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setPicked([])}
+                    className="text-xs text-muted-foreground underline"
+                  >
+                    {t("idCards.clearSelection")}
+                  </button>
+                )}
+              </div>
+            )}
+
+            <div className="mt-3 flex items-center justify-between rounded-lg bg-secondary/40 px-3 py-2 text-xs">
+              <span className="text-muted-foreground">{t("idCards.totalStudents")}</span>
+              <span className="font-semibold">{selected.length}</span>
+            </div>
+            {missingPhotoCount > 0 && (
+              <p className="mt-2 text-xs text-amber-600 dark:text-amber-500">
+                {missingPhotoCount} {t("idCards.missingPhotos")}
+              </p>
+            )}
+          </Section>
+
+          {cardType === "EXAM_CARD" && (
+            <Section title={t("idCards.examDetails")}>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Field label={t("idCards.examName")} value={examName} onChange={setExamName} />
+                <Field label={t("idCards.examDate")} value={examDate} onChange={setExamDate} type="date" />
+                <Field label={t("idCards.examSession")} value={examSession} onChange={setExamSession} />
+                <Field label={t("idCards.examOffice")} value={examOffice} onChange={setExamOffice} />
+              </div>
+            </Section>
+          )}
+
+          {cardType === "CLEARANCE_CARD" && (
+            <Section title={t("idCards.clearanceStatus")}>
+              <Select value={clearanceStatus} onChange={(e) => setClearanceStatus(e.target.value)}>
+                <option value="Cleared">{t("idCards.cleared")}</option>
+                <option value="Pending">{t("idCards.pending")}</option>
+                <option value="Restricted">{t("idCards.restricted")}</option>
+              </Select>
+            </Section>
+          )}
+
+          {cardType === "CUSTOM_CARD" && (
+            <Section title={t("idCards.customDetails")}>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Field label={t("idCards.line1")} value={customLine1} onChange={setCustomLine1} />
+                <Field label={t("idCards.line2")} value={customLine2} onChange={setCustomLine2} />
+              </div>
+            </Section>
+          )}
+
+          <Section title={t("idCards.labels")}>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Field label={t("idCards.cardTitle")} value={cardTitle} onChange={setCardTitle} />
+              <Field label={t("idCards.idLabel")} value={idLabel} onChange={setIdLabel} />
+              <Field label={t("idCards.footerText")} value={footerText} onChange={setFooterText} />
+              <div>
+                <Label>{t("idCards.accentColor")}</Label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    value={effectiveAccent}
+                    onChange={(e) => setAccent(e.target.value)}
+                    className="h-10 w-14 cursor-pointer rounded-lg border bg-background p-1"
+                  />
+                  {accent && (
+                    <button
+                      type="button"
+                      onClick={() => setAccent("")}
+                      className="text-xs text-muted-foreground underline"
+                    >
+                      {t("idCards.reset")}
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+            <p className="mt-2 text-xs text-muted-foreground">{t("idCards.studentIdPermanent")}</p>
+          </Section>
+
+          <Section title={`4. ${t("idCards.cardLayoutSettings")}`}>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <Label>{t("idCards.cardsPerA4")}</Label>
+                <Select
+                  value={String(layout.cardsPerPage)}
+                  onChange={(e) => setLayoutField("cardsPerPage", Number(e.target.value))}
+                >
+                  {[4, 6, 8, 9, 10, 12].map((n) => (
+                    <option key={n} value={n}>{n}</option>
+                  ))}
+                </Select>
+              </div>
+              <div>
+                <Label>{t("idCards.orientation")}</Label>
+                <Select
+                  value={layout.orientation}
+                  onChange={(e) =>
+                    setLayoutField("orientation", e.target.value as PrintLayoutSettings["orientation"])
+                  }
+                >
+                  <option value="PORTRAIT">{t("idCards.portrait")}</option>
+                  <option value="LANDSCAPE">{t("idCards.landscape")}</option>
+                </Select>
+              </div>
+              <div>
+                <Label>{t("idCards.cardSize")}</Label>
+                <Select value={layout.sizeId} onChange={(e) => setLayoutField("sizeId", e.target.value)}>
+                  {CARD_SIZES.map((s) => (
+                    <option key={s.id} value={s.id}>{s.label}</option>
+                  ))}
+                  <option value="CUSTOM">{t("idCards.customSize")}</option>
+                </Select>
+              </div>
+              {layout.sizeId === "CUSTOM" && (
+                <div className="grid grid-cols-2 gap-2">
+                  <NumField
+                    label={t("idCards.width")}
+                    value={layout.customWidth}
+                    onChange={(v) => setLayoutField("customWidth", v)}
+                  />
+                  <NumField
+                    label={t("idCards.height")}
+                    value={layout.customHeight}
+                    onChange={(v) => setLayoutField("customHeight", v)}
+                  />
+                </div>
+              )}
+              <NumField
+                label={t("idCards.spacing")}
+                value={layout.gap}
+                onChange={(v) => setLayoutField("gap", v)}
+              />
+              <NumField
+                label={t("idCards.pageMargin")}
+                value={layout.margin}
+                onChange={(v) => setLayoutField("margin", v)}
+              />
+            </div>
+            <div className="mt-3 flex flex-wrap gap-4 text-xs">
+              <Check
+                label={t("idCards.cutLines")}
+                checked={layout.showCutLines}
+                onChange={(v) => setLayoutField("showCutLines", v)}
+              />
+              <Check
+                label={t("idCards.cardBorder")}
+                checked={layout.showCardBorder}
+                onChange={(v) => setLayoutField("showCardBorder", v)}
+              />
+            </div>
+            {grid.clamped && (
+              <p className="mt-2 text-xs text-amber-600 dark:text-amber-500">
+                {t("idCards.cardsDoNotFit")} {grid.capacity}.
+              </p>
+            )}
+          </Section>
+        </div>
+
+        {/* ── Single-card preview ── */}
+        <div className="xl:col-span-3">
+          <Section title={t("idCards.templatePreview")} sticky>
+            {previewCtx && template ? (
+              <div className="flex justify-center">
+                <ScaledCard ctx={previewCtx} templateId={template.id} scale={2} layout={layout} />
+              </div>
+            ) : (
+              <p className="py-10 text-center text-xs text-muted-foreground">
+                {t("idCards.selectStudentsFirst")}
+              </p>
+            )}
+          </Section>
+        </div>
+
+        {/* ── A4 print layout ── */}
+        <div className="xl:col-span-4">
+          <Section
+            title={`${t("idCards.printLayout")} (A4 — ${grid.perPage} ${t("idCards.cardsPerPage")})`}
+            sticky
+            right={
+              totalPages > 0 ? (
+                <span className="rounded-full bg-emerald-500/15 px-2.5 py-1 text-xs font-medium text-emerald-600 dark:text-emerald-400">
+                  {t("idCards.page")} {page + 1} / {totalPages}
+                </span>
+              ) : null
+            }
+          >
+            {pages.length > 0 && template ? (
+              <>
+                <SheetPreview
+                  contexts={pages[Math.min(page, pages.length - 1)] ?? []}
+                  templateId={template.id}
+                  layout={layout}
+                />
+                {totalPages > 1 && (
+                  <div className="mt-3 flex items-center justify-center gap-2">
+                    <Button
+                      variant="outline"
+                      disabled={page === 0}
+                      onClick={() => setPage((p) => Math.max(0, p - 1))}
+                    >
+                      ‹
+                    </Button>
+                    <span className="text-xs text-muted-foreground">
+                      {page + 1} / {totalPages}
+                    </span>
+                    <Button
+                      variant="outline"
+                      disabled={page >= totalPages - 1}
+                      onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+                    >
+                      ›
+                    </Button>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="flex h-64 items-center justify-center rounded-lg border border-dashed text-center text-xs text-muted-foreground">
+                {t("idCards.generateFirst")}
+              </div>
+            )}
+          </Section>
+        </div>
+      </div>
+
+      {/* ── Actions ── */}
+      <div className="rounded-2xl border bg-card p-5 shadow-sm">
+        <div className="flex flex-wrap gap-3">
+          <Button onClick={() => void handleGenerate()} disabled={generating || selected.length === 0}>
+            {generating ? (
+              <Loader2 className="me-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Sparkles className="me-2 h-4 w-4" />
+            )}
+            {t("idCards.generateCards")}
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => {
+              if (guard() && printReq) openFullPreview(printReq);
+            }}
+          >
+            <ScanLine className="me-2 h-4 w-4" /> {t("idCards.previewFullPage")}
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => {
+              if (!guard() || !printReq) return;
+              downloadCardsPdf(printReq);
+              toast(t("idCards.pdfHint"), "info");
+            }}
+          >
+            <FileDown className="me-2 h-4 w-4" /> {t("idCards.downloadPdf")}
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => {
+              if (guard() && printReq) printCards(printReq);
+            }}
+          >
+            <Printer className="me-2 h-4 w-4" /> {t("idCards.printDirectly")}
+          </Button>
+        </div>
+
+        <div className="mt-5 grid gap-2 rounded-xl bg-secondary/40 p-4 text-xs sm:grid-cols-2 lg:grid-cols-3">
+          <Info label={t("idCards.eachCardSize")} value={`${round(grid.cardWidth)} × ${round(grid.cardHeight)} mm`} />
+          <Info label={t("idCards.paperSize")} value={`A4 (${PAGE_A4.width} × ${PAGE_A4.height} mm)`} />
+          <Info label={t("idCards.totalPages")} value={String(totalPages)} />
+          <Info label={t("idCards.spacingBetween")} value={`${round(grid.gap)} mm`} />
+          <Info label={t("idCards.cardsPerPageInfo")} value={`${grid.perPage} (${grid.cols} × ${grid.rows})`} />
+          <Info label={t("idCards.totalCards")} value={String(contexts.length)} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Small presentational helpers ──────────────────────────────────────────
+
+const PREVIEW_EXTRA_CSS = `
+.idc-bordered { border: 0.3mm solid rgba(15,23,42,.18); border-radius: 1.6mm; }
+.idc-cut { outline: 0.2mm dashed #cbd5e1; outline-offset: 1.5mm; }
+.idc-preview-wrap { position: relative; }
+.idc-scaled { transform-origin: top left; }
+`;
+
+function round(n: number): number {
+  return Math.round(n * 10) / 10;
+}
+
+function Section({
+  title,
+  children,
+  sticky,
+  right,
+}: {
+  title: string;
+  children: React.ReactNode;
+  sticky?: boolean;
+  right?: React.ReactNode;
+}) {
+  return (
+    <div className={cn("rounded-2xl border bg-card p-4 shadow-sm", sticky && "xl:sticky xl:top-4")}>
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <h2 className="text-sm font-semibold">{title}</h2>
+        {right}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function Field({
+  label,
+  value,
+  onChange,
+  type = "text",
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  type?: string;
+}) {
+  return (
+    <div>
+      <Label>{label}</Label>
+      <Input type={type} value={value} onChange={(e) => onChange(e.target.value)} />
+    </div>
+  );
+}
+
+function NumField({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  onChange: (v: number) => void;
+}) {
+  return (
+    <div>
+      <Label>{label}</Label>
+      <Input
+        type="number"
+        step="0.5"
+        min="0"
+        value={value}
+        onChange={(e) => onChange(Number(e.target.value) || 0)}
+      />
+    </div>
+  );
+}
+
+function Check({
+  label,
+  checked,
+  onChange,
+}: {
+  label: string;
+  checked: boolean;
+  onChange: (v: boolean) => void;
+}) {
+  return (
+    <label className="flex cursor-pointer items-center gap-2">
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+        className="h-4 w-4 rounded border-input accent-primary"
+      />
+      {label}
+    </label>
+  );
+}
+
+function Info({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center gap-1.5">
+      <span className="text-emerald-600 dark:text-emerald-400">✓</span>
+      <span className="text-muted-foreground">{label}:</span>
+      <span className="font-medium">{value}</span>
+    </div>
+  );
+}
+
+/** One card rendered at a chosen zoom, using the real print markup. */
+function ScaledCard({
+  ctx,
+  templateId,
+  scale,
+  layout,
+}: {
+  ctx: CardContext;
+  templateId: string;
+  scale: number;
+  layout: PrintLayoutSettings;
+}) {
+  const grid = resolveGrid(layout);
+  const tpl = templateById(templateId);
+  if (!tpl) return null;
+  const html = renderCard({ ...ctx, accent: ctx.accent }, tpl, grid, {
+    border: layout.showCardBorder,
+    cutLines: false,
+  });
+  const w = grid.cardWidth * MM * scale;
+  const h = grid.cardHeight * MM * scale;
+  return (
+    <div className="idc-preview-wrap" style={{ width: w, height: h }}>
+      <div
+        className="idc-scaled"
+        style={{ transform: `scale(${scale})` }}
+        dangerouslySetInnerHTML={{ __html: html }}
+      />
+    </div>
+  );
+}
+
+/** Template thumbnail — the actual template, shrunk. */
+function MiniCard({
+  ctx,
+  templateId,
+  accent,
+}: {
+  ctx: CardContext | null;
+  templateId: string;
+  accent: string;
+}) {
+  const tpl = templateById(templateId);
+  if (!tpl) return null;
+  const layout: PrintLayoutSettings = {
+    ...DEFAULT_LAYOUT,
+    orientation: tpl.orientation,
+    showCardBorder: true,
+    showCutLines: false,
+  };
+  const grid = resolveGrid(layout);
+  const scale = 0.62;
+  const sample: CardContext =
+    ctx ??
+    ({
+      studentId: "STD-0000",
+      studentName: "Student Name",
+      className: "Grade 12",
+      section: "A",
+      academicYear: "—",
+      gender: "MALE",
+      dob: "—",
+      photoDataUrl: null,
+      guardianName: "",
+      guardianPhone: "",
+      schoolName: "School",
+      schoolMotto: "",
+      schoolAddress: "",
+      schoolPhone: "",
+      schoolEmail: "",
+      schoolWebsite: "",
+      logoDataUrl: null,
+      principalName: "",
+      accent: tpl.accent,
+      cardTitle: "ID CARD",
+      idLabel: "ID",
+      footerText: "",
+      issueDate: "",
+      qrDataUrl: null,
+      examName: "",
+      examDate: "",
+      examSession: "",
+      examOffice: "",
+      clearanceStatus: "",
+      customLine1: "",
+      customLine2: "",
+    } as CardContext);
+  const html = renderCard(
+    { ...sample, accent: accent || tpl.accent },
+    tpl,
+    grid,
+    { border: true, cutLines: false },
+  );
+  return (
+    <div
+      className="idc-preview-wrap mx-auto"
+      style={{ width: grid.cardWidth * MM * scale, height: grid.cardHeight * MM * scale }}
+    >
+      <div
+        className="idc-scaled"
+        style={{ transform: `scale(${scale})` }}
+        dangerouslySetInnerHTML={{ __html: html }}
+      />
+    </div>
+  );
+}
+
+/** A full A4 sheet, shrunk to fit the panel — a true print preview. */
+function SheetPreview({
+  contexts,
+  templateId,
+  layout,
+}: {
+  contexts: CardContext[];
+  templateId: string;
+  layout: PrintLayoutSettings;
+}) {
+  const grid = resolveGrid(layout);
+  const tpl = templateById(templateId);
+  if (!tpl) return null;
+  const scale = 0.42;
+  const cards = contexts
+    .map((c) =>
+      renderCard(c, tpl, grid, {
+        border: layout.showCardBorder,
+        cutLines: layout.showCutLines,
+      }),
+    )
+    .join("");
+  const sheet = `<div style="
+      width:${PAGE_A4.width}mm;height:${PAGE_A4.height}mm;padding:${grid.margin}mm;
+      background:#fff;display:grid;box-sizing:border-box;
+      grid-template-columns:repeat(${grid.cols},${grid.cardWidth}mm);
+      grid-auto-rows:${grid.cardHeight}mm;gap:${grid.gap}mm;
+      justify-content:center;align-content:start;overflow:hidden;">${cards}</div>`;
+  return (
+    <div
+      className="idc-preview-wrap mx-auto overflow-hidden rounded-lg border shadow-sm"
+      style={{ width: PAGE_A4.width * MM * scale, height: PAGE_A4.height * MM * scale }}
+    >
+      <div
+        className="idc-scaled"
+        style={{ transform: `scale(${scale})` }}
+        dangerouslySetInnerHTML={{ __html: sheet }}
+      />
+    </div>
+  );
+}
