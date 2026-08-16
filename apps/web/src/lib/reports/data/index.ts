@@ -1,5 +1,5 @@
 import { api } from "@/lib/api";
-import { filterStudentRecords, filterTeacherRecords } from "@/lib/attendance/store";
+import { filterTeacherRecords } from "@/lib/attendance/store";
 import type { ReportData, ReportFilters } from "../types";
 import { yearOf } from "./utils";
 
@@ -110,83 +110,34 @@ async function fetchTeacherAttendanceReportAsync(
   };
 }
 
+/**
+ * Both student and teacher attendance reports are computed server-side —
+ * this used to fetch one day's roster at a time from the browser's
+ * attendance store (fetchStudentRecordsForDate / fetchTeacherRecordsForDate),
+ * which only ever understood a single `date`, not a `month` range. Every
+ * report in this category other than "Daily" passes `month`, not `date`, so
+ * they were all silently falling back to "today" regardless of which month
+ * was actually selected — Section was never required to reach that bug, it
+ * just made the empty-looking result more confusing to explain.
+ */
 async function fetchAttendanceReportAsync(
   slug: string,
   filters: ReportFilters,
 ): Promise<ReportData> {
   const year = yearOf(filters);
-
-  if (slug.startsWith("student")) {
-    if (slug === "student-class" || slug === "student-section") {
-      const records = await filterStudentRecords({
-        academicYear: year,
-        date: filters.date,
-        className: filters.className,
-        section: filters.section,
-      });
-      const map = new Map<string, { present: number; total: number }>();
-      for (const r of records) {
-        const key = slug === "student-section"
-          ? `${r.className} — ${r.section ?? "—"}`
-          : r.className;
-        const cur = map.get(key) ?? { present: 0, total: 0 };
-        cur.total += 1;
-        if (r.status === "PRESENT" || r.status === "LATE") cur.present += 1;
-        map.set(key, cur);
-      }
-      return {
-        columns: [
-          { key: "group", label: slug === "student-section" ? "Class / Section" : "Class" },
-          { key: "rate", label: "Attendance %", align: "right" },
-          { key: "present", label: "Present", align: "right" },
-          { key: "total", label: "Records", align: "right" },
-        ],
-        rows: [...map.entries()].map(([group, v]) => ({
-          group,
-          rate: `${((v.present / v.total) * 100).toFixed(1)}%`,
-          present: v.present,
-          total: v.total,
-        })),
-        summary: [{ label: "Groups", value: String(map.size) }],
-      };
-    }
-
-    const records = await filterStudentRecords({
-      academicYear: year,
-      date: filters.date,
-      className: filters.className,
-      section: filters.section,
-      status: filters.status as never,
-      search: filters.search,
-    });
-    return {
-      columns: [
-        { key: "student", label: "Student" },
-        { key: "code", label: "ID", mono: true },
-        { key: "className", label: "Class" },
-        { key: "section", label: "Section" },
-        { key: "date", label: "Date" },
-        { key: "status", label: "Status" },
-      ],
-      rows: records.map((r) => ({
-        student: r.student.fullName,
-        code: r.student.code,
-        className: r.className,
-        section: r.section ?? "—",
-        date: r.date,
-        status: r.status,
-      })),
-      summary: [
-        { label: "Records", value: String(records.length) },
-        {
-          label: "Present",
-          value: String(records.filter((r) => r.status === "PRESENT").length),
-        },
-      ],
-    };
+  const params = new URLSearchParams();
+  params.set("academicYear", year);
+  for (const key of ["date", "month", "className", "section", "status", "shift", "search"] as const) {
+    const value = filters[key];
+    if (value) params.set(key, String(value));
   }
-
-  return fetchTeacherAttendanceReportAsync(filters);
+  try {
+    return await api<ReportData>(
+      `/reports/attendance-reports/${encodeURIComponent(slug)}?${params.toString()}`,
+    );
+  } catch {
+    return emptyReport("Could not load attendance data.");
+  }
 }
 
 /**

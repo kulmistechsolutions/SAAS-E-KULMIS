@@ -105,6 +105,13 @@ export function ReportPageShell({ categoryId, categoryLabel, report }: Props) {
     categoryId === "financial" ||
     categoryId === "quiz";
 
+  // Attendance reports scan a whole month of records — firing that on every
+  // keystroke/filter change (the default for every other category) means a
+  // query for each half-picked filter combination. Require an explicit Load
+  // instead, so it only runs once the filters are actually set.
+  const requiresManualLoad = categoryId === "attendance";
+  const [hasLoaded, setHasLoaded] = useState(!requiresManualLoad);
+
   const [data, setData] = useState<ReturnType<typeof fetchReport>>({
     columns: [],
     rows: [],
@@ -141,8 +148,18 @@ export function ReportPageShell({ categoryId, categoryLabel, report }: Props) {
     };
   }, [mounted, categoryId, academics.academicYears, filters.academicYear, year]);
 
+  // Switching to a different report (not just changing its filters) always
+  // needs a fresh Load click for manual-load categories.
+  useEffect(() => {
+    if (requiresManualLoad) setHasLoaded(false);
+  }, [requiresManualLoad, categoryId, report.slug]);
+
   useEffect(() => {
     if (!mounted) return;
+    if (requiresManualLoad && !hasLoaded) {
+      setData({ columns: [], rows: [], summary: [] });
+      return;
+    }
     // Guards against a race: switching reports before a slower fetch for the
     // PREVIOUS report has resolved must not let that stale response land on
     // top of the new report's data — the title says one report while the
@@ -168,7 +185,7 @@ export function ReportPageShell({ categoryId, categoryLabel, report }: Props) {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mounted, categoryId, report.slug, filters, search, refreshKey, needsAsync]);
+  }, [mounted, categoryId, report.slug, filters, search, refreshKey, needsAsync, requiresManualLoad, hasLoaded]);
 
   const sorted = useMemo(() => {
     if (!sortKey) return data.rows;
@@ -271,9 +288,21 @@ export function ReportPageShell({ categoryId, categoryLabel, report }: Props) {
           <Button variant="outline" onClick={() => setShowFilters((v) => !v)}>
             {showFilters ? "Hide Filters" : "Show Filters"}
           </Button>
-          <Button variant="outline" onClick={() => setRefreshKey((k) => k + 1)}>
-            <RefreshCw className="me-2 h-4 w-4" /> {t("reportsReportPageShell.refresh")}
-          </Button>
+          {requiresManualLoad ? (
+            <Button
+              onClick={() => {
+                setHasLoaded(true);
+                setRefreshKey((k) => k + 1);
+              }}
+              disabled={dataLoading}
+            >
+              <RefreshCw className="me-2 h-4 w-4" /> {dataLoading ? "Loading…" : "Load Report"}
+            </Button>
+          ) : (
+            <Button variant="outline" onClick={() => setRefreshKey((k) => k + 1)}>
+              <RefreshCw className="me-2 h-4 w-4" /> {t("reportsReportPageShell.refresh")}
+            </Button>
+          )}
         </div>
 
         {showFilters && report.filters.length > 0 && (
@@ -465,7 +494,13 @@ export function ReportPageShell({ categoryId, categoryLabel, report }: Props) {
               </tr>
             </thead>
             <tbody>
-              {dataLoading ? (
+              {requiresManualLoad && !hasLoaded ? (
+                <tr>
+                  <td colSpan={data.columns.length + 1} className="px-4 py-16 text-center text-muted-foreground">
+                    Set your filters, then press Load Report.
+                  </td>
+                </tr>
+              ) : dataLoading ? (
                 <tr>
                   <td colSpan={data.columns.length + 1} className="px-4 py-16 text-center text-muted-foreground">
                     {t("reportsReportPageShell.loadingReportData")}

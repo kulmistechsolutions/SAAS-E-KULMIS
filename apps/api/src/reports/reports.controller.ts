@@ -18,6 +18,7 @@ import { SalaryReportsService } from "./salary-reports.service";
 import { ExpenseReportsService } from "./expense-reports.service";
 import { FinancialReportsService } from "./financial-reports.service";
 import { QuizReportsService } from "./quiz-reports.service";
+import { AttendanceReportsService } from "./attendance-reports.service";
 import { Roles } from "../auth/roles.decorator";
 import { CurrentUser } from "../auth/current-user.decorator";
 import type { AuthUser } from "../auth/auth.types";
@@ -35,6 +36,7 @@ export class ReportsController {
     private readonly expenseReports: ExpenseReportsService,
     private readonly financialReports: FinancialReportsService,
     private readonly quizReports: QuizReportsService,
+    private readonly attendanceReports: AttendanceReportsService,
   ) {}
 
   /** Promotion and graduation reports, computed from the database. */
@@ -256,6 +258,37 @@ export class ReportsController {
     @Query("classId") classId?: string,
   ) {
     return this.reports.attendanceReport(me.schoolId, date, classId);
+  }
+
+  /**
+   * Student attendance report category (daily/monthly/class/section/history),
+   * computed from the database rather than fetched one day at a time from the
+   * browser's attendance store — see AttendanceReportsService for why.
+   */
+  @Roles(UserRole.ADMINISTRATOR, UserRole.FINANCE_OFFICER, UserRole.EXAM_MANAGER, UserRole.ATTENDANCE_OFFICER, UserRole.ACADEMIC_MANAGER)
+  @Get("attendance-reports/:slug")
+  attendanceReportsBySlug(
+    @CurrentUser() me: AuthUser,
+    @Param("slug") slug: string,
+    @Query("academicYear") academicYear?: string,
+    @Query("date") date?: string,
+    @Query("month") month?: string,
+    @Query("className") className?: string,
+    @Query("section") section?: string,
+    @Query("status") status?: string,
+    @Query("shift") shift?: string,
+    @Query("search") search?: string,
+  ) {
+    return this.attendanceReports.build(me.schoolId, slug, {
+      academicYear,
+      date,
+      month,
+      className,
+      section,
+      status,
+      shift,
+      search,
+    });
   }
 
   @Roles(UserRole.ADMINISTRATOR, UserRole.FINANCE_OFFICER, UserRole.EXAM_MANAGER)
