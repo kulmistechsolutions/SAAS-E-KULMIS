@@ -75,9 +75,11 @@ export interface SchoolSmsGateway {
   license: SmsGatewayLicense | null;
   history: SmsGatewayLicense[];
   enabled: boolean;
+  provider: "HORMUUD" | "DHAMBAAL";
   baseUrl: string;
   username: string;
   hasPassword: boolean;
+  hasApiToken: boolean;
   senderId: string | null;
   connectionStatus: "CONNECTED" | "DISCONNECTED" | "ERROR";
   connectionMessage: string | null;

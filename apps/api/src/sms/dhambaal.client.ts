@@ -72,14 +72,10 @@ export function normalizeSomaliPhone(phone: string): string {
   if (p.startsWith("00252")) p = p.slice(2);
   if (p.startsWith("252")) return p;
   if (p.startsWith("0")) p = p.slice(1);
-  if (
-    p.length === 9 &&
-    (p.startsWith("61") ||
-      p.startsWith("62") ||
-      p.startsWith("63") ||
-      p.startsWith("68") ||
-      p.startsWith("69"))
-  ) {
+  // Any bare 9-digit local number is a Somali mobile number — see
+  // hormuud.client.ts's twin of this function for why this isn't a
+  // hardcoded operator-prefix whitelist.
+  if (p.length === 9) {
     return `252${p}`;
   }
   return p;

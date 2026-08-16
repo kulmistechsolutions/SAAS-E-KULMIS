@@ -111,12 +111,12 @@ export function GatewaySettings() {
           <div className="min-w-0 flex-1">
             <p className="font-medium">
               {gw.active
-                ? "Your own Hormuud account is in use"
+                ? `Your own ${gw.provider === "DHAMBAAL" ? "Dhambaal" : "Hormuud"} account is in use`
                 : "Currently using platform SMS credits"}
             </p>
             <p className="mt-0.5 text-sm text-muted-foreground">
               {gw.active
-                ? "Messages are sent through your account and billed by Hormuud — platform credits are not used."
+                ? `Messages are sent through your account and billed by ${gw.provider === "DHAMBAAL" ? "Dhambaal" : "Hormuud"} — platform credits are not used.`
                 : t("smsGatewaySettings.contactThePlatformAdministratorToActivate")}
             </p>
             {gw.license && (
@@ -139,7 +139,9 @@ export function GatewaySettings() {
       {/* Read-only status — no credential fields, no Test & Save. */}
       <div className="space-y-4 rounded-2xl border bg-card p-5 shadow-sm">
         <div>
-          <h2 className="font-semibold">{t("smsGatewaySettings.yourHormuudCredentials")}</h2>
+          <h2 className="font-semibold">
+            Your {gw.provider === "DHAMBAAL" ? "Dhambaal" : "Hormuud"} credentials
+          </h2>
           <p className="mt-0.5 text-xs text-muted-foreground">
             {t("smsGatewaySettings.managedByThePlatformAdministrator")}
           </p>
@@ -147,8 +149,16 @@ export function GatewaySettings() {
 
         <dl className="grid gap-3 sm:grid-cols-2">
           <div>
-            <dt className="text-xs text-muted-foreground">{t("smsGatewaySettings.username")}</dt>
-            <dd className="mt-0.5 font-medium">{gw.username || "—"}</dd>
+            <dt className="text-xs text-muted-foreground">
+              {gw.provider === "DHAMBAAL" ? "API token" : t("smsGatewaySettings.username")}
+            </dt>
+            <dd className="mt-0.5 font-medium">
+              {gw.provider === "DHAMBAAL"
+                ? gw.hasApiToken
+                  ? "•••••••• (configured)"
+                  : "—"
+                : gw.username || "—"}
+            </dd>
           </div>
           <div>
             <dt className="text-xs text-muted-foreground">{t("smsGatewaySettings.senderIdOptional")}</dt>

@@ -944,13 +944,13 @@ export class SmsService {
     const providerCfg = await this.ensureGlobalConfig();
 
     // On its own gateway the school's readiness depends on its own connection,
-    // not the platform's — and it spends its own Hormuud balance, not credits.
+    // not the platform's — and it spends its own provider balance, not credits.
     const provider = gateway.active
       ? {
           enabled: true,
           connected: true,
           status: "CONNECTED",
-          message: "Sending through your own Hormuud account.",
+          message: `Sending through your own ${gateway.provider === "DHAMBAAL" ? "Dhambaal" : "Hormuud"} account.`,
           canSend: school.smsEnabled,
         }
       : {
