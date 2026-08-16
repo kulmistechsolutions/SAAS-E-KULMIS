@@ -293,6 +293,7 @@ export const soGenerated: PartialDictionary = {
     noRecordsForThisDate: "Taariikhdan diiwaan ma laha.",
     shift: "Shift-ka",
     selectShift: "Dooro shift-ka",
+    allShifts: "Dhammaan Shiftiyada",
     myClasses: "Fasalladayda",
     manageShifts: "Maamul Shiftiyada",
   },

@@ -277,6 +277,7 @@ export class ReportsController {
     @Query("section") section?: string,
     @Query("status") status?: string,
     @Query("shift") shift?: string,
+    @Query("shiftId") shiftId?: string,
     @Query("search") search?: string,
   ) {
     return this.attendanceReports.build(me.schoolId, slug, {
@@ -287,6 +288,7 @@ export class ReportsController {
       section,
       status,
       shift,
+      shiftId,
       search,
     });
   }

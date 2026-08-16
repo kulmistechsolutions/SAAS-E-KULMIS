@@ -20,7 +20,6 @@ import { Tabs } from "@/components/ui/tabs";
 import { StudentStatusPicker } from "@/components/attendance/status-picker";
 import { StudentAttendanceSummaryCards } from "@/components/attendance/summary-cards";
 import {
-  filterStudentRecords,
   listAttendanceShifts,
   loadStudentMarkingRows,
   saveStudentAttendance,
@@ -28,7 +27,11 @@ import {
   useAttendanceState,
   type AttendanceSummary,
 } from "@/lib/attendance/store";
-import type { ApiShift } from "@/lib/attendance/api";
+import {
+  apiStudentDailyAttendanceReport,
+  type ApiAttendanceReportRow,
+  type ApiShift,
+} from "@/lib/attendance/api";
 import {
   formatDisplayDate,
   studentStatusLabel,
@@ -108,9 +111,9 @@ export default function StudentAttendancePage() {
   const [rClass, setRClass] = useState("");
   const [rSection, setRSection] = useState("");
   const [rStatus, setRStatus] = useState("");
-  const [reportRows, setReportRows] = useState<
-    Awaited<ReturnType<typeof filterStudentRecords>>
-  >([]);
+  const [rShiftId, setRShiftId] = useState("");
+  const [reportRows, setReportRows] = useState<ApiAttendanceReportRow[]>([]);
+  const [reportSummary, setReportSummary] = useState<{ label: string; value: string }[]>([]);
   const [reportLoading, setReportLoading] = useState(false);
 
   const [dashboard, setDashboard] = useState<
@@ -217,17 +220,22 @@ export default function StudentAttendancePage() {
   useEffect(() => {
     if (tab !== "reports" || !mounted || !year) return;
     setReportLoading(true);
-    void filterStudentRecords({
+    void apiStudentDailyAttendanceReport({
       academicYear: year,
       date: rDate || undefined,
       className: rClass || undefined,
       section: rSection || undefined,
-      status: (rStatus as StudentAttendanceStatus) || undefined,
-      search: rSearch,
+      status: rStatus || undefined,
+      shiftId: rShiftId || undefined,
+      search: rSearch || undefined,
     })
-      .then(setReportRows)
+      .then((res) => {
+        setReportRows(res.rows);
+        setReportSummary(res.summary);
+      })
+      .catch(() => toast("Could not load report.", "error"))
       .finally(() => setReportLoading(false));
-  }, [tab, mounted, year, rDate, rClass, rSection, rStatus, rSearch]);
+  }, [tab, mounted, year, rDate, rClass, rSection, rStatus, rShiftId, rSearch]);
 
   async function loadList() {
     if (!klass) return toast("Select a class.", "error");
@@ -527,10 +535,18 @@ export default function StudentAttendancePage() {
                   <option value="LATE">{t("attendanceStudents.late")}</option>
                   <option value="EXCUSED">{t("attendanceStudents.excused")}</option>
                 </Select>
+                {shifts.length > 0 && (
+                  <Select value={rShiftId} onChange={(e) => setRShiftId(e.target.value)} className="w-32">
+                    <option value="">{t("attendanceStudents.allShifts")}</option>
+                    {shifts.map((s) => (
+                      <option key={s.id} value={s.id}>{s.name}</option>
+                    ))}
+                  </Select>
+                )}
                 <Button variant="outline" onClick={() => {
                   exportStudentAttendanceCsv(reportRows.map((r) => ({
-                    code: r.student.code, name: r.student.fullName, className: r.className,
-                    section: r.section, date: r.date, status: r.status,
+                    code: r.code, name: r.student, className: r.className,
+                    section: r.section, date: r.date, status: r.status as StudentAttendanceStatus,
                   })));
                   toast("Report exported.", "info");
                 }}><FileDown className="me-2 h-4 w-4" /> {t("attendanceStudents.csv")}</Button>
@@ -538,17 +554,38 @@ export default function StudentAttendancePage() {
                   if (reportRows.length === 0) return toast("No records to print.", "error");
                   const first = reportRows[0];
                   printStudentAttendanceSheet({
-                    academicYear: first.academicYear,
+                    academicYear: year,
                     date: first.date,
                     className: first.className,
-                    section: first.section ?? "",
+                    section: first.section === "—" ? "" : first.section,
                     rows: reportRows.map((r, i) => ({
-                      serial: i + 1, code: r.student.code, name: r.student.fullName, status: r.status,
+                      serial: i + 1, code: r.code, name: r.student, status: r.status as StudentAttendanceStatus,
                     })),
-                    summary: previewSummary,
+                    summary: {
+                      total: reportRows.length,
+                      present: Number(reportSummary.find((s) => s.label === "Present")?.value ?? 0),
+                      absent: Number(reportSummary.find((s) => s.label === "Absent")?.value ?? 0),
+                      late: 0,
+                      excused: 0,
+                      percentage:
+                        Number(
+                          (reportSummary.find((s) => s.label === "Rate")?.value ?? "").replace("%", ""),
+                        ) || 0,
+                    },
                   });
                 }}><Printer className="me-2 h-4 w-4" /> {t("attendanceStudents.print")}</Button>
               </div>
+
+              {reportRows.length > 0 && (
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                  {reportSummary.map((s) => (
+                    <div key={s.label} className="rounded-lg border bg-card p-3 text-center">
+                      <p className="text-xl font-bold">{s.value}</p>
+                      <p className="text-xs text-muted-foreground">{s.label}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
 
               <div className="overflow-hidden rounded-xl border">
                 <table className="w-full text-sm">
@@ -558,24 +595,26 @@ export default function StudentAttendancePage() {
                       <th className="px-4 py-2.5 font-medium">{t("attendanceStudents.student")}</th>
                       <th className="px-4 py-2.5 font-medium">{t("attendanceStudents.class")}</th>
                       <th className="px-4 py-2.5 font-medium">{t("attendanceStudents.section")}</th>
+                      <th className="px-4 py-2.5 font-medium">{t("attendanceStudents.shift")}</th>
                       <th className="px-4 py-2.5 font-medium">{t("attendanceStudents.status")}</th>
                     </tr>
                   </thead>
                   <tbody>
                     {reportLoading ? (
-                      <tr><td colSpan={5} className="px-4 py-12 text-center text-muted-foreground">
+                      <tr><td colSpan={6} className="px-4 py-12 text-center text-muted-foreground">
                         <Loader2 className="me-2 inline h-4 w-4 animate-spin" /> {t("attendanceStudents.loadingRecords")}
                       </td></tr>
                     ) : reportRows.length === 0 ? (
-                      <tr><td colSpan={5} className="px-4 py-12 text-center text-muted-foreground">{t("attendanceStudents.noRecordsForThisDate")}</td></tr>
+                      <tr><td colSpan={6} className="px-4 py-12 text-center text-muted-foreground">{t("attendanceStudents.noRecordsForThisDate")}</td></tr>
                     ) : (
-                      reportRows.slice(0, 100).map((r) => (
-                        <tr key={r.id} className="border-t">
+                      reportRows.slice(0, 100).map((r, i) => (
+                        <tr key={`${r.code}-${r.date}-${i}`} className="border-t">
                           <td className="px-4 py-2.5">{r.date}</td>
-                          <td className="px-4 py-2.5">{r.student.fullName}</td>
+                          <td className="px-4 py-2.5">{r.student}</td>
                           <td className="px-4 py-2.5">{r.className}</td>
                           <td className="px-4 py-2.5">{r.section}</td>
-                          <td className="px-4 py-2.5">{studentStatusLabel(r.status)}</td>
+                          <td className="px-4 py-2.5">{r.shift}</td>
+                          <td className="px-4 py-2.5">{studentStatusLabel(r.status as StudentAttendanceStatus)}</td>
                         </tr>
                       ))
                     )}

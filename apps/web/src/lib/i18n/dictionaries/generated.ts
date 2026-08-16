@@ -293,6 +293,7 @@ export const generated = {
     noRecordsForThisDate: "No records for this date.",
     shift: "Shift",
     selectShift: "Select shift",
+    allShifts: "All Shifts",
     myClasses: "My Classes",
     manageShifts: "Manage Shifts",
   },

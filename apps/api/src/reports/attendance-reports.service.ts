@@ -9,7 +9,10 @@ export interface AttendanceReportFilters {
   className?: string;
   section?: string;
   status?: string;
+  /** Teacher-attendance shift enum (MORNING/AFTERNOON) — see teacherDaily/teacherMonthly. */
   shift?: string;
+  /** Student-attendance shift id (AttendanceShift.id) — schools can define any number of named shifts. */
+  shiftId?: string;
   search?: string;
 }
 
@@ -121,9 +124,11 @@ export class AttendanceReportsService {
           ...(classId ? { classId } : {}),
           ...(sectionId ? { sectionId } : {}),
           ...(filters.status ? { status: filters.status as never } : {}),
+          ...(filters.shiftId ? { shiftId: filters.shiftId } : {}),
         },
         include: {
           student: { select: { code: true, fullName: true } },
+          shift: { select: { name: true } },
         },
         orderBy: [{ createdAt: "asc" }],
       });
@@ -147,12 +152,15 @@ export class AttendanceReportsService {
           )
         : rows;
 
+      const present = filtered.filter((r) => r.status === "PRESENT" || r.status === "LATE").length;
+
       return {
         columns: [
           { key: "student", label: "Student" },
           { key: "code", label: "ID", mono: true },
           { key: "className", label: "Class" },
           { key: "section", label: "Section" },
+          { key: "shift", label: "Shift" },
           { key: "date", label: "Date" },
           { key: "status", label: "Status" },
         ],
@@ -161,13 +169,15 @@ export class AttendanceReportsService {
           code: r.student.code,
           className: classById.get(r.classId) ?? "—",
           section: r.sectionId ? (sectionById.get(r.sectionId) ?? "—") : "—",
+          shift: r.shift?.name ?? "—",
           date: r.date.toISOString().slice(0, 10),
           status: r.status,
         })),
         summary: [
           { label: "Records", value: String(filtered.length) },
-          { label: "Present", value: String(filtered.filter((r) => r.status === "PRESENT").length) },
+          { label: "Present", value: String(present) },
           { label: "Absent", value: String(filtered.filter((r) => r.status === "ABSENT").length) },
+          { label: "Rate", value: pct(present, filtered.length) },
         ],
       };
     });

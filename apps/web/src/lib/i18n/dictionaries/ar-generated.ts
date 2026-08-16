@@ -293,6 +293,7 @@ export const arGenerated: PartialDictionary = {
     noRecordsForThisDate: "لا توجد سجلات لهذا التاريخ.",
     shift: "الفترة",
     selectShift: "اختر الفترة",
+    allShifts: "جميع الفترات",
     myClasses: "صفوفي",
     manageShifts: "إدارة الفترات",
   },

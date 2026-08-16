@@ -145,6 +145,46 @@ export async function apiDeleteAttendanceShift(
   return api(`/attendance-shifts/${id}`, { method: "DELETE" });
 }
 
+export interface ApiAttendanceReportRow {
+  student: string;
+  code: string;
+  className: string;
+  section: string;
+  shift: string;
+  date: string;
+  status: string;
+}
+
+export interface ApiAttendanceReportData {
+  columns: { key: string; label: string; mono?: boolean }[];
+  rows: ApiAttendanceReportRow[];
+  summary: { label: string; value: string }[];
+}
+
+/**
+ * The Student Attendance page's own Reports tab — computed server-side from
+ * StudentAttendance directly (see AttendanceReportsService.daily), not by
+ * replaying the roster fetch used for marking attendance.
+ */
+export async function apiStudentDailyAttendanceReport(filters: {
+  academicYear: string;
+  date?: string;
+  className?: string;
+  section?: string;
+  status?: string;
+  shiftId?: string;
+  search?: string;
+}): Promise<ApiAttendanceReportData> {
+  const params = new URLSearchParams({ academicYear: filters.academicYear });
+  for (const key of ["date", "className", "section", "status", "shiftId", "search"] as const) {
+    const value = filters[key];
+    if (value) params.set(key, value);
+  }
+  return api<ApiAttendanceReportData>(
+    `/reports/attendance-reports/student-daily?${params.toString()}`,
+  );
+}
+
 export async function apiTeacherRoster(
   shift: "MORNING" | "AFTERNOON",
   date: string,
