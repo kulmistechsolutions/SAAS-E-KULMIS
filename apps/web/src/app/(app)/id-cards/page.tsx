@@ -211,10 +211,15 @@ export default function IdCardsPage() {
     [designs, designKey, templateId, layout.orientation, grid.cardWidth, grid.cardHeight],
   );
 
+  // Takes an updater and applies it to whatever is current, so two edits in the
+  // same tick compose instead of the second discarding the first.
   const saveDesign = useCallback(
-    (next: CardDesign) => {
+    (updater: (prev: CardDesign) => CardDesign) => {
       setDesigns((prev) => {
-        const merged = { ...prev, [designKey]: next };
+        const base =
+          prev[designKey] ??
+          presetDesign(templateId, layout.orientation, grid.cardWidth, grid.cardHeight);
+        const merged = { ...prev, [designKey]: updater(base) };
         try {
           localStorage.setItem(DESIGN_STORE_KEY, JSON.stringify(merged));
         } catch {
@@ -223,7 +228,7 @@ export default function IdCardsPage() {
         return merged;
       });
     },
-    [designKey],
+    [designKey, templateId, layout.orientation, grid.cardWidth, grid.cardHeight],
   );
 
   const resetDesign = useCallback(() => {

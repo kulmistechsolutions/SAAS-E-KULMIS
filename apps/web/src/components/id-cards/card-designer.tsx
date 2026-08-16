@@ -48,7 +48,12 @@ const round1 = (v: number) => Math.round(v * 10) / 10;
 interface Props {
   design: CardDesign;
   ctx: CardContext;
-  onChange: (d: CardDesign) => void;
+  /**
+   * Receives an updater, not a value. Two edits landing in the same tick (add
+   * Text then add Signature) would otherwise both derive from the same stale
+   * design and the first would be silently discarded.
+   */
+  onChange: (updater: (prev: CardDesign) => CardDesign) => void;
   onReset: () => void;
 }
 
@@ -81,14 +86,12 @@ export function CardDesigner({ design, ctx, onChange, onReset }: Props) {
 
   const update = useCallback(
     (id: string, patch: Partial<CardElement>) => {
-      onChange({
-        ...design,
-        elements: design.elements.map((e) =>
-          e.id === id ? clampElement({ ...e, ...patch }, design) : e,
-        ),
-      });
+      onChange((d) => ({
+        ...d,
+        elements: d.elements.map((e) => (e.id === id ? clampElement({ ...e, ...patch }, d) : e)),
+      }));
     },
-    [design, onChange],
+    [onChange],
   );
 
   // ── Dragging ──
@@ -164,12 +167,12 @@ export function CardDesigner({ design, ctx, onChange, onReset }: Props) {
       line: { w: 26, h: 0.3, borderColor: "#94a3b8" },
     };
     const el = clampElement({ ...base, ...(presets[type] ?? {}) }, design);
-    onChange({ ...design, elements: [...design.elements, el] });
+    onChange((d) => ({ ...d, elements: [...d.elements, el] }));
     setSelectedId(el.id);
   }
 
   function removeEl(elId: string) {
-    onChange({ ...design, elements: design.elements.filter((e) => e.id !== elId) });
+    onChange((d) => ({ ...d, elements: d.elements.filter((e) => e.id !== elId) }));
     setSelectedId(null);
   }
 
@@ -180,17 +183,19 @@ export function CardDesigner({ design, ctx, onChange, onReset }: Props) {
       { ...src, id: newElementId(src.type), x: src.x + 2, y: src.y + 2 },
       design,
     );
-    onChange({ ...design, elements: [...design.elements, copy] });
+    onChange((d) => ({ ...d, elements: [...d.elements, copy] }));
     setSelectedId(copy.id);
   }
 
   function reorder(elId: string, dir: 1 | -1) {
-    const i = design.elements.findIndex((e) => e.id === elId);
-    const j = i + dir;
-    if (i < 0 || j < 0 || j >= design.elements.length) return;
-    const next = [...design.elements];
-    [next[i], next[j]] = [next[j], next[i]];
-    onChange({ ...design, elements: next });
+    onChange((d) => {
+      const i = d.elements.findIndex((e) => e.id === elId);
+      const j = i + dir;
+      if (i < 0 || j < 0 || j >= d.elements.length) return d;
+      const next = [...d.elements];
+      [next[i], next[j]] = [next[j], next[i]];
+      return { ...d, elements: next };
+    });
   }
 
   const cw = design.width * MM * scale;
