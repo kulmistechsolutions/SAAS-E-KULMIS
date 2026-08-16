@@ -597,7 +597,7 @@ export default function IdCardsPage() {
           <Section title={t("idCards.templatePreview")} sticky>
             {previewCtx && template ? (
               <div className="flex justify-center">
-                <ScaledCard ctx={previewCtx} templateId={template.id} scale={2} layout={layout} />
+                <ScaledCard ctx={previewCtx} templateId={template.id} targetWidth={240} layout={layout} />
               </div>
             ) : (
               <p className="py-10 text-center text-xs text-muted-foreground">
@@ -819,21 +819,28 @@ function Info({ label, value }: { label: string; value: string }) {
   );
 }
 
-/** One card rendered at a chosen zoom, using the real print markup. */
+/**
+ * One card rendered at the largest zoom that still fits the panel.
+ *
+ * The scale is derived from the card's own width rather than fixed: a portrait
+ * card is 54mm and a landscape one 86mm, so a single zoom that suits one
+ * overflows the column for the other.
+ */
 function ScaledCard({
   ctx,
   templateId,
-  scale,
+  targetWidth,
   layout,
 }: {
   ctx: CardContext;
   templateId: string;
-  scale: number;
+  targetWidth: number;
   layout: PrintLayoutSettings;
 }) {
   const grid = resolveGrid(layout);
   const tpl = templateById(templateId);
   if (!tpl) return null;
+  const scale = Math.min(2.2, targetWidth / (grid.cardWidth * MM));
   const html = renderCard({ ...ctx, accent: ctx.accent }, tpl, grid, {
     border: layout.showCardBorder,
     cutLines: false,
@@ -939,7 +946,9 @@ function SheetPreview({
   const grid = resolveGrid(layout);
   const tpl = templateById(templateId);
   if (!tpl) return null;
-  const scale = 0.42;
+  // Fit the A4 sheet to the panel rather than a fixed zoom, so the preview
+  // never spills past its column on a narrow screen.
+  const scale = 300 / (PAGE_A4.width * MM);
   const cards = contexts
     .map((c) =>
       renderCard(c, tpl, grid, {
