@@ -68,19 +68,28 @@ export function CardDesigner({ design, ctx, onChange, onReset }: Props) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<DragState>(null);
 
-  // Fit the canvas to whatever width the panel gives us.
+  // Fit the canvas to the panel's width AND to the screen's height — a portrait
+  // card scaled only to width runs past the bottom of the viewport, so you end
+  // up scrolling to see the card you are editing.
   useEffect(() => {
     const el = wrapRef.current;
     if (!el) return;
     const measure = () => {
       const avail = el.getBoundingClientRect().width;
-      setScale(Math.min(3.4, avail / (design.width * MM)));
+      const maxH = Math.max(320, window.innerHeight - 260);
+      setScale(
+        Math.min(3.4, avail / (design.width * MM), maxH / (design.height * MM)),
+      );
     };
     measure();
     const ro = new ResizeObserver(measure);
     ro.observe(el);
-    return () => ro.disconnect();
-  }, [design.width]);
+    window.addEventListener("resize", measure);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", measure);
+    };
+  }, [design.width, design.height]);
 
   const selected = design.elements.find((e) => e.id === selectedId) ?? null;
 
