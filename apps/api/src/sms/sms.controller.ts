@@ -148,6 +148,15 @@ export class SmsController {
     return this.sms.listMessages(me.schoolId, { status, category, q });
   }
 
+  @Roles(UserRole.ADMINISTRATOR, UserRole.SUPER_ADMINISTRATOR)
+  @Delete("messages")
+  clearMessages(
+    @CurrentUser() me: AuthUser,
+    @Query("status") status?: string,
+  ) {
+    return this.sms.clearMessages(me.schoolId, status);
+  }
+
   @Get("transactions")
   transactions(@CurrentUser() me: AuthUser) {
     return this.sms.listTransactions(me.schoolId);

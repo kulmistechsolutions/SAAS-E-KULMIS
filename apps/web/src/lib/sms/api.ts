@@ -250,6 +250,13 @@ export async function apiSmsMessages(params?: {
   return api<SmsMessage[]>(`/sms/messages${q ? `?${q}` : ""}`);
 }
 
+/** Clears the send-history log — optionally just one status (e.g. only
+ *  FAILED entries). Does not touch the credit/transaction ledger. */
+export async function apiClearSmsMessages(status?: string) {
+  const q = status ? `?status=${encodeURIComponent(status)}` : "";
+  return api<{ cleared: number }>(`/sms/messages${q}`, { method: "DELETE" });
+}
+
 export async function apiSmsTransactions() {
   return api<unknown[]>("/sms/transactions");
 }

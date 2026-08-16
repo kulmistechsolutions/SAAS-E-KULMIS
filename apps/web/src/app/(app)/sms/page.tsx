@@ -21,6 +21,7 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { RecipientPickerDialog } from "@/components/sms/recipient-picker";
+import { ConfirmDialog } from "@/components/students/confirm-dialog";
 import { TemplateManager } from "@/components/sms/template-manager";
 import { GatewaySettings } from "@/components/sms/gateway-settings";
 import { SenderIdCard } from "@/components/sms/sender-id-card";
@@ -33,6 +34,7 @@ import {
   apiSendAudienceSms,
   apiSendSms,
   apiSmsBalance,
+  apiClearSmsMessages,
   apiSmsMessages,
   apiSmsSettings,
   apiSmsTemplates,
@@ -119,6 +121,8 @@ export default function SchoolSmsPage() {
   const [messages, setMessages] = useState<SmsMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const [clearLogsOpen, setClearLogsOpen] = useState(false);
+  const [clearingLogs, setClearingLogs] = useState(false);
 
   // ── Audience send ──────────────────────────────────────────────────────
   const [audience, setAudience] = useState<SmsAudience>("ALL_PARENTS");
@@ -193,6 +197,20 @@ export default function SchoolSmsPage() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  async function handleClearLogs() {
+    setClearingLogs(true);
+    try {
+      const res = await apiClearSmsMessages();
+      setMessages([]);
+      toast(`Cleared ${res.cleared} log ${res.cleared === 1 ? "entry" : "entries"}`, "success");
+    } catch (e) {
+      toast(e instanceof Error ? e.message : "Could not clear logs", "error");
+    } finally {
+      setClearingLogs(false);
+      setClearLogsOpen(false);
+    }
+  }
 
   useEffect(() => {
     if (!templateId) return;
@@ -911,6 +929,17 @@ export default function SchoolSmsPage() {
       )}
 
       {tab === "logs" && (
+        <div className="space-y-3">
+          <div className="flex justify-end">
+            <Button
+              variant="outline"
+              className="text-rose-600 hover:bg-rose-500/10"
+              onClick={() => setClearLogsOpen(true)}
+              disabled={messages.length === 0}
+            >
+              Clear Logs
+            </Button>
+          </div>
         <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
           <table className="w-full text-sm">
             <thead className="bg-secondary text-start text-xs uppercase text-muted-foreground">
@@ -972,6 +1001,7 @@ export default function SchoolSmsPage() {
             </tbody>
           </table>
         </div>
+        </div>
       )}
 
       {tab === "settings" && (
@@ -1001,6 +1031,15 @@ export default function SchoolSmsPage() {
         onToggle={toggleRecipient}
         onToggleAll={toggleAllRecipients}
         loading={previewLoading}
+      />
+
+      <ConfirmDialog
+        open={clearLogsOpen}
+        onClose={() => setClearLogsOpen(false)}
+        onConfirm={handleClearLogs}
+        title="Clear SMS Logs"
+        message={`Delete all ${messages.length} log entries shown here? This only clears the send-history log — it does not refund or change any credits.${clearingLogs ? " Clearing…" : ""}`}
+        confirmLabel="Clear Logs"
       />
     </div>
   );

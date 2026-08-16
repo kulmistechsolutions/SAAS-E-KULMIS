@@ -1172,6 +1172,21 @@ export class SmsService {
     );
   }
 
+  /** Clears the send-history log (optionally just one status), leaving the
+   *  credit/transaction ledger untouched — this is a log of what was
+   *  attempted, not the financial record of what was charged. */
+  async clearMessages(schoolId: string, status?: string) {
+    const result = await this.prisma.forTenant(schoolId, (tx) =>
+      tx.smsMessage.deleteMany({
+        where: {
+          schoolId,
+          ...(status ? { status: status as never } : {}),
+        },
+      }),
+    );
+    return { cleared: result.count };
+  }
+
   listTransactions(schoolId: string, take = 100) {
     return this.prisma.forTenant(schoolId, (tx) =>
       tx.smsTransaction.findMany({
