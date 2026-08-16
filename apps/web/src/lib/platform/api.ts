@@ -535,9 +535,11 @@ export interface PlatformSchoolGateway {
   license: { id: string; endDate: string } | null;
   history: { id: string; endDate: string }[];
   enabled: boolean;
+  provider: "HORMUUD" | "DHAMBAAL";
   baseUrl: string;
   username: string;
   hasPassword: boolean;
+  hasApiToken: boolean;
   senderId: string | null;
   connectionStatus: "CONNECTED" | "DISCONNECTED" | "ERROR";
   connectionMessage: string | null;
@@ -563,9 +565,11 @@ export const fetchPlatformSchoolGateway = (schoolId: string) =>
 export const testPlatformSchoolGateway = (
   schoolId: string,
   body: {
+    provider?: "HORMUUD" | "DHAMBAAL";
     baseUrl?: string;
     username?: string;
     password?: string;
+    apiToken?: string;
     senderId?: string | null;
     enabled?: boolean;
   },

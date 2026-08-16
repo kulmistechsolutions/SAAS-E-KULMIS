@@ -31,9 +31,9 @@ import {
   hormuudSendSms,
   hormuudTestConnection,
   normalizeSomaliPhone,
-  type HormuudConfig,
   type HormuudConnectionTestResult,
 } from "./hormuud.client";
+import { dhambaalSendSms, dhambaalTestConnection } from "./dhambaal.client";
 import { DEFAULT_TEMPLATES, renderSmsTemplate } from "./sms-template.util";
 
 type Recipient = {
@@ -337,7 +337,8 @@ export class SmsService {
    */
   private async resolveGateway(schoolId: string): Promise<{
     ownGateway: boolean;
-    config: { baseUrl: string; username: string; password: string };
+    provider: "HORMUUD" | "DHAMBAAL";
+    config: { baseUrl: string; username: string; password: string; apiToken: string };
     senderId: string | null;
     /** Why own-gateway was not used, for the settings UI. */
     reason?: string;
@@ -348,20 +349,26 @@ export class SmsService {
 
     if (gateway?.enabled) {
       const license = await this.activeGatewayLicense(schoolId);
+      const provider = gateway.provider === "DHAMBAAL" ? "DHAMBAAL" : "HORMUUD";
+      const hasCreds =
+        provider === "DHAMBAAL"
+          ? Boolean(gateway.apiToken)
+          : Boolean(gateway.username && gateway.password);
       if (!license) {
         // fall through to platform
       } else if (
         gateway.connectionVerified &&
         gateway.connectionStatus === "CONNECTED" &&
-        gateway.username &&
-        gateway.password
+        hasCreds
       ) {
         return {
           ownGateway: true,
+          provider,
           config: {
             baseUrl: gateway.baseUrl,
             username: gateway.username,
             password: gateway.password,
+            apiToken: gateway.apiToken,
           },
           senderId: gateway.senderId,
         };
@@ -371,10 +378,12 @@ export class SmsService {
     const cfg = await this.requireProvider();
     return {
       ownGateway: false,
+      provider: "HORMUUD",
       config: {
         baseUrl: cfg.baseUrl,
         username: cfg.username,
         password: cfg.password,
+        apiToken: "",
       },
       senderId: cfg.defaultSenderId,
     };
@@ -396,21 +405,28 @@ export class SmsService {
     senderId: string,
     testPhone: string,
   ): Promise<{ ok: boolean; message: string }> {
-    const { config } = await this.resolveGateway(schoolId);
-    const result = await hormuudSendSms(config, {
-      mobile: testPhone,
-      message: `eKulmis: "${senderId}" sender ID verification test.`,
-      senderid: senderId,
-    });
+    const { provider, config } = await this.resolveGateway(schoolId);
+    const result =
+      provider === "DHAMBAAL"
+        ? await dhambaalSendSms(config, {
+            mobile: testPhone,
+            message: `eKulmis: "${senderId}" sender ID verification test.`,
+            senderid: senderId,
+          })
+        : await hormuudSendSms(config, {
+            mobile: testPhone,
+            message: `eKulmis: "${senderId}" sender ID verification test.`,
+            senderid: senderId,
+          });
     if (result.ok) {
-      return { ok: true, message: "Hormuud accepted this sender ID." };
+      return { ok: true, message: `${provider === "DHAMBAAL" ? "Dhambaal" : "Hormuud"} accepted this sender ID.` };
     }
     return {
       ok: false,
       message:
         result.error ??
         result.responseMessage ??
-        "Hormuud rejected this sender ID.",
+        `${provider === "DHAMBAAL" ? "Dhambaal" : "Hormuud"} rejected this sender ID.`,
     };
   }
 
@@ -428,9 +444,11 @@ export class SmsService {
       license,
       history,
       enabled: gateway.enabled,
+      provider: gateway.provider === "DHAMBAAL" ? "DHAMBAAL" : "HORMUUD",
       baseUrl: gateway.baseUrl,
       username: gateway.username,
       hasPassword: Boolean(gateway.password),
+      hasApiToken: Boolean(gateway.apiToken),
       senderId: gateway.senderId,
       connectionStatus: gateway.connectionStatus as
         "CONNECTED" | "DISCONNECTED" | "ERROR",
@@ -462,20 +480,35 @@ export class SmsService {
     }
 
     const existing = await this.ensureSchoolGateway(schoolId);
-    const baseUrl = input.baseUrl?.trim() || existing.baseUrl;
-    const username = input.username?.trim() || existing.username;
-    const password =
-      input.password && input.password.length > 0
-        ? input.password
-        : existing.password;
+    const provider =
+      input.provider ?? (existing.provider === "DHAMBAAL" ? "DHAMBAAL" : "HORMUUD");
+    const baseUrl =
+      input.baseUrl?.trim() ||
+      (provider !== existing.provider
+        ? provider === "DHAMBAAL"
+          ? "https://dhambaal.golis.so"
+          : "https://smsapi.hormuud.com"
+        : existing.baseUrl);
 
-    if (!username || !password) {
-      throw new BadRequestException(
-        "Enter your Hormuud username and API password.",
-      );
+    let test: { ok: boolean; status: "CONNECTED" | "DISCONNECTED" | "ERROR"; message: string; providerBalance?: string; testedAt: string };
+    let username = "";
+    let password = "";
+    let apiToken = "";
+
+    if (provider === "DHAMBAAL") {
+      apiToken = input.apiToken && input.apiToken.length > 0 ? input.apiToken : existing.apiToken;
+      if (!apiToken) {
+        throw new BadRequestException("Enter the Dhambaal API token.");
+      }
+      test = await dhambaalTestConnection({ baseUrl, apiToken });
+    } else {
+      username = input.username?.trim() || existing.username;
+      password = input.password && input.password.length > 0 ? input.password : existing.password;
+      if (!username || !password) {
+        throw new BadRequestException("Enter your Hormuud username and API password.");
+      }
+      test = await hormuudTestConnection({ baseUrl, username, password });
     }
-
-    const test = await hormuudTestConnection({ baseUrl, username, password });
 
     if (!test.ok) {
       const updated = await this.prisma.schoolSmsGateway.update({
@@ -500,10 +533,16 @@ export class SmsService {
       connectionVerified: true,
     };
     if (saveOnSuccess) {
+      data.provider = provider;
       data.baseUrl = baseUrl;
-      data.username = username;
-      if (input.password && input.password.length > 0) {
-        data.password = input.password;
+      if (provider === "DHAMBAAL") {
+        data.apiToken = apiToken;
+        data.username = "";
+        data.password = "";
+      } else {
+        data.username = username;
+        if (password) data.password = password;
+        data.apiToken = "";
       }
       if (input.senderId !== undefined) data.senderId = input.senderId;
       // First successful verification turns it on, matching the platform flow.
@@ -1367,6 +1406,7 @@ export class SmsService {
         const delivered = await this.deliverStoredMessage(
           msg.id,
           gateway.config,
+          gateway.provider,
         );
         if (delivered.status === "SENT" || delivered.status === "DELIVERED") {
           sent++;
@@ -1707,6 +1747,7 @@ export class SmsService {
       const delivered = await this.deliverStoredMessage(
         created.id,
         gateway.config,
+        gateway.provider,
       );
       if (delivered.status === "SENT" || delivered.status === "DELIVERED") {
         sent++;
@@ -1777,7 +1818,8 @@ export class SmsService {
 
   private async deliverStoredMessage(
     messageId: string,
-    providerCfg?: HormuudConfig,
+    providerCfg?: { baseUrl: string; username: string; password: string; apiToken: string },
+    providerName?: "HORMUUD" | "DHAMBAAL",
   ) {
     const msg = await this.prisma.smsMessage.findUnique({
       where: { id: messageId },
@@ -1787,15 +1829,22 @@ export class SmsService {
 
     // Resolve per-message when not supplied (the scheduled-SMS cron sweeps
     // rows across schools, so each must use its own school's gateway).
-    const provider =
-      providerCfg ?? (await this.resolveGateway(msg.schoolId)).config;
+    let provider = providerCfg;
+    let name = providerName;
+    if (!provider) {
+      const resolved = await this.resolveGateway(msg.schoolId);
+      provider = resolved.config;
+      name = resolved.provider;
+    }
+    const sendSms = name === "DHAMBAAL" ? dhambaalSendSms : hormuudSendSms;
 
     let lastError = "";
-    let result = await hormuudSendSms(
+    let result = await sendSms(
       {
         baseUrl: provider.baseUrl,
         username: provider.username,
         password: provider.password,
+        apiToken: provider.apiToken,
       },
       {
         mobile: msg.recipientPhone,
@@ -1809,11 +1858,12 @@ export class SmsService {
     if (!result.ok) {
       lastError = result.error ?? result.responseMessage ?? "Send failed";
       await new Promise((r) => setTimeout(r, 500));
-      result = await hormuudSendSms(
+      result = await sendSms(
         {
           baseUrl: provider.baseUrl,
           username: provider.username,
           password: provider.password,
+          apiToken: provider.apiToken,
         },
         {
           mobile: msg.recipientPhone,

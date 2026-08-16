@@ -7,6 +7,7 @@ import { Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
 import { toast } from "@/lib/toast";
 import {
   fetchPlatformSchoolGateway,
@@ -38,9 +39,11 @@ export function GatewayCredentialsDialog({
   const [testing, setTesting] = useState(false);
   const [toggling, setToggling] = useState(false);
 
+  const [provider, setProvider] = useState<"HORMUUD" | "DHAMBAAL">("HORMUUD");
   const [baseUrl, setBaseUrl] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [apiToken, setApiToken] = useState("");
   const [senderId, setSenderId] = useState("");
 
   useEffect(() => {
@@ -49,10 +52,12 @@ export function GatewayCredentialsDialog({
     fetchPlatformSchoolGateway(schoolId)
       .then((res) => {
         setGw(res);
+        setProvider(res.provider);
         setBaseUrl(res.baseUrl);
         setUsername(res.username);
         setSenderId(res.senderId ?? "");
         setPassword("");
+        setApiToken("");
       })
       .catch((e) =>
         toast(e instanceof Error ? e.message : "Could not load gateway", "error"),
@@ -60,21 +65,39 @@ export function GatewayCredentialsDialog({
       .finally(() => setLoading(false));
   }, [open, schoolId]);
 
+  function switchProvider(next: "HORMUUD" | "DHAMBAAL") {
+    setProvider(next);
+    // Different provider = a different default endpoint, unless the stored
+    // gateway is already on that provider (then keep its saved baseUrl).
+    if (gw && gw.provider !== next) {
+      setBaseUrl(next === "DHAMBAAL" ? "https://dhambaal.golis.so" : "https://smsapi.hormuud.com");
+    }
+  }
+
   async function testAndSave() {
-    if (!username.trim()) return toast("Enter the Hormuud username", "error");
-    if (!gw?.hasPassword && !password.trim()) {
-      return toast("Enter the Hormuud API password", "error");
+    if (provider === "DHAMBAAL") {
+      if (!gw?.hasApiToken && !apiToken.trim()) {
+        return toast("Enter the Dhambaal API token", "error");
+      }
+    } else {
+      if (!username.trim()) return toast("Enter the Hormuud username", "error");
+      if (!gw?.hasPassword && !password.trim()) {
+        return toast("Enter the Hormuud API password", "error");
+      }
     }
     setTesting(true);
     try {
       const res = await testPlatformSchoolGateway(schoolId, {
+        provider,
         baseUrl: baseUrl.trim() || undefined,
-        username: username.trim(),
-        password: password.trim() || undefined,
+        username: provider === "HORMUUD" ? username.trim() : undefined,
+        password: provider === "HORMUUD" ? password.trim() || undefined : undefined,
+        apiToken: provider === "DHAMBAAL" ? apiToken.trim() || undefined : undefined,
         senderId: senderId.trim() || null,
       });
       setGw(res.gateway);
       setPassword("");
+      setApiToken("");
       toast(
         res.test.ok ? "Connected — the school's account is now in use." : res.test.message,
         res.test.ok ? "success" : "error",
@@ -116,32 +139,60 @@ export function GatewayCredentialsDialog({
       ) : (
         <div className="space-y-4">
           <div>
-            <Label htmlFor="pgw-user">Username</Label>
-            <Input
-              id="pgw-user"
+            <Label htmlFor="pgw-provider">Provider</Label>
+            <Select
+              id="pgw-provider"
               className="mt-1.5"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-            />
+              value={provider}
+              onChange={(e) => switchProvider(e.target.value as "HORMUUD" | "DHAMBAAL")}
+            >
+              <option value="HORMUUD">Hormuud</option>
+              <option value="DHAMBAAL">Dhambaal</option>
+            </Select>
           </div>
-          <div>
-            <Label htmlFor="pgw-pass">API password</Label>
-            <Input
-              id="pgw-pass"
-              type="password"
-              className="mt-1.5"
-              placeholder={gw.hasPassword ? "•••••••• (leave blank to keep)" : ""}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-          </div>
+          {provider === "HORMUUD" ? (
+            <>
+              <div>
+                <Label htmlFor="pgw-user">Username</Label>
+                <Input
+                  id="pgw-user"
+                  className="mt-1.5"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                />
+              </div>
+              <div>
+                <Label htmlFor="pgw-pass">API password</Label>
+                <Input
+                  id="pgw-pass"
+                  type="password"
+                  className="mt-1.5"
+                  placeholder={gw.hasPassword ? "•••••••• (leave blank to keep)" : ""}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+              </div>
+            </>
+          ) : (
+            <div>
+              <Label htmlFor="pgw-token">API token</Label>
+              <Input
+                id="pgw-token"
+                type="password"
+                className="mt-1.5"
+                placeholder={gw.hasApiToken ? "•••••••• (leave blank to keep)" : ""}
+                value={apiToken}
+                onChange={(e) => setApiToken(e.target.value)}
+              />
+            </div>
+          )}
           <div className="grid gap-3 sm:grid-cols-2">
             <div>
               <Label htmlFor="pgw-sender">Sender ID (optional)</Label>
               <Input
                 id="pgw-sender"
                 className="mt-1.5"
-                maxLength={20}
+                maxLength={provider === "DHAMBAAL" ? 11 : 20}
                 value={senderId}
                 onChange={(e) => setSenderId(e.target.value)}
               />

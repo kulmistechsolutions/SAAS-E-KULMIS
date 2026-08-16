@@ -103,12 +103,15 @@ export const sendAudienceSmsSchema = z.object({
 
 // ── School's own SMS gateway (paid add-on) ─────────────────────────────────
 
-/** School saves/tests its own Hormuud credentials. */
+/** School saves/tests its own gateway credentials (Hormuud or Dhambaal). */
 export const schoolSmsGatewaySchema = z.object({
+  provider: z.enum(["HORMUUD", "DHAMBAAL"]).optional(),
   baseUrl: z.string().url().optional(),
   username: z.string().trim().min(1).optional(),
   /** Blank = keep the stored password (the API never sends it back). */
   password: z.string().optional(),
+  /** Bearer token for DHAMBAAL. Blank = keep the stored token. */
+  apiToken: z.string().optional(),
   senderId: z.string().trim().max(20).nullable().optional(),
   /** Persist the credentials only if the test succeeds. */
   saveOnSuccess: z.boolean().optional(),

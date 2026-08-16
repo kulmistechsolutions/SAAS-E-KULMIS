@@ -1820,10 +1820,14 @@ model SchoolSmsGateway {
 
   /// School's switch. Only takes effect while a license is active.
   enabled  Boolean @default(false)
+  /// HORMUUD | DHAMBAAL — which client sends through this gateway.
+  provider String  @default("HORMUUD")
   baseUrl  String  @default("https://smsapi.hormuud.com")
   username String  @default("")
   /// API password (Hormuud portal "API PASSWORD"). Never returned by the API.
   password String  @default("")
+  /// Bearer token for token-auth providers (Dhambaal). Never returned by the API.
+  apiToken String  @default("")
   senderId String?
 
   /// CONNECTED | DISCONNECTED | ERROR
