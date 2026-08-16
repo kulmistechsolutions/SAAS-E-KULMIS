@@ -365,6 +365,10 @@ export const generated = {
     spacingBetween: "Spacing between cards",
     cardsPerPageInfo: "Cards per page",
     totalCards: "Total cards",
+    designer: "Card Designer",
+    editDesign: "Edit Design",
+    closeDesigner: "Close Designer",
+    edited: "Edited",
   },
   attendanceShifts: {
     title: "Attendance Shift Management",

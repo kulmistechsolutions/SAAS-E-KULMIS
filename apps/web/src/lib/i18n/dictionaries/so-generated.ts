@@ -365,6 +365,10 @@ export const soGenerated: PartialDictionary = {
     spacingBetween: "Meesha u dhaxaysa kaararka",
     cardsPerPageInfo: "Kaarar bog kasta",
     totalCards: "Wadarta kaararka",
+    designer: "Naqshadeeyaha Kaarka",
+    editDesign: "Wax ka beddel Naqshadda",
+    closeDesigner: "Xir Naqshadeeyaha",
+    edited: "La beddelay",
   },
   attendanceShifts: {
     title: "Maamulka Shiftiyada Xaadiriska",

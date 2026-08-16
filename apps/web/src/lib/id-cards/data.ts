@@ -8,7 +8,6 @@ import { darken } from "./templates";
 import type {
   CardContext,
   CardLabels,
-  CardTemplate,
   ClearanceMeta,
   CustomMeta,
   ExamCardMeta,
@@ -97,7 +96,8 @@ export async function makeQrDataUrl(text: string, accent: string): Promise<strin
 }
 
 export interface BuildContextOptions {
-  template: CardTemplate;
+  /** Only the bits of the chosen design the context builder needs. */
+  template: { accent: string; usesPhoto?: boolean };
   labels: CardLabels;
   accent: string;
   includePhotos: boolean;
@@ -126,7 +126,7 @@ export async function buildCardContexts(
   const accent = opts.accent || opts.template.accent;
   const issueDate = new Date().toLocaleDateString();
 
-  const needsPhoto = opts.includePhotos && opts.template.usesPhoto;
+  const needsPhoto = opts.includePhotos && opts.template.usesPhoto !== false;
   const photos = new Map<string, string | null>();
   if (needsPhoto) {
     // Sequential on purpose: a class of 40 students would otherwise open 40

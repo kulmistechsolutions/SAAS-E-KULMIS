@@ -1,33 +1,27 @@
 "use client";
 
+import { renderDesign, type CardDesign } from "./elements";
 import { PAGE_A4, paginate, type ResolvedGrid } from "./layout";
 import { CARD_CSS, darken } from "./templates";
-import type { CardContext, CardTemplate } from "./types";
+import type { CardContext } from "./types";
 
-/**
- * Markup for one card, sized to its physical footprint.
- *
- * Orientation is read off the geometry rather than passed separately, so the
- * shape that is actually being printed is always the shape the template lays
- * itself out for — the two can never disagree.
- */
+/** Markup for one card, sized to its physical footprint. */
 export function renderCard(
   ctx: CardContext,
-  template: CardTemplate,
-  grid: ResolvedGrid,
+  design: CardDesign,
   opts: { border: boolean; cutLines: boolean },
 ): string {
   const classes = ["idc"];
   if (opts.border) classes.push("idc-bordered");
   if (opts.cutLines) classes.push("idc-cut");
+  const accent = ctx.accent || design.accent;
   const style = [
-    `width:${grid.cardWidth}mm`,
-    `height:${grid.cardHeight}mm`,
-    `--idc-accent:${ctx.accent}`,
-    `--idc-accent-dark:${darken(ctx.accent)}`,
+    `width:${design.width}mm`,
+    `height:${design.height}mm`,
+    `--idc-accent:${accent}`,
+    `--idc-accent-dark:${darken(accent)}`,
   ].join(";");
-  const orientation = grid.cardWidth < grid.cardHeight ? "PORTRAIT" : "LANDSCAPE";
-  return `<div class="${classes.join(" ")}" style="${style}">${template.render(ctx, orientation)}</div>`;
+  return `<div class="${classes.join(" ")}" style="${style}">${renderDesign(design, ctx)}</div>`;
 }
 
 /**
@@ -38,7 +32,7 @@ export function renderCard(
  * because each page is an explicitly sized box holding exactly the cards that
  * fit inside it (PRD §16).
  */
-export function sheetCss(grid: ResolvedGrid, cutLines: boolean): string {
+export function sheetCss(grid: ResolvedGrid, _cutLines: boolean): string {
   return `
 ${CARD_CSS}
 .idc-bordered { border: 0.3mm solid rgba(15,23,42,.18); border-radius: 1.6mm; }
@@ -63,7 +57,7 @@ ${CARD_CSS}
 
 export function renderSheets(
   contexts: CardContext[],
-  template: CardTemplate,
+  design: CardDesign,
   grid: ResolvedGrid,
   opts: { border: boolean; cutLines: boolean },
 ): string {
@@ -71,7 +65,7 @@ export function renderSheets(
     .map(
       (page) =>
         `<section class="idc-sheet">${page
-          .map((c) => renderCard(c, template, grid, opts))
+          .map((c) => renderCard(c, design, opts))
           .join("")}</section>`,
     )
     .join("");
@@ -123,7 +117,7 @@ function printDocument(
 
 export interface PrintRequest {
   contexts: CardContext[];
-  template: CardTemplate;
+  design: CardDesign;
   grid: ResolvedGrid;
   border: boolean;
   cutLines: boolean;
@@ -140,7 +134,7 @@ function openDocument(html: string): boolean {
 
 /** Open the print dialog on a freshly built sheet set. */
 export function printCards(req: PrintRequest): boolean {
-  const body = renderSheets(req.contexts, req.template, req.grid, {
+  const body = renderSheets(req.contexts, req.design, req.grid, {
     border: req.border,
     cutLines: req.cutLines,
   });
@@ -154,8 +148,8 @@ export function printCards(req: PrintRequest): boolean {
  *
  * That keeps the output vector — real text, real fonts, exact millimetre
  * geometry — which a canvas-rasterising client-side PDF library cannot match,
- * and it means the PDF is byte-for-byte the same layout that Print produces
- * rather than a second implementation that can drift from it.
+ * and it means the PDF is the same layout Print produces rather than a second
+ * implementation that can drift from it.
  */
 export function downloadCardsPdf(req: PrintRequest): boolean {
   return printCards({ ...req, title: req.title ?? "ID Cards — PDF" });
@@ -163,7 +157,7 @@ export function downloadCardsPdf(req: PrintRequest): boolean {
 
 /** Open the sheets WITHOUT auto-printing, for a full-page visual check. */
 export function openFullPreview(req: PrintRequest): boolean {
-  const body = renderSheets(req.contexts, req.template, req.grid, {
+  const body = renderSheets(req.contexts, req.design, req.grid, {
     border: req.border,
     cutLines: req.cutLines,
   });

@@ -15,6 +15,7 @@ import {
   FileDown,
   Layers,
   Loader2,
+  Pencil,
   Printer,
   ScanLine,
   Search,
@@ -44,7 +45,10 @@ import {
   type CardType,
   type PrintLayoutSettings,
 } from "@/lib/id-cards/types";
-import { CARD_CSS, templateById, templatesForType } from "@/lib/id-cards/templates";
+import { CARD_CSS } from "@/lib/id-cards/templates";
+import { presetDesign, presetById, presetsForType } from "@/lib/id-cards/presets";
+import type { CardDesign } from "@/lib/id-cards/elements";
+import { CardDesigner } from "@/components/id-cards/card-designer";
 import { PAGE_A4, paginate, resolveGrid } from "@/lib/id-cards/layout";
 import {
   buildCardContexts,
@@ -60,6 +64,9 @@ import {
 
 /** Millimetres → CSS pixels at the 96dpi the browser lays out with. */
 const MM = 96 / 25.4;
+
+/** Edited card designs, so a school's layout work survives a reload. */
+const DESIGN_STORE_KEY = "ekulmis.idcards.designs.v1";
 
 const CARD_TYPE_ICONS: Record<CardType, typeof CreditCard> = {
   STUDENT_ID: CreditCard,
@@ -86,11 +93,12 @@ export default function IdCardsPage() {
 
   const year = activeAcademicYear();
 
-  // ── Card type + template ──
+  // ── Card type + design ──
   const [cardType, setCardType] = useState<CardType>("STUDENT_ID");
-  const templates = useMemo(() => templatesForType(cardType), [cardType]);
+  const templates = useMemo(() => presetsForType(cardType), [cardType]);
   const [templateId, setTemplateId] = useState("modern-blue");
-  const template = templateById(templateId) ?? templates[0];
+  const template = presetById(templateId) ?? templates[0];
+  const [designerOpen, setDesignerOpen] = useState(false);
 
   useEffect(() => {
     if (!templates.some((tpl) => tpl.id === templateId)) {
@@ -180,6 +188,59 @@ export default function IdCardsPage() {
 
   const grid = useMemo(() => resolveGrid(layout), [layout]);
 
+  // ── The editable design ──
+  // Keyed by style + orientation + physical size, because a layout laid out for
+  // 54×86mm means nothing on an 86×54mm card. Edits are kept per key so
+  // switching orientation and back does not throw the work away.
+  const designKey = `${templateId}|${layout.orientation}|${round(grid.cardWidth)}x${round(grid.cardHeight)}`;
+  const [designs, setDesigns] = useState<Record<string, CardDesign>>({});
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(DESIGN_STORE_KEY);
+      if (raw) setDesigns(JSON.parse(raw) as Record<string, CardDesign>);
+    } catch {
+      /* a corrupt store must not block the page — presets still work */
+    }
+  }, []);
+
+  const design: CardDesign = useMemo(
+    () =>
+      designs[designKey] ??
+      presetDesign(templateId, layout.orientation, grid.cardWidth, grid.cardHeight),
+    [designs, designKey, templateId, layout.orientation, grid.cardWidth, grid.cardHeight],
+  );
+
+  const saveDesign = useCallback(
+    (next: CardDesign) => {
+      setDesigns((prev) => {
+        const merged = { ...prev, [designKey]: next };
+        try {
+          localStorage.setItem(DESIGN_STORE_KEY, JSON.stringify(merged));
+        } catch {
+          /* quota or private mode — the design still applies for this session */
+        }
+        return merged;
+      });
+    },
+    [designKey],
+  );
+
+  const resetDesign = useCallback(() => {
+    setDesigns((prev) => {
+      const merged = { ...prev };
+      delete merged[designKey];
+      try {
+        localStorage.setItem(DESIGN_STORE_KEY, JSON.stringify(merged));
+      } catch {
+        /* ignore */
+      }
+      return merged;
+    });
+  }, [designKey]);
+
+  const isCustomised = !!designs[designKey];
+
   const setLayoutField = <K extends keyof PrintLayoutSettings>(
     key: K,
     value: PrintLayoutSettings[K],
@@ -259,18 +320,16 @@ export default function IdCardsPage() {
     }
   }
 
-  const printReq = template
-    ? {
-        contexts,
-        template,
-        grid,
-        border: layout.showCardBorder,
-        cutLines: layout.showCutLines,
-      }
-    : null;
+  const printReq = {
+    contexts,
+    design,
+    grid,
+    border: layout.showCardBorder,
+    cutLines: layout.showCutLines,
+  };
 
   function guard(): boolean {
-    if (!printReq || contexts.length === 0) {
+    if (contexts.length === 0) {
       toast(t("idCards.generateFirst"), "error");
       return false;
     }
@@ -299,6 +358,24 @@ export default function IdCardsPage() {
         <h1 className="text-2xl font-bold">{t("idCards.title")}</h1>
         <p className="mt-1 text-sm text-muted-foreground">{t("idCards.subtitle")}</p>
       </div>
+
+      {designerOpen && (
+        <Section
+          title={t("idCards.designer")}
+          right={
+            <span className="text-xs text-muted-foreground">
+              {round(design.width)} × {round(design.height)} mm
+            </span>
+          }
+        >
+          <CardDesigner
+            design={design}
+            ctx={previewCtx ?? PLACEHOLDER_CTX}
+            onChange={saveDesign}
+            onReset={resetDesign}
+          />
+        </Section>
+      )}
 
       <div className="grid gap-5 xl:grid-cols-12">
         {/* ── Configuration ── */}
@@ -369,7 +446,7 @@ export default function IdCardsPage() {
                       : "hover:border-primary/40",
                   )}
                 >
-                  <MiniCard ctx={previewCtx} templateId={tpl.id} accent={accent} layout={layout} />
+                  <MiniCard ctx={previewCtx} styleId={tpl.id} accent={accent} grid={grid} orientation={layout.orientation} />
                   <p className="mt-1.5 truncate text-xs font-medium">{tpl.name}</p>
                 </button>
               ))}
@@ -627,9 +704,24 @@ export default function IdCardsPage() {
 
         {/* ── Previews: one column, so neither panel is squeezed ── */}
         <div className="space-y-5 xl:col-span-5 xl:sticky xl:top-4 xl:self-start">
-          <Section title={t("idCards.templatePreview")}>
-            {previewCtx && template ? (
-              <ScaledCard ctx={previewCtx} templateId={template.id} layout={layout} />
+          <Section
+            title={t("idCards.templatePreview")}
+            right={
+              <div className="flex items-center gap-2">
+                {isCustomised && (
+                  <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary">
+                    {t("idCards.edited")}
+                  </span>
+                )}
+                <Button variant="outline" onClick={() => setDesignerOpen((v) => !v)}>
+                  <Pencil className="me-2 h-4 w-4" />
+                  {designerOpen ? t("idCards.closeDesigner") : t("idCards.editDesign")}
+                </Button>
+              </div>
+            }
+          >
+            {previewCtx ? (
+              <ScaledCard ctx={previewCtx} design={design} border={layout.showCardBorder} />
             ) : (
               <p className="py-10 text-center text-xs text-muted-foreground">
                 {t("idCards.selectStudentsFirst")}
@@ -651,7 +743,7 @@ export default function IdCardsPage() {
               <>
                 <SheetPreview
                   contexts={pages[Math.min(page, pages.length - 1)] ?? []}
-                  templateId={template.id}
+                  design={design}
                   layout={layout}
                 />
                 {totalPages > 1 && (
@@ -699,7 +791,7 @@ export default function IdCardsPage() {
           <Button
             variant="outline"
             onClick={() => {
-              if (guard() && printReq) openFullPreview(printReq);
+              if (guard()) openFullPreview(printReq);
             }}
           >
             <ScanLine className="me-2 h-4 w-4" /> {t("idCards.previewFullPage")}
@@ -707,7 +799,7 @@ export default function IdCardsPage() {
           <Button
             variant="outline"
             onClick={() => {
-              if (!guard() || !printReq) return;
+              if (!guard()) return;
               downloadCardsPdf(printReq);
               toast(t("idCards.pdfHint"), "info");
             }}
@@ -717,7 +809,7 @@ export default function IdCardsPage() {
           <Button
             variant="outline"
             onClick={() => {
-              if (guard() && printReq) printCards(printReq);
+              if (guard()) printCards(printReq);
             }}
           >
             <Printer className="me-2 h-4 w-4" /> {t("idCards.printDirectly")}
@@ -905,25 +997,22 @@ function FitBox({
   );
 }
 
-/** The selected template at full size, filling the preview panel. */
+/** The selected design at full size, filling the preview panel. */
 function ScaledCard({
   ctx,
-  templateId,
-  layout,
+  design,
+  border,
 }: {
   ctx: CardContext;
-  templateId: string;
-  layout: PrintLayoutSettings;
+  design: CardDesign;
+  border: boolean;
 }) {
-  const grid = resolveGrid(layout);
-  const tpl = templateById(templateId);
-  if (!tpl) return null;
   return (
     <FitBox
-      contentWidth={grid.cardWidth * MM}
-      contentHeight={grid.cardHeight * MM}
+      contentWidth={design.width * MM}
+      contentHeight={design.height * MM}
       maxScale={2.4}
-      html={renderCard(ctx, tpl, grid, { border: layout.showCardBorder, cutLines: false })}
+      html={renderCard(ctx, design, { border, cutLines: false })}
     />
   );
 }
@@ -934,25 +1023,25 @@ function ScaledCard({
  */
 function MiniCard({
   ctx,
-  templateId,
+  styleId,
   accent,
-  layout,
+  grid,
+  orientation,
 }: {
   ctx: CardContext | null;
-  templateId: string;
+  styleId: string;
   accent: string;
-  layout: PrintLayoutSettings;
+  grid: { cardWidth: number; cardHeight: number };
+  orientation: PrintLayoutSettings["orientation"];
 }) {
-  const tpl = templateById(templateId);
-  if (!tpl) return null;
-  const grid = resolveGrid({ ...layout, showCardBorder: true, showCutLines: false });
+  const design = presetDesign(styleId, orientation, grid.cardWidth, grid.cardHeight);
   const sample: CardContext = ctx ?? PLACEHOLDER_CTX;
   return (
     <FitBox
-      contentWidth={grid.cardWidth * MM}
-      contentHeight={grid.cardHeight * MM}
+      contentWidth={design.width * MM}
+      contentHeight={design.height * MM}
       maxScale={1}
-      html={renderCard({ ...sample, accent: accent || tpl.accent }, tpl, grid, {
+      html={renderCard({ ...sample, accent: accent || design.accent }, design, {
         border: true,
         cutLines: false,
       })}
@@ -963,19 +1052,17 @@ function MiniCard({
 /** A full A4 sheet scaled to the panel — a true print preview. */
 function SheetPreview({
   contexts,
-  templateId,
+  design,
   layout,
 }: {
   contexts: CardContext[];
-  templateId: string;
+  design: CardDesign;
   layout: PrintLayoutSettings;
 }) {
   const grid = resolveGrid(layout);
-  const tpl = templateById(templateId);
-  if (!tpl) return null;
   const cards = contexts
     .map((c) =>
-      renderCard(c, tpl, grid, {
+      renderCard(c, design, {
         border: layout.showCardBorder,
         cutLines: layout.showCutLines,
       }),

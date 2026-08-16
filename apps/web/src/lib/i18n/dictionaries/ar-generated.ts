@@ -365,6 +365,10 @@ export const arGenerated: PartialDictionary = {
     spacingBetween: "المسافة بين البطاقات",
     cardsPerPageInfo: "بطاقات لكل صفحة",
     totalCards: "إجمالي البطاقات",
+    designer: "مصمّم البطاقة",
+    editDesign: "تعديل التصميم",
+    closeDesigner: "إغلاق المصمّم",
+    edited: "مُعدّل",
   },
   attendanceShifts: {
     title: "إدارة فترات الحضور",
