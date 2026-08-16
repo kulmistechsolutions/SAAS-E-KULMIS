@@ -4,6 +4,8 @@ import { PrismaService } from "../prisma/prisma.service";
 import { parseDateFrom, parseDateTo } from "../common/date-range.util";
 import type { ReportData } from "./fee-reports.service";
 
+const STUDENT_STATUS_VALUES = new Set(["ACTIVE", "INACTIVE", "GRADUATED"]);
+
 export interface StudentReportFilters {
   className?: string;
   section?: string;
@@ -57,9 +59,11 @@ export class StudentReportsService {
     else if (slug === "graduated") where.status = "GRADUATED";
     else if (slug === "male") where.gender = "MALE";
     else if (slug === "female") where.gender = "FEMALE";
-    else if (filters.status) where.status = filters.status as Prisma.StudentWhereInput["status"];
+    else if (filters.status && STUDENT_STATUS_VALUES.has(filters.status)) {
+      where.status = filters.status as Prisma.StudentWhereInput["status"];
+    }
 
-    if (filters.gender && !where.gender) {
+    if (filters.gender && !where.gender && (filters.gender === "MALE" || filters.gender === "FEMALE")) {
       where.gender = filters.gender as Prisma.StudentWhereInput["gender"];
     }
     if (filters.className) where.class = { name: filters.className };

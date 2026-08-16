@@ -4,6 +4,9 @@ import { formatMoney } from "@ekulmis/shared";
 import { PrismaService } from "../prisma/prisma.service";
 import type { ReportData } from "./fee-reports.service";
 
+const TEACHER_STATUS_VALUES = new Set(["ACTIVE", "INACTIVE"]);
+const TEACHER_SHIFT_VALUES = new Set(["MORNING", "AFTERNOON"]);
+
 export interface TeacherReportFilters {
   shift?: string;
   status?: string;
@@ -47,8 +50,12 @@ export class TeacherReportsService {
 
   private teacherWhere(filters: TeacherReportFilters): Prisma.TeacherWhereInput {
     const where: Prisma.TeacherWhereInput = {};
-    if (filters.shift) where.shift = filters.shift as Prisma.TeacherWhereInput["shift"];
-    if (filters.status) where.status = filters.status as Prisma.TeacherWhereInput["status"];
+    if (filters.shift && TEACHER_SHIFT_VALUES.has(filters.shift)) {
+      where.shift = filters.shift as Prisma.TeacherWhereInput["shift"];
+    }
+    if (filters.status && TEACHER_STATUS_VALUES.has(filters.status)) {
+      where.status = filters.status as Prisma.TeacherWhereInput["status"];
+    }
     if (filters.search) {
       where.OR = [
         { fullName: { contains: filters.search, mode: "insensitive" } },

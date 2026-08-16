@@ -1,7 +1,7 @@
 "use client";
 
 
-import { useT } from "@/lib/i18n/provider";
+import { useT, type TranslationKey } from "@/lib/i18n/provider";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
@@ -28,6 +28,47 @@ import { cn } from "@/lib/utils";
 import { toast } from "@/lib/toast";
 
 const PAGE_SIZE = 15;
+
+/**
+ * The "status" filter means a different enum per report — Student.status
+ * (ACTIVE/INACTIVE/GRADUATED), Teacher.status (ACTIVE/INACTIVE),
+ * attendance's AttendanceStatus (PRESENT/ABSENT/LATE/EXCUSED), or
+ * Salary.status (PENDING/PAID/PARTIAL). One hardcoded option list sent the
+ * attendance-only values to /reports/student-reports and /reports/teacher-reports,
+ * which crashed with a Prisma 500 (invalid enum value) — see Platform error logs.
+ */
+function statusOptionsFor(
+  categoryId: string,
+  slug: string,
+): { value: string; labelKey: string }[] {
+  if (categoryId === "students") {
+    return [
+      { value: "ACTIVE", labelKey: "active" },
+      { value: "INACTIVE", labelKey: "inactive" },
+      { value: "GRADUATED", labelKey: "graduated" },
+    ];
+  }
+  if (categoryId === "attendance" || slug === "attendance") {
+    return [
+      { value: "PRESENT", labelKey: "present" },
+      { value: "ABSENT", labelKey: "absent" },
+      { value: "LATE", labelKey: "late" },
+      { value: "EXCUSED", labelKey: "excused" },
+    ];
+  }
+  if (categoryId === "salary") {
+    return [
+      { value: "PENDING", labelKey: "pending" },
+      { value: "PAID", labelKey: "paid" },
+      { value: "PARTIAL", labelKey: "partial" },
+    ];
+  }
+  // teachers: list/salary — Teacher.status is EmploymentStatus (ACTIVE/INACTIVE only)
+  return [
+    { value: "ACTIVE", labelKey: "active" },
+    { value: "INACTIVE", labelKey: "inactive" },
+  ];
+}
 
 const FILTER_LABELS: Record<ReportFilterKey, string> = {
   academicYear: "Academic Year",
@@ -369,11 +410,11 @@ export function ReportPageShell({ categoryId, categoryLabel, report }: Props) {
                 <Label>{FILTER_LABELS.status}</Label>
                 <Select value={filters.status ?? ""} onChange={(e) => setFilter("status", e.target.value)}>
                   <option value="">{t("reportsReportPageShell.all")}</option>
-                  <option value="ACTIVE">{t("reportsReportPageShell.active")}</option>
-                  <option value="INACTIVE">{t("reportsReportPageShell.inactive")}</option>
-                  <option value="GRADUATED">{t("reportsReportPageShell.graduated")}</option>
-                  <option value="PRESENT">{t("reportsReportPageShell.present")}</option>
-                  <option value="ABSENT">{t("reportsReportPageShell.absent")}</option>
+                  {statusOptionsFor(categoryId, report.slug).map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {t(`reportsReportPageShell.${o.labelKey}` as TranslationKey)}
+                    </option>
+                  ))}
                 </Select>
               </div>
             )}

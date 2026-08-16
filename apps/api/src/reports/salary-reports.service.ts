@@ -4,6 +4,8 @@ import { formatMoney } from "@ekulmis/shared";
 import { PrismaService } from "../prisma/prisma.service";
 import type { ReportData } from "./fee-reports.service";
 
+const SALARY_STATUS_VALUES = new Set(["PENDING", "PAID", "PARTIAL"]);
+
 export interface SalaryReportFilters {
   month?: string;
   shift?: string;
@@ -54,7 +56,7 @@ export class SalaryReportsService {
     const period = parseMonth(filters.month);
     const where: Prisma.SalaryWhereInput = {
       ...(period ? { year: period.year, month: period.month } : {}),
-      ...(filters.status
+      ...(filters.status && SALARY_STATUS_VALUES.has(filters.status)
         ? { status: filters.status as Prisma.SalaryWhereInput["status"] }
         : {}),
     };
