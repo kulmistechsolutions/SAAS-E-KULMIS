@@ -396,8 +396,13 @@ export default function SchoolSmsPage() {
     { id: "gateway", label: "sms.mySMSAccount", icon: PlugZap },
   ];
 
+  // A school on its own gateway (Hormuud/Dhambaal) never carries platform
+  // credits — it pays the provider directly — so requiring
+  // creditsRemaining > 0 unconditionally blocked every own-gateway school
+  // from ever sending, regardless of how well-connected their account was.
   const canSend =
-    !!balance?.provider.canSend && (balance?.creditsRemaining ?? 0) > 0;
+    !!balance?.provider.canSend &&
+    (balance?.gateway?.active || (balance?.creditsRemaining ?? 0) > 0);
   const excludedCount = recipients.length - selected.size;
 
   return (
