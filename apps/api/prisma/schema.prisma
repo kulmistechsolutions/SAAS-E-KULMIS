@@ -772,6 +772,27 @@ model AttendanceShift {
   @@map("attendance_shifts")
 }
 
+/// A school's saved ID-card layout, shared by every admin rather than living in
+/// one browser. `designKey` is the client's own "style|orientation|WxH" key, so
+/// a layout only applies to the exact card shape it was drawn for.
+model CardDesign {
+  id              String   @id @default(cuid())
+  schoolId        String
+  designKey       String
+  styleId         String
+  orientation     String
+  accent          String
+  /// CardElement[] — positions in millimetres. Validated on write.
+  elements        Json
+  updatedByUserId String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([schoolId, designKey])
+  @@index([schoolId])
+  @@map("card_designs")
+}
+
 /// Daily teacher attendance (Module 6). Shift-scoped. One record per day.
 model TeacherAttendance {
   id             String           @id @default(cuid())

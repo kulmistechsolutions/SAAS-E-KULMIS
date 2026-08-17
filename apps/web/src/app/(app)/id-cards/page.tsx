@@ -48,6 +48,12 @@ import {
 import { CARD_CSS } from "@/lib/id-cards/templates";
 import { presetDesign, presetById, presetsForType } from "@/lib/id-cards/presets";
 import type { CardDesign } from "@/lib/id-cards/elements";
+import {
+  apiDeleteCardDesign,
+  apiListCardDesigns,
+  apiSaveCardDesign,
+  toDesignMap,
+} from "@/lib/id-cards/api";
 import { CardDesigner } from "@/components/id-cards/card-designer";
 import { PAGE_A4, paginate, resolveGrid } from "@/lib/id-cards/layout";
 import {
@@ -65,8 +71,32 @@ import {
 /** Millimetres → CSS pixels at the 96dpi the browser lays out with. */
 const MM = 96 / 25.4;
 
-/** Edited card designs, so a school's layout work survives a reload. */
-const DESIGN_STORE_KEY = "ekulmis.idcards.designs.v1";
+/**
+ * Card edits fire many times a second while an element is being dragged, so
+ * the save is debounced per design and only the final state is sent. The
+ * canvas never waits on the network.
+ */
+const saveTimers = new Map<string, ReturnType<typeof setTimeout>>();
+
+function queueDesignSave(
+  key: string,
+  styleId: string,
+  orientation: string,
+  design: CardDesign,
+) {
+  const pending = saveTimers.get(key);
+  if (pending) clearTimeout(pending);
+  saveTimers.set(
+    key,
+    setTimeout(() => {
+      saveTimers.delete(key);
+      void apiSaveCardDesign(key, styleId, orientation, design).catch(() =>
+        toast("Could not save the design to the school", "error"),
+      );
+    }, 700),
+  );
+}
+
 
 const CARD_TYPE_ICONS: Record<CardType, typeof CreditCard> = {
   STUDENT_ID: CreditCard,
@@ -196,12 +226,11 @@ export default function IdCardsPage() {
   const [designs, setDesigns] = useState<Record<string, CardDesign>>({});
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(DESIGN_STORE_KEY);
-      if (raw) setDesigns(JSON.parse(raw) as Record<string, CardDesign>);
-    } catch {
-      /* a corrupt store must not block the page — presets still work */
-    }
+    void apiListCardDesigns()
+      .then((rows) => setDesigns(toDesignMap(rows)))
+      .catch(() => {
+        /* the presets still work, so a failed load must not block printing */
+      });
   }, []);
 
   const design: CardDesign = useMemo(
@@ -219,13 +248,11 @@ export default function IdCardsPage() {
         const base =
           prev[designKey] ??
           presetDesign(templateId, layout.orientation, grid.cardWidth, grid.cardHeight);
-        const merged = { ...prev, [designKey]: updater(base) };
-        try {
-          localStorage.setItem(DESIGN_STORE_KEY, JSON.stringify(merged));
-        } catch {
-          /* quota or private mode — the design still applies for this session */
-        }
-        return merged;
+        const next = updater(base);
+        // Persist in the background: a drag fires many updates a second, and
+        // the canvas must never wait on the network to stay responsive.
+        queueDesignSave(designKey, templateId, layout.orientation, next);
+        return { ...prev, [designKey]: next };
       });
     },
     [designKey, templateId, layout.orientation, grid.cardWidth, grid.cardHeight],
@@ -235,13 +262,11 @@ export default function IdCardsPage() {
     setDesigns((prev) => {
       const merged = { ...prev };
       delete merged[designKey];
-      try {
-        localStorage.setItem(DESIGN_STORE_KEY, JSON.stringify(merged));
-      } catch {
-        /* ignore */
-      }
       return merged;
     });
+    void apiDeleteCardDesign(designKey).catch(() =>
+      toast("Could not reset the saved design", "error"),
+    );
   }, [designKey]);
 
   const isCustomised = !!designs[designKey];

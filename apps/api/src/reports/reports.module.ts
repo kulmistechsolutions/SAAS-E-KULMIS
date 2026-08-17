@@ -12,10 +12,12 @@ import { ExpenseReportsService } from "./expense-reports.service";
 import { FinancialReportsService } from "./financial-reports.service";
 import { QuizReportsService } from "./quiz-reports.service";
 import { AttendanceReportsService } from "./attendance-reports.service";
+import { CardDesignsController } from "./card-designs.controller";
+import { CardDesignsService } from "./card-designs.service";
 
 @Module({
   imports: [ExaminationsModule],
-  controllers: [ReportsController],
+  controllers: [ReportsController, CardDesignsController],
   providers: [
     ReportsService,
     FeeReportsService,
@@ -28,6 +30,7 @@ import { AttendanceReportsService } from "./attendance-reports.service";
     FinancialReportsService,
     QuizReportsService,
     AttendanceReportsService,
+    CardDesignsService,
   ],
 })
 export class ReportsModule {}
