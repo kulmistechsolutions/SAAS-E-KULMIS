@@ -3,6 +3,7 @@ import { PrismaService } from "../prisma/prisma.service";
 import { DocumentsService } from "../documents/documents.service";
 import { StorageService } from "../storage/storage.service";
 import { StudentsService } from "../students/students.service";
+import { normalizeSomaliPhone, phoneProblem } from "../common/phone.util";
 
 @Injectable()
 export class ImportsService {
@@ -41,11 +42,24 @@ export class ImportsService {
           errors.push(`Missing name/phone: ${JSON.stringify(row)}`);
           continue;
         }
+
+        // Catch an unusable number here, while whoever is importing still has
+        // the spreadsheet open. Left alone it imports silently and only shows
+        // up much later as a failed SMS to a parent who never got told.
+        const problem = phoneProblem(String(parentPhone));
+        if (problem) {
+          failed++;
+          errors.push(`${fullName}: phone "${parentPhone}" ${problem}`);
+          continue;
+        }
         await this.students.register(schoolId, {
           fullName,
           gender: (row.gender || row.Gender || "MALE") as "MALE" | "FEMALE",
           parentName,
-          parentPhone,
+          // Stored in one canonical form (252XXXXXXXXX), so the same parent
+          // written as 0615…, +252615… or 615… is recognised as one person
+          // instead of creating a duplicate record per spelling.
+          parentPhone: normalizeSomaliPhone(String(parentPhone)),
           classId,
           sectionId: sectionId ?? undefined,
           monthlyFee: Number(row.monthlyFee || row.fee || 0) || 0,
