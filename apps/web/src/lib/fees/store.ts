@@ -467,6 +467,10 @@ export async function collectPayment(input: PayInput): Promise<{
     payment.receiptNo = res.receiptNumber;
     payment.collectedBy = input.collectedBy ?? "Admin User";
     payment.outstandingAfter = outstandingBalance(student.id, month);
+    // The API now says which months this payment actually covered — it used
+    // to say nothing, so every receipt printed "Month(s): —" no matter what
+    // was paid.
+    payment.monthKeys = res.monthKeys ?? [];
     logAudit(
       "Fee Collection",
       payment.collectedBy,

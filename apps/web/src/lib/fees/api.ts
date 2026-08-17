@@ -46,6 +46,8 @@ export interface ApiPayment {
     fullName: string;
     class: { name: string } | null;
   };
+  /** Present when returned from /fees/payments — which months this payment covered. */
+  allocations?: { feeCharge: { year: number; month: number } }[];
 }
 
 export interface ApiFinanceDashboard {
@@ -112,6 +114,12 @@ export function mapApiCharge(
 }
 
 export function mapApiPayment(p: ApiPayment, academicYear: string): FeePayment {
+  // De-duplicated "YYYY-MM" for every month this payment actually covered.
+  // Previously always empty, so every receipt printed "Month(s): —"
+  // regardless of what was paid.
+  const monthKeys = p.allocations
+    ? [...new Set(p.allocations.map((a) => monthKey(a.feeCharge.year, a.feeCharge.month)))].sort()
+    : [];
   return {
     id: p.id,
     receiptNo: p.receiptNumber,
@@ -119,7 +127,7 @@ export function mapApiPayment(p: ApiPayment, academicYear: string): FeePayment {
     academicYear,
     amount: p.amount,
     paymentType: p.type,
-    monthKeys: [],
+    monthKeys,
     collectedBy: "Finance Officer",
     collectedAt: p.paidAt,
     outstandingAfter: 0,
@@ -284,6 +292,8 @@ export async function apiPayFee(input: PayFeeApiInput) {
     receiptNumber: string;
     payment: ApiPayment;
     unallocated: number;
+    /** "YYYY-MM" for every month this payment actually covered. */
+    monthKeys: string[];
   }>("/fees/pay", { method: "POST", body: input });
 }
 

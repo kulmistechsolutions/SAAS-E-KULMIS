@@ -962,7 +962,10 @@ export class FeesService {
 
       // Recorded alongside the payment so a later reversal knows exactly
       // which charges this money went to, instead of guessing from the total.
-      const allocations: { feeChargeId: string; amount: number }[] = [];
+      // year/month travel with each allocation so the receipt can say which
+      // months this payment actually covered — previously nothing recorded
+      // that, so every receipt printed "Month(s): —" regardless of type.
+      const allocations: { feeChargeId: string; amount: number; year: number; month: number }[] = [];
 
       let remaining = dto.amount;
       for (const charge of outstanding) {
@@ -978,7 +981,7 @@ export class FeesService {
             status: paidAmount >= charge.amount ? "PAID" : "PARTIAL",
           },
         });
-        allocations.push({ feeChargeId: charge.id, amount: applied });
+        allocations.push({ feeChargeId: charge.id, amount: applied, year: charge.year, month: charge.month });
         remaining -= applied;
       }
 
@@ -1010,7 +1013,7 @@ export class FeesService {
                   : "PARTIAL",
             },
           });
-          allocations.push({ feeChargeId: charge.id, amount: applied });
+          allocations.push({ feeChargeId: charge.id, amount: applied, year: charge.year, month: charge.month });
           remaining -= applied;
         }
 
@@ -1052,7 +1055,7 @@ export class FeesService {
                     dup.paidAmount + applied >= dup.amount ? "PAID" : "PARTIAL",
                 },
               });
-              allocations.push({ feeChargeId: dup.id, amount: applied });
+              allocations.push({ feeChargeId: dup.id, amount: applied, year: dup.year, month: dup.month });
               remaining -= applied;
               continue;
             }
@@ -1068,7 +1071,7 @@ export class FeesService {
                 status: applied >= student.monthlyFee ? "PAID" : "PARTIAL",
               },
             });
-            allocations.push({ feeChargeId: newCharge.id, amount: applied });
+            allocations.push({ feeChargeId: newCharge.id, amount: applied, year: y, month: m });
             remaining -= applied;
           }
         }
@@ -1108,7 +1111,11 @@ export class FeesService {
         });
       }
 
-      return { receiptNumber, payment, unallocated: remaining };
+      // "YYYY-MM" per month this payment touched, de-duplicated (a single
+      // charge can receive more than one allocation entry) and in order.
+      const monthKeys = [...new Set(allocations.map((a) => `${a.year}-${String(a.month).padStart(2, "0")}`))].sort();
+
+      return { receiptNumber, payment, unallocated: remaining, monthKeys };
     });
   }
 
@@ -1520,6 +1527,12 @@ export class FeesService {
               fullName: true,
               class: { select: { name: true } },
             },
+          },
+          // Which months this payment actually covered, for the receipt. A
+          // payment was previously returned with no way to answer that, so a
+          // receipt reopened from the history list always printed "Month(s): —".
+          allocations: {
+            select: { feeCharge: { select: { year: true, month: true } } },
           },
         },
       }),
