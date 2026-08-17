@@ -18,6 +18,9 @@ export interface PlanFormValues {
   libraryStorageMb: number | null;
   priceUsd: number | null;
   pricePerStudentUsd: number | null;
+  extendPricePerStudentUsd: number | null;
+  extendPricePerTeacherUsd: number | null;
+  extendPricePerAiCreditUsd: number | null;
   isActive?: boolean;
 }
 
@@ -42,6 +45,9 @@ export function PlanFormDialog({ open, onClose, plan, onSubmit }: Props) {
   const [libraryStorageMb, setLibraryStorageMb] = useState("");
   const [priceUsd, setPriceUsd] = useState("");
   const [pricePerStudentUsd, setPricePerStudentUsd] = useState("");
+  const [extendPricePerStudentUsd, setExtendPricePerStudentUsd] = useState("");
+  const [extendPricePerTeacherUsd, setExtendPricePerTeacherUsd] = useState("");
+  const [extendPricePerAiCreditUsd, setExtendPricePerAiCreditUsd] = useState("");
   const [isActive, setIsActive] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -56,6 +62,9 @@ export function PlanFormDialog({ open, onClose, plan, onSubmit }: Props) {
     setLibraryStorageMb(toStr(plan?.libraryStorageMb));
     setPriceUsd(toStr(plan?.priceUsd));
     setPricePerStudentUsd(toStr(plan?.pricePerStudentUsd));
+    setExtendPricePerStudentUsd(toStr(plan?.extendPricePerStudentUsd));
+    setExtendPricePerTeacherUsd(toStr(plan?.extendPricePerTeacherUsd));
+    setExtendPricePerAiCreditUsd(toStr(plan?.extendPricePerAiCreditUsd));
     setIsActive(plan?.isActive ?? true);
     setError(null);
   }, [open, plan]);
@@ -81,6 +90,12 @@ export function PlanFormDialog({ open, onClose, plan, onSubmit }: Props) {
         priceUsd: priceUsd.trim() === "" ? null : Number(priceUsd),
         pricePerStudentUsd:
           pricePerStudentUsd.trim() === "" ? null : Number(pricePerStudentUsd),
+        extendPricePerStudentUsd:
+          extendPricePerStudentUsd.trim() === "" ? null : Number(extendPricePerStudentUsd),
+        extendPricePerTeacherUsd:
+          extendPricePerTeacherUsd.trim() === "" ? null : Number(extendPricePerTeacherUsd),
+        extendPricePerAiCreditUsd:
+          extendPricePerAiCreditUsd.trim() === "" ? null : Number(extendPricePerAiCreditUsd),
         isActive,
       });
       onClose();
@@ -208,6 +223,47 @@ export function PlanFormDialog({ open, onClose, plan, onSubmit }: Props) {
                 </>
               )}
             </p>
+          </div>
+        </div>
+        <div className="rounded-lg border border-input bg-background p-4">
+          <p className="text-sm font-medium">{t("platformPlanFormDialog.extendPricesTitle")}</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {t("platformPlanFormDialog.extendPricesHint")}
+          </p>
+          <div className="mt-3 grid gap-4 sm:grid-cols-3">
+            <div>
+              <Label>{t("platformPlanFormDialog.extendPerStudent")}</Label>
+              <Input
+                type="number"
+                min={0}
+                step="0.0001"
+                value={extendPricePerStudentUsd}
+                onChange={(e) => setExtendPricePerStudentUsd(e.target.value)}
+                placeholder={t("platformPlanFormDialog.notExtendable")}
+              />
+            </div>
+            <div>
+              <Label>{t("platformPlanFormDialog.extendPerTeacher")}</Label>
+              <Input
+                type="number"
+                min={0}
+                step="0.0001"
+                value={extendPricePerTeacherUsd}
+                onChange={(e) => setExtendPricePerTeacherUsd(e.target.value)}
+                placeholder={t("platformPlanFormDialog.notExtendable")}
+              />
+            </div>
+            <div>
+              <Label>{t("platformPlanFormDialog.extendPerAiCredit")}</Label>
+              <Input
+                type="number"
+                min={0}
+                step="0.0001"
+                value={extendPricePerAiCreditUsd}
+                onChange={(e) => setExtendPricePerAiCreditUsd(e.target.value)}
+                placeholder={t("platformPlanFormDialog.notExtendable")}
+              />
+            </div>
           </div>
         </div>
         <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-input bg-background px-3 py-3 text-sm">

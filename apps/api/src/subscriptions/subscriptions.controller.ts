@@ -13,6 +13,8 @@ import {
 import {
   assignSchoolSubscriptionSchema,
   createSubscriptionPlanSchema,
+  previewSubscriptionExtendSchema,
+  purchaseSubscriptionExtendSchema,
   purchaseSubscriptionPlanSchema,
   updateSubscriptionPlanSchema,
   UserRole,
@@ -239,5 +241,69 @@ export class SubscriptionsController {
   @Get("payments/waafi/callback/failure")
   failureCallbackGet(@Query() query: Record<string, unknown>) {
     return this.subscriptions.handleSubscriptionCallback("failure", query ?? {});
+  }
+
+  // ── Extend — self-service mid-cycle capacity top-up ──────────────────
+
+  @Roles(UserRole.ADMINISTRATOR)
+  @Post("extend/preview")
+  previewExtend(@CurrentUser() me: AuthUser, @Body() body: unknown) {
+    const parsed = previewSubscriptionExtendSchema.safeParse(body);
+    if (!parsed.success) throw new BadRequestException(parsed.error.flatten());
+    return this.subscriptions.previewSubscriptionExtension(me.schoolId, parsed.data);
+  }
+
+  @Roles(UserRole.ADMINISTRATOR)
+  @Post("extend")
+  extend(@CurrentUser() me: AuthUser, @Body() body: unknown) {
+    const parsed = purchaseSubscriptionExtendSchema.safeParse(body);
+    if (!parsed.success) throw new BadRequestException(parsed.error.flatten());
+    return this.subscriptions.initiateSubscriptionExtension(
+      me.schoolId,
+      me.userId,
+      parsed.data,
+    );
+  }
+
+  @Roles(UserRole.ADMINISTRATOR)
+  @Get("extensions")
+  listExtensions(@CurrentUser() me: AuthUser) {
+    return this.subscriptions.listSchoolExtensionOrders(me.schoolId);
+  }
+
+  @Roles(UserRole.ADMINISTRATOR)
+  @Get("extensions/:id")
+  extensionReceipt(@CurrentUser() me: AuthUser, @Param("id") id: string) {
+    return this.subscriptions.getExtensionOrderReceipt(me.schoolId, id);
+  }
+
+  @Roles(UserRole.ADMINISTRATOR)
+  @Post("extensions/:id/verify")
+  verifyExtension(@CurrentUser() me: AuthUser, @Param("id") id: string) {
+    return this.subscriptions.verifyAndActivateExtension(id, me.schoolId);
+  }
+
+  @Public()
+  @Post("extensions/waafi/callback/success")
+  extensionSuccessCallback(@Body() body: Record<string, unknown>) {
+    return this.subscriptions.handleExtensionCallback("success", body ?? {});
+  }
+
+  @Public()
+  @Get("extensions/waafi/callback/success")
+  extensionSuccessCallbackGet(@Query() query: Record<string, unknown>) {
+    return this.subscriptions.handleExtensionCallback("success", query ?? {});
+  }
+
+  @Public()
+  @Post("extensions/waafi/callback/failure")
+  extensionFailureCallback(@Body() body: Record<string, unknown>) {
+    return this.subscriptions.handleExtensionCallback("failure", body ?? {});
+  }
+
+  @Public()
+  @Get("extensions/waafi/callback/failure")
+  extensionFailureCallbackGet(@Query() query: Record<string, unknown>) {
+    return this.subscriptions.handleExtensionCallback("failure", query ?? {});
   }
 }

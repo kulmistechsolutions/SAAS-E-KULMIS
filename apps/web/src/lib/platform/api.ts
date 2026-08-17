@@ -738,6 +738,10 @@ export interface PlatformSubscriptionPlan {
   /** Illustrative example price at the plan's own capacity (or the requesting school's live count). */
   computedMonthlyPriceUsd?: number | null;
   computedYearlyPriceUsd?: number | null;
+  /** Per-unit price for a school to self-serve top up capacity mid-cycle. Null = not extendable. */
+  extendPricePerStudentUsd: string | number | null;
+  extendPricePerTeacherUsd: string | number | null;
+  extendPricePerAiCreditUsd: string | number | null;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -882,6 +886,9 @@ export const createPlatformSubscriptionPlan = (body: {
   libraryStorageMb?: number | null;
   priceUsd?: number | null;
   pricePerStudentUsd?: number | null;
+  extendPricePerStudentUsd?: number | null;
+  extendPricePerTeacherUsd?: number | null;
+  extendPricePerAiCreditUsd?: number | null;
   isActive?: boolean;
 }) =>
   platformFetch<PlatformSubscriptionPlan>("/platform/subscriptions/plans", {
@@ -900,6 +907,9 @@ export const updatePlatformSubscriptionPlan = (
     libraryStorageMb: number | null;
     priceUsd: number | null;
     pricePerStudentUsd: number | null;
+    extendPricePerStudentUsd: number | null;
+    extendPricePerTeacherUsd: number | null;
+    extendPricePerAiCreditUsd: number | null;
     isActive: boolean;
   }>,
 ) =>

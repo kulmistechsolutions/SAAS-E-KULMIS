@@ -2312,12 +2312,18 @@ model SubscriptionPlan {
   /// silently exceeding a limit nobody was watching. Null keeps the plan on
   /// flat priceUsd billing.
   pricePerStudentUsd    Decimal? @db.Decimal(10, 4)
+  /// Platform-set price to top up capacity mid-cycle without switching plans
+  /// (PRD: "Extend"). Null on a plan means that resource cannot be extended.
+  extendPricePerStudentUsd  Decimal? @db.Decimal(10, 4)
+  extendPricePerTeacherUsd  Decimal? @db.Decimal(10, 4)
+  extendPricePerAiCreditUsd Decimal? @db.Decimal(10, 4)
   isActive              Boolean  @default(true)
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
 
   subscriptions SchoolSubscription[]
   paymentOrders SubscriptionPaymentOrder[]
+  extensionOrders SubscriptionExtensionOrder[]
 
   @@map("subscription_plans")
 }
@@ -2354,6 +2360,13 @@ model SchoolSubscription {
   assignedByUsername   String?
   /// Last expiry warning sent: 7 | 3 | 1 (or null if none this cycle).
   lastExpiryNoticeDays Int?
+  /// Mid-cycle capacity top-up ("Extend"), added on top of the plan's own
+  /// maxStudents/maxTeachers/aiGradingMonthlyQuota. Reset to 0 whenever the
+  /// subscription is renewed or reassigned -- an extension is a top-up for
+  /// THIS cycle, not a permanent plan change.
+  extraStudents        Int                      @default(0)
+  extraTeachers        Int                      @default(0)
+  extraAiGradingQuota  Int                      @default(0)
   createdAt            DateTime                 @default(now())
   updatedAt            DateTime                 @updatedAt
 
@@ -2495,6 +2508,58 @@ model SubscriptionPaymentAuditLog {
   @@index([orderId, createdAt])
   @@index([schoolId, createdAt])
   @@map("subscription_payment_audit_logs")
+}
+
+/// A school's self-service mid-cycle top-up of its subscription capacity
+/// (more students, teachers, or AI grading credits) without switching plans.
+/// Mirrors SubscriptionPaymentOrder -- same WaafiPay merchant config, same
+/// gateway calls -- but on success it ADDS to extraStudents/extraTeachers/
+/// extraAiGradingQuota on the existing SchoolSubscription instead of
+/// replacing the plan, and the cost is prorated to the days left in the
+/// current billing period rather than a full new term.
+model SubscriptionExtensionOrder {
+  id                 String                    @id @default(cuid())
+  schoolId           String
+  subscriptionPlanId String
+  /// STUDENT | TEACHER | AI_GRADING
+  resource           String
+  quantity           Int
+  unitPriceUsd       Decimal                   @db.Decimal(10, 4)
+  cycleTotalDays     Int
+  cycleRemainingDays Int
+  referenceId        String                    @unique
+  invoiceId          String
+  amount             Decimal                   @db.Decimal(12, 2)
+  currency           String                    @default("USD")
+  status             SubscriptionPaymentStatus @default(PENDING)
+  paymentMethod      String                    @default("MWALLET_ACCOUNT")
+  /// API_PURCHASE | HPP_PURCHASE
+  channel            String                    @default("API_PURCHASE")
+  payerAccount       String?
+  receiptNumber      String?                   @unique
+  waafiRequestId     String?
+  waafiOrderId       String?
+  waafiTransactionId String?                   @unique
+  waafiIssuerTxnId   String?
+  hppUrl             String?
+  requestPayload     Json?
+  responsePayload    Json?
+  callbackPayload    Json?
+  verifyPayload      Json?
+  failureReason      String?
+  initiatedByUserId  String?
+  paidAt             DateTime?
+  expiresAt          DateTime?
+  activatedAt        DateTime?
+  createdAt          DateTime                  @default(now())
+  updatedAt          DateTime                  @updatedAt
+
+  plan SubscriptionPlan @relation(fields: [subscriptionPlanId], references: [id])
+
+  @@index([schoolId])
+  @@index([schoolId, status])
+  @@index([status, createdAt])
+  @@map("subscription_extension_orders")
 }
 
 // ───────────────────────────────────────────────────────────────────────────

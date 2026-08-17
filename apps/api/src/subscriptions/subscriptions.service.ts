@@ -13,7 +13,10 @@ import type {
   AssignSchoolSubscriptionInput,
   CreateSubscriptionPlanInput,
   CustomDurationInput,
+  PreviewSubscriptionExtendInput,
+  PurchaseSubscriptionExtendInput,
   PurchaseSubscriptionPlanInput,
+  SubscriptionExtendResource,
   UpdateSubscriptionPlanInput,
 } from "@ekulmis/shared";
 import { PrismaService } from "../prisma/prisma.service";
@@ -123,6 +126,35 @@ function isSameMonth(a: Date, b: Date): boolean {
   return a.getUTCFullYear() === b.getUTCFullYear() && a.getUTCMonth() === b.getUTCMonth();
 }
 
+/**
+ * Cost of extending capacity mid-cycle: the plan's per-unit extend price is a
+ * full-cycle rate, charged only for the days left in the CURRENT cycle
+ * (monthly plan → days left in the month; yearly plan → days left in the
+ * year), never the full rate. `cycleTotalDays` is the span between the
+ * subscription's own startDate/endDate, so a monthly vs yearly plan is
+ * distinguished automatically without a separate branch.
+ */
+function prorateExtendAmount(
+  unitPriceUsd: number,
+  quantity: number,
+  cycleTotalDays: number,
+  cycleRemainingDays: number,
+): number {
+  const remaining = Math.max(0, Math.min(cycleRemainingDays, cycleTotalDays));
+  const fraction = cycleTotalDays > 0 ? remaining / cycleTotalDays : 0;
+  const amount = unitPriceUsd * quantity * fraction;
+  return Math.round(amount * 100) / 100;
+}
+
+const EXTEND_RESOURCE_FIELD: Record<
+  SubscriptionExtendResource,
+  { plan: "extendPricePerStudentUsd" | "extendPricePerTeacherUsd" | "extendPricePerAiCreditUsd"; extra: "extraStudents" | "extraTeachers" | "extraAiGradingQuota" }
+> = {
+  STUDENT: { plan: "extendPricePerStudentUsd", extra: "extraStudents" },
+  TEACHER: { plan: "extendPricePerTeacherUsd", extra: "extraTeachers" },
+  AI_GRADING: { plan: "extendPricePerAiCreditUsd", extra: "extraAiGradingQuota" },
+};
+
 const MSG_EXPIRED =
   "Your school subscription has expired. Please contact Platform Administrator.";
 const MSG_TRIAL_ENDED =
@@ -177,6 +209,9 @@ export class SubscriptionsService {
           libraryStorageMb: dto.libraryStorageMb ?? null,
           priceUsd: dto.priceUsd ?? null,
           pricePerStudentUsd: dto.pricePerStudentUsd ?? null,
+          extendPricePerStudentUsd: dto.extendPricePerStudentUsd ?? null,
+          extendPricePerTeacherUsd: dto.extendPricePerTeacherUsd ?? null,
+          extendPricePerAiCreditUsd: dto.extendPricePerAiCreditUsd ?? null,
           isActive: dto.isActive ?? true,
         },
       });
@@ -214,6 +249,9 @@ export class SubscriptionsService {
           libraryStorageMb: dto.libraryStorageMb,
           priceUsd: dto.priceUsd,
           pricePerStudentUsd: dto.pricePerStudentUsd,
+          extendPricePerStudentUsd: dto.extendPricePerStudentUsd,
+          extendPricePerTeacherUsd: dto.extendPricePerTeacherUsd,
+          extendPricePerAiCreditUsd: dto.extendPricePerAiCreditUsd,
           isActive: dto.isActive,
         },
       });
@@ -499,6 +537,9 @@ export class SubscriptionsService {
         assignedByAdminId: admin.adminId,
         assignedByUsername: admin.username,
         lastExpiryNoticeDays: null,
+        extraStudents: 0,
+        extraTeachers: 0,
+        extraAiGradingQuota: 0,
       },
       update: {
         planId: plan.id,
@@ -510,6 +551,11 @@ export class SubscriptionsService {
         assignedByAdminId: admin.adminId,
         assignedByUsername: admin.username,
         lastExpiryNoticeDays: null,
+        // Extend top-ups are scoped to one billing cycle — a renewal/reassign
+        // resets capacity back to the plan's base limits.
+        extraStudents: 0,
+        extraTeachers: 0,
+        extraAiGradingQuota: 0,
       },
       include: { plan: true },
     });
@@ -861,8 +907,9 @@ export class SubscriptionsService {
       throw new ForbiddenException(MSG_EXPIRED);
     }
     if (sub.plan.maxStudents == null) return;
+    const limit = sub.plan.maxStudents + sub.extraStudents;
     const count = await this.prisma.student.count({ where: { schoolId } });
-    if (count >= sub.plan.maxStudents) {
+    if (count >= limit) {
       throw new ForbiddenException(MSG_STUDENT_LIMIT);
     }
   }
@@ -874,8 +921,9 @@ export class SubscriptionsService {
       throw new ForbiddenException(MSG_EXPIRED);
     }
     if (sub.plan.maxTeachers == null) return;
+    const limit = sub.plan.maxTeachers + sub.extraTeachers;
     const count = await this.prisma.teacher.count({ where: { schoolId } });
-    if (count >= sub.plan.maxTeachers) {
+    if (count >= limit) {
       throw new ForbiddenException(MSG_TEACHER_LIMIT);
     }
   }
@@ -938,6 +986,7 @@ export class SubscriptionsService {
             aiGradingUsed: number;
             aiGradingResetAt: Date;
             aiGradingMonthlyQuota: number | null;
+            extraAiGradingQuota: number;
           }[]
         >`
           SELECT
@@ -946,6 +995,7 @@ export class SubscriptionsService {
             s."endDate",
             s."aiGradingUsed",
             s."aiGradingResetAt",
+            s."extraAiGradingQuota",
             p."aiGradingMonthlyQuota"
           FROM school_subscriptions s
           INNER JOIN subscription_plans p ON p.id = s."planId"
@@ -969,6 +1019,7 @@ export class SubscriptionsService {
         }
 
         if (sub.aiGradingMonthlyQuota == null) return true;
+        const quota = sub.aiGradingMonthlyQuota + sub.extraAiGradingQuota;
 
         let used = sub.aiGradingUsed;
         let resetAt = sub.aiGradingResetAt;
@@ -976,7 +1027,7 @@ export class SubscriptionsService {
           used = 0;
           resetAt = now;
         }
-        if (used >= sub.aiGradingMonthlyQuota) return false;
+        if (used >= quota) return false;
 
         await tx.schoolSubscription.update({
           where: { schoolId },
@@ -1054,9 +1105,14 @@ export class SubscriptionsService {
     const aiUsed = isSameMonth(sub.aiGradingResetAt, new Date())
       ? sub.aiGradingUsed
       : 0;
-    const maxStudents = sub.plan.maxStudents;
-    const maxTeachers = sub.plan.maxTeachers;
-    const aiQuota = sub.plan.aiGradingMonthlyQuota;
+    const maxStudents =
+      sub.plan.maxStudents == null ? null : sub.plan.maxStudents + sub.extraStudents;
+    const maxTeachers =
+      sub.plan.maxTeachers == null ? null : sub.plan.maxTeachers + sub.extraTeachers;
+    const aiQuota =
+      sub.plan.aiGradingMonthlyQuota == null
+        ? null
+        : sub.plan.aiGradingMonthlyQuota + sub.extraAiGradingQuota;
 
     let tone: "green" | "orange" | "red" = "green";
     let message = `Your subscription is active until ${sub.endDate.toISOString().slice(0, 10)}.`;
@@ -1092,6 +1148,12 @@ export class SubscriptionsService {
       aiGradingUsed: aiUsed,
       aiLimit: aiQuota,
       aiRemaining: aiQuota == null ? null : Math.max(0, aiQuota - aiUsed),
+      extraStudents: sub.extraStudents,
+      extraTeachers: sub.extraTeachers,
+      extraAiGradingQuota: sub.extraAiGradingQuota,
+      canExtendStudents: sub.plan.extendPricePerStudentUsd != null,
+      canExtendTeachers: sub.plan.extendPricePerTeacherUsd != null,
+      canExtendAiGrading: sub.plan.extendPricePerAiCreditUsd != null,
       plan: sub.plan,
       assignedByUsername: sub.assignedByUsername,
       assignedAt: sub.createdAt,
@@ -1245,6 +1307,23 @@ export class SubscriptionsService {
         actorId: actorId ?? null,
       },
     });
+  }
+
+  /**
+   * Extension orders have no dedicated audit-log table (unlike
+   * SubscriptionPaymentAuditLog, which has a hard FK to
+   * SubscriptionPaymentOrder specifically) — the order row's own
+   * request/response/callback/verify payload columns already carry the
+   * trail, so this only logs for operational visibility.
+   */
+  private auditExtension(
+    orderId: string,
+    schoolId: string,
+    action: string,
+    success: boolean,
+    message: string,
+  ) {
+    this.logger.log(`[extension ${orderId} school=${schoolId}] ${action}: ${message} (success=${success})`);
   }
 
   async initiateSubscriptionPurchase(
@@ -1774,6 +1853,483 @@ export class SubscriptionsService {
         message: a.message,
         createdAt: a.createdAt,
       })),
+    };
+  }
+
+  // ── Extend — self-service mid-cycle capacity top-up ─────────────────
+
+  private makeExtensionReferenceId(): string {
+    const ts = Date.now().toString(36).toUpperCase();
+    const rnd = randomBytes(4).toString("hex").toUpperCase();
+    return `EXT-${ts}-${rnd}`;
+  }
+
+  private async nextExtensionReceipt(tx: Prisma.TransactionClient): Promise<string> {
+    const count = await tx.subscriptionExtensionOrder.count({
+      where: { receiptNumber: { not: null } },
+    });
+    return `EXTRCP${String(count + 1).padStart(6, "0")}`;
+  }
+
+  /** Loads the school's active subscription + computes the extend quote. Throws if not extendable. */
+  private async quoteExtension(schoolId: string, resource: SubscriptionExtendResource, quantity: number) {
+    const sub = await this.getSubscription(schoolId);
+    if (!sub || sub.status !== "ACTIVE") {
+      throw new ForbiddenException(MSG_EXPIRED);
+    }
+    const field = EXTEND_RESOURCE_FIELD[resource];
+    const unitPrice = sub.plan[field.plan];
+    if (unitPrice == null) {
+      throw new BadRequestException(
+        "Your plan does not support extending this resource. Contact Platform Administrator.",
+      );
+    }
+
+    const cycleTotalDays = Math.max(
+      1,
+      daysUntil(sub.endDate, sub.startDate),
+    );
+    const cycleRemainingDays = Math.max(0, daysUntil(sub.endDate));
+    const amount = prorateExtendAmount(
+      Number(unitPrice),
+      quantity,
+      cycleTotalDays,
+      cycleRemainingDays,
+    );
+
+    return { sub, unitPrice: Number(unitPrice), cycleTotalDays, cycleRemainingDays, amount };
+  }
+
+  /** School: preview the prorated cost before paying — no order created. */
+  async previewSubscriptionExtension(schoolId: string, input: PreviewSubscriptionExtendInput) {
+    const quote = await this.quoteExtension(schoolId, input.resource, input.quantity);
+    return {
+      resource: input.resource,
+      quantity: input.quantity,
+      unitPriceUsd: quote.unitPrice,
+      cycleTotalDays: quote.cycleTotalDays,
+      cycleRemainingDays: quote.cycleRemainingDays,
+      amount: quote.amount,
+      currency: "USD",
+    };
+  }
+
+  async initiateSubscriptionExtension(
+    schoolId: string,
+    userId: string,
+    input: PurchaseSubscriptionExtendInput,
+  ) {
+    const cfg = await this.requirePaymentsUnlocked();
+    const quote = await this.quoteExtension(schoolId, input.resource, input.quantity);
+    if (quote.amount <= 0) {
+      throw new BadRequestException(
+        "There is no time left in the current billing cycle to extend.",
+      );
+    }
+
+    const channel =
+      input.channel ?? (cfg.defaultMethod as "API_PURCHASE" | "HPP_PURCHASE");
+    const paymentMethod = input.paymentMethod ?? "MWALLET_ACCOUNT";
+
+    let payerAccount: string | null = null;
+    if (input.payerAccount) {
+      payerAccount = normalizeWaafiAccount(input.payerAccount);
+      if (!/^\d{9,15}$/.test(payerAccount)) {
+        throw new BadRequestException(
+          "Invalid payer mobile number. Use international format, e.g. 252611111111.",
+        );
+      }
+    }
+    if (channel === "API_PURCHASE" && !payerAccount) {
+      throw new BadRequestException(
+        "payerAccount (mobile wallet number) is required for direct Waafi payment.",
+      );
+    }
+
+    await this.expireStaleExtensionOrders(schoolId);
+
+    const referenceId = this.makeExtensionReferenceId();
+    const expiresAt = new Date(Date.now() + ORDER_TTL_MS);
+
+    const order = await this.prisma.subscriptionExtensionOrder.create({
+      data: {
+        schoolId,
+        subscriptionPlanId: quote.sub.planId,
+        resource: input.resource,
+        quantity: input.quantity,
+        unitPriceUsd: quote.unitPrice,
+        cycleTotalDays: quote.cycleTotalDays,
+        cycleRemainingDays: quote.cycleRemainingDays,
+        referenceId,
+        invoiceId: referenceId,
+        amount: quote.amount,
+        currency: cfg.currency || "USD",
+        status: "PENDING",
+        paymentMethod,
+        channel,
+        payerAccount,
+        initiatedByUserId: userId,
+        expiresAt,
+      },
+    });
+
+    this.auditExtension(order.id, schoolId, "CREATED", true, "Extension order created");
+
+    if (cfg.simulationMode) {
+      const simTxn = `SIM-${Date.now()}`;
+      await this.prisma.subscriptionExtensionOrder.update({
+        where: { id: order.id },
+        data: {
+          status: "PROCESSING",
+          channel: "SIMULATION",
+          waafiTransactionId: simTxn,
+          responsePayload: {
+            simulation: true,
+            message: "Simulated WaafiPay approval",
+            referenceId,
+          } as Prisma.InputJsonValue,
+        },
+      });
+      this.auditExtension(order.id, schoolId, "WAAFI_RESPONSE", true, "Simulated WaafiPay approval (simulation mode)");
+      return this.activateExtensionOrder(order.id, {
+        transactionId: simTxn,
+        responsePayload: { simulation: true, referenceId },
+      });
+    }
+
+    const creds = this.toWaafiCreds(cfg);
+    const description = `Subscription extend: +${input.quantity} ${input.resource.toLowerCase()}`;
+
+    if (channel === "HPP_PURCHASE") {
+      const callbackBase =
+        cfg.callbackBaseUrl?.replace(/\/+$/, "") ||
+        process.env.WAAFI_CALLBACK_BASE_URL?.replace(/\/+$/, "");
+      if (!callbackBase) {
+        await this.failExtensionOrder(
+          order.id,
+          schoolId,
+          "Callback base URL is not configured by Super Admin.",
+        );
+        throw new ConflictException(
+          "Payment callbacks are not configured. Contact platform administrator.",
+        );
+      }
+
+      const result = await waafiHppPurchase(creds, {
+        accountNo: payerAccount ?? undefined,
+        referenceId,
+        amount: quote.amount,
+        currency: order.currency,
+        description,
+        successCallbackUrl: `${callbackBase}/api/subscriptions/extensions/waafi/callback/success`,
+        failureCallbackUrl: `${callbackBase}/api/subscriptions/extensions/waafi/callback/failure`,
+      });
+
+      await this.prisma.subscriptionExtensionOrder.update({
+        where: { id: order.id },
+        data: {
+          status: result.ok ? "PROCESSING" : "FAILED",
+          waafiRequestId: result.requestId,
+          waafiOrderId: result.orderId ?? null,
+          hppUrl: result.hppUrl ?? result.directPaymentLink ?? null,
+          requestPayload: result.requestBody as Prisma.InputJsonValue,
+          responsePayload: result.raw as Prisma.InputJsonValue,
+          failureReason: result.ok ? null : result.responseMsg,
+        },
+      });
+
+      this.auditExtension(order.id, schoolId, "WAAFI_RESPONSE", result.ok, result.ok ? "HPP session created" : (result.responseMsg ?? "HPP session failed"));
+
+      if (!result.ok) {
+        throw new BadRequestException(waafiFriendlyFailureMessage(result));
+      }
+
+      return this.getExtensionOrderReceipt(schoolId, order.id);
+    }
+
+    // Direct API_PURCHASE
+    const result = await waafiApiPurchase(creds, {
+      accountNo: payerAccount!,
+      referenceId,
+      invoiceId: referenceId,
+      amount: quote.amount,
+      currency: order.currency,
+      description,
+      paymentMethod,
+    });
+
+    await this.prisma.subscriptionExtensionOrder.update({
+      where: { id: order.id },
+      data: {
+        status: result.ok ? "PROCESSING" : "FAILED",
+        waafiRequestId: result.requestId,
+        waafiTransactionId: result.transactionId ?? null,
+        waafiIssuerTxnId: result.issuerTransactionId ?? null,
+        requestPayload: result.requestBody as Prisma.InputJsonValue,
+        responsePayload: result.raw as Prisma.InputJsonValue,
+        failureReason: result.ok ? null : result.responseMsg,
+      },
+    });
+
+    this.auditExtension(order.id, schoolId, "WAAFI_RESPONSE", result.ok, result.ok ? "Waafi purchase approved" : (result.responseMsg ?? "Waafi purchase failed"));
+
+    if (!result.ok) {
+      throw new BadRequestException(waafiFriendlyFailureMessage(result));
+    }
+
+    return this.activateExtensionOrder(order.id, {
+      transactionId: result.transactionId,
+      issuerTransactionId: result.issuerTransactionId,
+      responsePayload: result.raw,
+    });
+  }
+
+  async handleExtensionCallback(kind: "success" | "failure", payload: Record<string, unknown>) {
+    const referenceId = String(
+      payload.referenceId ?? payload.ReferenceId ?? payload.invoiceId ?? payload.InvoiceId ?? "",
+    ).trim();
+    if (!referenceId) return { ok: false, message: "Missing referenceId" };
+
+    const order = await this.prisma.subscriptionExtensionOrder.findUnique({
+      where: { referenceId },
+    });
+    if (!order) return { ok: false, message: "Unknown payment reference" };
+
+    if (order.status === "SUCCESS") {
+      return { ok: true, message: "Already activated", orderId: order.id };
+    }
+
+    await this.prisma.subscriptionExtensionOrder.update({
+      where: { id: order.id },
+      data: { callbackPayload: payload as Prisma.InputJsonValue },
+    });
+
+    this.auditExtension(order.id, order.schoolId, "CALLBACK", kind === "success", `Waafi ${kind} callback received`);
+
+    if (kind === "failure") {
+      await this.failExtensionOrder(
+        order.id,
+        order.schoolId,
+        String(payload.responseMsg ?? payload.message ?? "Payment failed"),
+      );
+      return { ok: false, message: "Payment marked failed", orderId: order.id };
+    }
+
+    const status = payload.status ?? payload.tranStatusDesc ?? payload.state ?? payload.Status;
+    const transactionId =
+      payload.transactionId ?? payload.TransactionId ?? payload.transaction_id;
+
+    if (!isApprovedCallbackStatus(status) && !transactionId) {
+      return this.verifyAndActivateExtension(order.id);
+    }
+
+    return this.activateExtensionOrder(order.id, {
+      transactionId: transactionId != null ? String(transactionId) : undefined,
+      responsePayload: payload,
+    });
+  }
+
+  async verifyAndActivateExtension(orderId: string, schoolId?: string) {
+    const order = await this.prisma.subscriptionExtensionOrder.findUnique({
+      where: { id: orderId },
+    });
+    if (!order) throw new NotFoundException("Payment order not found.");
+    if (schoolId && order.schoolId !== schoolId) {
+      throw new ForbiddenException("Payment order does not belong to this school.");
+    }
+    if (order.status === "SUCCESS") {
+      return this.getExtensionOrderReceipt(order.schoolId, order.id);
+    }
+    if (order.status === "CANCELLED") {
+      throw new ConflictException(`Payment is ${order.status}.`);
+    }
+    if (order.expiresAt && order.expiresAt < new Date() && order.status === "PENDING") {
+      await this.failExtensionOrder(order.id, order.schoolId, "Payment order expired.", "EXPIRED");
+      throw new BadRequestException("Payment order expired.");
+    }
+
+    const cfg = await this.ensureWaafiConfig();
+    const info = await waafiGetTranInfo(this.toWaafiCreds(cfg), order.referenceId);
+
+    await this.prisma.subscriptionExtensionOrder.update({
+      where: { id: order.id },
+      data: { verifyPayload: info.raw as Prisma.InputJsonValue },
+    });
+
+    this.auditExtension(
+      order.id,
+      order.schoolId,
+      "VERIFY",
+      info.ok,
+      info.ok
+        ? `Verified with Waafi (${info.status ?? info.tranStatusDesc})`
+        : info.raw.responseMsg || "Verification failed",
+    );
+
+    if (!info.ok) {
+      throw new BadRequestException(
+        info.raw.responseMsg
+          ? waafiFriendlyFailureMessage(info.raw)
+          : "Payment not yet confirmed by WaafiPay. Try again shortly.",
+      );
+    }
+
+    return this.activateExtensionOrder(order.id, {
+      transactionId: info.transactionId,
+      responsePayload: info.raw,
+    });
+  }
+
+  /**
+   * Adds the paid-for capacity to the school's CURRENT subscription only —
+   * unlike activateSubscriptionOrder, this never touches planId/startDate/
+   * endDate, so the top-up is scoped to this cycle and resets on renewal
+   * (see assignSubscription/activateSubscriptionOrder, which zero extra*).
+   */
+  private async activateExtensionOrder(
+    orderId: string,
+    opts: { transactionId?: string; issuerTransactionId?: string; responsePayload?: unknown } = {},
+  ) {
+    if (opts.transactionId) {
+      const dup = await this.prisma.subscriptionExtensionOrder.findFirst({
+        where: { waafiTransactionId: opts.transactionId, id: { not: orderId }, status: "SUCCESS" },
+      });
+      if (dup) {
+        throw new ConflictException(
+          "This Waafi transaction was already applied to another order.",
+        );
+      }
+    }
+
+    const result = await this.prisma.$transaction(async (tx) => {
+      const order = await tx.subscriptionExtensionOrder.findUnique({
+        where: { id: orderId },
+        include: { plan: true },
+      });
+      if (!order) throw new NotFoundException("Payment order not found.");
+
+      if (order.status === "SUCCESS") {
+        return { order, alreadyActive: true };
+      }
+      if (order.status === "FAILED" || order.status === "EXPIRED" || order.status === "CANCELLED") {
+        throw new ConflictException(`Cannot activate payment in status ${order.status}.`);
+      }
+
+      const receiptNumber = order.receiptNumber ?? (await this.nextExtensionReceipt(tx));
+
+      const updated = await tx.subscriptionExtensionOrder.update({
+        where: { id: order.id },
+        data: {
+          status: "SUCCESS",
+          receiptNumber,
+          waafiTransactionId: opts.transactionId ?? order.waafiTransactionId ?? null,
+          waafiIssuerTxnId: opts.issuerTransactionId ?? order.waafiIssuerTxnId ?? null,
+          responsePayload:
+            opts.responsePayload !== undefined
+              ? (opts.responsePayload as Prisma.InputJsonValue)
+              : undefined,
+          paidAt: new Date(),
+          activatedAt: new Date(),
+          failureReason: null,
+        },
+        include: { plan: true },
+      });
+
+      const field = EXTEND_RESOURCE_FIELD[order.resource as SubscriptionExtendResource];
+      await tx.schoolSubscription.update({
+        where: { schoolId: order.schoolId },
+        data: { [field.extra]: { increment: order.quantity } },
+      });
+
+      return { order: updated, alreadyActive: false };
+    });
+
+    if (!result.alreadyActive) {
+      this.auditExtension(
+        result.order.id,
+        result.order.schoolId,
+        "ACTIVATED",
+        true,
+        `Extension activated — +${result.order.quantity} ${result.order.resource.toLowerCase()}`,
+      );
+    }
+
+    return this.getExtensionOrderReceipt(result.order.schoolId, result.order.id);
+  }
+
+  private async failExtensionOrder(
+    orderId: string,
+    schoolId: string,
+    reason: string,
+    status: "FAILED" | "EXPIRED" | "CANCELLED" = "FAILED",
+  ) {
+    await this.prisma.subscriptionExtensionOrder.update({
+      where: { id: orderId },
+      data: { status, failureReason: reason },
+    });
+    this.auditExtension(orderId, schoolId, status === "EXPIRED" ? "EXPIRED" : "FAILED", false, reason);
+  }
+
+  async expireStaleExtensionOrders(schoolId?: string) {
+    const where: Prisma.SubscriptionExtensionOrderWhereInput = {
+      status: { in: ["PENDING", "PROCESSING"] },
+      expiresAt: { lt: new Date() },
+      ...(schoolId ? { schoolId } : {}),
+    };
+    const stale = await this.prisma.subscriptionExtensionOrder.findMany({ where, take: 100 });
+    for (const o of stale) {
+      await this.failExtensionOrder(o.id, o.schoolId, "Payment order timed out.", "EXPIRED");
+    }
+    return { expired: stale.length };
+  }
+
+  async listSchoolExtensionOrders(schoolId: string) {
+    await this.expireStaleExtensionOrders(schoolId);
+    return this.prisma.forTenant(schoolId, (tx) =>
+      tx.subscriptionExtensionOrder.findMany({
+        where: { schoolId },
+        include: { plan: { select: { id: true, name: true } } },
+        orderBy: { createdAt: "desc" },
+        take: 100,
+      }),
+    );
+  }
+
+  async getExtensionOrderReceipt(schoolId: string, orderId: string) {
+    const order = await this.prisma.forTenant(schoolId, (tx) =>
+      tx.subscriptionExtensionOrder.findFirst({
+        where: { id: orderId, schoolId },
+        include: {
+          plan: { select: { id: true, name: true } },
+        },
+      }),
+    );
+    if (!order) throw new NotFoundException("Payment order not found.");
+
+    return {
+      id: order.id,
+      referenceId: order.referenceId,
+      invoiceId: order.invoiceId,
+      receiptNumber: order.receiptNumber,
+      status: order.status,
+      resource: order.resource,
+      quantity: order.quantity,
+      unitPriceUsd: order.unitPriceUsd,
+      cycleTotalDays: order.cycleTotalDays,
+      cycleRemainingDays: order.cycleRemainingDays,
+      amount: order.amount,
+      currency: order.currency,
+      channel: order.channel,
+      paymentMethod: order.paymentMethod,
+      payerAccount: order.payerAccount,
+      hppUrl: order.hppUrl,
+      waafiTransactionId: order.waafiTransactionId,
+      failureReason: order.failureReason,
+      paidAt: order.paidAt,
+      activatedAt: order.activatedAt,
+      expiresAt: order.expiresAt,
+      createdAt: order.createdAt,
+      plan: order.plan,
     };
   }
 }

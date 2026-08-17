@@ -1,4 +1,9 @@
 import { api } from "@/lib/api";
+import type {
+  SubscriptionExtendPreview,
+  SubscriptionExtendResource,
+  SubscriptionExtensionOrderRow,
+} from "./types";
 
 export type SubscriptionPaymentStatus =
   | "PENDING"
@@ -24,6 +29,9 @@ export interface AvailableSubscriptionPlan {
   computedMonthlyPriceUsd: number | null;
   computedYearlyPriceUsd: number | null;
   isActive: boolean;
+  extendPricePerStudentUsd: string | number | null;
+  extendPricePerTeacherUsd: string | number | null;
+  extendPricePerAiCreditUsd: string | number | null;
 }
 
 export interface SubscriptionPaymentReceipt {
@@ -103,5 +111,39 @@ export const apiSubscriptionPaymentReceipt = (id: string) =>
 
 export const apiVerifySubscriptionPayment = (id: string) =>
   api<SubscriptionPaymentReceipt>(`/subscriptions/payments/${id}/verify`, {
+    method: "POST",
+  });
+
+// ── Extend — self-service mid-cycle capacity top-up ────────────────────
+
+export const apiPreviewSubscriptionExtend = (body: {
+  resource: SubscriptionExtendResource;
+  quantity: number;
+}) =>
+  api<SubscriptionExtendPreview>("/subscriptions/extend/preview", {
+    method: "POST",
+    body,
+  });
+
+export const apiPurchaseSubscriptionExtend = (body: {
+  resource: SubscriptionExtendResource;
+  quantity: number;
+  payerAccount?: string;
+  channel?: "API_PURCHASE" | "HPP_PURCHASE";
+  paymentMethod?: string;
+}) =>
+  api<SubscriptionExtensionOrderRow>("/subscriptions/extend", {
+    method: "POST",
+    body,
+  });
+
+export const apiSubscriptionExtensionOrders = () =>
+  api<SubscriptionExtensionOrderRow[]>("/subscriptions/extensions");
+
+export const apiSubscriptionExtensionReceipt = (id: string) =>
+  api<SubscriptionExtensionOrderRow>(`/subscriptions/extensions/${id}`);
+
+export const apiVerifySubscriptionExtension = (id: string) =>
+  api<SubscriptionExtensionOrderRow>(`/subscriptions/extensions/${id}/verify`, {
     method: "POST",
   });

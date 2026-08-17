@@ -20,6 +20,11 @@ export const createSubscriptionPlanSchema = z.object({
   priceUsd: z.number().nonnegative().nullable().optional(),
   /** Monthly rate per student. When set, this drives self-service pricing instead of priceUsd. */
   pricePerStudentUsd: z.number().nonnegative().nullable().optional(),
+  /** Per-unit price for a school to top up capacity mid-cycle ("Extend").
+   *  Null means that resource cannot be extended on this plan. */
+  extendPricePerStudentUsd: z.number().nonnegative().nullable().optional(),
+  extendPricePerTeacherUsd: z.number().nonnegative().nullable().optional(),
+  extendPricePerAiCreditUsd: z.number().nonnegative().nullable().optional(),
   isActive: z.boolean().optional(),
 });
 export type CreateSubscriptionPlanInput = z.infer<
@@ -36,6 +41,9 @@ export const updateSubscriptionPlanSchema = z
     libraryStorageMb: z.number().int().nonnegative().nullable().optional(),
     priceUsd: z.number().nonnegative().nullable().optional(),
     pricePerStudentUsd: z.number().nonnegative().nullable().optional(),
+    extendPricePerStudentUsd: z.number().nonnegative().nullable().optional(),
+    extendPricePerTeacherUsd: z.number().nonnegative().nullable().optional(),
+    extendPricePerAiCreditUsd: z.number().nonnegative().nullable().optional(),
     isActive: z.boolean().optional(),
   })
   .refine((o) => Object.keys(o).length > 0, { message: "Nothing to update" });
@@ -77,4 +85,36 @@ export const assignSchoolSubscriptionSchema = z.object({
 });
 export type AssignSchoolSubscriptionInput = z.infer<
   typeof assignSchoolSubscriptionSchema
+>;
+
+// ── Subscription "Extend" — self-service mid-cycle capacity top-up ────────
+
+export const subscriptionExtendResourceSchema = z.enum([
+  "STUDENT",
+  "TEACHER",
+  "AI_GRADING",
+]);
+export type SubscriptionExtendResource = z.infer<
+  typeof subscriptionExtendResourceSchema
+>;
+
+/** School: preview the prorated cost of extending capacity — no charge yet. */
+export const previewSubscriptionExtendSchema = z.object({
+  resource: subscriptionExtendResourceSchema,
+  quantity: z.number().int().positive().max(100_000),
+});
+export type PreviewSubscriptionExtendInput = z.infer<
+  typeof previewSubscriptionExtendSchema
+>;
+
+/** School: self-service purchase of a capacity top-up via WaafiPay. */
+export const purchaseSubscriptionExtendSchema = z.object({
+  resource: subscriptionExtendResourceSchema,
+  quantity: z.number().int().positive().max(100_000),
+  payerAccount: z.string().min(8).max(20).optional(),
+  channel: z.enum(["API_PURCHASE", "HPP_PURCHASE"]).optional(),
+  paymentMethod: z.string().min(3).max(40).optional(),
+});
+export type PurchaseSubscriptionExtendInput = z.infer<
+  typeof purchaseSubscriptionExtendSchema
 >;

@@ -20,6 +20,12 @@ export interface SchoolSubscriptionMe {
   aiGradingUsed: number;
   aiLimit: number | null;
   aiRemaining: number | null;
+  extraStudents?: number;
+  extraTeachers?: number;
+  extraAiGradingQuota?: number;
+  canExtendStudents?: boolean;
+  canExtendTeachers?: boolean;
+  canExtendAiGrading?: boolean;
   plan: {
     id: string;
     name: string;
@@ -29,7 +35,48 @@ export interface SchoolSubscriptionMe {
     aiGradingMonthlyQuota: number | null;
     priceUsd: number | string | null;
     isActive: boolean;
+    extendPricePerStudentUsd?: number | string | null;
+    extendPricePerTeacherUsd?: number | string | null;
+    extendPricePerAiCreditUsd?: number | string | null;
   } | null;
   assignedByUsername: string | null;
   assignedAt: string | null;
+}
+
+export type SubscriptionExtendResource = "STUDENT" | "TEACHER" | "AI_GRADING";
+
+export interface SubscriptionExtendPreview {
+  resource: SubscriptionExtendResource;
+  quantity: number;
+  unitPriceUsd: number | string;
+  cycleTotalDays: number;
+  cycleRemainingDays: number;
+  amount: number | string;
+  currency: string;
+}
+
+export interface SubscriptionExtensionOrderRow {
+  id: string;
+  referenceId: string;
+  invoiceId: string;
+  receiptNumber: string | null;
+  status: string;
+  resource: SubscriptionExtendResource;
+  quantity: number;
+  unitPriceUsd: number | string;
+  cycleTotalDays: number;
+  cycleRemainingDays: number;
+  amount: number | string;
+  currency: string;
+  channel: string;
+  paymentMethod: string;
+  payerAccount: string | null;
+  hppUrl: string | null;
+  waafiTransactionId: string | null;
+  failureReason: string | null;
+  paidAt: string | null;
+  activatedAt: string | null;
+  expiresAt: string | null;
+  createdAt: string;
+  plan: { id: string; name: string };
 }

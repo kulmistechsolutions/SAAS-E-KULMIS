@@ -22,12 +22,20 @@ import { cn } from "@/lib/utils";
 import { shortDate } from "@/lib/students/format";
 import { useIsSchoolSuperAdmin } from "@/lib/users/super-admin";
 import { toast } from "@/lib/toast";
-import type { SchoolSubscriptionMe } from "@/lib/subscriptions/types";
+import type {
+  SchoolSubscriptionMe,
+  SubscriptionExtendResource,
+  SubscriptionExtensionOrderRow,
+} from "@/lib/subscriptions/types";
 import {
+  apiPreviewSubscriptionExtend,
+  apiPurchaseSubscriptionExtend,
   apiPurchaseSubscriptionPlan,
+  apiSubscriptionExtensionOrders,
   apiSubscriptionPaymentOrders,
   apiSubscriptionPaymentReceipt,
   apiSubscriptionPlans,
+  apiVerifySubscriptionExtension,
   apiVerifySubscriptionPayment,
   type AvailableSubscriptionPlan,
   type SubscriptionPaymentOrderRow,
@@ -101,6 +109,32 @@ function UsageBar({
   );
 }
 
+function ExtendTriggerButton({
+  active,
+  onClick,
+}: {
+  active: boolean;
+  onClick: () => void;
+}) {
+  const t = useT();
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "w-full rounded-lg border px-3 py-1.5 text-xs font-medium transition",
+        active
+          ? "border-primary bg-primary/10 text-primary"
+          : "border-dashed text-muted-foreground hover:border-primary/40 hover:text-primary",
+      )}
+    >
+      {active
+        ? t("settingsSubscription.cancelExtend")
+        : t("settingsSubscription.extendCapacity")}
+    </button>
+  );
+}
+
 export default function SubscriptionSettingsPage() {
   const t = useT();
   const router = useRouter();
@@ -126,6 +160,25 @@ export default function SubscriptionSettingsPage() {
   const [paying, setPaying] = useState(false);
   const [receipt, setReceipt] = useState<SubscriptionPaymentReceipt | null>(
     null,
+  );
+
+  const [extendResource, setExtendResource] =
+    useState<SubscriptionExtendResource | null>(null);
+  const [extendQty, setExtendQty] = useState(10);
+  const [extendPreview, setExtendPreview] = useState<{
+    unitPriceUsd: number | string;
+    amount: number | string;
+    cycleRemainingDays: number;
+    cycleTotalDays: number;
+  } | null>(null);
+  const [extendPreviewLoading, setExtendPreviewLoading] = useState(false);
+  const [extendPayerAccount, setExtendPayerAccount] = useState("");
+  const [extendChannel, setExtendChannel] = useState<
+    "API_PURCHASE" | "HPP_PURCHASE"
+  >("API_PURCHASE");
+  const [extending, setExtending] = useState(false);
+  const [extensions, setExtensions] = useState<SubscriptionExtensionOrderRow[]>(
+    [],
   );
 
   useEffect(() => {
@@ -160,11 +213,92 @@ export default function SubscriptionSettingsPage() {
     }
   }, []);
 
+  const loadExtensions = useCallback(async () => {
+    try {
+      setExtensions(await apiSubscriptionExtensionOrders());
+    } catch {
+      // non-critical — the current-usage view still works without history
+    }
+  }, []);
+
   useEffect(() => {
     if (!isAdmin) return;
     void loadCurrent();
     void loadPlans();
-  }, [isAdmin, loadCurrent, loadPlans]);
+    void loadExtensions();
+  }, [isAdmin, loadCurrent, loadPlans, loadExtensions]);
+
+  useEffect(() => {
+    if (!extendResource || extendQty <= 0) {
+      setExtendPreview(null);
+      return;
+    }
+    let cancelled = false;
+    setExtendPreviewLoading(true);
+    apiPreviewSubscriptionExtend({ resource: extendResource, quantity: extendQty })
+      .then((res) => {
+        if (!cancelled) setExtendPreview(res);
+      })
+      .catch((e) => {
+        if (!cancelled) {
+          setExtendPreview(null);
+          toast(e instanceof Error ? e.message : "Failed to price extension", "error");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setExtendPreviewLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [extendResource, extendQty]);
+
+  async function payExtend() {
+    if (!extendResource) return;
+    if (extendChannel === "API_PURCHASE" && !extendPayerAccount.trim()) {
+      return toast("Enter the mobile wallet number to pay from", "error");
+    }
+    setExtending(true);
+    try {
+      const res = await apiPurchaseSubscriptionExtend({
+        resource: extendResource,
+        quantity: extendQty,
+        payerAccount: extendPayerAccount.trim() || undefined,
+        channel: extendChannel,
+      });
+      if (res.status === "SUCCESS") {
+        toast(`Extended — +${extendQty} ${extendResource.toLowerCase()}`, "success");
+        setExtendResource(null);
+        setExtendPreview(null);
+        setExtendPayerAccount("");
+      } else if (res.hppUrl) {
+        toast("Redirecting to WaafiPay…", "info");
+        window.open(res.hppUrl, "_blank", "noopener,noreferrer");
+      } else {
+        toast(`Payment status: ${res.status}`, "info");
+      }
+      await Promise.all([loadCurrent(), loadExtensions()]);
+    } catch (e) {
+      toast(e instanceof Error ? e.message : "Payment failed", "error");
+    } finally {
+      setExtending(false);
+    }
+  }
+
+  async function verifyExtend(id: string) {
+    try {
+      const r = await apiVerifySubscriptionExtension(id);
+      if (r.status === "SUCCESS") {
+        toast("Payment verified — capacity extended", "success");
+        await loadCurrent();
+      } else {
+        toast(`Status: ${r.status}`, "info");
+      }
+      await loadExtensions();
+    } catch (e) {
+      toast(e instanceof Error ? e.message : "Verification failed", "error");
+    }
+  }
 
   async function buy() {
     if (!selectedPlan) return toast("Select a plan", "error");
@@ -355,25 +489,193 @@ export default function SubscriptionSettingsPage() {
               <div>
                 <h2 className="mb-3 text-sm font-semibold">{t("settingsSubscription.usage")}</h2>
                 <div className="grid gap-3 sm:grid-cols-3">
-                  <UsageBar
-                    label={t("settingsSubscription.students")}
-                    used={data.studentCount}
-                    limit={data.studentLimit}
-                    remaining={data.studentsRemaining}
-                  />
-                  <UsageBar
-                    label={t("settingsSubscription.teachers")}
-                    used={data.teacherCount}
-                    limit={data.teacherLimit}
-                    remaining={data.teachersRemaining}
-                  />
-                  <UsageBar
-                    label={t("settingsSubscription.aiGradingThisMonth")}
-                    used={data.aiGradingUsed}
-                    limit={data.aiLimit}
-                    remaining={data.aiRemaining}
-                  />
+                  <div className="space-y-2">
+                    <UsageBar
+                      label={t("settingsSubscription.students")}
+                      used={data.studentCount}
+                      limit={data.studentLimit}
+                      remaining={data.studentsRemaining}
+                    />
+                    {data.canExtendStudents && (
+                      <ExtendTriggerButton
+                        active={extendResource === "STUDENT"}
+                        onClick={() =>
+                          setExtendResource((r) => (r === "STUDENT" ? null : "STUDENT"))
+                        }
+                      />
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <UsageBar
+                      label={t("settingsSubscription.teachers")}
+                      used={data.teacherCount}
+                      limit={data.teacherLimit}
+                      remaining={data.teachersRemaining}
+                    />
+                    {data.canExtendTeachers && (
+                      <ExtendTriggerButton
+                        active={extendResource === "TEACHER"}
+                        onClick={() =>
+                          setExtendResource((r) => (r === "TEACHER" ? null : "TEACHER"))
+                        }
+                      />
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <UsageBar
+                      label={t("settingsSubscription.aiGradingThisMonth")}
+                      used={data.aiGradingUsed}
+                      limit={data.aiLimit}
+                      remaining={data.aiRemaining}
+                    />
+                    {data.canExtendAiGrading && (
+                      <ExtendTriggerButton
+                        active={extendResource === "AI_GRADING"}
+                        onClick={() =>
+                          setExtendResource((r) => (r === "AI_GRADING" ? null : "AI_GRADING"))
+                        }
+                      />
+                    )}
+                  </div>
                 </div>
+
+                {extendResource && (
+                  <div className="mt-4 space-y-4 rounded-2xl border border-primary/30 bg-primary/5 p-5">
+                    <h3 className="font-semibold">
+                      {t("settingsSubscription.extendCapacity")} —{" "}
+                      {extendResource === "STUDENT"
+                        ? t("settingsSubscription.students")
+                        : extendResource === "TEACHER"
+                          ? t("settingsSubscription.teachers")
+                          : t("settingsSubscription.aiGradingThisMonth")}
+                    </h3>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <div>
+                        <Label>{t("settingsSubscription.howManyMoreUnits")}</Label>
+                        <Input
+                          className="mt-1.5"
+                          type="number"
+                          min={1}
+                          value={extendQty}
+                          onChange={(e) => setExtendQty(Math.max(1, Number(e.target.value) || 0))}
+                        />
+                      </div>
+                      <div>
+                        <Label>{t("settingsSubscription.paymentChannel")}</Label>
+                        <Select
+                          className="mt-1.5"
+                          value={extendChannel}
+                          onChange={(e) =>
+                            setExtendChannel(e.target.value as "API_PURCHASE" | "HPP_PURCHASE")
+                          }
+                        >
+                          <option value="API_PURCHASE">
+                            {t("settingsSubscription.directMobileWalletEvcZaadSahal")}
+                          </option>
+                          <option value="HPP_PURCHASE">
+                            {t("settingsSubscription.hostedPaymentPage")}
+                          </option>
+                        </Select>
+                      </div>
+                    </div>
+                    <div>
+                      <Label>{t("settingsSubscription.payerMobileNumber")}</Label>
+                      <Input
+                        className="mt-1.5"
+                        value={extendPayerAccount}
+                        onChange={(e) => setExtendPayerAccount(e.target.value)}
+                        placeholder="252611111111"
+                      />
+                    </div>
+
+                    <div className="rounded-xl border bg-card p-4 text-sm">
+                      {extendPreviewLoading ? (
+                        <p className="flex items-center gap-2 text-muted-foreground">
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          {t("settingsSubscription.calculatingPrice")}
+                        </p>
+                      ) : extendPreview ? (
+                        <>
+                          <p className="text-lg font-bold text-primary">
+                            {money(extendPreview.amount)}
+                          </p>
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            {t("settingsSubscription.proratedForDaysLeftInCycle", {
+                              days: extendPreview.cycleRemainingDays,
+                              total: extendPreview.cycleTotalDays,
+                            })}
+                          </p>
+                        </>
+                      ) : (
+                        <p className="text-muted-foreground">
+                          {t("settingsSubscription.enterAQuantityToSeePrice")}
+                        </p>
+                      )}
+                    </div>
+
+                    <Button
+                      className="w-full"
+                      disabled={extending || !extendPreview || Number(extendPreview.amount) <= 0}
+                      onClick={() => void payExtend()}
+                    >
+                      {extending ? (
+                        <Loader2 className="me-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <CreditCard className="me-2 h-4 w-4" />
+                      )}
+                      {t("settingsSubscription.payAmpExtendNow")}
+                    </Button>
+                  </div>
+                )}
+
+                {extensions.length > 0 && (
+                  <div className="mt-4 overflow-hidden rounded-2xl border bg-card shadow-sm">
+                    <table className="w-full text-start text-sm">
+                      <thead className="border-b bg-muted/40 text-xs uppercase text-muted-foreground">
+                        <tr>
+                          <th className="px-4 py-2">{t("settingsSubscription.extendCapacity")}</th>
+                          <th className="px-4 py-2">{t("settingsSubscription.amount")}</th>
+                          <th className="px-4 py-2">{t("settingsSubscription.status")}</th>
+                          <th className="px-4 py-2">{t("settingsSubscription.date")}</th>
+                          <th className="px-4 py-2" />
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {extensions.slice(0, 5).map((o) => (
+                          <tr key={o.id} className="border-b last:border-0">
+                            <td className="px-4 py-2">
+                              +{o.quantity} {o.resource.toLowerCase()}
+                            </td>
+                            <td className="px-4 py-2">{money(o.amount, o.currency)}</td>
+                            <td className="px-4 py-2">
+                              <span
+                                className={cn(
+                                  "rounded-full px-2 py-0.5 text-xs font-medium",
+                                  STATUS_CLASS[o.status] ?? STATUS_CLASS.PENDING,
+                                )}
+                              >
+                                {o.status}
+                              </span>
+                            </td>
+                            <td className="px-4 py-2 text-xs text-muted-foreground">
+                              {new Date(o.createdAt).toLocaleString()}
+                            </td>
+                            <td className="px-4 py-2 text-end">
+                              {(o.status === "PENDING" || o.status === "PROCESSING") && (
+                                <Button
+                                  className="h-8 px-3 text-xs"
+                                  onClick={() => void verifyExtend(o.id)}
+                                >
+                                  {t("settingsSubscription.verify")}
+                                </Button>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
 
               {(!data.plan || data.status !== "ACTIVE") && (
