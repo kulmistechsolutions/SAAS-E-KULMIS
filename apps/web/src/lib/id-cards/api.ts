@@ -59,3 +59,75 @@ export function toDesignMap(rows: StoredCardDesign[]): Record<string, CardDesign
   }
   return out;
 }
+
+// ── Generation history & reprints (PRD §24-27) ────────────────────────────
+
+export interface CardIssueRow {
+  id: string;
+  studentId: string;
+  studentCode: string;
+  studentName: string;
+  cardType: string;
+  styleId: string;
+  orientation: string;
+  academicYear: string | null;
+  className: string | null;
+  section: string | null;
+  batchId: string;
+  status: string;
+  isReprint: boolean;
+  reprintReason: string | null;
+  createdAt: string;
+  issueCount?: number;
+}
+
+export interface RecordIssuesInput {
+  cardType: string;
+  styleId: string;
+  orientation: string;
+  academicYear?: string;
+  isReprint?: boolean;
+  reprintOfId?: string;
+  reprintReason?: string;
+  students: {
+    studentId: string;
+    studentCode: string;
+    studentName: string;
+    className?: string;
+    section?: string;
+  }[];
+}
+
+export async function apiRecordCardIssues(
+  body: RecordIssuesInput,
+): Promise<{ batchId: string; recorded: number }> {
+  return api<{ batchId: string; recorded: number }>("/card-issues", {
+    method: "POST",
+    body,
+  });
+}
+
+export async function apiMarkBatchPrinted(batchId: string): Promise<{ updated: number }> {
+  return api<{ updated: number }>(`/card-issues/${encodeURIComponent(batchId)}/printed`, {
+    method: "POST",
+  });
+}
+
+export async function apiListCardIssues(params?: {
+  search?: string;
+  cardType?: string;
+  status?: string;
+  limit?: number;
+}): Promise<CardIssueRow[]> {
+  const qs = new URLSearchParams();
+  if (params?.search) qs.set("search", params.search);
+  if (params?.cardType) qs.set("cardType", params.cardType);
+  if (params?.status) qs.set("status", params.status);
+  if (params?.limit) qs.set("limit", String(params.limit));
+  const q = qs.toString();
+  return api<CardIssueRow[]>(`/card-issues${q ? `?${q}` : ""}`);
+}
+
+export async function apiCardIssueSummary(): Promise<Record<string, number>> {
+  return api<Record<string, number>>("/card-issues/summary");
+}

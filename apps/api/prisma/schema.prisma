@@ -569,6 +569,7 @@ model Student {
   bookLoans    BookLoan[]
   cases        StudentCase[]
   extraClasses StudentClassEnrollment[]
+  cardIssues   CardIssue[]
 
   @@unique([schoolId, code])
   @@index([schoolId])
@@ -791,6 +792,44 @@ model CardDesign {
   @@unique([schoolId, designKey])
   @@index([schoolId])
   @@map("card_designs")
+}
+
+/// One row per card handed to a student, so a school can answer "who has been
+/// issued a card, when, and how many times has it been replaced".
+///
+/// Student name and code are copied in rather than only referenced: the history
+/// must still read correctly years later even if the student is renamed, and
+/// the code recorded here is the permanent ID that was printed on that card.
+model CardIssue {
+  id            String   @id @default(cuid())
+  schoolId      String
+  studentId     String
+  studentCode   String
+  studentName   String
+  cardType      String
+  styleId       String
+  orientation   String
+  academicYear  String?
+  className     String?
+  section       String?
+  /// Groups every card produced by one Generate run.
+  batchId       String
+  /// GENERATED | PRINTED | REPLACED | CANCELLED
+  status        String   @default("GENERATED")
+  isReprint     Boolean  @default(false)
+  /// The issue this one replaces, when it is a reprint.
+  reprintOfId   String?
+  reprintReason String?
+  issuedByUserId String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([schoolId])
+  @@index([schoolId, batchId])
+  @@index([studentId])
+  @@map("card_issues")
 }
 
 /// Daily teacher attendance (Module 6). Shift-scoped. One record per day.

@@ -8,11 +8,13 @@ import {
   useRef,
   useState,
 } from "react";
+import Link from "next/link";
 import {
   BadgeCheck,
   CreditCard,
   FileCheck2,
   FileDown,
+  History,
   Layers,
   Loader2,
   Pencil,
@@ -51,6 +53,8 @@ import type { CardDesign } from "@/lib/id-cards/elements";
 import {
   apiDeleteCardDesign,
   apiListCardDesigns,
+  apiMarkBatchPrinted,
+  apiRecordCardIssues,
   apiSaveCardDesign,
   toDesignMap,
 } from "@/lib/id-cards/api";
@@ -278,6 +282,7 @@ export default function IdCardsPage() {
 
   // ── Generated cards ──
   const [contexts, setContexts] = useState<CardContext[]>([]);
+  const [batchId, setBatchId] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
   const [previewCtx, setPreviewCtx] = useState<CardContext | null>(null);
   const [page, setPage] = useState(0);
@@ -322,6 +327,7 @@ export default function IdCardsPage() {
   // Print button can never send a stale set of cards to the printer.
   useEffect(() => {
     setContexts([]);
+    setBatchId(null);
     setPage(0);
   }, [selected, template, cardTitle, idLabel, footerText, effectiveAccent]);
 
@@ -336,6 +342,28 @@ export default function IdCardsPage() {
       const ctxs = await buildCardContexts(selected, buildOptions());
       setContexts(ctxs);
       setPage(0);
+
+      // Record what was issued. A failure here must not lose the cards the
+      // admin just waited for, so it only costs them the history entry.
+      try {
+        const res = await apiRecordCardIssues({
+          cardType,
+          styleId: templateId,
+          orientation: layout.orientation,
+          academicYear: year || undefined,
+          students: selected.map((s) => ({
+            studentId: s.id,
+            studentCode: s.code,
+            studentName: s.fullName,
+            className: s.className || undefined,
+            section: s.section || undefined,
+          })),
+        });
+        setBatchId(res.batchId);
+      } catch {
+        setBatchId(null);
+        toast("Cards generated, but the history entry could not be saved", "info");
+      }
       const missing = studentsMissingPhotos(selected).length;
       toast(
         missing > 0
@@ -357,6 +385,14 @@ export default function IdCardsPage() {
     border: layout.showCardBorder,
     cutLines: layout.showCutLines,
   };
+
+  /** Flag the last generated batch as sent to a printer. */
+  function markPrinted() {
+    if (!batchId) return;
+    void apiMarkBatchPrinted(batchId).catch(() => {
+      /* the cards still printed — only the status flag is lost */
+    });
+  }
 
   function guard(): boolean {
     if (contexts.length === 0) {
@@ -384,9 +420,16 @@ export default function IdCardsPage() {
           stylesheet the print window uses is injected here for a true preview. */}
       <style dangerouslySetInnerHTML={{ __html: CARD_CSS + PREVIEW_EXTRA_CSS }} />
 
-      <div>
-        <h1 className="text-2xl font-bold">{t("idCards.title")}</h1>
-        <p className="mt-1 text-sm text-muted-foreground">{t("idCards.subtitle")}</p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold">{t("idCards.title")}</h1>
+          <p className="mt-1 text-sm text-muted-foreground">{t("idCards.subtitle")}</p>
+        </div>
+        <Button variant="outline" asChild>
+          <Link href="/id-cards/history">
+            <History className="me-2 h-4 w-4" /> {t("idCards.history")}
+          </Link>
+        </Button>
       </div>
 
       {designerOpen && (
@@ -842,6 +885,7 @@ export default function IdCardsPage() {
             onClick={() => {
               if (!guard()) return;
               downloadCardsPdf(printReq);
+              markPrinted();
               toast(t("idCards.pdfHint"), "info");
             }}
           >
@@ -850,7 +894,10 @@ export default function IdCardsPage() {
           <Button
             variant="outline"
             onClick={() => {
-              if (guard()) printCards(printReq);
+              if (guard()) {
+                printCards(printReq);
+                markPrinted();
+              }
             }}
           >
             <Printer className="me-2 h-4 w-4" /> {t("idCards.printDirectly")}
