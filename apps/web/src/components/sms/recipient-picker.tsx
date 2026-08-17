@@ -168,6 +168,14 @@ export function RecipientPickerDialog({
                                 ({r.variables.studentName})
                               </span>
                             )}
+                          {Number(r.variables.studentCount) > 1 && (
+                            <span
+                              className="ms-1.5 inline-flex items-center rounded-full bg-secondary px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground"
+                              title={`${r.variables.studentCount} children at this school — one message covers all of them`}
+                            >
+                              ×{r.variables.studentCount}
+                            </span>
+                          )}
                         </p>
                         <p className="truncate font-mono text-xs text-muted-foreground">
                           {r.phone}

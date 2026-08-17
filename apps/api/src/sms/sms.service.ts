@@ -1141,6 +1141,103 @@ export class SmsService {
     });
   }
 
+  // ── Custom SMS contacts & groups ────────────────────────────────────────
+  // People who are not students, parents or teachers — a committee, a
+  // supplier, a landlord — kept in named groups so the whole group can be
+  // picked as one send audience instead of pasting numbers in by hand every
+  // time (PRD-style request: "Custom Contacts").
+
+  async listContactGroups(schoolId: string) {
+    return this.prisma.forTenant(schoolId, (tx) =>
+      tx.smsContactGroup.findMany({
+        orderBy: { name: "asc" },
+        include: { _count: { select: { contacts: true } } },
+      }),
+    );
+  }
+
+  async createContactGroup(schoolId: string, name: string) {
+    return this.prisma.forTenant(schoolId, (tx) =>
+      tx.smsContactGroup.create({ data: { schoolId, name } }),
+    );
+  }
+
+  async renameContactGroup(schoolId: string, id: string, name: string) {
+    return this.prisma.forTenant(schoolId, async (tx) => {
+      const existing = await tx.smsContactGroup.findFirst({ where: { id, schoolId } });
+      if (!existing) throw new NotFoundException("Group not found.");
+      return tx.smsContactGroup.update({ where: { id }, data: { name } });
+    });
+  }
+
+  async deleteContactGroup(schoolId: string, id: string) {
+    return this.prisma.forTenant(schoolId, async (tx) => {
+      const existing = await tx.smsContactGroup.findFirst({ where: { id, schoolId } });
+      if (!existing) throw new NotFoundException("Group not found.");
+      // Contacts survive the group's deletion (groupId → null), same as
+      // deleting a class doesn't delete its students — a school shouldn't
+      // lose people's names and numbers because it renamed/removed a team.
+      await tx.smsContactGroup.delete({ where: { id } });
+      return { ok: true };
+    });
+  }
+
+  async listContacts(schoolId: string, groupId?: string) {
+    return this.prisma.forTenant(schoolId, (tx) =>
+      tx.smsContact.findMany({
+        where: { ...(groupId ? { groupId } : {}) },
+        orderBy: { name: "asc" },
+        include: { group: { select: { id: true, name: true } } },
+      }),
+    );
+  }
+
+  async createContact(
+    schoolId: string,
+    input: { name: string; phone: string; groupId?: string | null; note?: string | null },
+  ) {
+    return this.prisma.forTenant(schoolId, (tx) =>
+      tx.smsContact.create({
+        data: {
+          schoolId,
+          name: input.name,
+          phone: normalizeSomaliPhone(input.phone),
+          groupId: input.groupId ?? null,
+          note: input.note ?? null,
+        },
+      }),
+    );
+  }
+
+  async updateContact(
+    schoolId: string,
+    id: string,
+    input: { name?: string; phone?: string; groupId?: string | null; note?: string | null },
+  ) {
+    return this.prisma.forTenant(schoolId, async (tx) => {
+      const existing = await tx.smsContact.findFirst({ where: { id, schoolId } });
+      if (!existing) throw new NotFoundException("Contact not found.");
+      return tx.smsContact.update({
+        where: { id },
+        data: {
+          name: input.name,
+          phone: input.phone ? normalizeSomaliPhone(input.phone) : undefined,
+          groupId: input.groupId,
+          note: input.note,
+        },
+      });
+    });
+  }
+
+  async deleteContact(schoolId: string, id: string) {
+    return this.prisma.forTenant(schoolId, async (tx) => {
+      const existing = await tx.smsContact.findFirst({ where: { id, schoolId } });
+      if (!existing) throw new NotFoundException("Contact not found.");
+      await tx.smsContact.delete({ where: { id } });
+      return { ok: true };
+    });
+  }
+
   // ── Logs / transactions ──────────────────────────────────────────────────
 
   listMessages(
@@ -1473,6 +1570,41 @@ export class SmsService {
         where: { schoolId, isActive: true },
       });
 
+      if (input.audience === "CONTACT_GROUP") {
+        if (!input.groupId) return [];
+        const contacts = await tx.smsContact.findMany({
+          where: {
+            schoolId,
+            groupId: input.groupId,
+            ...(input.contactIds?.length ? { id: { in: input.contactIds } } : {}),
+          },
+        });
+        // Defensive de-dupe by phone: two contacts entered with the same
+        // number in the same group would otherwise send twice, exactly the
+        // bug this whole change set exists to stop happening anywhere else.
+        const seenPhones = new Set<string>();
+        const out: Recipient[] = [];
+        for (const c of contacts) {
+          const key = normalizeSomaliPhone(c.phone);
+          if (seenPhones.has(key)) continue;
+          seenPhones.add(key);
+          out.push({
+            phone: c.phone,
+            name: c.name,
+            type: "CUSTOM",
+            refId: c.id,
+            recordId: c.id,
+            variables: {
+              parentName: c.name,
+              studentName: c.name,
+              schoolName,
+              academicYear: year?.name ?? "",
+            },
+          });
+        }
+        return out;
+      }
+
       if (input.audience === "TEACHERS" || input.teacherIds?.length) {
         const teachers = await tx.teacher.findMany({
           where: {
@@ -1522,54 +1654,70 @@ export class SmsService {
           },
         });
 
-        const byParentStudent = new Map<
+        // One recipient per PARENT (not per child, and not per charge) —
+        // grouping by `${parent.id}:${student.id}` sent one SMS per owing
+        // child, so a parent with two children behind on fees got the
+        // reminder twice. The running total is also kept as a raw number
+        // here and formatted only once at the end: the previous version
+        // re-parsed its own formatted string ("$50.00") back into a number
+        // on every second charge, which is NaN, so a student with more than
+        // one unpaid month silently reset the balance shown to $0.00.
+        const byParent = new Map<
           string,
-          { studentId: string; recipient: Recipient }
+          {
+            studentIds: Set<string>;
+            names: string[];
+            total: number;
+            parent: NonNullable<(typeof charges)[number]["student"]["parent"]>;
+          }
         >();
         for (const c of charges) {
           const st = c.student;
           const parent = st.parent;
           if (!parent?.phone) continue;
-          const key = `${parent.id}:${st.id}`;
           const outstanding = Number(c.amount) - Number(c.paidAmount);
-          const prev = byParentStudent.get(key);
-          const total =
-            (prev
-              ? Number(prev.recipient.variables?.outstandingBalance ?? 0)
-              : 0) + outstanding;
-          byParentStudent.set(key, {
-            studentId: st.id,
-            recipient: {
-              phone: parent.phone,
-              name: parent.name,
-              type: "PARENT",
-              refId: parent.id,
-              recordId: st.id,
-              variables: {
-                parentName: parent.name,
-                studentName: st.fullName,
-                studentCode: st.code,
-                className: st.class?.name ?? "",
-                section: st.section?.name ?? "",
-                schoolName,
-                academicYear: year?.name ?? "",
-                outstandingBalance: formatMoney(total, school?.currency),
-              },
-            },
-          });
+          const key = normalizeSomaliPhone(parent.phone);
+          const entry = byParent.get(key);
+          if (entry) {
+            entry.total += outstanding;
+            if (!entry.studentIds.has(st.id)) {
+              entry.studentIds.add(st.id);
+              entry.names.push(st.fullName);
+            }
+          } else {
+            byParent.set(key, {
+              studentIds: new Set([st.id]),
+              names: [st.fullName],
+              total: outstanding,
+              parent,
+            });
+          }
         }
 
-        let entries = [...byParentStudent.values()];
+        let entries = [...byParent.values()];
         if (input.studentIds?.length) {
           const allow = new Set(input.studentIds);
-          entries = entries.filter((e) => allow.has(e.studentId));
+          entries = entries.filter((e) => [...e.studentIds].some((id) => allow.has(id)));
         } else if (input.parentIds?.length) {
           const allow = new Set(input.parentIds);
-          entries = entries.filter(
-            (e) => e.recipient.refId && allow.has(e.recipient.refId),
-          );
+          entries = entries.filter((e) => allow.has(e.parent.id));
         }
-        return entries.map((e) => e.recipient);
+
+        return entries.map((e) => ({
+          phone: e.parent.phone,
+          name: e.parent.name,
+          type: "PARENT",
+          refId: e.parent.id,
+          recordId: e.parent.id,
+          variables: {
+            parentName: e.parent.name,
+            studentName: e.names.join(", "),
+            studentCount: String(e.names.length),
+            schoolName,
+            academicYear: year?.name ?? "",
+            outstandingBalance: formatMoney(e.total, school?.currency),
+          },
+        }));
       }
 
       const students = await tx.student.findMany({
@@ -1590,27 +1738,39 @@ export class SmsService {
         include: { parent: true, class: true, section: true },
       });
 
-      const seen = new Set<string>();
-      const out: Recipient[] = [];
+      // One recipient PER PARENT, not per child. Deduping only on
+      // `${phone}:${studentId}` let a parent with several children at the
+      // school through once per child — the same phone number received the
+      // same SMS two or three times in a row, which is what "duplicate
+      // sends" actually was: not a delivery glitch, a parent counted once
+      // per kid. `recordId` is now the parent's id, so the recipient picker
+      // and the exclude-list both operate at the parent level.
+      const byParent = new Map<
+        string,
+        { parent: (typeof students)[number]["parent"]; names: string[] }
+      >();
       for (const st of students) {
         const parent = st.parent;
         if (!parent?.phone) continue;
-        const phone = normalizeSomaliPhone(parent.phone);
-        const dedupe = `${phone}:${st.id}`;
-        if (seen.has(dedupe)) continue;
-        seen.add(dedupe);
+        const key = normalizeSomaliPhone(parent.phone);
+        const entry = byParent.get(key);
+        if (entry) entry.names.push(st.fullName);
+        else byParent.set(key, { parent, names: [st.fullName] });
+      }
+
+      const out: Recipient[] = [];
+      for (const { parent, names } of byParent.values()) {
+        if (!parent) continue;
         out.push({
           phone: parent.phone,
           name: parent.name,
           type: "PARENT",
           refId: parent.id,
-          recordId: st.id,
+          recordId: parent.id,
           variables: {
             parentName: parent.name,
-            studentName: st.fullName,
-            studentCode: st.code,
-            className: st.class?.name ?? "",
-            section: st.section?.name ?? "",
+            studentName: names.join(", "),
+            studentCount: String(names.length),
             schoolName,
             academicYear: year?.name ?? "",
           },

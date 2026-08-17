@@ -286,7 +286,13 @@ export async function apiSendSms(body: {
 }
 
 export type SmsAudience =
-  "ALL_PARENTS" | "CLASS" | "SECTION" | "TEACHERS" | "OUTSTANDING" | "CUSTOM";
+  | "ALL_PARENTS"
+  | "CLASS"
+  | "SECTION"
+  | "TEACHERS"
+  | "OUTSTANDING"
+  | "CUSTOM"
+  | "CONTACT_GROUP";
 
 export interface SmsAudienceRecipient {
   recordId: string;
@@ -301,6 +307,7 @@ export async function apiPreviewAudience(body: {
   audience: SmsAudience;
   classId?: string | null;
   sectionId?: string | null;
+  groupId?: string | null;
 }) {
   return api<SmsAudienceRecipient[]>("/sms/preview-audience", {
     method: "POST",
@@ -314,8 +321,11 @@ export async function apiSendAudienceSms(body: {
   audience: SmsAudience;
   classId?: string | null;
   sectionId?: string | null;
+  groupId?: string | null;
   studentIds?: string[];
+  parentIds?: string[];
   teacherIds?: string[];
+  contactIds?: string[];
   campaignName?: string;
   scheduledAt?: string | null;
 }) {
@@ -452,4 +462,66 @@ export async function apiVerifySmsPayment(id: string) {
   return api<SmsPaymentReceipt>(`/sms/payments/${id}/verify`, {
     method: "POST",
   });
+}
+
+// ── Custom SMS contacts & groups ───────────────────────────────────────────
+// People who are not students, parents or teachers (a committee, a supplier,
+// a landlord), organised into named groups so a whole group can be picked as
+// one send audience instead of pasting numbers in by hand each time.
+
+export interface SmsContactGroup {
+  id: string;
+  name: string;
+  createdAt: string;
+  _count: { contacts: number };
+}
+
+export interface SmsContact {
+  id: string;
+  name: string;
+  phone: string;
+  note: string | null;
+  groupId: string | null;
+  group: { id: string; name: string } | null;
+}
+
+export async function apiListContactGroups() {
+  return api<SmsContactGroup[]>("/sms/contact-groups");
+}
+
+export async function apiCreateContactGroup(name: string) {
+  return api<SmsContactGroup>("/sms/contact-groups", { method: "POST", body: { name } });
+}
+
+export async function apiRenameContactGroup(id: string, name: string) {
+  return api<SmsContactGroup>(`/sms/contact-groups/${id}`, { method: "PATCH", body: { name } });
+}
+
+export async function apiDeleteContactGroup(id: string) {
+  return api(`/sms/contact-groups/${id}`, { method: "DELETE" });
+}
+
+export async function apiListContacts(groupId?: string) {
+  const q = groupId ? `?groupId=${encodeURIComponent(groupId)}` : "";
+  return api<SmsContact[]>(`/sms/contacts${q}`);
+}
+
+export async function apiCreateContact(body: {
+  name: string;
+  phone: string;
+  groupId?: string | null;
+  note?: string | null;
+}) {
+  return api<SmsContact>("/sms/contacts", { method: "POST", body });
+}
+
+export async function apiUpdateContact(
+  id: string,
+  body: Partial<{ name: string; phone: string; groupId: string | null; note: string | null }>,
+) {
+  return api<SmsContact>(`/sms/contacts/${id}`, { method: "PATCH", body });
+}
+
+export async function apiDeleteContact(id: string) {
+  return api(`/sms/contacts/${id}`, { method: "DELETE" });
 }

@@ -147,6 +147,8 @@ model School {
   smsPaymentOrders   SmsPaymentOrder[]
   smsGateway         SchoolSmsGateway?
   smsGatewayLicenses SmsGatewayLicense[]
+  smsContacts        SmsContact[]
+  smsContactGroups   SmsContactGroup[]
   smsSenderRequests  SmsSenderIdRequest[]
   villages           Village[]
   districts          District[]
@@ -2142,6 +2144,44 @@ model SmsTemplate {
   @@unique([schoolId, name])
   @@index([schoolId])
   @@map("sms_templates")
+}
+
+/// A named group of custom SMS contacts — "Xisaabta", "Iskaashiga", any team
+/// or committee the school messages that is not students/parents/teachers.
+model SmsContactGroup {
+  id        String   @id @default(cuid())
+  schoolId  String
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  school   School       @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  contacts SmsContact[]
+
+  @@unique([schoolId, name])
+  @@index([schoolId])
+  @@map("sms_contact_groups")
+}
+
+/// A person who is not a student, parent or teacher record — just a name and
+/// a phone number the school wants to message, optionally organised into a
+/// group so the whole group can be picked as one send audience.
+model SmsContact {
+  id        String   @id @default(cuid())
+  schoolId  String
+  groupId   String?
+  name      String
+  phone     String
+  note      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  school School           @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  group  SmsContactGroup? @relation(fields: [groupId], references: [id], onDelete: SetNull)
+
+  @@index([schoolId])
+  @@index([groupId])
+  @@map("sms_contacts")
 }
 
 /// Batch / scheduled / automated campaigns (fee reminders, announcements, etc.).

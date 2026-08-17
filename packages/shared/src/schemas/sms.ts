@@ -91,12 +91,17 @@ export const sendAudienceSmsSchema = z.object({
     "TEACHERS",
     "OUTSTANDING",
     "CUSTOM",
+    "CONTACT_GROUP",
   ]),
   classId: z.string().optional().nullable(),
   sectionId: z.string().optional().nullable(),
+  /** For audience = CONTACT_GROUP — which saved custom group to message. */
+  groupId: z.string().optional().nullable(),
   parentIds: z.array(z.string()).optional(),
   studentIds: z.array(z.string()).optional(),
   teacherIds: z.array(z.string()).optional(),
+  /** For audience = CONTACT_GROUP — which contacts within it, when narrowed. */
+  contactIds: z.array(z.string()).optional(),
   scheduledAt: z.string().datetime().optional().nullable(),
   campaignName: z.string().max(120).optional(),
 });
@@ -139,10 +144,28 @@ export const previewAudienceSchema = z.object({
     "TEACHERS",
     "OUTSTANDING",
     "CUSTOM",
+    "CONTACT_GROUP",
   ]),
   classId: z.string().optional().nullable(),
   sectionId: z.string().optional().nullable(),
+  groupId: z.string().optional().nullable(),
 });
+
+// ── Custom SMS contacts & groups ────────────────────────────────────────────
+
+export const saveSmsContactGroupSchema = z.object({
+  name: z.string().trim().min(1).max(80),
+});
+
+export const saveSmsContactSchema = z.object({
+  name: z.string().trim().min(1).max(120),
+  phone: z.string().trim().min(6).max(20),
+  groupId: z.string().nullable().optional(),
+  note: z.string().max(300).optional().nullable(),
+});
+
+export type SaveSmsContactGroupInput = z.infer<typeof saveSmsContactGroupSchema>;
+export type SaveSmsContactInput = z.infer<typeof saveSmsContactSchema>;
 
 export const createSmsTemplateSchema = z.object({
   name: z.string().min(1).max(120),

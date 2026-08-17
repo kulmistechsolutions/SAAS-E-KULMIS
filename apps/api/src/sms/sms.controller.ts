@@ -17,6 +17,8 @@ import {
   sendAudienceSmsSchema,
   sendSmsSchema,
   requestSmsSenderIdSchema,
+  saveSmsContactGroupSchema,
+  saveSmsContactSchema,
   updateSchoolSmsSettingsSchema,
   updateSmsTemplateSchema,
   UserRole,
@@ -193,6 +195,69 @@ export class SmsController {
     const parsed = sendAudienceSmsSchema.safeParse(body);
     if (!parsed.success) throw new BadRequestException(parsed.error.flatten());
     return this.sms.sendToAudience(me.schoolId, me.userId, parsed.data);
+  }
+
+  // ── Custom SMS contacts & groups ──
+  @Get("contact-groups")
+  contactGroups(@CurrentUser() me: AuthUser) {
+    return this.sms.listContactGroups(me.schoolId);
+  }
+
+  @Post("contact-groups")
+  @Roles(UserRole.ADMINISTRATOR, UserRole.SUPER_ADMINISTRATOR)
+  createContactGroup(@CurrentUser() me: AuthUser, @Body() body: unknown) {
+    const parsed = saveSmsContactGroupSchema.safeParse(body);
+    if (!parsed.success) throw new BadRequestException(parsed.error.flatten());
+    return this.sms.createContactGroup(me.schoolId, parsed.data.name);
+  }
+
+  @Patch("contact-groups/:id")
+  @Roles(UserRole.ADMINISTRATOR, UserRole.SUPER_ADMINISTRATOR)
+  renameContactGroup(
+    @CurrentUser() me: AuthUser,
+    @Param("id") id: string,
+    @Body() body: unknown,
+  ) {
+    const parsed = saveSmsContactGroupSchema.safeParse(body);
+    if (!parsed.success) throw new BadRequestException(parsed.error.flatten());
+    return this.sms.renameContactGroup(me.schoolId, id, parsed.data.name);
+  }
+
+  @Delete("contact-groups/:id")
+  @Roles(UserRole.ADMINISTRATOR, UserRole.SUPER_ADMINISTRATOR)
+  deleteContactGroup(@CurrentUser() me: AuthUser, @Param("id") id: string) {
+    return this.sms.deleteContactGroup(me.schoolId, id);
+  }
+
+  @Get("contacts")
+  contacts(@CurrentUser() me: AuthUser, @Query("groupId") groupId?: string) {
+    return this.sms.listContacts(me.schoolId, groupId);
+  }
+
+  @Post("contacts")
+  @Roles(UserRole.ADMINISTRATOR, UserRole.SUPER_ADMINISTRATOR)
+  createContact(@CurrentUser() me: AuthUser, @Body() body: unknown) {
+    const parsed = saveSmsContactSchema.safeParse(body);
+    if (!parsed.success) throw new BadRequestException(parsed.error.flatten());
+    return this.sms.createContact(me.schoolId, parsed.data);
+  }
+
+  @Patch("contacts/:id")
+  @Roles(UserRole.ADMINISTRATOR, UserRole.SUPER_ADMINISTRATOR)
+  updateContact(
+    @CurrentUser() me: AuthUser,
+    @Param("id") id: string,
+    @Body() body: unknown,
+  ) {
+    const parsed = saveSmsContactSchema.partial().safeParse(body);
+    if (!parsed.success) throw new BadRequestException(parsed.error.flatten());
+    return this.sms.updateContact(me.schoolId, id, parsed.data);
+  }
+
+  @Delete("contacts/:id")
+  @Roles(UserRole.ADMINISTRATOR, UserRole.SUPER_ADMINISTRATOR)
+  deleteContact(@CurrentUser() me: AuthUser, @Param("id") id: string) {
+    return this.sms.deleteContact(me.schoolId, id);
   }
 
   @Post("fee-reminders")

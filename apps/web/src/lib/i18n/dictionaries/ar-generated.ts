@@ -3653,6 +3653,7 @@ export const arGenerated: PartialDictionary = {
     teachers: "المعلمون",
     send: "إرسال",
     customSMS: "رسالة مخصصة",
+    customContacts: "جهات اتصال مخصصة",
     templates: "القوالب",
     logs: "السجلات",
     settings: "الإعدادات",

@@ -3653,6 +3653,7 @@ export const soGenerated: PartialDictionary = {
     teachers: "Macallimiinta",
     send: "Dir",
     customSMS: "SMS Gaar ah",
+    customContacts: "Xiriirada Gaarka ah",
     templates: "Qaabab",
     logs: "Diiwaanno",
     settings: "Dejinta",

@@ -3653,6 +3653,7 @@ export const generated = {
     teachers: "Teachers",
     send: "Send",
     customSMS: "Custom SMS",
+    customContacts: "Custom Contacts",
     templates: "Templates",
     logs: "Logs",
     settings: "Settings",

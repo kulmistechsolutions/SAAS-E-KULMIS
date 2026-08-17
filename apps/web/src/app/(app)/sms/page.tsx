@@ -14,6 +14,7 @@ import {
   Users,
   Clock,
   PlugZap,
+  Contact,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,6 +24,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { RecipientPickerDialog } from "@/components/sms/recipient-picker";
 import { ConfirmDialog } from "@/components/students/confirm-dialog";
 import { TemplateManager } from "@/components/sms/template-manager";
+import { ContactManager } from "@/components/sms/contact-manager";
 import { GatewaySettings } from "@/components/sms/gateway-settings";
 import { SenderIdCard } from "@/components/sms/sender-id-card";
 import { CATEGORIES } from "@/components/sms/categories";
@@ -38,6 +40,8 @@ import {
   apiSmsMessages,
   apiSmsSettings,
   apiSmsTemplates,
+  apiListContactGroups,
+  type SmsContactGroup,
   type SmsAudience,
   type SmsAudienceRecipient,
   type SmsBalance,
@@ -55,7 +59,7 @@ import {
 import { activeAcademicYear } from "@/lib/academics/store";
 import { toast } from "@/lib/toast";
 
-type Tab = "send" | "custom" | "templates" | "logs" | "settings" | "gateway";
+type Tab = "send" | "custom" | "templates" | "contacts" | "logs" | "settings" | "gateway";
 
 const AUDIENCES: { value: SmsAudience; label: TranslationKey; hint: string }[] = [
   {
@@ -128,6 +132,19 @@ export default function SchoolSmsPage() {
   const [audience, setAudience] = useState<SmsAudience>("ALL_PARENTS");
   const [className, setClassName] = useState("");
   const [section, setSection] = useState("");
+  const [groupId, setGroupId] = useState<string | null>(null);
+  const [contactGroups, setContactGroups] = useState<SmsContactGroup[]>([]);
+
+  const loadContactGroups = useCallback(async () => {
+    try {
+      setContactGroups(await apiListContactGroups());
+    } catch {
+      /* the send tab still works without custom groups loaded */
+    }
+  }, []);
+  useEffect(() => {
+    void loadContactGroups();
+  }, [loadContactGroups]);
   const [category, setCategory] = useState<SmsCategory>("ANNOUNCEMENT");
   const [body, setBody] = useState("");
   const [templateId, setTemplateId] = useState("");
@@ -234,6 +251,7 @@ export default function SchoolSmsPage() {
         audience,
         classId: usesClass ? (classId ?? null) : null,
         sectionId: usesSection ? (sectionId ?? null) : null,
+        groupId: audience === "CONTACT_GROUP" ? groupId : null,
       });
       setRecipients(list);
       setSelected(new Set(list.map((r) => r.recordId)));
@@ -247,7 +265,7 @@ export default function SchoolSmsPage() {
     } finally {
       setPreviewLoading(false);
     }
-  }, [audience, classId, sectionId]);
+  }, [audience, classId, sectionId, groupId]);
 
   useEffect(() => {
     if (tab !== "send") return;
@@ -299,8 +317,15 @@ export default function SchoolSmsPage() {
       };
       if (audience === "TEACHERS") {
         payload.teacherIds = [...selected];
+      } else if (audience === "CONTACT_GROUP") {
+        payload.groupId = groupId;
+        payload.contactIds = [...selected];
       } else {
-        payload.studentIds = [...selected];
+        // The audience is now resolved and listed one row per PARENT (a
+        // parent with several children used to get the same SMS once per
+        // child), so the exclude-list selection is keyed on parentId, not
+        // studentId — matching the recordId the picker now hands back.
+        payload.parentIds = [...selected];
       }
       const res = await apiSendAudienceSms(payload);
       const excluded = excludedCount > 0 ? `, ${excludedCount} excluded` : "";
@@ -409,6 +434,7 @@ export default function SchoolSmsPage() {
     { id: "send", label: "sms.send", icon: Send },
     { id: "custom", label: "sms.customSMS", icon: Users },
     { id: "templates", label: "sms.templates", icon: FileText },
+    { id: "contacts", label: "sms.customContacts", icon: Contact },
     { id: "logs", label: "sms.logs", icon: Bell },
     { id: "settings", label: "sms.settings", icon: Wallet },
     { id: "gateway", label: "sms.mySMSAccount", icon: PlugZap },
@@ -553,17 +579,37 @@ export default function SchoolSmsPage() {
                 <Label>{tr("sms.sendTo")}</Label>
                 <Select
                   className="mt-1.5"
-                  value={audience}
-                  onChange={(e) => setAudience(e.target.value as SmsAudience)}
+                  value={audience === "CONTACT_GROUP" ? `CONTACT_GROUP:${groupId ?? ""}` : audience}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    if (v.startsWith("CONTACT_GROUP:")) {
+                      setAudience("CONTACT_GROUP");
+                      setGroupId(v.slice("CONTACT_GROUP:".length));
+                    } else {
+                      setAudience(v as SmsAudience);
+                      setGroupId(null);
+                    }
+                  }}
                 >
                   {AUDIENCES.map((a) => (
                     <option key={a.value} value={a.value}>
                       {t(a.label)}
                     </option>
                   ))}
+                  {contactGroups.length > 0 && (
+                    <optgroup label="Custom Groups">
+                      {contactGroups.map((g) => (
+                        <option key={g.id} value={`CONTACT_GROUP:${g.id}`}>
+                          {g.name} ({g._count.contacts})
+                        </option>
+                      ))}
+                    </optgroup>
+                  )}
                 </Select>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  {AUDIENCES.find((a) => a.value === audience)?.hint}
+                  {audience === "CONTACT_GROUP"
+                    ? "Everyone in this custom group"
+                    : AUDIENCES.find((a) => a.value === audience)?.hint}
                 </p>
               </div>
               {(audience === "CLASS" ||
@@ -919,6 +965,12 @@ export default function SchoolSmsPage() {
               </div>
             )}
           </div>
+        </div>
+      )}
+
+      {tab === "contacts" && (
+        <div className="rounded-2xl border bg-card p-5 shadow-sm">
+          <ContactManager onGroupsChanged={() => void loadContactGroups()} />
         </div>
       )}
 
