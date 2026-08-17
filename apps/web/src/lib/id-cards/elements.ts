@@ -24,7 +24,8 @@ export type ElementType =
   | "qr"
   | "signature"
   | "box"
-  | "line";
+  | "line"
+  | "watermark";
 
 /** Dynamic values a `field` element can bind to (PRD §6). */
 export const FIELD_KEYS = [
@@ -81,6 +82,11 @@ export interface CardElement {
   letterSpacing?: number;
   mono?: boolean;
   opacity?: number;
+  /**
+   * Watermark image as a data URL. When empty the school's own logo is used,
+   * so a school that has uploaded a logo gets a watermark with no extra work.
+   */
+  src?: string;
   /** Locked elements are skipped by the designer's hit-testing. */
   locked?: boolean;
 }
@@ -179,6 +185,14 @@ function renderOne(el: CardElement, c: CardContext, accent: string): string {
             c.schoolName.slice(0, 2).toUpperCase(),
           )}</div>`;
 
+    case "watermark": {
+      // Sits behind the content and must never intercept a click in the
+      // designer or darken the text it sits under.
+      const src = el.src || c.logoDataUrl;
+      if (!src) return "";
+      return `<img src="${src}" alt="" style="${base};object-fit:contain;pointer-events:none"/>`;
+    }
+
     case "qr":
       return c.qrDataUrl
         ? `<img src="${c.qrDataUrl}" alt="" style="${base}"/>`
@@ -223,6 +237,7 @@ export function elementLabel(el: CardElement): string {
   if (el.type === "field") return FIELD_LABELS[el.field ?? "studentName"];
   if (el.type === "text") return el.text?.slice(0, 24) || "Text";
   if (el.type === "signature") return "Signature";
+  if (el.type === "watermark") return el.src ? "Watermark (image)" : "Watermark (logo)";
   return el.type.charAt(0).toUpperCase() + el.type.slice(1);
 }
 

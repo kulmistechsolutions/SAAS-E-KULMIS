@@ -15,7 +15,9 @@ import { PrismaService } from "../prisma/prisma.service";
 const elementSchema = z
   .object({
     id: z.string().min(1).max(64),
-    type: z.enum(["text", "field", "photo", "logo", "qr", "signature", "box", "line"]),
+    type: z.enum([
+      "text", "field", "photo", "logo", "qr", "signature", "box", "line", "watermark",
+    ]),
     x: z.number().finite(),
     y: z.number().finite(),
     w: z.number().finite().positive(),
@@ -36,6 +38,12 @@ const elementSchema = z
     letterSpacing: z.number().finite().optional(),
     mono: z.boolean().optional(),
     opacity: z.number().min(0).max(1).optional(),
+    /**
+     * Watermark image as a data URL. The client downscales to 512px before
+     * sending; the cap here is the backstop that stops a full-resolution photo
+     * bloating every read of this row.
+     */
+    src: z.string().max(600_000).optional(),
     locked: z.boolean().optional(),
   })
   .strip();

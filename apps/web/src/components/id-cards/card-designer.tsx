@@ -9,6 +9,7 @@ import {
   ChevronDown,
   ChevronUp,
   Copy,
+  Droplets,
   Image as ImageIcon,
   Minus,
   PenLine,
@@ -17,6 +18,7 @@ import {
   Square,
   Trash2,
   Type,
+  Upload,
   User,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -174,9 +176,23 @@ export function CardDesigner({ design, ctx, onChange, onReset }: Props) {
       signature: { w: 24, h: 7, fontSize: 3.8, color: "#64748b", align: "center", text: "" },
       box: { w: 26, h: 8, bg: "accent", radius: 1 },
       line: { w: 26, h: 0.3, borderColor: "#94a3b8" },
+      watermark: {
+        // Large, centred and very faint by default — a watermark should read as
+        // texture behind the card, not compete with the student's details.
+        w: Math.round(design.width * 0.7),
+        h: Math.round(design.width * 0.7),
+        x: snap(design.width * 0.15),
+        y: snap((design.height - design.width * 0.7) / 2),
+        opacity: 0.08,
+      },
     };
     const el = clampElement({ ...base, ...(presets[type] ?? {}) }, design);
-    onChange((d) => ({ ...d, elements: [...d.elements, el] }));
+    // A watermark belongs behind the content, so it goes to the front of the
+    // list rather than on top of everything that is already there.
+    onChange((d) => ({
+      ...d,
+      elements: type === "watermark" ? [el, ...d.elements] : [...d.elements, el],
+    }));
     setSelectedId(el.id);
   }
 
@@ -220,6 +236,7 @@ export function CardDesigner({ design, ctx, onChange, onReset }: Props) {
           <ToolBtn icon={PenLine} label="Signature" onClick={() => addEl("signature")} />
           <ToolBtn icon={ImageIcon} label="Photo" onClick={() => addEl("photo")} />
           <ToolBtn icon={QrCode} label="QR" onClick={() => addEl("qr")} />
+          <ToolBtn icon={Droplets} label="Watermark" onClick={() => addEl("watermark")} />
           <ToolBtn icon={Square} label="Box" onClick={() => addEl("box")} />
           <ToolBtn icon={Minus} label="Line" onClick={() => addEl("line")} />
           <button
@@ -391,6 +408,82 @@ export function CardDesigner({ design, ctx, onChange, onReset }: Props) {
               </>
             )}
 
+            {selected.type === "watermark" && (
+              <div className="space-y-2">
+                <p className="text-[11px] text-muted-foreground">
+                  {selected.src
+                    ? "Using your uploaded image."
+                    : "Using the school logo. Upload an image to use something else."}
+                </p>
+                <div className="flex gap-1.5">
+                  <label className="inline-flex cursor-pointer items-center gap-1 rounded-lg border px-2 py-1 text-xs hover:bg-secondary">
+                    <Upload className="h-3.5 w-3.5" /> Upload
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        e.target.value = "";
+                        if (!file) return;
+                        try {
+                          const src = await downscaleImage(file);
+                          update(selected.id, { src });
+                        } catch {
+                          /* an unreadable file simply leaves the logo in place */
+                        }
+                      }}
+                    />
+                  </label>
+                  {selected.src && (
+                    <MiniBtn onClick={() => update(selected.id, { src: undefined })}>
+                      Use school logo
+                    </MiniBtn>
+                  )}
+                </div>
+                <div>
+                  <Label>Opacity</Label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="range"
+                      min={0.02}
+                      max={1}
+                      step={0.01}
+                      value={selected.opacity ?? 0.08}
+                      onChange={(e) => update(selected.id, { opacity: Number(e.target.value) })}
+                      className="h-2 w-full cursor-pointer accent-primary"
+                    />
+                    <span className="w-10 text-end text-xs tabular-nums text-muted-foreground">
+                      {Math.round((selected.opacity ?? 0.08) * 100)}%
+                    </span>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  <MiniBtn
+                    onClick={() =>
+                      update(selected.id, {
+                        w: snap(design.width * 0.7),
+                        h: snap(design.width * 0.7),
+                        x: snap(design.width * 0.15),
+                        y: snap((design.height - design.width * 0.7) / 2),
+                      })
+                    }
+                  >
+                    Centre &amp; fit
+                  </MiniBtn>
+                  <MiniBtn
+                    onClick={() =>
+                      update(selected.id, {
+                        x: 0, y: 0, w: design.width, h: design.height,
+                      })
+                    }
+                  >
+                    Full bleed
+                  </MiniBtn>
+                </div>
+              </div>
+            )}
+
             {(selected.type === "box" || selected.type === "line") && (
               <div>
                 <Label>{selected.type === "line" ? "Line colour" : "Fill"}</Label>
@@ -428,6 +521,38 @@ export function CardDesigner({ design, ctx, onChange, onReset }: Props) {
       </div>
     </div>
   );
+}
+
+/**
+ * Shrink an uploaded image before it becomes part of the design.
+ *
+ * Designs are stored as JSON in the database, so a full-resolution photo pasted
+ * in as a data URL would bloat every read of that row. 512px is plenty for a
+ * watermark printed at a few centimetres.
+ */
+async function downscaleImage(file: File, maxPx = 512): Promise<string> {
+  const dataUrl = await new Promise<string>((res, rej) => {
+    const fr = new FileReader();
+    fr.onload = () => res(String(fr.result));
+    fr.onerror = () => rej(fr.error);
+    fr.readAsDataURL(file);
+  });
+  const img = await new Promise<HTMLImageElement>((res, rej) => {
+    const i = new Image();
+    i.onload = () => res(i);
+    i.onerror = rej;
+    i.src = dataUrl;
+  });
+  const scale = Math.min(1, maxPx / Math.max(img.width, img.height));
+  if (scale === 1 && dataUrl.length < 200_000) return dataUrl;
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.max(1, Math.round(img.width * scale));
+  canvas.height = Math.max(1, Math.round(img.height * scale));
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return dataUrl;
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+  // PNG keeps transparency, which most school logos rely on.
+  return canvas.toDataURL("image/png");
 }
 
 // ── Small controls ────────────────────────────────────────────────────────
