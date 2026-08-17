@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Loader2, Printer, RotateCcw, Search } from "lucide-react";
+import { ArrowLeft, FileDown, Loader2, Printer, RotateCcw, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,7 @@ import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import { useStudentsState } from "@/lib/students/store";
 import {
+  apiCardReport,
   apiCardIssueSummary,
   apiListCardIssues,
   apiListCardDesigns,
@@ -19,7 +20,9 @@ import {
   apiMarkBatchPrinted,
   toDesignMap,
   type CardIssueRow,
+  type CardReport,
 } from "@/lib/id-cards/api";
+import { exportCardReportCsv, printCardReport } from "@/lib/id-cards/report-export";
 import { CARD_TYPES, DEFAULT_LAYOUT } from "@/lib/id-cards/types";
 import type { CardDesign } from "@/lib/id-cards/elements";
 import { presetDesign } from "@/lib/id-cards/presets";
@@ -52,6 +55,7 @@ export default function CardHistoryPage() {
   const [reprinting, setReprinting] = useState<string | null>(null);
   const [reason, setReason] = useState("Lost card");
   const [askFor, setAskFor] = useState<CardIssueRow | null>(null);
+  const [report, setReport] = useState<CardReport | null>(null);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -74,6 +78,7 @@ export default function CardHistoryPage() {
   useEffect(() => {
     if (!mounted) return;
     void apiCardIssueSummary().then(setSummary).catch(() => undefined);
+    void apiCardReport().then(setReport).catch(() => undefined);
     void apiListCardDesigns()
       .then((r) => setDesigns(toDesignMap(r)))
       .catch(() => undefined);
@@ -185,6 +190,40 @@ export default function CardHistoryPage() {
         <Stat label={t("idCards.replaced")} value={summary.replaced ?? 0} />
         <Stat label={t("idCards.studentsWithCards")} value={summary.studentsWithCards ?? 0} />
       </div>
+
+      {report && (
+        <div className="rounded-2xl border bg-card p-4 shadow-sm">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <h2 className="text-sm font-semibold">{t("idCards.reports")}</h2>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => exportCardReportCsv(report)}>
+                <FileDown className="me-2 h-4 w-4" /> {t("idCards.exportCsv")}
+              </Button>
+              <Button variant="outline" onClick={() => printCardReport(report)}>
+                <Printer className="me-2 h-4 w-4" /> {t("idCards.printPdf")}
+              </Button>
+            </div>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <Attention
+              label={t("idCards.withoutPhotos")}
+              value={report.counts.withoutPhotos ?? 0}
+              hint={t("idCards.withoutPhotosHint")}
+            />
+            <Attention
+              label={t("idCards.withoutCards")}
+              value={report.counts.withoutCards ?? 0}
+              hint={t("idCards.withoutCardsHint")}
+            />
+            <Attention
+              label={t("idCards.activeStudents")}
+              value={report.counts.activeStudents ?? 0}
+              hint=""
+              muted
+            />
+          </div>
+        </div>
+      )}
 
       <div className="rounded-2xl border bg-card p-4 shadow-sm">
         <div className="mb-3 flex flex-wrap gap-2">
@@ -345,6 +384,26 @@ export default function CardHistoryPage() {
 
 function round(n: number): number {
   return Math.round(n * 10) / 10;
+}
+
+function Attention({
+  label, value, hint, muted,
+}: { label: string; value: number; hint: string; muted?: boolean }) {
+  const needsAction = !muted && value > 0;
+  return (
+    <div
+      className={cn(
+        "rounded-xl border p-3",
+        needsAction && "border-amber-400/50 bg-amber-500/5",
+      )}
+    >
+      <p className={cn("text-xl font-bold", needsAction && "text-amber-600 dark:text-amber-500")}>
+        {value}
+      </p>
+      <p className="text-xs font-medium">{label}</p>
+      {hint && <p className="mt-0.5 text-[11px] text-muted-foreground">{hint}</p>}
+    </div>
+  );
 }
 
 function Stat({ label, value }: { label: string; value: number }) {

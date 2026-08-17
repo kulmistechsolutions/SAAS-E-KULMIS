@@ -230,6 +230,58 @@ export class CardIssuesService {
     });
   }
 
+  /**
+   * ID card reports (PRD §29).
+   *
+   * The two lists are the ones a school actually acts on: students who cannot
+   * be issued a usable card because they have no photo, and students who have
+   * never been issued one at all.
+   */
+  async report(schoolId: string): Promise<{
+    counts: Record<string, number>;
+    withoutPhotos: { code: string; name: string; className: string; section: string }[];
+    withoutCards: { code: string; name: string; className: string; section: string }[];
+  }> {
+    const counts = await this.summary(schoolId);
+
+    const [students, issued] = await this.prisma.forTenant(schoolId, async (tx) => [
+      await tx.student.findMany({
+        where: { status: "ACTIVE" },
+        select: {
+          id: true, code: true, fullName: true, photoKey: true,
+          class: { select: { name: true } },
+          section: { select: { name: true } },
+        },
+        orderBy: [{ code: "asc" }],
+      }),
+      // One distinct query instead of a per-student lookup — a school with
+      // thousands of students would otherwise be thousands of round trips.
+      await tx.cardIssue.findMany({ distinct: ["studentId"], select: { studentId: true } }),
+    ]);
+
+    const hasCard = new Set(issued.map((i) => i.studentId));
+    const row = (s: (typeof students)[number]) => ({
+      code: s.code,
+      name: s.fullName,
+      className: s.class?.name ?? "",
+      section: s.section?.name ?? "",
+    });
+
+    const withoutPhotos = students.filter((s) => !s.photoKey).map(row);
+    const withoutCards = students.filter((s) => !hasCard.has(s.id)).map(row);
+
+    return {
+      counts: {
+        ...counts,
+        activeStudents: students.length,
+        withoutPhotos: withoutPhotos.length,
+        withoutCards: withoutCards.length,
+      },
+      withoutPhotos,
+      withoutCards,
+    };
+  }
+
   /** Headline numbers for the ID reports (PRD §29). */
   async summary(schoolId: string): Promise<Record<string, number>> {
     const [byStatus, reprints, students] = await this.prisma.forTenant(

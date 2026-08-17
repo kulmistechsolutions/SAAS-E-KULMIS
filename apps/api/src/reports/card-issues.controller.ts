@@ -52,6 +52,11 @@ export class CardIssuesController {
     });
   }
 
+  @Get("report")
+  report(@CurrentUser() me: AuthUser) {
+    return this.issues.report(me.schoolId);
+  }
+
   @Get("summary")
   summary(@CurrentUser() me: AuthUser) {
     return this.issues.summary(me.schoolId);

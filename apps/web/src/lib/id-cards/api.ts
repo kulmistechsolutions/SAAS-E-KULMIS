@@ -148,3 +148,21 @@ export async function apiClearanceFor(studentIds: string[]): Promise<ClearanceRo
     body: { studentIds },
   });
 }
+
+export interface CardReportStudent {
+  code: string;
+  name: string;
+  className: string;
+  section: string;
+}
+
+export interface CardReport {
+  counts: Record<string, number>;
+  withoutPhotos: CardReportStudent[];
+  withoutCards: CardReportStudent[];
+}
+
+/** ID card reports (PRD §29). */
+export async function apiCardReport(): Promise<CardReport> {
+  return api<CardReport>("/card-issues/report");
+}
