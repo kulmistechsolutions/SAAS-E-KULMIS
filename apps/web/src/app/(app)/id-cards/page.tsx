@@ -476,7 +476,18 @@ export default function IdCardsPage() {
                       : "hover:border-primary/40",
                   )}
                 >
-                  <MiniCard ctx={previewCtx} styleId={tpl.id} accent={accent} grid={grid} orientation={layout.orientation} />
+                  <MiniCard
+                    ctx={previewCtx}
+                    styleId={tpl.id}
+                    accent={accent}
+                    grid={grid}
+                    orientation={layout.orientation}
+                    saved={
+                      designs[
+                        `${tpl.id}|${layout.orientation}|${round(grid.cardWidth)}x${round(grid.cardHeight)}`
+                      ]
+                    }
+                  />
                   <p className="mt-1.5 truncate text-xs font-medium">{tpl.name}</p>
                 </button>
               ))}
@@ -1057,14 +1068,19 @@ function MiniCard({
   accent,
   grid,
   orientation,
+  saved,
 }: {
   ctx: CardContext | null;
   styleId: string;
   accent: string;
   grid: { cardWidth: number; cardHeight: number };
   orientation: PrintLayoutSettings["orientation"];
+  /** The school's own layout for this style, when it has customised one. */
+  saved?: CardDesign;
 }) {
-  const design = presetDesign(styleId, orientation, grid.cardWidth, grid.cardHeight);
+  // Show the school's saved layout rather than the stock preset, so the chooser
+  // shows the card that will actually print.
+  const design = saved ?? presetDesign(styleId, orientation, grid.cardWidth, grid.cardHeight);
   const sample: CardContext = ctx ?? PLACEHOLDER_CTX;
   return (
     <FitBox
