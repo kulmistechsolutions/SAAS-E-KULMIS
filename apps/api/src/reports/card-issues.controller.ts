@@ -11,7 +11,11 @@ import { UserRole } from "@ekulmis/shared";
 import { Roles } from "../auth/roles.decorator";
 import { CurrentUser } from "../auth/current-user.decorator";
 import type { AuthUser } from "../auth/auth.types";
-import { CardIssuesService, recordCardIssuesSchema } from "./card-issues.service";
+import {
+  CardIssuesService,
+  clearanceQuerySchema,
+  recordCardIssuesSchema,
+} from "./card-issues.service";
 
 /**
  * ID card generation history and reprints.
@@ -58,6 +62,14 @@ export class CardIssuesController {
     const parsed = recordCardIssuesSchema.safeParse(body);
     if (!parsed.success) throw new BadRequestException(parsed.error.flatten());
     return this.issues.record(me.schoolId, me.userId, parsed.data);
+  }
+
+  /** Real clearance status for a batch of students (PRD §23). */
+  @Post("clearance")
+  clearance(@CurrentUser() me: AuthUser, @Body() body: unknown) {
+    const parsed = clearanceQuerySchema.safeParse(body);
+    if (!parsed.success) throw new BadRequestException(parsed.error.flatten());
+    return this.issues.clearance(me.schoolId, parsed.data.studentIds);
   }
 
   @Post(":batchId/printed")

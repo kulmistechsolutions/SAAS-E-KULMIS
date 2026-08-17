@@ -400,6 +400,10 @@ export const generated = {
     pickExam: "Exam (fills the details below)",
     enterManually: "Enter details manually",
     noExams: "No exams scheduled for this academic year yet.",
+    checkingClearance: "Checking fees and library…",
+    checkedAgainst: "Checked against fees and library records",
+    clearanceFallback: "Could not check automatically — the status below is used.",
+    manualFallback: "Status for students with no records",
   },
   attendanceShifts: {
     title: "Attendance Shift Management",

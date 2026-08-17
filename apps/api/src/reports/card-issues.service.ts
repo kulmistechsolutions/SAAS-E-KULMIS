@@ -36,6 +36,10 @@ export const recordCardIssuesSchema = z.object({
 
 export type RecordCardIssuesInput = z.infer<typeof recordCardIssuesSchema>;
 
+export const clearanceQuerySchema = z.object({
+  studentIds: z.array(z.string().min(1).max(40)).min(1).max(5000),
+});
+
 export interface CardIssueRow {
   id: string;
   studentId: string;
@@ -170,6 +174,60 @@ export class CardIssuesService {
       createdAt: r.createdAt.toISOString(),
       issueCount: countByKey.get(`${r.studentId}|${r.cardType}`) ?? 1,
     }));
+  }
+
+  /**
+   * Real clearance status per student (PRD §23).
+   *
+   * A clearance card that says "Cleared" because someone picked it from a
+   * dropdown is worth nothing — the status is computed from what the student
+   * actually owes: unpaid fee charges and books still out on loan. Both are
+   * fetched in one query each rather than per student, because a whole class
+   * would otherwise be dozens of round trips to a remote database.
+   */
+  async clearance(
+    schoolId: string,
+    studentIds: string[],
+  ): Promise<
+    { studentId: string; feesOwed: number; booksOut: number; status: string; detail: string }[]
+  > {
+    if (studentIds.length === 0) return [];
+
+    const [charges, loans] = await this.prisma.forTenant(schoolId, async (tx) => [
+      await tx.feeCharge.findMany({
+        where: { studentId: { in: studentIds }, status: { not: "PAID" } },
+        select: { studentId: true, amount: true, paidAmount: true },
+      }),
+      await tx.bookLoan.findMany({
+        where: { studentId: { in: studentIds }, returnedAt: null },
+        select: { studentId: true },
+      }),
+    ]);
+
+    const owed = new Map<string, number>();
+    for (const c of charges) {
+      // A charge can be part-paid, so the debt is the remainder, not the total.
+      const rest = Math.max(0, c.amount - c.paidAmount);
+      if (rest > 0) owed.set(c.studentId, (owed.get(c.studentId) ?? 0) + rest);
+    }
+    const books = new Map<string, number>();
+    for (const l of loans) books.set(l.studentId, (books.get(l.studentId) ?? 0) + 1);
+
+    return studentIds.map((studentId) => {
+      const feesOwed = owed.get(studentId) ?? 0;
+      const booksOut = books.get(studentId) ?? 0;
+      const cleared = feesOwed === 0 && booksOut === 0;
+      const parts: string[] = [];
+      if (feesOwed > 0) parts.push(`Fees ${feesOwed}`);
+      if (booksOut > 0) parts.push(`${booksOut} book${booksOut === 1 ? "" : "s"} out`);
+      return {
+        studentId,
+        feesOwed,
+        booksOut,
+        status: cleared ? "Cleared" : "Pending",
+        detail: cleared ? "No outstanding fees or library items" : parts.join(" · "),
+      };
+    });
   }
 
   /** Headline numbers for the ID reports (PRD §29). */

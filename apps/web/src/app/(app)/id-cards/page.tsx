@@ -55,6 +55,7 @@ import {
   apiDeleteCardDesign,
   apiListCardDesigns,
   apiMarkBatchPrinted,
+  apiClearanceFor,
   apiRecordCardIssues,
   apiSaveCardDesign,
   toDesignMap,
@@ -161,6 +162,10 @@ export default function IdCardsPage() {
   const [examOffice, setExamOffice] = useState("Exam Office");
   const [examId, setExamId] = useState("");
   const [clearanceStatus, setClearanceStatus] = useState("Cleared");
+  const [clearanceByStudent, setClearanceByStudent] = useState<
+    Map<string, { status: string; detail: string }>
+  >(new Map());
+  const [clearanceLoading, setClearanceLoading] = useState(false);
   const [customLine1, setCustomLine1] = useState("");
   const [customLine2, setCustomLine2] = useState("");
 
@@ -227,6 +232,34 @@ export default function IdCardsPage() {
     }
     return out;
   }, [allStudents, studentsState.parents]);
+
+  // Real clearance for the selected students, so the card states what the fee
+  // and library modules actually say rather than what someone picked from a
+  // dropdown (PRD §23).
+  useEffect(() => {
+    if (!mounted || cardType !== "CLEARANCE_CARD" || selected.length === 0) {
+      setClearanceByStudent(new Map());
+      return;
+    }
+    let cancelled = false;
+    setClearanceLoading(true);
+    void apiClearanceFor(selected.map((s) => s.id))
+      .then((rows) => {
+        if (cancelled) return;
+        setClearanceByStudent(
+          new Map(rows.map((r) => [r.studentId, { status: r.status, detail: r.detail }])),
+        );
+      })
+      .catch(() => {
+        if (!cancelled) setClearanceByStudent(new Map());
+      })
+      .finally(() => {
+        if (!cancelled) setClearanceLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [mounted, cardType, selected]);
 
   // ── Layout ──
   // Orientation is the admin's choice and is never overridden by the template:
@@ -312,10 +345,12 @@ export default function IdCardsPage() {
       clearance: { status: clearanceStatus },
       custom: { line1: customLine1, line2: customLine2 },
       guardians,
+      clearanceByStudent,
     }),
     [
       template, cardTitle, idLabel, footerText, effectiveAccent, examName, examDate,
       examSession, examOffice, clearanceStatus, customLine1, customLine2, guardians,
+      clearanceByStudent,
     ],
   );
 
@@ -711,6 +746,29 @@ export default function IdCardsPage() {
 
           {cardType === "CLEARANCE_CARD" && (
             <Section title={t("idCards.clearanceStatus")}>
+              {selected.length > 0 && (
+                <div className="mb-3 rounded-lg bg-secondary/40 p-3 text-xs">
+                  {clearanceLoading ? (
+                    <span className="text-muted-foreground">
+                      <Loader2 className="me-2 inline h-3.5 w-3.5 animate-spin" />
+                      {t("idCards.checkingClearance")}
+                    </span>
+                  ) : clearanceByStudent.size > 0 ? (
+                    <>
+                      <p className="font-medium">{t("idCards.checkedAgainst")}</p>
+                      <p className="mt-1 text-muted-foreground">
+                        {[...clearanceByStudent.values()].filter((c) => c.status === "Cleared").length}{" "}
+                        {t("idCards.cleared").toLowerCase()} ·{" "}
+                        {[...clearanceByStudent.values()].filter((c) => c.status !== "Cleared").length}{" "}
+                        {t("idCards.pending").toLowerCase()}
+                      </p>
+                    </>
+                  ) : (
+                    <span className="text-muted-foreground">{t("idCards.clearanceFallback")}</span>
+                  )}
+                </div>
+              )}
+              <Label>{t("idCards.manualFallback")}</Label>
               <Select value={clearanceStatus} onChange={(e) => setClearanceStatus(e.target.value)}>
                 <option value="Cleared">{t("idCards.cleared")}</option>
                 <option value="Pending">{t("idCards.pending")}</option>
@@ -1259,6 +1317,7 @@ const PLACEHOLDER_CTX: CardContext = {
   examSession: "",
   examOffice: "",
   clearanceStatus: "",
+  clearanceDetail: "",
   customLine1: "",
   customLine2: "",
 };

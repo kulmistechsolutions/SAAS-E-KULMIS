@@ -400,6 +400,10 @@ export const soGenerated: PartialDictionary = {
     pickExam: "Imtixaanka (buuxiya faahfaahinta hoose)",
     enterManually: "Faahfaahinta gacanta ku qor",
     noExams: "Weli imtixaan looma qorsheynin sanad-dugsiyeedkan.",
+    checkingClearance: "Waa la hubinayaa lacagaha iyo maktabadda…",
+    checkedAgainst: "Waxaa lagu hubiyay lacagaha iyo diiwaanka maktabadda",
+    clearanceFallback: "Si otomaatig ah looma hubin karin — xaaladda hoose ayaa la isticmaalayaa.",
+    manualFallback: "Xaaladda ardayda aan diiwaan lahayn",
   },
   attendanceShifts: {
     title: "Maamulka Shiftiyada Xaadiriska",

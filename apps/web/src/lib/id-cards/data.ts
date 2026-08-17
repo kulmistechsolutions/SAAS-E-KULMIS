@@ -107,6 +107,12 @@ export interface BuildContextOptions {
   custom?: CustomMeta;
   /** Guardian name/phone by student id, when the caller has them loaded. */
   guardians?: Map<string, { name: string; phone: string }>;
+  /**
+   * Real clearance per student. Falls back to the manual `clearance.status`
+   * when absent, so a school can still print a card for someone the fee and
+   * library modules know nothing about.
+   */
+  clearanceByStudent?: Map<string, { status: string; detail: string }>;
 }
 
 /**
@@ -171,7 +177,9 @@ export async function buildCardContexts(
       examDate: opts.exam?.examDate ?? "",
       examSession: opts.exam?.examSession ?? "",
       examOffice: opts.exam?.examOffice ?? "",
-      clearanceStatus: opts.clearance?.status ?? "",
+      clearanceStatus:
+        opts.clearanceByStudent?.get(s.id)?.status ?? opts.clearance?.status ?? "",
+      clearanceDetail: opts.clearanceByStudent?.get(s.id)?.detail ?? "",
       customLine1: opts.custom?.line1 ?? "",
       customLine2: opts.custom?.line2 ?? "",
     });

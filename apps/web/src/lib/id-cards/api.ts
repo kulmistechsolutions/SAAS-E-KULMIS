@@ -131,3 +131,20 @@ export async function apiListCardIssues(params?: {
 export async function apiCardIssueSummary(): Promise<Record<string, number>> {
   return api<Record<string, number>>("/card-issues/summary");
 }
+
+export interface ClearanceRow {
+  studentId: string;
+  feesOwed: number;
+  booksOut: number;
+  status: string;
+  detail: string;
+}
+
+/** Real clearance status for a batch of students (PRD §23). */
+export async function apiClearanceFor(studentIds: string[]): Promise<ClearanceRow[]> {
+  if (studentIds.length === 0) return [];
+  return api<ClearanceRow[]>("/card-issues/clearance", {
+    method: "POST",
+    body: { studentIds },
+  });
+}

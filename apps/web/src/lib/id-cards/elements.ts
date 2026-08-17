@@ -34,7 +34,7 @@ export const FIELD_KEYS = [
   "schoolName", "schoolMotto", "schoolAddress", "schoolPhone", "schoolEmail",
   "schoolWebsite", "principalName", "cardTitle", "idLabel", "footerText",
   "issueDate", "examName", "examDate", "examSession", "examOffice",
-  "clearanceStatus", "customLine1", "customLine2",
+  "clearanceStatus", "clearanceDetail", "customLine1", "customLine2",
 ] as const;
 
 export type FieldKey = (typeof FIELD_KEYS)[number];
@@ -51,6 +51,7 @@ export const FIELD_LABELS: Record<FieldKey, string> = {
   idLabel: "ID Label", footerText: "Footer Text", issueDate: "Issue Date",
   examName: "Exam Name", examDate: "Exam Date", examSession: "Exam Session",
   examOffice: "Exam Office", clearanceStatus: "Clearance Status",
+  clearanceDetail: "Clearance Detail",
   customLine1: "Custom Line 1", customLine2: "Custom Line 2",
 };
 

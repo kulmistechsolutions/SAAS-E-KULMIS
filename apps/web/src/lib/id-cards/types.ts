@@ -65,6 +65,8 @@ export interface CardContext {
   examSession: string;
   examOffice: string;
   clearanceStatus: string;
+  /** Why the student is not cleared, e.g. "Fees 1200 · 2 books out". */
+  clearanceDetail: string;
   customLine1: string;
   customLine2: string;
 }

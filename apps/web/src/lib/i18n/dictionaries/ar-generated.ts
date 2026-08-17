@@ -400,6 +400,10 @@ export const arGenerated: PartialDictionary = {
     pickExam: "الامتحان (يملأ التفاصيل أدناه)",
     enterManually: "إدخال التفاصيل يدويًا",
     noExams: "لا توجد امتحانات مجدولة لهذا العام الدراسي بعد.",
+    checkingClearance: "جارٍ التحقق من الرسوم والمكتبة…",
+    checkedAgainst: "تم التحقق من سجلات الرسوم والمكتبة",
+    clearanceFallback: "تعذّر التحقق تلقائيًا — سيتم استخدام الحالة أدناه.",
+    manualFallback: "حالة الطلاب بدون سجلات",
   },
   attendanceShifts: {
     title: "إدارة فترات الحضور",
