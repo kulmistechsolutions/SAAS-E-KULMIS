@@ -397,6 +397,9 @@ export const arGenerated: PartialDictionary = {
     reasonOther: "أخرى",
     cancel: "إلغاء",
     student: "الطالب",
+    pickExam: "الامتحان (يملأ التفاصيل أدناه)",
+    enterManually: "إدخال التفاصيل يدويًا",
+    noExams: "لا توجد امتحانات مجدولة لهذا العام الدراسي بعد.",
   },
   attendanceShifts: {
     title: "إدارة فترات الحضور",

@@ -38,6 +38,7 @@ import {
   useAcademicsState,
 } from "@/lib/academics/store";
 import { useStudentsState } from "@/lib/students/store";
+import { useExaminationsState } from "@/lib/examinations/store";
 import type { Student } from "@/lib/students/types";
 import {
   CARD_SIZES,
@@ -122,6 +123,7 @@ export default function IdCardsPage() {
   const t = useT();
   const academics = useAcademicsState();
   const studentsState = useStudentsState();
+  const examinations = useExaminationsState();
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
@@ -157,6 +159,7 @@ export default function IdCardsPage() {
   const [examDate, setExamDate] = useState("");
   const [examSession, setExamSession] = useState("");
   const [examOffice, setExamOffice] = useState("Exam Office");
+  const [examId, setExamId] = useState("");
   const [clearanceStatus, setClearanceStatus] = useState("Cleared");
   const [customLine1, setCustomLine1] = useState("");
   const [customLine2, setCustomLine2] = useState("");
@@ -173,6 +176,17 @@ export default function IdCardsPage() {
     const cls = classByName(klass, year);
     return cls ? sectionsForClass(cls.id) : [];
   }, [klass, year, academics.sections]);
+
+  // Exams the school has actually scheduled, so an exam card does not have to
+  // be typed out by hand for every batch (PRD §22).
+  const examOptions = useMemo(
+    () =>
+      examinations.exams
+        .filter((e) => !year || e.academicYear === year)
+        .slice()
+        .sort((a, b) => b.startDate.localeCompare(a.startDate)),
+    [examinations.exams, year],
+  );
 
   const allStudents = studentsState.students;
 
@@ -650,6 +664,42 @@ export default function IdCardsPage() {
 
           {cardType === "EXAM_CARD" && (
             <Section title={t("idCards.examDetails")}>
+              <div className="mb-3">
+                <Label>{t("idCards.pickExam")}</Label>
+                <Select
+                  value={examId}
+                  onChange={(e) => {
+                    const id = e.target.value;
+                    setExamId(id);
+                    const ex = examOptions.find((x) => x.id === id);
+                    if (!ex) return;
+                    // Pull the details straight from the Examinations module
+                    // rather than making the office retype them.
+                    setExamName(ex.name);
+                    setExamDate(ex.startDate?.slice(0, 10) ?? "");
+                    setExamSession(ex.term || "");
+                    // Scope the batch to the class the exam is actually for.
+                    if (ex.className) {
+                      setMode("CLASS");
+                      setKlass(ex.className);
+                      setSection(ex.section || "");
+                    }
+                  }}
+                >
+                  <option value="">{t("idCards.enterManually")}</option>
+                  {examOptions.map((ex) => (
+                    <option key={ex.id} value={ex.id}>
+                      {ex.name} — {ex.className}
+                      {ex.section ? ` ${ex.section}` : ""} ({ex.startDate?.slice(0, 10)})
+                    </option>
+                  ))}
+                </Select>
+                {examOptions.length === 0 && (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {t("idCards.noExams")}
+                  </p>
+                )}
+              </div>
               <div className="grid gap-3 sm:grid-cols-2">
                 <Field label={t("idCards.examName")} value={examName} onChange={setExamName} />
                 <Field label={t("idCards.examDate")} value={examDate} onChange={setExamDate} type="date" />

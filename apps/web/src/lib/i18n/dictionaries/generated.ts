@@ -397,6 +397,9 @@ export const generated = {
     reasonOther: "Other",
     cancel: "Cancel",
     student: "Student",
+    pickExam: "Exam (fills the details below)",
+    enterManually: "Enter details manually",
+    noExams: "No exams scheduled for this academic year yet.",
   },
   attendanceShifts: {
     title: "Attendance Shift Management",

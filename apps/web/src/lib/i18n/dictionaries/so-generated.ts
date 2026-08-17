@@ -397,6 +397,9 @@ export const soGenerated: PartialDictionary = {
     reasonOther: "Mid kale",
     cancel: "Jooji",
     student: "Ardayga",
+    pickExam: "Imtixaanka (buuxiya faahfaahinta hoose)",
+    enterManually: "Faahfaahinta gacanta ku qor",
+    noExams: "Weli imtixaan looma qorsheynin sanad-dugsiyeedkan.",
   },
   attendanceShifts: {
     title: "Maamulka Shiftiyada Xaadiriska",
