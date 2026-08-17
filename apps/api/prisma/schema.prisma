@@ -820,6 +820,11 @@ model CardIssue {
   /// The issue this one replaces, when it is a reprint.
   reprintOfId   String?
   reprintReason String?
+  /// Why the record was voided. A voided card stays in the log — the school
+  /// must be able to see that a card was issued and then cancelled, which
+  /// deleting the row would hide.
+  voidReason    String?
+  voidedAt      DateTime?
   issuedByUserId String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt

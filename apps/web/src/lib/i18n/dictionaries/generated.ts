@@ -412,6 +412,12 @@ export const generated = {
     withoutCards: "Students without a card",
     withoutCardsHint: "Never been issued one.",
     activeStudents: "Active students",
+    voidAction: "Void",
+    voidKeepsRecord: "The record stays in the log, marked cancelled — it is not deleted.",
+    voidErrorReason: "Issued in error",
+    voidWrongTemplate: "Wrong template",
+    voidTestRecord: "Test record",
+    cancelled: "Cancelled",
   },
   attendanceShifts: {
     title: "Attendance Shift Management",

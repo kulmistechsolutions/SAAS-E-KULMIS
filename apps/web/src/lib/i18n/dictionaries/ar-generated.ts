@@ -412,6 +412,12 @@ export const arGenerated: PartialDictionary = {
     withoutCards: "طلاب بدون بطاقة",
     withoutCardsHint: "لم تصدر لهم بطاقة قط.",
     activeStudents: "الطلاب النشطون",
+    voidAction: "إبطال",
+    voidKeepsRecord: "يبقى السجل في القائمة مع وسم ملغى — ولا يُحذف.",
+    voidErrorReason: "صدرت بالخطأ",
+    voidWrongTemplate: "قالب خاطئ",
+    voidTestRecord: "سجل تجريبي",
+    cancelled: "ملغى",
   },
   attendanceShifts: {
     title: "إدارة فترات الحضور",

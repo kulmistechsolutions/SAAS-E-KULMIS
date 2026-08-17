@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, FileDown, Loader2, Printer, RotateCcw, Search } from "lucide-react";
+import { ArrowLeft, Ban, FileDown, Loader2, Printer, RotateCcw, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
@@ -18,6 +18,7 @@ import {
   apiListCardDesigns,
   apiRecordCardIssues,
   apiMarkBatchPrinted,
+  apiVoidCardIssue,
   toDesignMap,
   type CardIssueRow,
   type CardReport,
@@ -56,6 +57,9 @@ export default function CardHistoryPage() {
   const [reason, setReason] = useState("Lost card");
   const [askFor, setAskFor] = useState<CardIssueRow | null>(null);
   const [report, setReport] = useState<CardReport | null>(null);
+  const [voidFor, setVoidFor] = useState<CardIssueRow | null>(null);
+  const [voidReason, setVoidReason] = useState("Issued in error");
+  const [voiding, setVoiding] = useState(false);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -158,6 +162,22 @@ export default function CardHistoryPage() {
     } finally {
       setReprinting(null);
       setAskFor(null);
+    }
+  }
+
+  async function doVoid(row: CardIssueRow, why: string) {
+    setVoiding(true);
+    try {
+      await apiVoidCardIssue(row.id, why);
+      toast(`Voided the card for ${row.studentName}`, "success");
+      setVoidFor(null);
+      load();
+      void apiCardIssueSummary().then(setSummary).catch(() => undefined);
+      void apiCardReport().then(setReport).catch(() => undefined);
+    } catch {
+      toast("Could not void that record", "error");
+    } finally {
+      setVoiding(false);
     }
   }
 
@@ -298,6 +318,11 @@ export default function CardHistoryPage() {
                           ({r.reprintReason})
                         </span>
                       )}
+                      {r.voidReason && (
+                        <span className="ms-1 text-xs text-rose-600 dark:text-rose-400">
+                          ({r.voidReason})
+                        </span>
+                      )}
                     </td>
                     <td className="px-4 py-2.5 font-mono text-xs">{r.studentCode}</td>
                     <td className="px-4 py-2.5">
@@ -337,6 +362,18 @@ export default function CardHistoryPage() {
                         )}
                         {t("idCards.reprintAction")}
                       </Button>
+                      {r.status !== "CANCELLED" && (
+                        <Button
+                          variant="outline"
+                          className="ms-1.5"
+                          onClick={() => {
+                            setVoidReason("Issued in error");
+                            setVoidFor(r);
+                          }}
+                        >
+                          <Ban className="me-2 h-4 w-4" /> {t("idCards.voidAction")}
+                        </Button>
+                      )}
                     </td>
                   </tr>
                 ))
@@ -345,6 +382,36 @@ export default function CardHistoryPage() {
           </table>
         </div>
       </div>
+
+      {voidFor && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-sm rounded-2xl border bg-card p-5 shadow-lg">
+            <h2 className="text-sm font-semibold">{t("idCards.voidAction")}</h2>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {voidFor.studentName} · {voidFor.studentCode}
+            </p>
+            <p className="mt-2 text-xs text-muted-foreground">{t("idCards.voidKeepsRecord")}</p>
+            <div className="mt-3">
+              <Label>{t("idCards.reprintReason")}</Label>
+              <Select value={voidReason} onChange={(e) => setVoidReason(e.target.value)}>
+                <option value="Issued in error">{t("idCards.voidErrorReason")}</option>
+                <option value="Wrong template">{t("idCards.voidWrongTemplate")}</option>
+                <option value="Test record">{t("idCards.voidTestRecord")}</option>
+                <option value="Other">{t("idCards.reasonOther")}</option>
+              </Select>
+            </div>
+            <div className="mt-4 flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setVoidFor(null)}>
+                {t("idCards.cancel")}
+              </Button>
+              <Button disabled={voiding} onClick={() => void doVoid(voidFor, voidReason)}>
+                {voiding ? <Loader2 className="me-2 h-4 w-4 animate-spin" /> : null}
+                {t("idCards.voidAction")}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {askFor && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">

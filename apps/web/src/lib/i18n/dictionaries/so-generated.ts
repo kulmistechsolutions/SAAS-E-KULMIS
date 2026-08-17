@@ -412,6 +412,12 @@ export const soGenerated: PartialDictionary = {
     withoutCards: "Arday aan kaar lahayn",
     withoutCardsHint: "Weligood kaar lama siin.",
     activeStudents: "Ardayda firfircoon",
+    voidAction: "Bural",
+    voidKeepsRecord: "Diiwaanku wuu ku hadhayaa liiska, oo lagu calaamadeeyay in la joojiyay — lama tirtirayo.",
+    voidErrorReason: "Qalad ayaa lagu bixiyay",
+    voidWrongTemplate: "Qaab qaldan",
+    voidTestRecord: "Diiwaan tijaabo ah",
+    cancelled: "La joojiyay",
   },
   attendanceShifts: {
     title: "Maamulka Shiftiyada Xaadiriska",

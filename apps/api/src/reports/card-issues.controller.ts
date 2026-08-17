@@ -15,6 +15,7 @@ import {
   CardIssuesService,
   clearanceQuerySchema,
   recordCardIssuesSchema,
+  voidCardIssueSchema,
 } from "./card-issues.service";
 
 /**
@@ -75,6 +76,23 @@ export class CardIssuesController {
     const parsed = clearanceQuerySchema.safeParse(body);
     if (!parsed.success) throw new BadRequestException(parsed.error.flatten());
     return this.issues.clearance(me.schoolId, parsed.data.studentIds);
+  }
+
+  /**
+   * Void one record. Restricted to admins: cancelling an audit entry is a
+   * heavier act than printing a card, so it is not open to every role that can
+   * generate one.
+   */
+  @Roles(UserRole.ADMINISTRATOR, UserRole.SUPER_ADMINISTRATOR)
+  @Post(":id/void")
+  voidIssue(
+    @CurrentUser() me: AuthUser,
+    @Param("id") id: string,
+    @Body() body: unknown,
+  ) {
+    const parsed = voidCardIssueSchema.safeParse(body);
+    if (!parsed.success) throw new BadRequestException(parsed.error.flatten());
+    return this.issues.voidIssue(me.schoolId, id, parsed.data.reason);
   }
 
   @Post(":batchId/printed")

@@ -77,6 +77,7 @@ export interface CardIssueRow {
   status: string;
   isReprint: boolean;
   reprintReason: string | null;
+  voidReason: string | null;
   createdAt: string;
   issueCount?: number;
 }
@@ -165,4 +166,15 @@ export interface CardReport {
 /** ID card reports (PRD §29). */
 export async function apiCardReport(): Promise<CardReport> {
   return api<CardReport>("/card-issues/report");
+}
+
+/** Void a record (issued in error). The row is kept and marked CANCELLED. */
+export async function apiVoidCardIssue(
+  id: string,
+  reason: string,
+): Promise<{ updated: number }> {
+  return api<{ updated: number }>(`/card-issues/${encodeURIComponent(id)}/void`, {
+    method: "POST",
+    body: { reason },
+  });
 }

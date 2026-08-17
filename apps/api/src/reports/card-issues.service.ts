@@ -36,6 +36,10 @@ export const recordCardIssuesSchema = z.object({
 
 export type RecordCardIssuesInput = z.infer<typeof recordCardIssuesSchema>;
 
+export const voidCardIssueSchema = z.object({
+  reason: z.string().min(1).max(200),
+});
+
 export const clearanceQuerySchema = z.object({
   studentIds: z.array(z.string().min(1).max(40)).min(1).max(5000),
 });
@@ -55,6 +59,7 @@ export interface CardIssueRow {
   status: string;
   isReprint: boolean;
   reprintReason: string | null;
+  voidReason: string | null;
   createdAt: string;
   /** How many times this student has been issued this card type in total. */
   issueCount?: number;
@@ -105,6 +110,27 @@ export class CardIssuesService {
     });
 
     return { batchId, recorded: rows.length };
+  }
+
+  /**
+   * Void one record (issued in error, wrong batch, wrong template).
+   *
+   * The row is kept and marked CANCELLED rather than deleted — a school must be
+   * able to see that a card was issued and then cancelled, and a deleted row
+   * would let the log quietly disagree with what was actually handed out.
+   */
+  async voidIssue(
+    schoolId: string,
+    id: string,
+    reason: string,
+  ): Promise<{ updated: number }> {
+    const res = await this.prisma.forTenant(schoolId, (tx) =>
+      tx.cardIssue.updateMany({
+        where: { id, status: { not: "CANCELLED" } },
+        data: { status: "CANCELLED", voidReason: reason, voidedAt: new Date(), updatedAt: new Date() },
+      }),
+    );
+    return { updated: res.count };
   }
 
   /** Flag a whole batch as actually sent to a printer. */
@@ -171,6 +197,7 @@ export class CardIssuesService {
       status: r.status,
       isReprint: r.isReprint,
       reprintReason: r.reprintReason,
+      voidReason: r.voidReason,
       createdAt: r.createdAt.toISOString(),
       issueCount: countByKey.get(`${r.studentId}|${r.cardType}`) ?? 1,
     }));
@@ -256,7 +283,11 @@ export class CardIssuesService {
       }),
       // One distinct query instead of a per-student lookup — a school with
       // thousands of students would otherwise be thousands of round trips.
-      await tx.cardIssue.findMany({ distinct: ["studentId"], select: { studentId: true } }),
+      await tx.cardIssue.findMany({
+        where: { status: { not: "CANCELLED" } },
+        distinct: ["studentId"],
+        select: { studentId: true },
+      }),
     ]);
 
     const hasCard = new Set(issued.map((i) => i.studentId));
@@ -289,13 +320,18 @@ export class CardIssuesService {
       async (tx) => [
         await tx.cardIssue.groupBy({ by: ["status"], _count: { _all: true } }),
         await tx.cardIssue.count({ where: { isReprint: true } }),
-        await tx.cardIssue.findMany({ distinct: ["studentId"], select: { studentId: true } }),
+        await tx.cardIssue.findMany({
+          where: { status: { not: "CANCELLED" } },
+          distinct: ["studentId"],
+          select: { studentId: true },
+        }),
       ],
     );
     const out: Record<string, number> = {
       generated: 0,
       printed: 0,
       replaced: 0,
+      cancelled: 0,
       reprints,
       studentsWithCards: students.length,
     };
