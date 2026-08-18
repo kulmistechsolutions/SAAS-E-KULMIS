@@ -929,6 +929,7 @@ export const generated = {
   },
   examinationsTeacher: {
     retry: "Retry",
+    sessionExpiredSignInAgain: "Your session has expired. Redirecting to sign in…",
     enterMarks: "Enter Marks",
     selectAcademicYearClassSectionExam: "Select Academic Year → Class → Section → Exam → Subject. Students from different sections never appear together.",
     academicYear: "Academic Year",

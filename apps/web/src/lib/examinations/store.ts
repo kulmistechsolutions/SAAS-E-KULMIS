@@ -214,14 +214,20 @@ function mapStudentResults(data: ApiStudentFinalResult): StudentFinalResult {
   };
 }
 
-export async function refreshExaminations(): Promise<void> {
+/**
+ * `blocked`/`dashboard`/`monitoring` are ADMINISTRATOR/EXAM_MANAGER-only on
+ * the backend — a TEACHER always gets 403 on them, which used to fire on
+ * every load of the teacher marks page. Pass role: "TEACHER" to skip them.
+ */
+export async function refreshExaminations(role?: string): Promise<void> {
+  const isTeacher = role === "TEACHER";
   try {
     const settled = await Promise.allSettled([
       apiListExamGroups(),
       apiListExams(),
-      apiListBlocked(),
-      apiExamDashboard(),
-      apiExamMonitoring(),
+      isTeacher ? Promise.resolve([]) : apiListBlocked(),
+      isTeacher ? Promise.resolve(null) : apiExamDashboard(),
+      isTeacher ? Promise.resolve([]) : apiExamMonitoring(),
     ]);
     const pick = <T>(i: number, fallback: T): T =>
       settled[i]?.status === "fulfilled" ? (settled[i] as PromiseFulfilledResult<T>).value : fallback;

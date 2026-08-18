@@ -113,7 +113,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (PREVIEW_AUTH) return;
-    // Restore session from a stored token (refresh if access expired).
+    // Restore session from a stored token (refresh if access expired). A
+    // failure here means both the access and refresh token are dead — send
+    // the user to sign in instead of leaving a portal page rendering with
+    // user===null while its own components silently 401 in the background.
     api<AuthUser>("/auth/me")
       .then((me) => {
         syncCachedAuthUser(me);
@@ -123,6 +126,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         clearAuthTokens();
         syncCachedAuthUser(null);
         setUser(null);
+        redirectToLogin();
       })
       .finally(() => setLoading(false));
   }, []);

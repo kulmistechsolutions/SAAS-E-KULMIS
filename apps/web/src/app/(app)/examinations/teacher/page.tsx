@@ -30,7 +30,7 @@ import { sectionsForClass, useAcademicsState } from "@/lib/academics/store";
  */
 export default function TeacherExamPortalPage() {
   const t = useT();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const isTeacher = user?.role === "TEACHER";
   const academics = useAcademicsState();
   const [me, setMe] = useState<TeacherMe | null>(null);
@@ -55,7 +55,7 @@ export default function TeacherExamPortalPage() {
         return null;
       }),
       apiListExams().catch(() => [] as ApiExam[]),
-      refreshExaminations(),
+      refreshExaminations(isTeacher ? "TEACHER" : undefined),
     ]).then(([teacher, list]) => {
       if (teacher) setMe(teacher);
       setExams(list);
@@ -240,7 +240,18 @@ export default function TeacherExamPortalPage() {
     }
   }
 
-  if (!mounted) return null;
+  if (!mounted || authLoading) return null;
+
+  // AuthProvider already redirects to login when the session is fully dead;
+  // this only covers the render before that redirect takes effect, so the
+  // form never shows stale local data under a signed-out user.
+  if (!user) {
+    return (
+      <div className="space-y-3 py-16 text-center text-muted-foreground">
+        <p>{t("examinationsTeacher.sessionExpiredSignInAgain")}</p>
+      </div>
+    );
+  }
 
   if (isTeacher && !me) {
     return (
