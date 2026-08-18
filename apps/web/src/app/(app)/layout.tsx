@@ -10,7 +10,6 @@ import { refreshStudents } from "@/lib/students/store";
 import { refreshSettings } from "@/lib/settings/store";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
-import { Toaster } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import { SubscriptionBanner } from "@/components/subscriptions/subscription-banner";
 import {
@@ -178,7 +177,6 @@ export default function AppLayout({ children }: { children: ReactNode }) {
           )}
         </main>
       </div>
-      <Toaster />
     </div>
   );
 }

@@ -8,6 +8,7 @@ import type { Lang } from "@/lib/i18n/config";
 import { SettingsBrandingEffect } from "@/components/settings/branding-effect";
 import { ChunkErrorReloader } from "@/components/layout/chunk-error-reloader";
 import { NotificationsSocket } from "@/components/layout/notifications-socket";
+import { Toaster } from "@/lib/toast";
 
 /** Global client-side providers (language + TanStack Query + auth session). */
 export function Providers({
@@ -33,6 +34,7 @@ export function Providers({
           <SettingsBrandingEffect />
           <ChunkErrorReloader />
           <NotificationsSocket />
+          <Toaster />
           {children}
         </AuthProvider>
       </QueryClientProvider>
