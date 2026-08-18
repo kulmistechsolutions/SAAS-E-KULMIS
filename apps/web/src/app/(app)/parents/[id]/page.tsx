@@ -4,6 +4,7 @@
 import { useT } from "@/lib/i18n/provider";
 import { use, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
   BookOpen,
@@ -14,6 +15,7 @@ import {
   Pencil,
   Printer,
   Receipt,
+  Trash2,
   TrendingUp,
   User,
   Users,
@@ -26,6 +28,7 @@ import { ParentDashboardCards } from "@/components/parents/summary-cards";
 import { ParentFormDialog } from "@/components/parents/parent-form-dialog";
 import { ChildSelector } from "@/components/parents/child-selector";
 import {
+  deleteParent,
   getParentWithChildren,
   parentDashboard,
   resetParentPassword,
@@ -47,6 +50,7 @@ import {
   quizHistory,
 } from "@/lib/parents/history";
 import { printParentProfile, exportParentsCsv } from "@/lib/parents/print";
+import { ConfirmDialog } from "@/components/students/confirm-dialog";
 import type { ParentStatus, Student } from "@/lib/students/types";
 import { toast } from "@/lib/toast";
 
@@ -83,6 +87,7 @@ export default function ParentProfilePage({
   params: Promise<{ id: string }>;
 }) {
   const t = useT();
+  const router = useRouter();
   const { id } = use(params);
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
@@ -100,6 +105,22 @@ export default function ParentProfilePage({
   const [customPw, setCustomPw] = useState("");
   const [resetting, setResetting] = useState(false);
   const [selectedChild, setSelectedChild] = useState<string>("");
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  async function handleDelete() {
+    if (!parent) return;
+    setDeleting(true);
+    const res = await deleteParent(parent.id);
+    setDeleting(false);
+    setDeleteOpen(false);
+    if (res.ok) {
+      toast(`${parent.name} deleted`, "success");
+      router.push("/parents");
+    } else {
+      toast(res.error ?? "Failed to delete parent", "error");
+    }
+  }
 
   async function handleResetPassword(custom?: string) {
     if (!parent) return;
@@ -190,6 +211,9 @@ export default function ParentProfilePage({
             }
           >
             <Download className="me-2 h-4 w-4" /> {t("parents.download")}
+          </Button>
+          <Button variant="destructive" onClick={() => setDeleteOpen(true)}>
+            <Trash2 className="me-2 h-4 w-4" /> {t("parents.delete")}
           </Button>
         </div>
       </div>
@@ -334,6 +358,31 @@ export default function ParentProfilePage({
         onClose={() => setEditOpen(false)}
         parent={parent}
         onSaved={(m) => toast(m)}
+      />
+
+      <ConfirmDialog
+        open={deleteOpen}
+        title={t("parents.deleteParent")}
+        message={
+          parent.children.length > 0
+            ? t("parents.stillGuardianOfChildren", {
+                name: parent.name,
+                count: parent.children.length,
+                names: parent.children.map((c) => c.fullName).join(", "),
+              })
+            : t("parents.deleteParentConfirm", { name: parent.name })
+        }
+        confirmLabel={
+          parent.children.length > 0
+            ? t("parents.close")
+            : deleting
+              ? t("parents.deleting")
+              : t("parents.delete")
+        }
+        onConfirm={() =>
+          parent.children.length > 0 ? setDeleteOpen(false) : void handleDelete()
+        }
+        onClose={() => setDeleteOpen(false)}
       />
     </div>
   );

@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { ConflictException, Injectable, NotFoundException } from "@nestjs/common";
 import type { UpdateParentInput } from "@ekulmis/shared";
 import { PrismaService } from "../prisma/prisma.service";
 import { hashPassword } from "../auth/password.util";
@@ -61,6 +61,39 @@ export class ParentsService {
         }),
       )
       .catch(onUniqueViolation("Another parent already uses this phone number"));
+  }
+
+  /**
+   * Blocks if the parent still guards any student — `Student.parentId` is
+   * required, so deleting a parent with children would either orphan them
+   * (impossible, the column is non-null) or cascade-delete their whole
+   * academic/financial history, which this app never does silently. Reassign
+   * or remove the listed students first (StudentsService.remove already
+   * deletes a parent this same way once their last child is removed).
+   */
+  async remove(schoolId: string, id: string) {
+    return this.prisma.forTenant(schoolId, async (tx) => {
+      const parent = await tx.parent.findFirst({
+        where: { id },
+        select: {
+          userId: true,
+          name: true,
+          students: { select: { fullName: true } },
+        },
+      });
+      if (!parent) throw new NotFoundException("Parent not found");
+
+      if (parent.students.length > 0) {
+        const names = parent.students.map((s) => s.fullName).join(", ");
+        throw new ConflictException(
+          `Cannot delete ${parent.name} — still the guardian of ${parent.students.length} student(s): ${names}. Reassign or remove those students first.`,
+        );
+      }
+
+      await tx.parent.delete({ where: { id } });
+      await tx.user.delete({ where: { id: parent.userId } });
+      return { success: true };
+    });
   }
 
   findAll(schoolId: string) {

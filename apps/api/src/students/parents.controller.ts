@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Patch,
@@ -71,5 +72,12 @@ export class ParentsController {
       id,
       custom as string | undefined,
     );
+  }
+
+  /** Blocked if the parent still guards any student — see ParentsService.remove. */
+  @Roles(UserRole.ADMINISTRATOR)
+  @Delete(":id")
+  remove(@CurrentUser() me: AuthUser, @Param("id") id: string) {
+    return this.parents.remove(me.schoolId, id);
   }
 }

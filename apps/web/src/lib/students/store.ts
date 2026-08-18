@@ -14,6 +14,7 @@ import { ensureDistrictsLoaded, districtIdByName } from "@/lib/districts/store";
 import {
   apiAddStudentClass,
   apiBulkDeleteStudents,
+  apiDeleteParent,
   apiDeleteStudent,
   apiDeleteStudentPhoto,
   apiGetStudent,
@@ -1206,6 +1207,23 @@ export async function resetParentPassword(
     return { ok: true, password };
   } catch (e) {
     return { ok: false, error: apiErr(e, "Failed to reset password.") };
+  }
+}
+
+/** Blocked (with the children's names in the error) if the parent still guards any student. */
+export async function deleteParent(
+  id: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const st = ensure();
+  if (!st.parents.some((p) => p.id === id)) {
+    return { ok: false, error: "Parent not found." };
+  }
+  try {
+    await apiDeleteParent(id);
+    await refreshStudents();
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: apiErr(e, "Failed to delete parent.") };
   }
 }
 

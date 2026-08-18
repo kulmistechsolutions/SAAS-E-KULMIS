@@ -536,6 +536,11 @@ export async function apiResetParentPassword(
   });
 }
 
+/** Throws (409) naming the parent's children if any remain — reassign or delete them first. */
+export async function apiDeleteParent(id: string): Promise<{ success: boolean }> {
+  return api<{ success: boolean }>(`/parents/${id}`, { method: "DELETE" });
+}
+
 export interface ApiAttendanceSummary {
   present: number;
   absent: number;
