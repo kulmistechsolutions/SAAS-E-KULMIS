@@ -7,12 +7,14 @@ import {
 import type {
   ChargeMonthInput,
   CreateExtraFeeInput,
+  CreatePaymentPromiseInput,
   PayFamilyInput,
   PayFeeInput,
   SetupAcademicYearFeesInput,
   SetupMonthInput,
   StudentFeeStartInput,
   UpdateExtraFeeInput,
+  UpdatePaymentPromiseInput,
 } from "@ekulmis/shared";
 import type { PaymentType, Prisma, UserRole } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
@@ -1908,5 +1910,101 @@ export class FeesService {
         })),
       };
     });
+  }
+
+  // ── Payment promises ─────────────────────────────────────────────────
+  // A parent's commitment to pay by a future date, recorded when reception
+  // can't collect today. Purely a reminder — never touches FeeCharge/Payment.
+
+  async createPaymentPromise(
+    schoolId: string,
+    dto: CreatePaymentPromiseInput,
+    userId?: string,
+  ) {
+    return this.prisma.forTenant(schoolId, async (tx) => {
+      const student = await tx.student.findFirst({
+        where: { id: dto.studentId },
+        select: { id: true },
+      });
+      if (!student) throw new NotFoundException("Student not found");
+
+      return tx.paymentPromise.create({
+        data: {
+          schoolId,
+          studentId: dto.studentId,
+          promisedDate: dto.promisedDate,
+          note: dto.note,
+          amount: dto.amount ?? null,
+          createdByUserId: userId ?? null,
+        },
+      });
+    });
+  }
+
+  /** All promises for a student, newest first — shown on their fee ledger. */
+  async listPaymentPromisesForStudent(schoolId: string, studentId: string) {
+    return this.prisma.forTenant(schoolId, (tx) =>
+      tx.paymentPromise.findMany({
+        where: { studentId },
+        orderBy: { promisedDate: "desc" },
+      }),
+    );
+  }
+
+  /**
+   * Still-open promises for the Finance banner: overdue or due within the
+   * next 3 days. Auto-flips anything PENDING and already past its date to
+   * MISSED first, so the banner never quietly under-counts.
+   */
+  async listDuePaymentPromises(schoolId: string) {
+    return this.prisma.forTenant(schoolId, async (tx) => {
+      const today = new Date();
+      today.setUTCHours(0, 0, 0, 0);
+
+      await tx.paymentPromise.updateMany({
+        where: { status: "PENDING", promisedDate: { lt: today } },
+        data: { status: "MISSED" },
+      });
+
+      const horizon = new Date(today);
+      horizon.setUTCDate(horizon.getUTCDate() + 3);
+
+      const promises = await tx.paymentPromise.findMany({
+        where: {
+          status: { in: ["PENDING", "MISSED"] },
+          promisedDate: { lte: horizon },
+        },
+        orderBy: { promisedDate: "asc" },
+        take: 50,
+        include: {
+          student: { select: { id: true, code: true, fullName: true } },
+        },
+      });
+
+      return promises.map((p) => ({
+        id: p.id,
+        studentId: p.studentId,
+        studentCode: p.student.code,
+        studentName: p.student.fullName,
+        promisedDate: p.promisedDate.toISOString(),
+        note: p.note,
+        amount: p.amount,
+        status: p.status,
+      }));
+    });
+  }
+
+  async updatePaymentPromise(
+    schoolId: string,
+    id: string,
+    dto: UpdatePaymentPromiseInput,
+  ) {
+    const existing = await this.prisma.forTenant(schoolId, (tx) =>
+      tx.paymentPromise.findFirst({ where: { id }, select: { id: true } }),
+    );
+    if (!existing) throw new NotFoundException("Payment promise not found");
+    return this.prisma.forTenant(schoolId, (tx) =>
+      tx.paymentPromise.update({ where: { id }, data: { status: dto.status } }),
+    );
   }
 }

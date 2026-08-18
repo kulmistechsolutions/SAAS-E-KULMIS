@@ -417,3 +417,55 @@ export const apiApplyExtraFee = (id: string) =>
     `/fees/extra/${id}/apply`,
     { method: "POST" },
   );
+
+// ── Payment promises ──
+// "Parent says they'll pay on [date]" — a reminder recorded when collection
+// isn't possible today.
+
+export type PaymentPromiseStatus = "PENDING" | "FULFILLED" | "CANCELLED" | "MISSED";
+
+export interface ApiPaymentPromise {
+  id: string;
+  studentId: string;
+  promisedDate: string;
+  note: string;
+  amount: number | null;
+  status: PaymentPromiseStatus;
+  createdAt: string;
+}
+
+export interface ApiDuePaymentPromise {
+  id: string;
+  studentId: string;
+  studentCode: string;
+  studentName: string;
+  promisedDate: string;
+  note: string;
+  amount: number | null;
+  status: PaymentPromiseStatus;
+}
+
+export interface CreatePaymentPromiseApiInput {
+  studentId: string;
+  promisedDate: string;
+  note: string;
+  amount?: number;
+}
+
+export const apiCreatePaymentPromise = (body: CreatePaymentPromiseApiInput) =>
+  api<ApiPaymentPromise>("/fees/payment-promises", { method: "POST", body });
+
+export const apiListDuePaymentPromises = () =>
+  api<ApiDuePaymentPromise[]>("/fees/payment-promises/due");
+
+export const apiListPaymentPromisesForStudent = (studentId: string) =>
+  api<ApiPaymentPromise[]>(`/fees/payment-promises/student/${studentId}`);
+
+export const apiUpdatePaymentPromise = (
+  id: string,
+  status: PaymentPromiseStatus,
+) =>
+  api<ApiPaymentPromise>(`/fees/payment-promises/${id}`, {
+    method: "PATCH",
+    body: { status },
+  });

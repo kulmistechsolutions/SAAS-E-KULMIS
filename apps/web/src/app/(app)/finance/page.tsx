@@ -12,6 +12,8 @@ import { PaymentSummaryWidget, FeeQuickActions } from "@/components/fees/widgets
 import { CollectFeesSection } from "@/components/fees/collect-fees-section";
 import { PaymentDialog } from "@/components/fees/payment-dialog";
 import { ReceiptDialog } from "@/components/fees/receipt-dialog";
+import { PaymentPromisesBanner } from "@/components/fees/payment-promises-banner";
+import { PromiseToPayDialog } from "@/components/fees/promise-to-pay-dialog";
 import { monthLabel } from "@/lib/fees/format";
 import {
   availableMonths,
@@ -33,6 +35,8 @@ export default function FeeManagementPage() {
   const [filterYear, setFilterYear] = useState("");
   const [payStudent, setPayStudent] = useState<StudentFeeRow | null>(null);
   const [receiptNo, setReceiptNo] = useState<string | null>(null);
+  const [promiseStudent, setPromiseStudent] = useState<StudentFeeRow | null>(null);
+  const [bannerKey, setBannerKey] = useState(0);
 
   useEffect(() => setMounted(true), []);
   useEffect(() => {
@@ -95,6 +99,8 @@ export default function FeeManagementPage() {
         </div>
       </div>
 
+      <PaymentPromisesBanner key={bannerKey} />
+
       {summary && <FeeSummaryCards summary={summary} />}
 
       <div className="grid items-start gap-6 xl:grid-cols-3">
@@ -112,6 +118,7 @@ export default function FeeManagementPage() {
               academicYear={year}
               monthKey={month}
               onPay={setPayStudent}
+              onPromise={setPromiseStudent}
             />
           )}
         </div>
@@ -139,6 +146,13 @@ export default function FeeManagementPage() {
       />
 
       <ReceiptDialog payment={receipt} onClose={() => setReceiptNo(null)} />
+
+      <PromiseToPayDialog
+        open={!!promiseStudent}
+        student={promiseStudent}
+        onClose={() => setPromiseStudent(null)}
+        onSuccess={() => setBannerKey((k) => k + 1)}
+      />
     </div>
   );
 }

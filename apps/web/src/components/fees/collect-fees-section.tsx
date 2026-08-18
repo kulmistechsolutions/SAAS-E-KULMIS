@@ -29,6 +29,8 @@ interface CollectFeesSectionProps {
   academicYear: string;
   monthKey: string;
   onPay: (row: StudentFeeRow) => void;
+  /** Parent can't pay today — opens a dialog to record when they promised to. */
+  onPromise?: (row: StudentFeeRow) => void;
   compact?: boolean;
   /** Preselects the class filter, e.g. when arriving from a class card. */
   initialClass?: string;
@@ -40,6 +42,7 @@ export function CollectFeesSection({
   academicYear,
   monthKey,
   onPay,
+  onPromise,
   compact = false,
   initialClass,
   onBack,
@@ -284,12 +287,24 @@ export function CollectFeesSection({
                   </td>
                   <td className="px-4 py-2.5">
                     {canPay ? (
-                      <Button
-                        className="h-8 bg-emerald-600 px-3 text-xs hover:bg-emerald-700"
-                        onClick={() => onPay(r)}
-                      >
-                        {t("feesCollectFeesSection.pay")}
-                      </Button>
+                      <div className="flex gap-1.5">
+                        <Button
+                          className="h-8 bg-emerald-600 px-3 text-xs hover:bg-emerald-700"
+                          onClick={() => onPay(r)}
+                        >
+                          {t("feesCollectFeesSection.pay")}
+                        </Button>
+                        {onPromise && (
+                          <Button
+                            variant="outline"
+                            className="h-8 px-3 text-xs"
+                            onClick={() => onPromise(r)}
+                            title={t("feesCollectFeesSection.promiseToPay")}
+                          >
+                            {t("feesCollectFeesSection.promise")}
+                          </Button>
+                        )}
+                      </div>
                     ) : (
                       <Link
                         href={`/students/${r.studentId}`}

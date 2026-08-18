@@ -12,12 +12,14 @@ import {
 import {
   chargeMonthSchema,
   createExtraFeeSchema,
+  createPaymentPromiseSchema,
   payFamilySchema,
   payFeeSchema,
   reversePaymentSchema,
   setupAcademicYearFeesSchema,
   setupMonthSchema,
   updateExtraFeeSchema,
+  updatePaymentPromiseSchema,
   UserRole,
 } from "@ekulmis/shared";
 import { FeesService } from "./fees.service";
@@ -189,5 +191,41 @@ export class FeesController {
   @Post("extra/:id/apply")
   applyExtraFee(@CurrentUser() me: AuthUser, @Param("id") id: string) {
     return this.fees.applyExtraFee(me.schoolId, id);
+  }
+
+  // ── Payment promises ──
+  // "Parent says they'll pay on [date]" — recorded when collection isn't
+  // possible today, surfaced back as a reminder on the Finance pages.
+
+  @Post("payment-promises")
+  createPaymentPromise(@CurrentUser() me: AuthUser, @Body() body: unknown) {
+    const parsed = createPaymentPromiseSchema.safeParse(body);
+    if (!parsed.success) throw new BadRequestException(parsed.error.flatten());
+    return this.fees.createPaymentPromise(me.schoolId, parsed.data, me.userId);
+  }
+
+  /** Overdue or due-soon promises, for the Finance banner. */
+  @Get("payment-promises/due")
+  listDuePaymentPromises(@CurrentUser() me: AuthUser) {
+    return this.fees.listDuePaymentPromises(me.schoolId);
+  }
+
+  @Get("payment-promises/student/:studentId")
+  listPaymentPromisesForStudent(
+    @CurrentUser() me: AuthUser,
+    @Param("studentId") studentId: string,
+  ) {
+    return this.fees.listPaymentPromisesForStudent(me.schoolId, studentId);
+  }
+
+  @Patch("payment-promises/:id")
+  updatePaymentPromise(
+    @CurrentUser() me: AuthUser,
+    @Param("id") id: string,
+    @Body() body: unknown,
+  ) {
+    const parsed = updatePaymentPromiseSchema.safeParse(body);
+    if (!parsed.success) throw new BadRequestException(parsed.error.flatten());
+    return this.fees.updatePaymentPromise(me.schoolId, id, parsed.data);
   }
 }

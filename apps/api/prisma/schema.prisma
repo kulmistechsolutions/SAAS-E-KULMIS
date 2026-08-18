@@ -564,6 +564,7 @@ model Student {
   attendance   StudentAttendance[]
   feeCharges   FeeCharge[]
   payments     Payment[]
+  paymentPromises PaymentPromise[]
   examMarks    ExamMark[]
   blocked      BlockedStudent[]
   promotions   PromotionRecord[]
@@ -1022,6 +1023,33 @@ model Payment {
   @@index([schoolId])
   @@index([studentId])
   @@map("payments")
+}
+
+/// A parent's commitment to pay by a future date, recorded when reception
+/// couldn't collect today (Module 7). Purely a reminder — creating one never
+/// touches FeeCharge/Payment. Resolved manually (FULFILLED/CANCELLED) or left
+/// to age into MISSED once promisedDate has passed.
+model PaymentPromise {
+  id              String               @id @default(cuid())
+  schoolId        String
+  studentId       String
+  /// The date the parent said they'd pay.
+  promisedDate    DateTime             @db.Date
+  /// Who said it / what was said, e.g. "Mother — will pay after salary Friday".
+  note            String
+  /// Optional expected amount, just for display — not enforced against any charge.
+  amount          Int?
+  status          PaymentPromiseStatus @default(PENDING)
+  createdByUserId String?
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([schoolId])
+  @@index([studentId])
+  @@index([schoolId, status, promisedDate])
+  @@map("payment_promises")
 }
 
 /// One row per time a receipt was printed, so the school can see how many
@@ -1653,6 +1681,13 @@ enum PaymentType {
   THIS_MONTH
   PARTIAL
   ADVANCE
+}
+
+enum PaymentPromiseStatus {
+  PENDING
+  FULFILLED
+  CANCELLED
+  MISSED
 }
 
 enum SalaryStatus {

@@ -227,3 +227,33 @@ export type CreateExpenseInput = z.infer<typeof createExpenseSchema>;
 
 export const updateExpenseSchema = createExpenseSchema.partial();
 export type UpdateExpenseInput = z.infer<typeof updateExpenseSchema>;
+
+// ── Payment promises (Module 7) ──
+// A parent's commitment to pay by a future date, recorded when reception
+// can't collect today. Purely a reminder — never touches FeeCharge/Payment.
+export const createPaymentPromiseSchema = z.object({
+  studentId: z.string().min(1),
+  promisedDate: z.coerce.date(),
+  note: z.string().min(1).max(500),
+  amount: positiveAmount.optional(),
+});
+export type CreatePaymentPromiseInput = z.infer<
+  typeof createPaymentPromiseSchema
+>;
+
+export const paymentPromiseStatusSchema = z.enum([
+  "PENDING",
+  "FULFILLED",
+  "CANCELLED",
+  "MISSED",
+]);
+export type PaymentPromiseStatusInput = z.infer<
+  typeof paymentPromiseStatusSchema
+>;
+
+export const updatePaymentPromiseSchema = z.object({
+  status: paymentPromiseStatusSchema,
+});
+export type UpdatePaymentPromiseInput = z.infer<
+  typeof updatePaymentPromiseSchema
+>;
