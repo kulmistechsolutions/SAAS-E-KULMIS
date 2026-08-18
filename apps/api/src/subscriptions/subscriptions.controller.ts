@@ -13,6 +13,7 @@ import {
 import {
   assignSchoolSubscriptionSchema,
   createSubscriptionPlanSchema,
+  grantSubscriptionExtendSchema,
   previewSubscriptionExtendSchema,
   purchaseSubscriptionExtendSchema,
   purchaseSubscriptionPlanSchema,
@@ -149,6 +150,23 @@ export class PlatformSubscriptionsController {
       adminId: admin.adminId,
       username: admin.username,
     });
+  }
+
+  @RequirePlatformRoles("SUPER_ADMIN")
+  @Post("schools/:schoolId/extend")
+  grantExtend(
+    @CurrentPlatformAdmin() admin: PlatformAdminCtx,
+    @Param("schoolId") schoolId: string,
+    @Body() body: unknown,
+  ) {
+    const parsed = grantSubscriptionExtendSchema.safeParse(body);
+    if (!parsed.success) throw new BadRequestException(parsed.error.flatten());
+    return this.subscriptions.grantExtension(
+      schoolId,
+      parsed.data.resource,
+      parsed.data.quantity,
+      { adminId: admin.adminId, username: admin.username },
+    );
   }
 
   @RequirePlatformRoles("SUPER_ADMIN")

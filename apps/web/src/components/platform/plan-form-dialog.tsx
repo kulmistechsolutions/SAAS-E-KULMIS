@@ -241,6 +241,14 @@ export function PlanFormDialog({ open, onClose, plan, onSubmit }: Props) {
                 onChange={(e) => setExtendPricePerStudentUsd(e.target.value)}
                 placeholder={t("platformPlanFormDialog.notExtendable")}
               />
+              {Number(extendPricePerStudentUsd) > 0 && (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {t("platformPlanFormDialog.exampleExtend", {
+                    quantity: 10,
+                    amount: (Number(extendPricePerStudentUsd) * 10).toFixed(2),
+                  })}
+                </p>
+              )}
             </div>
             <div>
               <Label>{t("platformPlanFormDialog.extendPerTeacher")}</Label>
@@ -252,6 +260,14 @@ export function PlanFormDialog({ open, onClose, plan, onSubmit }: Props) {
                 onChange={(e) => setExtendPricePerTeacherUsd(e.target.value)}
                 placeholder={t("platformPlanFormDialog.notExtendable")}
               />
+              {Number(extendPricePerTeacherUsd) > 0 && (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {t("platformPlanFormDialog.exampleExtend", {
+                    quantity: 5,
+                    amount: (Number(extendPricePerTeacherUsd) * 5).toFixed(2),
+                  })}
+                </p>
+              )}
             </div>
             <div>
               <Label>{t("platformPlanFormDialog.extendPerAiCredit")}</Label>
@@ -263,6 +279,14 @@ export function PlanFormDialog({ open, onClose, plan, onSubmit }: Props) {
                 onChange={(e) => setExtendPricePerAiCreditUsd(e.target.value)}
                 placeholder={t("platformPlanFormDialog.notExtendable")}
               />
+              {Number(extendPricePerAiCreditUsd) > 0 && (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {t("platformPlanFormDialog.exampleExtend", {
+                    quantity: 100,
+                    amount: (Number(extendPricePerAiCreditUsd) * 100).toFixed(2),
+                  })}
+                </p>
+              )}
             </div>
           </div>
         </div>

@@ -17,6 +17,7 @@ import {
   Users,
   Download,
   Search,
+  Zap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,6 +26,7 @@ import { Tabs } from "@/components/ui/tabs";
 import { Pagination } from "@/components/ui/pagination";
 import { PlanFormDialog, type PlanFormValues } from "@/components/platform/plan-form-dialog";
 import { AssignSubscriptionDialog } from "@/components/platform/assign-subscription-dialog";
+import { GrantExtendDialog } from "@/components/platform/grant-extend-dialog";
 import { shortDate } from "@/lib/platform/format";
 import { toast } from "@/lib/toast";
 import { usePlatformAuth } from "@/lib/platform/auth";
@@ -37,6 +39,7 @@ import {
   fetchPlatformSubscriptionDashboard,
   fetchPlatformSubscriptionHistory,
   fetchPlatformSubscriptionPlans,
+  grantPlatformSchoolExtension,
   updatePlatformSubscriptionPlan,
   type PlatformSchoolSubscriptionRow,
   type PlatformSubscriptionDashboard,
@@ -174,6 +177,10 @@ export default function PlatformSubscriptionsPage() {
   const [assignRow, setAssignRow] = useState<PlatformSchoolSubscriptionRow | null>(
     null,
   );
+  const [extendOpen, setExtendOpen] = useState(false);
+  const [extendRow, setExtendRow] = useState<PlatformSchoolSubscriptionRow | null>(
+    null,
+  );
 
   const reload = useCallback(async () => {
     setLoading(true);
@@ -262,6 +269,13 @@ export default function PlatformSubscriptionsPage() {
     toast(`Plan assigned to ${assignRow.school.name}`, "success");
     await reload();
     if (tab === "history") void loadHistory();
+  }
+
+  async function handleGrantExtend(resource: "STUDENT" | "TEACHER" | "AI_GRADING", quantity: number) {
+    if (!extendRow) return;
+    await grantPlatformSchoolExtension(extendRow.school.id, { resource, quantity });
+    toast(`Granted +${quantity} ${resource.toLowerCase()} to ${extendRow.school.name}`, "success");
+    await reload();
   }
 
   async function handleCancel(row: PlatformSchoolSubscriptionRow) {
@@ -587,6 +601,20 @@ export default function PlatformSubscriptionsPage() {
                         row.subscription.status !== "CANCELLED" && (
                           <button
                             type="button"
+                            onClick={() => {
+                              setExtendRow(row);
+                              setExtendOpen(true);
+                            }}
+                            className="rounded-lg p-1.5 text-slate-400 hover:bg-white/10 hover:text-white"
+                            title={t("platformSubscriptions.grantExtend")}
+                          >
+                            <Zap className="h-4 w-4" />
+                          </button>
+                        )}
+                      {row.subscription &&
+                        row.subscription.status !== "CANCELLED" && (
+                          <button
+                            type="button"
                             onClick={() => void handleCancel(row)}
                             className="rounded-lg p-1.5 text-slate-400 hover:bg-rose-500/10 hover:text-rose-400"
                             title={t("platformSubscriptions.cancelSubscription")}
@@ -721,6 +749,12 @@ export default function PlatformSubscriptionsPage() {
         row={assignRow}
         plans={plans.filter((p) => p.isActive)}
         onSubmit={handleAssign}
+      />
+      <GrantExtendDialog
+        open={extendOpen}
+        onClose={() => setExtendOpen(false)}
+        row={extendRow}
+        onSubmit={handleGrantExtend}
       />
     </div>
   );

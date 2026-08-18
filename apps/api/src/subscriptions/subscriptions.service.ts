@@ -605,6 +605,37 @@ export class SubscriptionsService {
     return updated;
   }
 
+  /**
+   * Platform admin: grant a capacity top-up directly, free of charge — no
+   * WaafiPay order, the school admin does nothing. Writes to the same
+   * extraStudents/extraTeachers/extraAiGradingQuota columns as self-service
+   * Extend, so it enforces identically and still resets on the next
+   * renewal/reassign.
+   */
+  async grantExtension(
+    schoolId: string,
+    resource: SubscriptionExtendResource,
+    quantity: number,
+    admin: PlatformAdminActor,
+  ) {
+    const sub = await this.prisma.schoolSubscription.findUnique({
+      where: { schoolId },
+      include: { plan: true },
+    });
+    if (!sub) throw new NotFoundException("This school has no subscription.");
+
+    const field = EXTEND_RESOURCE_FIELD[resource];
+    const updated = await this.prisma.schoolSubscription.update({
+      where: { schoolId },
+      data: { [field.extra]: { increment: quantity } },
+      include: { plan: true },
+    });
+
+    await this.audit(admin, "GRANT_EXTENSION", sub, updated, schoolId);
+
+    return updated;
+  }
+
   async listHistory(opts: {
     search?: string;
     status?: string;

@@ -118,3 +118,13 @@ export const purchaseSubscriptionExtendSchema = z.object({
 export type PurchaseSubscriptionExtendInput = z.infer<
   typeof purchaseSubscriptionExtendSchema
 >;
+
+/** Platform admin: grant a capacity top-up to a school directly, free of
+ * charge — no WaafiPay order, the school admin does nothing. */
+export const grantSubscriptionExtendSchema = z.object({
+  resource: subscriptionExtendResourceSchema,
+  quantity: z.number().int().positive().max(100_000),
+});
+export type GrantSubscriptionExtendInput = z.infer<
+  typeof grantSubscriptionExtendSchema
+>;

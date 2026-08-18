@@ -948,6 +948,16 @@ export const cancelPlatformSchoolSubscription = (schoolId: string) =>
     method: "POST",
   });
 
+/** Grant a capacity top-up directly — free, no WaafiPay order, the school admin does nothing. */
+export const grantPlatformSchoolExtension = (
+  schoolId: string,
+  body: { resource: "STUDENT" | "TEACHER" | "AI_GRADING"; quantity: number },
+) =>
+  platformFetch<unknown>(`/platform/subscriptions/schools/${schoolId}/extend`, {
+    method: "POST",
+    body,
+  });
+
 // ── SMS sender ID applications ─────────────────────────────────────────────
 
 /** A school's application for the name recipients see on its SMS. */
