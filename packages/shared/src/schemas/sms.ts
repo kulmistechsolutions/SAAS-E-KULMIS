@@ -205,15 +205,15 @@ export const updateSchoolSmsSettingsSchema = z.object({
   smsEnabled: z.boolean().optional(),
 });
 
-/** A sender ID as the operator accepts it: A–Z, digits, space, dash, max 11. */
+/** A sender ID as the operator accepts it: A–Z, digits, space, dot, dash, underscore, max 11. */
 const senderIdName = z
   .string()
   .trim()
   .min(3, "Use at least 3 characters")
   .max(11, "Operators allow at most 11 characters")
   .regex(
-    /^[A-Za-z0-9][A-Za-z0-9 .-]*$/,
-    "Letters, digits, spaces, dots and dashes only",
+    /^[A-Za-z0-9][A-Za-z0-9 ._-]*$/,
+    "Letters, digits, spaces, dots, dashes and underscores only",
   );
 
 /** A school applying for the name recipients will see on its messages. */
