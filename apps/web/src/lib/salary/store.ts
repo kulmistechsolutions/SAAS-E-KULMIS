@@ -68,14 +68,24 @@ export async function refreshSalaries(year?: number, month?: number): Promise<vo
   try {
     const academicYear = activeAcademicYear();
     const rows = await apiListSalaries(year, month);
-    const employees = new Map<string, Employee>();
-    const payroll: PayrollRecord[] = [];
+    const mapped = rows.map((row) => mapApiSalary(row, academicYear));
 
-    for (const row of rows) {
-      const mapped = mapApiSalary(row, academicYear);
-      employees.set(mapped.employee.id, mapped.employee);
-      payroll.push(mapped.payroll);
+    // A year/month filter narrows what the API returns — merge those rows
+    // into whatever payroll is already loaded instead of replacing the
+    // whole list with just this filtered slice. Previously a filtered call
+    // (made after paying or reversing a single payroll row) wholesale
+    // overwrote `payroll`, so every OTHER month already on screen vanished
+    // from Salary History until a full page reload brought them back.
+    const isFiltered = year !== undefined || month !== undefined;
+    const base = isFiltered ? ensure() : null;
+
+    const employees = new Map(base ? base.employees.map((e) => [e.id, e]) : []);
+    const payrollById = new Map(base ? base.payroll.map((p) => [p.id, p]) : []);
+    for (const m of mapped) {
+      employees.set(m.employee.id, m.employee);
+      payrollById.set(m.payroll.id, m.payroll);
     }
+    const payroll = [...payrollById.values()];
 
     const activeMonth =
       payroll.length > 0
