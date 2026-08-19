@@ -752,6 +752,12 @@ export class ExaminationsService {
       }
 
       await this.refreshSubmissionStatuses(tx, schoolId, dto.examId);
+      if (exam.status === "DRAFT") {
+        await tx.exam.update({
+          where: { id: dto.examId },
+          data: { status: "OPEN" },
+        });
+      }
       if (
         role &&
         role !== "TEACHER" &&
@@ -809,13 +815,24 @@ export class ExaminationsService {
       if (es.submissionStatus === "LOCKED") {
         throw new BadRequestException("Submission is locked");
       }
-      return tx.examSubject.update({
+      const updated = await tx.examSubject.update({
         where: { id: es.id },
         data: {
           submissionStatus: "SUBMITTED",
           submittedAt: new Date(),
         },
       });
+      const parentExam = await tx.exam.findFirst({
+        where: { id: examId },
+        select: { status: true },
+      });
+      if (parentExam?.status === "DRAFT") {
+        await tx.exam.update({
+          where: { id: examId },
+          data: { status: "OPEN" },
+        });
+      }
+      return updated;
     });
   }
 
