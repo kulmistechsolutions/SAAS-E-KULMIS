@@ -1179,7 +1179,19 @@ model SalaryPayment {
   paidAt            DateTime @default(now())
   createdAt         DateTime @default(now())
 
-  salary Salary @relation(fields: [salaryId], references: [id], onDelete: Cascade)
+  // ── Reversal ── mirrors Payment's reversal design for student fees: a
+  // wrong salary payment is never edited or deleted, only marked REVERSED
+  // with a second, negative SalaryPayment row linked back to it.
+  status               SalaryPaymentStatus @default(ACTIVE)
+  isReversal           Boolean             @default(false)
+  reversalOfPaymentId  String?             @unique
+  reversedAt           DateTime?
+  reversedByUserId     String?
+  reversalReason       String?
+
+  salary        Salary         @relation(fields: [salaryId], references: [id], onDelete: Cascade)
+  reversalOf    SalaryPayment? @relation("SalaryPaymentReversal", fields: [reversalOfPaymentId], references: [id])
+  reversalEntry SalaryPayment? @relation("SalaryPaymentReversal")
 
   @@index([schoolId])
   @@index([salaryId])
@@ -1659,6 +1671,11 @@ enum FeeStatus {
 }
 
 enum PaymentStatus {
+  ACTIVE
+  REVERSED
+}
+
+enum SalaryPaymentStatus {
   ACTIVE
   REVERSED
 }

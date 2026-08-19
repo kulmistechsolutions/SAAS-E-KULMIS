@@ -159,6 +159,11 @@ export const paySalarySchema = z.object({
 });
 export type PaySalaryInput = z.infer<typeof paySalarySchema>;
 
+export const reverseSalaryPaymentSchema = z.object({
+  reason: z.string().trim().min(3).max(300),
+});
+export type ReverseSalaryPaymentInput = z.infer<typeof reverseSalaryPaymentSchema>;
+
 // ── Extra fees (additional charges billed on top of the monthly fee) ──
 
 const extraFeeClassAmountSchema = z.object({

@@ -1,15 +1,24 @@
-import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
-import type { Prisma } from "@prisma/client";
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
+import type { Prisma, UserRole } from "@prisma/client";
 import type {
   CreateSalaryInput,
   PaySalaryInput,
   UpdateSalaryInput,
 } from "@ekulmis/shared";
 import { PrismaService } from "../prisma/prisma.service";
+import { AuditService } from "../audit/audit.service";
 
 @Injectable()
 export class SalariesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly audit: AuditService,
+  ) {}
 
   /**
    * Idempotent by design — Generate Payroll calls this once per active
@@ -89,6 +98,103 @@ export class SalariesService {
       });
       return { salary: updated, payment };
     });
+  }
+
+  /**
+   * Reverse a salary payment that was recorded wrong — mirrors
+   * FeesService.reversePayment for student fees. The original row is never
+   * edited or deleted: it is marked REVERSED and a second, negative
+   * SalaryPayment row is created linking back to it, so the ledger proves
+   * both the original collection and its undo.
+   */
+  async reversePayment(
+    schoolId: string,
+    paymentId: string,
+    reason: string,
+    actor: { userId: string; username: string; role: UserRole },
+  ) {
+    const result = await this.prisma.forTenant(schoolId, async (tx) => {
+      const original = await tx.salaryPayment.findFirst({
+        where: { id: paymentId },
+      });
+      if (!original) throw new NotFoundException("Payment not found");
+      if (original.isReversal) {
+        throw new BadRequestException(
+          "This is itself a reversal entry — it cannot be reversed again.",
+        );
+      }
+      if (original.status === "REVERSED") {
+        throw new ConflictException("This payment has already been reversed.");
+      }
+
+      const salary = await tx.salary.findFirst({
+        where: { id: original.salaryId },
+      });
+      if (!salary) throw new NotFoundException("Salary not found");
+
+      const amountPaid = Math.max(0, salary.amountPaid - original.amount);
+      await tx.salary.update({
+        where: { id: salary.id },
+        data: {
+          amountPaid,
+          status:
+            amountPaid <= 0
+              ? "PENDING"
+              : amountPaid < salary.amount
+                ? "PARTIAL"
+                : "PAID",
+          paidAt: amountPaid <= 0 ? null : salary.paidAt,
+        },
+      });
+
+      const reversal = await tx.salaryPayment.create({
+        data: {
+          schoolId,
+          salaryId: salary.id,
+          employeeName: original.employeeName,
+          amount: -original.amount,
+          paymentMethod: original.paymentMethod,
+          note: `Reversal of a prior payment: ${reason}`,
+          collectedByUserId: actor.userId,
+          isReversal: true,
+          reversalOfPaymentId: original.id,
+        },
+      });
+
+      await tx.salaryPayment.update({
+        where: { id: original.id },
+        data: {
+          status: "REVERSED",
+          reversedAt: new Date(),
+          reversedByUserId: actor.userId,
+          reversalReason: reason,
+        },
+      });
+
+      return {
+        salaryId: salary.id,
+        employeeName: original.employeeName,
+        amount: original.amount,
+        reversal,
+      };
+    });
+
+    await this.audit.record({
+      schoolId,
+      userId: actor.userId,
+      username: actor.username,
+      role: actor.role,
+      module: "finance",
+      action: "SALARY_PAYMENT_REVERSED",
+      metadata: {
+        salaryId: result.salaryId,
+        employeeName: result.employeeName,
+        amount: result.amount,
+        reason,
+      },
+    });
+
+    return result;
   }
 
   paymentsFor(schoolId: string, salaryId: string) {

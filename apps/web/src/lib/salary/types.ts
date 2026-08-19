@@ -55,6 +55,9 @@ export interface SalaryPayment {
   paidAt: string;
   paidBy: string;
   notes?: string | null;
+  status: "ACTIVE" | "REVERSED";
+  isReversal: boolean;
+  reversalReason?: string | null;
 }
 
 export interface SalaryAuditEntry {

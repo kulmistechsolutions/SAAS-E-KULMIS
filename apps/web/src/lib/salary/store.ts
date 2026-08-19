@@ -11,6 +11,7 @@ import {
   apiCreateSalary,
   apiListSalaries,
   apiPaySalary,
+  apiReverseSalaryPayment,
   apiSalaryPayments,
   mapApiSalary,
 } from "./api";
@@ -396,6 +397,9 @@ export async function paySalary(input: PaySalaryInput): Promise<{
       paidAt: res.payment.paidAt,
       paidBy: input.paidBy ?? "Admin User",
       notes: res.payment.note,
+      status: res.payment.status,
+      isReversal: res.payment.isReversal,
+      reversalReason: res.payment.reversalReason,
     };
 
     setState({
@@ -431,9 +435,41 @@ export async function loadPayrollPayments(payrollId: string): Promise<SalaryPaym
       paidAt: r.paidAt,
       paidBy: "—",
       notes: r.note,
+      status: r.status,
+      isReversal: r.isReversal,
+      reversalReason: r.reversalReason,
     }));
   } catch {
     return paymentsForPayroll(payrollId);
+  }
+}
+
+/**
+ * Reverse a salary payment recorded wrong — mirrors reversePayment in the
+ * fees store. Never edits or deletes the original: the server marks it
+ * REVERSED and creates a negative ledger row linked back to it.
+ */
+export async function reverseSalaryPayment(
+  paymentId: string,
+  reason: string,
+  actorName?: string,
+): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const res = await apiReverseSalaryPayment(paymentId, reason);
+    const s = ensure();
+    const payroll = s.payroll.find((p) => p.id === res.salaryId);
+    if (payroll) {
+      const [year, month] = payroll.payrollMonth.split("-").map(Number);
+      await refreshSalaries(year, month);
+    }
+    logAudit(
+      "Salary Payment Reversed",
+      actorName ?? "Admin User",
+      `${money(res.amount)} for ${res.employeeName} — ${reason}`,
+    );
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: apiErr(e, "Failed to reverse salary payment.") };
   }
 }
 

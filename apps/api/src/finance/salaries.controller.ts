@@ -12,6 +12,7 @@ import {
 import {
   createSalarySchema,
   paySalarySchema,
+  reverseSalaryPaymentSchema,
   updateSalarySchema,
   UserRole,
 } from "@ekulmis/shared";
@@ -75,5 +76,20 @@ export class SalariesController {
   @Get(":id/payments")
   payments(@CurrentUser() me: AuthUser, @Param("id") id: string) {
     return this.salaries.paymentsFor(me.schoolId, id);
+  }
+
+  @Post("payments/:paymentId/reverse")
+  reversePayment(
+    @CurrentUser() me: AuthUser,
+    @Param("paymentId") paymentId: string,
+    @Body() body: unknown,
+  ) {
+    const parsed = reverseSalaryPaymentSchema.safeParse(body);
+    if (!parsed.success) throw new BadRequestException(parsed.error.flatten());
+    return this.salaries.reversePayment(me.schoolId, paymentId, parsed.data.reason, {
+      userId: me.userId,
+      username: me.username,
+      role: me.role,
+    });
   }
 }

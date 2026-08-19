@@ -3,12 +3,13 @@
 
 import { useT } from "@/lib/i18n/provider";
 import { useEffect, useMemo, useState } from "react";
-import { Download, Eye, Printer } from "lucide-react";
+import { Download, Eye, History, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Pagination } from "@/components/ui/pagination";
 import { Select } from "@/components/ui/select";
 import { PayslipDialog } from "@/components/salary/payslip-dialog";
+import { SalaryPaymentHistoryDialog } from "@/components/salary/payment-history-dialog";
 import { PayrollStatusBadge } from "@/components/salary/status-badge";
 import {
   monthLabel,
@@ -38,6 +39,7 @@ export default function SalaryHistoryPage() {
   const [status, setStatus] = useState<PayrollStatus | "">("");
   const [page, setPage] = useState(1);
   const [payslipId, setPayslipId] = useState<string | null>(null);
+  const [historyId, setHistoryId] = useState<string | null>(null);
 
   useEffect(() => setMounted(true), []);
 
@@ -68,6 +70,8 @@ export default function SalaryHistoryPage() {
   const pageCount = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
   const pageRows = rows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
   const payslip = payslipId ? getPayroll(payslipId) ?? null : null;
+  const historyPayroll = historyId ? getPayroll(historyId) ?? null : null;
+  const historyEmployee = historyPayroll ? getEmployee(historyPayroll.employeeId) : null;
 
   const exportRows = rows.map((r) => ({
     employeeCode: r.emp?.code ?? "",
@@ -218,6 +222,14 @@ export default function SalaryHistoryPage() {
                       >
                         <Printer className="h-4 w-4" />
                       </Button>
+                      <Button
+                        variant="ghost"
+                        className="h-8 w-8 p-0"
+                        title={t("salaryPaymentHistory.title")}
+                        onClick={() => setHistoryId(r.id)}
+                      >
+                        <History className="h-4 w-4" />
+                      </Button>
                     </div>
                   </td>
                 </tr>
@@ -239,6 +251,11 @@ export default function SalaryHistoryPage() {
       </div>
 
       <PayslipDialog payroll={payslip} onClose={() => setPayslipId(null)} />
+      <SalaryPaymentHistoryDialog
+        payroll={historyPayroll}
+        employeeName={historyEmployee?.fullName}
+        onClose={() => setHistoryId(null)}
+      />
     </div>
   );
 }

@@ -118,6 +118,11 @@ export interface ApiSalaryPayment {
   note: string | null;
   paidAt: string;
   createdAt: string;
+  status: "ACTIVE" | "REVERSED";
+  isReversal: boolean;
+  reversalOfPaymentId: string | null;
+  reversedAt: string | null;
+  reversalReason: string | null;
 }
 
 export async function apiPaySalary(
@@ -129,6 +134,16 @@ export async function apiPaySalary(
 
 export async function apiSalaryPayments(id: string): Promise<ApiSalaryPayment[]> {
   return api<ApiSalaryPayment[]>(`/salaries/${id}/payments`);
+}
+
+export async function apiReverseSalaryPayment(
+  paymentId: string,
+  reason: string,
+): Promise<{ salaryId: string; employeeName: string; amount: number; reversal: ApiSalaryPayment }> {
+  return api(`/salaries/payments/${paymentId}/reverse`, {
+    method: "POST",
+    body: { reason },
+  });
 }
 
 export type { PaymentMethod };
