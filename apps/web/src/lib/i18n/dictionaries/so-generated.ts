@@ -723,6 +723,8 @@ export const soGenerated: PartialDictionary = {
     period: "Xilliga",
     status: "Xaaladda",
     delete: "Tirtir",
+    open: "Fur",
+    openExamHint: "Fur imtixaankan si uu ugu soo muuqdo Natiijooyinka & Kormeerka",
     noExaminationsMatchTheseFilters: "Imtixaan kuma jiro shaandhadan.",
     dangerZone: "Aagga Khatarta",
     deletesEveryExaminationMatchingTheFilters: "Wuxuu tirtiraa dhammaan imtixaannada la mid ah shaandhadan kore:",

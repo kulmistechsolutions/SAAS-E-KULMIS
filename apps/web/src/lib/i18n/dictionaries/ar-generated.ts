@@ -723,6 +723,8 @@ export const arGenerated: PartialDictionary = {
     period: "الحصة",
     status: "الحالة",
     delete: "حذف",
+    open: "فتح",
+    openExamHint: "افتح هذا الامتحان ليصبح مرئيًا في النتائج والمتابعة",
     noExaminationsMatchTheseFilters: "لا توجد امتحانات مطابقة لهذه المرشحات.",
     dangerZone: "منطقة الخطر",
     deletesEveryExaminationMatchingTheFilters: "يحذف كل امتحان مطابق للمرشحات أعلاه:",

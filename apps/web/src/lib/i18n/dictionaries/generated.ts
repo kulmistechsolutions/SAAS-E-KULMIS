@@ -723,6 +723,8 @@ export const generated = {
     period: "Period",
     status: "Status",
     delete: "Delete",
+    open: "Open",
+    openExamHint: "Open this exam so it becomes visible in Results & Monitoring",
     noExaminationsMatchTheseFilters: "No examinations match these filters.",
     dangerZone: "Danger Zone",
     deletesEveryExaminationMatchingTheFilters: "Deletes every examination matching the filters above:",

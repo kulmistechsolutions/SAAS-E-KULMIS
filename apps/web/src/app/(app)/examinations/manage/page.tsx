@@ -3,13 +3,13 @@
 
 import { useT } from "@/lib/i18n/provider";
 import { useMemo, useState } from "react";
-import { AlertTriangle, Loader2, Trash2 } from "lucide-react";
+import { AlertTriangle, Loader2, LockOpen, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { ExamStatusBadge } from "@/components/examinations/exam-status-badge";
 import { ConfirmDialog } from "@/components/students/confirm-dialog";
-import { deleteExam, useExaminationsState } from "@/lib/examinations/store";
+import { deleteExam, updateExamStatus, useExaminationsState } from "@/lib/examinations/store";
 import { examTypeLabel, shortDate } from "@/lib/examinations/format";
 import type { Exam } from "@/lib/examinations/types";
 import { toast } from "@/lib/toast";
@@ -43,6 +43,14 @@ export default function ExaminationsManagePage() {
       ),
     [exams, yearFilter, classFilter],
   );
+
+  async function handleOpen(exam: Exam) {
+    setRowBusy(exam.id);
+    const res = await updateExamStatus(exam.id, "OPEN");
+    setRowBusy(null);
+    if (!res.ok) toast(res.error ?? "Failed to open exam", "error");
+    else toast("Exam opened — now visible in Results & Monitoring", "success");
+  }
 
   async function handleDeleteOne() {
     if (!deleting) return;
@@ -133,19 +141,37 @@ export default function ExaminationsManagePage() {
                     <ExamStatusBadge status={e.status} />
                   </td>
                   <td className="px-4 py-2.5 text-end">
-                    <button
-                      type="button"
-                      onClick={() => setDeleting(e)}
-                      disabled={rowBusy === e.id}
-                      className="inline-flex items-center gap-1 rounded-lg border px-2.5 py-1 text-xs font-medium text-rose-600 hover:bg-rose-50 disabled:opacity-50 dark:text-rose-400 dark:hover:bg-rose-950/30"
-                    >
-                      {rowBusy === e.id ? (
-                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      ) : (
-                        <Trash2 className="h-3.5 w-3.5" />
+                    <div className="inline-flex items-center gap-2">
+                      {e.status === "DRAFT" && (
+                        <button
+                          type="button"
+                          onClick={() => void handleOpen(e)}
+                          disabled={rowBusy === e.id}
+                          title={t("examinationsManage.openExamHint")}
+                          className="inline-flex items-center gap-1 rounded-lg border px-2.5 py-1 text-xs font-medium text-emerald-600 hover:bg-emerald-50 disabled:opacity-50 dark:text-emerald-400 dark:hover:bg-emerald-950/30"
+                        >
+                          {rowBusy === e.id ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <LockOpen className="h-3.5 w-3.5" />
+                          )}
+                          {t("examinationsManage.open")}
+                        </button>
                       )}
-                      {t("examinationsManage.delete")}
-                    </button>
+                      <button
+                        type="button"
+                        onClick={() => setDeleting(e)}
+                        disabled={rowBusy === e.id}
+                        className="inline-flex items-center gap-1 rounded-lg border px-2.5 py-1 text-xs font-medium text-rose-600 hover:bg-rose-50 disabled:opacity-50 dark:text-rose-400 dark:hover:bg-rose-950/30"
+                      >
+                        {rowBusy === e.id ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-3.5 w-3.5" />
+                        )}
+                        {t("examinationsManage.delete")}
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
