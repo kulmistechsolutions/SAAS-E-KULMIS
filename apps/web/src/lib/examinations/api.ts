@@ -110,6 +110,7 @@ export interface ApiStudentFinalResult {
   studentId: string;
   studentCode: string;
   studentName: string;
+  studentPhotoUrl?: string | null;
   className: string;
   section: string | null;
   academicYearId: string;

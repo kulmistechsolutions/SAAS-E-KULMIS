@@ -203,6 +203,7 @@ function mapStudentResults(data: ApiStudentFinalResult): StudentFinalResult {
     studentId: data.studentId,
     studentCode: data.studentCode,
     studentName: data.studentName,
+    studentPhotoUrl: data.studentPhotoUrl ?? null,
     className: data.className,
     section: data.section ?? "—",
     academicYear: getAcademicsState().academicYears.find((y) => y.id === data.academicYearId)?.name ?? "",

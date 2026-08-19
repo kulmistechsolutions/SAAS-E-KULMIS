@@ -61,7 +61,13 @@ export default function ParentExamsPage() {
     });
   }
 
-  const baseInfo = { studentName: selectedChild?.fullName ?? "", studentCode, className, section };
+  const baseInfo = {
+    studentName: selectedChild?.fullName ?? "",
+    studentPhotoUrl: selectedChild?.photoUrl ?? null,
+    studentCode,
+    className,
+    section,
+  };
 
   // One combined card per exam group (weighted, matching what the school
   // publishes as the term result), one card per standalone exam — same

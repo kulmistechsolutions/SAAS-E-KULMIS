@@ -80,6 +80,7 @@ export default function PublicResultsPage() {
         list.push({
           studentName: finalResult.studentName,
           studentCode: finalResult.studentCode,
+          studentPhotoUrl: finalResult.studentPhotoUrl,
           className: finalResult.className,
           section: finalResult.section,
           academicYear: finalResult.academicYear,
@@ -96,6 +97,7 @@ export default function PublicResultsPage() {
         list.push({
           studentName: finalResult.studentName,
           studentCode: finalResult.studentCode,
+          studentPhotoUrl: finalResult.studentPhotoUrl,
           className: finalResult.className,
           section: finalResult.section,
           academicYear: finalResult.academicYear,

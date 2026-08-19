@@ -31,6 +31,7 @@ export default function StudentPortalResultsPage() {
     () => ({
       studentName: data?.studentName ?? "",
       studentCode: data?.studentCode ?? "",
+      studentPhotoUrl: data?.studentPhotoUrl ?? null,
       className: data?.className ?? "",
       section: data?.section ?? null,
     }),

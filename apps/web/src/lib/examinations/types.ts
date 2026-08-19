@@ -125,6 +125,7 @@ export interface StudentFinalResult {
   studentId: string;
   studentCode: string;
   studentName: string;
+  studentPhotoUrl?: string | null;
   className: string;
   section: string;
   academicYear: string;

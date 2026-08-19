@@ -108,6 +108,21 @@ export class ExaminationsService {
     private readonly config: ConfigService,
   ) {}
 
+  /** Signed URL for a student's photo, or null if they don't have one. Mirrors
+   * StudentsService.attachPhotoMeta's bucket resolution and signed-URL call. */
+  private async studentPhotoUrl(photoKey: string | null): Promise<string | null> {
+    if (!photoKey) return null;
+    const bucket =
+      this.config.get<string>("SUPABASE_STORAGE_BUCKET") ??
+      this.config.get<string>("MINIO_BUCKET") ??
+      "ekulmis";
+    try {
+      return await this.storage.getSignedUrl(bucket, photoKey, 3600);
+    } catch {
+      return null;
+    }
+  }
+
   /** Grade bands + passing percentage from Settings → Examinations, or the
    * built-in default when a school hasn't configured them. */
   private async gradingConfig(schoolId: string): Promise<GradingConfig> {
@@ -2178,6 +2193,7 @@ export class ExaminationsService {
         },
       });
       if (!student) throw new NotFoundException("Student not found");
+      const photoUrl = await this.studentPhotoUrl(student.photoKey);
 
       const yearId = academicYearId ?? student.class.academicYearId;
       const exams = await tx.exam.findMany({
@@ -2239,6 +2255,7 @@ export class ExaminationsService {
         studentId: student.id,
         studentCode: student.code,
         studentName: student.fullName,
+        studentPhotoUrl: photoUrl,
         className: student.class.name,
         section: student.section?.name ?? null,
         academicYearId: yearId,

@@ -1122,6 +1122,7 @@ function ExamsTab({ student }: { student: StudentWithParent }) {
                 ? {
                     studentName: result.studentName,
                     studentCode: result.studentCode,
+                    studentPhotoUrl: result.studentPhotoUrl,
                     className: result.className,
                     section: result.section,
                     academicYear: result.academicYear,
@@ -1140,6 +1141,7 @@ function ExamsTab({ student }: { student: StudentWithParent }) {
                 : {
                     studentName: result.studentName,
                     studentCode: result.studentCode,
+                    studentPhotoUrl: result.studentPhotoUrl,
                     className: result.className,
                     section: result.section,
                     academicYear: result.academicYear,

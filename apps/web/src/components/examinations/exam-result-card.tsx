@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useSchoolBranding } from "@/lib/settings/use-school-branding";
 import { printExamResultCard } from "@/lib/examinations/print";
+import { StudentAvatar } from "@/components/students/student-avatar";
 
 /** One subject line on the card. */
 export interface ResultCardSubject {
@@ -38,6 +39,7 @@ export interface ResultCardGroupSubjectRow {
 export interface ExamResultCardData {
   studentName: string;
   studentCode: string;
+  studentPhotoUrl?: string | null;
   className: string;
   section?: string | null;
   academicYear?: string;
@@ -181,7 +183,17 @@ export function ExamResultCard({ data }: { data: ExamResultCardData }) {
         <div className="grid gap-6 p-6 md:grid-cols-[1fr_auto]">
           {/* Left: student + subjects */}
           <div className="min-w-0 space-y-5">
-            <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm sm:grid-cols-3">
+            <div className="flex items-start gap-4">
+              {data.studentPhotoUrl ? (
+                <StudentAvatar
+                  name={data.studentName}
+                  hasPhoto
+                  photoUrl={data.studentPhotoUrl}
+                  size="md"
+                  className="shrink-0"
+                />
+              ) : null}
+              <div className="grid min-w-0 flex-1 grid-cols-2 gap-x-6 gap-y-2 text-sm sm:grid-cols-3">
               <Info label={t("examinationsExamResultCard.student")} value={data.studentName} />
               <Info label={t("examinationsExamResultCard.studentId")} value={data.studentCode} mono />
               <Info label={t("examinationsExamResultCard.class")} value={data.className} />
@@ -203,6 +215,7 @@ export function ExamResultCard({ data }: { data: ExamResultCardData }) {
                     </span>
                   ) : null}
                 </p>
+              </div>
               </div>
             </div>
 
