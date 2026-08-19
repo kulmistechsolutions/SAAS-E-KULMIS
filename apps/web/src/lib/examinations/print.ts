@@ -30,6 +30,10 @@ export function printExamResultCard(
     ? `<img src="${school.logoUrl}" alt="" class="logo-img"/>`
     : `<div class="logo-fallback">${escapeHtml(school.name.slice(0, 2).toUpperCase())}</div>`;
 
+  const photo = data.studentPhotoUrl
+    ? `<img src="${data.studentPhotoUrl}" alt="" class="student-photo"/>`
+    : "";
+
   const infoRows = [
     ["Student", data.studentName],
     ["Student ID", data.studentCode],
@@ -110,7 +114,9 @@ export function printExamResultCard(
     .head .kicker { text-transform: uppercase; letter-spacing: .05em; font-size: 11px; font-weight: 600; margin-top: 6px; }
     .body { display: flex; gap: 24px; padding: 24px; }
     .main { flex: 1; min-width: 0; }
-    .info-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px 20px; margin-bottom: 16px; font-size: 13px; }
+    .info-row { display: flex; align-items: flex-start; gap: 16px; margin-bottom: 16px; }
+    .student-photo { width: 64px; height: 64px; border-radius: 12px; object-fit: cover; flex-shrink: 0; border: 1px solid #e2e8f0; }
+    .info-grid { flex: 1; min-width: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px 20px; font-size: 13px; margin-bottom: 0; }
     .info-label { margin: 0; color: #64748b; font-size: 11px; }
     .info-value { margin: 2px 0 0; font-weight: 600; }
     .exam-line { margin: 0 0 16px; font-size: 13px; }
@@ -148,7 +154,7 @@ export function printExamResultCard(
     </div>
     <div class="body">
       <div class="main">
-        <div class="info-grid">${infoRows}</div>
+        <div class="info-row">${photo}<div class="info-grid">${infoRows}</div></div>
         <p class="exam-line"><span class="label">Examination</span><strong>${escapeHtml(data.examName)}${data.term ? ` · ${escapeHtml(data.term)}` : ""}</strong></p>
         ${table}
         <div class="tiles">
