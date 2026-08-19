@@ -210,6 +210,12 @@ export class FeesController {
     return this.fees.listDuePaymentPromises(me.schoolId);
   }
 
+  /** Every still-open promise, no date horizon — badges rows on Collect Fees. */
+  @Get("payment-promises/active")
+  listActivePaymentPromises(@CurrentUser() me: AuthUser) {
+    return this.fees.listActivePaymentPromises(me.schoolId);
+  }
+
   @Get("payment-promises/student/:studentId")
   listPaymentPromisesForStudent(
     @CurrentUser() me: AuthUser,

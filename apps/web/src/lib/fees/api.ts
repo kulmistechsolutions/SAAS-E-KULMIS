@@ -458,6 +458,20 @@ export const apiCreatePaymentPromise = (body: CreatePaymentPromiseApiInput) =>
 export const apiListDuePaymentPromises = () =>
   api<ApiDuePaymentPromise[]>("/fees/payment-promises/due");
 
+export interface ApiActivePaymentPromise {
+  id: string;
+  studentId: string;
+  promisedDate: string;
+  note: string;
+  amount: number | null;
+  status: PaymentPromiseStatus;
+  createdAt: string;
+}
+
+/** Every still-open promise, no date horizon — used to badge Collect Fees rows. */
+export const apiListActivePaymentPromises = () =>
+  api<ApiActivePaymentPromise[]>("/fees/payment-promises/active");
+
 export const apiListPaymentPromisesForStudent = (studentId: string) =>
   api<ApiPaymentPromise[]>(`/fees/payment-promises/student/${studentId}`);
 

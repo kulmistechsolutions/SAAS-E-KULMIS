@@ -1941,6 +1941,34 @@ export class FeesService {
     });
   }
 
+  /**
+   * Every still-open promise for the school, no date horizon — used to badge
+   * a student's row on the Collect Fees list even when their promised date
+   * is weeks out (the "due soon" banner only covers the next 3 days).
+   */
+  async listActivePaymentPromises(schoolId: string) {
+    return this.prisma.forTenant(schoolId, async (tx) => {
+      const promises = await tx.paymentPromise.findMany({
+        where: { status: { in: ["PENDING", "MISSED"] } },
+        orderBy: { promisedDate: "asc" },
+        select: {
+          id: true,
+          studentId: true,
+          promisedDate: true,
+          note: true,
+          amount: true,
+          status: true,
+          createdAt: true,
+        },
+      });
+      return promises.map((p) => ({
+        ...p,
+        promisedDate: p.promisedDate.toISOString(),
+        createdAt: p.createdAt.toISOString(),
+      }));
+    });
+  }
+
   /** All promises for a student, newest first — shown on their fee ledger. */
   async listPaymentPromisesForStudent(schoolId: string, studentId: string) {
     return this.prisma.forTenant(schoolId, (tx) =>

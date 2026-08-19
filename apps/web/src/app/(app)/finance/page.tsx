@@ -119,6 +119,7 @@ export default function FeeManagementPage() {
               monthKey={month}
               onPay={setPayStudent}
               onPromise={setPromiseStudent}
+              promisesRefreshToken={bannerKey}
             />
           )}
         </div>

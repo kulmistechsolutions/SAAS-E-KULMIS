@@ -2,9 +2,9 @@
 
 
 import { useT } from "@/lib/i18n/provider";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Eye, Printer, Search } from "lucide-react";
+import { ArrowLeft, CalendarClock, Eye, Printer, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
@@ -13,6 +13,11 @@ import { feeStatusLabel, money, monthLabel } from "@/lib/fees/format";
 import { listStudentFees, useFeesState } from "@/lib/fees/store";
 import { printClassCollectionList } from "@/lib/fees/print";
 import { useStudentsState } from "@/lib/students/store";
+import { shortDate } from "@/lib/students/format";
+import {
+  apiListActivePaymentPromises,
+  type ApiActivePaymentPromise,
+} from "@/lib/fees/api";
 import type { FeeChargeStatus, StudentFeeRow } from "@/lib/fees/types";
 import {
   classNamesForYear,
@@ -31,6 +36,8 @@ interface CollectFeesSectionProps {
   onPay: (row: StudentFeeRow) => void;
   /** Parent can't pay today — opens a dialog to record when they promised to. */
   onPromise?: (row: StudentFeeRow) => void;
+  /** Bump after saving a promise elsewhere so the row badges refetch. */
+  promisesRefreshToken?: number;
   compact?: boolean;
   /** Preselects the class filter, e.g. when arriving from a class card. */
   initialClass?: string;
@@ -43,6 +50,7 @@ export function CollectFeesSection({
   monthKey,
   onPay,
   onPromise,
+  promisesRefreshToken,
   compact = false,
   initialClass,
   onBack,
@@ -66,6 +74,26 @@ export function CollectFeesSection({
   const studentsState = useStudentsState();
   const feesState = useFeesState();
   useEffect(() => setMounted(true), []);
+
+  // Badges a row when its student already has an open payment promise —
+  // keyed by studentId, latest promise wins if there's more than one.
+  const [promisesByStudent, setPromisesByStudent] = useState<
+    Record<string, ApiActivePaymentPromise>
+  >({});
+  const refreshPromises = useCallback(() => {
+    void apiListActivePaymentPromises()
+      .then((rows) => {
+        const map: Record<string, ApiActivePaymentPromise> = {};
+        for (const p of rows) map[p.studentId] = p;
+        setPromisesByStudent(map);
+      })
+      .catch(() => {
+        /* badge is a nice-to-have — collecting fees still works without it */
+      });
+  }, []);
+  useEffect(() => {
+    refreshPromises();
+  }, [refreshPromises, promisesRefreshToken]);
 
   const classOptions = useMemo(
     () => classNamesForYear(academicYear),
@@ -255,13 +283,29 @@ export function CollectFeesSection({
                 r.status === "UNPAID" ||
                 r.status === "PARTIAL" ||
                 (r.outstandingBalance > 0 && r.status !== "ADVANCE_MULTI");
+              const promise = promisesByStudent[r.studentId];
               return (
                 <tr key={r.studentId} className="border-t">
                   <td className="px-4 py-2.5 text-muted-foreground">
                     {(page - 1) * PAGE_SIZE + i + 1}
                   </td>
                   <td className="px-4 py-2.5 font-mono text-xs">{r.code}</td>
-                  <td className="px-4 py-2.5 font-medium">{r.fullName}</td>
+                  <td className="px-4 py-2.5">
+                    <p className="font-medium">{r.fullName}</p>
+                    {promise && (
+                      <span
+                        className={`mt-0.5 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${
+                          promise.status === "MISSED"
+                            ? "bg-rose-500/10 text-rose-700 dark:text-rose-300"
+                            : "bg-amber-500/10 text-amber-700 dark:text-amber-300"
+                        }`}
+                        title={`${t("feesCollectFeesSection.committedOn")} ${shortDate(promise.createdAt)} — ${promise.note}`}
+                      >
+                        <CalendarClock className="h-3 w-3" />
+                        {t("feesCollectFeesSection.promised")} {shortDate(promise.promisedDate)}
+                      </span>
+                    )}
+                  </td>
                   <td className="px-4 py-2.5 tabular-nums">{money(r.monthlyFee)}</td>
                   <td className="px-4 py-2.5 tabular-nums font-medium">
                     {money(r.outstandingBalance)}

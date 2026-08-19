@@ -1095,6 +1095,8 @@ export const generated = {
     action: "Action",
     pay: "Pay",
     promise: "Promise",
+    promised: "Promised",
+    committedOn: "Committed on",
     promiseToPay: "Record that the parent promised to pay on a future date",
     view: "View",
     noStudentsMatchYourFilters: "No students match your filters.",

@@ -10,6 +10,7 @@ import { CollectFeesSection } from "@/components/fees/collect-fees-section";
 import { FamilyCollectSection } from "@/components/fees/family-collect-section";
 import { FamilyPaymentDialog } from "@/components/fees/family-payment-dialog";
 import { PaymentDialog } from "@/components/fees/payment-dialog";
+import { PromiseToPayDialog } from "@/components/fees/promise-to-pay-dialog";
 import { ReceiptDialog } from "@/components/fees/receipt-dialog";
 import { getPayment, useFeesState } from "@/lib/fees/store";
 import type { FamilyFeeRow, FeePayment, StudentFeeRow } from "@/lib/fees/types";
@@ -26,6 +27,8 @@ export default function CollectFeesPage() {
   const [payStudent, setPayStudent] = useState<StudentFeeRow | null>(null);
   const [payFamily, setPayFamily] = useState<FamilyFeeRow | null>(null);
   const [receiptNo, setReceiptNo] = useState<string | null>(null);
+  const [promiseStudent, setPromiseStudent] = useState<StudentFeeRow | null>(null);
+  const [promisesRefreshToken, setPromisesRefreshToken] = useState(0);
   useEffect(() => setMounted(true), []);
   const receipt = receiptNo ? getPayment(receiptNo) ?? null : null;
 
@@ -80,6 +83,8 @@ export default function CollectFeesPage() {
           academicYear={fees.academicYear}
           monthKey={fees.activeMonthKey}
           onPay={setPayStudent}
+          onPromise={setPromiseStudent}
+          promisesRefreshToken={promisesRefreshToken}
           initialClass={selectedClass}
           onBack={() => setSelectedClass(null)}
         />
@@ -108,6 +113,13 @@ export default function CollectFeesPage() {
         }}
       />
       <ReceiptDialog payment={receipt} onClose={() => setReceiptNo(null)} />
+
+      <PromiseToPayDialog
+        open={!!promiseStudent}
+        student={promiseStudent}
+        onClose={() => setPromiseStudent(null)}
+        onSuccess={() => setPromisesRefreshToken((k) => k + 1)}
+      />
     </div>
   );
 }
