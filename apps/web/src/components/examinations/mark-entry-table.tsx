@@ -2,7 +2,7 @@
 
 
 import { useT } from "@/lib/i18n/provider";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Download, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -77,6 +77,7 @@ export function MarkEntryTable({
   );
 
   const [values, setValues] = useState<Record<string, string>>({});
+  const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
   const [busy, setBusy] = useState(false);
 
@@ -111,7 +112,61 @@ export function MarkEntryTable({
       init[st.id] = m?.marks != null ? String(m.marks) : "";
     }
     setValues(init);
+    setDirty(false);
   }, [students, exam.id, subject, serverMarksKey]);
+
+  // Nothing typed here should vanish just because the teacher/admin switches
+  // exam or subject before clicking Save. This ref always holds the latest
+  // render's values so the effect below (whose cleanup fires exactly when
+  // exam.id/subject are about to change, or on unmount) can auto-save
+  // whatever was left unsaved for the sheet being left.
+  const latestRef = useRef({ exam, subject, subjectId, students, values, dirty, enteredBy, role });
+  useEffect(() => {
+    latestRef.current = { exam, subject, subjectId, students, values, dirty, enteredBy, role };
+  });
+
+  useEffect(() => {
+    return () => {
+      const snap = latestRef.current;
+      if (!snap.dirty || snap.students.length === 0) return;
+      const entries = snap.students.map((st) => ({
+        studentId: st.id,
+        marks:
+          snap.values[st.id] === "" || snap.values[st.id] == null
+            ? null
+            : Number(snap.values[st.id]),
+      }));
+      void saveMarks(snap.exam.id, snap.subject, entries, snap.enteredBy, snap.role, {
+        subjectId: snap.subjectId || undefined,
+        exam: snap.exam,
+      }).then((res) => {
+        if (!res.ok) {
+          toast(
+            `Unsaved marks for ${snap.subject} could not be auto-saved: ${res.error ?? "unknown error"}`,
+            "error",
+          );
+        } else {
+          toast(`Unsaved marks for ${snap.subject} were auto-saved before switching`, "success");
+        }
+      });
+    };
+    // Deliberately scoped to exam/subject only — this cleanup should fire
+    // when the sheet being edited changes (or the component unmounts), not
+    // on every keystroke.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [exam.id, subject]);
+
+  // Covers closing the tab / refreshing / navigating to another site outright
+  // — a network request from unload isn't reliable, so this warns instead.
+  useEffect(() => {
+    function handleBeforeUnload(e: BeforeUnloadEvent) {
+      if (!latestRef.current.dirty) return;
+      e.preventDefault();
+      e.returnValue = "";
+    }
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, []);
 
   const editable = !["LOCKED", "PUBLISHED", "ARCHIVED"].includes(exam.status);
 
@@ -122,6 +177,7 @@ export function MarkEntryTable({
       if (!Number.isNaN(num) && num > exam.maxMarks) return;
     }
     setValues((v) => ({ ...v, [studentId]: raw }));
+    setDirty(true);
   }
 
   async function handleSave() {
@@ -136,7 +192,10 @@ export function MarkEntryTable({
     });
     setSaving(false);
     if (!res.ok) toast(res.error ?? "Save failed", "error");
-    else toast("Marks saved", "success");
+    else {
+      setDirty(false);
+      toast("Marks saved", "success");
+    }
   }
 
   async function handleDownload() {

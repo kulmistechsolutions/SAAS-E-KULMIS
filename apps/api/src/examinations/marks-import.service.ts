@@ -7,15 +7,20 @@ import { randomUUID } from "node:crypto";
 import ExcelJS from "exceljs";
 import { PrismaService } from "../prisma/prisma.service";
 
-/** Grade from an average. Mirrors the one used everywhere else in results. */
-function gradeFromAverage(avg: number): string {
-  if (avg >= 90) return "A+";
-  if (avg >= 80) return "A";
-  if (avg >= 70) return "B";
-  if (avg >= 60) return "C";
-  if (avg >= 50) return "D";
-  return "F";
+interface GradeBand {
+  min: number;
+  max: number;
+  grade: string;
 }
+
+const DEFAULT_GRADE_BANDS: GradeBand[] = [
+  { min: 90, max: 100, grade: "A" },
+  { min: 80, max: 89, grade: "B" },
+  { min: 70, max: 79, grade: "C" },
+  { min: 60, max: 69, grade: "D" },
+  { min: 50, max: 59, grade: "E" },
+  { min: 0, max: 49, grade: "F" },
+];
 
 /** Columns the school fills in are subjects; these three are ours. */
 const ID_HEADER = "Student ID";
@@ -186,6 +191,18 @@ export class MarksImportService {
   ): Promise<{ buffer: Buffer; filename: string }> {
     const loaded = await this.loadExams(schoolId, examIds);
     const names = this.sheetNames(loaded);
+    const bands = await this.gradeBands(schoolId);
+    const gradeFormula = (avgAddress: string): string => {
+      // Highest band first so a nested IF stops at the first (and only)
+      // matching band, mirroring gradeFromBands()'s min/max lookup. The
+      // lowest band becomes the final else rather than another IF layer.
+      const sorted = [...bands].sort((a, b) => b.min - a.min);
+      const lowest = sorted[sorted.length - 1];
+      return sorted.slice(0, -1).reduce(
+        (inner, b) => `IF(${avgAddress}>=${b.min},"${b.grade}",${inner})`,
+        `"${lowest?.grade ?? "F"}"`,
+      );
+    };
 
     const wb = new ExcelJS.Workbook();
     wb.creator = "eKulmis";
@@ -247,10 +264,10 @@ export class MarksImportService {
           row.getCell(lastSubjectCol + 2).value = {
             formula: `IF(COUNT(${from}:${to})=0,"",ROUND(AVERAGE(${from}:${to}),1))`,
           };
-          // Kept in step with gradeFromAverage above.
+          // Mirrors this school's own Grade Configuration bands.
           const avg = ws.getCell(r, lastSubjectCol + 2).address;
           row.getCell(lastSubjectCol + 3).value = {
-            formula: `IF(${avg}="","",IF(${avg}>=90,"A+",IF(${avg}>=80,"A",IF(${avg}>=70,"B",IF(${avg}>=60,"C",IF(${avg}>=50,"D","F"))))))`,
+            formula: `IF(${avg}="","",${gradeFormula(avg)})`,
           };
         }
         // The two identity columns are locked so a school cannot accidentally
@@ -589,8 +606,13 @@ export class MarksImportService {
     return { imported: resolved.length, sheets: preview.sheets };
   }
 
-  /** Exposed so the eventual import writes the same grade the sheet showed. */
-  static grade(avg: number): string {
-    return gradeFromAverage(avg);
+  /** This school's Grade Configuration, or the built-in default if unset. */
+  private async gradeBands(schoolId: string): Promise<GradeBand[]> {
+    const school = await this.prisma.school.findUnique({
+      where: { id: schoolId },
+      select: { gradeBands: true },
+    });
+    const bands = school?.gradeBands as unknown as GradeBand[] | null;
+    return bands?.length ? bands : DEFAULT_GRADE_BANDS;
   }
 }

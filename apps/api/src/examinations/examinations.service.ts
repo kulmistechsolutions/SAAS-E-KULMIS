@@ -54,13 +54,40 @@ function parseDate(s: string): Date {
   return new Date(`${s}T00:00:00.000Z`);
 }
 
-function gradeFromAverage(avg: number): string {
-  if (avg >= 90) return "A+";
-  if (avg >= 80) return "A";
-  if (avg >= 70) return "B";
-  if (avg >= 60) return "C";
-  if (avg >= 50) return "D";
-  return "F";
+interface GradeBand {
+  min: number;
+  max: number;
+  grade: string;
+}
+
+/** Mirrors the seed default in apps/web/src/lib/settings/seed.ts — used
+ * whenever a school hasn't customised Settings → Examinations → Grade
+ * Configuration (School.gradeBands is null). */
+const DEFAULT_GRADE_BANDS: GradeBand[] = [
+  { min: 90, max: 100, grade: "A" },
+  { min: 80, max: 89, grade: "B" },
+  { min: 70, max: 79, grade: "C" },
+  { min: 60, max: 69, grade: "D" },
+  { min: 50, max: 59, grade: "E" },
+  { min: 0, max: 49, grade: "F" },
+];
+const DEFAULT_PASSING_PERCENTAGE = 50;
+
+interface GradingConfig {
+  bands: GradeBand[];
+  passingPercentage: number;
+}
+
+function gradeFromBands(avg: number, bands: GradeBand[]): string {
+  const band = bands.find((b) => avg >= b.min && avg <= b.max);
+  if (band) return band.grade;
+  // Above the highest band's max (e.g. rounding put a 100.0 just over a band
+  // capped at 99) or below the lowest — fall back to the nearest edge band.
+  const sorted = [...bands].sort((a, b) => a.min - b.min);
+  if (!sorted.length) return "—";
+  return avg > sorted[sorted.length - 1].max
+    ? sorted[sorted.length - 1].grade
+    : sorted[0].grade;
 }
 
 function teacherMarksBlocked(examStatus: string, role?: string): boolean {
@@ -80,6 +107,20 @@ export class ExaminationsService {
     private readonly storage: StorageService,
     private readonly config: ConfigService,
   ) {}
+
+  /** Grade bands + passing percentage from Settings → Examinations, or the
+   * built-in default when a school hasn't configured them. */
+  private async gradingConfig(schoolId: string): Promise<GradingConfig> {
+    const school = await this.prisma.school.findUnique({
+      where: { id: schoolId },
+      select: { gradeBands: true, examPassingPercentage: true },
+    });
+    const bands = (school?.gradeBands as unknown as GradeBand[] | null) ?? DEFAULT_GRADE_BANDS;
+    return {
+      bands: bands.length ? bands : DEFAULT_GRADE_BANDS,
+      passingPercentage: school?.examPassingPercentage ?? DEFAULT_PASSING_PERCENTAGE,
+    };
+  }
 
   listGroups(schoolId: string, academicYearId?: string) {
     return this.prisma.forTenant(schoolId, (tx) =>
@@ -378,6 +419,7 @@ export class ExaminationsService {
     examGroupId: string,
     classId?: string,
   ) {
+    const cfg = await this.gradingConfig(schoolId);
     return this.prisma.forTenant(schoolId, async (tx) => {
       const group = await tx.examGroup.findFirst({ where: { id: examGroupId } });
       if (!group) throw new NotFoundException("Exam group not found");
@@ -472,8 +514,8 @@ export class ExaminationsService {
               ? subjectPercents.reduce((s, p) => s + p, 0) / subjectPercents.length
               : 0;
           row.total = Math.round(total * 10) / 10;
-          row.grade = subjectPercents.length > 0 ? gradeFromAverage(total) : "—";
-          row.result = subjectPercents.length > 0 ? (total >= 50 ? "Pass" : "Fail") : "—";
+          row.grade = subjectPercents.length > 0 ? gradeFromBands(total, cfg.bands) : "—";
+          row.result = subjectPercents.length > 0 ? (total >= cfg.passingPercentage ? "Pass" : "Fail") : "—";
           rows.push(row);
         }
         classRows.set(cohort.className, rows);
@@ -1555,6 +1597,7 @@ export class ExaminationsService {
       sortDir?: "asc" | "desc";
     },
   ) {
+    const cfg = await this.gradingConfig(schoolId);
     return this.prisma.forTenant(schoolId, async (tx) => {
       const exam = await tx.exam.findFirst({
         where: { id: opts.examId, classId: opts.classId },
@@ -1613,8 +1656,8 @@ export class ExaminationsService {
         const average = totalMax
           ? Math.round((totalObtained / totalMax) * 1000) / 10
           : 0;
-        const grade = markedCount ? gradeFromAverage(average) : "—";
-        const passed = markedCount > 0 ? average >= 50 : false;
+        const grade = markedCount ? gradeFromBands(average, cfg.bands) : "—";
+        const passed = markedCount > 0 ? average >= cfg.passingPercentage : false;
         const complete = missingSubjects.length === 0;
 
         return {
@@ -1708,6 +1751,7 @@ export class ExaminationsService {
       sortDir?: "asc" | "desc";
     },
   ) {
+    const cfg = await this.gradingConfig(schoolId);
     return this.prisma.forTenant(schoolId, async (tx) => {
       const cls = await tx.class.findFirst({
         where: { id: opts.classId },
@@ -1789,8 +1833,8 @@ export class ExaminationsService {
 
         const average =
           presentCount > 0 ? Math.round((sumPercent / presentCount) * 10) / 10 : 0;
-        const grade = presentCount ? gradeFromAverage(average) : "—";
-        const passed = presentCount > 0 ? average >= 50 : false;
+        const grade = presentCount ? gradeFromBands(average, cfg.bands) : "—";
+        const passed = presentCount > 0 ? average >= cfg.passingPercentage : false;
         const complete = missingSubjects.length === 0;
 
         return {
@@ -2124,6 +2168,7 @@ export class ExaminationsService {
   }
 
   async studentResults(schoolId: string, studentId: string, academicYearId?: string) {
+    const cfg = await this.gradingConfig(schoolId);
     return this.prisma.forTenant(schoolId, async (tx) => {
       const student = await tx.student.findFirst({
         where: { id: studentId },
@@ -2162,7 +2207,7 @@ export class ExaminationsService {
             subject: es.subject.name,
             maxMarks: exam.maxMarks,
             marksObtained: obtained,
-            grade: obtained !== null ? gradeFromAverage((obtained / exam.maxMarks) * 100) : "—",
+            grade: obtained !== null ? gradeFromBands((obtained / exam.maxMarks) * 100, cfg.bands) : "—",
           };
         });
         const valid = subjects.filter((s) => s.marksObtained !== null);
@@ -2180,8 +2225,8 @@ export class ExaminationsService {
           totalObtained,
           totalMax,
           average: Math.round(average * 10) / 10,
-          grade: gradeFromAverage(average),
-          passed: average >= 50,
+          grade: gradeFromBands(average, cfg.bands),
+          passed: average >= cfg.passingPercentage,
         };
       });
 
@@ -2199,8 +2244,8 @@ export class ExaminationsService {
         academicYearId: yearId,
         termResults,
         finalAverage: Math.round(finalAverage * 10) / 10,
-        finalGrade: gradeFromAverage(finalAverage),
-        passed: finalAverage >= 50,
+        finalGrade: gradeFromBands(finalAverage, cfg.bands),
+        passed: finalAverage >= cfg.passingPercentage,
       };
     });
   }
@@ -2280,6 +2325,7 @@ export class ExaminationsService {
    * few thousand round trips on a real school.
    */
   async reportsOverview(schoolId: string, academicYearId?: string) {
+    const cfg = await this.gradingConfig(schoolId);
     return this.prisma.forTenant(schoolId, async (tx) => {
       const yearWhere = academicYearId ? { academicYearId } : {};
 
@@ -2363,10 +2409,10 @@ export class ExaminationsService {
         if (entry.weight <= 0) continue;
         const avg = entry.weighted / entry.weight;
         sum += avg;
-        const isPass = avg >= 50;
+        const isPass = avg >= cfg.passingPercentage;
         if (isPass) passed++;
 
-        const g = gradeFromAverage(avg);
+        const g = gradeFromBands(avg, cfg.bands);
         grades.set(g, (grades.get(g) ?? 0) + 1);
 
         const c = classAgg.get(entry.classId) ?? {

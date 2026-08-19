@@ -1,5 +1,11 @@
 import { z } from "zod";
 
+const gradeBandSchema = z.object({
+  min: z.number().min(0).max(100),
+  max: z.number().min(0).max(100),
+  grade: z.string().min(1).max(10),
+});
+
 /** A CSS hex colour, `#rgb` or `#rrggbb`, normalised to lowercase. */
 const hexColor = z
   .string()
@@ -44,6 +50,12 @@ export const updateSettingsSchema = z
     reportHeader: z.string().nullable().optional(),
     reportFooter: z.string().nullable().optional(),
     resultFooter: z.string().nullable().optional(),
+    /// Settings → Examinations → Grade Configuration bands. Sent as a full
+    /// array replacement (not a merge) since the UI edits the whole table.
+    gradeBands: z.array(gradeBandSchema).min(1).nullable().optional(),
+    /// Minimum overall percentage counted as a pass. Null resets to the
+    /// platform default (50).
+    examPassingPercentage: z.number().int().min(0).max(100).nullable().optional(),
     studentPrefix: z.string().min(1).max(10).optional(),
     /// Digits the numeric part of a student/parent code is padded to
     /// (STD0007 is 4). Only new codes take a changed value.

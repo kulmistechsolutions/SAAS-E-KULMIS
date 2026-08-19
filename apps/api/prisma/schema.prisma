@@ -56,6 +56,14 @@ model School {
   reportHeader         String?
   reportFooter         String?
   resultFooter         String?
+  /// Grade bands (min/max/letter) from Settings → Examinations → Grade
+  /// Configuration, e.g. [{"min":90,"max":100,"grade":"A"}, ...]. Null means
+  /// the school hasn't customised it — grading falls back to a built-in
+  /// default scale (see DEFAULT_GRADE_BANDS in examinations.service.ts).
+  gradeBands           Json?
+  /// Minimum overall percentage counted as a pass on exam results/report
+  /// cards. Null falls back to the platform default of 50.
+  examPassingPercentage Int?
 
   // ── Branding (Settings → Branding). Colours are hex like "#3b82f6".
   // Null means "not chosen yet" and the app falls back to its defaults; the

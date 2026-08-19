@@ -4,6 +4,7 @@ import {
   NotFoundException,
 } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
+import { Prisma } from "@prisma/client";
 import type { UpdateSettingsInput } from "@ekulmis/shared";
 import { PrismaService } from "../prisma/prisma.service";
 import { StorageService } from "../storage/storage.service";
@@ -114,9 +115,15 @@ export class SettingsService {
   }
 
   async update(schoolId: string, dto: UpdateSettingsInput) {
+    const { gradeBands, ...rest } = dto;
     const school = await this.prisma.school.update({
       where: { id: schoolId },
-      data: dto,
+      data: {
+        ...rest,
+        ...(gradeBands !== undefined
+          ? { gradeBands: gradeBands ?? Prisma.JsonNull }
+          : {}),
+      },
     });
     return this.attachLogoUrl(school);
   }

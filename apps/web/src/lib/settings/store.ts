@@ -264,6 +264,8 @@ const API_SECTIONS = new Set<SettingsSectionKey>([
   "students",
   "teachers",
   "parents",
+  "grades",
+  "examinations",
 ]);
 
 export async function updateSettingsSection<K extends SettingsSectionKey>(
@@ -291,6 +293,11 @@ export async function updateSettingsSection<K extends SettingsSectionKey>(
           students: remote.students,
           teachers: remote.teachers,
           parents: remote.parents,
+          grades: remote.grades,
+          // Only passingPercentage is server-backed; the rest of this
+          // section (result publishing/locking toggles, portal switches)
+          // stays whatever the school had set locally.
+          examinations: { ...next.examinations, ...remote.examinations },
           // Only sessionTimeoutMinutes is server-backed; the rest of this
           // section stays whatever the school had set locally.
           security: { ...next.security, ...remote.security },

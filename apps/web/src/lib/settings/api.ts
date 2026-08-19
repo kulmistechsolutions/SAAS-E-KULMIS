@@ -57,6 +57,8 @@ export interface ApiSchool {
   reportHeader: string | null;
   reportFooter: string | null;
   resultFooter: string | null;
+  gradeBands: { min: number; max: number; grade: string }[] | null;
+  examPassingPercentage: number | null;
   studentPrefix: string;
   studentIdLength: number;
   studentFormTemplate?: "STANDARD" | "DETAILED";
@@ -176,6 +178,12 @@ export function mapApiSchoolToSettings(
       idPrefix: row.parentPrefix,
       parentHeader: row.parentHeader ?? base.parents.parentHeader,
       parentFooter: row.parentFooter ?? base.parents.parentFooter,
+    },
+    grades: row.gradeBands && row.gradeBands.length > 0 ? row.gradeBands : base.grades,
+    examinations: {
+      ...base.examinations,
+      passingPercentage:
+        row.examPassingPercentage ?? base.examinations.passingPercentage,
     },
     branding: {
       ...base.branding,
@@ -301,6 +309,14 @@ export function mapSettingsSectionToPatch(
       parentHeader: p.parentHeader || null,
       parentFooter: p.parentFooter || null,
     };
+  }
+  if (key === "grades") {
+    const g = section as SettingsState["grades"];
+    return { gradeBands: g.length > 0 ? g : null };
+  }
+  if (key === "examinations") {
+    const e = section as SettingsState["examinations"];
+    return { examPassingPercentage: e.passingPercentage ?? null };
   }
   return null;
 }
