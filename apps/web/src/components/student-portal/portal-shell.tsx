@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import {
   CalendarCheck,
@@ -10,8 +11,9 @@ import {
   LogOut,
   Wallet,
 } from "lucide-react";
-import { studentPortalLogout } from "@/lib/student-portal/api";
+import { apiFetchStudentPortalPhotoBlob, studentPortalLogout } from "@/lib/student-portal/api";
 import type { StudentPortalMe } from "@/lib/student-portal/api";
+import { ImageLightbox } from "@/components/ui/image-lightbox";
 import { cn } from "@/lib/utils";
 
 const NAV = [
@@ -31,6 +33,21 @@ export function StudentPortalShell({
 }) {
   const pathname = usePathname();
   const router = useRouter();
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+
+  useEffect(() => {
+    let objectUrl: string | null = null;
+    void apiFetchStudentPortalPhotoBlob()
+      .then((blob) => {
+        objectUrl = URL.createObjectURL(blob);
+        setPhotoUrl(objectUrl);
+      })
+      .catch(() => setPhotoUrl(null));
+    return () => {
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, []);
 
   function signOut() {
     studentPortalLogout();
@@ -42,9 +59,21 @@ export function StudentPortalShell({
       <header className="sticky top-0 z-10 border-b bg-card/90 shadow-sm backdrop-blur">
         <div className="mx-auto flex max-w-4xl items-center justify-between gap-3 px-4 py-3.5">
           <div className="flex min-w-0 items-center gap-3">
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 text-base font-bold text-white shadow-sm">
-              {me.fullName.charAt(0).toUpperCase()}
-            </span>
+            {photoUrl ? (
+              <button
+                type="button"
+                onClick={() => setLightboxOpen(true)}
+                className="h-11 w-11 shrink-0 cursor-zoom-in overflow-hidden rounded-2xl shadow-sm ring-2 ring-background transition hover:ring-primary/40 focus-visible:outline-none focus-visible:ring-primary"
+                aria-label={`View photo of ${me.fullName}`}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={photoUrl} alt={me.fullName} className="h-full w-full object-cover" />
+              </button>
+            ) : (
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 text-base font-bold text-white shadow-sm">
+                {me.fullName.charAt(0).toUpperCase()}
+              </span>
+            )}
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold leading-tight">{me.fullName}</p>
               <p className="truncate text-xs text-muted-foreground">
@@ -83,6 +112,15 @@ export function StudentPortalShell({
       </header>
 
       <main className="mx-auto max-w-4xl px-4 py-6 sm:py-8">{children}</main>
+
+      {photoUrl ? (
+        <ImageLightbox
+          open={lightboxOpen}
+          src={photoUrl}
+          alt={me.fullName}
+          onClose={() => setLightboxOpen(false)}
+        />
+      ) : null}
     </div>
   );
 }
