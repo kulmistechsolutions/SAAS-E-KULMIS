@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useSchoolBranding } from "@/lib/settings/use-school-branding";
 import { printExamResultCard } from "@/lib/examinations/print";
-import { StudentAvatar } from "@/components/students/student-avatar";
+import { ImageLightbox } from "@/components/ui/image-lightbox";
 
 /** One subject line on the card. */
 export interface ResultCardSubject {
@@ -112,6 +112,7 @@ export function ExamResultCard({ data }: { data: ExamResultCardData }) {
   const t = useT();
   const branding = useSchoolBranding();
   const [qr, setQr] = useState<string | null>(null);
+  const [photoOpen, setPhotoOpen] = useState(false);
 
   const scanUrl = useMemo(
     () => publicResultUrl(data.studentCode),
@@ -185,13 +186,27 @@ export function ExamResultCard({ data }: { data: ExamResultCardData }) {
           <div className="min-w-0 space-y-5">
             <div className="flex items-start gap-4">
               {data.studentPhotoUrl ? (
-                <StudentAvatar
-                  name={data.studentName}
-                  hasPhoto
-                  photoUrl={data.studentPhotoUrl}
-                  size="md"
-                  className="shrink-0"
-                />
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setPhotoOpen(true)}
+                    className="h-16 w-16 shrink-0 cursor-zoom-in overflow-hidden rounded-2xl bg-secondary ring-2 ring-background transition hover:ring-primary/40 focus-visible:outline-none focus-visible:ring-primary"
+                    aria-label={`View photo of ${data.studentName}`}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={data.studentPhotoUrl}
+                      alt={data.studentName}
+                      className="h-full w-full object-cover"
+                    />
+                  </button>
+                  <ImageLightbox
+                    open={photoOpen}
+                    src={data.studentPhotoUrl}
+                    alt={data.studentName}
+                    onClose={() => setPhotoOpen(false)}
+                  />
+                </>
               ) : null}
               <div className="grid min-w-0 flex-1 grid-cols-2 gap-x-6 gap-y-2 text-sm sm:grid-cols-3">
               <Info label={t("examinationsExamResultCard.student")} value={data.studentName} />

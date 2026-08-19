@@ -1,4 +1,5 @@
-import { BadRequestException, Body, Controller, Get, Post } from "@nestjs/common";
+import { BadRequestException, Body, Controller, Get, Post, Res } from "@nestjs/common";
+import type { Response } from "express";
 import { studentPortalLoginSchema, UserRole } from "@ekulmis/shared";
 import type { TenantContext } from "@ekulmis/shared";
 import { StudentPortalService } from "./student-portal.service";
@@ -46,6 +47,15 @@ export class StudentPortalController {
   @Get("results")
   results(@CurrentUser() me: AuthUser) {
     return this.portal.results(me.schoolId, me.userId);
+  }
+
+  @Roles(UserRole.STUDENT)
+  @Get("photo")
+  async photo(@CurrentUser() me: AuthUser, @Res() res: Response) {
+    const { buffer, contentType } = await this.portal.photo(me.schoolId, me.userId);
+    res.setHeader("Content-Type", contentType);
+    res.setHeader("Cache-Control", "private, max-age=300");
+    res.send(buffer);
   }
 
   @Roles(UserRole.STUDENT)

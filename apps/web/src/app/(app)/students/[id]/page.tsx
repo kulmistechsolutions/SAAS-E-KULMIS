@@ -29,6 +29,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs } from "@/components/ui/tabs";
 import { StudentFormDialog } from "@/components/students/student-form-dialog";
 import { StudentAvatar } from "@/components/students/student-avatar";
+import { useStudentPhoto } from "@/lib/students/photo";
 import {
   useStudentsState,
   withParents,
@@ -1006,6 +1007,7 @@ function ExamsTab({ student }: { student: StudentWithParent }) {
   const [result, setResult] = useState<StudentFinalResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [viewing, setViewing] = useState<StudentExamResult | null>(null);
+  const resolvedPhotoUrl = useStudentPhoto(student.id, student.hasPhoto, student.photoUrl);
 
   useEffect(() => {
     let active = true;
@@ -1122,7 +1124,7 @@ function ExamsTab({ student }: { student: StudentWithParent }) {
                 ? {
                     studentName: result.studentName,
                     studentCode: result.studentCode,
-                    studentPhotoUrl: result.studentPhotoUrl,
+                    studentPhotoUrl: resolvedPhotoUrl,
                     className: result.className,
                     section: result.section,
                     academicYear: result.academicYear,
@@ -1141,7 +1143,7 @@ function ExamsTab({ student }: { student: StudentWithParent }) {
                 : {
                     studentName: result.studentName,
                     studentCode: result.studentCode,
-                    studentPhotoUrl: result.studentPhotoUrl,
+                    studentPhotoUrl: resolvedPhotoUrl,
                     className: result.className,
                     section: result.section,
                     academicYear: result.academicYear,

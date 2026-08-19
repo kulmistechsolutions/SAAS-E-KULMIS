@@ -6,6 +6,7 @@ import { ExaminationsService } from "../examinations/examinations.service";
 import { FeesService } from "../finance/fees.service";
 import { TimetableViewService } from "../timetable/timetable-view.service";
 import { QuizService } from "../quiz/quiz.service";
+import { StudentsService } from "../students/students.service";
 import { verifyPassword } from "../auth/password.util";
 import type { JwtPayload } from "../auth/auth.types";
 
@@ -28,6 +29,7 @@ export class StudentPortalService {
     private readonly fees: FeesService,
     private readonly timetable: TimetableViewService,
     private readonly quiz: QuizService,
+    private readonly students: StudentsService,
   ) {}
 
   async login(schoolId: string, dto: StudentPortalLoginInput) {
@@ -134,6 +136,13 @@ export class StudentPortalService {
   async results(schoolId: string, studentId: string) {
     await this.requireActiveStudent(schoolId, studentId);
     return this.exams.studentResults(schoolId, studentId);
+  }
+
+  /** A student's own photo — never anyone else's, since studentId always
+   * comes from the caller's own JWT (see StudentPortalController.photo). */
+  async photo(schoolId: string, studentId: string) {
+    await this.requireActiveStudent(schoolId, studentId);
+    return this.students.getPhoto(schoolId, studentId);
   }
 
   async timetableForStudent(schoolId: string, studentId: string) {

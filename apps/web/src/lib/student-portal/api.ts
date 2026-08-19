@@ -122,6 +122,17 @@ export interface StudentPortalResults {
 export const apiStudentPortalResults = () =>
   studentApi<StudentPortalResults>("/student-portal/results");
 
+export async function apiFetchStudentPortalPhotoBlob(): Promise<Blob> {
+  const token = getStudentPortalToken();
+  const headers: Record<string, string> = { "x-tenant-subdomain": TENANT };
+  if (token) headers.Authorization = `Bearer ${token}`;
+  const res = await fetch(`${API_URL}/api/student-portal/photo`, { headers });
+  if (!res.ok) {
+    throw new Error(res.status === 404 ? "Photo not found" : "Failed to load photo");
+  }
+  return res.blob();
+}
+
 export const apiStudentPortalTimetable = () =>
   studentApi<unknown[]>("/student-portal/timetable");
 

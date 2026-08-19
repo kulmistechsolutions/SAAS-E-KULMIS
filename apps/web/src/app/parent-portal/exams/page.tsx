@@ -7,6 +7,7 @@ import { ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { usePortal, usePortalAudit } from "@/components/parent-portal/portal-context";
 import { fetchChildExamResults } from "@/lib/parent-portal/store";
+import { apiFetchPortalChildPhotoBlob } from "@/lib/parent-portal/api";
 import { buildExamGroupBreakdown } from "@/lib/examinations/store";
 import type { StudentExamResult } from "@/lib/examinations/types";
 import { ExamResultCard, type ExamResultCardData } from "@/components/examinations/exam-result-card";
@@ -32,6 +33,7 @@ export default function ParentExamsPage() {
   const [finalPassed, setFinalPassed] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(true);
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
 
   useEffect(() => {
     if (!selectedChild) {
@@ -52,6 +54,25 @@ export default function ParentExamsPage() {
     });
   }, [selectedChild]);
 
+  // Local storage backends can't hand out a direct photo URL, so fetch the
+  // bytes through the authenticated portal proxy per selected child.
+  useEffect(() => {
+    if (!selectedChild) {
+      setPhotoUrl(null);
+      return;
+    }
+    let objectUrl: string | null = null;
+    void apiFetchPortalChildPhotoBlob(selectedChild.id)
+      .then((blob) => {
+        objectUrl = URL.createObjectURL(blob);
+        setPhotoUrl(objectUrl);
+      })
+      .catch(() => setPhotoUrl(null));
+    return () => {
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [selectedChild]);
+
   function toggleExpanded(groupId: string) {
     setExpandedGroups((prev) => {
       const next = new Set(prev);
@@ -63,7 +84,7 @@ export default function ParentExamsPage() {
 
   const baseInfo = {
     studentName: selectedChild?.fullName ?? "",
-    studentPhotoUrl: selectedChild?.photoUrl ?? null,
+    studentPhotoUrl: photoUrl ?? selectedChild?.photoUrl ?? null,
     studentCode,
     className,
     section,

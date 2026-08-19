@@ -3,6 +3,7 @@ import { PrismaService } from "../prisma/prisma.service";
 import { ExaminationsService } from "../examinations/examinations.service";
 import { FeesService } from "../finance/fees.service";
 import { TimetableViewService } from "../timetable/timetable-view.service";
+import { StudentsService } from "../students/students.service";
 
 @Injectable()
 export class ParentPortalService {
@@ -11,6 +12,7 @@ export class ParentPortalService {
     private readonly exams: ExaminationsService,
     private readonly fees: FeesService,
     private readonly timetable: TimetableViewService,
+    private readonly students: StudentsService,
   ) {}
 
   private async parentIdForUser(schoolId: string, userId: string) {
@@ -133,5 +135,14 @@ export class ParentPortalService {
       if (!student) throw new NotFoundException("Child not found");
       return this.exams.studentResults(schoolId, studentId);
     });
+  }
+
+  async childPhoto(schoolId: string, studentId: string, userId: string) {
+    const parentId = await this.parentIdForUser(schoolId, userId);
+    const owns = await this.prisma.forTenant(schoolId, (tx) =>
+      tx.student.findFirst({ where: { id: studentId, parentId }, select: { id: true } }),
+    );
+    if (!owns) throw new NotFoundException("Child not found");
+    return this.students.getPhoto(schoolId, studentId);
   }
 }

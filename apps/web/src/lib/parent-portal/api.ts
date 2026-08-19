@@ -1,6 +1,6 @@
 "use client";
 
-import { api, clearAuthTokens, setAccessToken, setRefreshToken } from "@/lib/api";
+import { API_URL, TENANT, api, clearAuthTokens, getAccessToken, setAccessToken, setRefreshToken } from "@/lib/api";
 import type { Gender, StudentStatus } from "@/lib/students/types";
 import type { PortalAnnouncement, PortalNotification } from "./types";
 
@@ -161,6 +161,19 @@ export const apiPortalFees = (studentId: string) =>
 
 export const apiPortalResults = (studentId: string) =>
   api<ApiPortalStudentResults>(`/parent-portal/children/${studentId}/results`);
+
+export async function apiFetchPortalChildPhotoBlob(studentId: string): Promise<Blob> {
+  const token = getAccessToken();
+  const headers: Record<string, string> = { "x-tenant-subdomain": TENANT };
+  if (token) headers.Authorization = `Bearer ${token}`;
+  const res = await fetch(`${API_URL}/api/parent-portal/children/${studentId}/photo`, {
+    headers,
+  });
+  if (!res.ok) {
+    throw new Error(res.status === 404 ? "Photo not found" : "Failed to load photo");
+  }
+  return res.blob();
+}
 
 export const apiPortalNotifications = () =>
   api<ApiNotification[]>("/parent-portal/notifications");

@@ -3,7 +3,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { apiStudentPortalResults, type StudentPortalResults } from "@/lib/student-portal/api";
+import {
+  apiFetchStudentPortalPhotoBlob,
+  apiStudentPortalResults,
+  type StudentPortalResults,
+} from "@/lib/student-portal/api";
 import { buildExamGroupBreakdown } from "@/lib/examinations/store";
 import type { StudentExamResult } from "@/lib/examinations/types";
 import { ExamResultCard, type ExamResultCardData } from "@/components/examinations/exam-result-card";
@@ -16,6 +20,7 @@ interface CardEntry {
 
 export default function StudentPortalResultsPage() {
   const [data, setData] = useState<StudentPortalResults | null>(null);
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
 
@@ -26,16 +31,33 @@ export default function StudentPortalResultsPage() {
       .finally(() => setLoading(false));
   }, []);
 
+  // Local storage backends can't hand out a direct photo URL, so fetch the
+  // bytes through the authenticated portal proxy and turn them into an
+  // object URL the card can just <img src=...> — same object URL for every
+  // card on this page since it's always the signed-in student's own photo.
+  useEffect(() => {
+    let objectUrl: string | null = null;
+    void apiFetchStudentPortalPhotoBlob()
+      .then((blob) => {
+        objectUrl = URL.createObjectURL(blob);
+        setPhotoUrl(objectUrl);
+      })
+      .catch(() => setPhotoUrl(null));
+    return () => {
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, []);
+
   const results: StudentExamResult[] = data?.termResults ?? [];
   const baseInfo = useMemo(
     () => ({
       studentName: data?.studentName ?? "",
       studentCode: data?.studentCode ?? "",
-      studentPhotoUrl: data?.studentPhotoUrl ?? null,
+      studentPhotoUrl: photoUrl ?? data?.studentPhotoUrl ?? null,
       className: data?.className ?? "",
       section: data?.section ?? null,
     }),
-    [data],
+    [data, photoUrl],
   );
 
   function toggleExpanded(groupId: string) {

@@ -1,4 +1,5 @@
-import { Controller, Get, Param } from "@nestjs/common";
+import { Controller, Get, Param, Res } from "@nestjs/common";
+import type { Response } from "express";
 import { UserRole } from "@ekulmis/shared";
 import { ParentPortalService } from "./parent-portal.service";
 import { Roles } from "../auth/roles.decorator";
@@ -47,6 +48,22 @@ export class ParentPortalController {
   @Get("children/:studentId/results")
   results(@CurrentUser() me: AuthUser, @Param("studentId") studentId: string) {
     return this.portal.childResults(me.schoolId, studentId, me.userId);
+  }
+
+  @Get("children/:studentId/photo")
+  async photo(
+    @CurrentUser() me: AuthUser,
+    @Param("studentId") studentId: string,
+    @Res() res: Response,
+  ) {
+    const { buffer, contentType } = await this.portal.childPhoto(
+      me.schoolId,
+      studentId,
+      me.userId,
+    );
+    res.setHeader("Content-Type", contentType);
+    res.setHeader("Cache-Control", "private, max-age=300");
+    res.send(buffer);
   }
 
   @Get("notifications")
