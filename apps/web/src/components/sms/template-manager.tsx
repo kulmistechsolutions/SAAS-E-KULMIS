@@ -28,6 +28,42 @@ interface Props {
 
 const EMPTY = { name: "", category: "CUSTOM" as SmsCategory, body: "" };
 
+// Somali text is plain Latin, so templates normally fit the GSM-7 alphabet
+// (160 chars/segment single, 153/segment concatenated). Any character
+// outside it (emoji, curly quotes, etc.) forces UCS-2 billing instead
+// (70/67 chars/segment) — worth flagging since it silently multiplies cost.
+const GSM7_RE =
+  /^[A-Za-z0-9@£$¥èéùìòÇØøÅåΔ_ΦΓΛΩΠΨΣΘΞÆæßÉ !"#¤%&'()*+,\-./:;<=>?¡ÄÖÑÜ§¿äöñüà\n\r\t^{}\\[~\]|€]*$/;
+
+function smsCost(body: string): { chars: number; segments: number; ucs2: boolean } {
+  const chars = body.length;
+  const ucs2 = !GSM7_RE.test(body);
+  const single = ucs2 ? 70 : 160;
+  const multi = ucs2 ? 67 : 153;
+  const segments = chars === 0 ? 0 : chars <= single ? 1 : Math.ceil(chars / multi);
+  return { chars, segments, ucs2 };
+}
+
+function TemplateCostHint({ body, compact }: { body: string; compact?: boolean }) {
+  const tr = useT();
+  const { chars, segments, ucs2 } = smsCost(body);
+  if (chars === 0) return null;
+  const over = segments > 1;
+  return (
+    <p
+      className={`${compact ? "mt-1" : "mt-1.5"} text-[11px] ${
+        over ? "font-medium text-amber-600 dark:text-amber-400" : "text-muted-foreground"
+      }`}
+    >
+      {chars} {tr("smsTemplateManager.chars")} ·{" "}
+      {segments <= 1
+        ? tr("smsTemplateManager.oneSmsCredit")
+        : tr("smsTemplateManager.nSmsCredits", { count: segments })}
+      {ucs2 ? ` · ${tr("smsTemplateManager.specialCharactersRaiseCost")}` : ""}
+    </p>
+  );
+}
+
 export function TemplateManager({ templates, onChanged }: Props) {
   const t = useT();
   const tr = useT();
@@ -177,6 +213,7 @@ export function TemplateManager({ templates, onChanged }: Props) {
                 onChange={(e) => setForm((f) => ({ ...f, body: e.target.value }))}
                 placeholder={tr("smsTemplateManager.writeYourMessageAndClickA")}
               />
+              <TemplateCostHint body={form.body} />
             </div>
             <VariableWarning body={form.body} />
           </div>
@@ -203,6 +240,7 @@ export function TemplateManager({ templates, onChanged }: Props) {
                   </span>
                 </div>
                 <p className="mt-1 text-sm text-muted-foreground">{t.body}</p>
+                <TemplateCostHint body={t.body} compact />
               </div>
               <div className="flex shrink-0 gap-1">
                 <button

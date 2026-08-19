@@ -3868,6 +3868,10 @@ export const generated = {
     resetFailed: "Reset failed",
     deleteFailed: "Delete failed",
     saveFailed: "Save failed",
+    chars: "chars",
+    oneSmsCredit: "1 SMS credit",
+    nSmsCredits: "{count} SMS credits",
+    specialCharactersRaiseCost: "special characters raise the cost",
   },
   smsVariables: {
     clickToInsertTheseFillIn: "Click to insert — these fill in automatically for each recipient",
