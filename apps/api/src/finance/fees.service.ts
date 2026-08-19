@@ -1117,6 +1117,14 @@ export class FeesService {
       // charge can receive more than one allocation entry) and in order.
       const monthKeys = [...new Set(allocations.map((a) => `${a.year}-${String(a.month).padStart(2, "0")}`))].sort();
 
+      // The parent paid — whatever they'd promised is settled, so any open
+      // promise for this student closes itself rather than sitting on the
+      // Collect Fees list looking unresolved.
+      await tx.paymentPromise.updateMany({
+        where: { studentId: student.id, status: { in: ["PENDING", "MISSED"] } },
+        data: { status: "FULFILLED" },
+      });
+
       return { receiptNumber, payment, unallocated: remaining, monthKeys };
     });
   }
@@ -1265,6 +1273,16 @@ export class FeesService {
             amountApplied,
           });
         }
+
+        // Same as pay(): any sibling who actually got paid has their open
+        // promise settled, so it stops showing as unresolved.
+        await tx.paymentPromise.updateMany({
+          where: {
+            studentId: { in: [...appliedByStudent.keys()] },
+            status: { in: ["PENDING", "MISSED"] },
+          },
+          data: { status: "FULFILLED" },
+        });
 
         return {
           parentName: parent.name,
@@ -2032,7 +2050,15 @@ export class FeesService {
     );
     if (!existing) throw new NotFoundException("Payment promise not found");
     return this.prisma.forTenant(schoolId, (tx) =>
-      tx.paymentPromise.update({ where: { id }, data: { status: dto.status } }),
+      tx.paymentPromise.update({
+        where: { id },
+        data: {
+          status: dto.status,
+          promisedDate: dto.promisedDate,
+          note: dto.note,
+          amount: dto.amount,
+        },
+      }),
     );
   }
 }

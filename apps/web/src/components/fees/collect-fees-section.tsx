@@ -27,6 +27,7 @@ import {
 } from "@/lib/academics/store";
 import { FeeStatusBadge, FreeStudentBadge } from "./fee-status-badge";
 import { ParentContactActions } from "./parent-contact-actions";
+import { PromiseToPayDialog } from "./promise-to-pay-dialog";
 
 const PAGE_SIZE = 8;
 
@@ -94,6 +95,14 @@ export function CollectFeesSection({
   useEffect(() => {
     refreshPromises();
   }, [refreshPromises, promisesRefreshToken]);
+
+  // Clicking a row's promise badge opens it here for viewing/editing —
+  // separate from the parent-controlled "Promise" button, which always
+  // creates a fresh one.
+  const [editingPromise, setEditingPromise] = useState<{
+    row: StudentFeeRow;
+    promise: ApiActivePaymentPromise;
+  } | null>(null);
 
   const classOptions = useMemo(
     () => classNamesForYear(academicYear),
@@ -293,8 +302,10 @@ export function CollectFeesSection({
                   <td className="px-4 py-2.5">
                     <p className="font-medium">{r.fullName}</p>
                     {promise && (
-                      <span
-                        className={`mt-0.5 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${
+                      <button
+                        type="button"
+                        onClick={() => setEditingPromise({ row: r, promise })}
+                        className={`mt-0.5 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium transition-opacity hover:opacity-80 ${
                           promise.status === "MISSED"
                             ? "bg-rose-500/10 text-rose-700 dark:text-rose-300"
                             : "bg-amber-500/10 text-amber-700 dark:text-amber-300"
@@ -303,7 +314,7 @@ export function CollectFeesSection({
                       >
                         <CalendarClock className="h-3 w-3" />
                         {t("feesCollectFeesSection.promised")} {shortDate(promise.promisedDate)}
-                      </span>
+                      </button>
                     )}
                   </td>
                   <td className="px-4 py-2.5 tabular-nums">{money(r.monthlyFee)}</td>
@@ -384,6 +395,14 @@ export function CollectFeesSection({
           />
         </div>
       )}
+
+      <PromiseToPayDialog
+        open={!!editingPromise}
+        student={editingPromise?.row ?? null}
+        existing={editingPromise?.promise}
+        onClose={() => setEditingPromise(null)}
+        onSuccess={refreshPromises}
+      />
     </div>
   );
 }

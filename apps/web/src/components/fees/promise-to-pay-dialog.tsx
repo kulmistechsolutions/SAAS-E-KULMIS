@@ -7,13 +7,20 @@ import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { apiCreatePaymentPromise } from "@/lib/fees/api";
+import {
+  apiCreatePaymentPromise,
+  apiUpdatePaymentPromise,
+  type ApiActivePaymentPromise,
+} from "@/lib/fees/api";
+import { shortDate } from "@/lib/students/format";
 import type { StudentFeeRow } from "@/lib/fees/types";
 import { toast } from "@/lib/toast";
 
 interface PromiseToPayDialogProps {
   open: boolean;
   student: StudentFeeRow | null;
+  /** When set, the dialog edits this promise instead of creating a new one. */
+  existing?: ApiActivePaymentPromise | null;
   onClose: () => void;
   onSuccess?: () => void;
 }
@@ -27,6 +34,7 @@ function tomorrowIso(): string {
 export function PromiseToPayDialog({
   open,
   student,
+  existing,
   onClose,
   onSuccess,
 }: PromiseToPayDialogProps) {
@@ -38,10 +46,10 @@ export function PromiseToPayDialog({
 
   useEffect(() => {
     if (!open) return;
-    setDate(tomorrowIso());
-    setNote("");
-    setAmount("");
-  }, [open, student?.studentId]);
+    setDate(existing ? existing.promisedDate.slice(0, 10) : tomorrowIso());
+    setNote(existing?.note ?? "");
+    setAmount(existing?.amount != null ? String(existing.amount) : "");
+  }, [open, student?.studentId, existing]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -52,13 +60,22 @@ export function PromiseToPayDialog({
     }
     setSubmitting(true);
     try {
-      await apiCreatePaymentPromise({
-        studentId: student.studentId,
-        promisedDate: date,
-        note: note.trim(),
-        amount: amount.trim() ? Number(amount) : undefined,
-      });
-      toast(t("feesPromiseToPayDialog.paymentPromiseRecorded"), "success");
+      if (existing) {
+        await apiUpdatePaymentPromise(existing.id, {
+          promisedDate: date,
+          note: note.trim(),
+          amount: amount.trim() ? Number(amount) : null,
+        });
+        toast(t("feesPromiseToPayDialog.paymentPromiseUpdated"), "success");
+      } else {
+        await apiCreatePaymentPromise({
+          studentId: student.studentId,
+          promisedDate: date,
+          note: note.trim(),
+          amount: amount.trim() ? Number(amount) : undefined,
+        });
+        toast(t("feesPromiseToPayDialog.paymentPromiseRecorded"), "success");
+      }
       onSuccess?.();
       onClose();
     } catch (err) {
@@ -71,15 +88,60 @@ export function PromiseToPayDialog({
     }
   }
 
+  async function handleResolve(status: "FULFILLED" | "CANCELLED") {
+    if (!existing) return;
+    setSubmitting(true);
+    try {
+      await apiUpdatePaymentPromise(existing.id, { status });
+      toast(
+        status === "FULFILLED"
+          ? t("feesPromiseToPayDialog.markedAsPaid")
+          : t("feesPromiseToPayDialog.promiseCancelled"),
+        "success",
+      );
+      onSuccess?.();
+      onClose();
+    } catch (err) {
+      toast(err instanceof Error ? err.message : t("feesPromiseToPayDialog.failedToSavePromise"), "error");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   return (
     <Dialog
       open={open}
       onClose={onClose}
-      title={t("feesPromiseToPayDialog.promiseToPay")}
+      title={
+        existing
+          ? t("feesPromiseToPayDialog.editPromise")
+          : t("feesPromiseToPayDialog.promiseToPay")
+      }
       description={student ? `${student.fullName} · ${student.code}` : undefined}
       className="max-w-md"
       footer={
         <>
+          {existing && (
+            <>
+              <Button
+                type="button"
+                variant="outline"
+                className="me-auto text-rose-600 hover:text-rose-700"
+                disabled={submitting}
+                onClick={() => void handleResolve("CANCELLED")}
+              >
+                {t("feesPromiseToPayDialog.cancelPromise")}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                disabled={submitting}
+                onClick={() => void handleResolve("FULFILLED")}
+              >
+                {t("feesPromiseToPayDialog.markAsPaid")}
+              </Button>
+            </>
+          )}
           <Button type="button" variant="outline" onClick={onClose}>
             {t("feesPromiseToPayDialog.cancel")}
           </Button>
@@ -90,6 +152,11 @@ export function PromiseToPayDialog({
       }
     >
       <form id="promise-to-pay-form" onSubmit={handleSubmit} className="space-y-4">
+        {existing && (
+          <p className="rounded-lg bg-secondary/40 px-3 py-2 text-xs text-muted-foreground">
+            {t("feesPromiseToPayDialog.committedOn")} {shortDate(existing.createdAt)}
+          </p>
+        )}
         <div>
           <Label>{t("feesPromiseToPayDialog.dateTheyWillPay")}</Label>
           <Input

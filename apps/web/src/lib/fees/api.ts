@@ -475,11 +475,18 @@ export const apiListActivePaymentPromises = () =>
 export const apiListPaymentPromisesForStudent = (studentId: string) =>
   api<ApiPaymentPromise[]>(`/fees/payment-promises/student/${studentId}`);
 
+export interface UpdatePaymentPromiseApiInput {
+  status?: PaymentPromiseStatus;
+  promisedDate?: string;
+  note?: string;
+  amount?: number | null;
+}
+
 export const apiUpdatePaymentPromise = (
   id: string,
-  status: PaymentPromiseStatus,
+  body: UpdatePaymentPromiseApiInput,
 ) =>
   api<ApiPaymentPromise>(`/fees/payment-promises/${id}`, {
     method: "PATCH",
-    body: { status },
+    body,
   });

@@ -252,7 +252,10 @@ export type PaymentPromiseStatusInput = z.infer<
 >;
 
 export const updatePaymentPromiseSchema = z.object({
-  status: paymentPromiseStatusSchema,
+  status: paymentPromiseStatusSchema.optional(),
+  promisedDate: z.coerce.date().optional(),
+  note: z.string().min(1).max(500).optional(),
+  amount: positiveAmount.nullable().optional(),
 });
 export type UpdatePaymentPromiseInput = z.infer<
   typeof updatePaymentPromiseSchema
