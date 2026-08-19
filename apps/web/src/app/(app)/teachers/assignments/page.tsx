@@ -174,7 +174,7 @@ export default function TeacherAssignmentsPage() {
                       <td className="px-4 py-3">{a.className}</td>
                       <td className="px-4 py-3">{sectionLabel(a.section)}</td>
                       <td className="px-4 py-3">
-                        {assignmentShiftLabel(a.shift, t?.shift ?? "")}
+                        {assignmentShiftLabel(a.shift, t?.shifts ?? [])}
                       </td>
                       <td className="px-4 py-3">{a.subject}</td>
                       <td className="px-4 py-3">{a.academicYear}</td>

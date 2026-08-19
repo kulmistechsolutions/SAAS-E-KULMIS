@@ -663,7 +663,11 @@ model Teacher {
   qualification    String?
   gender           Gender
   salary           Int              @default(0)
-  shift            Shift
+  /// Which shift(s) this teacher works — most teach one, some teach both.
+  /// A teacher's assignments only ask which shift a slot falls in when this
+  /// has more than one value; a single-shift teacher's assignments inherit
+  /// it without being asked (see TeacherAssignment.shift).
+  shifts           Shift[]
   status           EmploymentStatus @default(ACTIVE)
   /// Explicit admin grant — teachers cannot browse students without this.
   canViewStudents  Boolean          @default(false)
@@ -706,9 +710,9 @@ model TeacherAssignment {
   sectionId      String?
   subjectId      String
   /// Which shift THIS slot is taught in. Only meaningful — and only ever
-  /// asked for — when the teacher's own profile is BOTH; a single-shift
+  /// asked for — when the teacher works more than one shift; a single-shift
   /// teacher's assignments inherit their one shift without being asked.
-  /// Never BOTH itself: enforced by a CHECK constraint (see migration).
+  /// Never BOTH: enforced by a CHECK constraint (see migration).
   shift          Shift?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
@@ -1706,9 +1710,10 @@ enum AttendanceStatus {
 enum Shift {
   MORNING
   AFTERNOON
-  /// A teacher who works both shifts. Never valid on a single TeacherAssignment
-  /// row — an assignment is one class in one shift — only on the teacher's own
-  /// profile, where it means "ask which shift" whenever they're assigned.
+  /// Historical value — a teacher who works both shifts is now expressed as
+  /// Teacher.shifts holding both MORNING and AFTERNOON. Kept in the enum
+  /// only so old TeacherAssignment/TeacherAttendance rows still typecheck;
+  /// never write BOTH going forward.
   BOTH
 }
 

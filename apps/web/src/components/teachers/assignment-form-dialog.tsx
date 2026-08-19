@@ -119,11 +119,11 @@ export function AssignmentFormDialog({
   const [teacher, setTeacher] = useState(teacherId ?? "");
   const [year, setYear] = useState("");
 
-  // A teacher whose own profile is BOTH works both shifts, so each
-  // assignment row for them needs to say which one; a single-shift teacher's
-  // assignments simply inherit their one shift without being asked.
+  // A teacher who works more than one shift needs each assignment row to say
+  // which one; a single-shift teacher's assignments simply inherit their one
+  // shift without being asked.
   const selectedTeacher = teachers.find((t) => t.id === teacher);
-  const isBoth = selectedTeacher?.shift === "BOTH";
+  const isBoth = (selectedTeacher?.shifts.length ?? 0) > 1;
 
   // Edit (single row)
   const [klass, setKlass] = useState("");

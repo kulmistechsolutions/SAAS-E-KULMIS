@@ -24,7 +24,7 @@ export class TeacherAttendanceService {
     const date = parseDate(dto.date);
     return this.prisma.forTenant(schoolId, async (tx) => {
       const eligible = await tx.teacher.findMany({
-        where: { shift: dto.shift, status: "ACTIVE" },
+        where: { shifts: { has: dto.shift }, status: "ACTIVE" },
         select: { id: true },
       });
       const eligibleIds = new Set(eligible.map((t) => t.id));
@@ -61,9 +61,9 @@ export class TeacherAttendanceService {
     const date = parseDate(dateStr);
     return this.prisma.forTenant(schoolId, async (tx) => {
       const teachers = await tx.teacher.findMany({
-        where: { shift: shift as never, status: "ACTIVE" },
+        where: { shifts: { has: shift as never }, status: "ACTIVE" },
         orderBy: { fullName: "asc" },
-        select: { id: true, code: true, fullName: true, shift: true },
+        select: { id: true, code: true, fullName: true, shifts: true },
       });
       const records = await tx.teacherAttendance.findMany({
         where: { shift: shift as never, date },

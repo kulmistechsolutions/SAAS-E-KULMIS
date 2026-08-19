@@ -6,7 +6,7 @@ import {
   genderLabel,
   money,
   sectionLabel,
-  shiftLabel,
+  shiftsLabel,
   shortDate,
   statusLabel,
 } from "./format";
@@ -44,7 +44,7 @@ export const TEACHER_EXPORT_FIELDS: TeacherFieldDef[] = [
   { key: "address", label: "Address", value: (t) => t.address ?? "—" },
   { key: "qualification", label: "Qualification", value: (t) => t.qualification ?? "—" },
   { key: "salary", label: "Salary", value: (t) => money(t.salary) },
-  { key: "shift", label: "Shift", value: (t) => shiftLabel(t.shift) },
+  { key: "shift", label: "Shift", value: (t) => shiftsLabel(t.shifts) },
   { key: "status", label: "Status", value: (t) => statusLabel(t.status) },
   {
     key: "registrationDate",
@@ -186,7 +186,7 @@ export function printTeacherProfile(
   const assignRows = assignments
     .map(
       (a) =>
-        `<tr><td>${a.academicYear}</td><td>${escapeHtml(a.className)}</td><td>${sectionLabel(a.section)}</td><td>${escapeHtml(assignmentShiftLabel(a.shift, teacher.shift))}</td><td>${escapeHtml(a.subject)}</td></tr>`,
+        `<tr><td>${a.academicYear}</td><td>${escapeHtml(a.className)}</td><td>${sectionLabel(a.section)}</td><td>${escapeHtml(assignmentShiftLabel(a.shift, teacher.shifts))}</td><td>${escapeHtml(a.subject)}</td></tr>`,
     )
     .join("");
   w.document.write(`<!DOCTYPE html><html><head><title>${escapeHtml(teacher.fullName)}</title>
@@ -215,7 +215,7 @@ export function printTeacherProfile(
     ${row("Email", teacher.email ?? "—")}
     ${row("Qualification", teacher.qualification ?? "—")}
     ${row("Salary", money(teacher.salary))}
-    ${row("Shift", shiftLabel(teacher.shift))}
+    ${row("Shift", shiftsLabel(teacher.shifts))}
     ${row("Status", statusLabel(teacher.status))}
     ${row("Registration Date", shortDate(teacher.registrationDate))}
   </table>

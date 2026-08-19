@@ -99,7 +99,7 @@ export class TeachersService {
           address: dto.address ?? null,
           qualification: dto.qualification ?? null,
           salary: dto.salary ?? 0,
-          shift: dto.shift,
+          shifts: dto.shifts,
           canViewStudents: false,
           userId: user.id,
         },
@@ -111,7 +111,7 @@ export class TeachersService {
   findAll(schoolId: string, shift?: string) {
     return this.prisma.forTenant(schoolId, (tx) =>
       tx.teacher.findMany({
-        where: { shift: shift as never },
+        where: shift ? { shifts: { has: shift as never } } : undefined,
         orderBy: { fullName: "asc" },
       }),
     );
@@ -185,7 +185,7 @@ export class TeachersService {
           address: dto.address,
           qualification: dto.qualification,
           salary: dto.salary,
-          shift: dto.shift,
+          shifts: dto.shifts,
           status: dto.status,
           canViewStudents: dto.canViewStudents,
         },

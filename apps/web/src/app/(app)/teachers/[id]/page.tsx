@@ -39,7 +39,7 @@ import {
   longDate,
   money,
   sectionLabel,
-  shiftLabel,
+  shiftsLabel,
   shortDate,
   statusLabel,
 } from "@/lib/teachers/format";
@@ -193,7 +193,7 @@ function TeacherProfileContent({ id }: { id: string }) {
             <Badge tone={STATUS_TONE[teacher.status]} dot>
               {statusLabel(teacher.status)}
             </Badge>
-            <Badge tone="info">{shiftLabel(teacher.shift)}</Badge>
+            <Badge tone="info">{shiftsLabel(teacher.shifts)}</Badge>
           </div>
           <p className="mt-1 text-sm text-muted-foreground">
             <span className="font-mono">{teacher.code}</span> · {money(teacher.salary)}{t("teachers.mo")}
@@ -230,7 +230,7 @@ function TeacherProfileContent({ id }: { id: string }) {
               <Field label={t("teachers.address")} value={teacher.address ?? "—"} />
               <Field label={t("teachers.qualification")} value={teacher.qualification ?? "—"} />
               <Field label={t("teachers.salary")} value={money(teacher.salary)} />
-              <Field label={t("teachers.shift")} value={shiftLabel(teacher.shift)} />
+              <Field label={t("teachers.shift")} value={shiftsLabel(teacher.shifts)} />
               <Field label={t("teachers.employmentStatus")} value={statusLabel(teacher.status)} />
               <Field label={t("teachers.registrationDate")} value={longDate(teacher.registrationDate)} />
             </div>
@@ -364,7 +364,7 @@ function TeacherProfileContent({ id }: { id: string }) {
                             {sectionLabel(a.section)}
                           </td>
                           <td className="px-4 py-2.5">
-                            {assignmentShiftLabel(a.shift, teacher.shift)}
+                            {assignmentShiftLabel(a.shift, teacher.shifts)}
                           </td>
                           <td className="px-4 py-2.5">{a.subject}</td>
                           <td className="px-4 py-2.5">

@@ -38,7 +38,7 @@ import {
 } from "@/lib/teachers/store";
 import { AcademicYearSelect } from "@/components/academics/academic-year-select";
 import { activeAcademicYear } from "@/lib/academics/store";
-import { money, shiftLabel, shortDate } from "@/lib/teachers/format";
+import { money, shortDate } from "@/lib/teachers/format";
 import { DEFAULT_TEACHER_PASSWORD } from "@/lib/teachers/constants";
 import {
   DEFAULT_TEACHER_EXPORT_FIELDS,
@@ -48,7 +48,7 @@ import {
   printTeachersList,
 } from "@/lib/teachers/print";
 import { FieldSelectDialog } from "@/components/shared/field-select-dialog";
-import type { EmploymentStatus, Teacher } from "@/lib/teachers/types";
+import type { EmploymentStatus, Shift, Teacher } from "@/lib/teachers/types";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 
@@ -114,7 +114,7 @@ export default function TeachersPage() {
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     const rows = state.teachers.filter((t) => {
-      if (shift && t.shift !== shift) return false;
+      if (shift && !t.shifts.includes(shift as Shift)) return false;
       if (status && t.status !== status) return false;
       if (year && !assignedThisYear.has(t.id)) return false;
       if (q) {
@@ -130,7 +130,8 @@ export default function TeachersPage() {
       else if (sortKey === "code") cmp = a.code.localeCompare(b.code);
       else if (sortKey === "registrationDate")
         cmp = new Date(a.registrationDate).getTime() - new Date(b.registrationDate).getTime();
-      else if (sortKey === "shift") cmp = a.shift.localeCompare(b.shift);
+      else if (sortKey === "shift")
+        cmp = [...a.shifts].sort().join(",").localeCompare([...b.shifts].sort().join(","));
       return sortDir === "asc" ? cmp : -cmp;
     });
     return rows;
@@ -295,7 +296,9 @@ export default function TeachersPage() {
                       </Link>
                     </td>
                     <td className="px-4 py-3 text-muted-foreground">{t.phone}</td>
-                    <td className="px-4 py-3">{tr(SHIFT_KEY[t.shift] ?? "teachers.shiftBoth")}</td>
+                    <td className="px-4 py-3">
+                      {t.shifts.map((s) => tr(SHIFT_KEY[s] ?? "teachers.shiftBoth")).join(", ")}
+                    </td>
                     <td className="px-4 py-3 tabular-nums">{money(t.salary)}</td>
                     <td className="px-4 py-3">
                       <Badge tone={STATUS_TONE[t.status]} dot>

@@ -20,7 +20,7 @@ export interface ApiTeacher {
   address: string | null;
   qualification: string | null;
   salary: number;
-  shift: Shift;
+  shifts: Shift[];
   status: EmploymentStatus;
   canViewStudents?: boolean;
   registrationDate: string;
@@ -47,7 +47,7 @@ export function mapApiTeacher(t: ApiTeacher): Teacher {
     address: t.address,
     qualification: t.qualification,
     salary: t.salary,
-    shift: t.shift,
+    shifts: t.shifts,
     status: t.status,
     canViewStudents: t.canViewStudents ?? false,
     registrationDate: t.registrationDate,
@@ -87,7 +87,7 @@ export async function apiRegisterTeacher(input: {
   address?: string | null;
   qualification?: string | null;
   salary?: number;
-  shift: Shift;
+  shifts: Shift[];
   password?: string;
 }): Promise<{ teacher: Teacher; initialPassword: string }> {
   const res = await api<{ teacher: ApiTeacher; initialPassword: string }>(
@@ -110,7 +110,7 @@ export async function apiUpdateTeacher(
     address?: string | null;
     qualification?: string | null;
     salary?: number;
-    shift?: Shift;
+    shifts?: Shift[];
     status?: EmploymentStatus;
     canViewStudents?: boolean;
   },
@@ -185,7 +185,7 @@ export interface TeacherMeAssignment {
   class: { id: string; name: string };
   section: { id: string; name: string } | null;
   subject: { id: string; name: string };
-  /** Which shift this row is taught in — set when the teacher is BOTH. */
+  /** Which shift this row is taught in — set when the teacher works more than one shift. */
   shift: AssignmentShift | null;
 }
 

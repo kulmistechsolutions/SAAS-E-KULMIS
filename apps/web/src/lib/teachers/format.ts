@@ -28,22 +28,23 @@ export function longDate(iso: string | null | undefined): string {
 export const genderLabel = (g: string) => (g === "MALE" ? "Male" : "Female");
 
 export const shiftLabel = (s: string) =>
-  s === "MORNING" ? "Morning" : s === "AFTERNOON" ? "Afternoon" : "Both";
+  s === "MORNING" ? "Morning" : s === "AFTERNOON" ? "Afternoon" : s;
+
+/** A teacher's own shift list, e.g. ["MORNING","AFTERNOON"] -> "Morning, Afternoon". */
+export const shiftsLabel = (shifts: string[]): string =>
+  shifts.length ? shifts.map(shiftLabel).join(", ") : "—";
 
 /**
- * The shift label to show for one assignment row. A BOTH-shift teacher's
+ * The shift label to show for one assignment row. A multi-shift teacher's
  * rows carry their own explicit shift; a single-shift teacher's rows leave
- * `shift` null and simply inherit their one profile shift. Only a legacy
- * BOTH-teacher row with no shift recorded falls through to "—".
+ * `shift` null and simply inherit their one profile shift.
  */
 export const assignmentShiftLabel = (
   assignmentShift: string | null,
-  teacherShift: string,
+  teacherShifts: string[],
 ): string => {
   if (assignmentShift) return shiftLabel(assignmentShift);
-  if (teacherShift === "MORNING" || teacherShift === "AFTERNOON") {
-    return shiftLabel(teacherShift);
-  }
+  if (teacherShifts.length === 1) return shiftLabel(teacherShifts[0]!);
   return "—";
 };
 

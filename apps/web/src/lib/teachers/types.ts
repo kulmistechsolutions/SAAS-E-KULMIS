@@ -1,7 +1,5 @@
 export type Gender = "MALE" | "FEMALE";
-/** BOTH is only ever valid on the teacher's own profile, never on one
- *  assignment row — see AssignmentShift below. */
-export type Shift = "MORNING" | "AFTERNOON" | "BOTH";
+export type Shift = "MORNING" | "AFTERNOON";
 /** The shift ONE assignment slot is taught in. */
 export type AssignmentShift = "MORNING" | "AFTERNOON";
 export type EmploymentStatus = "ACTIVE" | "INACTIVE";
@@ -17,7 +15,7 @@ export interface Teacher {
   address?: string | null;
   qualification?: string | null;
   salary: number;
-  shift: Shift;
+  shifts: Shift[];
   status: EmploymentStatus;
   canViewStudents?: boolean;
   registrationDate: string;
@@ -35,8 +33,9 @@ export interface TeacherAssignment {
   section: string | null;
   subject: string;
   status: AssignmentStatus;
-  /** Which shift this slot is taught in. Set for a BOTH-shift teacher, null
-   *  for a single-shift teacher whose one shift is already implied. */
+  /** Which shift this slot is taught in. Set for a teacher who works more
+   *  than one shift, null for a single-shift teacher whose one shift is
+   *  already implied. */
   shift: AssignmentShift | null;
 }
 
@@ -48,7 +47,7 @@ export interface TeacherInput {
   address?: string | null;
   qualification?: string | null;
   salary: number;
-  shift: Shift;
+  shifts: Shift[];
   status?: EmploymentStatus;
   password?: string;
 }
@@ -72,7 +71,7 @@ export interface AssignmentSlotInput {
   /** null = all sections of the class */
   section: string | null;
   subjects: string[];
-  /** Required only when the teacher's own profile is BOTH. */
+  /** Required only when the teacher works more than one shift. */
   shift?: AssignmentShift | null;
 }
 

@@ -15,7 +15,7 @@ import { toast } from "@/lib/toast";
 
 function downloadCsv(
   rows: TeacherMeAssignment[],
-  teacherShift: string,
+  teacherShifts: string[],
   fileName: string,
 ) {
   const headers = ["Academic Year", "Class", "Section", "Shift", "Subject"];
@@ -26,7 +26,7 @@ function downloadCsv(
       a.academicYear.name,
       a.class.name,
       a.section?.name ?? "All",
-      assignmentShiftLabel(a.shift, teacherShift),
+      assignmentShiftLabel(a.shift, teacherShifts),
       a.subject.name,
     ]
       .map(esc)
@@ -57,7 +57,7 @@ function printAssignments(
       <td>${a.academicYear.name}</td>
       <td>${a.class.name}</td>
       <td>${a.section?.name ?? "All"}</td>
-      <td>${assignmentShiftLabel(a.shift, teacher.shift)}</td>
+      <td>${assignmentShiftLabel(a.shift, teacher.shifts)}</td>
       <td>${a.subject.name}</td>
     </tr>`,
     )
@@ -164,7 +164,7 @@ export default function MyAssignmentsPage() {
             variant="outline"
             disabled={!me || filtered.length === 0}
             onClick={() =>
-              me && downloadCsv(filtered, me.shift, "my-assignments.csv")
+              me && downloadCsv(filtered, me.shifts, "my-assignments.csv")
             }
           >
             <Download className="me-2 h-4 w-4" />
@@ -217,7 +217,7 @@ export default function MyAssignmentsPage() {
             </option>
           ))}
         </Select>
-        {me?.shift === "BOTH" && (
+        {(me?.shifts.length ?? 0) > 1 && (
           <Select value={shiftF} onChange={(e) => setShiftF(e.target.value)}>
             <option value="">{t("myAssignments.bothShifts")}</option>
             <option value="MORNING">{t("myAssignments.morning")}</option>
@@ -259,7 +259,7 @@ export default function MyAssignmentsPage() {
                     )}
                   </td>
                   <td className="px-4 py-3">
-                    {assignmentShiftLabel(a.shift, me?.shift ?? "")}
+                    {assignmentShiftLabel(a.shift, me?.shifts ?? [])}
                   </td>
                   <td className="px-4 py-3 font-medium">{a.subject.name}</td>
                 </tr>

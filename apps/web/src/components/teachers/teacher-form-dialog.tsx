@@ -2,16 +2,90 @@
 
 
 import { useT } from "@/lib/i18n/provider";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { ChevronDown } from "lucide-react";
 import { Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
 import { DEFAULT_SALARY, DEFAULT_TEACHER_PASSWORD } from "@/lib/teachers/constants";
 import { registerTeacher, updateTeacher, type Teacher } from "@/lib/teachers/store";
 import type { EmploymentStatus, Gender, Shift } from "@/lib/teachers/types";
+
+/** Checkbox dropdown for picking one or more shifts — a teacher who works
+ *  every shift the school runs just has every box checked, instead of a
+ *  separate "Both" option to keep in sync as more shifts are added. */
+function ShiftMultiSelect({
+  value,
+  onChange,
+}: {
+  value: Shift[];
+  onChange: (next: Shift[]) => void;
+}) {
+  const t = useT();
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const options: { value: Shift; label: string }[] = [
+    { value: "MORNING", label: t("teachersTeacherFormDialog.morning") },
+    { value: "AFTERNOON", label: t("teachersTeacherFormDialog.afternoon") },
+  ];
+
+  useEffect(() => {
+    if (!open) return;
+    function onOutside(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", onOutside);
+    return () => document.removeEventListener("mousedown", onOutside);
+  }, [open]);
+
+  function toggle(shift: Shift) {
+    onChange(
+      value.includes(shift) ? value.filter((s) => s !== shift) : [...value, shift],
+    );
+  }
+
+  const summary = options
+    .filter((o) => value.includes(o.value))
+    .map((o) => o.label)
+    .join(", ");
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="flex h-10 w-full items-center justify-between rounded-lg border border-input bg-background px-3 text-sm"
+      >
+        <span className={cn(!summary && "text-muted-foreground")}>
+          {summary || t("teachersTeacherFormDialog.selectShifts")}
+        </span>
+        <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
+      </button>
+      {open && (
+        <div className="absolute z-10 mt-1 w-full rounded-lg border bg-popover p-1.5 shadow-md">
+          {options.map((o) => (
+            <label
+              key={o.value}
+              className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-secondary"
+            >
+              <input
+                type="checkbox"
+                className="h-4 w-4 rounded border-input"
+                checked={value.includes(o.value)}
+                onChange={() => toggle(o.value)}
+              />
+              {o.label}
+            </label>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 interface Props {
   open: boolean;
@@ -28,7 +102,7 @@ interface FormState {
   address: string;
   qualification: string;
   salary: string;
-  shift: Shift;
+  shifts: Shift[];
   status: EmploymentStatus;
   canViewStudents: boolean;
   password: string;
@@ -42,7 +116,7 @@ const empty: FormState = {
   address: "",
   qualification: "",
   salary: String(DEFAULT_SALARY),
-  shift: "MORNING",
+  shifts: ["MORNING"],
   status: "ACTIVE",
   canViewStudents: false,
   password: DEFAULT_TEACHER_PASSWORD,
@@ -66,7 +140,7 @@ export function TeacherFormDialog({ open, onClose, teacher, onSaved }: Props) {
         address: teacher.address ?? "",
         qualification: teacher.qualification ?? "",
         salary: String(teacher.salary),
-        shift: teacher.shift,
+        shifts: teacher.shifts,
         status: teacher.status,
         canViewStudents: teacher.canViewStudents ?? false,
         password: teacher.password || DEFAULT_TEACHER_PASSWORD,
@@ -86,6 +160,7 @@ export function TeacherFormDialog({ open, onClose, teacher, onSaved }: Props) {
     if (!form.phone.trim()) return setError("Phone number is required.");
     const salary = Number(form.salary);
     if (Number.isNaN(salary) || salary < 0) return setError("Invalid salary.");
+    if (form.shifts.length === 0) return setError("Select at least one shift.");
     if (!isEdit) {
       if (!form.password.trim()) return setError("Login password is required.");
       if (form.password.trim().length < 5)
@@ -101,7 +176,7 @@ export function TeacherFormDialog({ open, onClose, teacher, onSaved }: Props) {
         address: form.address || null,
         qualification: form.qualification || null,
         salary,
-        shift: form.shift,
+        shifts: form.shifts,
         status: form.status,
         canViewStudents: form.canViewStudents,
       });
@@ -119,7 +194,7 @@ export function TeacherFormDialog({ open, onClose, teacher, onSaved }: Props) {
       address: form.address || null,
       qualification: form.qualification || null,
       salary,
-      shift: form.shift,
+      shifts: form.shifts,
       status: form.status,
       password: form.password.trim(),
     });
@@ -191,11 +266,10 @@ export function TeacherFormDialog({ open, onClose, teacher, onSaved }: Props) {
         </div>
         <div>
           <Label required>{t("teachersTeacherFormDialog.shift")}</Label>
-          <Select value={form.shift} onChange={(e) => set("shift", e.target.value as Shift)}>
-            <option value="MORNING">{t("teachersTeacherFormDialog.morning")}</option>
-            <option value="AFTERNOON">{t("teachersTeacherFormDialog.afternoon")}</option>
-            <option value="BOTH">{t("teachersTeacherFormDialog.bothMorningAndAfternoon")}</option>
-          </Select>
+          <ShiftMultiSelect
+            value={form.shifts}
+            onChange={(shifts) => set("shifts", shifts)}
+          />
         </div>
         <div>
           <Label>{t("teachersTeacherFormDialog.employmentStatus")}</Label>

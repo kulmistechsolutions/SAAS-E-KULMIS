@@ -215,7 +215,7 @@ export function hydrateTeacherSelf(me: TeacherMe): void {
     address: me.address,
     qualification: me.qualification,
     salary: me.salary,
-    shift: me.shift,
+    shifts: me.shifts,
     status: me.status,
     canViewStudents: me.canViewStudents,
     registrationDate: me.registrationDate,
@@ -395,9 +395,9 @@ export function summarize(st: TeachersState): TeacherSummary {
   for (const t of st.teachers) {
     if (t.status === "ACTIVE") out.active++;
     else out.inactive++;
-    // A BOTH-shift teacher counts toward both totals.
-    if (t.shift === "MORNING" || t.shift === "BOTH") out.morning++;
-    if (t.shift === "AFTERNOON" || t.shift === "BOTH") out.afternoon++;
+    // A teacher who works both shifts counts toward both totals.
+    if (t.shifts.includes("MORNING")) out.morning++;
+    if (t.shifts.includes("AFTERNOON")) out.afternoon++;
     if (!assignedIds.has(t.id)) out.withoutAssignments++;
   }
   return out;
@@ -427,7 +427,7 @@ export async function registerTeacher(
       address: input.address?.trim() || null,
       qualification: input.qualification?.trim() || null,
       salary: input.salary,
-      shift: input.shift,
+      shifts: input.shifts,
       password: input.password?.trim() || DEFAULT_TEACHER_PASSWORD,
     });
     const password = res.initialPassword;
@@ -459,7 +459,7 @@ export type TeacherPatch = Partial<
     | "address"
     | "qualification"
     | "salary"
-    | "shift"
+    | "shifts"
     | "status"
     | "canViewStudents"
   >
@@ -483,7 +483,7 @@ export async function updateTeacher(
           ? patch.qualification?.trim() || null
           : undefined,
       salary: patch.salary,
-      shift: patch.shift,
+      shifts: patch.shifts,
       status: patch.status,
       canViewStudents: patch.canViewStudents,
     });
@@ -657,7 +657,7 @@ export async function createBulkAssignments(
     for (const subjectName of slot.subjects) {
       const sub = resolveSubjectId(subjectName);
       if (!sub.subjectId) return { ok: false, error: sub.error };
-      // shift included: it's the only thing telling apart a BOTH-shift
+      // shift included: it's the only thing telling apart a multi-shift
       // teacher's morning row from their afternoon one on the same class.
       const key = `${cls.classId}|${sectionId ?? ""}|${sub.subjectId}|${shift ?? ""}`;
       if (seen.has(key)) continue;
@@ -922,7 +922,7 @@ export async function bulkImport(rows: ImportRow[]): Promise<ImportResult> {
         gender: row.gender!.trim().toUpperCase() as Gender,
         phone: row.phone!.trim(),
         salary: Number(row.salary!.trim()),
-        shift: row.shift!.trim().toUpperCase() as Shift,
+        shifts: [row.shift!.trim().toUpperCase() as Shift],
       },
       { skipRefresh: true },
     );

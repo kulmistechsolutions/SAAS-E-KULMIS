@@ -4,15 +4,17 @@ import { genderSchema } from "./student";
 export const Shift = {
   MORNING: "MORNING",
   AFTERNOON: "AFTERNOON",
-  /// A teacher who works both shifts. Only valid on the teacher's own
-  /// profile — never on a single assignment row, which is one class in one
-  /// shift. See assignmentShiftSchema below.
-  BOTH: "BOTH",
 } as const;
 export type Shift = (typeof Shift)[keyof typeof Shift];
 export const shiftSchema = z.nativeEnum(Shift);
 
-/** The shift ONE assignment row is taught in — never BOTH. */
+/** A teacher's own shifts: one or more of MORNING/AFTERNOON. Working both is
+ *  now expressed by holding both values, not a separate BOTH enum member. */
+export const teacherShiftsSchema = z
+  .array(shiftSchema)
+  .min(1, "Select at least one shift");
+
+/** The shift ONE assignment row is taught in — never more than one. */
 export const assignmentShiftSchema = z.enum(["MORNING", "AFTERNOON"]);
 export type AssignmentShift = z.infer<typeof assignmentShiftSchema>;
 
@@ -34,7 +36,7 @@ export const registerTeacherSchema = z.object({
   address: z.string().nullable().optional(),
   qualification: z.string().nullable().optional(),
   salary: z.number().int().nonnegative().optional(),
-  shift: shiftSchema,
+  shifts: teacherShiftsSchema,
   password: teacherPasswordSchema.optional(),
 });
 export type RegisterTeacherInput = z.infer<typeof registerTeacherSchema>;
@@ -55,7 +57,7 @@ export const updateTeacherSchema = z
     address: z.string().nullable().optional(),
     qualification: z.string().nullable().optional(),
     salary: z.number().int().nonnegative().optional(),
-    shift: shiftSchema.optional(),
+    shifts: teacherShiftsSchema.optional(),
     status: employmentStatusSchema.optional(),
     canViewStudents: z.boolean().optional(),
   })

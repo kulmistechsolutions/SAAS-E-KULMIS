@@ -220,7 +220,7 @@ export class DashboardService {
           id: teacher.id,
           code: teacher.code,
           fullName: teacher.fullName,
-          shift: teacher.shift,
+          shifts: teacher.shifts,
           phone: teacher.phone,
           email: teacher.email,
           gender: teacher.gender,
@@ -302,17 +302,16 @@ export class DashboardService {
       const [
         studentsByStatus,
         newStudents,
-        teachersActiveByShift,
+        [teachersActiveMorning, teachersActiveAfternoon],
         teachersTotal,
         parentsTotal,
       ] = await Promise.all([
         tx.student.groupBy({ by: ["status"], _count: { _all: true } }),
         tx.student.count({ where: { registrationDate: { gte: startOfMonth } } }),
-        tx.teacher.groupBy({
-          by: ["shift"],
-          where: { status: "ACTIVE" },
-          _count: { _all: true },
-        }),
+        Promise.all([
+          tx.teacher.count({ where: { status: "ACTIVE", shifts: { has: "MORNING" } } }),
+          tx.teacher.count({ where: { status: "ACTIVE", shifts: { has: "AFTERNOON" } } }),
+        ]),
         tx.teacher.count(),
         tx.parent.count(),
       ]);
@@ -501,19 +500,10 @@ export class DashboardService {
         },
         teachers: {
           total: teachersTotal,
-          // A BOTH-shift teacher counts toward both totals — they really do
-          // work both, not neither, so it is added to each bucket rather than
-          // sitting in a group of its own.
-          morning:
-            (teachersActiveByShift.find((s) => s.shift === "MORNING")
-              ?._count._all ?? 0) +
-            (teachersActiveByShift.find((s) => s.shift === "BOTH")
-              ?._count._all ?? 0),
-          afternoon:
-            (teachersActiveByShift.find((s) => s.shift === "AFTERNOON")
-              ?._count._all ?? 0) +
-            (teachersActiveByShift.find((s) => s.shift === "BOTH")
-              ?._count._all ?? 0),
+          // A teacher who works both shifts counts toward both totals — they
+          // really do work both, not neither.
+          morning: teachersActiveMorning,
+          afternoon: teachersActiveAfternoon,
         },
         parents: { total: parentsTotal },
         academics: {

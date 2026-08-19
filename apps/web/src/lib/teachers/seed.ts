@@ -69,7 +69,7 @@ export function buildSeed(): TeachersState {
           ? pick(["B.Ed", "M.Ed", "B.Sc Education", "Diploma in Education"], i)
           : null,
       salary: DEFAULT_SALARY + Math.floor(rand(i * 8.4) * 8) * 25,
-      shift,
+      shifts: [shift],
       status,
       registrationDate: dateMonthsAgo(Math.floor(rand(i) * 18), (i % 27) + 1),
       username: code,

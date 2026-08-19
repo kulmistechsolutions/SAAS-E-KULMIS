@@ -4391,6 +4391,7 @@ export const generated = {
     morning: "Morning",
     afternoon: "Afternoon",
     bothMorningAndAfternoon: "Both — morning and afternoon",
+    selectShifts: "Select shift(s)…",
     employmentStatus: "Employment Status",
     active: "Active",
     inactive: "Inactive",

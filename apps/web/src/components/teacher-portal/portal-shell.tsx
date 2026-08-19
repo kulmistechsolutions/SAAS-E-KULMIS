@@ -154,7 +154,7 @@ export function TeacherPortalShell({
               <LanguageSwitcher />
               <div className="text-end text-xs text-muted-foreground">
                 <p>{teacher.code}</p>
-                <p>{teacher.shift} {t("teacherPortalPortalShell.shift")}</p>
+                <p>{teacher.shifts.join(", ")} {t("teacherPortalPortalShell.shift")}</p>
               </div>
             </div>
           </div>

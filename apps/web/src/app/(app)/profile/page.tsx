@@ -112,7 +112,7 @@ export default function TeacherProfilePage() {
           <Field label={tr("profile.teacherId")} value={me.code} />
           <Field label={tr("profile.fullName")} value={me.fullName} />
           <Field label={tr("profile.gender")} value={me.gender} />
-          <Field label={tr("profile.shift")} value={me.shift} />
+          <Field label={tr("profile.shift")} value={me.shifts.join(", ")} />
           <Field label={tr("profile.status")} value={me.status} />
           <Field label={tr("profile.qualification")} value={me.qualification ?? "—"} />
         </div>

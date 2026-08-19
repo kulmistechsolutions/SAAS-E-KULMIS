@@ -51,7 +51,7 @@ export class TeacherReportsService {
   private teacherWhere(filters: TeacherReportFilters): Prisma.TeacherWhereInput {
     const where: Prisma.TeacherWhereInput = {};
     if (filters.shift && TEACHER_SHIFT_VALUES.has(filters.shift)) {
-      where.shift = filters.shift as Prisma.TeacherWhereInput["shift"];
+      where.shifts = { has: filters.shift as never };
     }
     if (filters.status && TEACHER_STATUS_VALUES.has(filters.status)) {
       where.status = filters.status as Prisma.TeacherWhereInput["status"];
@@ -80,7 +80,7 @@ export class TeacherReportsService {
           phone: true,
           email: true,
           qualification: true,
-          shift: true,
+          shifts: true,
           status: true,
         },
       }),
@@ -101,7 +101,7 @@ export class TeacherReportsService {
         gender: t.gender,
         phone: t.phone ?? "",
         qualification: t.qualification ?? "",
-        shift: t.shift,
+        shift: t.shifts.join(", "),
         status: t.status,
       })),
       summary: [{ label: "Teachers", value: String(teachers.length) }],
@@ -124,7 +124,7 @@ export class TeacherReportsService {
         select: {
           code: true,
           fullName: true,
-          shift: true,
+          shifts: true,
           status: true,
           salary: true,
         },
@@ -141,7 +141,7 @@ export class TeacherReportsService {
       rows: teachers.map((t) => ({
         code: t.code,
         name: t.fullName,
-        shift: t.shift,
+        shift: t.shifts.join(", "),
         status: t.status,
         salary: money(t.salary),
       })),
