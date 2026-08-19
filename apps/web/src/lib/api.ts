@@ -132,6 +132,10 @@ export function redirectToLogin(): void {
     if (path !== "/parent-portal/login") window.location.assign("/parent-portal/login");
     return;
   }
+  if (path.startsWith("/student-portal")) {
+    if (path !== "/student-portal/login") window.location.assign("/student-portal/login");
+    return;
+  }
   window.location.assign("/login");
 }
 
