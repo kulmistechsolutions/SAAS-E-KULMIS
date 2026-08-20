@@ -277,7 +277,5 @@ export interface SettingsDashboardSummary {
   activeAcademicYear: string;
   parentPortalEnabled: boolean;
   studentPortalEnabled: boolean;
-  lastBackupAt: string | null;
-  licenseActive: boolean;
   categoriesConfigured: number;
 }

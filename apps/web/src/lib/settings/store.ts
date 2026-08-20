@@ -118,9 +118,11 @@ export async function refreshSettings(): Promise<void> {
     const current = state ?? buildSettingsSeed();
     setState({
       ...remote,
+      // Only the genuinely browser-only state survives a refresh. Everything
+      // else must come from `remote`, or a reload would quietly discard what
+      // the school just saved — which is the whole bug these settings had.
       audit: current.audit,
       backups: current.backups,
-      grades: current.grades,
       // The saved branding wins. Merging the other way round meant that on a
       // fresh load `current` was still the seed, so its default colours
       // overwrote the school's saved ones and the picker appeared to revert.
@@ -135,19 +137,6 @@ export async function refreshSettings(): Promise<void> {
           current.branding.loginBackgroundDataUrl ??
           remote.branding.loginBackgroundDataUrl,
       },
-      academic: current.academic,
-      examinations: current.examinations,
-      salary: current.salary,
-      expenses: current.expenses,
-      attendance: current.attendance,
-      quiz: current.quiz,
-      notifications: current.notifications,
-      email: current.email,
-      // Only sessionTimeoutMinutes is server-backed; the rest of this
-      // section (password rules, IP restriction, 2FA) stays local for now.
-      security: { ...current.security, ...remote.security },
-      backup: current.backup,
-      license: current.license,
       system: current.system,
     });
     if (state) writeBrandingCache(state.school);
@@ -425,8 +414,6 @@ export function settingsDashboard(): SettingsDashboardSummary {
     activeAcademicYear: activeYear,
     parentPortalEnabled: s.parents.portalEnabled,
     studentPortalEnabled: s.students.portalLoginEnabled,
-    lastBackupAt: s.backup.lastBackupAt,
-    licenseActive: s.license.active,
     categoriesConfigured: 12,
   };
 }

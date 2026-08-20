@@ -49,16 +49,6 @@ export default function SettingsDashboardPage() {
               <dt className="text-xs text-muted-foreground">{t("settings.studentPortal")}</dt>
               <dd className="font-medium">{summary.studentPortalEnabled ? "Enabled" : "Disabled"}</dd>
             </div>
-            <div className="rounded-lg border p-3">
-              <dt className="text-xs text-muted-foreground">{t("settings.license")}</dt>
-              <dd className="font-medium">{summary.licenseActive ? "Active" : "Inactive"}</dd>
-            </div>
-            <div className="rounded-lg border p-3">
-              <dt className="text-xs text-muted-foreground">{t("settings.lastBackup")}</dt>
-              <dd className="font-medium">
-                {summary.lastBackupAt ? dateTime(summary.lastBackupAt) : "Never"}
-              </dd>
-            </div>
           </dl>
         </div>
         <div className="rounded-xl border bg-card p-5">
