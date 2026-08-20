@@ -65,6 +65,16 @@ interface GradingConfig {
   passingPercentage: number;
 }
 
+/** The switches a school sets on Settings → Examinations. */
+interface ExamToggles {
+  resultPublishing: boolean;
+  resultLocking: boolean;
+  studentResultPortal: boolean;
+  parentResultPortal: boolean;
+  publicResultPortal: boolean;
+  blockResultFeature: boolean;
+}
+
 function teacherMarksBlocked(examStatus: string, role?: string): boolean {
   if (role !== "TEACHER") return false;
   return examStatus === "LOCKED" || examStatus === "PUBLISHED";
@@ -96,6 +106,37 @@ export class ExaminationsService {
     } catch {
       return null;
     }
+  }
+
+  /**
+   * The switches on Settings → Examinations. Every one defaults to ON, so a
+   * school that has never opened that page keeps exactly what it has today —
+   * turning one off is the deliberate act.
+   */
+  async examToggles(schoolId: string): Promise<ExamToggles> {
+    const school = await this.prisma.school.findUnique({
+      where: { id: schoolId },
+      select: { examSettings: true },
+    });
+    const stored = school?.examSettings as Partial<ExamToggles> | null;
+    return {
+      resultPublishing: stored?.resultPublishing ?? true,
+      resultLocking: stored?.resultLocking ?? true,
+      studentResultPortal: stored?.studentResultPortal ?? true,
+      parentResultPortal: stored?.parentResultPortal ?? true,
+      publicResultPortal: stored?.publicResultPortal ?? true,
+      blockResultFeature: stored?.blockResultFeature ?? true,
+    };
+  }
+
+  /** Throws unless the named switch is on for this school. */
+  private async assertToggle(
+    schoolId: string,
+    key: keyof ExamToggles,
+    whenOff: string,
+  ): Promise<void> {
+    const toggles = await this.examToggles(schoolId);
+    if (!toggles[key]) throw new ForbiddenException(whenOff);
   }
 
   /** Grade bands + passing percentage from Settings → Examinations, or the
@@ -654,6 +695,11 @@ export class ExaminationsService {
     actor?: Pick<AuthUser, "userId" | "username" | "role">,
   ) {
     if (locked) {
+      await this.assertToggle(
+        schoolId,
+        "resultLocking",
+        "Teacher result locking is switched off for this school (Settings → Examinations).",
+      );
       const exam = await this.prisma.forTenant(schoolId, (tx) =>
         tx.exam.findFirst({ where: { id: examId }, select: { status: true } }),
       );
@@ -687,6 +733,11 @@ export class ExaminationsService {
     actor?: Pick<AuthUser, "userId" | "username" | "role">,
   ) {
     if (published) {
+      await this.assertToggle(
+        schoolId,
+        "resultPublishing",
+        "Result publishing is switched off for this school (Settings → Examinations).",
+      );
       const exam = await this.prisma.forTenant(schoolId, (tx) =>
         tx.exam.findFirst({ where: { id: examId }, select: { status: true } }),
       );
@@ -2120,7 +2171,12 @@ export class ExaminationsService {
     });
   }
 
-  blockStudent(schoolId: string, dto: BlockStudentInput, userId?: string) {
+  async blockStudent(schoolId: string, dto: BlockStudentInput, userId?: string) {
+    await this.assertToggle(
+      schoolId,
+      "blockResultFeature",
+      "Blocking results is switched off for this school (Settings → Examinations).",
+    );
     return this.prisma.forTenant(schoolId, (tx) =>
       tx.blockedStudent.create({
         data: {
@@ -2245,6 +2301,11 @@ export class ExaminationsService {
   }
 
   async publicResultByCode(schoolId: string, code: string, academicYearName?: string) {
+    await this.assertToggle(
+      schoolId,
+      "publicResultPortal",
+      "This school has switched off public result lookup.",
+    );
     const { studentId, yearId, block } = await this.prisma.forTenant(
       schoolId,
       async (tx) => {

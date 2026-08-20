@@ -3,6 +3,7 @@
 
 import { useT } from "@/lib/i18n/provider";
 import { useEffect, useMemo, useState } from "react";
+import { getSettings } from "@/lib/settings/store";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -43,7 +44,11 @@ export default function CreateQuizPage() {
   const [endDate, setEndDate] = useState("");
   const [duration, setDuration] = useState("30");
   const [passing, setPassing] = useState("10");
-  const [maxAttempts, setMaxAttempts] = useState("1");
+  // Seeded from Settings → Online Quiz so a school's own default is what a
+  // teacher starts from; they can still change it for this one quiz.
+  const [maxAttempts, setMaxAttempts] = useState(
+    () => String(getSettings().quiz.maxAttempts),
+  );
 
   useEffect(() => setMounted(true), []);
   useEffect(() => {

@@ -204,6 +204,32 @@ export class QuizService {
     return `QZ-${year}-${padQuizSeq(seq.value)}`;
   }
 
+  /**
+   * A school's Online Quiz Settings — the starting point for every new quiz
+   * it creates. All default permissively, so a school that has never opened
+   * that page keeps exactly the behaviour it has today.
+   */
+  async quizDefaults(schoolId: string): Promise<{
+    maxAttempts: number;
+    autoSubmit: boolean;
+    autoSave: boolean;
+    showResultsImmediately: boolean;
+    questionRandomization: boolean;
+  }> {
+    const school = await this.prisma.school.findUnique({
+      where: { id: schoolId },
+      select: { quizSettings: true },
+    });
+    const s = school?.quizSettings as Record<string, unknown> | null;
+    return {
+      maxAttempts: (s?.maxAttempts as number) ?? 1,
+      autoSubmit: (s?.autoSubmit as boolean) ?? true,
+      autoSave: (s?.autoSave as boolean) ?? true,
+      showResultsImmediately: (s?.showResultsImmediately as boolean) ?? true,
+      questionRandomization: (s?.questionRandomization as boolean) ?? false,
+    };
+  }
+
   async create(
     schoolId: string,
     dto: CreateQuizInput,
@@ -232,6 +258,7 @@ export class QuizService {
       });
     }
 
+    const defaults = await this.quizDefaults(schoolId);
     return this.prisma.forTenant(schoolId, async (tx) => {
       const code = await this.nextQuizCode(schoolId, tx);
       return tx.quiz.create({
@@ -246,13 +273,15 @@ export class QuizService {
           code,
           description: dto.description ?? null,
           timeLimitMin: dto.timeLimitMin ?? null,
-          maxAttempts: dto.maxAttempts,
+          maxAttempts: dto.maxAttempts ?? defaults.maxAttempts,
           passingMarks: dto.passingMarks ?? null,
           startAt: dto.startAt ? new Date(dto.startAt) : null,
           endAt: dto.endAt ? new Date(dto.endAt) : null,
-          shuffleQuestions: dto.shuffleQuestions,
+          shuffleQuestions:
+            dto.shuffleQuestions ?? defaults.questionRandomization,
           shuffleAnswers: dto.shuffleAnswers,
-          showResultsImmediately: dto.showResultsImmediately,
+          showResultsImmediately:
+            dto.showResultsImmediately ?? defaults.showResultsImmediately,
           allowReviewAnswers: dto.allowReviewAnswers,
           allowPdfDownload: dto.allowPdfDownload,
           instructions: dto.instructions ?? null,
@@ -492,6 +521,7 @@ export class QuizService {
 
   /** Public landing metadata (no student auth). */
   async getLanding(schoolId: string, code: string) {
+    const schoolQuizDefaults = await this.quizDefaults(schoolId);
     const branding = await this.schoolBranding(schoolId);
     return this.prisma.forTenant(schoolId, async (tx) => {
       const quiz = await tx.quiz.findFirst({
@@ -529,6 +559,10 @@ export class QuizService {
           showResultsImmediately: quiz.showResultsImmediately,
           allowReviewAnswers: quiz.allowReviewAnswers,
           allowPdfDownload: quiz.allowPdfDownload,
+          // School-wide, not per quiz: how the paper behaves while it is
+          // being sat (save as you go, hand in when time runs out).
+          autoSubmit: schoolQuizDefaults.autoSubmit,
+          autoSave: schoolQuizDefaults.autoSave,
         },
       };
     });
@@ -568,6 +602,7 @@ export class QuizService {
   }
 
   async verifyAccess(schoolId: string, dto: VerifyQuizAccessInput) {
+    const schoolQuizDefaults = await this.quizDefaults(schoolId);
     const branding = await this.schoolBranding(schoolId);
     return this.prisma.forTenant(schoolId, async (tx) => {
       const quiz = await tx.quiz.findFirst({
@@ -675,6 +710,7 @@ export class QuizService {
   }
 
   async getByCode(schoolId: string, code: string) {
+    const schoolQuizDefaults = await this.quizDefaults(schoolId);
     return this.prisma.forTenant(schoolId, async (tx) => {
       const quiz = await tx.quiz.findFirst({
         where: { code, status: "PUBLISHED" },
@@ -704,6 +740,8 @@ export class QuizService {
         showResultsImmediately: quiz.showResultsImmediately,
         allowReviewAnswers: quiz.allowReviewAnswers,
         allowPdfDownload: quiz.allowPdfDownload,
+        autoSubmit: schoolQuizDefaults.autoSubmit,
+        autoSave: schoolQuizDefaults.autoSave,
         preventMinimize: quiz.preventMinimize,
         disableCopyPaste: quiz.disableCopyPaste,
         resetOnMinimize: quiz.resetOnMinimize,

@@ -1,4 +1,8 @@
-import { Injectable, UnauthorizedException } from "@nestjs/common";
+import {
+  ForbiddenException,
+  Injectable,
+  UnauthorizedException,
+} from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import type { StudentPortalLoginInput } from "@ekulmis/shared";
 import { PrismaService } from "../prisma/prisma.service";
@@ -137,6 +141,12 @@ export class StudentPortalService {
 
   async results(schoolId: string, studentId: string) {
     await this.requireActiveStudent(schoolId, studentId);
+    const toggles = await this.exams.examToggles(schoolId);
+    if (!toggles.studentResultPortal) {
+      throw new ForbiddenException(
+        "Your school has switched off exam results in the student portal.",
+      );
+    }
     return this.exams.studentResults(schoolId, studentId);
   }
 

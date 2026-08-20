@@ -64,13 +64,18 @@ export const createQuizSchema = z.object({
   teacherId: z.string().min(1),
   description: z.string().optional().nullable(),
   timeLimitMin: z.number().int().positive().optional().nullable(),
-  maxAttempts: z.number().int().positive().default(1),
+  // No hardcoded default: left unset, these fall back to the school's own
+  // Online Quiz Settings, which in turn fall back to the platform default.
+  // A .default() here would erase the difference between "the teacher chose
+  // this" and "the teacher said nothing", and the school's setting could
+  // never apply.
+  maxAttempts: z.number().int().positive().optional(),
   passingMarks: z.number().int().positive().optional().nullable(),
   startAt: z.string().datetime().optional().nullable(),
   endAt: z.string().datetime().optional().nullable(),
-  shuffleQuestions: z.boolean().default(false),
+  shuffleQuestions: z.boolean().optional(),
   shuffleAnswers: z.boolean().default(false),
-  showResultsImmediately: z.boolean().default(true),
+  showResultsImmediately: z.boolean().optional(),
   allowReviewAnswers: z.boolean().default(true),
   allowPdfDownload: z.boolean().default(true),
   instructions: z.string().optional().nullable(),

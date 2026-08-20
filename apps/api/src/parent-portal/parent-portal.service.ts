@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { ExaminationsService } from "../examinations/examinations.service";
 import { FeesService } from "../finance/fees.service";
@@ -127,6 +131,12 @@ export class ParentPortalService {
 
   async childResults(schoolId: string, studentId: string, userId: string) {
     const parentId = await this.parentIdForUser(schoolId, userId);
+    const toggles = await this.exams.examToggles(schoolId);
+    if (!toggles.parentResultPortal) {
+      throw new ForbiddenException(
+        "This school has switched off exam results in the parent portal.",
+      );
+    }
     return this.prisma.forTenant(schoolId, async (tx) => {
       const student = await tx.student.findFirst({
         where: { id: studentId, parentId },
