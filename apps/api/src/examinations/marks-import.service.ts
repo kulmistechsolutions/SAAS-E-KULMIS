@@ -5,22 +5,9 @@ import {
 } from "@nestjs/common";
 import { randomUUID } from "node:crypto";
 import ExcelJS from "exceljs";
+import type { GradeBand } from "@ekulmis/shared";
+import { DEFAULT_GRADE_BANDS, gradeFormulaForExcel } from "@ekulmis/shared";
 import { PrismaService } from "../prisma/prisma.service";
-
-interface GradeBand {
-  min: number;
-  max: number;
-  grade: string;
-}
-
-const DEFAULT_GRADE_BANDS: GradeBand[] = [
-  { min: 90, max: 100, grade: "A" },
-  { min: 80, max: 89, grade: "B" },
-  { min: 70, max: 79, grade: "C" },
-  { min: 60, max: 69, grade: "D" },
-  { min: 50, max: 59, grade: "E" },
-  { min: 0, max: 49, grade: "F" },
-];
 
 /** Columns the school fills in are subjects; these three are ours. */
 const ID_HEADER = "Student ID";
@@ -192,17 +179,6 @@ export class MarksImportService {
     const loaded = await this.loadExams(schoolId, examIds);
     const names = this.sheetNames(loaded);
     const bands = await this.gradeBands(schoolId);
-    const gradeFormula = (avgAddress: string): string => {
-      // Highest band first so a nested IF stops at the first (and only)
-      // matching band, mirroring gradeFromBands()'s min/max lookup. The
-      // lowest band becomes the final else rather than another IF layer.
-      const sorted = [...bands].sort((a, b) => b.min - a.min);
-      const lowest = sorted[sorted.length - 1];
-      return sorted.slice(0, -1).reduce(
-        (inner, b) => `IF(${avgAddress}>=${b.min},"${b.grade}",${inner})`,
-        `"${lowest?.grade ?? "F"}"`,
-      );
-    };
 
     const wb = new ExcelJS.Workbook();
     wb.creator = "eKulmis";
@@ -267,7 +243,7 @@ export class MarksImportService {
           // Mirrors this school's own Grade Configuration bands.
           const avg = ws.getCell(r, lastSubjectCol + 2).address;
           row.getCell(lastSubjectCol + 3).value = {
-            formula: `IF(${avg}="","",${gradeFormula(avg)})`,
+            formula: `IF(${avg}="","",${gradeFormulaForExcel(avg, bands)})`,
           };
         }
         // The two identity columns are locked so a school cannot accidentally

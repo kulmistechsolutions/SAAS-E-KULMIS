@@ -11,8 +11,14 @@ import type {
   CreateExamGroupInput,
   CreateExamInput,
   ExamCreationBulkInput,
+  GradeBand,
   UpsertExamMarksInput,
   UserRole,
+} from "@ekulmis/shared";
+import {
+  DEFAULT_GRADE_BANDS,
+  DEFAULT_PASSING_PERCENTAGE,
+  gradeFromBands,
 } from "@ekulmis/shared";
 import { PrismaService } from "../prisma/prisma.service";
 import { DocumentsService } from "../documents/documents.service";
@@ -54,40 +60,9 @@ function parseDate(s: string): Date {
   return new Date(`${s}T00:00:00.000Z`);
 }
 
-interface GradeBand {
-  min: number;
-  max: number;
-  grade: string;
-}
-
-/** Mirrors the seed default in apps/web/src/lib/settings/seed.ts — used
- * whenever a school hasn't customised Settings → Examinations → Grade
- * Configuration (School.gradeBands is null). */
-const DEFAULT_GRADE_BANDS: GradeBand[] = [
-  { min: 90, max: 100, grade: "A" },
-  { min: 80, max: 89, grade: "B" },
-  { min: 70, max: 79, grade: "C" },
-  { min: 60, max: 69, grade: "D" },
-  { min: 50, max: 59, grade: "E" },
-  { min: 0, max: 49, grade: "F" },
-];
-const DEFAULT_PASSING_PERCENTAGE = 50;
-
 interface GradingConfig {
   bands: GradeBand[];
   passingPercentage: number;
-}
-
-function gradeFromBands(avg: number, bands: GradeBand[]): string {
-  const band = bands.find((b) => avg >= b.min && avg <= b.max);
-  if (band) return band.grade;
-  // Above the highest band's max (e.g. rounding put a 100.0 just over a band
-  // capped at 99) or below the lowest — fall back to the nearest edge band.
-  const sorted = [...bands].sort((a, b) => a.min - b.min);
-  if (!sorted.length) return "—";
-  return avg > sorted[sorted.length - 1].max
-    ? sorted[sorted.length - 1].grade
-    : sorted[0].grade;
 }
 
 function teacherMarksBlocked(examStatus: string, role?: string): boolean {
@@ -124,8 +99,10 @@ export class ExaminationsService {
   }
 
   /** Grade bands + passing percentage from Settings → Examinations, or the
-   * built-in default when a school hasn't configured them. */
-  private async gradingConfig(schoolId: string): Promise<GradingConfig> {
+   * built-in default when a school hasn't configured them. Public so every
+   * other module that reports a grade (teacher portal, reports) reads the
+   * same ladder rather than keeping a scale of its own. */
+  async gradingConfig(schoolId: string): Promise<GradingConfig> {
     const school = await this.prisma.school.findUnique({
       where: { id: schoolId },
       select: { gradeBands: true, examPassingPercentage: true },

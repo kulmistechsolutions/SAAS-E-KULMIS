@@ -3,19 +3,11 @@ import {
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
+import { gradeFromBands } from "@ekulmis/shared";
 import { ExaminationsService } from "../examinations/examinations.service";
 import { DashboardService } from "../dashboard/dashboard.service";
 import { NotificationsService } from "../notifications/notifications.service";
 import { TeachersService } from "../teachers/teachers.service";
-
-function gradeFromAverage(avg: number): string {
-  if (avg >= 90) return "A+";
-  if (avg >= 80) return "A";
-  if (avg >= 70) return "B";
-  if (avg >= 60) return "C";
-  if (avg >= 50) return "D";
-  return "F";
-}
 
 @Injectable()
 export class TeacherPortalService {
@@ -107,6 +99,10 @@ export class TeacherPortalService {
         s.classId === filters.classId && s.sectionId === filters.sectionId,
     );
 
+    // The school's own ladder — a teacher must never see a different letter
+    // for the same score than the admin, student portal or report card does.
+    const { bands } = await this.exams.gradingConfig(schoolId);
+
     const exams = await this.exams.listExams(schoolId, {
       academicYearId: filters.academicYearId,
       classId: filters.classId,
@@ -160,7 +156,7 @@ export class TeacherPortalService {
             marksObtained: obtained,
             percentage:
               pct !== null ? Math.round(pct * 10) / 10 : null,
-            grade: pct !== null ? gradeFromAverage(pct) : "—",
+            grade: pct !== null ? gradeFromBands(pct, bands) : "—",
           });
         }
       }
@@ -179,7 +175,7 @@ export class TeacherPortalService {
         subjectName: name,
         studentCount: new Set(subjectRows.map((r) => r.studentId)).size,
         averagePercentage: Math.round(avg * 10) / 10,
-        grade: gradeFromAverage(avg),
+        grade: gradeFromBands(avg, bands),
       };
     });
 

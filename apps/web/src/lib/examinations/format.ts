@@ -1,16 +1,26 @@
+import {
+  DEFAULT_PASSING_PERCENTAGE,
+  gradeFromBands,
+} from "@ekulmis/shared";
+import { getSettings } from "@/lib/settings/store";
 import type { ExamStatus, ExamType, SubmissionStatus } from "./types";
 
+/**
+ * Grade for a percentage under THIS school's own Grade Configuration
+ * (Settings → Examinations), not a scale baked into the code. Reading the
+ * settings store on every call is what makes an edited ladder show up on
+ * results immediately, with no reload and no stale copy — and it keeps the
+ * browser's answer identical to the API's, which grades from the same bands.
+ */
 export function gradeFromAverage(avg: number): string {
-  if (avg >= 90) return "A";
-  if (avg >= 80) return "B";
-  if (avg >= 70) return "C";
-  if (avg >= 60) return "D";
-  if (avg >= 50) return "E";
-  return "F";
+  return gradeFromBands(avg, getSettings().grades);
 }
 
 export function passedFromAverage(avg: number): boolean {
-  return avg >= 50;
+  return (
+    avg >=
+    (getSettings().examinations.passingPercentage ?? DEFAULT_PASSING_PERCENTAGE)
+  );
 }
 
 export function examStatusLabel(status: ExamStatus | string): string {

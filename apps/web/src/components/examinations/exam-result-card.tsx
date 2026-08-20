@@ -8,6 +8,7 @@ import { Printer } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useSchoolBranding } from "@/lib/settings/use-school-branding";
+import { gradeFromAverage } from "@/lib/examinations/format";
 import { printExamResultCard } from "@/lib/examinations/print";
 import { ImageLightbox } from "@/components/ui/image-lightbox";
 
@@ -58,19 +59,15 @@ export interface ExamResultCardData {
   };
 }
 
-/** Letter grade for a single subject, used where the API only returns marks. */
+/** Letter grade for a single subject, used where the API only returns marks.
+ *  Delegates to the school's own Grade Configuration so this never disagrees
+ *  with the grade the API computes for the same score. */
 export function subjectGrade(
   marksObtained: number | null,
   maxMarks: number,
 ): string {
   if (marksObtained == null || maxMarks <= 0) return "—";
-  const pct = (marksObtained / maxMarks) * 100;
-  if (pct >= 90) return "A+";
-  if (pct >= 80) return "A";
-  if (pct >= 70) return "B";
-  if (pct >= 60) return "C";
-  if (pct >= 50) return "D";
-  return "F";
+  return gradeFromAverage((marksObtained / maxMarks) * 100);
 }
 
 /** Tailwind classes for a grade pill — green for top grades, fading to red for a fail. */
@@ -84,6 +81,7 @@ function gradeTone(grade: string): string {
     case "C":
       return "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300";
     case "D":
+    case "E":
       return "bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-300";
     case "F":
       return "bg-rose-100 text-rose-800 dark:bg-rose-900/40 dark:text-rose-300";
