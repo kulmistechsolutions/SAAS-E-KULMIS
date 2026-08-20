@@ -73,7 +73,12 @@ export async function refreshSettings(): Promise<void> {
       const branding = {
         ...current.branding,
         loginTitle: b.brandLoginTitle ?? b.name,
-        footerText: b.brandFooterText ?? current.branding.footerText,
+        // Same fallback the signed-in mapper uses. Falling back to the seed
+        // here instead put "© eKulmis" under the login form of a school
+        // whose own dashboard, one click later, said "© <school name>".
+        footerText:
+          b.brandFooterText ??
+          `© ${new Date().getFullYear()} ${b.name}. All rights reserved.`,
         primaryColor: b.primaryColor ?? current.branding.primaryColor,
         secondaryColor: b.secondaryColor ?? current.branding.secondaryColor,
         accentColor: b.accentColor ?? current.branding.accentColor,
