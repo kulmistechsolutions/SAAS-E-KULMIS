@@ -305,7 +305,7 @@ export class ExaminationsService {
   }
 
   async updateExamStatus(schoolId: string, examId: string, status: string) {
-    return this.prisma.forTenant(schoolId, async (tx) => {
+    const updatedExam = await this.prisma.forTenant(schoolId, async (tx) => {
       const exam = await tx.exam.findFirst({ where: { id: examId } });
       if (!exam) throw new NotFoundException("Exam not found");
       if (status === "PUBLISHED" && exam.status !== "LOCKED") {
@@ -328,6 +328,15 @@ export class ExaminationsService {
       }
       return updated;
     });
+
+    if (status === "PUBLISHED") {
+      await this.notifications.notifyEvent(schoolId, "examPublished", {
+        title: "Examination published",
+        body: `Results for ${updatedExam.name} are now published.`,
+        type: "EXAM_PUBLISHED",
+      });
+    }
+    return updatedExam;
   }
 
   /** Assign, change, or clear the exam group on an already-created exam. */
@@ -1476,8 +1485,12 @@ export class ExaminationsService {
       userId: row.teacherUserId,
     });
 
+    // A school can switch these channels off in Settings → Notifications;
+    // asking for a reminder by a channel it disabled sends nothing.
+    const notifyPolicy = await this.notifications.policyFor(schoolId);
+
     let smsSent = false;
-    if (opts.sms && row.teacherId) {
+    if (opts.sms && notifyPolicy.sms && row.teacherId) {
       const teacher = await this.prisma.forTenant(schoolId, (tx) =>
         tx.teacher.findFirst({
           where: { id: row.teacherId! },
@@ -1510,7 +1523,7 @@ export class ExaminationsService {
     }
 
     let emailSent = false;
-    if (opts.email && row.teacherId) {
+    if (opts.email && notifyPolicy.email && row.teacherId) {
       const teacher = await this.prisma.forTenant(schoolId, (tx) =>
         tx.teacher.findFirst({
           where: { id: row.teacherId! },

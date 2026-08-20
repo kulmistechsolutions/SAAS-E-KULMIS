@@ -6,9 +6,101 @@ import { PrismaService } from "../prisma/prisma.service";
  *  School.studentPortalEnabled. */
 export type NotifyAudience = "ALL" | "PARENTS" | "TEACHERS" | "STUDENTS";
 
+/** The event triggers a school can switch on and off individually. */
+export type NotifyEvent =
+  | "newStudent"
+  | "feeCollection"
+  | "examPublished"
+  | "quizPublished"
+  | "attendanceAlert"
+  | "resultPublished";
+
+/**
+ * Settings → Notifications, resolved for one school.
+ *
+ * Everything defaults ON so a school that has never opened that page keeps
+ * the behaviour it has today. Only `inApp` and `sms` have a delivery path
+ * behind them: `email` has no mailer, and `whatsapp` is not built — the
+ * settings page labels both as future, and switching them on does not make
+ * a message appear.
+ */
+export interface NotificationPolicy {
+  inApp: boolean;
+  email: boolean;
+  sms: boolean;
+  whatsapp: boolean;
+  events: Record<NotifyEvent, boolean>;
+}
+
 @Injectable()
 export class NotificationsService {
   constructor(private readonly prisma: PrismaService) {}
+
+  /** A school's notification preferences, defaulting to everything on. */
+  async policyFor(schoolId: string): Promise<NotificationPolicy> {
+    const school = await this.prisma.school.findUnique({
+      where: { id: schoolId },
+      select: { notificationSettings: true },
+    });
+    const s = school?.notificationSettings as
+      | (Partial<NotificationPolicy> & {
+          events?: Partial<Record<NotifyEvent, boolean>>;
+        })
+      | null;
+    const on = (v: boolean | undefined) => v ?? true;
+    return {
+      inApp: on(s?.inApp),
+      email: on(s?.email),
+      sms: on(s?.sms),
+      whatsapp: on(s?.whatsapp),
+      events: {
+        newStudent: on(s?.events?.newStudent),
+        feeCollection: on(s?.events?.feeCollection),
+        examPublished: on(s?.events?.examPublished),
+        quizPublished: on(s?.events?.quizPublished),
+        attendanceAlert: on(s?.events?.attendanceAlert),
+        resultPublished: on(s?.events?.resultPublished),
+      },
+    };
+  }
+
+  /** Whether an in-app notice should be written at all for this event. */
+  private async inAppAllowed(
+    schoolId: string,
+    event?: NotifyEvent,
+  ): Promise<boolean> {
+    const policy = await this.policyFor(schoolId);
+    if (!policy.inApp) return false;
+    return event ? policy.events[event] : true;
+  }
+
+  /**
+   * Announce something that happened, honouring the school's switches.
+   *
+   * Silently doing nothing is the point: a school that turned the channel or
+   * the event off asked not to be told, and the work that triggered this —
+   * publishing an exam, registering a student — must still succeed.
+   */
+  async notifyEvent(
+    schoolId: string,
+    event: NotifyEvent,
+    data: { title: string; body: string; type?: string; userId?: string },
+  ): Promise<void> {
+    if (!(await this.inAppAllowed(schoolId, event))) return;
+    await this.prisma.forTenant(schoolId, (tx) =>
+      tx.notification.create({
+        data: {
+          schoolId,
+          title: data.title,
+          body: data.body,
+          type: data.type ?? "INFO",
+          userId: data.userId ?? null,
+          parentId: null,
+          studentId: null,
+        },
+      }),
+    );
+  }
 
   list(
     schoolId: string,
@@ -35,7 +127,7 @@ export class NotificationsService {
     );
   }
 
-  create(
+  async create(
     schoolId: string,
     data: {
       title: string;
@@ -46,6 +138,9 @@ export class NotificationsService {
       studentId?: string;
     },
   ) {
+    // A school that switched the in-app channel off asked not to be pinged.
+    // The caller's own work has already happened; this is only the notice.
+    if (!(await this.inAppAllowed(schoolId))) return null;
     return this.prisma.forTenant(schoolId, (tx) =>
       tx.notification.create({
         data: {
@@ -109,7 +204,13 @@ export class NotificationsService {
       }),
     );
 
-    await this.notifyForAnnouncement(schoolId, announcement, data.notifyAudience ?? "ALL");
+    if (await this.inAppAllowed(schoolId)) {
+      await this.notifyForAnnouncement(
+        schoolId,
+        announcement,
+        data.notifyAudience ?? "ALL",
+      );
+    }
     return announcement;
   }
 
