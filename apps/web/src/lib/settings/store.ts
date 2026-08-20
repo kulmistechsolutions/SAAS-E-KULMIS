@@ -283,6 +283,10 @@ const API_SECTIONS = new Set<SettingsSectionKey>([
   "parents",
   "grades",
   "examinations",
+  "attendance",
+  "quiz",
+  "academic",
+  "notifications",
 ]);
 
 export async function updateSettingsSection<K extends SettingsSectionKey>(
@@ -311,13 +315,12 @@ export async function updateSettingsSection<K extends SettingsSectionKey>(
           teachers: remote.teachers,
           parents: remote.parents,
           grades: remote.grades,
-          // Only passingPercentage is server-backed; the rest of this
-          // section (result publishing/locking toggles, portal switches)
-          // stays whatever the school had set locally.
-          examinations: { ...next.examinations, ...remote.examinations },
-          // Only sessionTimeoutMinutes is server-backed; the rest of this
-          // section stays whatever the school had set locally.
-          security: { ...next.security, ...remote.security },
+          examinations: remote.examinations,
+          security: remote.security,
+          attendance: remote.attendance,
+          quiz: remote.quiz,
+          academic: remote.academic,
+          notifications: remote.notifications,
           // Same rule as refreshSettings: the server's copy is authoritative,
           // except the two images it doesn't store — without this, saving any
           // branding change wiped the favicon the user had just picked.

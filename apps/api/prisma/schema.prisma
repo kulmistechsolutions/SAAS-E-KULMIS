@@ -65,6 +65,22 @@ model School {
   /// cards. Null falls back to the platform default of 50.
   examPassingPercentage Int?
 
+  // ── Settings sections stored whole ──
+  // Each of these is one Settings page's own block of preferences. They are
+  // kept as JSON rather than a column per field because they are read as a
+  // set by the one place that enforces them, never filtered or joined on —
+  // the same reason gradeBands above is JSON. Null means the school has not
+  // changed that page, and the code falls back to its documented default.
+  // Anything the API needs to QUERY by still gets a real column.
+  attendanceSettings   Json?
+  examSettings         Json?
+  quizSettings         Json?
+  academicSettings     Json?
+  salarySettings       Json?
+  expenseSettings      Json?
+  notificationSettings Json?
+  securitySettings     Json?
+
   // ── Branding (Settings → Branding). Colours are hex like "#3b82f6".
   // Null means "not chosen yet" and the app falls back to its defaults; the
   // login title and footer fall back to being derived from the school name.

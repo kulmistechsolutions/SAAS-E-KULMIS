@@ -6,6 +6,100 @@ const gradeBandSchema = z.object({
   grade: z.string().min(1).max(10),
 });
 
+/** A "HH:MM" wall-clock time, as the settings time inputs produce. */
+const clockTime = z
+  .string()
+  .regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Use a time like 07:30");
+
+// ── Settings sections stored whole (see School.*Settings in schema.prisma) ──
+// Each mirrors one Settings page. Every field is required within its section
+// because the UI always sends the whole page back; it is the SECTION that is
+// optional on the patch, not the fields inside it.
+
+export const attendanceSettingsSchema = z.object({
+  startTime: clockTime,
+  endTime: clockTime,
+  lateTime: clockTime,
+  lockTime: clockTime,
+  excusedEnabled: z.boolean(),
+});
+
+export const examSettingsSchema = z.object({
+  maxTerms: z.number().int().min(1).max(12),
+  defaultExamStatus: z.string().min(1),
+  resultPublishing: z.boolean(),
+  resultLocking: z.boolean(),
+  studentResultPortal: z.boolean(),
+  parentResultPortal: z.boolean(),
+  publicResultPortal: z.boolean(),
+  blockResultFeature: z.boolean(),
+});
+
+export const quizSettingsSchema = z.object({
+  maxAttempts: z.number().int().min(1).max(20),
+  autoSubmit: z.boolean(),
+  autoSave: z.boolean(),
+  showResultsImmediately: z.boolean(),
+  questionRandomization: z.boolean(),
+});
+
+export const academicSettingsSchema = z.object({
+  activeAcademicYear: z.string(),
+  schoolLevel: z.string(),
+  gradeScale: z.string(),
+  defaultAttendanceStatus: z.enum(["PRESENT", "ABSENT"]),
+  graduationClass: z.string(),
+  autoPromote: z.boolean(),
+});
+
+export const salarySettingsSchema = z.object({
+  payrollDay: z.number().int().min(1).max(28),
+  allowPartialSalary: z.boolean(),
+  currency: z.string().min(1),
+});
+
+export const expenseSettingsSchema = z.object({
+  approvalWorkflow: z.boolean(),
+  defaultCategories: z.array(z.string().min(1)),
+  attachmentSizeLimitMb: z.number().int().min(1).max(50),
+});
+
+export const notificationSettingsSchema = z.object({
+  inApp: z.boolean(),
+  email: z.boolean(),
+  sms: z.boolean(),
+  whatsapp: z.boolean(),
+  events: z.object({
+    newStudent: z.boolean(),
+    feeCollection: z.boolean(),
+    examPublished: z.boolean(),
+    quizPublished: z.boolean(),
+    attendanceAlert: z.boolean(),
+    resultPublished: z.boolean(),
+  }),
+});
+
+/** Session timeout stays a real column (auth reads it on every sign-in), so
+ *  it is deliberately not repeated here. */
+export const securitySettingsSchema = z.object({
+  minPasswordLength: z.number().int().min(4).max(64),
+  requireComplexity: z.boolean(),
+  requireUppercase: z.boolean(),
+  requireNumber: z.boolean(),
+  loginAttemptLimit: z.number().int().min(1).max(20),
+  twoFactorEnabled: z.boolean(),
+  ipRestriction: z.string(),
+});
+
+export type AttendanceSettingsInput = z.infer<typeof attendanceSettingsSchema>;
+export type ExamSettingsInput = z.infer<typeof examSettingsSchema>;
+export type QuizSettingsInput = z.infer<typeof quizSettingsSchema>;
+export type AcademicSettingsInput = z.infer<typeof academicSettingsSchema>;
+export type SalarySettingsInput = z.infer<typeof salarySettingsSchema>;
+export type ExpenseSettingsInput = z.infer<typeof expenseSettingsSchema>;
+export type NotificationSettingsInput = z.infer<typeof notificationSettingsSchema>;
+export type SecuritySettingsInput = z.infer<typeof securitySettingsSchema>;
+
 /** A CSS hex colour, `#rgb` or `#rrggbb`, normalised to lowercase. */
 const hexColor = z
   .string()
@@ -56,6 +150,15 @@ export const updateSettingsSchema = z
     /// Minimum overall percentage counted as a pass. Null resets to the
     /// platform default (50).
     examPassingPercentage: z.number().int().min(0).max(100).nullable().optional(),
+    // Whole-section preferences. Null resets that page to its defaults.
+    attendanceSettings: attendanceSettingsSchema.nullable().optional(),
+    examSettings: examSettingsSchema.nullable().optional(),
+    quizSettings: quizSettingsSchema.nullable().optional(),
+    academicSettings: academicSettingsSchema.nullable().optional(),
+    salarySettings: salarySettingsSchema.nullable().optional(),
+    expenseSettings: expenseSettingsSchema.nullable().optional(),
+    notificationSettings: notificationSettingsSchema.nullable().optional(),
+    securitySettings: securitySettingsSchema.nullable().optional(),
     studentPrefix: z.string().min(1).max(10).optional(),
     /// Digits the numeric part of a student/parent code is padded to
     /// (STD0007 is 4). Only new codes take a changed value.

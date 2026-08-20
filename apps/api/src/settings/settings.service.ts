@@ -123,16 +123,38 @@ export class SettingsService {
     return this.attachLogoUrl(school);
   }
 
+  /**
+   * Every JSON-valued settings column. Prisma will not take a bare `null` for
+   * a Json field — clearing one back to "school never customised this page"
+   * needs Prisma.JsonNull — so each has to be lifted out of the spread and
+   * translated. Listing them here keeps that in one place: a new settings
+   * section only has to be named, not re-implemented.
+   */
+  private static readonly JSON_SETTINGS = [
+    "gradeBands",
+    "attendanceSettings",
+    "examSettings",
+    "quizSettings",
+    "academicSettings",
+    "salarySettings",
+    "expenseSettings",
+    "notificationSettings",
+    "securitySettings",
+  ] as const;
+
   async update(schoolId: string, dto: UpdateSettingsInput) {
-    const { gradeBands, ...rest } = dto;
+    const rest: Record<string, unknown> = { ...dto };
+    const jsonData: Record<string, unknown> = {};
+    for (const key of SettingsService.JSON_SETTINGS) {
+      if (!(key in dto)) continue;
+      const value = (dto as Record<string, unknown>)[key];
+      delete rest[key];
+      jsonData[key] = value ?? Prisma.JsonNull;
+    }
+
     const school = await this.prisma.school.update({
       where: { id: schoolId },
-      data: {
-        ...rest,
-        ...(gradeBands !== undefined
-          ? { gradeBands: gradeBands ?? Prisma.JsonNull }
-          : {}),
-      },
+      data: { ...rest, ...jsonData } as Prisma.SchoolUpdateInput,
     });
     return this.attachLogoUrl(school);
   }

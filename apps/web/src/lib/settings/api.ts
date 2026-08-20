@@ -59,6 +59,25 @@ export interface ApiSchool {
   resultFooter: string | null;
   gradeBands: { min: number; max: number; grade: string }[] | null;
   examPassingPercentage: number | null;
+  // Whole settings pages, stored as JSON. Null = never customised, so the
+  // seed default for that page applies.
+  attendanceSettings: SettingsState["attendance"] | null;
+  examSettings: Omit<SettingsState["examinations"], "passingPercentage"> | null;
+  quizSettings: SettingsState["quiz"] | null;
+  academicSettings: Omit<SettingsState["academic"], "passingPercentage"> | null;
+  salarySettings: Pick<
+    SettingsState["salary"],
+    "payrollDay" | "allowPartialSalary" | "currency"
+  > | null;
+  expenseSettings: Pick<
+    SettingsState["expenses"],
+    "approvalWorkflow" | "defaultCategories" | "attachmentSizeLimitMb"
+  > | null;
+  notificationSettings: SettingsState["notifications"] | null;
+  securitySettings: Omit<
+    SettingsState["security"],
+    "sessionTimeoutMinutes"
+  > | null;
   studentPrefix: string;
   studentIdLength: number;
   studentFormTemplate?: "STANDARD" | "DETAILED";
@@ -152,16 +171,6 @@ export function mapApiSchoolToSettings(
       receiptHeader: row.receiptHeader ?? base.fees.receiptHeader,
       receiptFooter: row.receiptFooter ?? base.fees.receiptFooter,
     },
-    salary: {
-      ...base.salary,
-      payslipHeader: row.payslipHeader ?? base.salary.payslipHeader,
-      payslipFooter: row.payslipFooter ?? base.salary.payslipFooter,
-    },
-    expenses: {
-      ...base.expenses,
-      expenseHeader: row.expenseHeader ?? base.expenses.expenseHeader,
-      expenseFooter: row.expenseFooter ?? base.expenses.expenseFooter,
-    },
     students: {
       ...base.students,
       idPrefix: row.studentPrefix,
@@ -187,11 +196,31 @@ export function mapApiSchoolToSettings(
       parentFooter: row.parentFooter ?? base.parents.parentFooter,
     },
     grades: row.gradeBands && row.gradeBands.length > 0 ? row.gradeBands : base.grades,
+    // Each stored section replaces its page wholesale; a null one leaves the
+    // seed default in place. Spreading over the base keeps a page working if
+    // a field is added to it before every school's stored blob has caught up.
     examinations: {
       ...base.examinations,
+      ...(row.examSettings ?? {}),
       passingPercentage:
         row.examPassingPercentage ?? base.examinations.passingPercentage,
     },
+    attendance: { ...base.attendance, ...(row.attendanceSettings ?? {}) },
+    quiz: { ...base.quiz, ...(row.quizSettings ?? {}) },
+    academic: { ...base.academic, ...(row.academicSettings ?? {}) },
+    salary: {
+      ...base.salary,
+      ...(row.salarySettings ?? {}),
+      payslipHeader: row.payslipHeader ?? base.salary.payslipHeader,
+      payslipFooter: row.payslipFooter ?? base.salary.payslipFooter,
+    },
+    expenses: {
+      ...base.expenses,
+      ...(row.expenseSettings ?? {}),
+      expenseHeader: row.expenseHeader ?? base.expenses.expenseHeader,
+      expenseFooter: row.expenseFooter ?? base.expenses.expenseFooter,
+    },
+    notifications: { ...base.notifications, ...(row.notificationSettings ?? {}) },
     branding: {
       ...base.branding,
       // A saved colour wins; otherwise the seed default stays. Title and footer
@@ -206,6 +235,8 @@ export function mapApiSchoolToSettings(
     },
     security: {
       ...base.security,
+      ...(row.securitySettings ?? {}),
+      // Its own column, because auth reads it on every sign-in.
       sessionTimeoutMinutes:
         row.sessionTimeoutMinutes ?? base.security.sessionTimeoutMinutes,
     },
@@ -251,11 +282,14 @@ export function mapSettingsSectionToPatch(
     };
   }
   if (key === "security") {
-    // Only the session timeout is backed by the database today — the other
-    // security fields (password rules, IP restriction, 2FA) are still
-    // display-only and aren't sent here.
-    const sec = section as SettingsState["security"];
-    return { sessionTimeoutMinutes: sec.sessionTimeoutMinutes || null };
+    // Session timeout keeps its own column because auth reads it on every
+    // sign-in; the password/lockout rules travel together as one blob.
+    const { sessionTimeoutMinutes, ...sec } =
+      section as SettingsState["security"];
+    return {
+      sessionTimeoutMinutes: sessionTimeoutMinutes || null,
+      securitySettings: sec,
+    };
   }
   if (key === "fees") {
     const f = section as SettingsState["fees"];
@@ -279,6 +313,11 @@ export function mapSettingsSectionToPatch(
     return {
       payslipHeader: s.payslipHeader || null,
       payslipFooter: s.payslipFooter || null,
+      salarySettings: {
+        payrollDay: s.payrollDay,
+        allowPartialSalary: s.allowPartialSalary,
+        currency: s.currency,
+      },
     };
   }
   if (key === "expenses") {
@@ -286,7 +325,28 @@ export function mapSettingsSectionToPatch(
     return {
       expenseHeader: e.expenseHeader || null,
       expenseFooter: e.expenseFooter || null,
+      expenseSettings: {
+        approvalWorkflow: e.approvalWorkflow,
+        defaultCategories: e.defaultCategories,
+        attachmentSizeLimitMb: e.attachmentSizeLimitMb,
+      },
     };
+  }
+  if (key === "attendance") {
+    return { attendanceSettings: section as SettingsState["attendance"] };
+  }
+  if (key === "quiz") {
+    return { quizSettings: section as SettingsState["quiz"] };
+  }
+  if (key === "notifications") {
+    return {
+      notificationSettings: section as SettingsState["notifications"],
+    };
+  }
+  if (key === "academic") {
+    const { passingPercentage: _unused, ...a } =
+      section as SettingsState["academic"];
+    return { academicSettings: a };
   }
   if (key === "students") {
     const s = section as SettingsState["students"];
@@ -322,8 +382,13 @@ export function mapSettingsSectionToPatch(
     return { gradeBands: g.length > 0 ? g : null };
   }
   if (key === "examinations") {
-    const e = section as SettingsState["examinations"];
-    return { examPassingPercentage: e.passingPercentage ?? null };
+    // The passing percentage keeps its own column — grading reads it on every
+    // result — while the rest of the page travels together as one blob.
+    const { passingPercentage, ...e } = section as SettingsState["examinations"];
+    return {
+      examPassingPercentage: passingPercentage ?? null,
+      examSettings: e,
+    };
   }
   return null;
 }
