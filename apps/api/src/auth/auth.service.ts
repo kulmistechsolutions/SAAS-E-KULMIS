@@ -11,6 +11,7 @@ import { PrismaService } from "../prisma/prisma.service";
 import { SubscriptionsService } from "../subscriptions/subscriptions.service";
 import { AuditService } from "../audit/audit.service";
 import { hashPassword, verifyPassword } from "./password.util";
+import { PasswordPolicyService } from "../settings/password-policy.service";
 import type { JwtPayload } from "./auth.types";
 
 /** Where a sign-in attempt came from, recorded on every attempt. */
@@ -41,6 +42,7 @@ export class AuthService {
     private readonly config: ConfigService,
     private readonly subscriptions: SubscriptionsService,
     private readonly audit: AuditService,
+    private readonly passwordPolicy: PasswordPolicyService,
   ) {}
 
   /**
@@ -233,6 +235,7 @@ export class AuthService {
     if (!ok) {
       throw new BadRequestException("Current password is incorrect");
     }
+    await this.passwordPolicy.assertAllowed(user.schoolId, newPassword);
     const passwordHash = await hashPassword(newPassword);
     await this.prisma.user.update({
       where: { id: userId },

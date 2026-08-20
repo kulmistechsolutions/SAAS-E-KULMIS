@@ -7,6 +7,7 @@ import { Prisma, type User } from "@prisma/client";
 import type { CreateUserInput, UpdateUserInput } from "@ekulmis/shared";
 import { PrismaService } from "../prisma/prisma.service";
 import { hashPassword } from "../auth/password.util";
+import { PasswordPolicyService } from "../settings/password-policy.service";
 
 function pad(n: number): string {
   return String(n).padStart(6, "0");
@@ -30,10 +31,14 @@ function toDto(u: User) {
 
 @Injectable()
 export class UsersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly passwordPolicy: PasswordPolicyService,
+  ) {}
 
   /** Create a user within the tenant. Runs under RLS (forTenant). */
   async create(schoolId: string, dto: CreateUserInput) {
+    await this.passwordPolicy.assertAllowed(schoolId, dto.password);
     const passwordHash = await hashPassword(dto.password);
     try {
       const user = await this.prisma.forTenant(schoolId, async (tx) => {
@@ -112,6 +117,7 @@ export class UsersService {
   /** Admin password reset — also revokes the user's refresh tokens. */
   async resetPassword(schoolId: string, id: string, newPassword: string) {
     await this.findOne(schoolId, id);
+    await this.passwordPolicy.assertAllowed(schoolId, newPassword);
     const passwordHash = await hashPassword(newPassword);
     await this.prisma.forTenant(schoolId, (tx) =>
       tx.user.update({ where: { id }, data: { passwordHash } }),

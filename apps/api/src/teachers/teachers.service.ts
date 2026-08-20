@@ -7,6 +7,7 @@ import {
 import type { RegisterTeacherInput, UpdateTeacherInput } from "@ekulmis/shared";
 import { PrismaService } from "../prisma/prisma.service";
 import { hashPassword } from "../auth/password.util";
+import { PasswordPolicyService } from "../settings/password-policy.service";
 import { normalizeName, normalizePhone } from "../common/person-identity.util";
 import { SubscriptionsService } from "../subscriptions/subscriptions.service";
 import { studentSitsIn } from "../students/student-class.util";
@@ -34,6 +35,7 @@ export class TeachersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly subscriptions: SubscriptionsService,
+    private readonly passwordPolicy: PasswordPolicyService,
   ) {}
 
   /** Register a teacher: auto ID from prefix + auto login User (role TEACHER). */
@@ -328,6 +330,7 @@ export class TeachersService {
       tx.teacher.findFirst({ where: { id }, select: { userId: true } }),
     );
     if (!teacher) throw new NotFoundException("Teacher not found");
+    await this.passwordPolicy.assertAllowed(schoolId, newPassword);
     const passwordHash = await hashPassword(newPassword);
     await this.prisma.forTenant(schoolId, (tx) =>
       tx.user.update({ where: { id: teacher.userId }, data: { passwordHash } }),

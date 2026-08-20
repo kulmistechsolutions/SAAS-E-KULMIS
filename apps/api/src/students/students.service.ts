@@ -18,6 +18,7 @@ import { StorageService } from "../storage/storage.service";
 import { FeesService } from "../finance/fees.service";
 import { SubscriptionsService } from "../subscriptions/subscriptions.service";
 import { hashPassword } from "../auth/password.util";
+import { PasswordPolicyService } from "../settings/password-policy.service";
 import { normalizeName } from "../common/person-identity.util";
 import {
   assertStudentPhotoMime,
@@ -119,6 +120,7 @@ export class StudentsService {
     private readonly config: ConfigService,
     private readonly fees: FeesService,
     private readonly subscriptions: SubscriptionsService,
+    private readonly passwordPolicy: PasswordPolicyService,
   ) {
     this.bucket =
       this.config.get<string>("SUPABASE_STORAGE_BUCKET") ??
@@ -910,7 +912,9 @@ export class StudentsService {
     );
     if (!student) throw new NotFoundException("Student not found");
 
-    const password = customPassword?.trim() || student.code;
+    const chosen = customPassword?.trim();
+    if (chosen) await this.passwordPolicy.assertAllowed(schoolId, chosen);
+    const password = chosen || student.code;
     const portalPasswordHash = await hashPassword(password);
     await this.prisma.forTenant(schoolId, (tx) =>
       tx.student.update({ where: { id }, data: { portalPasswordHash } }),

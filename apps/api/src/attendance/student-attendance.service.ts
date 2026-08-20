@@ -8,9 +8,108 @@ function parseDate(s: string): Date {
   return new Date(`${s}T00:00:00.000Z`);
 }
 
+/** The times a school set in Settings → Attendance. */
+interface AttendanceRules {
+  lockTime: string;
+  excusedEnabled: boolean;
+}
+
+/** "HH:MM" → minutes since midnight, or null if it isn't a time. */
+function minutesOfDay(hhmm: string): number | null {
+  const m = /^([01]\d|2[0-3]):([0-5]\d)$/.exec(hhmm);
+  return m ? Number(m[1]) * 60 + Number(m[2]) : null;
+}
+
+/**
+ * Today's date and clock reading in a school's OWN timezone. Attendance times
+ * are wall-clock ("lock at 16:00") and mean 4pm where the school is, not on
+ * whichever server happens to be running this.
+ */
+function schoolNow(timezone: string): { date: string; minutes: number } {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: timezone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).formatToParts(new Date());
+  const get = (t: string) => parts.find((p) => p.type === t)?.value ?? "00";
+  return {
+    date: `${get("year")}-${get("month")}-${get("day")}`,
+    minutes: Number(get("hour")) * 60 + Number(get("minute")),
+  };
+}
+
 @Injectable()
 export class StudentAttendanceService {
   constructor(private readonly prisma: PrismaService) {}
+
+  /**
+   * A school's attendance rules, or null when it has never saved that page.
+   *
+   * Null means "do not enforce". These defaults ship switched on in the UI,
+   * so treating an untouched page as a live rule would start blocking
+   * schools from marking a register on a policy nobody chose. A saved
+   * section is a decision; an unsaved one is not.
+   */
+  private async rulesFor(
+    schoolId: string,
+  ): Promise<{ rules: AttendanceRules; timezone: string } | null> {
+    const school = await this.prisma.school.findUnique({
+      where: { id: schoolId },
+      select: { attendanceSettings: true, timezone: true },
+    });
+    const stored = school?.attendanceSettings as Partial<AttendanceRules> | null;
+    if (!stored) return null;
+    return {
+      rules: {
+        lockTime: stored.lockTime ?? "23:59",
+        excusedEnabled: stored.excusedEnabled ?? true,
+      },
+      timezone: school?.timezone || "UTC",
+    };
+  }
+
+  /**
+   * Apply the school's own attendance rules to one marking request.
+   *
+   * Administrators are exempt from the lock on purpose: it exists to stop a
+   * register being quietly rewritten after the day closes, not to leave a
+   * school unable to correct a mistake. Without that valve a mis-set lock
+   * time would strand them until someone changed a setting they may not
+   * know exists.
+   */
+  private async assertMarkingAllowed(
+    schoolId: string,
+    dateStr: string,
+    statuses: string[],
+    role: string | undefined,
+  ): Promise<void> {
+    const policy = await this.rulesFor(schoolId);
+    if (!policy) return;
+    const { rules, timezone } = policy;
+
+    if (!rules.excusedEnabled && statuses.includes("EXCUSED")) {
+      throw new BadRequestException(
+        "Excused attendance is switched off for this school (Settings → Attendance).",
+      );
+    }
+
+    if (role === "ADMINISTRATOR") return;
+    const lock = minutesOfDay(rules.lockTime);
+    if (lock === null) return;
+
+    const now = schoolNow(timezone);
+    const lockedOut =
+      dateStr < now.date || (dateStr === now.date && now.minutes >= lock);
+    if (lockedOut) {
+      throw new BadRequestException(
+        `Attendance for ${dateStr} is locked (after ${rules.lockTime}). Ask an administrator to change it.`,
+      );
+    }
+  }
 
   /**
    * Mark attendance for a section on a date, optionally scoped to a shift.
@@ -22,7 +121,14 @@ export class StudentAttendanceService {
     schoolId: string,
     dto: MarkStudentAttendanceInput,
     markedByUserId: string,
+    role?: string,
   ) {
+    await this.assertMarkingAllowed(
+      schoolId,
+      dto.date,
+      dto.records.map((r) => r.status),
+      role,
+    );
     const date = parseDate(dto.date);
     const sectionId = dto.sectionId ?? null;
     const shiftId = dto.shiftId ?? null;

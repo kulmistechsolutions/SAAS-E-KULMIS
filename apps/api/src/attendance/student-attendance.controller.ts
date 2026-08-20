@@ -50,7 +50,7 @@ export class StudentAttendanceController {
       parsed.data.classId,
       parsed.data.sectionId,
     );
-    return this.attendance.mark(me.schoolId, parsed.data, me.userId);
+    return this.attendance.mark(me.schoolId, parsed.data, me.userId, me.role);
   }
 
   @Get()

@@ -5,6 +5,7 @@
 export * from "./roles";
 export * from "./grades";
 export * from "./grading";
+export * from "./password-policy";
 export * from "./schemas/auth";
 export * from "./schemas/user";
 export * from "./schemas/settings";
