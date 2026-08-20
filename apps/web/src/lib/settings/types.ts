@@ -144,9 +144,7 @@ export interface SalarySettings {
 }
 
 export interface ExpenseSettings {
-  approvalWorkflow: boolean;
   defaultCategories: string[];
-  attachmentSizeLimitMb: number;
   expenseHeader: string;
   expenseFooter: string;
 }

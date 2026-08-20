@@ -120,7 +120,6 @@ export function buildSettingsSeed(): SettingsState {
       payslipFooter: "This is a system-generated payslip.",
     },
     expenses: {
-      approvalWorkflow: true,
       defaultCategories: [
         "Utilities",
         "Supplies",
@@ -128,7 +127,6 @@ export function buildSettingsSeed(): SettingsState {
         "Transport",
         "Events",
       ],
-      attachmentSizeLimitMb: 5,
       expenseHeader: "",
       expenseFooter: "",
     },

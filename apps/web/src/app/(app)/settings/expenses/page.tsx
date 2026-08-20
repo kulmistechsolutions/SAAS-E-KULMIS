@@ -14,8 +14,6 @@ export default function ExpenseSettingsPage() {
     <div className="space-y-6">
       <div><h1 className="text-2xl font-bold">{t("settingsExpenses.expenseSettings")}</h1></div>
       <SettingsInput label={t("settingsExpenses.defaultCategoriesCommaSeparated")} value={draft.defaultCategories.join(", ")} onChange={(e) => update({ defaultCategories: e.target.value.split(",").map((s) => s.trim()).filter(Boolean) })} />
-      <SettingsInput label={t("settingsExpenses.attachmentSizeLimitMb")} type="number" value={draft.attachmentSizeLimitMb} onChange={(e) => update({ attachmentSizeLimitMb: Number(e.target.value) })} />
-      <SettingsToggle label={t("settingsExpenses.expenseApprovalWorkflow")} checked={draft.approvalWorkflow} onChange={(v) => update({ approvalWorkflow: v })} />
       <div className="grid gap-4 sm:grid-cols-2">
         <SettingsInput label={t("settingsExpenses.expenseRecordHeaderOptional")} value={draft.expenseHeader} onChange={(e) => update({ expenseHeader: e.target.value })} />
         <SettingsInput label={t("settingsExpenses.expenseRecordFooterOptional")} value={draft.expenseFooter} onChange={(e) => update({ expenseFooter: e.target.value })} />

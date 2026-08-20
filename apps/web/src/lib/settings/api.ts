@@ -71,7 +71,7 @@ export interface ApiSchool {
   > | null;
   expenseSettings: Pick<
     SettingsState["expenses"],
-    "approvalWorkflow" | "defaultCategories" | "attachmentSizeLimitMb"
+    "defaultCategories"
   > | null;
   notificationSettings: SettingsState["notifications"] | null;
   securitySettings: Omit<
@@ -326,9 +326,7 @@ export function mapSettingsSectionToPatch(
       expenseHeader: e.expenseHeader || null,
       expenseFooter: e.expenseFooter || null,
       expenseSettings: {
-        approvalWorkflow: e.approvalWorkflow,
         defaultCategories: e.defaultCategories,
-        attachmentSizeLimitMb: e.attachmentSizeLimitMb,
       },
     };
   }

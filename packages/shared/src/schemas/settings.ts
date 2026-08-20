@@ -59,9 +59,7 @@ export const salarySettingsSchema = z.object({
 });
 
 export const expenseSettingsSchema = z.object({
-  approvalWorkflow: z.boolean(),
   defaultCategories: z.array(z.string().min(1)),
-  attachmentSizeLimitMb: z.number().int().min(1).max(50),
 });
 
 export const notificationSettingsSchema = z.object({
