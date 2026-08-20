@@ -66,7 +66,19 @@ export async function refreshSettings(): Promise<void> {
         logoDataUrl: resolveLogoUrl(b.logoUrl, b.logoKey),
         documentHeaderLayout: b.documentHeaderLayout,
       };
-      setState({ ...current, school });
+      // Without this the login screen fell back to the seed, so every
+      // school's staff were greeted by the product's name, footer and blue
+      // rather than their own — the branding they had configured only ever
+      // appeared once someone was already signed in.
+      const branding = {
+        ...current.branding,
+        loginTitle: b.brandLoginTitle ?? b.name,
+        footerText: b.brandFooterText ?? current.branding.footerText,
+        primaryColor: b.primaryColor ?? current.branding.primaryColor,
+        secondaryColor: b.secondaryColor ?? current.branding.secondaryColor,
+        accentColor: b.accentColor ?? current.branding.accentColor,
+      };
+      setState({ ...current, school, branding });
       writeBrandingCache(school);
     } catch {
       /* keep cache */
@@ -531,29 +543,6 @@ export function schoolBranding() {
     /** "LEFT" (logo beside name) or "CENTERED" (logo above name) — every printed document. */
     headerLayout: s.school.documentHeaderLayout,
   };
-}
-
-/** Fetch public branding (login page) without auth. */
-export async function loadPublicBranding(): Promise<
-  ReturnType<typeof schoolBranding>
-> {
-  try {
-    const b = await apiGetBranding();
-    return {
-      name: b.name,
-      tagline: b.motto ?? "",
-      pageTitle: `${b.name} — School Management ERP`,
-      description: b.motto ?? "",
-      loginTitle: b.name,
-      footerText: `© ${new Date().getFullYear()} ${b.name}. All rights reserved.`,
-      primaryColor: "#3b82f6",
-      logoUrl: resolveLogoUrl(b.logoUrl, b.logoKey),
-      loginBackgroundUrl: null,
-      headerLayout: b.documentHeaderLayout,
-    };
-  } catch {
-    return schoolBranding();
-  }
 }
 
 export function getGradeBands() {

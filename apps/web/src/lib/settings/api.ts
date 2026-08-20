@@ -98,6 +98,13 @@ export interface ApiBranding {
   language: string;
   timezone: string;
   documentHeaderLayout: "LEFT" | "CENTERED";
+  // Null means the school never chose one — callers fall back to its name
+  // (title), the product default (footer), or the app palette (colours).
+  brandLoginTitle: string | null;
+  brandFooterText: string | null;
+  primaryColor: string | null;
+  secondaryColor: string | null;
+  accentColor: string | null;
 }
 
 /** Merge API school record into the UI settings shape (non-persisted sections keep seed defaults). */

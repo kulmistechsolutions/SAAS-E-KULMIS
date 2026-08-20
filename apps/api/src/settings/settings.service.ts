@@ -106,6 +106,15 @@ export class SettingsService {
         language: true,
         timezone: true,
         documentHeaderLayout: true,
+        // The login screen is the one page every school opens daily and the
+        // only one an anonymous visitor sees first — it has to be able to
+        // show that school's own title, footer and colours, not the
+        // product's defaults, so they belong in the public payload.
+        brandLoginTitle: true,
+        brandFooterText: true,
+        primaryColor: true,
+        secondaryColor: true,
+        accentColor: true,
       },
     });
     if (!school) {
