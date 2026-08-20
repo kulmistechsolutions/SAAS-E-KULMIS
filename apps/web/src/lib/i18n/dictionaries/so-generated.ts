@@ -251,6 +251,7 @@ export const soGenerated: PartialDictionary = {
     everyone: "Dhammaan",
     parentsOnly: "Waalidiinta Kaliya",
     teachersOnly: "Macallimiinta Kaliya",
+    studentsOnly: "Ardayda Kaliya",
   },
   attendance: {
     attendance: "Xaadiriska",
@@ -3830,6 +3831,13 @@ export const soGenerated: PartialDictionary = {
   smsVariables: {
     clickToInsertTheseFillIn: "Guji si aad u geliso — kuwan si toos ah ayay u buuxsamayaan qof kasta loo dirayo",
     willSendBlankReplaceWithReal: "Waa la dirayaa maran — beddel qoraal dhab ah:",
+  },
+  studentPortalAnnouncements: {
+    title: "Ogeysiisyada Dugsiga",
+    subtitle: "Ogeysiisyada dugsigaagu u soo saaray ardayda.",
+    loading: "Ogeysiisyada waa la soo raraya…",
+    empty: "Wali ogeysiis ma jiro.",
+    pinned: "La sinjilay",
   },
   students: {
     loadingStudents: "Ardayda waa la soo dejinayaa…",

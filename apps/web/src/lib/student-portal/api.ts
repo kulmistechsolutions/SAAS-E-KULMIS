@@ -160,3 +160,17 @@ export interface StudentPortalQuizRow {
 
 export const apiStudentPortalQuizzes = () =>
   studentApi<StudentPortalQuizRow[]>("/student-portal/quizzes");
+
+/** An announcement row as the API stores it — `audience` is the display
+ *  category (EXAM, HOLIDAY, …), not who received it. */
+export interface StudentPortalAnnouncement {
+  id: string;
+  title: string;
+  body: string;
+  audience: string;
+  pinned: boolean;
+  publishedAt: string;
+}
+
+export const apiStudentPortalAnnouncements = () =>
+  studentApi<StudentPortalAnnouncement[]>("/student-portal/announcements");

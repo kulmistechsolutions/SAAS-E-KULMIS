@@ -16,6 +16,7 @@ import type { PortalAnnouncement } from "@/lib/parent-portal/types";
 import { apiCreateAnnouncement, fetchAnnouncements } from "@/lib/notifications/api";
 import { apiSendAudienceSms } from "@/lib/sms/api";
 import { useAuth } from "@/lib/auth";
+import { useSettingsState } from "@/lib/settings/store";
 import { toast } from "@/lib/toast";
 
 const CATEGORIES: PortalAnnouncement["category"][] = [
@@ -28,12 +29,13 @@ const CATEGORIES: PortalAnnouncement["category"][] = [
   "EMERGENCY",
 ];
 
-type NotifyAudience = "ALL" | "PARENTS" | "TEACHERS";
+type NotifyAudience = "ALL" | "PARENTS" | "TEACHERS" | "STUDENTS";
 
 export default function AnnouncementsPage() {
   const t = useT();
   const { user } = useAuth();
   const isTeacher = user?.role === "TEACHER";
+  const studentPortalEnabled = useSettingsState().students.portalLoginEnabled;
   const [mounted, setMounted] = useState(false);
   const [items, setItems] = useState<PortalAnnouncement[]>([]);
   const [composeOpen, setComposeOpen] = useState(false);
@@ -76,12 +78,15 @@ export default function AnnouncementsPage() {
     ALL: "Notice sent to everyone",
     PARENTS: "Notice sent to all parents",
     TEACHERS: "Notice sent to all teachers",
+    STUDENTS: "Notice sent to all students",
   };
 
   /**
    * Fires the SMS(es) for the chosen audience. "Everyone" has no single
    * matching SmsAudience value on the backend, so it's two sends (parents,
    * then teachers) with the results combined into one report to the admin.
+   * Students are portal-only — there is no student SMS audience, which is
+   * why the SMS option is hidden for them rather than silently doing nothing.
    */
   async function sendSmsForAudience(smsBody: string): Promise<{
     sent: number;
@@ -93,7 +98,10 @@ export default function AnnouncementsPage() {
         ? ["ALL_PARENTS", "TEACHERS"]
         : notifyAudience === "PARENTS"
           ? ["ALL_PARENTS"]
-          : ["TEACHERS"];
+          : notifyAudience === "TEACHERS"
+            ? ["TEACHERS"]
+            : [];
+    if (targets.length === 0) return { sent: 0, failed: 0, creditsUsed: 0 };
     const results = await Promise.all(
       targets.map((audience) =>
         apiSendAudienceSms({ category: "ANNOUNCEMENT", body: smsBody, audience }),
@@ -243,6 +251,12 @@ export default function AnnouncementsPage() {
               <option value="ALL">{t("announcements.everyone")}</option>
               <option value="PARENTS">{t("announcements.parentsOnly")}</option>
               <option value="TEACHERS">{t("announcements.teachersOnly")}</option>
+              {/* Students read notices in their own portal, so offering this
+                  before the school has switched that portal on would send a
+                  notice nobody can open. */}
+              {studentPortalEnabled && (
+                <option value="STUDENTS">{t("announcements.studentsOnly")}</option>
+              )}
             </Select>
           </div>
           <div>
@@ -279,18 +293,25 @@ export default function AnnouncementsPage() {
             />
             {t("announcements.pinToTopOfParentPortal")}
           </label>
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={alsoSendSms}
-              onChange={(e) => setAlsoSendSms(e.target.checked)}
-            />
-            {t("announcements.alsoSendViaSms")}
-          </label>
-          {alsoSendSms && (
-            <p className="rounded-lg bg-amber-500/10 px-3 py-2 text-xs text-amber-600 dark:text-amber-400">
-              {t("announcements.smsUsesCreditsWarning")}
-            </p>
+          {/* No student SMS audience exists — a notice to students lands in
+              their portal only, so the option is hidden rather than offered
+              and silently ignored. */}
+          {notifyAudience !== "STUDENTS" && (
+            <>
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={alsoSendSms}
+                  onChange={(e) => setAlsoSendSms(e.target.checked)}
+                />
+                {t("announcements.alsoSendViaSms")}
+              </label>
+              {alsoSendSms && (
+                <p className="rounded-lg bg-amber-500/10 px-3 py-2 text-xs text-amber-600 dark:text-amber-400">
+                  {t("announcements.smsUsesCreditsWarning")}
+                </p>
+              )}
+            </>
           )}
         </div>
       </Dialog>

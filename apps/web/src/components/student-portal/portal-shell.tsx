@@ -9,6 +9,7 @@ import {
   FileText,
   LayoutDashboard,
   LogOut,
+  Megaphone,
   Wallet,
 } from "lucide-react";
 import { apiFetchStudentPortalPhotoBlob, studentPortalLogout } from "@/lib/student-portal/api";
@@ -22,6 +23,7 @@ const NAV = [
   { href: "/student-portal/quizzes", label: "Quizzes", icon: ClipboardList },
   { href: "/student-portal/attendance", label: "Attendance", icon: CalendarCheck },
   { href: "/student-portal/fees", label: "Fees", icon: Wallet },
+  { href: "/student-portal/announcements", label: "Announcements", icon: Megaphone },
 ];
 
 export function StudentPortalShell({

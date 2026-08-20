@@ -251,6 +251,7 @@ export const generated = {
     everyone: "Everyone",
     parentsOnly: "Parents Only",
     teachersOnly: "Teachers Only",
+    studentsOnly: "Students Only",
   },
   attendance: {
     attendance: "Attendance",
@@ -3900,6 +3901,13 @@ export const generated = {
   smsVariables: {
     clickToInsertTheseFillIn: "Click to insert — these fill in automatically for each recipient",
     willSendBlankReplaceWithReal: "Will send blank — replace with real text:",
+  },
+  studentPortalAnnouncements: {
+    title: "School Announcements",
+    subtitle: "Notices your school has published for students.",
+    loading: "Loading announcements…",
+    empty: "No announcements yet.",
+    pinned: "Pinned",
   },
   students: {
     loadingStudents: "Loading students…",

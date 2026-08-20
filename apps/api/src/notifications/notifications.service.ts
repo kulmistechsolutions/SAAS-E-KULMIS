@@ -1,18 +1,32 @@
-import { Injectable } from "@nestjs/common";
+import { BadRequestException, Injectable } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
+
+/** Who gets pinged for an announcement. STUDENTS is only meaningful for a
+ *  school that has opted its students into the portal — see
+ *  School.studentPortalEnabled. */
+export type NotifyAudience = "ALL" | "PARENTS" | "TEACHERS" | "STUDENTS";
 
 @Injectable()
 export class NotificationsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  list(schoolId: string, userId?: string, parentId?: string) {
+  list(
+    schoolId: string,
+    userId?: string,
+    parentId?: string,
+    studentId?: string,
+  ) {
     return this.prisma.forTenant(schoolId, (tx) =>
       tx.notification.findMany({
         where: {
           OR: [
             ...(userId ? [{ userId }] : []),
             ...(parentId ? [{ parentId }] : []),
-            { userId: null, parentId: null },
+            ...(studentId ? [{ studentId }] : []),
+            // The broadcast row — addressed to nobody in particular, so it
+            // must be null on EVERY recipient column. Leaving studentId out
+            // here would hand every student-only notice to all staff too.
+            { userId: null, parentId: null, studentId: null },
           ],
         },
         orderBy: { createdAt: "desc" },
@@ -29,6 +43,7 @@ export class NotificationsService {
       type?: string;
       userId?: string;
       parentId?: string;
+      studentId?: string;
     },
   ) {
     return this.prisma.forTenant(schoolId, (tx) =>
@@ -40,6 +55,7 @@ export class NotificationsService {
           type: data.type ?? "INFO",
           userId: data.userId ?? null,
           parentId: data.parentId ?? null,
+          studentId: data.studentId ?? null,
         },
       }),
     );
@@ -76,7 +92,7 @@ export class NotificationsService {
       body: string;
       audience?: string;
       pinned?: boolean;
-      notifyAudience?: "ALL" | "PARENTS" | "TEACHERS";
+      notifyAudience?: NotifyAudience;
     },
     userId?: string,
   ) {
@@ -106,7 +122,7 @@ export class NotificationsService {
   private async notifyForAnnouncement(
     schoolId: string,
     announcement: { title: string; body: string },
-    notifyAudience: "ALL" | "PARENTS" | "TEACHERS",
+    notifyAudience: NotifyAudience,
   ) {
     const base = {
       schoolId,
@@ -117,7 +133,38 @@ export class NotificationsService {
 
     if (notifyAudience === "ALL") {
       await this.prisma.forTenant(schoolId, (tx) =>
-        tx.notification.create({ data: { ...base, userId: null, parentId: null } }),
+        tx.notification.create({
+          data: { ...base, userId: null, parentId: null, studentId: null },
+        }),
+      );
+      return;
+    }
+
+    // Students have no login User, so they are addressed by studentId — and
+    // only reachable at all once the school has turned the student portal on.
+    if (notifyAudience === "STUDENTS") {
+      const school = await this.prisma.school.findUnique({
+        where: { id: schoolId },
+        select: { studentPortalEnabled: true },
+      });
+      if (!school?.studentPortalEnabled) {
+        throw new BadRequestException(
+          "Turn on the Student Portal in Settings → Students before sending notices to students.",
+        );
+      }
+      const students = await this.prisma.forTenant(schoolId, (tx) =>
+        tx.student.findMany({ where: { status: "ACTIVE" }, select: { id: true } }),
+      );
+      if (students.length === 0) return;
+      await this.prisma.forTenant(schoolId, (tx) =>
+        tx.notification.createMany({
+          data: students.map((s) => ({
+            ...base,
+            userId: null,
+            parentId: null,
+            studentId: s.id,
+          })),
+        }),
       );
       return;
     }
@@ -131,7 +178,12 @@ export class NotificationsService {
 
     await this.prisma.forTenant(schoolId, (tx) =>
       tx.notification.createMany({
-        data: recipients.map((r) => ({ ...base, userId: r.userId, parentId: null })),
+        data: recipients.map((r) => ({
+          ...base,
+          userId: r.userId,
+          parentId: null,
+          studentId: null,
+        })),
       }),
     );
   }

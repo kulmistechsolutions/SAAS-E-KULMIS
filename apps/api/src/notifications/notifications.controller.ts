@@ -20,7 +20,7 @@ const createAnnouncementSchema = z.object({
   body: z.string().min(1),
   audience: z.string().optional(),
   pinned: z.boolean().optional(),
-  notifyAudience: z.enum(["ALL", "PARENTS", "TEACHERS"]).optional(),
+  notifyAudience: z.enum(["ALL", "PARENTS", "TEACHERS", "STUDENTS"]).optional(),
 });
 
 @Controller("notifications")

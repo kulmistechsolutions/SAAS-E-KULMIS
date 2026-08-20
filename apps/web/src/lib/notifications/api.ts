@@ -12,7 +12,7 @@ export const apiCreateAnnouncement = (body: {
   body: string;
   audience?: string;
   pinned?: boolean;
-  notifyAudience?: "ALL" | "PARENTS" | "TEACHERS";
+  notifyAudience?: "ALL" | "PARENTS" | "TEACHERS" | "STUDENTS";
 }) => api<ApiAnnouncement>("/notifications/announcements", { method: "POST", body });
 
 export async function fetchAnnouncements(): Promise<PortalAnnouncement[]> {

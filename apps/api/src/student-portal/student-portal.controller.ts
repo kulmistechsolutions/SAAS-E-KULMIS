@@ -69,4 +69,16 @@ export class StudentPortalController {
   quizzes(@CurrentUser() me: AuthUser) {
     return this.portal.quizzes(me.schoolId, me.userId);
   }
+
+  @Roles(UserRole.STUDENT)
+  @Get("announcements")
+  announcements(@CurrentUser() me: AuthUser) {
+    return this.portal.announcements(me.schoolId, me.userId);
+  }
+
+  @Roles(UserRole.STUDENT)
+  @Get("notifications")
+  notifications(@CurrentUser() me: AuthUser) {
+    return this.portal.notifications(me.schoolId, me.userId);
+  }
 }

@@ -6,6 +6,7 @@ import { ExaminationsService } from "../examinations/examinations.service";
 import { FeesService } from "../finance/fees.service";
 import { TimetableViewService } from "../timetable/timetable-view.service";
 import { QuizService } from "../quiz/quiz.service";
+import { NotificationsService } from "../notifications/notifications.service";
 import { StudentsService } from "../students/students.service";
 import { verifyPassword } from "../auth/password.util";
 import type { JwtPayload } from "../auth/auth.types";
@@ -30,6 +31,7 @@ export class StudentPortalService {
     private readonly timetable: TimetableViewService,
     private readonly quiz: QuizService,
     private readonly students: StudentsService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   async login(schoolId: string, dto: StudentPortalLoginInput) {
@@ -153,5 +155,20 @@ export class StudentPortalService {
   async quizzes(schoolId: string, studentId: string) {
     await this.requireActiveStudent(schoolId, studentId);
     return this.quiz.listForStudent(schoolId, studentId);
+  }
+
+  async announcements(schoolId: string, studentId: string) {
+    await this.requireActiveStudent(schoolId, studentId);
+    return this.notificationsService.listAnnouncements(schoolId);
+  }
+
+  async notifications(schoolId: string, studentId: string) {
+    await this.requireActiveStudent(schoolId, studentId);
+    return this.notificationsService.list(
+      schoolId,
+      undefined,
+      undefined,
+      studentId,
+    );
   }
 }

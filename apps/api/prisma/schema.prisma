@@ -1542,10 +1542,14 @@ model Announcement {
 }
 
 model Notification {
-  id        String    @id @default(cuid())
-  schoolId  String
-  userId    String?
-  parentId  String?
+  id       String  @id @default(cuid())
+  schoolId String
+  userId   String?
+  parentId String?
+  /// Students sign in with their code + portal password rather than a User
+  /// row, so a notice aimed at a student can't be addressed by userId the
+  /// way a teacher's or parent's can — it needs its own column.
+  studentId String?
   title     String
   body      String
   type      String    @default("INFO")
@@ -1555,6 +1559,7 @@ model Notification {
   @@index([schoolId])
   @@index([userId])
   @@index([parentId])
+  @@index([studentId])
   @@map("notifications")
 }
 

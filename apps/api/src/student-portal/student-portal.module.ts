@@ -6,6 +6,7 @@ import { FinanceModule } from "../finance/finance.module";
 import { TimetableModule } from "../timetable/timetable.module";
 import { QuizModule } from "../quiz/quiz.module";
 import { StudentsModule } from "../students/students.module";
+import { NotificationsModule } from "../notifications/notifications.module";
 import { StudentPortalController } from "./student-portal.controller";
 import { StudentPortalService } from "./student-portal.service";
 
@@ -16,6 +17,7 @@ import { StudentPortalService } from "./student-portal.service";
     TimetableModule,
     QuizModule,
     StudentsModule,
+    NotificationsModule,
     // Same secret as AuthModule's JwtModule (own instance, not exported from
     // there) so tokens this module signs verify under the global
     // JwtAuthGuard — same pattern LibraryPortalModule uses.
