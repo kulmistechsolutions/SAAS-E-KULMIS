@@ -21,10 +21,53 @@ export class ExpensesService {
       .catch(onUniqueViolation("A category with this name already exists"));
   }
 
-  listCategories(schoolId: string) {
+  /**
+   * A school's expense categories, seeding its configured defaults the first
+   * time it has none.
+   *
+   * Settings → Expenses lists "Default Categories", which until now was a
+   * list nothing ever read. Seeding only on an empty set means this can
+   * never overwrite or duplicate what a school has already built up — once
+   * it has one category of its own, this stays out of the way.
+   */
+  async listCategories(schoolId: string) {
+    const existing = await this.prisma.forTenant(schoolId, (tx) =>
+      tx.expenseCategory.findMany({ orderBy: { name: "asc" } }),
+    );
+    if (existing.length > 0) return existing;
+
+    const defaults = await this.defaultCategories(schoolId);
+    if (defaults.length === 0) return existing;
+
+    await this.prisma.forTenant(schoolId, (tx) =>
+      tx.expenseCategory.createMany({
+        data: defaults.map((name) => ({ schoolId, name })),
+        skipDuplicates: true,
+      }),
+    );
     return this.prisma.forTenant(schoolId, (tx) =>
       tx.expenseCategory.findMany({ orderBy: { name: "asc" } }),
     );
+  }
+
+  /** The category names a school listed in Settings → Expenses. */
+  private async defaultCategories(schoolId: string): Promise<string[]> {
+    const school = await this.prisma.school.findUnique({
+      where: { id: schoolId },
+      select: { expenseSettings: true },
+    });
+    const s = school?.expenseSettings as
+      | { defaultCategories?: unknown }
+      | null;
+    const raw = Array.isArray(s?.defaultCategories) ? s.defaultCategories : [];
+    return [
+      ...new Set(
+        raw
+          .filter((n): n is string => typeof n === "string")
+          .map((n) => n.trim())
+          .filter(Boolean),
+      ),
+    ];
   }
 
   async removeCategory(schoolId: string, id: string) {

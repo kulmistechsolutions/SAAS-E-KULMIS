@@ -57,6 +57,19 @@ export class SalariesService {
     );
   }
 
+  /**
+   * A school's Salary Settings. Partial pay defaults to allowed, so a school
+   * that has never opened that page keeps paying the way it does today.
+   */
+  private async salaryRules(schoolId: string): Promise<{ allowPartialSalary: boolean }> {
+    const school = await this.prisma.school.findUnique({
+      where: { id: schoolId },
+      select: { salarySettings: true },
+    });
+    const s = school?.salarySettings as { allowPartialSalary?: boolean } | null;
+    return { allowPartialSalary: s?.allowPartialSalary ?? true };
+  }
+
   /** Records one collection against a payroll row's remaining balance. */
   async pay(
     schoolId: string,
@@ -64,6 +77,9 @@ export class SalariesService {
     dto: PaySalaryInput,
     collectedByUserId?: string,
   ) {
+    // Read outside the write transaction: this opens its own connection, and
+    // nesting one inside forTenant is what has timed out on the pooler before.
+    const { allowPartialSalary } = await this.salaryRules(schoolId);
     return this.prisma.forTenant(schoolId, async (tx) => {
       const salary = await tx.salary.findFirst({ where: { id } });
       if (!salary) throw new NotFoundException("Salary not found");
@@ -73,6 +89,13 @@ export class SalariesService {
       const remaining = salary.amount - salary.amountPaid;
       if (dto.amount > remaining) {
         throw new BadRequestException("Payment cannot exceed the remaining balance.");
+      }
+      // A school that switched partial salary off wants each month settled in
+      // one payment, not left half-paid on the books.
+      if (!allowPartialSalary && dto.amount < remaining) {
+        throw new BadRequestException(
+          "Partial salary payments are switched off for this school (Settings → Salary). Pay the full remaining balance.",
+        );
       }
 
       const amountPaid = salary.amountPaid + dto.amount;
