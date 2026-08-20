@@ -119,23 +119,43 @@ async function tryRefreshAccessToken(): Promise<boolean> {
   return refreshInFlight;
 }
 
+/** Does `path` name this route or something beneath it? Compared by segment
+ *  so "/results" never matches an unrelated "/results-archive". */
+function isUnder(path: string, route: string): boolean {
+  return path === route || path.startsWith(`${route}/`);
+}
+
+/**
+ * Pages meant to be opened with no account at all. Sending a visitor from
+ * one of these to a sign-in screen is always wrong — the parent scanning
+ * the QR code on a result card has no account to sign in with, and the
+ * school handed them that link precisely so they wouldn't need one.
+ */
+const PUBLIC_ROUTES = ["/", "/results", "/quiz-take", "/offline"];
+
+/** Each portal's own sign-in page. A portal user bounced to the staff
+ *  login can only be confused by it — those credentials aren't theirs. */
+const PORTAL_LOGINS: [route: string, login: string][] = [
+  ["/teacher-portal", "/teacher-portal/login"],
+  ["/parent-portal", "/parent-portal/login"],
+  ["/student-portal", "/student-portal/login"],
+  ["/library-portal", "/library-portal/login"],
+];
+
 export function redirectToLogin(): void {
   if (typeof window === "undefined") return;
   const path = window.location.pathname;
-  if (path.startsWith("/login") || path.startsWith("/platform")) return;
-  // Keep portal users on their own sign-in page instead of the staff login.
-  if (path.startsWith("/teacher-portal")) {
-    if (path !== "/teacher-portal/login") window.location.assign("/teacher-portal/login");
-    return;
+
+  if (PUBLIC_ROUTES.some((r) => isUnder(path, r))) return;
+  if (isUnder(path, "/login") || isUnder(path, "/platform")) return;
+
+  for (const [route, login] of PORTAL_LOGINS) {
+    if (isUnder(path, route)) {
+      if (path !== login) window.location.assign(login);
+      return;
+    }
   }
-  if (path.startsWith("/parent-portal")) {
-    if (path !== "/parent-portal/login") window.location.assign("/parent-portal/login");
-    return;
-  }
-  if (path.startsWith("/student-portal")) {
-    if (path !== "/student-portal/login") window.location.assign("/student-portal/login");
-    return;
-  }
+
   window.location.assign("/login");
 }
 
@@ -208,7 +228,14 @@ export async function api<T>(
       );
     }
 
-    if (res.status === 401 && typeof window !== "undefined") {
+    // A 401 from a deliberately unauthenticated call says nothing about the
+    // caller's own session — clearing tokens here would sign a staff member
+    // out for opening the public results page.
+    if (
+      res.status === 401 &&
+      opts.auth !== false &&
+      typeof window !== "undefined"
+    ) {
       clearAuthTokens();
     }
     throw new ApiError(res.status, message);
