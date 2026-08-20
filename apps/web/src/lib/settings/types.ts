@@ -167,10 +167,8 @@ export interface QuizSettings {
 
 export interface NotificationEventFlags {
   newStudent: boolean;
-  feeCollection: boolean;
   examPublished: boolean;
   quizPublished: boolean;
-  attendanceAlert: boolean;
   resultPublished: boolean;
 }
 

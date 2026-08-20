@@ -403,6 +403,14 @@ export class ExaminationsService {
       metadata: { examGroupId, groupName: group.name, published, skipped, failed },
     });
 
+    if (published > 0) {
+      await this.notifications.notifyEvent(schoolId, "resultPublished", {
+        title: "Results published",
+        body: `Results for ${group.name} are now visible to students and parents.`,
+        type: "RESULT_PUBLISHED",
+      });
+    }
+
     return { total: exams.length, published, skipped, failed };
   }
 

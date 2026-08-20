@@ -16,10 +16,8 @@ const CHANNELS = [
 
 const EVENTS: { key: keyof NotificationEventFlags; label: string }[] = [
   { key: "newStudent", label: "New Student" },
-  { key: "feeCollection", label: "Fee Collection" },
   { key: "examPublished", label: "Exam Published" },
   { key: "quizPublished", label: "Quiz Published" },
-  { key: "attendanceAlert", label: "Attendance Alert" },
   { key: "resultPublished", label: "Result Published" },
 ];
 

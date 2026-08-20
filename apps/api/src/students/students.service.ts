@@ -19,6 +19,7 @@ import { FeesService } from "../finance/fees.service";
 import { SubscriptionsService } from "../subscriptions/subscriptions.service";
 import { hashPassword } from "../auth/password.util";
 import { PasswordPolicyService } from "../settings/password-policy.service";
+import { NotificationsService } from "../notifications/notifications.service";
 import { normalizeName } from "../common/person-identity.util";
 import {
   assertStudentPhotoMime,
@@ -121,6 +122,7 @@ export class StudentsService {
     private readonly fees: FeesService,
     private readonly subscriptions: SubscriptionsService,
     private readonly passwordPolicy: PasswordPolicyService,
+    private readonly notifications: NotificationsService,
   ) {
     this.bucket =
       this.config.get<string>("SUPABASE_STORAGE_BUCKET") ??
@@ -330,6 +332,12 @@ export class StudentsService {
         `Fee initialization skipped for ${student.code}: ${err instanceof Error ? err.message : err}`,
       );
     }
+
+    await this.notifications.notifyEvent(schoolId, "newStudent", {
+      title: "New student registered",
+      body: `${student.fullName} (${student.code}) has been registered.`,
+      type: "NEW_STUDENT",
+    });
     this.logger.log(
       `Registered student ${student.code} (${student.id}) in school ${schoolId}`,
     );

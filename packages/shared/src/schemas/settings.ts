@@ -69,10 +69,8 @@ export const notificationSettingsSchema = z.object({
   whatsapp: z.boolean(),
   events: z.object({
     newStudent: z.boolean(),
-    feeCollection: z.boolean(),
     examPublished: z.boolean(),
     quizPublished: z.boolean(),
-    attendanceAlert: z.boolean(),
     resultPublished: z.boolean(),
   }),
 });

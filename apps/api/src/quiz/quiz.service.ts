@@ -23,6 +23,7 @@ import { TeachersService } from "../teachers/teachers.service";
 import { AiService } from "../ai/ai.service";
 import { SubscriptionsService } from "../subscriptions/subscriptions.service";
 import { StorageService } from "../storage/storage.service";
+import { NotificationsService } from "../notifications/notifications.service";
 
 function padQuizSeq(n: number): string {
   return String(n).padStart(6, "0");
@@ -63,6 +64,7 @@ export class QuizService {
     private readonly ai: AiService,
     private readonly subscriptions: SubscriptionsService,
     private readonly storage: StorageService,
+    private readonly notifications: NotificationsService,
     config: ConfigService,
   ) {
     this.bucket = config.get<string>("MINIO_BUCKET") ?? "ekulmis";
@@ -782,7 +784,7 @@ export class QuizService {
   }
 
   async publish(schoolId: string, quizId: string) {
-    return this.prisma.forTenant(schoolId, async (tx) => {
+    const published = await this.prisma.forTenant(schoolId, async (tx) => {
       const quiz = await tx.quiz.findFirst({
         where: { id: quizId },
         include: {
@@ -802,6 +804,13 @@ export class QuizService {
         data: { status: "PUBLISHED", publishedAt: new Date() },
       });
     });
+
+    await this.notifications.notifyEvent(schoolId, "quizPublished", {
+      title: "Quiz published",
+      body: `${published.title} is now open to students.`,
+      type: "QUIZ_PUBLISHED",
+    });
+    return published;
   }
 
   async getById(schoolId: string, quizId: string) {

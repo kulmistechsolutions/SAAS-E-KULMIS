@@ -9,10 +9,8 @@ export type NotifyAudience = "ALL" | "PARENTS" | "TEACHERS" | "STUDENTS";
 /** The event triggers a school can switch on and off individually. */
 export type NotifyEvent =
   | "newStudent"
-  | "feeCollection"
   | "examPublished"
   | "quizPublished"
-  | "attendanceAlert"
   | "resultPublished";
 
 /**
@@ -55,10 +53,8 @@ export class NotificationsService {
       whatsapp: on(s?.whatsapp),
       events: {
         newStudent: on(s?.events?.newStudent),
-        feeCollection: on(s?.events?.feeCollection),
         examPublished: on(s?.events?.examPublished),
         quizPublished: on(s?.events?.quizPublished),
-        attendanceAlert: on(s?.events?.attendanceAlert),
         resultPublished: on(s?.events?.resultPublished),
       },
     };

@@ -151,10 +151,8 @@ export function buildSettingsSeed(): SettingsState {
       whatsapp: false,
       events: {
         newStudent: true,
-        feeCollection: true,
         examPublished: true,
         quizPublished: true,
-        attendanceAlert: true,
         resultPublished: true,
       },
     },
