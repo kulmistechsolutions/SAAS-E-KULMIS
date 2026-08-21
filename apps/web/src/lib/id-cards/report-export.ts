@@ -1,6 +1,6 @@
 "use client";
 
-import { schoolBranding } from "@/lib/settings/store";
+import { PRINT_HEADER_CSS, printHeaderHtml } from "@/lib/print/header";
 import type { CardReport, CardReportStudent } from "./api";
 
 /**
@@ -77,7 +77,6 @@ function table(title: string, rows: CardReportStudent[]): string {
 }
 
 export function printCardReport(report: CardReport) {
-  const school = schoolBranding();
   const w = window.open("", "_blank", "width=900,height=760");
   if (!w) return false;
 
@@ -90,9 +89,7 @@ export function printCardReport(report: CardReport) {
   <title>ID Card Report</title><style>
     *{font-family:Arial,Helvetica,sans-serif;box-sizing:border-box}
     body{padding:28px;color:#0f172a}
-    .head{border-bottom:2px solid #1d4ed8;padding-bottom:12px;margin-bottom:16px}
-    h1{margin:0;font-size:20px}
-    .meta{color:#475569;font-size:12px;margin-top:4px}
+    ${PRINT_HEADER_CSS}
     .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:18px}
     .stat{border:1px solid #e2e8f0;border-radius:8px;padding:10px;text-align:center}
     .stat b{display:block;font-size:18px}
@@ -106,8 +103,7 @@ export function printCardReport(report: CardReport) {
     td.none{color:#94a3b8;text-align:center}
     @media print{body{padding:0}}
   </style></head><body>
-  <div class="head"><h1>${esc(school.name)}</h1>
-    <div class="meta">ID Card Report · Generated ${new Date().toLocaleString()}</div></div>
+  ${printHeaderHtml(`ID Card Report · Generated ${new Date().toLocaleString()}`)}
   <div class="stats">${cards}</div>
   ${table("Students without a photo", report.withoutPhotos)}
   ${table("Students without a card", report.withoutCards)}

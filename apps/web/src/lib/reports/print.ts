@@ -1,5 +1,6 @@
 import { BRAND } from "@/lib/brand";
-import { getSettings, schoolBranding } from "@/lib/settings/store";
+import { getSettings } from "@/lib/settings/store";
+import { escapeHtml, PRINT_HEADER_CSS, printHeaderHtml } from "@/lib/print/header";
 import type { ReportColumn, ReportData } from "./types";
 
 interface PrintOpts {
@@ -10,12 +11,7 @@ interface PrintOpts {
 }
 
 export function printReport(opts: PrintOpts) {
-  const school = schoolBranding();
   const { reportHeader, reportFooter } = getSettings().school;
-  const logo = school.logoUrl
-    ? `<img src="${school.logoUrl}" alt="" class="logo" style="object-fit:contain"/>`
-    : `<div class="logo">${school.name.charAt(0)}</div>`;
-  const centered = school.headerLayout === "CENTERED";
   const now = new Date();
   const head = opts.data.columns.map((c) => `<th>${c.label}</th>`).join("");
   const body = opts.data.rows
@@ -33,11 +29,7 @@ export function printReport(opts: PrintOpts) {
   <style>
     * { font-family: system-ui, -apple-system, Segoe UI, sans-serif; box-sizing: border-box; }
     body { padding: 32px 40px; color: #0f172a; font-size: 12px; }
-    .head { display:flex; align-items:center; gap:14px; border-bottom:2px solid #6366f1; padding-bottom:16px; margin-bottom:20px; }
-    .head.centered { flex-direction:column; text-align:center; }
-    .logo { width:48px; height:48px; border-radius:10px; background:#6366f1; color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:22px; }
-    h1 { margin:0; font-size:20px; }
-    .meta { color:#64748b; font-size:12px; margin-top:4px; }
+    ${PRINT_HEADER_CSS}
     .summary { display:flex; flex-wrap:wrap; gap:12px; margin-bottom:20px; }
     .sum { border:1px solid #e2e8f0; border-radius:8px; padding:10px 14px; min-width:120px; }
     .sum span { display:block; font-size:10px; color:#64748b; text-transform:uppercase; }
@@ -50,14 +42,10 @@ export function printReport(opts: PrintOpts) {
     .sig div { width:200px; border-top:1px solid #94a3b8; padding-top:8px; text-align:center; font-size:11px; color:#64748b; }
     @media print { body { padding: 20px; } }
   </style></head><body>
-    <div class="head${centered ? " centered" : ""}">
-      ${logo}
-      <div>
-        <h1>${school.name}</h1>
-        <div class="meta">${reportHeader || BRAND.tagline}</div>
-        <div class="meta"><b>${opts.title}</b>${opts.academicYear ? ` · Academic Year ${opts.academicYear}` : ""}</div>
-      </div>
-    </div>
+    ${printHeaderHtml(
+      `${reportHeader || BRAND.tagline}`,
+      `<div class="ek-subtitle"><b>${escapeHtml(opts.title)}</b>${opts.academicYear ? ` · Academic Year ${escapeHtml(opts.academicYear)}` : ""}</div>`,
+    )}
     ${summary ? `<div class="summary">${summary}</div>` : ""}
     <table><thead><tr>${head}</tr></thead><tbody>${body || `<tr><td colspan="${opts.data.columns.length}" style="text-align:center;color:#64748b;">No records</td></tr>`}</tbody></table>
     <div class="foot">

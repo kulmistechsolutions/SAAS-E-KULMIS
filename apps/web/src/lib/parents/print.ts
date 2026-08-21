@@ -2,6 +2,7 @@
 
 import { getSettings, schoolBranding } from "@/lib/settings/store";
 import { shortDate, statusLabel } from "@/lib/students/format";
+import { PRINT_HEADER_CSS, escapeHtml, printHeaderHtml } from "@/lib/print/header";
 import type { Parent, Student } from "@/lib/students/types";
 
 type ParentRow = Parent & { childCount: number };
@@ -70,17 +71,9 @@ export function exportParentsCsv(
   URL.revokeObjectURL(url);
 }
 
-function escapeHtml(s: string): string {
-  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-}
-
 export function printParentProfile(parent: Parent, children: Student[]) {
   const school = schoolBranding();
   const { parentHeader, parentFooter } = getSettings().parents;
-  const logo = school.logoUrl
-    ? `<img src="${school.logoUrl}" alt="" class="logo" style="object-fit:contain"/>`
-    : `<div class="logo">${school.name.slice(0, 2).toUpperCase()}</div>`;
-  const centered = school.headerLayout === "CENTERED";
   const w = window.open("", "_blank", "width=800,height=700");
   if (!w) return;
   const row = (k: string, v: string) =>
@@ -94,17 +87,15 @@ export function printParentProfile(parent: Parent, children: Student[]) {
   w.document.write(`<!DOCTYPE html><html><head><title>${escapeHtml(parent.name)}</title>
   <style>
     *{font-family:Arial,sans-serif;box-sizing:border-box}body{padding:32px;color:#0f172a}
-    .head{display:flex;gap:16px;border-bottom:2px solid #4f46e5;padding-bottom:16px;margin-bottom:20px}
-    .head.centered{flex-direction:column;text-align:center}
-    .logo{width:52px;height:52px;border-radius:12px;background:linear-gradient(135deg,#3b82f6,#4f46e5);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:20px}
-    h2{font-size:14px;margin:16px 0 6px;color:#4f46e5}
+    ${PRINT_HEADER_CSS}
+    h2{font-size:14px;margin:16px 0 6px;color:${school.primaryColor || "#4f46e5"}}
     table{width:100%;border-collapse:collapse;font-size:13px}
     td,th{border:1px solid #e2e8f0;padding:7px 10px}
     td.k{background:#f8fafc;font-weight:600;width:200px}
     th{background:#f8fafc;text-align:left}
     .foot{margin-top:24px;font-size:11px;color:#94a3b8;text-align:center}
   </style></head><body>
-  <div class="head${centered ? " centered" : ""}">${logo}<div><h1>${escapeHtml(school.name)}</h1><div style="color:#475569;font-size:13px">${parentHeader || "Parent Profile"}</div></div></div>
+  ${printHeaderHtml(parentHeader || "Parent Profile")}
   <h2>Parent Information</h2>
   <table>
     ${row("Parent ID", parent.code)}
@@ -134,7 +125,6 @@ export function printParentsList(
   fieldKeys: string[] = DEFAULT_PARENT_EXPORT_FIELDS,
 ) {
   const fields = resolveParentFields(fieldKeys);
-  const school = schoolBranding();
   const w = window.open("", "_blank", "width=900,height=700");
   if (!w) return;
   const headCells = fields.map((f) => `<th>${escapeHtml(f.label)}</th>`).join("");
@@ -145,9 +135,8 @@ export function printParentsList(
     )
     .join("");
   w.document.write(`<!DOCTYPE html><html><head><title>Parent List</title>
-  <style>*{font-family:Arial,sans-serif}body{padding:32px}table{width:100%;border-collapse:collapse;font-size:13px}th,td{border:1px solid #cbd5e1;padding:7px}th{background:#f1f5f9}</style></head><body>
-  <h1>${escapeHtml(school.name)} — Parent List</h1>
-  <p>Status filter: ${meta.status}</p>
+  <style>*{font-family:Arial,sans-serif;box-sizing:border-box}body{padding:32px;color:#0f172a}${PRINT_HEADER_CSS}table{width:100%;border-collapse:collapse;font-size:13px}th,td{border:1px solid #cbd5e1;padding:7px}th{background:#f1f5f9}</style></head><body>
+  ${printHeaderHtml(`Parent List · Status: ${escapeHtml(meta.status)}`)}
   <table><thead><tr><th>#</th>${headCells}</tr></thead>
   <tbody>${body || `<tr><td colspan="${fields.length + 1}">No parents</td></tr>`}</tbody></table>
   <script>window.onload=function(){window.print()}</script></body></html>`);

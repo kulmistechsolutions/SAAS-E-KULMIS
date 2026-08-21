@@ -1,33 +1,21 @@
-import { getSettings, schoolBranding } from "@/lib/settings/store";
+import { getSettings } from "@/lib/settings/store";
+import { PRINT_HEADER_CSS, printHeaderHtml } from "@/lib/print/header";
 import { dateTime, roleLabel, shortDate } from "./format";
 import type { SystemUser } from "./types";
 
 export function userProfileHtml(user: SystemUser): string {
-  const school = schoolBranding();
   const { reportHeader, reportFooter } = getSettings().school;
-  const logo = school.logoUrl
-    ? `<img src="${school.logoUrl}" alt="" class="logo" style="object-fit:contain"/>`
-    : `<div class="logo">${school.name.slice(0, 2).toUpperCase()}</div>`;
-  const centered = school.headerLayout === "CENTERED";
   return `<!DOCTYPE html>
 <html><head><meta charset="utf-8"/><title>${user.userId}</title>
 <style>
   body{font-family:system-ui,sans-serif;padding:40px;color:#0f172a;max-width:720px;margin:0 auto}
-  .head{display:flex;align-items:center;gap:16px;border-bottom:2px solid #e2e8f0;padding-bottom:20px;margin-bottom:24px}
-  .head.centered{flex-direction:column;text-align:center}
-  .logo{width:56px;height:56px;border-radius:12px;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700}
+  ${PRINT_HEADER_CSS}
   table{width:100%;border-collapse:collapse}
   th,td{text-align:left;padding:10px 12px;border-bottom:1px solid #e2e8f0;font-size:14px}
   th{width:38%;color:#64748b}
   .sign{margin-top:48px;border-top:1px solid #cbd5e1;padding-top:8px;font-size:12px;color:#64748b;width:240px}
 </style></head><body>
-  <div class="head${centered ? " centered" : ""}">
-    ${logo}
-    <div>
-      <h1>${school.name}</h1>
-      <div style="color:#64748b;font-size:13px">${reportHeader || "User Profile Report"}</div>
-    </div>
-  </div>
+  ${printHeaderHtml(reportHeader || "User Profile Report")}
   <table>
     <tr><th>User ID</th><td>${user.userId}</td></tr>
     <tr><th>Full Name</th><td>${user.fullName}</td></tr>
@@ -54,7 +42,6 @@ export function userListReportHtml(
   rows: { userId: string; fullName: string; username: string; roleLabel: string; status: string }[],
   title: string,
 ): string {
-  const school = schoolBranding();
   const body = rows
     .map(
       (r) =>
@@ -65,14 +52,13 @@ export function userListReportHtml(
 <html><head><meta charset="utf-8"/><title>${title}</title>
 <style>
   body{font-family:system-ui,sans-serif;padding:32px;color:#0f172a}
-  h1{font-size:22px} .meta{color:#64748b;font-size:13px;margin-bottom:20px}
+  ${PRINT_HEADER_CSS}
   table{width:100%;border-collapse:collapse;font-size:13px}
   th,td{border:1px solid #e2e8f0;padding:8px 10px;text-align:left}
   th{background:#f8fafc}
   .sign{margin-top:40px;font-size:12px;color:#64748b}
 </style></head><body>
-  <h1>${school.name}</h1>
-  <div class="meta">${title} · Generated ${shortDate(new Date().toISOString())}</div>
+  ${printHeaderHtml(`${title} · Generated ${shortDate(new Date().toISOString())}`)}
   <table>
     <thead><tr><th>User ID</th><th>Name</th><th>Username</th><th>Role</th><th>Status</th></tr></thead>
     <tbody>${body}</tbody>

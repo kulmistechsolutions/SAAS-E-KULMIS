@@ -1,6 +1,7 @@
 "use client";
 
 import { getSettings, schoolBranding } from "@/lib/settings/store";
+import { PRINT_HEADER_CSS, printHeaderHtml } from "@/lib/print/header";
 import { genderLabel, money, shortDate, statusLabel } from "./format";
 import type { StudentWithParent } from "./types";
 import { studentClassLabel, studentSectionNames } from "./types";
@@ -104,11 +105,6 @@ export function printStudentsList(
   fieldKeys: string[] = DEFAULT_STUDENT_EXPORT_FIELDS,
 ) {
   const fields = resolveStudentFields(fieldKeys);
-  const school = schoolBranding();
-  const logo = school.logoUrl
-    ? `<img src="${school.logoUrl}" alt="" class="logo" style="object-fit:contain"/>`
-    : `<div class="logo">${school.name.slice(0, 2).toUpperCase()}</div>`;
-  const centered = school.headerLayout === "CENTERED";
   const w = window.open("", "_blank", "width=900,height=700");
   if (!w) return;
   const headCells = fields.map((f) => `<th>${escapeHtml(f.label)}</th>`).join("");
@@ -122,24 +118,14 @@ export function printStudentsList(
   <style>
     *{font-family:Arial,Helvetica,sans-serif;box-sizing:border-box}
     body{padding:32px;color:#0f172a}
-    .head{display:flex;align-items:center;gap:16px;border-bottom:2px solid #4f46e5;padding-bottom:16px;margin-bottom:16px}
-    .head.centered{flex-direction:column;text-align:center}
-    .logo{width:52px;height:52px;border-radius:12px;background:linear-gradient(135deg,#3b82f6,#4f46e5);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:20px}
-    h1{margin:0;font-size:20px}
-    .meta{color:#475569;font-size:13px;margin-top:4px}
+    ${PRINT_HEADER_CSS}
     table{width:100%;border-collapse:collapse;margin-top:8px;font-size:13px}
     th,td{border:1px solid #cbd5e1;padding:7px 10px;text-align:left}
     th{background:#f1f5f9}
     .foot{margin-top:24px;font-size:11px;color:#94a3b8}
     @media print{body{padding:0}}
   </style></head><body>
-  <div class="head${centered ? " centered" : ""}">
-    ${logo}
-    <div>
-      <h1>${escapeHtml(school.name)}</h1>
-      <div class="meta">Student List · Academic Year ${meta.academicYear} · Class: ${meta.className} · Section: ${meta.section}</div>
-    </div>
-  </div>
+  ${printHeaderHtml(`Student List · Academic Year ${escapeHtml(meta.academicYear)} · Class: ${escapeHtml(meta.className)} · Section: ${escapeHtml(meta.section)}`)}
   <table>
     <thead><tr><th>#</th>${headCells}</tr></thead>
     <tbody>${body || `<tr><td colspan="${fields.length + 1}">No students</td></tr>`}</tbody>
@@ -161,10 +147,6 @@ function escapeHtml(s: string): string {
 export function printStudentProfile(r: StudentWithParent) {
   const school = schoolBranding();
   const { studentHeader, studentFooter } = getSettings().students;
-  const logo = school.logoUrl
-    ? `<img src="${school.logoUrl}" alt="" class="logo" style="object-fit:contain"/>`
-    : `<div class="logo">${school.name.slice(0, 2).toUpperCase()}</div>`;
-  const centered = school.headerLayout === "CENTERED";
   const w = window.open("", "_blank", "width=800,height=700");
   if (!w) return;
   const row = (k: string, v: string) =>
@@ -187,19 +169,15 @@ export function printStudentProfile(r: StudentWithParent) {
   <style>
     *{font-family:Arial,Helvetica,sans-serif;box-sizing:border-box}
     body{padding:32px;color:#0f172a}
-    .head{display:flex;align-items:center;gap:16px;border-bottom:2px solid #4f46e5;padding-bottom:16px;margin-bottom:20px}
-    .head.centered{flex-direction:column;text-align:center}
-    .logo{width:52px;height:52px;border-radius:12px;background:linear-gradient(135deg,#3b82f6,#4f46e5);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:20px}
-    h1{margin:0;font-size:20px}
-    .meta{color:#475569;font-size:13px;margin-top:4px}
-    h2{font-size:14px;margin:18px 0 6px;color:#4f46e5}
+    ${PRINT_HEADER_CSS}
+    h2{font-size:14px;margin:18px 0 6px;color:${school.primaryColor || "#4f46e5"}}
     table{width:100%;border-collapse:collapse;font-size:13px}
     td{border:1px solid #e2e8f0;padding:7px 10px}
     td.k{background:#f8fafc;font-weight:600;width:220px}
     .foot{margin-top:24px;font-size:11px;color:#94a3b8;text-align:center}
     @media print{body{padding:0}}
   </style></head><body>
-  <div class="head${centered ? " centered" : ""}">${logo}<div><h1>${escapeHtml(school.name)}</h1><div class="meta">${studentHeader || "Student Profile"}</div></div></div>
+  ${printHeaderHtml(studentHeader || "Student Profile")}
   <h2>Personal Information</h2>
   <table>
     ${row("Student ID", r.code)}

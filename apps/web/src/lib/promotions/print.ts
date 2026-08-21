@@ -1,4 +1,4 @@
-import { schoolBranding } from "@/lib/settings/store";
+import { PRINT_HEADER_CSS, printHeaderHtml } from "@/lib/print/header";
 import { getStudentWithParent } from "@/lib/students/store";
 import { studentPromotionHistory } from "./store";
 import { dateTime, shortDate } from "./format";
@@ -9,11 +9,6 @@ export { printTable } from "@/lib/academics/print";
 export function printTranscript(studentId: string) {
   const sw = getStudentWithParent(studentId);
   if (!sw) return;
-  const school = schoolBranding();
-  const logo = school.logoUrl
-    ? `<img src="${school.logoUrl}" alt="" class="logo" style="object-fit:contain"/>`
-    : `<div class="logo">${school.name.charAt(0)}</div>`;
-  const centered = school.headerLayout === "CENTERED";
   const history = studentPromotionHistory(studentId);
   const now = new Date();
 
@@ -32,12 +27,9 @@ export function printTranscript(studentId: string) {
 
   const html = `<!doctype html><html><head><meta charset="utf-8"/><title>Transcript — ${sw.fullName}</title>
   <style>
-    * { font-family: system-ui, -apple-system, Segoe UI, sans-serif; }
+    * { font-family: system-ui, -apple-system, Segoe UI, sans-serif; box-sizing: border-box; }
     body { padding: 32px; color: #0f172a; }
-    .head { display:flex; align-items:center; gap:12px; border-bottom:2px solid #6366f1; padding-bottom:14px; margin-bottom:18px; }
-    .head.centered { flex-direction:column; text-align:center; }
-    .logo { width:44px; height:44px; border-radius:10px; background:#6366f1; color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:20px; }
-    h1 { margin:0; font-size:20px; }
+    ${PRINT_HEADER_CSS}
     .muted { color:#64748b; font-size:13px; }
     h2 { font-size:16px; margin:18px 0 10px; }
     .info { display:grid; grid-template-columns:repeat(2,1fr); gap:8px 24px; font-size:13px; }
@@ -48,13 +40,7 @@ export function printTranscript(studentId: string) {
     .foot { margin-top:24px; display:flex; justify-content:space-between; font-size:12px; color:#64748b; }
     .badge { display:inline-block; padding:2px 10px; border-radius:9999px; background:#dcfce7; color:#166534; font-size:12px; font-weight:600; }
   </style></head><body>
-    <div class="head${centered ? " centered" : ""}">
-      ${logo}
-      <div>
-        <h1>${school.name}</h1>
-        <div class="muted">Official Student Transcript</div>
-      </div>
-    </div>
+    ${printHeaderHtml("Official Student Transcript")}
     <div class="info">
       <div><span>Student Name:</span> <b>${sw.fullName}</b></div>
       <div><span>Student ID:</span> <b>${sw.code}</b></div>

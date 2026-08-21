@@ -1,4 +1,5 @@
-import { getSettings, schoolBranding } from "@/lib/settings/store";
+import { getSettings } from "@/lib/settings/store";
+import { PRINT_HEADER_CSS, printHeaderHtml } from "@/lib/print/header";
 import {
   money,
   monthLabel,
@@ -16,24 +17,14 @@ export function payslipHtml(
   const emp = getEmployee(payroll.employeeId);
   const lastPayment =
     payment ?? paymentsForPayroll(payroll.id)[0] ?? null;
-  const school = schoolBranding();
   const { payslipHeader, payslipFooter } = getSettings().salary;
-  const logo = school.logoUrl
-    ? `<img src="${school.logoUrl}" alt="" class="logo" style="object-fit:contain"/>`
-    : `<div class="logo">${school.name.slice(0, 2).toUpperCase()}</div>`;
-  const centered = school.headerLayout === "CENTERED";
 
   return `<!DOCTYPE html>
 <html><head><meta charset="utf-8"/><title>Payslip — ${emp?.fullName ?? "Employee"}</title>
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
   body{font-family:system-ui,sans-serif;padding:40px;color:#0f172a;max-width:760px;margin:0 auto}
-  .head{display:flex;align-items:center;gap:16px;border-bottom:2px solid #e2e8f0;padding-bottom:20px;margin-bottom:24px}
-  .head.centered{flex-direction:column;text-align:center}
-  .head.centered > div:last-child{margin-left:0;margin-top:8px;text-align:center}
-  .logo{width:56px;height:56px;border-radius:12px;background:linear-gradient(135deg,#3b82f6,#6366f1);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:20px}
-  h1{font-size:22px}
-  .meta{color:#64748b;font-size:13px;margin-top:4px}
+  ${PRINT_HEADER_CSS}
   .badge{display:inline-block;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:600;background:#e0e7ff;color:#3730a3}
   table{width:100%;border-collapse:collapse;margin:20px 0}
   th,td{text-align:left;padding:10px 12px;border-bottom:1px solid #e2e8f0;font-size:14px}
@@ -44,17 +35,10 @@ export function payslipHtml(
   .foot{margin-top:32px;padding-top:16px;border-top:1px solid #e2e8f0;font-size:12px;color:#94a3b8;text-align:center}
   @media print{body{padding:20px}}
 </style></head><body>
-  <div class="head${centered ? " centered" : ""}">
-    ${logo}
-    <div>
-      <h1>${school.name}</h1>
-      <div class="meta">${payslipHeader || "Salary Payslip"}</div>
-    </div>
-    <div style="margin-left:auto;text-align:right">
-      <span class="badge">${payrollStatusLabel(payroll.status)}</span>
-      <div class="meta" style="margin-top:8px">${monthLabel(payroll.payrollMonth)}</div>
-    </div>
-  </div>
+  ${printHeaderHtml(
+    payslipHeader || "Salary Payslip",
+    `<span class="badge">${payrollStatusLabel(payroll.status)}</span><div class="ek-tagline" style="margin-top:8px">${monthLabel(payroll.payrollMonth)}</div>`,
+  )}
   <table>
     <tr><th>Employee Name</th><td>${emp?.fullName ?? "—"}</td></tr>
     <tr><th>Employee ID</th><td>${emp?.code ?? "—"}</td></tr>

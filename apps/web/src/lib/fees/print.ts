@@ -1,4 +1,5 @@
-import { getSettings, schoolBranding } from "@/lib/settings/store";
+import { getSettings } from "@/lib/settings/store";
+import { PRINT_HEADER_CSS, printHeaderHtml } from "@/lib/print/header";
 import { getState as getStudentsState } from "@/lib/students/store";
 import { feeStatusLabel, monthLabel, money, paymentTypeLabel, receiptDate } from "./format";
 import type { ClassFeeSummary, FeePayment, StudentFeeRow } from "./types";
@@ -15,17 +16,12 @@ function escapeHtml(s: string): string {
 }
 
 export function receiptHtml(payment: FeePayment): string {
-  const school = schoolBranding();
   const { receiptHeader, receiptFooter } = getSettings().fees;
   const student = getStudentsState().students.find((s) => s.id === payment.studentId);
   const months = payment.monthKeys.map(monthLabel).join(", ");
   const outstanding = student
     ? outstandingBalance(student.id)
     : payment.outstandingAfter;
-  const logo = school.logoUrl
-    ? `<img src="${school.logoUrl}" alt="" class="logo" style="object-fit:contain"/>`
-    : `<div class="logo">${school.name.slice(0, 2).toUpperCase()}</div>`;
-  const centered = school.headerLayout === "CENTERED";
 
   // Print windows have no React tree to pull useT() from — read the same
   // language the rest of the app is showing straight off the cookie, so a
@@ -39,13 +35,8 @@ export function receiptHtml(payment: FeePayment): string {
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
   body{font-family:system-ui,sans-serif;padding:40px;color:#0f172a;max-width:720px;margin:0 auto}
-  .head{display:flex;align-items:center;gap:16px;border-bottom:2px solid #e2e8f0;padding-bottom:20px;margin-bottom:24px}
-  .head.centered{flex-direction:column;text-align:center}
-  .head.centered .receipt-no{text-align:center;margin-top:8px}
-  .logo{width:56px;height:56px;border-radius:12px;background:linear-gradient(135deg,#3b82f6,#6366f1);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:20px}
-  h1{font-size:22px}
-  .meta{color:#64748b;font-size:13px;margin-top:4px}
-  .receipt-no{text-align:end;font-size:14px;color:#64748b;margin-inline-start:auto}
+  ${PRINT_HEADER_CSS}
+  .receipt-no{font-size:14px;color:#64748b}
   .receipt-no strong{display:block;font-size:20px;color:#0f172a}
   table{width:100%;border-collapse:collapse;margin:20px 0}
   th,td{text-align:start;padding:10px 12px;border-bottom:1px solid #e2e8f0;font-size:14px}
@@ -54,14 +45,10 @@ export function receiptHtml(payment: FeePayment): string {
   .foot{margin-top:32px;padding-top:16px;border-top:1px solid #e2e8f0;font-size:12px;color:#94a3b8;text-align:center}
   @media print{body{padding:20px}}
 </style></head><body>
-  <div class="head${centered ? " centered" : ""}">
-    ${logo}
-    <div>
-      <h1>${school.name}</h1>
-      ${receiptHeader ? `<div class="meta">${receiptHeader}</div>` : `<div class="meta">${tr("feesReceiptPrint.feeReceiptDefault")}</div>`}
-    </div>
-    <div class="receipt-no">${tr("feesReceiptPrint.receiptNo")}<strong>${payment.receiptNo}</strong></div>
-  </div>
+  ${printHeaderHtml(
+    receiptHeader || tr("feesReceiptPrint.feeReceiptDefault"),
+    `<div class="receipt-no">${tr("feesReceiptPrint.receiptNo")}<strong>${payment.receiptNo}</strong></div>`,
+  )}
   <table>
     <tr><th>${tr("feesReceiptPrint.studentName")}</th><td>${student?.fullName ?? "—"}</td></tr>
     <tr><th>${tr("feesReceiptPrint.studentId")}</th><td>${student?.code ?? "—"}</td></tr>
@@ -119,11 +106,6 @@ export function printClassFeeSummaries(
   summaries: ClassFeeSummary[],
   meta: { academicYear: string; monthLabel: string },
 ) {
-  const school = schoolBranding();
-  const logo = school.logoUrl
-    ? `<img src="${school.logoUrl}" alt="" class="logo" style="object-fit:contain"/>`
-    : `<div class="logo">${school.name.slice(0, 2).toUpperCase()}</div>`;
-  const centered = school.headerLayout === "CENTERED";
   const w = window.open("", "_blank", "width=900,height=700");
   if (!w) return;
   const lang = getStoredLang();
@@ -156,24 +138,14 @@ export function printClassFeeSummaries(
   <style>
     *{font-family:Arial,Helvetica,sans-serif;box-sizing:border-box}
     body{padding:32px;color:#0f172a}
-    .head{display:flex;align-items:center;gap:16px;border-bottom:2px solid #4f46e5;padding-bottom:16px;margin-bottom:16px}
-    .head.centered{flex-direction:column;text-align:center}
-    .logo{width:52px;height:52px;border-radius:12px;background:linear-gradient(135deg,#3b82f6,#4f46e5);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:20px}
-    h1{margin:0;font-size:20px}
-    .meta{color:#475569;font-size:13px;margin-top:4px}
+    ${PRINT_HEADER_CSS}
     table{width:100%;border-collapse:collapse;margin-top:8px;font-size:13px}
     th,td{border:1px solid #cbd5e1;padding:7px 10px;text-align:left}
     th{background:#f1f5f9}
     tfoot td{font-weight:700;background:#f8fafc}
     @media print{body{padding:0}}
   </style></head><body>
-  <div class="head${centered ? " centered" : ""}">
-    ${logo}
-    <div>
-      <h1>${escapeHtml(school.name)}</h1>
-      <div class="meta">${tr("feesClassFeeSummary.title")} · ${meta.academicYear} · ${meta.monthLabel}</div>
-    </div>
-  </div>
+  ${printHeaderHtml(`${tr("feesClassFeeSummary.title")} · ${escapeHtml(meta.academicYear)} · ${escapeHtml(meta.monthLabel)}`)}
   <table>
     <thead><tr>
       <th>${tr("feesClassFeeSummary.class")}</th>
@@ -204,11 +176,6 @@ export function printClassCollectionList(
   rows: StudentFeeRow[],
   meta: { academicYear: string; monthLabel: string; className: string; section: string; status: string },
 ) {
-  const school = schoolBranding();
-  const logo = school.logoUrl
-    ? `<img src="${school.logoUrl}" alt="" class="logo" style="object-fit:contain"/>`
-    : `<div class="logo">${school.name.slice(0, 2).toUpperCase()}</div>`;
-  const centered = school.headerLayout === "CENTERED";
   const w = window.open("", "_blank", "width=900,height=700");
   if (!w) return;
   const lang = getStoredLang();
@@ -230,24 +197,14 @@ export function printClassCollectionList(
   <style>
     *{font-family:Arial,Helvetica,sans-serif;box-sizing:border-box}
     body{padding:32px;color:#0f172a}
-    .head{display:flex;align-items:center;gap:16px;border-bottom:2px solid #4f46e5;padding-bottom:16px;margin-bottom:16px}
-    .head.centered{flex-direction:column;text-align:center}
-    .logo{width:52px;height:52px;border-radius:12px;background:linear-gradient(135deg,#3b82f6,#4f46e5);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:20px}
-    h1{margin:0;font-size:20px}
-    .meta{color:#475569;font-size:13px;margin-top:4px}
+    ${PRINT_HEADER_CSS}
     table{width:100%;border-collapse:collapse;margin-top:8px;font-size:13px}
     th,td{border:1px solid #cbd5e1;padding:7px 10px;text-align:left}
     th{background:#f1f5f9}
     .foot{margin-top:24px;font-size:11px;color:#94a3b8}
     @media print{body{padding:0}}
   </style></head><body>
-  <div class="head${centered ? " centered" : ""}">
-    ${logo}
-    <div>
-      <h1>${escapeHtml(school.name)}</h1>
-      <div class="meta">${tr("feesClassFeeSummary.collectionListTitle")} · ${meta.academicYear} · ${meta.monthLabel} · ${escapeHtml(meta.className)}${meta.section ? " - " + escapeHtml(meta.section) : ""} · ${meta.status}</div>
-    </div>
-  </div>
+  ${printHeaderHtml(`${tr("feesClassFeeSummary.collectionListTitle")} · ${escapeHtml(meta.academicYear)} · ${escapeHtml(meta.monthLabel)} · ${escapeHtml(meta.className)}${meta.section ? " - " + escapeHtml(meta.section) : ""} · ${escapeHtml(meta.status)}`)}
   <table>
     <thead><tr>
       <th>#</th>

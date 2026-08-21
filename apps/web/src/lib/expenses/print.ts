@@ -1,4 +1,5 @@
-import { getSettings, schoolBranding } from "@/lib/settings/store";
+import { getSettings } from "@/lib/settings/store";
+import { PRINT_HEADER_CSS, printHeaderHtml } from "@/lib/print/header";
 import {
   dateTime,
   money,
@@ -9,25 +10,15 @@ import { categoryName } from "./store";
 import type { Expense } from "./types";
 
 export function expenseHtml(expense: Expense, preparedBy = "Admin User"): string {
-  const school = schoolBranding();
   const { expenseHeader, expenseFooter } = getSettings().expenses;
-  const logo = school.logoUrl
-    ? `<img src="${school.logoUrl}" alt="" class="logo" style="object-fit:contain"/>`
-    : `<div class="logo">${school.name.slice(0, 2).toUpperCase()}</div>`;
-  const centered = school.headerLayout === "CENTERED";
   const cat = categoryName(expense.categoryId);
   return `<!DOCTYPE html>
 <html><head><meta charset="utf-8"/><title>${expense.referenceNo}</title>
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
   body{font-family:system-ui,sans-serif;padding:40px;color:#0f172a;max-width:760px;margin:0 auto}
-  .head{display:flex;align-items:center;gap:16px;border-bottom:2px solid #e2e8f0;padding-bottom:20px;margin-bottom:24px}
-  .head.centered{flex-direction:column;text-align:center}
-  .head.centered .ref{margin-left:0;text-align:center;margin-top:8px}
-  .logo{width:56px;height:56px;border-radius:12px;background:linear-gradient(135deg,#ef4444,#f97316);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:20px}
-  h1{font-size:22px}
-  .meta{color:#64748b;font-size:13px;margin-top:4px}
-  .ref{margin-left:auto;text-align:right;font-size:14px;color:#64748b}
+  ${PRINT_HEADER_CSS}
+  .ref{font-size:14px;color:#64748b}
   .ref strong{display:block;font-size:20px;color:#0f172a}
   table{width:100%;border-collapse:collapse;margin:20px 0}
   th,td{text-align:left;padding:10px 12px;border-bottom:1px solid #e2e8f0;font-size:14px}
@@ -37,15 +28,10 @@ export function expenseHtml(expense: Expense, preparedBy = "Admin User"): string
   .foot{margin-top:32px;padding-top:16px;border-top:1px solid #e2e8f0;font-size:12px;color:#94a3b8;text-align:center}
   @media print{body{padding:20px}}
 </style></head><body>
-  <div class="head${centered ? " centered" : ""}">
-    ${logo}
-    <div>
-      <h1>${school.name}</h1>
-      <div class="meta">${expenseHeader || "Expense Record"}</div>
-      <div class="meta">Academic Year: ${expense.academicYear}</div>
-    </div>
-    <div class="ref">Reference<strong>${expense.referenceNo}</strong></div>
-  </div>
+  ${printHeaderHtml(
+    `${expenseHeader || "Expense Record"} · Academic Year: ${expense.academicYear}`,
+    `<div class="ref">Reference<strong>${expense.referenceNo}</strong></div>`,
+  )}
   <table>
     <tr><th>Expense Title</th><td>${expense.title}</td></tr>
     <tr><th>Category</th><td>${cat}</td></tr>
@@ -79,7 +65,6 @@ export function reportHtml(opts: {
   total: number;
   preparedBy?: string;
 }): string {
-  const school = schoolBranding();
   const rows = opts.rows
     .map(
       (r) =>
@@ -90,16 +75,14 @@ export function reportHtml(opts: {
 <html><head><meta charset="utf-8"/><title>${opts.title}</title>
 <style>
   body{font-family:system-ui,sans-serif;padding:40px;color:#0f172a;max-width:800px;margin:0 auto}
-  h1{font-size:22px;margin-bottom:4px}
-  .meta{color:#64748b;font-size:13px;margin-bottom:24px}
+  ${PRINT_HEADER_CSS}
   table{width:100%;border-collapse:collapse}
   th,td{padding:10px 12px;border-bottom:1px solid #e2e8f0;font-size:14px}
   th{text-align:left;color:#64748b}
   .total{font-size:24px;font-weight:700;text-align:right;margin-top:20px;color:#dc2626}
   .sign{margin-top:48px;border-top:1px solid #cbd5e1;padding-top:8px;font-size:12px;color:#64748b;width:240px}
 </style></head><body>
-  <h1>${school.name}</h1>
-  <div class="meta">${opts.title} · ${opts.academicYear} · ${dateTime(new Date().toISOString())}</div>
+  ${printHeaderHtml(`${opts.title} · ${opts.academicYear} · ${dateTime(new Date().toISOString())}`)}
   <table>
     <thead><tr><th>Item</th><th style="text-align:right">Amount</th></tr></thead>
     <tbody>${rows}</tbody>

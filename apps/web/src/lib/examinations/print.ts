@@ -106,7 +106,7 @@ export function printExamResultCard(
     * { box-sizing: border-box; }
     body { font-family: Arial, Helvetica, sans-serif; color: #0f172a; margin: 0; padding: 24px; }
     .card { border-radius: 12px; overflow: hidden; border: 1px solid #e2e8f0; }
-    .head { display: flex; align-items: center; gap: 16px; padding: 20px 24px; background: linear-gradient(135deg, #4f46e5, #3b82f6); color: #fff; }
+    .head { display: flex; align-items: center; gap: 16px; padding: 20px 24px; background: ${school.primaryColor || "#4f46e5"}; color: #fff; }
     .logo-img { width: 56px; height: 56px; border-radius: 12px; background: #fff; object-fit: contain; padding: 4px; }
     .logo-fallback { width: 56px; height: 56px; border-radius: 12px; background: rgba(255,255,255,.2); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 20px; }
     .head h1 { margin: 0; font-size: 18px; }
