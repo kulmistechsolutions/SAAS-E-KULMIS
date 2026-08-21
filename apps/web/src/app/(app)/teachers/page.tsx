@@ -7,6 +7,7 @@ import Link from "next/link";
 import {
   ArrowDownUp,
   BookOpen,
+  Clock,
   Download,
   Eye,
   FileDown,
@@ -208,6 +209,12 @@ export default function TeachersPage() {
             className="inline-flex h-10 items-center justify-center rounded-md border border-input bg-background px-4 text-sm font-medium transition-colors hover:bg-secondary"
           >
             <BookOpen className="me-2 h-4 w-4" /> {tr("teachers.assignments")}
+          </Link>
+          <Link
+            href="/teachers/shifts"
+            className="inline-flex h-10 items-center justify-center rounded-md border border-input bg-background px-4 text-sm font-medium transition-colors hover:bg-secondary"
+          >
+            <Clock className="me-2 h-4 w-4" /> {tr("teachers.teacherShift")}
           </Link>
           <Button variant="outline" onClick={() => setFieldDialogMode("print")}>
             <Printer className="me-2 h-4 w-4" /> {tr("teachers.print")}

@@ -446,6 +446,12 @@ export const arGenerated: PartialDictionary = {
     noShiftsYet: "لا توجد فترات بعد.",
     noShiftsHint: "أضف واحدة لبدء تسجيل الحضور لكل فترة، مثل الصباح والمساء.",
   },
+  teachersShifts: {
+    backToTeachers: "العودة إلى المعلمين",
+    title: "فترة المعلم",
+    description: "الفترات التي يمكن تعيين المعلم لها، مثل الصباح والمساء — نفس القائمة المستخدمة لجلسات الحضور.",
+    noShiftsHint: "أضف واحدة حتى يمكن تعيين فترة للمعلمين، مثل الصباح والمساء.",
+  },
   attendanceSummaryCards: {
     attendance: "نسبة الحضور",
     absentToday: "غائب اليوم",
@@ -4142,6 +4148,7 @@ export const arGenerated: PartialDictionary = {
     teachers: "المعلمون",
     manageTeacherRecordsAssignmentsAndCredentials: "إدارة سجلات المعلمين ومهامهم وبيانات الدخول.",
     assignments: "المهام",
+    teacherShift: "فترة المعلم",
     print: "طباعة",
     export: "تصدير",
     import: "استيراد",

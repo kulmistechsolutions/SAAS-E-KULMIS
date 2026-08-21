@@ -447,6 +447,12 @@ export const soGenerated: PartialDictionary = {
     noShiftsYet: "Wali shift lama diyaarin.",
     noShiftsHint: "Ku dar mid si aad u bilowdo diiwaan-gelinta xaadiriska qeyb kasta, tusaale SubaX iyo Galabnimo.",
   },
+  teachersShifts: {
+    backToTeachers: "Ku noqo Macallimiinta",
+    title: "Shiftiga Macallinka",
+    description: "Shiftiyada macallinku loo qoondayn karo, tusaale Subax iyo Galab — isla liiska loo isticmaalo xaadiriska.",
+    noShiftsHint: "Ku dar mid si macallimiinta loogu qoondeeyo shift, tusaale Subax iyo Galab.",
+  },
   attendanceSummaryCards: {
     attendance: "Xaadiriska %",
     absentToday: "Maqan Maanta",
@@ -4172,6 +4178,7 @@ export const soGenerated: PartialDictionary = {
     teachers: "Macallimiinta",
     manageTeacherRecordsAssignmentsAndCredentials: "Maaree diiwaannada macallimiinta, hawlaha, iyo xogta gelitaanka.",
     assignments: "Xilalka",
+    teacherShift: "Shiftiga Macallinka",
     print: "Daabac",
     export: "Soo saar",
     import: "Soo geli",

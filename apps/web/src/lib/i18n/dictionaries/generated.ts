@@ -447,6 +447,12 @@ export const generated = {
     noShiftsYet: "No shifts set up yet.",
     noShiftsHint: "Add one to start recording attendance per session, e.g. Morning and Afternoon.",
   },
+  teachersShifts: {
+    backToTeachers: "Back to Teachers",
+    title: "Teacher Shift",
+    description: "The shifts a teacher can be assigned to, e.g. Morning and Afternoon — the same list used for attendance sessions.",
+    noShiftsHint: "Add one so teachers can be assigned a shift, e.g. Morning and Afternoon.",
+  },
   attendanceSummaryCards: {
     attendance: "Attendance %",
     absentToday: "Absent Today",
@@ -4242,6 +4248,7 @@ export const generated = {
     teachers: "Teachers",
     manageTeacherRecordsAssignmentsAndCredentials: "Manage teacher records, assignments, and credentials.",
     assignments: "Assignments",
+    teacherShift: "Teacher Shift",
     print: "Print",
     export: "Export",
     import: "Import",
