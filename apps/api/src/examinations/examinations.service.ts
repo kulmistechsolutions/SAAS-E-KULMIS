@@ -520,7 +520,10 @@ export class ExaminationsService {
         const students = await tx.student.findMany({
           where: {
             classId: cohort.classId,
-            sectionId: cohort.sectionId,
+            // A null cohort section means this exam covers the WHOLE class —
+            // omitting the filter (rather than matching sectionId: null)
+            // includes every student, not just the section-less ones.
+            sectionId: cohort.sectionId ?? undefined,
             status: { in: ["ACTIVE", "GRADUATED"] },
           },
           select: { id: true, code: true, fullName: true },
@@ -2254,8 +2257,14 @@ export class ExaminationsService {
         where: {
           academicYearId: yearId,
           classId: student.classId,
-          sectionId: student.sectionId,
           status: "PUBLISHED",
+          // An exam with no section is scoped to the WHOLE class — every
+          // section, including this student's. An exact-match filter here
+          // silently hid every whole-class exam from any student who had a
+          // real section assigned (the common case), while a sectionless
+          // student still matched by accident. Prisma's `in` can't express
+          // "or NULL" (SQL IN never matches NULL), hence the explicit OR.
+          OR: [{ sectionId: student.sectionId }, { sectionId: null }],
         },
         include: {
           subjects: { include: { subject: { select: { name: true } } } },
