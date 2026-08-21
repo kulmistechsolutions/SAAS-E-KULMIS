@@ -954,7 +954,10 @@ export class ExaminationsService {
 
     const studentCount = await tx.student.count({
       where: {
-        ...studentInClassWhere(exam.classId, exam.sectionId),
+        // A null exam.sectionId means "whole class" (every section), not
+        // "only students with no section" — studentInClassWhere treats those
+        // two cases differently, so the null must become undefined here.
+        ...studentInClassWhere(exam.classId, exam.sectionId ?? undefined),
         status: "ACTIVE",
       },
     });
@@ -1092,7 +1095,9 @@ export class ExaminationsService {
   ) {
     return tx.student.findMany({
       where: {
-        ...studentInClassWhere(exam.classId, exam.sectionId),
+        // Same null-vs-undefined distinction as refreshSubmissionStatuses —
+        // a whole-class exam's roster must include every section.
+        ...studentInClassWhere(exam.classId, exam.sectionId ?? undefined),
         status: "ACTIVE",
       },
       select: { id: true, code: true, fullName: true },
