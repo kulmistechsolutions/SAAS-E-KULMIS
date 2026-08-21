@@ -206,6 +206,7 @@ export default function ParentProfilePage({
             onClick={() =>
               exportParentsCsv(
                 [{ ...parent, childCount: parent.children.length }],
+                undefined,
                 `${parent.code}.csv`,
               )
             }

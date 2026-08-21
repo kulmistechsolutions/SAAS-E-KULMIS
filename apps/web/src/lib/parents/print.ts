@@ -4,27 +4,60 @@ import { getSettings, schoolBranding } from "@/lib/settings/store";
 import { shortDate, statusLabel } from "@/lib/students/format";
 import type { Parent, Student } from "@/lib/students/types";
 
+type ParentRow = Parent & { childCount: number };
+
+export interface ParentFieldDef {
+  key: string;
+  label: string;
+  value: (p: ParentRow) => string;
+}
+
+/** Every column a parent print/export can offer, in canonical output order. */
+export const PARENT_EXPORT_FIELDS: ParentFieldDef[] = [
+  { key: "code", label: "Parent ID", value: (p) => p.code },
+  { key: "name", label: "Parent Name", value: (p) => p.name },
+  { key: "phone", label: "Phone", value: (p) => p.phone },
+  { key: "altPhone", label: "Alternative Phone", value: (p) => p.altPhone ?? "—" },
+  { key: "email", label: "Email", value: (p) => p.email ?? "—" },
+  { key: "address", label: "Address", value: (p) => p.address ?? "—" },
+  { key: "occupation", label: "Occupation", value: (p) => p.occupation ?? "—" },
+  { key: "childCount", label: "Children", value: (p) => String(p.childCount) },
+  { key: "registrationDate", label: "Registration Date", value: (p) => shortDate(p.registrationDate) },
+  { key: "status", label: "Status", value: (p) => statusLabel(p.status) },
+  { key: "username", label: "Username", value: (p) => p.username },
+];
+
+/** Matches what the list print/export used to show unconditionally. */
+export const DEFAULT_PARENT_EXPORT_FIELDS = [
+  "code",
+  "name",
+  "phone",
+  "childCount",
+  "registrationDate",
+  "status",
+];
+
+function resolveParentFields(fieldKeys: string[]): ParentFieldDef[] {
+  const byKey = new Map(PARENT_EXPORT_FIELDS.map((f) => [f.key, f]));
+  const resolved = fieldKeys.map((k) => byKey.get(k)).filter((f): f is ParentFieldDef => !!f);
+  return resolved.length > 0
+    ? resolved
+    : PARENT_EXPORT_FIELDS.filter((f) => DEFAULT_PARENT_EXPORT_FIELDS.includes(f.key));
+}
+
 export function exportParentsCsv(
-  rows: (Parent & { childCount: number })[],
+  rows: ParentRow[],
+  fieldKeys: string[] = DEFAULT_PARENT_EXPORT_FIELDS,
   fileName = "parents.csv",
 ) {
-  const headers = [
-    "Serial",
-    "Parent ID",
-    "Parent Name",
-    "Phone",
-    "Children",
-    "Registration Date",
-    "Status",
-  ];
+  const fields = resolveParentFields(fieldKeys);
+  const headers = ["Serial", ...fields.map((f) => f.label)];
   const esc = (v: string | number) => {
     const s = String(v);
     return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
   };
   const lines = rows.map((p, i) =>
-    [i + 1, p.code, p.name, p.phone, p.childCount, shortDate(p.registrationDate), statusLabel(p.status)]
-      .map(esc)
-      .join(","),
+    [i + 1, ...fields.map((f) => f.value(p))].map(esc).join(","),
   );
   const blob = new Blob([[headers.join(","), ...lines].join("\n")], {
     type: "text/csv;charset=utf-8;",
@@ -96,24 +129,27 @@ export function printParentProfile(parent: Parent, children: Student[]) {
 }
 
 export function printParentsList(
-  rows: (Parent & { childCount: number })[],
+  rows: ParentRow[],
   meta: { status: string },
+  fieldKeys: string[] = DEFAULT_PARENT_EXPORT_FIELDS,
 ) {
+  const fields = resolveParentFields(fieldKeys);
   const school = schoolBranding();
   const w = window.open("", "_blank", "width=900,height=700");
   if (!w) return;
+  const headCells = fields.map((f) => `<th>${escapeHtml(f.label)}</th>`).join("");
   const body = rows
     .map(
       (p, i) =>
-        `<tr><td>${i + 1}</td><td>${p.code}</td><td>${escapeHtml(p.name)}</td><td>${escapeHtml(p.phone)}</td><td>${p.childCount}</td><td>${statusLabel(p.status)}</td></tr>`,
+        `<tr><td>${i + 1}</td>${fields.map((f) => `<td>${escapeHtml(f.value(p))}</td>`).join("")}</tr>`,
     )
     .join("");
   w.document.write(`<!DOCTYPE html><html><head><title>Parent List</title>
   <style>*{font-family:Arial,sans-serif}body{padding:32px}table{width:100%;border-collapse:collapse;font-size:13px}th,td{border:1px solid #cbd5e1;padding:7px}th{background:#f1f5f9}</style></head><body>
   <h1>${escapeHtml(school.name)} — Parent List</h1>
   <p>Status filter: ${meta.status}</p>
-  <table><thead><tr><th>#</th><th>Parent ID</th><th>Name</th><th>Phone</th><th>Children</th><th>Status</th></tr></thead>
-  <tbody>${body}</tbody></table>
+  <table><thead><tr><th>#</th>${headCells}</tr></thead>
+  <tbody>${body || `<tr><td colspan="${fields.length + 1}">No parents</td></tr>`}</tbody></table>
   <script>window.onload=function(){window.print()}</script></body></html>`);
   w.document.close();
 }

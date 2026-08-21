@@ -32,7 +32,14 @@ import {
   useStudentsState,
 } from "@/lib/students/store";
 import { shortDate } from "@/lib/students/format";
-import { exportParentsCsv, printParentProfile, printParentsList } from "@/lib/parents/print";
+import {
+  DEFAULT_PARENT_EXPORT_FIELDS,
+  PARENT_EXPORT_FIELDS,
+  exportParentsCsv,
+  printParentProfile,
+  printParentsList,
+} from "@/lib/parents/print";
+import { FieldSelectDialog } from "@/components/shared/field-select-dialog";
 import type { ParentStatus } from "@/lib/students/types";
 import type { ParentListRow } from "@/lib/students/store";
 import { toast } from "@/lib/toast";
@@ -62,6 +69,8 @@ export default function ParentsPage() {
 
   const [editId, setEditId] = useState<string | null>(null);
   const [disableId, setDisableId] = useState<ParentListRow | null>(null);
+  const [fieldDialogMode, setFieldDialogMode] = useState<"print" | "export" | null>(null);
+  const [lastFields, setLastFields] = useState<string[]>(DEFAULT_PARENT_EXPORT_FIELDS);
 
   const summary = useMemo(() => summarizeParents(state), [state]);
   const all = useMemo(() => listParents(state), [state]);
@@ -130,6 +139,17 @@ export default function ParentsPage() {
     setDisableId(null);
   }
 
+  function handlePrint(fields: string[]) {
+    setLastFields(fields);
+    printParentsList(filtered, { status: status || "All" }, fields);
+  }
+
+  function handleExport(fields: string[]) {
+    setLastFields(fields);
+    exportParentsCsv(filtered, fields);
+    toast(`Exported ${filtered.length} parents.`, "info");
+  }
+
   if (!mounted) {
     return <div className="flex h-64 items-center justify-center text-muted-foreground">{t("parents.loadingParents")}</div>;
   }
@@ -144,10 +164,10 @@ export default function ParentsPage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" onClick={() => printParentsList(filtered, { status: status || "All" })}>
+          <Button variant="outline" onClick={() => setFieldDialogMode("print")}>
             <Printer className="me-2 h-4 w-4" /> {t("parents.print")}
           </Button>
-          <Button variant="outline" onClick={() => { exportParentsCsv(filtered); toast(`Exported ${filtered.length} parents.`, "info"); }}>
+          <Button variant="outline" onClick={() => setFieldDialogMode("export")}>
             <FileDown className="me-2 h-4 w-4" /> {t("parents.export")}
           </Button>
         </div>
@@ -236,7 +256,7 @@ export default function ParentsPage() {
                           const full = getParentWithChildren(p.id);
                           if (full) printParentProfile(full, full.children);
                         }} />
-                        <Action title={t("parents.download")} icon={Download} onClick={() => exportParentsCsv([p], `${p.code}.csv`)} />
+                        <Action title={t("parents.download")} icon={Download} onClick={() => exportParentsCsv([p], lastFields, `${p.code}.csv`)} />
                         <Action
                           title={p.status === "ACTIVE" ? "Disable Account" : "Enable Account"}
                           icon={ShieldOff}
@@ -275,6 +295,27 @@ export default function ParentsPage() {
         confirmLabel={disableId?.status === "ACTIVE" ? "Disable" : "Enable"}
         onConfirm={handleDisable}
         onClose={() => setDisableId(null)}
+      />
+      <FieldSelectDialog
+        open={fieldDialogMode !== null}
+        onClose={() => setFieldDialogMode(null)}
+        title={
+          fieldDialogMode === "print"
+            ? t("parents.selectFieldsToPrint")
+            : t("parents.selectFieldsToExport")
+        }
+        description={
+          fieldDialogMode === "print"
+            ? t("parents.selectFieldsToPrintDesc")
+            : t("parents.selectFieldsToExportDesc")
+        }
+        fields={PARENT_EXPORT_FIELDS}
+        defaultSelected={lastFields}
+        confirmLabel={fieldDialogMode === "print" ? t("parents.print") : t("parents.export")}
+        onConfirm={(fields) => {
+          if (fieldDialogMode === "print") handlePrint(fields);
+          else if (fieldDialogMode === "export") handleExport(fields);
+        }}
       />
     </div>
   );
