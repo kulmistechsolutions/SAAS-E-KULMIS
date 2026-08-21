@@ -80,16 +80,32 @@ function activeAcademicYear(): string {
   return getActiveAcademicYear();
 }
 
+/**
+ * A REGISTRATION charge posts to whatever the real calendar month is the
+ * moment a student enrolls — completely independent of whether that month's
+ * billing was ever set up. An EXTRA charge is similarly a one-off, posted to
+ * whichever month an admin picked for it. Neither reflects "the school ran
+ * Setup This/Next Month" the way a MONTHLY charge does, so counting either
+ * toward "the active month" let a single new registration during a school's
+ * September silently relabel August — the month actually set up — as
+ * closed. Charges from before `kind` existed have no value here and are
+ * MONTHLY by default.
+ */
 function deriveActiveMonth(charges: FeeCharge[]): string {
-  if (charges.length === 0) {
+  const monthly = charges.filter((c) => !c.kind || c.kind === "MONTHLY");
+  if (monthly.length === 0) {
     const now = new Date();
     return monthKey(now.getFullYear(), now.getMonth() + 1);
   }
-  return charges.reduce((max, c) => (c.monthKey > max ? c.monthKey : max), charges[0]!.monthKey);
+  return monthly.reduce((max, c) => (c.monthKey > max ? c.monthKey : max), monthly[0]!.monthKey);
 }
 
 function buildBillingPeriods(charges: FeeCharge[], academicYear: string): FeesState["billingPeriods"] {
-  const keys = [...new Set(charges.map((c) => c.monthKey))].sort();
+  // Same reasoning as deriveActiveMonth: Billing History lists months that
+  // actually had monthly billing set up, not every month that happens to
+  // have a one-off registration/extra charge sitting in it.
+  const monthly = charges.filter((c) => !c.kind || c.kind === "MONTHLY");
+  const keys = [...new Set(monthly.map((c) => c.monthKey))].sort();
   const active = deriveActiveMonth(charges);
   return keys.map((mk, i) => ({
     id: `bp_${i + 1}`,
