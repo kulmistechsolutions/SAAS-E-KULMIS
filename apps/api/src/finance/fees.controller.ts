@@ -74,6 +74,20 @@ export class FeesController {
     return this.fees.monthSetupStatus(me.schoolId, y, m);
   }
 
+  /**
+   * Every distinct (year, month) that has ever been activated (a real
+   * Setup This/Next Month click) — the source of truth for "the school's
+   * current billing month" and the Billing History list. Deliberately NOT
+   * derived from FeeCharge dates: a registration fee posts to whatever the
+   * real calendar month is, and an advance payment can create real MONTHLY
+   * charges for a future month a family paid ahead into — neither means
+   * that month was ever actually set up.
+   */
+  @Get("activated-months")
+  activatedMonths(@CurrentUser() me: AuthUser) {
+    return this.fees.activatedMonths(me.schoolId);
+  }
+
   @Post("pay")
   pay(@CurrentUser() me: AuthUser, @Body() body: unknown) {
     const parsed = payFeeSchema.safeParse(body);

@@ -13,6 +13,7 @@ import {
   apiChargeMonth,
   apiFeeSettings,
   apiFinanceDashboard,
+  apiListActivatedMonths,
   apiListCharges,
   apiListPayments,
   apiPayFamily,
@@ -81,33 +82,29 @@ function activeAcademicYear(): string {
 }
 
 /**
- * A REGISTRATION charge posts to whatever the real calendar month is the
- * moment a student enrolls — completely independent of whether that month's
- * billing was ever set up. An EXTRA charge is similarly a one-off, posted to
- * whichever month an admin picked for it. Neither reflects "the school ran
- * Setup This/Next Month" the way a MONTHLY charge does, so counting either
- * toward "the active month" let a single new registration during a school's
- * September silently relabel August — the month actually set up — as
- * closed. Charges from before `kind` existed have no value here and are
- * MONTHLY by default.
+ * The active month and Billing History are keyed off real
+ * MonthlyFeeActivation rows (an actual Setup This/Next Month click) — never
+ * off FeeCharge dates. A REGISTRATION charge posts to whatever the real
+ * calendar month is the moment a student enrolls, and an ADVANCE payment can
+ * create genuine MONTHLY FeeCharge rows for a future month a family paid
+ * ahead into. Either one landing in a not-yet-set-up month used to be enough
+ * to make the frontend call that month "active" and relabel the school's
+ * real, actually-set-up month as closed.
  */
-function deriveActiveMonth(charges: FeeCharge[]): string {
-  const monthly = charges.filter((c) => !c.kind || c.kind === "MONTHLY");
-  if (monthly.length === 0) {
+function deriveActiveMonth(activatedKeys: string[]): string {
+  if (activatedKeys.length === 0) {
     const now = new Date();
     return monthKey(now.getFullYear(), now.getMonth() + 1);
   }
-  return monthly.reduce((max, c) => (c.monthKey > max ? c.monthKey : max), monthly[0]!.monthKey);
+  return activatedKeys[activatedKeys.length - 1]!;
 }
 
-function buildBillingPeriods(charges: FeeCharge[], academicYear: string): FeesState["billingPeriods"] {
-  // Same reasoning as deriveActiveMonth: Billing History lists months that
-  // actually had monthly billing set up, not every month that happens to
-  // have a one-off registration/extra charge sitting in it.
-  const monthly = charges.filter((c) => !c.kind || c.kind === "MONTHLY");
-  const keys = [...new Set(monthly.map((c) => c.monthKey))].sort();
-  const active = deriveActiveMonth(charges);
-  return keys.map((mk, i) => ({
+function buildBillingPeriods(
+  activatedKeys: string[],
+  academicYear: string,
+  active: string,
+): FeesState["billingPeriods"] {
+  return activatedKeys.map((mk, i) => ({
     id: `bp_${i + 1}`,
     academicYear,
     monthKey: mk,
@@ -120,10 +117,11 @@ function buildBillingPeriods(charges: FeeCharge[], academicYear: string): FeesSt
 export async function refreshFees(): Promise<void> {
   try {
     const academicYear = activeAcademicYear();
-    const [chargeRows, paymentRows, feeSettings] = await Promise.all([
+    const [chargeRows, paymentRows, feeSettings, activatedMonths] = await Promise.all([
       apiListCharges(),
       apiListPayments(200),
       apiFeeSettings().catch(() => null),
+      apiListActivatedMonths().catch(() => []),
     ]);
     if (feeSettings) {
       feeSettingsCache = {
@@ -131,11 +129,10 @@ export async function refreshFees(): Promise<void> {
         monthSetupDay: feeSettings.feeMonthSetupDay,
       };
     }
-    const activeMonthKey = deriveActiveMonth(
-      chargeRows.map((c) =>
-        mapApiCharge(c, academicYear, monthKey(c.year, c.month)),
-      ),
-    );
+    const activatedKeys = [
+      ...new Set(activatedMonths.map((a) => monthKey(a.year, a.month))),
+    ].sort();
+    const activeMonthKey = deriveActiveMonth(activatedKeys);
     const charges = chargeRows.map((c) => mapApiCharge(c, academicYear, activeMonthKey));
     const payments = paymentRows.map((p) => mapApiPayment(p, academicYear));
     const maxReceipt = payments.reduce((max, p) => {
@@ -146,7 +143,7 @@ export async function refreshFees(): Promise<void> {
     setState({
       academicYear,
       activeMonthKey,
-      billingPeriods: buildBillingPeriods(charges, academicYear),
+      billingPeriods: buildBillingPeriods(activatedKeys, academicYear, activeMonthKey),
       charges,
       payments,
       receiptSeq: maxReceipt,

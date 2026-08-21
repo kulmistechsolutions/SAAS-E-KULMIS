@@ -154,6 +154,16 @@ export async function apiListPayments(limit = 100): Promise<ApiPayment[]> {
   return api<ApiPayment[]>(`/fees/payments?limit=${limit}`);
 }
 
+export interface ApiActivatedMonth {
+  year: number;
+  month: number;
+}
+
+/** Every month the school has actually run Setup This/Next Month for. */
+export async function apiListActivatedMonths(): Promise<ApiActivatedMonth[]> {
+  return api<ApiActivatedMonth[]>("/fees/activated-months");
+}
+
 /**
  * Reverse a payment recorded wrong. Never edits or deletes it — creates a
  * linked, negative transaction and marks the original REVERSED, so the

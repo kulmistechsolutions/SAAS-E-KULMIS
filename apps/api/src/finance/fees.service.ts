@@ -349,6 +349,26 @@ export class FeesService {
   }
 
   /**
+   * Every distinct (year, month) with at least one MonthlyFeeActivation row —
+   * i.e. a real "Setup This/Next Month" run, not a month that merely has a
+   * FeeCharge sitting in it (a registration fee posts to today's real
+   * calendar month regardless of setup state, and an advance payment can
+   * create genuine MONTHLY charges for a future month nobody activated yet).
+   */
+  async activatedMonths(
+    schoolId: string,
+  ): Promise<{ year: number; month: number }[]> {
+    return this.prisma.forTenant(schoolId, async (tx) => {
+      const rows = await tx.monthlyFeeActivation.findMany({
+        distinct: ["year", "month"],
+        select: { year: true, month: true },
+        orderBy: [{ year: "asc" }, { month: "asc" }],
+      });
+      return rows;
+    });
+  }
+
+  /**
    * Whether this school has ever set up billing at all — a monthly activation
    * or an academic-year setup. Payments are blocked until it has (see pay()).
    */
