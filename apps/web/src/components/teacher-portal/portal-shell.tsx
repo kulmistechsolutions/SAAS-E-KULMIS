@@ -22,6 +22,8 @@ import {
   X,
 } from "lucide-react";
 import { useSchoolBranding } from "@/lib/settings/use-school-branding";
+import { shiftsLabel } from "@/lib/teachers/format";
+import { useShifts } from "@/lib/teachers/shifts";
 import { logoutTeacher } from "@/lib/teacher-portal/store";
 import { TEACHER_PORTAL_NAV } from "@/lib/teacher-portal/routes";
 import { useTeacherPortal } from "./portal-context";
@@ -51,6 +53,7 @@ export function TeacherPortalShell({
   const router = useRouter();
   const { teacher, canViewStudents } = useTeacherPortal();
   const branding = useSchoolBranding();
+  useShifts();
   const [menuOpen, setMenuOpen] = useState(false);
 
   // Close the mobile drawer on navigation and lock body scroll while it's open.
@@ -154,7 +157,7 @@ export function TeacherPortalShell({
               <LanguageSwitcher />
               <div className="text-end text-xs text-muted-foreground">
                 <p>{teacher.code}</p>
-                <p>{teacher.shifts.join(", ")} {t("teacherPortalPortalShell.shift")}</p>
+                <p>{shiftsLabel(teacher.shifts)} {t("teacherPortalPortalShell.shift")}</p>
               </div>
             </div>
           </div>

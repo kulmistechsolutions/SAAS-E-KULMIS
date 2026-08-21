@@ -13,8 +13,10 @@ export class TeacherAttendanceService {
 
   /**
    * Mark teacher attendance for a shift on a date. Only ACTIVE teachers of that
-   * shift are accepted (a teacher never appears in the other shift). One record
-   * per teacher per day (re-marking updates).
+   * shift are accepted (a teacher never appears in another shift's roster).
+   * One record per teacher per day PER SHIFT — re-marking the same shift
+   * updates it, but a teacher who also works another shift keeps a separate
+   * record there.
    */
   async mark(
     schoolId: string,
@@ -24,7 +26,7 @@ export class TeacherAttendanceService {
     const date = parseDate(dto.date);
     return this.prisma.forTenant(schoolId, async (tx) => {
       const eligible = await tx.teacher.findMany({
-        where: { shifts: { has: dto.shift }, status: "ACTIVE" },
+        where: { shiftLinks: { some: { shiftId: dto.shift } }, status: "ACTIVE" },
         select: { id: true },
       });
       const eligibleIds = new Set(eligible.map((t) => t.id));
@@ -38,12 +40,17 @@ export class TeacherAttendanceService {
         }
         await tx.teacherAttendance.upsert({
           where: {
-            schoolId_teacherId_date: { schoolId, teacherId: rec.teacherId, date },
+            schoolId_teacherId_date_shiftId: {
+              schoolId,
+              teacherId: rec.teacherId,
+              date,
+              shiftId: dto.shift,
+            },
           },
           create: {
             schoolId,
             teacherId: rec.teacherId,
-            shift: dto.shift,
+            shiftId: dto.shift,
             date,
             status: rec.status,
             markedByUserId,
@@ -61,20 +68,26 @@ export class TeacherAttendanceService {
     const date = parseDate(dateStr);
     return this.prisma.forTenant(schoolId, async (tx) => {
       const teachers = await tx.teacher.findMany({
-        where: { shifts: { has: shift as never }, status: "ACTIVE" },
+        where: { shiftLinks: { some: { shiftId: shift } }, status: "ACTIVE" },
         orderBy: { fullName: "asc" },
-        select: { id: true, code: true, fullName: true, shifts: true },
+        select: {
+          id: true,
+          code: true,
+          fullName: true,
+          shiftLinks: { select: { shiftId: true } },
+        },
       });
       const records = await tx.teacherAttendance.findMany({
-        where: { shift: shift as never, date },
+        where: { shiftId: shift, date },
         select: { teacherId: true, status: true },
       });
       const byTeacher = new Map(records.map((r) => [r.teacherId, r.status]));
       return {
         date: dateStr,
         shift,
-        roster: teachers.map((t) => ({
+        roster: teachers.map(({ shiftLinks, ...t }) => ({
           ...t,
+          shifts: shiftLinks.map((l) => l.shiftId),
           status: byTeacher.get(t.id) ?? null,
         })),
       };
@@ -84,7 +97,7 @@ export class TeacherAttendanceService {
   async dashboard(schoolId: string, dateStr: string, shift?: string) {
     const date = parseDate(dateStr);
     const where: Prisma.TeacherAttendanceWhereInput = { date };
-    if (shift) where.shift = shift as never;
+    if (shift) where.shiftId = shift;
 
     return this.prisma.forTenant(schoolId, async (tx) => {
       const grouped = await tx.teacherAttendance.groupBy({

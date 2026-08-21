@@ -40,6 +40,7 @@ import {
   useAcademicsState,
 } from "@/lib/academics/store";
 import { shiftLabel } from "@/lib/teachers/format";
+import { useShifts } from "@/lib/teachers/shifts";
 import type { TeacherAttendanceStatus, TeacherMarkRow } from "@/lib/attendance/types";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
@@ -57,6 +58,7 @@ export default function TeacherAttendancePage() {
 
   useAttendanceState();
   const academics = useAcademicsState();
+  const shiftOptions = useShifts();
   const [tab, setTab] = useState("mark");
 
   const [year, setYear] = useState("");
@@ -67,7 +69,10 @@ export default function TeacherAttendancePage() {
   }, [academics.academicYears, year]);
 
   const [date, setDate] = useState(todayISO());
-  const [shift, setShift] = useState<"MORNING" | "AFTERNOON">("MORNING");
+  const [shift, setShift] = useState("");
+  useEffect(() => {
+    if (!shift && shiftOptions.length) setShift(shiftOptions[0]!.id);
+  }, [shift, shiftOptions]);
   const [rows, setRows] = useState<TeacherMarkRow[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -83,7 +88,10 @@ export default function TeacherAttendancePage() {
   const [reportLoading, setReportLoading] = useState(false);
 
   const [dashboard, setDashboard] = useState<
-    AttendanceSummary & { totalTeachers: number; morning?: number; afternoon?: number }
+    AttendanceSummary & {
+      totalTeachers: number;
+      byShift?: { id: string; count: number }[];
+    }
   >({
     total: 0,
     present: 0,
@@ -110,7 +118,7 @@ export default function TeacherAttendancePage() {
     void filterTeacherRecords({
       academicYear: year || undefined,
       date: rDate || undefined,
-      shift: (rShift as "MORNING" | "AFTERNOON") || undefined,
+      shift: rShift || undefined,
       status: (rStatus as TeacherAttendanceStatus) || undefined,
       search: rSearch,
     })
@@ -206,9 +214,13 @@ export default function TeacherAttendancePage() {
                 </div>
                 <div>
                   <label className="mb-1 block text-xs font-medium text-muted-foreground">{t("attendanceTeachers.shift")}</label>
-                  <Select value={shift} onChange={(e) => { setShift(e.target.value as "MORNING" | "AFTERNOON"); setLoaded(false); }}>
-                    <option value="MORNING">{t("attendanceTeachers.morning")}</option>
-                    <option value="AFTERNOON">{t("attendanceTeachers.afternoon")}</option>
+                  <Select value={shift} onChange={(e) => { setShift(e.target.value); setLoaded(false); }}>
+                    {shiftOptions.length === 0 && <option value="">{t("attendanceTeachers.noShiftsSetUp")}</option>}
+                    {shiftOptions.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.name}
+                      </option>
+                    ))}
                   </Select>
                 </div>
                 <div className="flex items-end">
@@ -317,8 +329,11 @@ export default function TeacherAttendancePage() {
                   className="h-10 rounded-lg border bg-background px-3 text-sm" />
                 <Select value={rShift} onChange={(e) => setRShift(e.target.value)} className="w-36">
                   <option value="">{t("attendanceTeachers.allShifts")}</option>
-                  <option value="MORNING">{t("attendanceTeachers.morning")}</option>
-                  <option value="AFTERNOON">{t("attendanceTeachers.afternoon")}</option>
+                  {shiftOptions.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name}
+                    </option>
+                  ))}
                 </Select>
                 <Select value={rStatus} onChange={(e) => setRStatus(e.target.value)} className="w-32">
                   <option value="">{t("attendanceTeachers.allStatus")}</option>

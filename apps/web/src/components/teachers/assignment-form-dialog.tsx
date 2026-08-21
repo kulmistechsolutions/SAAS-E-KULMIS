@@ -23,6 +23,7 @@ import {
   useTeachersState,
   type TeacherAssignment,
 } from "@/lib/teachers/store";
+import { useShifts } from "@/lib/teachers/shifts";
 import type { AssignmentShift, AssignmentSlotInput } from "@/lib/teachers/types";
 import { cn } from "@/lib/utils";
 
@@ -105,6 +106,7 @@ export function AssignmentFormDialog({
 }: Props) {
   const tr = useT();
   const { teachers } = useTeachersState();
+  const shifts = useShifts();
   const academics = useAcademicsState();
   const years = useMemo(
     () => academicYearNames(academics),
@@ -444,8 +446,11 @@ export function AssignmentFormDialog({
                   }
                 >
                   <option value="">{tr("teachersAssignmentFormDialog.selectShift")}</option>
-                  <option value="MORNING">{tr("teachersAssignmentFormDialog.morning")}</option>
-                  <option value="AFTERNOON">{tr("teachersAssignmentFormDialog.afternoon")}</option>
+                  {shifts.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name}
+                    </option>
+                  ))}
                 </Select>
               </div>
             )}
@@ -550,8 +555,11 @@ export function AssignmentFormDialog({
                           }
                         >
                           <option value="">{tr("teachersAssignmentFormDialog.selectShift")}</option>
-                          <option value="MORNING">{tr("teachersAssignmentFormDialog.morning")}</option>
-                          <option value="AFTERNOON">{tr("teachersAssignmentFormDialog.afternoon")}</option>
+                          {shifts.map((s) => (
+                            <option key={s.id} value={s.id}>
+                              {s.name}
+                            </option>
+                          ))}
                         </Select>
                       </div>
                     )}
@@ -591,7 +599,7 @@ export function AssignmentFormDialog({
                           ? ` · Section ${slot.section}`
                           : " · All sections"}
                         {isBoth && slot.shift
-                          ? ` · ${slot.shift === "MORNING" ? "Morning" : "Afternoon"}`
+                          ? ` · ${shifts.find((s) => s.id === slot.shift)?.name ?? slot.shift}`
                           : ""}{" "}
                         → {slot.subjects.join(", ")}
                       </p>

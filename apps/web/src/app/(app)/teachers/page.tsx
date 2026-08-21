@@ -38,7 +38,8 @@ import {
 } from "@/lib/teachers/store";
 import { AcademicYearSelect } from "@/components/academics/academic-year-select";
 import { activeAcademicYear } from "@/lib/academics/store";
-import { money, shortDate } from "@/lib/teachers/format";
+import { money, shiftsLabel, shortDate } from "@/lib/teachers/format";
+import { shiftName, useShifts } from "@/lib/teachers/shifts";
 import { DEFAULT_TEACHER_PASSWORD } from "@/lib/teachers/constants";
 import {
   DEFAULT_TEACHER_EXPORT_FIELDS,
@@ -72,18 +73,13 @@ const STATUS_KEY: Record<string, TranslationKey> = {
   INACTIVE: "teachers.statusInactive",
 };
 
-const SHIFT_KEY: Record<string, TranslationKey> = {
-  MORNING: "teachers.shiftMorning",
-  AFTERNOON: "teachers.shiftAfternoon",
-  BOTH: "teachers.shiftBoth",
-};
-
 export default function TeachersPage() {
   const tr = useT();
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
   const state = useTeachersState();
+  const shifts = useShifts();
   const [search, setSearch] = useState("");
   const [year, setYear] = useState("");
   const [shift, setShift] = useState("");
@@ -171,7 +167,7 @@ export default function TeachersPage() {
     setLastFields(fields);
     printTeachersList(
       filtered,
-      { shift: shift || "All", status: status || "All" },
+      { shift: shift ? shiftName(shift) : "All", status: status || "All" },
       state.assignments,
       fields,
     );
@@ -245,8 +241,11 @@ export default function TeachersPage() {
             <AcademicYearSelect value={year} onChange={setYear} allowAll className="lg:w-36" />
             <Select value={shift} onChange={(e) => setShift(e.target.value)} className="lg:w-36">
               <option value="">{tr("teachers.allShifts")}</option>
-              <option value="MORNING">{tr("teachers.morning")}</option>
-              <option value="AFTERNOON">{tr("teachers.afternoon")}</option>
+              {shifts.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
             </Select>
             <Select value={status} onChange={(e) => setStatus(e.target.value)} className="lg:w-32">
               <option value="">{tr("teachers.allStatus")}</option>
@@ -296,9 +295,7 @@ export default function TeachersPage() {
                       </Link>
                     </td>
                     <td className="px-4 py-3 text-muted-foreground">{t.phone}</td>
-                    <td className="px-4 py-3">
-                      {t.shifts.map((s) => tr(SHIFT_KEY[s] ?? "teachers.shiftBoth")).join(", ")}
-                    </td>
+                    <td className="px-4 py-3">{shiftsLabel(t.shifts)}</td>
                     <td className="px-4 py-3 tabular-nums">{money(t.salary)}</td>
                     <td className="px-4 py-3">
                       <Badge tone={STATUS_TONE[t.status]} dot>

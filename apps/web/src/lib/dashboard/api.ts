@@ -11,7 +11,7 @@ export interface AdminDashboardResponse {
     graduated: number;
     newThisMonth: number;
   };
-  teachers: { total: number; morning: number; afternoon: number };
+  teachers: { total: number; active: number };
   parents: { total: number };
   academics: { classes: number; sections: number; subjects: number };
   attendanceToday: {
@@ -83,7 +83,7 @@ export interface TeacherDashboardResponse {
     id: string;
     code: string;
     fullName: string;
-    shift: string;
+    shifts: string[];
     phone: string | null;
     email: string | null;
     gender: string;

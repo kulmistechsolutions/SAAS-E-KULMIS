@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { shiftName, useShifts } from "@/lib/teachers/shifts";
 
 export function StudentAttendanceSummaryCards({
   summary,
@@ -30,13 +31,21 @@ export function StudentAttendanceSummaryCards({
 export function TeacherAttendanceSummaryCards({
   summary,
 }: {
-  summary: AttendanceSummary & { totalTeachers?: number; morning?: number; afternoon?: number };
+  summary: AttendanceSummary & {
+    totalTeachers?: number;
+    byShift?: { id: string; count: number }[];
+  };
 }) {
   const t = useT();
+  useShifts(); // subscribe so shift-name labels below update once loaded
   const cards: { label: string; value: string | number; icon: LucideIcon; chip: string }[] = [
     { label: t("attendanceSummaryCards.totalTeachers"), value: summary.totalTeachers ?? summary.total, icon: Users, chip: "bg-violet-500/15 text-violet-600" },
-    { label: t("attendanceSummaryCards.morning"), value: summary.morning ?? "—", icon: Clock, chip: "bg-amber-500/15 text-amber-600" },
-    { label: t("attendanceSummaryCards.afternoon"), value: summary.afternoon ?? "—", icon: Clock, chip: "bg-sky-500/15 text-sky-600" },
+    ...(summary.byShift ?? []).map((s) => ({
+      label: shiftName(s.id),
+      value: s.count,
+      icon: Clock,
+      chip: "bg-amber-500/15 text-amber-600",
+    })),
     { label: t("attendanceSummaryCards.presentToday"), value: summary.present, icon: UserCheck, chip: "bg-emerald-500/15 text-emerald-600" },
     { label: t("attendanceSummaryCards.absentToday"), value: summary.absent, icon: UserX, chip: "bg-rose-500/15 text-rose-600" },
     { label: t("attendanceSummaryCards.attendance"), value: `${summary.percentage}%`, icon: CalendarCheck, chip: "bg-indigo-500/15 text-indigo-600" },

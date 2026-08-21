@@ -89,7 +89,7 @@ async function fetchTeacherAttendanceReportAsync(
 ): Promise<ReportData> {
   const records = await filterTeacherRecords({
     date: filters.date,
-    shift: filters.shift as "MORNING" | "AFTERNOON" | undefined,
+    shift: filters.shift,
     status: filters.status as never,
     search: filters.search,
   });

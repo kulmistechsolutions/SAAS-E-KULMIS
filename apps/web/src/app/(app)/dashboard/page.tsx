@@ -138,7 +138,7 @@ function buildStats(data: AdminDashboardResponse, t: Translate) {
       label: "Total Teachers",
       labelKey: "dashboard.totalTeachers" as TranslationKey,
       value: data.teachers.total.toLocaleString(),
-      hint: `${data.teachers.morning + data.teachers.afternoon} active`,
+      hint: `${data.teachers.active} active`,
       hintTone: "muted" as const,
       icon: "teachers" as const,
       theme: "emerald" as const,

@@ -10,6 +10,7 @@ import { Select } from "@/components/ui/select";
 import type { TeacherMe, TeacherMeAssignment } from "@/lib/teachers/api";
 import { loadTeacherMe } from "@/lib/teachers/session";
 import { assignmentShiftLabel } from "@/lib/teachers/format";
+import { shiftName, useShifts } from "@/lib/teachers/shifts";
 import { useSchoolBranding } from "@/lib/settings/use-school-branding";
 import { toast } from "@/lib/toast";
 
@@ -84,6 +85,7 @@ function printAssignments(
 export default function MyAssignmentsPage() {
   const t = useT();
   const branding = useSchoolBranding();
+  useShifts();
   const [me, setMe] = useState<TeacherMe | null>(null);
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
@@ -220,8 +222,11 @@ export default function MyAssignmentsPage() {
         {(me?.shifts.length ?? 0) > 1 && (
           <Select value={shiftF} onChange={(e) => setShiftF(e.target.value)}>
             <option value="">{t("myAssignments.bothShifts")}</option>
-            <option value="MORNING">{t("myAssignments.morning")}</option>
-            <option value="AFTERNOON">{t("myAssignments.afternoon")}</option>
+            {me?.shifts.map((id) => (
+              <option key={id} value={id}>
+                {shiftName(id)}
+              </option>
+            ))}
           </Select>
         )}
       </div>

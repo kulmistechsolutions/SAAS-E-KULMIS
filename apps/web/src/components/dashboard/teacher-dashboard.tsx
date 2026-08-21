@@ -21,6 +21,8 @@ import {
   type TeacherDashboardResponse,
 } from "@/lib/dashboard/api";
 import { useSchoolBranding } from "@/lib/settings/use-school-branding";
+import { shiftsLabel } from "@/lib/teachers/format";
+import { useShifts } from "@/lib/teachers/shifts";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 
@@ -46,6 +48,7 @@ export function TeacherDashboard({
 }) {
   const t = useT();
   const branding = useSchoolBranding();
+  useShifts();
   const base = portalMode ? "/teacher-portal" : "";
   const [data, setData] = useState<TeacherDashboardResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -119,7 +122,7 @@ export function TeacherDashboard({
             {t("dashboardTeacherDashboard.welcome")} {data.teacher.fullName}
           </h1>
           <p className="mt-0.5 text-sm text-muted-foreground">
-            {t("dashboardTeacherDashboard.teacherId")} {data.teacher.code} · {data.teacher.shift} {t("dashboardTeacherDashboard.shift")}{" "}
+            {t("dashboardTeacherDashboard.teacherId")} {data.teacher.code} · {shiftsLabel(data.teacher.shifts)} {t("dashboardTeacherDashboard.shift")}{" "}
             {formatToday(data.today)}
           </p>
         </div>

@@ -10,6 +10,7 @@ import {
 } from "@/lib/academics/store";
 import { getState as getStudentsState } from "@/lib/students/store";
 import { getTeachersState } from "@/lib/teachers/store";
+import { getShifts } from "@/lib/teachers/shifts";
 import {
   apiCreateAttendanceShift,
   apiDeleteAttendanceShift,
@@ -476,7 +477,7 @@ export async function studentHistory(studentId: string) {
 
 export async function loadTeacherMarkingRows(
   _academicYear: string,
-  shift: "MORNING" | "AFTERNOON",
+  shift: string,
   date: string,
 ): Promise<{ rows: TeacherMarkRow[]; error?: string }> {
   try {
@@ -490,8 +491,7 @@ export async function loadTeacherMarkingRows(
 
     const tt = getTeachersState();
     const rows = tt.teachers
-      // A teacher who works both shifts belongs on both the morning and
-      // afternoon sheets.
+      // A teacher who works several shifts belongs on each of their sheets.
       .filter((t) => t.shifts.includes(shift))
       .sort((a, b) => a.fullName.localeCompare(b.fullName))
       .map((t) => {
@@ -500,8 +500,8 @@ export async function loadTeacherMarkingRows(
           teacherId: t.id,
           code: t.code,
           fullName: t.fullName,
-          // The sheet's own shift, not the teacher's range — a BOTH-shift
-          // teacher's morning mark must say MORNING, not BOTH.
+          // The sheet's own shift, not the teacher's full range — a
+          // multi-shift teacher's morning mark must say Morning, not both.
           shift,
           status: statusById.get(t.id) ?? "PRESENT",
           eligible,
@@ -517,7 +517,7 @@ export async function loadTeacherMarkingRows(
 
 export async function saveTeacherAttendance(
   _academicYear: string,
-  shift: "MORNING" | "AFTERNOON",
+  shift: string,
   date: string,
   rows: { teacherId: string; status: TeacherAttendanceStatus }[],
 ): Promise<SaveStudentResult> {
@@ -552,14 +552,15 @@ export async function saveTeacherAttendance(
 export async function teacherDashboardToday(date = todayISO()) {
   const tt = getTeachersState();
   const active = tt.teachers.filter((t) => t.status === "ACTIVE").length;
-  // A teacher who works both shifts counts toward both totals — they really
-  // do work both, not neither.
-  const morning = tt.teachers.filter(
-    (t) => t.shifts.includes("MORNING") && t.status === "ACTIVE",
-  ).length;
-  const afternoon = tt.teachers.filter(
-    (t) => t.shifts.includes("AFTERNOON") && t.status === "ACTIVE",
-  ).length;
+  // A teacher who works several shifts counts toward each one's total.
+  const shiftCounts = new Map<string, number>();
+  for (const t of tt.teachers) {
+    if (t.status !== "ACTIVE") continue;
+    for (const shiftId of t.shifts) {
+      shiftCounts.set(shiftId, (shiftCounts.get(shiftId) ?? 0) + 1);
+    }
+  }
+  const byShift = [...shiftCounts.entries()].map(([id, count]) => ({ id, count }));
 
   try {
     const dash = await apiTeacherDashboard(date);
@@ -572,8 +573,7 @@ export async function teacherDashboardToday(date = todayISO()) {
       leave: dash.EXCUSED,
       percentage: dash.attendanceRate,
       totalTeachers: active,
-      morning,
-      afternoon,
+      byShift,
     };
   } catch {
     return {
@@ -585,19 +585,18 @@ export async function teacherDashboardToday(date = todayISO()) {
       leave: 0,
       percentage: 0,
       totalTeachers: active,
-      morning,
-      afternoon,
+      byShift,
     };
   }
 }
 
 async function fetchTeacherRecordsForDate(
   date: string,
-  shift?: "MORNING" | "AFTERNOON",
+  shift?: string,
 ): Promise<TeacherAttendanceRecord[]> {
   const tt = getTeachersState();
   const tmap = new Map(tt.teachers.map((t) => [t.id, t]));
-  const shifts: ("MORNING" | "AFTERNOON")[] = shift ? [shift] : ["MORNING", "AFTERNOON"];
+  const shifts: string[] = shift ? [shift] : getShifts().map((s) => s.id);
   const records: TeacherAttendanceRecord[] = [];
   const now = new Date().toISOString();
   const year =
@@ -631,7 +630,7 @@ async function fetchTeacherRecordsForDate(
 export async function filterTeacherRecords(opts: {
   academicYear?: string;
   date?: string;
-  shift?: "MORNING" | "AFTERNOON";
+  shift?: string;
   status?: TeacherAttendanceStatus;
   search?: string;
 }) {

@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
-import { Prisma, type Shift } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 import type {
   BulkCreateAssignmentsInput,
   CreateAssignmentInput,
@@ -28,6 +28,14 @@ const assignmentInclude = {
 
 type Tx = Prisma.TransactionClient;
 
+/** The API has always called this field `shift`; the column is `shiftId`. */
+function mapAssignment<T extends { shiftId: string | null }>(
+  row: T,
+): Omit<T, "shiftId"> & { shift: string | null } {
+  const { shiftId, ...rest } = row;
+  return { ...rest, shift: shiftId };
+}
+
 function assignmentKey(
   teacherId: string,
   classId: string,
@@ -37,7 +45,7 @@ function assignmentKey(
   shift: string | null,
 ): string {
   // Mirrors the database's exact-duplicate index: shift only distinguishes a
-  // BOTH-shift teacher's morning row from their afternoon one; two rows that
+  // multi-shift teacher's morning row from their afternoon one; two rows that
   // agree on everything else INCLUDING an absent shift are true duplicates.
   return `${teacherId}|${classId}|${sectionId ?? ""}|${subjectId}|${academicYearId}|${shift ?? ""}`;
 }
@@ -84,6 +92,18 @@ export class TeacherAssignmentsService {
       if (!sec) {
         throw new BadRequestException("Invalid section for this class");
       }
+    }
+  }
+
+  /** A plain string field can't be trusted on its own — and a foreign-key
+   *  check alone isn't enough, since it runs outside RLS. */
+  private async assertShiftsExist(tx: Tx, shiftIds: string[]): Promise<void> {
+    if (shiftIds.length === 0) return;
+    const found = await tx.attendanceShift.count({
+      where: { id: { in: shiftIds } },
+    });
+    if (found !== new Set(shiftIds).size) {
+      throw new BadRequestException("One or more shifts were not found");
     }
   }
 
@@ -168,7 +188,8 @@ export class TeacherAssignmentsService {
         await this.assertClassesNotMultiShift(tx, [dto.classId]);
       }
 
-      const shift = dto.shift ?? null;
+      const shiftId = dto.shift ?? null;
+      if (shiftId) await this.assertShiftsExist(tx, [shiftId]);
       const dup = await tx.teacherAssignment.findFirst({
         where: {
           teacherId: dto.teacherId,
@@ -176,7 +197,7 @@ export class TeacherAssignmentsService {
           sectionId,
           subjectId: dto.subjectId,
           academicYearId: dto.academicYearId,
-          shift,
+          shiftId,
         },
         select: { id: true },
       });
@@ -196,7 +217,7 @@ export class TeacherAssignmentsService {
             classId: dto.classId,
             sectionId,
             subjectId: dto.subjectId,
-            shift,
+            shiftId,
           },
           include: assignmentInclude,
         });
@@ -221,7 +242,7 @@ export class TeacherAssignmentsService {
         dto.subjectId,
       );
 
-      return created;
+      return mapAssignment(created);
     });
   }
 
@@ -252,18 +273,18 @@ export class TeacherAssignmentsService {
         classId: string;
         sectionId: string | null;
         subjectId: string;
-        shift: Shift | null;
+        shiftId: string | null;
       }[] = [];
       for (const item of dto.items) {
         const sectionId = item.sectionId ?? null;
-        const shift = (item.shift ?? null) as Shift | null;
+        const shiftId = item.shift ?? null;
         const key = assignmentKey(
           dto.teacherId,
           item.classId,
           sectionId,
           item.subjectId,
           dto.academicYearId,
-          shift,
+          shiftId,
         );
         if (seen.has(key)) continue;
         seen.add(key);
@@ -271,9 +292,16 @@ export class TeacherAssignmentsService {
           classId: item.classId,
           sectionId,
           subjectId: item.subjectId,
-          shift,
+          shiftId,
         });
       }
+
+      const shiftIds = [
+        ...new Set(
+          uniqueItems.map((i) => i.shiftId).filter((id): id is string => !!id),
+        ),
+      ];
+      await this.assertShiftsExist(tx, shiftIds);
 
       // Validate FKs for unique class/subject/section combos
       const classIds = [...new Set(uniqueItems.map((i) => i.classId))];
@@ -338,14 +366,14 @@ export class TeacherAssignmentsService {
             classId: i.classId,
             sectionId: i.sectionId,
             subjectId: i.subjectId,
-            shift: i.shift,
+            shiftId: i.shiftId,
           })),
         },
         select: {
           classId: true,
           sectionId: true,
           subjectId: true,
-          shift: true,
+          shiftId: true,
         },
       });
       const existingKeys = new Set(
@@ -356,7 +384,7 @@ export class TeacherAssignmentsService {
             e.sectionId,
             e.subjectId,
             dto.academicYearId,
-            e.shift,
+            e.shiftId,
           ),
         ),
       );
@@ -370,7 +398,7 @@ export class TeacherAssignmentsService {
               i.sectionId,
               i.subjectId,
               dto.academicYearId,
-              i.shift,
+              i.shiftId,
             ),
           ),
       );
@@ -390,7 +418,7 @@ export class TeacherAssignmentsService {
             classId: item.classId,
             sectionId: item.sectionId,
             subjectId: item.subjectId,
-            shift: item.shift,
+            shiftId: item.shiftId,
           })),
           skipDuplicates: true,
         });
@@ -437,7 +465,7 @@ export class TeacherAssignmentsService {
                 classId: i.classId,
                 sectionId: i.sectionId,
                 subjectId: i.subjectId,
-                shift: i.shift,
+                shiftId: i.shiftId,
               })),
             },
             include: assignmentInclude,
@@ -446,7 +474,7 @@ export class TeacherAssignmentsService {
         : [];
 
       return {
-        created,
+        created: created.map(mapAssignment),
         createdCount: insertedCount,
         // Anything not freshly inserted (pre-existing or a concurrent insert).
         skippedCount: skipped + (toCreate.length - insertedCount),
@@ -465,17 +493,19 @@ export class TeacherAssignmentsService {
       academicYearId?: string;
     } = {},
   ) {
-    return this.prisma.forTenant(schoolId, (tx) =>
-      tx.teacherAssignment.findMany({
-        where: {
-          teacherId: filters.teacherId,
-          classId: filters.classId,
-          academicYearId: filters.academicYearId,
-        },
-        include: assignmentInclude,
-        orderBy: { createdAt: "desc" },
-      }),
-    );
+    return this.prisma
+      .forTenant(schoolId, (tx) =>
+        tx.teacherAssignment.findMany({
+          where: {
+            teacherId: filters.teacherId,
+            classId: filters.classId,
+            academicYearId: filters.academicYearId,
+          },
+          include: assignmentInclude,
+          orderBy: { createdAt: "desc" },
+        }),
+      )
+      .then((rows) => rows.map(mapAssignment));
   }
 
   async findOne(schoolId: string, id: string) {
@@ -486,7 +516,7 @@ export class TeacherAssignmentsService {
       }),
     );
     if (!a) throw new NotFoundException("Assignment not found");
-    return a;
+    return mapAssignment(a);
   }
 
   async remove(schoolId: string, id: string) {

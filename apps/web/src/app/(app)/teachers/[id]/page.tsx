@@ -64,6 +64,7 @@ import {
   teacherAttendanceHistory,
 } from "@/lib/teachers/history";
 import { DEFAULT_TEACHER_EXPORT_FIELDS, exportTeachersCsv, printTeacherProfile } from "@/lib/teachers/print";
+import { useShifts } from "@/lib/teachers/shifts";
 import type { EmploymentStatus, TeacherAssignment } from "@/lib/teachers/types";
 import { toast } from "@/lib/toast";
 import { DEFAULT_TEACHER_PASSWORD } from "@/lib/teachers/constants";
@@ -112,6 +113,7 @@ function TeacherProfileContent({ id }: { id: string }) {
   useEffect(() => setMounted(true), []);
 
   const state = useTeachersState();
+  useShifts();
   const teacher = useMemo(() => getTeacher(id), [state, id]);
   const assignments = useMemo(
     () => (teacher ? teacherAssignments(teacher.id) : []),

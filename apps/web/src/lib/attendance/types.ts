@@ -16,7 +16,7 @@ export interface TeacherAttendanceRecord {
   id: string;
   teacherId: string;
   academicYear: string;
-  shift: "MORNING" | "AFTERNOON";
+  shift: string;
   date: string;
   status: TeacherAttendanceStatus;
   markedAt: string;
@@ -42,7 +42,7 @@ export interface TeacherMarkRow {
   teacherId: string;
   code: string;
   fullName: string;
-  shift: "MORNING" | "AFTERNOON";
+  shift: string;
   status: TeacherAttendanceStatus;
   eligible: boolean;
   reason?: string;

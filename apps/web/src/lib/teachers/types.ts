@@ -1,7 +1,9 @@
 export type Gender = "MALE" | "FEMALE";
-export type Shift = "MORNING" | "AFTERNOON";
+/** A shift is an AttendanceShift.id — a school's own named shift list
+ *  (Settings → Attendance → Attendance Shift Management), not a fixed pair. */
+export type Shift = string;
 /** The shift ONE assignment slot is taught in. */
-export type AssignmentShift = "MORNING" | "AFTERNOON";
+export type AssignmentShift = string;
 export type EmploymentStatus = "ACTIVE" | "INACTIVE";
 export type AssignmentStatus = "ACTIVE" | "INACTIVE";
 

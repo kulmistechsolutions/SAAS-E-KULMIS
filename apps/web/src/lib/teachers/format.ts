@@ -1,4 +1,5 @@
 import { formatMoney } from "@/lib/settings/currency";
+import { shiftName } from "./shifts";
 
 export const money = (n: number) => formatMoney(n, { decimals: 0 });
 
@@ -27,10 +28,9 @@ export function longDate(iso: string | null | undefined): string {
 
 export const genderLabel = (g: string) => (g === "MALE" ? "Male" : "Female");
 
-export const shiftLabel = (s: string) =>
-  s === "MORNING" ? "Morning" : s === "AFTERNOON" ? "Afternoon" : s;
+export const shiftLabel = (s: string) => shiftName(s);
 
-/** A teacher's own shift list, e.g. ["MORNING","AFTERNOON"] -> "Morning, Afternoon". */
+/** A teacher's own shift list (shift ids) -> "Morning, Afternoon". */
 export const shiftsLabel = (shifts: string[]): string =>
   shifts.length ? shifts.map(shiftLabel).join(", ") : "—";
 

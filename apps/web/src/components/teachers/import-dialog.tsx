@@ -15,6 +15,7 @@ import {
   type ImportRow,
   type TeacherImportPreviewRow,
 } from "@/lib/teachers/store";
+import { useShifts } from "@/lib/teachers/shifts";
 
 interface Props {
   open: boolean;
@@ -31,9 +32,12 @@ const COLUMNS: (keyof ImportRow)[] = [
   "shift",
 ];
 
-const TEMPLATE = `${HEADERS.join(",")}
-Ahmed Hassan,MALE,+252611100001,500,MORNING
-Fatima Ali,FEMALE,+252611100002,480,AFTERNOON`;
+function buildTemplate(shiftNames: string[]): string {
+  const [a, b] = shiftNames.length ? shiftNames : ["Morning", "Afternoon"];
+  return `${HEADERS.join(",")}
+Ahmed Hassan,MALE,+252611100001,500,${a}
+Fatima Ali,FEMALE,+252611100002,480,${b ?? a}`;
+}
 
 type Step = "upload" | "preview" | "result";
 
@@ -60,6 +64,8 @@ function parseTeacherCsv(text: string): { rows: ImportRow[]; error?: string } {
 
 export function ImportDialog({ open, onClose, onDone }: Props) {
   const t = useT();
+  const shifts = useShifts();
+  const template = buildTemplate(shifts.map((s) => s.name));
   const [text, setText] = useState("");
   const [fileName, setFileName] = useState<string | null>(null);
   const [step, setStep] = useState<Step>("upload");
@@ -151,7 +157,7 @@ export function ImportDialog({ open, onClose, onDone }: Props) {
           </>
         ) : (
           <>
-            <Button variant="outline" onClick={() => download("teachers-template.csv", TEMPLATE)}>
+            <Button variant="outline" onClick={() => download("teachers-template.csv", template)}>
               <Download className="me-2 h-4 w-4" /> {t("teachersImportDialog.template")}
             </Button>
             <Button onClick={handlePreview} disabled={!text.trim() || loading}>
@@ -187,7 +193,7 @@ export function ImportDialog({ open, onClose, onDone }: Props) {
               value={text}
               onChange={(e) => { setText(e.target.value); setParseError(null); }}
               rows={7}
-              placeholder={TEMPLATE}
+              placeholder={template}
               className="mt-1.5 w-full rounded-lg border bg-background p-3 font-mono text-xs outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
             />
           </div>

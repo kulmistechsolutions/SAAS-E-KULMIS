@@ -13,11 +13,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { DEFAULT_SALARY, DEFAULT_TEACHER_PASSWORD } from "@/lib/teachers/constants";
 import { registerTeacher, updateTeacher, type Teacher } from "@/lib/teachers/store";
+import { useShifts } from "@/lib/teachers/shifts";
 import type { EmploymentStatus, Gender, Shift } from "@/lib/teachers/types";
 
-/** Checkbox dropdown for picking one or more shifts — a teacher who works
- *  every shift the school runs just has every box checked, instead of a
- *  separate "Both" option to keep in sync as more shifts are added. */
+/** Checkbox dropdown for picking one or more of the school's own shifts
+ *  (Settings → Attendance → Attendance Shift Management) — a teacher who
+ *  works every shift the school runs just has every box checked. */
 function ShiftMultiSelect({
   value,
   onChange,
@@ -26,12 +27,13 @@ function ShiftMultiSelect({
   onChange: (next: Shift[]) => void;
 }) {
   const t = useT();
+  const shifts = useShifts();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-  const options: { value: Shift; label: string }[] = [
-    { value: "MORNING", label: t("teachersTeacherFormDialog.morning") },
-    { value: "AFTERNOON", label: t("teachersTeacherFormDialog.afternoon") },
-  ];
+  const options: { value: Shift; label: string }[] = shifts.map((s) => ({
+    value: s.id,
+    label: s.name,
+  }));
 
   useEffect(() => {
     if (!open) return;
@@ -67,20 +69,26 @@ function ShiftMultiSelect({
       </button>
       {open && (
         <div className="absolute z-10 mt-1 w-full rounded-lg border bg-popover p-1.5 shadow-md">
-          {options.map((o) => (
-            <label
-              key={o.value}
-              className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-secondary"
-            >
-              <input
-                type="checkbox"
-                className="h-4 w-4 rounded border-input"
-                checked={value.includes(o.value)}
-                onChange={() => toggle(o.value)}
-              />
-              {o.label}
-            </label>
-          ))}
+          {options.length === 0 ? (
+            <p className="px-2 py-1.5 text-xs text-muted-foreground">
+              {t("teachersTeacherFormDialog.noShiftsSetUp")}
+            </p>
+          ) : (
+            options.map((o) => (
+              <label
+                key={o.value}
+                className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-secondary"
+              >
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 rounded border-input"
+                  checked={value.includes(o.value)}
+                  onChange={() => toggle(o.value)}
+                />
+                {o.label}
+              </label>
+            ))
+          )}
         </div>
       )}
     </div>
@@ -116,7 +124,7 @@ const empty: FormState = {
   address: "",
   qualification: "",
   salary: String(DEFAULT_SALARY),
-  shifts: ["MORNING"],
+  shifts: [],
   status: "ACTIVE",
   canViewStudents: false,
   password: DEFAULT_TEACHER_PASSWORD,

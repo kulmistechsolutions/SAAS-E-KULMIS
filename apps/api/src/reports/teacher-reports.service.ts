@@ -5,7 +5,6 @@ import { PrismaService } from "../prisma/prisma.service";
 import type { ReportData } from "./fee-reports.service";
 
 const TEACHER_STATUS_VALUES = new Set(["ACTIVE", "INACTIVE"]);
-const TEACHER_SHIFT_VALUES = new Set(["MORNING", "AFTERNOON"]);
 
 export interface TeacherReportFilters {
   shift?: string;
@@ -50,8 +49,8 @@ export class TeacherReportsService {
 
   private teacherWhere(filters: TeacherReportFilters): Prisma.TeacherWhereInput {
     const where: Prisma.TeacherWhereInput = {};
-    if (filters.shift && TEACHER_SHIFT_VALUES.has(filters.shift)) {
-      where.shifts = { has: filters.shift as never };
+    if (filters.shift) {
+      where.shiftLinks = { some: { shiftId: filters.shift } };
     }
     if (filters.status && TEACHER_STATUS_VALUES.has(filters.status)) {
       where.status = filters.status as Prisma.TeacherWhereInput["status"];
@@ -80,7 +79,7 @@ export class TeacherReportsService {
           phone: true,
           email: true,
           qualification: true,
-          shifts: true,
+          shiftLinks: { select: { shift: { select: { name: true } } } },
           status: true,
         },
       }),
@@ -101,7 +100,7 @@ export class TeacherReportsService {
         gender: t.gender,
         phone: t.phone ?? "",
         qualification: t.qualification ?? "",
-        shift: t.shifts.join(", "),
+        shift: t.shiftLinks.map((l) => l.shift.name).join(", "),
         status: t.status,
       })),
       summary: [{ label: "Teachers", value: String(teachers.length) }],
@@ -124,7 +123,7 @@ export class TeacherReportsService {
         select: {
           code: true,
           fullName: true,
-          shifts: true,
+          shiftLinks: { select: { shift: { select: { name: true } } } },
           status: true,
           salary: true,
         },
@@ -141,7 +140,7 @@ export class TeacherReportsService {
       rows: teachers.map((t) => ({
         code: t.code,
         name: t.fullName,
-        shift: t.shifts.join(", "),
+        shift: t.shiftLinks.map((l) => l.shift.name).join(", "),
         status: t.status,
         salary: money(t.salary),
       })),

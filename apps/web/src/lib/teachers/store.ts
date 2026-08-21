@@ -20,6 +20,7 @@ import {
   apiUpdateTeacher,
 } from "./api";
 import { api } from "@/lib/api";
+import { getShifts } from "./shifts";
 import type { TeacherMe } from "./api";
 import { DEFAULT_TEACHER_PASSWORD } from "./constants";
 import type {
@@ -370,8 +371,10 @@ export interface TeacherSummary {
   total: number;
   active: number;
   inactive: number;
-  morning: number;
-  afternoon: number;
+  /** Teachers per shift — one entry per shift the school has set up, so this
+   *  covers any number of shifts rather than a fixed Morning/Afternoon pair.
+   *  A teacher who works several shifts counts toward each one. */
+  byShift: { id: string; count: number }[];
   assignedThisYear: number;
   withoutAssignments: number;
 }
@@ -383,23 +386,24 @@ export function summarize(st: TeachersState): TeacherSummary {
       .filter((a) => a.academicYear === year && a.status === "ACTIVE")
       .map((a) => a.teacherId),
   );
+  const shiftCounts = new Map<string, number>();
   const out: TeacherSummary = {
     total: st.teachers.length,
     active: 0,
     inactive: 0,
-    morning: 0,
-    afternoon: 0,
+    byShift: [],
     assignedThisYear: assignedIds.size,
     withoutAssignments: 0,
   };
   for (const t of st.teachers) {
     if (t.status === "ACTIVE") out.active++;
     else out.inactive++;
-    // A teacher who works both shifts counts toward both totals.
-    if (t.shifts.includes("MORNING")) out.morning++;
-    if (t.shifts.includes("AFTERNOON")) out.afternoon++;
+    for (const shiftId of t.shifts) {
+      shiftCounts.set(shiftId, (shiftCounts.get(shiftId) ?? 0) + 1);
+    }
     if (!assignedIds.has(t.id)) out.withoutAssignments++;
   }
+  out.byShift = [...shiftCounts.entries()].map(([id, count]) => ({ id, count }));
   return out;
 }
 
@@ -804,6 +808,14 @@ function teacherPhoneExists(phone: string): boolean {
   return ensure().teachers.some((t) => phoneKey(t.phone) === norm);
 }
 
+/** CSV files carry a shift by NAME (what a school owner can actually type),
+ *  resolved here against the school's own shift list — the id is an internal
+ *  detail nobody importing a spreadsheet would know. */
+function resolveShiftId(name: string): string | null {
+  const wanted = name.trim().toLowerCase();
+  return getShifts().find((s) => s.name.trim().toLowerCase() === wanted)?.id ?? null;
+}
+
 function validateTeacherImportRow(
   row: ImportRow,
   line: number,
@@ -812,7 +824,7 @@ function validateTeacherImportRow(
   const fullName = row.fullName?.trim();
   const genderRaw = row.gender?.trim().toUpperCase();
   const phone = row.phone?.trim();
-  const shiftRaw = row.shift?.trim().toUpperCase();
+  const shiftId = row.shift ? resolveShiftId(row.shift) : null;
   const salary = Number(row.salary?.trim());
 
   if (!fullName || !phone) {
@@ -852,12 +864,12 @@ function validateTeacherImportRow(
       message: `Invalid gender "${row.gender}".`,
     };
   }
-  if (shiftRaw !== "MORNING" && shiftRaw !== "AFTERNOON") {
+  if (!shiftId) {
     return {
       row: line,
       data: row,
       status: "invalid",
-      message: `Invalid shift "${row.shift}".`,
+      message: `Unknown shift "${row.shift}". Use one of the school's own shift names.`,
     };
   }
   if (Number.isNaN(salary) || salary < 0) {
@@ -916,13 +928,19 @@ export async function bulkImport(rows: ImportRow[]): Promise<ImportResult> {
       continue;
     }
 
+    const shiftId = resolveShiftId(row.shift!);
+    if (!shiftId) {
+      result.failed++;
+      result.errors.push({ row: line, message: `Unknown shift "${row.shift}".` });
+      continue;
+    }
     const res = await registerTeacher(
       {
         fullName: row.fullName!.trim(),
         gender: row.gender!.trim().toUpperCase() as Gender,
         phone: row.phone!.trim(),
         salary: Number(row.salary!.trim()),
-        shifts: [row.shift!.trim().toUpperCase() as Shift],
+        shifts: [shiftId],
       },
       { skipRefresh: true },
     );

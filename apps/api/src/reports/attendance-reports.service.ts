@@ -398,9 +398,12 @@ export class AttendanceReportsService {
         where: {
           date,
           ...(filters.status ? { status: filters.status as never } : {}),
-          ...(filters.shift ? { shift: filters.shift as never } : {}),
+          ...(filters.shift ? { shiftId: filters.shift } : {}),
         },
-        include: { teacher: { select: { code: true, fullName: true } } },
+        include: {
+          teacher: { select: { code: true, fullName: true } },
+          shift: { select: { name: true } },
+        },
         orderBy: [{ createdAt: "asc" }],
       });
       const q = filters.search?.trim().toLowerCase();
@@ -423,7 +426,7 @@ export class AttendanceReportsService {
           teacher: r.teacher.fullName,
           code: r.teacher.code,
           date: r.date.toISOString().slice(0, 10),
-          shift: r.shift,
+          shift: r.shift?.name ?? "—",
           status: r.status,
         })),
         summary: [
@@ -445,18 +448,23 @@ export class AttendanceReportsService {
       const rows = await tx.teacherAttendance.findMany({
         where: {
           ...(range ? { date: { gte: range.gte, lt: range.lt } } : {}),
-          ...(shift ? { shift: shift as never } : {}),
+          ...(shift ? { shiftId: shift } : {}),
         },
-        select: { teacherId: true, shift: true, status: true },
+        select: {
+          teacherId: true,
+          status: true,
+          shift: { select: { name: true } },
+        },
       });
 
       if (mode === "byShift") {
         const byShift = new Map<string, { present: number; total: number }>();
         for (const r of rows) {
-          const cur = byShift.get(r.shift) ?? { present: 0, total: 0 };
+          const label = r.shift?.name ?? "—";
+          const cur = byShift.get(label) ?? { present: 0, total: 0 };
           cur.total += 1;
           if (r.status === "PRESENT" || r.status === "LATE") cur.present += 1;
-          byShift.set(r.shift, cur);
+          byShift.set(label, cur);
         }
         return {
           columns: [

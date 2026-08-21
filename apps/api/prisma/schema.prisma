@@ -687,11 +687,6 @@ model Teacher {
   qualification    String?
   gender           Gender
   salary           Int              @default(0)
-  /// Which shift(s) this teacher works — most teach one, some teach both.
-  /// A teacher's assignments only ask which shift a slot falls in when this
-  /// has more than one value; a single-shift teacher's assignments inherit
-  /// it without being asked (see TeacherAssignment.shift).
-  shifts           Shift[]
   status           EmploymentStatus @default(ACTIVE)
   /// Explicit admin grant — teachers cannot browse students without this.
   canViewStudents  Boolean          @default(false)
@@ -701,6 +696,11 @@ model Teacher {
   updatedAt        DateTime         @updatedAt
 
   user             User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Which shift(s) this teacher works — most teach one, some teach several.
+  /// A teacher's assignments only ask which shift a slot falls in when this
+  /// has more than one row; a single-shift teacher's assignments inherit it
+  /// without being asked (see TeacherAssignment.shiftId).
+  shiftLinks       TeacherShift[]
   assignments      TeacherAssignment[]
   attendance       TeacherAttendance[]
   quizzes          Quiz[]
@@ -736,16 +736,16 @@ model TeacherAssignment {
   /// Which shift THIS slot is taught in. Only meaningful — and only ever
   /// asked for — when the teacher works more than one shift; a single-shift
   /// teacher's assignments inherit their one shift without being asked.
-  /// Never BOTH: enforced by a CHECK constraint (see migration).
-  shift          Shift?
+  shiftId        String?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  teacher      Teacher      @relation(fields: [teacherId], references: [id], onDelete: Cascade)
-  academicYear AcademicYear @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
-  class        Class        @relation(fields: [classId], references: [id], onDelete: Cascade)
-  section      Section?     @relation(fields: [sectionId], references: [id], onDelete: Cascade)
-  subject      Subject      @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  teacher      Teacher          @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  academicYear AcademicYear     @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
+  class        Class            @relation(fields: [classId], references: [id], onDelete: Cascade)
+  section      Section?         @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  subject      Subject          @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  shift        AttendanceShift? @relation(fields: [shiftId], references: [id], onDelete: SetNull)
 
   @@index([schoolId])
   @@index([teacherId])
@@ -781,10 +781,13 @@ model StudentAttendance {
   @@map("student_attendance")
 }
 
-/// A named block of the school day used only for student attendance (e.g.
-/// "Morning", "Afternoon Session") — deliberately standalone from the
-/// timetable module's SchoolShift/period-grid machinery. A school that
-/// never creates one of these keeps the plain single-shift attendance flow.
+/// A named block of the school day (e.g. "Morning", "Afternoon Session") —
+/// deliberately standalone from the timetable module's SchoolShift/period-grid
+/// machinery, which is versioned per academic year. This one is a flat,
+/// permanent per-school list, which is what makes it the right anchor for a
+/// TEACHER's own shift too (an employment attribute that must survive an
+/// academic-year rollover) as well as student attendance. A school that never
+/// creates one of these keeps the plain single-shift attendance flow.
 model AttendanceShift {
   id         String       @id @default(cuid())
   schoolId   String
@@ -797,11 +800,31 @@ model AttendanceShift {
   createdAt  DateTime     @default(now())
   updatedAt  DateTime     @updatedAt
 
-  attendance StudentAttendance[]
+  attendance         StudentAttendance[]
+  teachers           TeacherShift[]
+  teacherAssignments TeacherAssignment[]
+  teacherAttendance  TeacherAttendance[]
 
   @@unique([schoolId, name])
   @@index([schoolId])
   @@map("attendance_shifts")
+}
+
+/// Which shift(s) a teacher works — join table between Teacher and
+/// AttendanceShift, so a teacher can be assigned any number of a school's
+/// own named shifts (not just a fixed Morning/Afternoon pair).
+model TeacherShift {
+  schoolId  String
+  teacherId String
+  shiftId   String
+
+  teacher Teacher         @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  shift   AttendanceShift @relation(fields: [shiftId], references: [id], onDelete: Cascade)
+
+  @@id([teacherId, shiftId])
+  @@index([schoolId])
+  @@index([shiftId])
+  @@map("teacher_shifts")
 }
 
 /// A school's saved ID-card layout, shared by every admin rather than living in
@@ -868,21 +891,24 @@ model CardIssue {
   @@map("card_issues")
 }
 
-/// Daily teacher attendance (Module 6). Shift-scoped. One record per day.
+/// Daily teacher attendance (Module 6). Shift-scoped: one record per teacher
+/// per day PER SHIFT, so a teacher who works more than one shift in a day can
+/// be marked present in one and absent in another (mirrors StudentAttendance).
 model TeacherAttendance {
   id             String           @id @default(cuid())
   schoolId       String
   teacherId      String
-  shift          Shift
+  shiftId        String?
   date           DateTime         @db.Date
   status         AttendanceStatus
   markedByUserId String?
   createdAt      DateTime         @default(now())
   updatedAt      DateTime         @updatedAt
 
-  teacher Teacher @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  teacher Teacher          @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  shift   AttendanceShift? @relation(fields: [shiftId], references: [id], onDelete: SetNull)
 
-  @@unique([schoolId, teacherId, date])
+  @@unique([schoolId, teacherId, date, shiftId])
   @@index([schoolId, date])
   @@map("teacher_attendance")
 }
@@ -1753,15 +1779,10 @@ enum AttendanceStatus {
   EXCUSED
 }
 
-enum Shift {
-  MORNING
-  AFTERNOON
-  /// Historical value — a teacher who works both shifts is now expressed as
-  /// Teacher.shifts holding both MORNING and AFTERNOON. Kept in the enum
-  /// only so old TeacherAssignment/TeacherAttendance rows still typecheck;
-  /// never write BOTH going forward.
-  BOTH
-}
+// The old fixed MORNING/AFTERNOON `Shift` enum was replaced by references to
+// AttendanceShift — a school's own named list (see AttendanceShift below) —
+// so a school can run any number of shifts, not just two. See TeacherShift,
+// TeacherAssignment.shiftId, TeacherAttendance.shiftId.
 
 enum EmploymentStatus {
   ACTIVE

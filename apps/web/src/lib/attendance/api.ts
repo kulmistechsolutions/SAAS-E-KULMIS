@@ -41,7 +41,7 @@ export interface ApiTeacherRosterItem {
   id: string;
   code: string;
   fullName: string;
-  shift: "MORNING" | "AFTERNOON";
+  shifts: string[];
   status: ApiAttendanceStatus | null;
 }
 
@@ -186,7 +186,7 @@ export async function apiStudentDailyAttendanceReport(filters: {
 }
 
 export async function apiTeacherRoster(
-  shift: "MORNING" | "AFTERNOON",
+  shift: string,
   date: string,
 ): Promise<ApiTeacherRosterResponse> {
   const params = new URLSearchParams({ shift, date });
@@ -194,7 +194,7 @@ export async function apiTeacherRoster(
 }
 
 export async function apiMarkTeacherAttendance(body: {
-  shift: "MORNING" | "AFTERNOON";
+  shift: string;
   date: string;
   records: { teacherId: string; status: ApiAttendanceStatus }[];
 }): Promise<{ date: string; shift: string; marked: number; skipped: number }> {
@@ -203,7 +203,7 @@ export async function apiMarkTeacherAttendance(body: {
 
 export async function apiTeacherDashboard(
   date: string,
-  shift?: "MORNING" | "AFTERNOON",
+  shift?: string,
 ): Promise<ApiTeacherDashboardResponse> {
   const params = new URLSearchParams({ date });
   if (shift) params.set("shift", shift);

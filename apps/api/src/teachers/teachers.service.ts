@@ -1,9 +1,11 @@
 import {
+  BadRequestException,
   ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
+import type { Prisma } from "@prisma/client";
 import type { RegisterTeacherInput, UpdateTeacherInput } from "@ekulmis/shared";
 import { PrismaService } from "../prisma/prisma.service";
 import { hashPassword } from "../auth/password.util";
@@ -13,6 +15,7 @@ import { SubscriptionsService } from "../subscriptions/subscriptions.service";
 import { studentSitsIn } from "../students/student-class.util";
 
 const meInclude = {
+  shiftLinks: { select: { shiftId: true } },
   assignments: {
     include: {
       academicYear: { select: { id: true, name: true } },
@@ -28,7 +31,18 @@ function pad(n: number): string {
   return String(n).padStart(4, "0");
 }
 
+/** Flatten the shiftLinks join rows into the plain `shifts: string[]` (of
+ *  AttendanceShift ids) the API has always exposed. */
+function withShifts<T extends { shiftLinks: { shiftId: string }[] }>(
+  teacher: T,
+): Omit<T, "shiftLinks"> & { shifts: string[] } {
+  const { shiftLinks, ...rest } = teacher;
+  return { ...rest, shifts: shiftLinks.map((l) => l.shiftId) };
+}
+
 const DEFAULT_TEACHER_PASSWORD = "12345";
+
+type Tx = Prisma.TransactionClient;
 
 @Injectable()
 export class TeachersService {
@@ -38,10 +52,24 @@ export class TeachersService {
     private readonly passwordPolicy: PasswordPolicyService,
   ) {}
 
+  /** Every shift id must be a real AttendanceShift belonging to this school —
+   *  a plain string field can't be trusted otherwise, and the FK alone isn't
+   *  enough since a foreign-key check runs outside RLS. */
+  private async assertShiftsExist(tx: Tx, shiftIds: string[]): Promise<void> {
+    if (shiftIds.length === 0) return;
+    const found = await tx.attendanceShift.count({
+      where: { id: { in: shiftIds } },
+    });
+    if (found !== new Set(shiftIds).size) {
+      throw new BadRequestException("One or more shifts were not found");
+    }
+  }
+
   /** Register a teacher: auto ID from prefix + auto login User (role TEACHER). */
   async register(schoolId: string, dto: RegisterTeacherInput) {
     await this.subscriptions.assertCanAddTeacher(schoolId);
     return this.prisma.forTenant(schoolId, async (tx) => {
+      await this.assertShiftsExist(tx, dto.shifts);
       const school = await tx.school.findUnique({
         where: { id: schoolId },
         select: { teacherPrefix: true },
@@ -101,22 +129,28 @@ export class TeachersService {
           address: dto.address ?? null,
           qualification: dto.qualification ?? null,
           salary: dto.salary ?? 0,
-          shifts: dto.shifts,
+          shiftLinks: {
+            create: dto.shifts.map((shiftId) => ({ schoolId, shiftId })),
+          },
           canViewStudents: false,
           userId: user.id,
         },
+        include: { shiftLinks: { select: { shiftId: true } } },
       });
-      return { teacher, initialPassword };
+      return { teacher: withShifts(teacher), initialPassword };
     });
   }
 
   findAll(schoolId: string, shift?: string) {
-    return this.prisma.forTenant(schoolId, (tx) =>
-      tx.teacher.findMany({
-        where: shift ? { shifts: { has: shift as never } } : undefined,
-        orderBy: { fullName: "asc" },
-      }),
-    );
+    return this.prisma
+      .forTenant(schoolId, (tx) =>
+        tx.teacher.findMany({
+          where: shift ? { shiftLinks: { some: { shiftId: shift } } } : undefined,
+          include: { shiftLinks: { select: { shiftId: true } } },
+          orderBy: { fullName: "asc" },
+        }),
+      )
+      .then((rows) => rows.map(withShifts));
   }
 
   async findOne(schoolId: string, id: string) {
@@ -124,6 +158,7 @@ export class TeachersService {
       tx.teacher.findFirst({
         where: { id },
         include: {
+          shiftLinks: { select: { shiftId: true } },
           assignments: {
             include: {
               class: { select: { name: true } },
@@ -135,7 +170,7 @@ export class TeachersService {
       }),
     );
     if (!teacher) throw new NotFoundException("Teacher not found");
-    return teacher;
+    return withShifts(teacher);
   }
 
   /** Resolve the Teacher record linked to the logged-in user account. */
@@ -147,7 +182,7 @@ export class TeachersService {
       }),
     );
     if (!teacher) throw new NotFoundException("Teacher profile not found");
-    return teacher;
+    return withShifts(teacher);
   }
 
   async update(schoolId: string, id: string, dto: UpdateTeacherInput) {
@@ -177,7 +212,8 @@ export class TeachersService {
           );
         }
       }
-      return tx.teacher.update({
+      if (dto.shifts) await this.assertShiftsExist(tx, dto.shifts);
+      const teacher = await tx.teacher.update({
         where: { id },
         data: {
           fullName: dto.fullName,
@@ -187,11 +223,21 @@ export class TeachersService {
           address: dto.address,
           qualification: dto.qualification,
           salary: dto.salary,
-          shifts: dto.shifts,
+          // Full replacement: delete the old set, write the new one. Simpler
+          // and safer than diffing, and this only ever runs from an admin
+          // explicitly re-picking the whole shift list in the edit form.
+          shiftLinks: dto.shifts
+            ? {
+                deleteMany: {},
+                create: dto.shifts.map((shiftId) => ({ schoolId, shiftId })),
+              }
+            : undefined,
           status: dto.status,
           canViewStudents: dto.canViewStudents,
         },
+        include: { shiftLinks: { select: { shiftId: true } } },
       });
+      return withShifts(teacher);
     });
   }
 

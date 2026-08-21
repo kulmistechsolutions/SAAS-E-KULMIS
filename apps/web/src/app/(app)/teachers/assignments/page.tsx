@@ -22,6 +22,7 @@ import {
   useAcademicsState,
 } from "@/lib/academics/store";
 import { assignmentShiftLabel, sectionLabel, statusLabel } from "@/lib/teachers/format";
+import { useShifts } from "@/lib/teachers/shifts";
 import type { TeacherAssignment } from "@/lib/teachers/types";
 import { toast } from "@/lib/toast";
 
@@ -34,6 +35,7 @@ export default function TeacherAssignmentsPage() {
 
   const { teachers, assignments } = useTeachersState();
   const academics = useAcademicsState();
+  useShifts();
   const teacherMap = useMemo(() => new Map(teachers.map((t) => [t.id, t])), [teachers]);
 
   const [search, setSearch] = useState("");

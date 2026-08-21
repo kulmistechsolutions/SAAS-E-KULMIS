@@ -299,22 +299,14 @@ export class DashboardService {
       async (tx) => {
       // Run in small waves — the pooler has a low connection limit; flooding it
       // with 20+ parallel queries causes pool timeouts and 500 errors.
-      const [
-        studentsByStatus,
-        newStudents,
-        [teachersActiveMorning, teachersActiveAfternoon],
-        teachersTotal,
-        parentsTotal,
-      ] = await Promise.all([
-        tx.student.groupBy({ by: ["status"], _count: { _all: true } }),
-        tx.student.count({ where: { registrationDate: { gte: startOfMonth } } }),
-        Promise.all([
-          tx.teacher.count({ where: { status: "ACTIVE", shifts: { has: "MORNING" } } }),
-          tx.teacher.count({ where: { status: "ACTIVE", shifts: { has: "AFTERNOON" } } }),
-        ]),
-        tx.teacher.count(),
-        tx.parent.count(),
-      ]);
+      const [studentsByStatus, newStudents, teachersActive, teachersTotal, parentsTotal] =
+        await Promise.all([
+          tx.student.groupBy({ by: ["status"], _count: { _all: true } }),
+          tx.student.count({ where: { registrationDate: { gte: startOfMonth } } }),
+          tx.teacher.count({ where: { status: "ACTIVE" } }),
+          tx.teacher.count(),
+          tx.parent.count(),
+        ]);
 
       const [classesTotal, sectionsTotal, subjectsTotal, attToday, teacherAttToday] =
         await Promise.all([
@@ -500,10 +492,7 @@ export class DashboardService {
         },
         teachers: {
           total: teachersTotal,
-          // A teacher who works both shifts counts toward both totals — they
-          // really do work both, not neither.
-          morning: teachersActiveMorning,
-          afternoon: teachersActiveAfternoon,
+          active: teachersActive,
         },
         parents: { total: parentsTotal },
         academics: {

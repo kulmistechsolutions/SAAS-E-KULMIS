@@ -22,6 +22,7 @@ import { api } from "@/lib/api";
 import { logReportAction } from "@/lib/reports/audit";
 import { fetchReport, fetchReportAsync } from "@/lib/reports/data";
 import { downloadReportPdf, exportReportCsv, printReport } from "@/lib/reports/print";
+import { useShifts } from "@/lib/teachers/shifts";
 import { ReportBarChart } from "./report-chart";
 import type { ReportDef, ReportFilterKey, ReportFilters } from "@/lib/reports/types";
 import { cn } from "@/lib/utils";
@@ -97,6 +98,7 @@ interface Props {
 
 export function ReportPageShell({ categoryId, categoryLabel, report }: Props) {
   const t = useT();
+  const shiftOptions = useShifts();
   const [mounted, setMounted] = useState(false);
   const [search, setSearch] = useState("");
   const [filters, setFilters] = useState<ReportFilters>({});
@@ -423,8 +425,11 @@ export function ReportPageShell({ categoryId, categoryLabel, report }: Props) {
                 <Label>{FILTER_LABELS.shift}</Label>
                 <Select value={filters.shift ?? ""} onChange={(e) => setFilter("shift", e.target.value)}>
                   <option value="">{t("reportsReportPageShell.allShifts")}</option>
-                  <option value="MORNING">{t("reportsReportPageShell.morning")}</option>
-                  <option value="AFTERNOON">{t("reportsReportPageShell.afternoon")}</option>
+                  {shiftOptions.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name}
+                    </option>
+                  ))}
                 </Select>
               </div>
             )}
