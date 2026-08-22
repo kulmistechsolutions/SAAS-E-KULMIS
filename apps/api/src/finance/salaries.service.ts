@@ -313,8 +313,9 @@ export class SalariesService {
     );
     if (!existing) throw new NotFoundException("Salary not found");
     const becomingPaid = dto.status === "PAID" && existing.status !== "PAID";
-    return this.prisma.forTenant(schoolId, (tx) =>
-      tx.salary.update({
+
+    return this.prisma.forTenant(schoolId, async (tx) => {
+      const updated = await tx.salary.update({
         where: { id },
         data: {
           amount: dto.amount,
@@ -322,8 +323,30 @@ export class SalariesService {
           note: dto.note,
           ...(becomingPaid ? { paidAt: new Date() } : {}),
         },
-      }),
-    );
+      });
+      if (!becomingPaid) return updated;
+
+      // Flipping the status to PAID has to move the money too, or the row
+      // claims to be settled while `amountPaid` — which is what the finance
+      // reports total as salary outflow — stays behind, and its payment
+      // history shows nothing. Record the shortfall as a real payment.
+      const shortfall = updated.amount - updated.amountPaid;
+      if (shortfall <= 0) return updated;
+
+      await tx.salaryPayment.create({
+        data: {
+          schoolId,
+          salaryId: updated.id,
+          employeeName: updated.employeeName,
+          amount: shortfall,
+          note: "Marked paid",
+        },
+      });
+      return tx.salary.update({
+        where: { id },
+        data: { amountPaid: updated.amount },
+      });
+    });
   }
 
   async remove(schoolId: string, id: string) {
