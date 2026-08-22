@@ -363,10 +363,21 @@ export class TeachersService {
         select: { id: true, userId: true },
       });
       if (!teacher) throw new NotFoundException("Teacher not found");
+
+      // Salary rows deliberately have no FK to Teacher, so that money already
+      // paid to someone who has since left stays in the ledger and the finance
+      // reports keep telling the truth about what was spent. But a row with
+      // nothing paid against it is not history — it is an unpaid obligation to
+      // a person who no longer works here, and leaving it behind is how a
+      // deleted duplicate went on showing up in payroll beside the real one.
+      const { count: payrollRemoved } = await tx.salary.deleteMany({
+        where: { teacherId: id, amountPaid: 0 },
+      });
+
       // Assignments cascade from the teacher; then remove the login account.
       await tx.teacher.delete({ where: { id } });
       await tx.user.delete({ where: { id: teacher.userId } });
-      return { success: true };
+      return { success: true, payrollRemoved };
     });
   }
 
