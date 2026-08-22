@@ -51,10 +51,12 @@ export interface ApiPayment {
 }
 
 export interface ApiFinanceDashboard {
+  month: string | null;
   totalIncome: number;
   totalExpenses: number;
   totalSalaries: number;
   netIncome: number;
+  totalFinancialOutflow: number;
   totalOutstanding: number;
 }
 
@@ -236,8 +238,12 @@ export async function apiStudentLedger(
   return api<ApiStudentLedger>(`/fees/ledger/${studentId}`);
 }
 
-export async function apiFinanceDashboard(): Promise<ApiFinanceDashboard> {
-  return api<ApiFinanceDashboard>("/finance/dashboard");
+/** `month` is "YYYY-MM"; omitted, the totals cover all time. */
+export async function apiFinanceDashboard(
+  month?: string,
+): Promise<ApiFinanceDashboard> {
+  const qs = month ? `?month=${encodeURIComponent(month)}` : "";
+  return api<ApiFinanceDashboard>(`/finance/dashboard${qs}`);
 }
 
 export interface ChargeMonthApiInput {

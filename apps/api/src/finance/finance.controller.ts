@@ -1,4 +1,4 @@
-import { Controller, Get } from "@nestjs/common";
+import { Controller, Get, Query } from "@nestjs/common";
 import { UserRole } from "@ekulmis/shared";
 import { FinanceService } from "./finance.service";
 import { Roles } from "../auth/roles.decorator";
@@ -10,8 +10,9 @@ import type { AuthUser } from "../auth/auth.types";
 export class FinanceController {
   constructor(private readonly finance: FinanceService) {}
 
+  /** `?month=YYYY-MM` scopes every total to that month; omit it for all time. */
   @Get("dashboard")
-  dashboard(@CurrentUser() me: AuthUser) {
-    return this.finance.dashboard(me.schoolId);
+  dashboard(@CurrentUser() me: AuthUser, @Query("month") month?: string) {
+    return this.finance.dashboard(me.schoolId, month);
   }
 }

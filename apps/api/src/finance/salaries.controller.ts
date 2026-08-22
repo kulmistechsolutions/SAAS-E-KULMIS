@@ -57,6 +57,33 @@ export class SalariesController {
     return this.salaries.update(me.schoolId, id, parsed.data);
   }
 
+  /** What deleting this payroll month would destroy — shown before confirming. */
+  @Get("month/preview")
+  monthPreview(
+    @CurrentUser() me: AuthUser,
+    @Query("year") year: string,
+    @Query("month") month: string,
+  ) {
+    const { y, m } = parseYearMonth(year, month);
+    return this.salaries.monthDeletionPreview(me.schoolId, y, m);
+  }
+
+  /** Danger Zone: delete a whole payroll month. `includePaid=true` is required
+   *  to remove rows that already have money against them. */
+  @Roles(UserRole.ADMINISTRATOR, UserRole.SUPER_ADMINISTRATOR)
+  @Delete("month")
+  removeMonth(
+    @CurrentUser() me: AuthUser,
+    @Query("year") year: string,
+    @Query("month") month: string,
+    @Query("includePaid") includePaid?: string,
+  ) {
+    const { y, m } = parseYearMonth(year, month);
+    return this.salaries.removeMonth(me.schoolId, y, m, {
+      includePaid: includePaid === "true",
+    });
+  }
+
   @Delete(":id")
   remove(@CurrentUser() me: AuthUser, @Param("id") id: string) {
     return this.salaries.remove(me.schoolId, id);
@@ -92,4 +119,17 @@ export class SalariesController {
       role: me.role,
     });
   }
+}
+
+/** Year/month come off the query string, so validate before they reach SQL. */
+function parseYearMonth(year: string, month: string): { y: number; m: number } {
+  const y = Number(year);
+  const m = Number(month);
+  if (!Number.isInteger(y) || y < 2000 || y > 2100) {
+    throw new BadRequestException("year must be a 4-digit year");
+  }
+  if (!Number.isInteger(m) || m < 1 || m > 12) {
+    throw new BadRequestException("month must be 1-12");
+  }
+  return { y, m };
 }

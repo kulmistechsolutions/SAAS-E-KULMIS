@@ -147,3 +147,40 @@ export async function apiReverseSalaryPayment(
 }
 
 export type { PaymentMethod };
+
+export interface ApiSalaryMonthPreview {
+  year: number;
+  month: number;
+  totalRows: number;
+  rowsWithPayments: number;
+  amountAlreadyPaid: number;
+}
+
+/** What deleting a whole payroll month would destroy — nothing is changed. */
+export async function apiSalaryMonthPreview(
+  year: number,
+  month: number,
+): Promise<ApiSalaryMonthPreview> {
+  return api<ApiSalaryMonthPreview>(
+    `/salaries/month/preview?year=${year}&month=${month}`,
+  );
+}
+
+/** Danger Zone: delete a payroll month. Rows that already have money against
+ *  them are refused unless `includePaid` is set, because deleting those also
+ *  deletes their payment history. */
+export async function apiDeleteSalaryMonth(
+  year: number,
+  month: number,
+  includePaid: boolean,
+): Promise<{
+  deleted: number;
+  year: number;
+  month: number;
+  amountAlreadyPaidRemoved: number;
+}> {
+  return api(
+    `/salaries/month?year=${year}&month=${month}&includePaid=${includePaid}`,
+    { method: "DELETE" },
+  );
+}

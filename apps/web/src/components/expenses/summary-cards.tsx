@@ -89,6 +89,9 @@ const CARDS: {
   },
 ];
 
+/** Figures the server owns — shown as "—" until they arrive, never as $0. */
+const SERVER_BACKED = new Set(["netIncome", "totalFinancialOutflow"]);
+
 export function ExpenseSummaryCards({ summary }: { summary: ExpenseDashboardSummary }) {
   const t = useT();
   return (
@@ -118,7 +121,9 @@ export function ExpenseSummaryCards({ summary }: { summary: ExpenseDashboardSumm
               c.key === "highestExpenseCategory" && "text-base",
             )}
           >
-            {c.format(summary[c.key])}
+            {SERVER_BACKED.has(c.key) && !summary.financeLoaded
+              ? "—"
+              : c.format(summary[c.key] as number | string)}
           </p>
           <button
             type="button"
@@ -139,11 +144,19 @@ export function FinancialSummaryPanel({
   summary: ExpenseDashboardSummary;
 }) {
   const t = useT();
-  const items: { label: TranslationKey; value: number; tone: string }[] = [
-    { label: "expensesSummaryCards.totalIncomeFees", value: summary.totalIncome, tone: "text-emerald-600" },
-    { label: "expensesSummaryCards.totalSalaries", value: summary.totalSalaries, tone: "text-violet-600" },
+  // Only Total Expenses is computed locally (the expense list is loaded in
+  // full); the rest are the server's ledger-wide totals, so they read "—"
+  // rather than $0 until they arrive.
+  const items: {
+    label: TranslationKey;
+    value: number;
+    tone: string;
+    fromServer?: boolean;
+  }[] = [
+    { label: "expensesSummaryCards.totalIncomeFees", value: summary.totalIncome, tone: "text-emerald-600", fromServer: true },
+    { label: "expensesSummaryCards.totalSalaries", value: summary.totalSalaries, tone: "text-violet-600", fromServer: true },
     { label: "expensesSummaryCards.totalExpenses", value: summary.totalExpensesThisMonth, tone: "text-rose-600" },
-    { label: "expensesSummaryCards.netIncome", value: summary.netIncome, tone: "text-blue-600" },
+    { label: "expensesSummaryCards.netIncome", value: summary.netIncome, tone: "text-blue-600", fromServer: true },
   ];
   return (
     <div className="rounded-xl border bg-card p-5 shadow-sm">
@@ -155,8 +168,11 @@ export function FinancialSummaryPanel({
         {items.map((item) => (
           <div key={t(item.label)} className="flex items-center justify-between text-sm">
             <dt className="text-muted-foreground">{t(item.label)}</dt>
-            <dd className={cn("font-semibold tabular-nums", item.tone)}>
-              {money(item.value)}
+            <dd
+              className={cn("font-semibold tabular-nums", item.tone)}
+              data-loaded={summary.financeLoaded}
+            >
+              {item.fromServer && !summary.financeLoaded ? "—" : money(item.value)}
             </dd>
           </div>
         ))}

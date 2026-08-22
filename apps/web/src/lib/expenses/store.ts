@@ -3,8 +3,7 @@
 import { useSyncExternalStore } from "react";
 import { ApiError } from "@/lib/api";
 import { activeAcademicYear as getActiveAcademicYear } from "@/lib/academics/store";
-import { dashboardSummary as feeDashboard, refreshFinanceDashboard } from "@/lib/fees/store";
-import { totalSalariesForMonth } from "@/lib/salary/store";
+import { apiFinanceDashboard, type ApiFinanceDashboard } from "@/lib/fees/api";
 import {
   apiCreateCategory,
   apiCreateExpense,
@@ -42,6 +41,28 @@ let state: ExpensesState | null = null;
 let loaded = false;
 const listeners = new Set<() => void>();
 
+/**
+ * Income / salary / net-income totals come from the server, which sums the
+ * school's whole ledger in SQL. They used to be added up here from the fee and
+ * salary stores' caches — a list capped at the newest 200 payments, behind a
+ * refresh that swallowed its errors — which is why the same month could read
+ * differently on two machines, and a failed load showed a confident $0.
+ */
+let financeCache: { month: string; data: ApiFinanceDashboard } | null = null;
+
+export async function refreshFinanceForMonth(month: string): Promise<void> {
+  const key = month.slice(0, 7);
+  try {
+    const data = await apiFinanceDashboard(key);
+    financeCache = { month: key, data };
+  } catch {
+    // Drop the stale month rather than showing another month's totals as
+    // though they were this one's; the card renders "—" until it loads.
+    financeCache = null;
+  }
+  emit();
+}
+
 function subscribe(cb: () => void) {
   listeners.add(cb);
   return () => listeners.delete(cb);
@@ -76,7 +97,6 @@ export async function refreshExpenses(): Promise<void> {
       academicYear,
       maxAttachmentMb: state?.maxAttachmentMb ?? 5,
     });
-    void refreshFinanceDashboard();
   } catch {
     /* keep cache */
   }
@@ -202,13 +222,14 @@ export function dashboardSummary(opts?: {
     }
   }
 
-  const feeSum = feeDashboard(month, year);
-  // collectedThisMonth already contains today's payments — adding
-  // collectedToday counted every payment made today twice.
-  const totalIncome = feeSum.collectedThisMonth;
-  const totalSalaries = totalSalariesForMonth(month);
   const totalExp = monthExpenses.reduce((sum, e) => sum + e.amount, 0);
-  const netIncome = totalIncome - totalSalaries - totalExp;
+  const finance =
+    financeCache && financeCache.month === month.slice(0, 7)
+      ? financeCache.data
+      : null;
+  const totalIncome = finance?.totalIncome ?? 0;
+  const totalSalaries = finance?.totalSalaries ?? 0;
+  const netIncome = finance?.netIncome ?? 0;
 
   const activeCats = s.categories.filter((c) => c.status === "ACTIVE");
 
@@ -220,9 +241,12 @@ export function dashboardSummary(opts?: {
     highestExpenseCategory: highest,
     pendingExpenses: yearExpenses.filter((e) => e.status === "PENDING").length,
     netIncome,
-    totalFinancialOutflow: totalExp + totalSalaries,
+    totalFinancialOutflow: finance?.totalFinancialOutflow ?? 0,
     totalIncome,
     totalSalaries,
+    // False while the server totals are still loading (or failed), so the
+    // card can say "—" instead of asserting a wrong $0.
+    financeLoaded: !!finance,
   };
 }
 

@@ -19,6 +19,7 @@ import {
   expensesByCategory,
   generateRecurringDue,
   recentExpenses,
+  refreshFinanceForMonth,
   useExpensesState,
 } from "@/lib/expenses/store";
 import { AcademicYearSelect } from "@/components/academics/academic-year-select";
@@ -44,6 +45,13 @@ export default function ExpensesDashboardPage() {
     setFilterYear(state.academicYear);
     setFilterMonth(monthKey());
   }, [mounted, state.academicYear]);
+
+  // Income, salaries and net income are the server's — refetch whenever the
+  // month changes so the cards never show another month's figures.
+  useEffect(() => {
+    if (!mounted || !filterMonth) return;
+    void refreshFinanceForMonth(filterMonth);
+  }, [mounted, filterMonth]);
 
   const summary = useMemo(
     () => (mounted ? dashboardSummary({ academicYear: filterYear, month: filterMonth }) : null),

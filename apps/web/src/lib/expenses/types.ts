@@ -86,6 +86,8 @@ export interface ExpenseDashboardSummary {
   pendingExpenses: number;
   netIncome: number;
   totalFinancialOutflow: number;
+  /** Whether the server-side finance totals have arrived; see the store. */
+  financeLoaded: boolean;
   totalIncome: number;
   totalSalaries: number;
 }
