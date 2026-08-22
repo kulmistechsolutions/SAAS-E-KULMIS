@@ -1565,6 +1565,8 @@ export const generated = {
     module7Desc: "Auto-graded quizzes with multiple question types for ongoing student assessment.",
     module8Title: "Dashboards & Reports",
     module8Desc: "Real-time dashboards for administrators, teachers, and finance — no spreadsheets needed.",
+    schoolsMarqueeTitle: "Schools we've served",
+    schoolsMarqueeSubtitle: "A growing family of schools across Somalia already run their day-to-day on eKulmis.",
     schoolSectionTitle: "Already a registered school?",
     schoolSectionBody: "Every school gets its own private address — staff, teachers, and parents sign in at",
     contactTitle: "Let's talk about your school",

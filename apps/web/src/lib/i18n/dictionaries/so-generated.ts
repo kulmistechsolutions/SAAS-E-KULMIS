@@ -1534,6 +1534,8 @@ export const soGenerated: PartialDictionary = {
     module7Desc: "Imtixaanno si toos ah loo qiimeeyo oo leh noocyo su'aalo kala duwan, si joogto ah loogu qiimeeyo ardayda.",
     module8Title: "Dashboard-yada & Warbixinnada",
     module8Desc: "Dashboard-yo waqti-dhab ah oo loogu talagalay maamulayaasha, macallimiinta, iyo maaliyadda — spreadsheet looma baahna.",
+    schoolsMarqueeTitle: "Dugsiyada aan u adeegnay",
+    schoolsMarqueeSubtitle: "Qoys dugsiyo oo si joogto ah u kordhaya oo ka faa'iidaysta eKulmis maalin walba gudaha Soomaaliya.",
     schoolSectionTitle: "Dugsi horay isu diiwaangeliyay?",
     schoolSectionBody: "Dugsi kastaa wuxuu helaa cinwaan khaas ah oo gaar u ah — shaqaalaha, macallimiinta, iyo waalidiinta waxay ka geli karaan",
     contactTitle: "Aan ka wada hadalno dugsigaaga",

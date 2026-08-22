@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { useT } from "@/lib/i18n/provider";
 import { LanguageSwitcher } from "@/components/ui/language-switcher";
+import { LogoMarquee } from "@/components/landing/logo-marquee";
 import type { TranslationKey } from "@/lib/i18n/provider";
 
 const WHATSAPP_NUMBER = "252613945791";
@@ -177,6 +178,21 @@ export function LandingPage({ rootDomain }: { rootDomain: string }) {
               </div>
             </div>
           ))}
+        </div>
+      </section>
+
+      {/* Schools we serve */}
+      <section className="border-b border-slate-200 bg-white">
+        <div className="mx-auto max-w-6xl px-4 py-14 sm:px-8">
+          <div className="mx-auto max-w-2xl text-center">
+            <h2 className="text-2xl font-bold text-slate-900 sm:text-3xl">
+              {t("landing.schoolsMarqueeTitle")}
+            </h2>
+            <p className="mt-3 text-slate-600">{t("landing.schoolsMarqueeSubtitle")}</p>
+          </div>
+          <div className="mt-10">
+            <LogoMarquee />
+          </div>
         </div>
       </section>
 
