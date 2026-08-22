@@ -1571,9 +1571,13 @@ model Announcement {
   title           String
   body            String
   /// Reused as the display category (e.g. "EXAM", "HOLIDAY") — see
-  /// AnnouncementsPage. Who actually receives a Notification for this
-  /// announcement is decided at creation time, not stored here.
+  /// AnnouncementsPage. NOT the recipient scope — see targetAudience below.
   audience        String   @default("ALL")
+  /// Who can see this on their bulletin board: ALL / TEACHERS / PARENTS /
+  /// STUDENTS. Mirrors the notifyAudience choice made at creation time, so
+  /// the portal read side can filter without re-deriving it from Notification
+  /// rows (which are per-recipient and get marked read/deleted).
+  targetAudience  String   @default("ALL")
   pinned          Boolean  @default(false)
   publishedAt     DateTime @default(now())
   createdByUserId String?

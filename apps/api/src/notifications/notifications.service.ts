@@ -161,9 +161,20 @@ export class NotificationsService {
     );
   }
 
-  listAnnouncements(schoolId: string) {
+  /**
+   * `viewerAudience` scopes the bulletin board to what that portal is allowed
+   * to see. Omit it (the admin/staff view) to see everything regardless of
+   * who it was addressed to.
+   */
+  listAnnouncements(
+    schoolId: string,
+    viewerAudience?: Exclude<NotifyAudience, "ALL">,
+  ) {
     return this.prisma.forTenant(schoolId, (tx) =>
       tx.announcement.findMany({
+        where: viewerAudience
+          ? { OR: [{ targetAudience: "ALL" }, { targetAudience: viewerAudience }] }
+          : undefined,
         orderBy: { publishedAt: "desc" },
         take: 50,
       }),
@@ -171,10 +182,10 @@ export class NotificationsService {
   }
 
   /**
-   * `data.audience` is the display category (EXAM, HOLIDAY, ...); who
-   * actually gets a Notification is `data.notifyAudience` — separate on
-   * purpose, since "which parents see this on the bulletin board" and
-   * "who gets pinged" are different questions.
+   * `data.audience` is the display category (EXAM, HOLIDAY, ...), purely
+   * cosmetic. `data.notifyAudience` is the real recipient scope: it decides
+   * both who gets a Notification (bell icon) and — via targetAudience on the
+   * saved row — who can see this on their portal's bulletin board at all.
    */
   async createAnnouncement(
     schoolId: string,
@@ -194,6 +205,7 @@ export class NotificationsService {
           title: data.title,
           body: data.body,
           audience: data.audience ?? "ALL",
+          targetAudience: data.notifyAudience ?? "ALL",
           pinned: data.pinned ?? false,
           createdByUserId: userId ?? null,
         },

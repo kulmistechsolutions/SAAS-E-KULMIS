@@ -31,7 +31,7 @@ export class TeacherPortalService {
   }
 
   announcements(schoolId: string) {
-    return this.notificationsService.listAnnouncements(schoolId);
+    return this.notificationsService.listAnnouncements(schoolId, "TEACHERS");
   }
 
   notifications(schoolId: string, userId: string) {

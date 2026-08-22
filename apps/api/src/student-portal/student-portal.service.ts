@@ -169,7 +169,7 @@ export class StudentPortalService {
 
   async announcements(schoolId: string, studentId: string) {
     await this.requireActiveStudent(schoolId, studentId);
-    return this.notificationsService.listAnnouncements(schoolId);
+    return this.notificationsService.listAnnouncements(schoolId, "STUDENTS");
   }
 
   async notifications(schoolId: string, studentId: string) {

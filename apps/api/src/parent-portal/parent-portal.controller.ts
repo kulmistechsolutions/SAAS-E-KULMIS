@@ -73,6 +73,6 @@ export class ParentPortalController {
 
   @Get("announcements")
   announcements(@CurrentUser() me: AuthUser) {
-    return this.notificationsService.listAnnouncements(me.schoolId);
+    return this.notificationsService.listAnnouncements(me.schoolId, "PARENTS");
   }
 }
