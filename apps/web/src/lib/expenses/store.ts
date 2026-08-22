@@ -203,7 +203,9 @@ export function dashboardSummary(opts?: {
   }
 
   const feeSum = feeDashboard(month, year);
-  const totalIncome = feeSum.collectedThisMonth + feeSum.collectedToday;
+  // collectedThisMonth already contains today's payments — adding
+  // collectedToday counted every payment made today twice.
+  const totalIncome = feeSum.collectedThisMonth;
   const totalSalaries = totalSalariesForMonth(month);
   const totalExp = monthExpenses.reduce((sum, e) => sum + e.amount, 0);
   const netIncome = totalIncome - totalSalaries - totalExp;

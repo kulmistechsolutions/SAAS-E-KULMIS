@@ -375,10 +375,9 @@ export class DashboardService {
       ] = await Promise.all([
         tx.payment.aggregate({ _sum: { amount: true } }),
         tx.expense.aggregate({ _sum: { amount: true } }),
-        tx.salary.aggregate({
-          _sum: { amount: true },
-          where: { status: "PAID" },
-        }),
+        // See FinanceService.dashboard: outflow is `amountPaid` on every row,
+        // not `amount` on fully-paid ones, or partials vanish from Net Income.
+        tx.salary.aggregate({ _sum: { amountPaid: true } }),
         tx.payment.count({ where: { type: "ADVANCE" } }),
         tx.academicYear.findFirst({ where: { isActive: true } }),
         tx.payment.findMany({
@@ -439,7 +438,7 @@ export class DashboardService {
 
       const totalIncome = incomeAgg._sum.amount ?? 0;
       const totalExpenses = expenseAgg._sum.amount ?? 0;
-      const totalSalaries = salaryAgg._sum.amount ?? 0;
+      const totalSalaries = salaryAgg._sum.amountPaid ?? 0;
 
       const present = byStatus(attToday, "PRESENT");
       const absent = byStatus(attToday, "ABSENT");

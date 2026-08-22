@@ -176,8 +176,12 @@ export function availableMonths(): string[] {
 export function totalSalariesForMonth(month?: string): number {
   const s = ensure();
   const m = month ?? s.activePayrollMonth;
+  // Every row's `amountPaid` is money already handed over, so a PARTIAL row
+  // counts too. Filtering to status === "PAID" made a month where nobody was
+  // fully paid report $0 of salary outflow, inflating Net Income by exactly
+  // what had been paid.
   return s.payroll
-    .filter((p) => p.payrollMonth === m && p.status === "PAID")
+    .filter((p) => p.payrollMonth === m)
     .reduce((sum, p) => sum + p.amountPaid, 0);
 }
 
