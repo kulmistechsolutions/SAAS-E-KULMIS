@@ -97,6 +97,7 @@ export interface ApiAnnouncement {
   title: string;
   body: string;
   audience: string;
+  targetAudience?: "ALL" | "PARENTS" | "TEACHERS" | "STUDENTS";
   pinned: boolean;
   publishedAt: string;
 }
@@ -234,5 +235,6 @@ export function mapPortalAnnouncement(a: ApiAnnouncement): PortalAnnouncement {
     category,
     publishedAt: a.publishedAt,
     pinned: a.pinned,
+    targetAudience: a.targetAudience ?? "ALL",
   };
 }

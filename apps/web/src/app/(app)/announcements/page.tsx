@@ -3,7 +3,7 @@
 
 import { useT } from "@/lib/i18n/provider";
 import { useEffect, useMemo, useState } from "react";
-import { Megaphone, Plus } from "lucide-react";
+import { Megaphone, Pencil, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,9 +11,15 @@ import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Dialog } from "@/components/ui/dialog";
+import { ConfirmDialog } from "@/components/students/confirm-dialog";
 import { announcementCategoryLabel, relativeTime } from "@/lib/parent-portal/format";
 import type { PortalAnnouncement } from "@/lib/parent-portal/types";
-import { apiCreateAnnouncement, fetchAnnouncements } from "@/lib/notifications/api";
+import {
+  apiCreateAnnouncement,
+  apiDeleteAnnouncement,
+  apiUpdateAnnouncement,
+  fetchAnnouncements,
+} from "@/lib/notifications/api";
 import { apiSendAudienceSms } from "@/lib/sms/api";
 import { useAuth } from "@/lib/auth";
 import { useSettingsState } from "@/lib/settings/store";
@@ -46,6 +52,15 @@ export default function AnnouncementsPage() {
   const [pinned, setPinned] = useState(false);
   const [alsoSendSms, setAlsoSendSms] = useState(false);
   const [publishing, setPublishing] = useState(false);
+  const [editing, setEditing] = useState<PortalAnnouncement | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editBody, setEditBody] = useState("");
+  const [editCategory, setEditCategory] = useState<PortalAnnouncement["category"]>("GENERAL");
+  const [editAudience, setEditAudience] = useState<NotifyAudience>("ALL");
+  const [editPinned, setEditPinned] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState<PortalAnnouncement | null>(null);
+  const [removing, setRemoving] = useState(false);
 
   useEffect(() => setMounted(true), []);
 
@@ -159,6 +174,55 @@ export default function AnnouncementsPage() {
     }
   }
 
+  function openEdit(a: PortalAnnouncement) {
+    setEditing(a);
+    setEditTitle(a.title);
+    setEditBody(a.body);
+    setEditCategory(a.category);
+    setEditAudience(a.targetAudience ?? "ALL");
+    setEditPinned(!!a.pinned);
+  }
+
+  async function handleSaveEdit() {
+    if (!editing) return;
+    if (!editTitle.trim() || !editBody.trim()) {
+      toast("Title and message are required", "error");
+      return;
+    }
+    setSaving(true);
+    try {
+      await apiUpdateAnnouncement(editing.id, {
+        title: editTitle.trim(),
+        body: editBody.trim(),
+        audience: editCategory,
+        pinned: editPinned,
+        targetAudience: editAudience,
+      });
+      setItems(await fetchAnnouncements());
+      toast("Notice updated", "success");
+      setEditing(null);
+    } catch {
+      toast("Could not update notice", "error");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleDelete() {
+    if (!deleting) return;
+    setRemoving(true);
+    try {
+      await apiDeleteAnnouncement(deleting.id);
+      setItems(await fetchAnnouncements());
+      toast("Notice deleted", "success");
+      setDeleting(null);
+    } catch {
+      toast("Could not delete notice", "error");
+    } finally {
+      setRemoving(false);
+    }
+  }
+
   if (!mounted) {
     return (
       <div className="flex h-64 items-center justify-center text-muted-foreground">
@@ -202,9 +266,31 @@ export default function AnnouncementsPage() {
                   {announcementCategoryLabel(a.category)}
                 </Badge>
               </div>
-              <time className="text-xs text-muted-foreground">
-                {relativeTime(a.publishedAt)}
-              </time>
+              <div className="flex shrink-0 items-center gap-2">
+                <time className="text-xs text-muted-foreground">
+                  {relativeTime(a.publishedAt)}
+                </time>
+                {!isTeacher && (
+                  <>
+                    <Button
+                      variant="ghost"
+                      className="h-8 w-8 p-0"
+                      onClick={() => openEdit(a)}
+                      aria-label="Edit"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                      onClick={() => setDeleting(a)}
+                      aria-label="Delete"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </>
+                )}
+              </div>
             </div>
             <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{a.body}</p>
           </article>
@@ -316,6 +402,96 @@ export default function AnnouncementsPage() {
         </div>
       </Dialog>
       )}
+
+      {!isTeacher && (
+      <Dialog
+        open={!!editing}
+        onClose={() => setEditing(null)}
+        title="Edit Notice"
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setEditing(null)}>
+              {t("announcements.cancel")}
+            </Button>
+            <Button onClick={() => void handleSaveEdit()} disabled={saving}>
+              {saving ? "Saving…" : "Save Changes"}
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <div>
+            <Label htmlFor="edit-notice-title">{t("announcements.title")}</Label>
+            <Input
+              id="edit-notice-title"
+              value={editTitle}
+              onChange={(e) => setEditTitle(e.target.value)}
+            />
+          </div>
+          <div>
+            <Label htmlFor="edit-notice-send-to">{t("announcements.sendTo")}</Label>
+            <Select
+              id="edit-notice-send-to"
+              value={editAudience}
+              onChange={(e) => setEditAudience(e.target.value as NotifyAudience)}
+            >
+              <option value="ALL">{t("announcements.everyone")}</option>
+              <option value="PARENTS">{t("announcements.parentsOnly")}</option>
+              <option value="TEACHERS">{t("announcements.teachersOnly")}</option>
+              {studentPortalEnabled && (
+                <option value="STUDENTS">{t("announcements.studentsOnly")}</option>
+              )}
+            </Select>
+          </div>
+          <div>
+            <Label htmlFor="edit-notice-category">{t("announcements.category")}</Label>
+            <Select
+              id="edit-notice-category"
+              value={editCategory}
+              onChange={(e) =>
+                setEditCategory(e.target.value as PortalAnnouncement["category"])
+              }
+            >
+              {CATEGORIES.map((c) => (
+                <option key={c} value={c}>
+                  {announcementCategoryLabel(c)}
+                </option>
+              ))}
+            </Select>
+          </div>
+          <div>
+            <Label htmlFor="edit-notice-body">{t("announcements.message")}</Label>
+            <Textarea
+              id="edit-notice-body"
+              rows={5}
+              value={editBody}
+              onChange={(e) => setEditBody(e.target.value)}
+            />
+          </div>
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={editPinned}
+              onChange={(e) => setEditPinned(e.target.checked)}
+            />
+            {t("announcements.pinToTopOfParentPortal")}
+          </label>
+        </div>
+      </Dialog>
+      )}
+
+      <ConfirmDialog
+        open={!!deleting}
+        title="Delete Notice"
+        message={
+          deleting
+            ? `Delete "${deleting.title}"? It will disappear from every portal it was sent to. This cannot be undone.`
+            : ""
+        }
+        confirmLabel={removing ? "Deleting…" : "Delete"}
+        onConfirm={() => void handleDelete()}
+        onClose={() => setDeleting(null)}
+      />
     </div>
   );
 }

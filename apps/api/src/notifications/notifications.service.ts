@@ -222,6 +222,46 @@ export class NotificationsService {
     return announcement;
   }
 
+  /** Edit an announcement already on the bulletin board — title, body,
+   *  category and/or target audience. Does not re-send Notification bell
+   *  rows: those already reached their recipients when it was created, and
+   *  this only changes what the board itself shows going forward. */
+  async updateAnnouncement(
+    schoolId: string,
+    id: string,
+    data: {
+      title?: string;
+      body?: string;
+      audience?: string;
+      pinned?: boolean;
+      targetAudience?: NotifyAudience;
+    },
+  ) {
+    return this.prisma.forTenant(schoolId, async (tx) => {
+      const existing = await tx.announcement.findFirst({ where: { id } });
+      if (!existing) throw new BadRequestException("Announcement not found");
+      return tx.announcement.update({
+        where: { id },
+        data: {
+          title: data.title,
+          body: data.body,
+          audience: data.audience,
+          pinned: data.pinned,
+          targetAudience: data.targetAudience,
+        },
+      });
+    });
+  }
+
+  async deleteAnnouncement(schoolId: string, id: string) {
+    return this.prisma.forTenant(schoolId, async (tx) => {
+      const existing = await tx.announcement.findFirst({ where: { id } });
+      if (!existing) throw new BadRequestException("Announcement not found");
+      await tx.announcement.delete({ where: { id } });
+      return { ok: true };
+    });
+  }
+
   /**
    * "ALL" reaches everyone with a single broadcast row — every caller of
    * `list()` already ORs in `{userId: null, parentId: null}`. PARENTS/

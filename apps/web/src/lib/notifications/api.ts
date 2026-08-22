@@ -15,6 +15,20 @@ export const apiCreateAnnouncement = (body: {
   notifyAudience?: "ALL" | "PARENTS" | "TEACHERS" | "STUDENTS";
 }) => api<ApiAnnouncement>("/notifications/announcements", { method: "POST", body });
 
+export const apiUpdateAnnouncement = (
+  id: string,
+  body: {
+    title?: string;
+    body?: string;
+    audience?: string;
+    pinned?: boolean;
+    targetAudience?: "ALL" | "PARENTS" | "TEACHERS" | "STUDENTS";
+  },
+) => api<ApiAnnouncement>(`/notifications/announcements/${id}`, { method: "PATCH", body });
+
+export const apiDeleteAnnouncement = (id: string) =>
+  api<{ ok: boolean }>(`/notifications/announcements/${id}`, { method: "DELETE" });
+
 export async function fetchAnnouncements(): Promise<PortalAnnouncement[]> {
   const rows = await apiListAnnouncements();
   return rows.map(mapPortalAnnouncement);

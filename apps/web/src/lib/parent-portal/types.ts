@@ -33,6 +33,9 @@ export interface PortalAnnouncement {
   category: "HOLIDAY" | "EXAM" | "MEETING" | "EVENT" | "FEE" | "EMERGENCY" | "GENERAL";
   publishedAt: string;
   pinned?: boolean;
+  /** Who this was addressed to — only meaningful on the admin bulletin
+   *  board, which needs it to pre-fill the edit dialog. */
+  targetAudience?: "ALL" | "PARENTS" | "TEACHERS" | "STUDENTS";
 }
 
 export interface PortalNotification {
