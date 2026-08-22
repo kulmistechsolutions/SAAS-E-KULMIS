@@ -22,7 +22,6 @@ import type {
 import { PrismaService } from "../prisma/prisma.service";
 import { NotificationsService } from "../notifications/notifications.service";
 import {
-  isApprovedCallbackStatus,
   normalizeWaafiAccount,
   waafiApiPurchase,
   waafiFriendlyFailureMessage,
@@ -1606,18 +1605,10 @@ export class SubscriptionsService {
       return { ok: false, message: "Payment marked failed", orderId: order.id };
     }
 
-    const status = payload.status ?? payload.tranStatusDesc ?? payload.state ?? payload.Status;
-    const transactionId =
-      payload.transactionId ?? payload.TransactionId ?? payload.transaction_id;
-
-    if (!isApprovedCallbackStatus(status) && !transactionId) {
-      return this.verifyAndActivateSubscriptionPayment(order.id);
-    }
-
-    return this.activateSubscriptionOrder(order.id, {
-      transactionId: transactionId != null ? String(transactionId) : undefined,
-      responsePayload: payload,
-    });
+    // Unsigned public callback — its body is a claim, not proof. Only the
+    // server-to-server Waafi inquiry may activate a subscription; otherwise
+    // anyone holding a referenceId could grant themselves a paid plan.
+    return this.verifyAndActivateSubscriptionPayment(order.id);
   }
 
   async verifyAndActivateSubscriptionPayment(orderId: string, schoolId?: string) {
@@ -2146,18 +2137,9 @@ export class SubscriptionsService {
       return { ok: false, message: "Payment marked failed", orderId: order.id };
     }
 
-    const status = payload.status ?? payload.tranStatusDesc ?? payload.state ?? payload.Status;
-    const transactionId =
-      payload.transactionId ?? payload.TransactionId ?? payload.transaction_id;
-
-    if (!isApprovedCallbackStatus(status) && !transactionId) {
-      return this.verifyAndActivateExtension(order.id);
-    }
-
-    return this.activateExtensionOrder(order.id, {
-      transactionId: transactionId != null ? String(transactionId) : undefined,
-      responsePayload: payload,
-    });
+    // Unsigned public callback — never trust its body; see the subscription
+    // callback above. Verification with Waafi is the only path to activation.
+    return this.verifyAndActivateExtension(order.id);
   }
 
   async verifyAndActivateExtension(orderId: string, schoolId?: string) {

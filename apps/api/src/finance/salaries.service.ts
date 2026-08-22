@@ -137,8 +137,11 @@ export class SalariesService {
     actor: { userId: string; username: string; role: UserRole },
   ) {
     const result = await this.prisma.forTenant(schoolId, async (tx) => {
+      // schoolId is redundant now that salary_payments has RLS, but it keeps
+      // the boundary visible in the query itself rather than resting entirely
+      // on the database policy.
       const original = await tx.salaryPayment.findFirst({
-        where: { id: paymentId },
+        where: { id: paymentId, schoolId },
       });
       if (!original) throw new NotFoundException("Payment not found");
       if (original.isReversal) {
@@ -223,7 +226,7 @@ export class SalariesService {
   paymentsFor(schoolId: string, salaryId: string) {
     return this.prisma.forTenant(schoolId, (tx) =>
       tx.salaryPayment.findMany({
-        where: { salaryId },
+        where: { salaryId, schoolId },
         orderBy: { paidAt: "desc" },
       }),
     );

@@ -30,6 +30,7 @@ import { ExaminationsService } from "./examinations.service";
 import { Roles } from "../auth/roles.decorator";
 import { CurrentUser } from "../auth/current-user.decorator";
 import type { AuthUser } from "../auth/auth.types";
+import { Throttle } from "@nestjs/throttler";
 import { Public } from "../auth/public.decorator";
 import { CurrentTenant } from "../tenant/current-tenant.decorator";
 import type { TenantContext } from "@ekulmis/shared";
@@ -403,7 +404,14 @@ export class ExaminationsController {
     res.send(buf);
   }
 
+  /**
+   * Unauthenticated by design (schools opt in via the publicResultPortal
+   * setting), and looked up by a student code that runs STD0001, STD0002, …
+   * Throttled so a parent checking a result is unaffected while a script
+   * walking the whole code range is stopped well short of the roll.
+   */
   @Public()
+  @Throttle({ default: { ttl: 60_000, limit: 20 } })
   @Post("public-results")
   publicResults(@CurrentTenant() tenant: TenantContext, @Body() body: unknown) {
     const parsed = publicResultLookupSchema.safeParse(body);

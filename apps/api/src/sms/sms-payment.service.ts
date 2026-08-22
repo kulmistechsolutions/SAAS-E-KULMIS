@@ -15,7 +15,6 @@ import { Prisma } from "@prisma/client";
 import { randomBytes } from "crypto";
 import { PrismaService } from "../prisma/prisma.service";
 import {
-  isApprovedCallbackStatus,
   normalizeWaafiAccount,
   waafiApiPurchase,
   waafiFriendlyFailureMessage,
@@ -566,23 +565,12 @@ export class SmsPaymentService {
       return { ok: false, message: "Payment marked failed", orderId: order.id };
     }
 
-    const status =
-      payload.status ??
-      payload.tranStatusDesc ??
-      payload.state ??
-      payload.Status;
-    const transactionId =
-      payload.transactionId ?? payload.TransactionId ?? payload.transaction_id;
-
-    if (!isApprovedCallbackStatus(status) && !transactionId) {
-      // Still try verify against Waafi
-      return this.verifyAndActivate(order.id);
-    }
-
-    return this.activateOrder(order.id, {
-      transactionId: transactionId != null ? String(transactionId) : undefined,
-      responsePayload: payload,
-    });
+    // The callback endpoint is public and unsigned, so its body proves
+    // nothing: anyone who knows a referenceId could POST {status:"APPROVED"}
+    // and self-activate a package they never paid for. Treat the callback
+    // purely as a "go and check now" trigger and let the server-to-server
+    // Waafi inquiry be the only thing that can mark an order paid.
+    return this.verifyAndActivate(order.id);
   }
 
   async verifyAndActivate(orderId: string, schoolId?: string) {
