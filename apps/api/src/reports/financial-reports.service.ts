@@ -39,12 +39,19 @@ export class FinancialReportsService {
     });
     const money = (n: number) => formatMoney(n, school?.currency);
 
-    const { income, expenses, salaries } = await this.prisma.forTenant(
+    const { fees, otherIncome, expenses, salaries } = await this.prisma.forTenant(
       schoolId,
       async (tx) => {
-        const [paySum, expSum, salSum] = await Promise.all([
+        const [paySum, otherSum, expSum, salSum] = await Promise.all([
           tx.payment.aggregate({
             where: range ? { paidAt: range } : {},
+            _sum: { amount: true },
+          }),
+          // Donations, rent, canteen — income that never passes through fee
+          // collection. Leaving it out made this report disagree with the
+          // finance page about what the school actually took in.
+          tx.otherIncome.aggregate({
+            where: range ? { receivedAt: range } : {},
             _sum: { amount: true },
           }),
           tx.expense.aggregate({
@@ -55,23 +62,34 @@ export class FinancialReportsService {
             where: range
               ? { year: Number(filters.month!.slice(0, 4)), month: Number(filters.month!.slice(5, 7)) }
               : {},
-            _sum: { amount: true },
+            // What left the school is `amountPaid` on every row; summing
+            // `amount` counted payroll that has not been paid yet as spent.
+            _sum: { amountPaid: true },
           }),
         ]);
         return {
-          income: paySum._sum.amount ?? 0,
+          fees: paySum._sum.amount ?? 0,
+          otherIncome: otherSum._sum.amount ?? 0,
           expenses: expSum._sum.amount ?? 0,
-          salaries: salSum._sum.amount ?? 0,
+          salaries: salSum._sum.amountPaid ?? 0,
         };
       },
     );
 
+    const income = fees + otherIncome;
     const net = income - expenses - salaries;
+    // Only worth its own line when there is something on it.
+    const incomeLines = [
+      { line: "Fee Collections", amount: money(fees) },
+      ...(otherIncome > 0
+        ? [{ line: "Additional Income", amount: money(otherIncome) }]
+        : []),
+    ];
 
     if (slug === "income") {
       return {
         columns: [{ key: "line", label: "Line" }, { key: "amount", label: "Amount", align: "right" }],
-        rows: [{ line: "Fee Collections", amount: money(income) }],
+        rows: incomeLines,
         summary: [{ label: "Income", value: money(income) }],
       };
     }
@@ -93,7 +111,8 @@ export class FinancialReportsService {
       return {
         columns: [{ key: "line", label: "Line" }, { key: "amount", label: "Amount", align: "right" }],
         rows: [
-          { line: "Income", amount: money(income) },
+          ...incomeLines,
+          { line: "Total Income", amount: money(income) },
           { line: "Expenses", amount: money(-expenses) },
           { line: "Salaries", amount: money(-salaries) },
           { line: "Net Income", amount: money(net) },
@@ -106,7 +125,7 @@ export class FinancialReportsService {
     return {
       columns: [{ key: "line", label: "Line" }, { key: "amount", label: "Amount", align: "right" }],
       rows: [
-        { line: "Fee Collections", amount: money(income) },
+        ...incomeLines,
         { line: "Expenses", amount: money(-expenses) },
         { line: "Salaries", amount: money(-salaries) },
         { line: "Net Income", amount: money(net) },

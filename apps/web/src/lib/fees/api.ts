@@ -54,6 +54,7 @@ export interface ApiFinanceDashboard {
   month: string | null;
   totalIncome: number;
   feeIncome: number;
+  feeCollectedToday: number;
   otherIncome: number;
   totalExpenses: number;
   totalSalaries: number;

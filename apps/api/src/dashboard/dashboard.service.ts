@@ -367,6 +367,7 @@ export class DashboardService {
 
       const [
         incomeAgg,
+        otherIncomeAgg,
         expenseAgg,
         salaryAgg,
         advanceCount,
@@ -374,6 +375,10 @@ export class DashboardService {
         recentPayments,
       ] = await Promise.all([
         tx.payment.aggregate({ _sum: { amount: true } }),
+        // Donations, rent, canteen and the like. Fees alone are not the
+        // school's income, and a Net Income that ignored the rest disagreed
+        // with the finance page — see FinanceService.dashboard.
+        tx.otherIncome.aggregate({ _sum: { amount: true } }),
         tx.expense.aggregate({ _sum: { amount: true } }),
         // See FinanceService.dashboard: outflow is `amountPaid` on every row,
         // not `amount` on fully-paid ones, or partials vanish from Net Income.
@@ -395,7 +400,14 @@ export class DashboardService {
         }),
       ]);
 
-      const [recentAudit, upcomingExams, studentsForGrowth, paymentsForChart, expensesForChart] =
+      const [
+        recentAudit,
+        upcomingExams,
+        studentsForGrowth,
+        paymentsForChart,
+        expensesForChart,
+        otherIncomeForChart,
+      ] =
         await Promise.all([
           tx.auditLog.findMany({ orderBy: { createdAt: "desc" }, take: 8 }),
           tx.exam.findMany({
@@ -422,6 +434,10 @@ export class DashboardService {
             where: { spentAt: { gte: sixMonthsAgo } },
             select: { spentAt: true, amount: true },
           }),
+          tx.otherIncome.findMany({
+            where: { receivedAt: { gte: sixMonthsAgo } },
+            select: { receivedAt: true, amount: true },
+          }),
         ]);
 
       const byStatus = (
@@ -436,7 +452,9 @@ export class DashboardService {
         (outstandingMonthAgg._sum?.amount ?? 0) -
         (outstandingMonthAgg._sum?.paidAmount ?? 0);
 
-      const totalIncome = incomeAgg._sum.amount ?? 0;
+      const feeIncome = incomeAgg._sum.amount ?? 0;
+      const otherIncome = otherIncomeAgg._sum.amount ?? 0;
+      const totalIncome = feeIncome + otherIncome;
       const totalExpenses = expenseAgg._sum.amount ?? 0;
       const totalSalaries = salaryAgg._sum.amountPaid ?? 0;
 
@@ -467,12 +485,19 @@ export class DashboardService {
       }));
       const incomeVsExpense = buckets.map((b) => ({
         label: b.label,
-        income: sum(
-          paymentsForChart.filter(
-            (p) => monthKey(new Date(p.paidAt)) === bucketKey(b),
+        income:
+          sum(
+            paymentsForChart.filter(
+              (p) => monthKey(new Date(p.paidAt)) === bucketKey(b),
+            ),
+            (p) => p.amount,
+          ) +
+          sum(
+            otherIncomeForChart.filter(
+              (o) => monthKey(new Date(o.receivedAt)) === bucketKey(b),
+            ),
+            (o) => o.amount,
           ),
-          (p) => p.amount,
-        ),
         expense: sum(
           expensesForChart.filter(
             (e) => monthKey(new Date(e.spentAt)) === bucketKey(b),
@@ -523,6 +548,8 @@ export class DashboardService {
         },
         finance: {
           totalIncome,
+          feeIncome,
+          otherIncome,
           totalExpenses,
           totalSalaries,
           netIncome: totalIncome - totalExpenses - totalSalaries,

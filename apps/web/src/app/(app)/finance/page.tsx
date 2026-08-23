@@ -22,6 +22,7 @@ import {
   outstandingStudents,
   paymentSummary,
   recentPayments,
+  refreshFinanceDashboard,
   useFeesState,
 } from "@/lib/fees/store";
 import type { FeePayment, StudentFeeRow } from "@/lib/fees/types";
@@ -47,6 +48,14 @@ export default function FeeManagementPage() {
 
   const month = filterMonth || fees.activeMonthKey;
   const year = filterYear || fees.academicYear;
+
+  // The money figures are the server's — it sums every payment, while this
+  // page only ever holds the newest page of them. Refetch whenever the month
+  // changes so the cards never show another month's totals.
+  useEffect(() => {
+    if (!mounted || !month) return;
+    void refreshFinanceDashboard(month);
+  }, [mounted, month]);
 
   const summary = useMemo(
     () => (mounted ? dashboardSummary(month, year) : null),

@@ -29,10 +29,21 @@ export class FinanceService {
         ? { year: period.year, month: period.month }
         : {};
 
-      const [payAgg, expAgg, salAgg, otherAgg, outstandingCharges] = await Promise.all([
+      const startOfToday = new Date();
+      startOfToday.setHours(0, 0, 0, 0);
+
+      const [payAgg, todayAgg, expAgg, salAgg, otherAgg, outstandingCharges] = await Promise.all([
         // Reversals are stored as a second, negative Payment row, so summing
         // every row already nets a reversed collection back out.
         tx.payment.aggregate({ _sum: { amount: true }, where: { paidAt } }),
+        // Today's collection, summed here rather than in the browser: the fee
+        // page had been adding up whatever payments it had cached, which is
+        // the newest page of them, so a school past that page under-reported
+        // what it had taken in.
+        tx.payment.aggregate({
+          _sum: { amount: true },
+          where: { paidAt: { gte: startOfToday } },
+        }),
         tx.expense.aggregate({ _sum: { amount: true }, where: { spentAt } }),
         // Money that actually left the school is `amountPaid`, on every row —
         // a PARTIAL payroll row is real cash out too.
@@ -67,6 +78,7 @@ export class FinanceService {
         month: month ?? null,
         totalIncome,
         feeIncome,
+        feeCollectedToday: todayAgg._sum.amount ?? 0,
         otherIncome,
         totalExpenses,
         totalSalaries,

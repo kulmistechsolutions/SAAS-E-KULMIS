@@ -613,11 +613,25 @@ export function dashboardSummary(
     .filter((c) => !c.advanceCovered)
     .reduce((sum, c) => sum + c.balance, 0);
 
-  const collectedToday = s.payments
-    .filter((p) => p.academicYear === year && p.collectedAt.slice(0, 10) === today)
-    .reduce((sum, p) => sum + p.amount, 0);
+  // Money totals come from the server, which sums every payment in SQL. Adding
+  // them up here instead meant adding up the page of payments the browser had
+  // cached — WIN STAR, past that page, reported $1,138 collected against a
+  // real $1,239. The student counts below still come from charges, which are
+  // loaded in full.
+  const serverFinance =
+    financeDashCache && financeDashCache.month === month.slice(0, 7)
+      ? financeDashCache
+      : null;
 
-  const collectedThisMonth = monthPayments.reduce((sum, p) => sum + p.amount, 0);
+  const collectedToday =
+    serverFinance?.feeCollectedToday ??
+    s.payments
+      .filter((p) => p.academicYear === year && p.collectedAt.slice(0, 10) === today)
+      .reduce((sum, p) => sum + p.amount, 0);
+
+  const collectedThisMonth =
+    serverFinance?.feeIncome ??
+    monthPayments.reduce((sum, p) => sum + p.amount, 0);
   // A waived student's stored monthlyFee is never actually charged, so it
   // would inflate "expected income" with money that can never arrive.
   const expectedMonthlyIncome = students.reduce(
@@ -667,15 +681,23 @@ export function dashboardSummary(
   };
 }
 
-/** Finance dashboard totals from API (cached call on refresh). */
+/**
+ * The server's ledger-wide money totals for one month. The fee dashboard reads
+ * these instead of summing its own cached payments, which is only ever the
+ * newest page of them.
+ */
 let financeDashCache: Awaited<ReturnType<typeof apiFinanceDashboard>> | null = null;
 
-export async function refreshFinanceDashboard() {
+export async function refreshFinanceDashboard(month?: string): Promise<void> {
+  const key = month?.slice(0, 7);
   try {
-    financeDashCache = await apiFinanceDashboard();
+    financeDashCache = await apiFinanceDashboard(key);
   } catch {
-    /* ignore */
+    // Drop it rather than show another month's totals as though they were
+    // this one's; dashboardSummary falls back to what it has cached.
+    financeDashCache = null;
   }
+  emit();
 }
 
 export function paymentSummary(filterMonth?: string): PaymentSummarySlice[] {

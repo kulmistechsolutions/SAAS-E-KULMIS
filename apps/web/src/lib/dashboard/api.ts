@@ -33,6 +33,8 @@ export interface AdminDashboardResponse {
   };
   finance: {
     totalIncome: number;
+    feeIncome: number;
+    otherIncome: number;
     totalExpenses: number;
     totalSalaries: number;
     netIncome: number;
