@@ -1,12 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Eye, EyeOff } from "lucide-react";
 import { loginSchema, type LoginInput } from "@ekulmis/shared";
 import { useSchoolBranding } from "@/lib/settings/use-school-branding";
+import { apiGetBranding } from "@/lib/settings/api";
 import { useAuth } from "@/lib/auth";
 import { portalHomeForRole } from "@/lib/rbac/routes";
 import { ApiError, api } from "@/lib/api";
@@ -37,6 +39,38 @@ function friendlyLoginError(e: unknown, t: Translate): string {
   return t("auth.loginFailed");
 }
 
+/**
+ * Staff login is the address everyone knows, so it is where parents and
+ * students end up too — the audit trail shows them failing over and over on
+ * a student code, a parent code, even the results page URL pasted into the
+ * username box. Recognise the shape of what was typed and send them to the
+ * door that will actually open.
+ *
+ * Shape only — nothing is looked up — so this can neither confirm nor deny
+ * that any particular account exists.
+ */
+function misdirected(identifier: string):
+  | { kind: "results" | "portal"; hint: string }
+  | null {
+  const v = identifier.trim();
+  if (!v) return null;
+  if (/^https?:\/\//i.test(v) || v.includes("/")) {
+    return {
+      kind: v.toLowerCase().includes("result") ? "results" : "portal",
+      hint: "That looks like a web address, not a username. Try one of the links below.",
+    };
+  }
+  // Student and parent codes are letters then digits (STD0001, NPAR0136,
+  // HA00047) — never how a staff username is issued.
+  if (/^[A-Za-z]{2,6}\d{3,6}$/.test(v)) {
+    return {
+      kind: "portal",
+      hint: "That looks like a student or parent ID. Those sign in on their own portal, not here.",
+    };
+  }
+  return null;
+}
+
 export default function LoginPage() {
   const tr = useT();
   const router = useRouter();
@@ -44,7 +78,27 @@ export default function LoginPage() {
   const { login } = useAuth();
   const branding = useSchoolBranding();
   const [error, setError] = useState<string | null>(null);
+  const [hint, setHint] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+  // Only offer the doors this school actually opened. Undefined until it
+  // loads; the parent and teacher portals always exist.
+  const [portals, setPortals] = useState<{
+    student: boolean;
+    publicResults: boolean;
+  } | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    apiGetBranding()
+      .then((b) => alive && b.portals && setPortals(b.portals))
+      .catch(() => {
+        /* the links just stay at their safe defaults */
+      });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
   const {
     register,
     handleSubmit,
@@ -53,6 +107,7 @@ export default function LoginPage() {
 
   async function onSubmit(values: LoginInput) {
     setError(null);
+    setHint(null);
     try {
       const me = await login(values.identifier, values.password);
       // Teachers, parents and students each land in their own portal; only
@@ -60,6 +115,7 @@ export default function LoginPage() {
       router.push(portalHomeForRole(me.role) ?? "/dashboard");
     } catch (e) {
       setError(friendlyLoginError(e, t));
+      setHint(misdirected(values.identifier)?.hint ?? null);
     }
   }
 
@@ -145,11 +201,41 @@ export default function LoginPage() {
                 {error}
               </div>
             )}
+            {hint && (
+              <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2.5 text-sm text-amber-700 dark:text-amber-400">
+                {hint}
+              </div>
+            )}
             <Button type="submit" className="w-full" disabled={isSubmitting}>
               {isSubmitting ? t("auth.signingIn") : t("auth.signIn")}
             </Button>
           </form>
-          <p className="mt-6 text-center text-xs text-muted-foreground">{branding.footerText}</p>
+          {/* Every other way in, named plainly. This page is the address
+              people are given, so it has to be able to redirect them. */}
+          <div className="mt-6 border-t pt-4">
+            <p className="text-center text-xs font-medium text-muted-foreground">
+              {t("auth.notStaffQuestion")}
+            </p>
+            <div className="mt-2 flex flex-wrap justify-center gap-x-4 gap-y-1.5 text-xs">
+              <Link href="/parent-portal/login" className="font-medium text-primary hover:underline">
+                {t("auth.parentPortalLink")}
+              </Link>
+              {portals?.student !== false && (
+                <Link href="/student-portal/login" className="font-medium text-primary hover:underline">
+                  {t("auth.studentPortalLink")}
+                </Link>
+              )}
+              <Link href="/teacher-portal/login" className="font-medium text-primary hover:underline">
+                {t("auth.teacherPortalLink")}
+              </Link>
+              {portals?.publicResults !== false && (
+                <Link href="/results" className="font-medium text-primary hover:underline">
+                  {t("auth.checkResultsLink")}
+                </Link>
+              )}
+            </div>
+          </div>
+          <p className="mt-5 text-center text-xs text-muted-foreground">{branding.footerText}</p>
         </CardContent>
       </Card>
       </div>

@@ -115,12 +115,27 @@ export class SettingsService {
         primaryColor: true,
         secondaryColor: true,
         accentColor: true,
+        // Which self-service entrances this school actually opened. Staff
+        // login is where parents and students keep landing by mistake, and
+        // it can only point them somewhere better if it knows what exists.
+        // Not sensitive: visiting the portal would reveal the same thing.
+        studentPortalEnabled: true,
+        examSettings: true,
       },
     });
     if (!school) {
       throw new NotFoundException("School not found");
     }
-    return this.attachLogoUrl(school);
+    const exams = school.examSettings as { publicResultPortal?: boolean } | null;
+    const { examSettings: _examSettings, ...rest } = school;
+    return {
+      ...this.attachLogoUrl(rest),
+      portals: {
+        student: school.studentPortalEnabled,
+        // Defaults to on, matching ExaminationsService.toggles().
+        publicResults: exams?.publicResultPortal ?? true,
+      },
+    };
   }
 
   /**

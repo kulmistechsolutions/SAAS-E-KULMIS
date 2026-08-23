@@ -124,6 +124,9 @@ export interface ApiBranding {
   primaryColor: string | null;
   secondaryColor: string | null;
   accentColor: string | null;
+  /** Which self-service entrances this school opened — the staff login page
+   *  uses it to point parents and students somewhere that will let them in. */
+  portals?: { student: boolean; publicResults: boolean };
 }
 
 /** Merge API school record into the UI settings shape (non-persisted sections keep seed defaults). */
