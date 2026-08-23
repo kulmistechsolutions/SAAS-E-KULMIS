@@ -1,4 +1,4 @@
-import { Controller, Get, Query, UseGuards } from "@nestjs/common";
+import { Controller, Get, Param, Query, UseGuards } from "@nestjs/common";
 import { PlatformService } from "./platform.service";
 import { PlatformGuard } from "./platform.guard";
 import { Public } from "../auth/public.decorator";
@@ -12,6 +12,24 @@ export class PlatformDashboardController {
   @Get()
   dashboard() {
     return this.platform.dashboard();
+  }
+
+  /** Which schools are actually using the system, and which have gone quiet. */
+  @Get("school-activity")
+  schoolActivity(@Query("days") days?: string) {
+    return this.platform.schoolActivity({
+      days: days ? Number(days) : undefined,
+    });
+  }
+
+  @Get("school-activity/:schoolId")
+  schoolActivityDetail(
+    @Param("schoolId") schoolId: string,
+    @Query("days") days?: string,
+  ) {
+    return this.platform.schoolActivityDetail(schoolId, {
+      days: days ? Number(days) : undefined,
+    });
   }
 
   @Get("error-logs")

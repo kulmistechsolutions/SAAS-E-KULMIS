@@ -25,6 +25,9 @@ model School {
   motto                String?
   address              String?
   city                 String?
+  /// Province / gobol. Set by the platform owner so schools can be grouped and
+  /// followed by region, which `city` alone does not allow.
+  region               String?
   country              String?
   academicYear         String?
   phone                String?

@@ -1029,3 +1029,108 @@ export async function openPlatformSenderIdDocument(id: string): Promise<void> {
   // Give the new tab time to take the blob before releasing it.
   setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }
+
+// ── School activity (Super Admin monitoring) ──
+// Which schools are actually using the system, what they did last, and what
+// broke for them — all derived from the audit trail the modules already write.
+
+export type SchoolActivityLevel =
+  | "today"
+  | "this_week"
+  | "this_month"
+  | "dormant"
+  | "never";
+
+export interface SchoolActivityRow {
+  id: string;
+  name: string;
+  subdomain: string;
+  city: string | null;
+  region: string | null;
+  status: string;
+  createdAt: string;
+  lastActiveAt: string | null;
+  activity: SchoolActivityLevel;
+  logins: number;
+  failedLogins: number;
+  actions: number;
+  errors: number;
+  topModules: { module: string; count: number }[];
+}
+
+export interface SchoolActivity {
+  days: number;
+  since: string;
+  totals: {
+    schools: number;
+    activeToday: number;
+    activeThisWeek: number;
+    dormant: number;
+    withErrors: number;
+  };
+  rows: SchoolActivityRow[];
+}
+
+export interface SchoolActivityDetail {
+  school: {
+    id: string;
+    name: string;
+    subdomain: string;
+    city: string | null;
+    region: string | null;
+    status: string;
+    createdAt: string;
+  };
+  days: number;
+  since: string;
+  logins: number;
+  failedLogins: number;
+  lastActiveAt: string | null;
+  lastAction: {
+    module: string;
+    action: string;
+    username: string | null;
+    at: string;
+  } | null;
+  modules: { module: string; count: number }[];
+  users: {
+    username: string | null;
+    role: string | null;
+    actions: number;
+    lastActiveAt: string | null;
+  }[];
+  errorPaths: { path: string; count: number; message: string }[];
+  errors: {
+    id: string;
+    method: string;
+    path: string;
+    statusCode: number;
+    message: string;
+    role: string | null;
+    createdAt: string;
+  }[];
+  recent: {
+    id: string;
+    username: string | null;
+    role: string | null;
+    module: string;
+    action: string;
+    ip: string | null;
+    createdAt: string;
+  }[];
+}
+
+export async function fetchSchoolActivity(days?: number): Promise<SchoolActivity> {
+  return platformFetch<SchoolActivity>(
+    `/platform/dashboard/school-activity${days ? `?days=${days}` : ""}`,
+  );
+}
+
+export async function fetchSchoolActivityDetail(
+  schoolId: string,
+  days?: number,
+): Promise<SchoolActivityDetail> {
+  return platformFetch<SchoolActivityDetail>(
+    `/platform/dashboard/school-activity/${schoolId}${days ? `?days=${days}` : ""}`,
+  );
+}

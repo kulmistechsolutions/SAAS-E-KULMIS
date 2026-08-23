@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
+  Activity,
   AlertTriangle,
   Bell,
   Building2,
@@ -27,6 +28,7 @@ const NAV = [
   { href: "/platform", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { href: "/platform/notifications", label: "Notifications", icon: Bell },
   { href: "/platform/schools", label: "Schools", icon: Building2 },
+  { href: "/platform/school-activity", label: "School Activity", icon: Activity },
   { href: "/platform/subscriptions", label: "Subscriptions", icon: Layers },
   { href: "/platform/sms/settings", label: "SMS Settings", icon: Settings2 },
   { href: "/platform/sms/payments", label: "Waafi Payments", icon: CreditCard },
