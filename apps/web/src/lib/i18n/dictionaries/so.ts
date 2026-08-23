@@ -117,6 +117,7 @@ const curated: PartialDictionary = {
     employees: "Shaqaalaha",
     salaryHistory: "Taariikhda Mushaharka",
     expenseList: "Liiska Kharashaadka",
+    additionalIncome: "Dakhli Dheeraad ah",
     categories: "Noocyada",
     createExam: "Abuur Imtixaan",
     enterMarks: "Geli Dhibcaha",

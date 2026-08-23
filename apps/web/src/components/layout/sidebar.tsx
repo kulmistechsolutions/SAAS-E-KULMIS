@@ -128,6 +128,7 @@ const EXPENSE_CHILDREN: NavChild[] = [
   { label: "nav.expenseList", href: "/expenses/list" },
   { label: "nav.categories", href: "/expenses/categories" },
   { label: "nav.reports", href: "/expenses/reports" },
+  { label: "nav.additionalIncome", href: "/other-income" },
 ];
 
 const EXAM_CHILDREN: NavChild[] = [

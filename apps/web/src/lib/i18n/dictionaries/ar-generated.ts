@@ -1081,6 +1081,7 @@ export const arGenerated: PartialDictionary = {
     netIncome: "صافي الدخل",
     totalFinancialOutflow: "إجمالي التدفق المالي الخارج",
     totalIncomeFees: "إجمالي الدخل (الرسوم)",
+    additionalIncome: "دخل إضافي",
     totalSalaries: "إجمالي الرواتب",
     totalExpenses: "إجمالي المصروفات",
   },

@@ -228,6 +228,8 @@ export function dashboardSummary(opts?: {
       ? financeCache.data
       : null;
   const totalIncome = finance?.totalIncome ?? 0;
+  const feeIncome = finance?.feeIncome ?? 0;
+  const otherIncome = finance?.otherIncome ?? 0;
   const totalSalaries = finance?.totalSalaries ?? 0;
   const netIncome = finance?.netIncome ?? 0;
 
@@ -243,6 +245,8 @@ export function dashboardSummary(opts?: {
     netIncome,
     totalFinancialOutflow: finance?.totalFinancialOutflow ?? 0,
     totalIncome,
+    feeIncome,
+    otherIncome,
     totalSalaries,
     // False while the server totals are still loading (or failed), so the
     // card can say "—" instead of asserting a wrong $0.

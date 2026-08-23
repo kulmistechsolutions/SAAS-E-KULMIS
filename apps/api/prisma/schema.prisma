@@ -1295,6 +1295,46 @@ model Expense {
   @@map("expenses")
 }
 
+/// Where money that is not a student fee came from — donations, rent, canteen,
+/// transport, a grant. Mirrors ExpenseCategory so the two sides of the ledger
+/// are managed the same way.
+model IncomeCategory {
+  id        String        @id @default(cuid())
+  schoolId  String
+  name      String
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  incomes   OtherIncome[]
+
+  @@unique([schoolId, name])
+  @@index([schoolId])
+  @@map("income_categories")
+}
+
+/// Income a school receives outside fee collection. Counted alongside fees in
+/// the finance summary, so Net Income reflects everything that came in — not
+/// only what parents paid.
+model OtherIncome {
+  id               String   @id @default(cuid())
+  schoolId         String
+  categoryId       String?
+  title            String
+  /// Who or what the money came from — the donor, tenant, or payer.
+  source           String?
+  amount           Int
+  method           String?
+  note             String?
+  recordedByUserId String?
+  receivedAt       DateTime @default(now())
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  category IncomeCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  @@index([schoolId])
+  @@map("other_income")
+}
+
 // ── Examinations (Module 11) ────────────────────────────────────────────────
 
 model ExamGroup {

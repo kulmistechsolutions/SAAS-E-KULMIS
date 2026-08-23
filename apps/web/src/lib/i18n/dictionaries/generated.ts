@@ -1083,6 +1083,7 @@ export const generated = {
     netIncome: "Net Income",
     totalFinancialOutflow: "Total Financial Outflow",
     totalIncomeFees: "Total Income (Fees)",
+    additionalIncome: "Additional Income",
     totalSalaries: "Total Salaries",
     totalExpenses: "Total Expenses",
   },

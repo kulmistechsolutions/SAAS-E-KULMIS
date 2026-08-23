@@ -118,6 +118,7 @@ const core = {
     employees: "Employees",
     salaryHistory: "Salary History",
     expenseList: "Expense List",
+    additionalIncome: "Additional Income",
     categories: "Categories",
     createExam: "Create Exam",
     enterMarks: "Enter Marks",

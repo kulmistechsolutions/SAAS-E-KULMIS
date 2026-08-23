@@ -112,6 +112,7 @@ const curated: PartialDictionary = {
     employees: "الموظفون",
     salaryHistory: "سجل الرواتب",
     expenseList: "قائمة المصروفات",
+    additionalIncome: "دخل إضافي",
     categories: "الفئات",
     createExam: "إنشاء امتحان",
     enterMarks: "إدخال الدرجات",

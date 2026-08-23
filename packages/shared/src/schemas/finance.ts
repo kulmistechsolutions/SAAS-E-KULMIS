@@ -233,6 +233,31 @@ export type CreateExpenseInput = z.infer<typeof createExpenseSchema>;
 export const updateExpenseSchema = createExpenseSchema.partial();
 export type UpdateExpenseInput = z.infer<typeof updateExpenseSchema>;
 
+// ── Additional income ──
+// Money a school takes in that is not a student fee: donations, rent, canteen,
+// transport, grants. Counted with fees in the finance summary.
+export const createIncomeCategorySchema = z.object({
+  name: z.string().min(1),
+});
+export type CreateIncomeCategoryInput = z.infer<
+  typeof createIncomeCategorySchema
+>;
+
+export const createOtherIncomeSchema = z.object({
+  categoryId: z.string().min(1).nullable().optional(),
+  title: z.string().min(1),
+  /** Who the money came from — the donor, tenant, or payer. */
+  source: z.string().min(1).nullable().optional(),
+  amount: positiveAmount,
+  method: z.string().min(1).nullable().optional(),
+  note: z.string().min(1).nullable().optional(),
+  receivedAt: z.coerce.date().optional(),
+});
+export type CreateOtherIncomeInput = z.infer<typeof createOtherIncomeSchema>;
+
+export const updateOtherIncomeSchema = createOtherIncomeSchema.partial();
+export type UpdateOtherIncomeInput = z.infer<typeof updateOtherIncomeSchema>;
+
 // ── Payment promises (Module 7) ──
 // A parent's commitment to pay by a future date, recorded when reception
 // can't collect today. Purely a reminder — never touches FeeCharge/Payment.

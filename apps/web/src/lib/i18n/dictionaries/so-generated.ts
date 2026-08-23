@@ -1082,6 +1082,7 @@ export const soGenerated: PartialDictionary = {
     netIncome: "Dakhliga Saafiga",
     totalFinancialOutflow: "Wadarta Lacagta Baxday",
     totalIncomeFees: "Wadarta Dakhliga (Khidmadaha)",
+    additionalIncome: "Dakhli Dheeraad ah",
     totalSalaries: "Wadarta Mushaharka",
     totalExpenses: "Wadarta Kharashaadka",
   },

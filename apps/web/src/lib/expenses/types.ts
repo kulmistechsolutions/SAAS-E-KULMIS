@@ -89,6 +89,8 @@ export interface ExpenseDashboardSummary {
   /** Whether the server-side finance totals have arrived; see the store. */
   financeLoaded: boolean;
   totalIncome: number;
+  feeIncome: number;
+  otherIncome: number;
   totalSalaries: number;
 }
 

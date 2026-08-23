@@ -29,7 +29,7 @@ export class FinanceService {
         ? { year: period.year, month: period.month }
         : {};
 
-      const [payAgg, expAgg, salAgg, outstandingCharges] = await Promise.all([
+      const [payAgg, expAgg, salAgg, otherAgg, outstandingCharges] = await Promise.all([
         // Reversals are stored as a second, negative Payment row, so summing
         // every row already nets a reversed collection back out.
         tx.payment.aggregate({ _sum: { amount: true }, where: { paidAt } }),
@@ -40,13 +40,22 @@ export class FinanceService {
           _sum: { amountPaid: true },
           where: salaryWhere,
         }),
+        // Donations, rent, canteen, grants — income that never passes through
+        // fee collection, and without which Net Income only ever described the
+        // part of the school's money that came from parents.
+        tx.otherIncome.aggregate({
+          _sum: { amount: true },
+          where: period ? { receivedAt: { gte: period.start, lt: period.end } } : {},
+        }),
         tx.feeCharge.findMany({
           where: { status: { not: "PAID" } },
           select: { amount: true, paidAmount: true },
         }),
       ]);
 
-      const totalIncome = payAgg._sum.amount ?? 0;
+      const feeIncome = payAgg._sum.amount ?? 0;
+      const otherIncome = otherAgg._sum.amount ?? 0;
+      const totalIncome = feeIncome + otherIncome;
       const totalExpenses = expAgg._sum.amount ?? 0;
       const totalSalaries = salAgg._sum.amountPaid ?? 0;
       const totalOutstanding = outstandingCharges.reduce(
@@ -57,6 +66,8 @@ export class FinanceService {
       return {
         month: month ?? null,
         totalIncome,
+        feeIncome,
+        otherIncome,
         totalExpenses,
         totalSalaries,
         netIncome: totalIncome - totalExpenses - totalSalaries,

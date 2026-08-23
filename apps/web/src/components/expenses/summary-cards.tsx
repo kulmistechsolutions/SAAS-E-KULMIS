@@ -153,7 +153,10 @@ export function FinancialSummaryPanel({
     tone: string;
     fromServer?: boolean;
   }[] = [
-    { label: "expensesSummaryCards.totalIncomeFees", value: summary.totalIncome, tone: "text-emerald-600", fromServer: true },
+    { label: "expensesSummaryCards.totalIncomeFees", value: summary.feeIncome, tone: "text-emerald-600", fromServer: true },
+    // Donations, rent, canteen and the like — shown on its own line so the
+    // school can see how much of the month did not come from parents.
+    { label: "expensesSummaryCards.additionalIncome", value: summary.otherIncome, tone: "text-teal-600", fromServer: true },
     { label: "expensesSummaryCards.totalSalaries", value: summary.totalSalaries, tone: "text-violet-600", fromServer: true },
     { label: "expensesSummaryCards.totalExpenses", value: summary.totalExpensesThisMonth, tone: "text-rose-600" },
     { label: "expensesSummaryCards.netIncome", value: summary.netIncome, tone: "text-blue-600", fromServer: true },
