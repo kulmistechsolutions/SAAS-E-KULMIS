@@ -47,34 +47,29 @@ export function useStudentPhoto(
   /** Local preview (blob/data URL) takes precedence over stored photos. */
   previewUrl?: string | null,
 ): string | null {
-  const [url, setUrl] = useState<string | null>(() => {
-    if (previewUrl) return previewUrl;
-    if (isHttpUrl(photoUrl)) return photoUrl;
-    return null;
-  });
+  // Anything we can show without waiting on the network.
+  const immediate = previewUrl ?? (isHttpUrl(photoUrl) ? photoUrl : null);
+
+  // Kept with the id it was fetched for. In a list React reuses the same
+  // component instance as the rows change, so holding a bare URL in state
+  // left the previous student's face on the next student's row until the
+  // new fetch came back — which is how photos appeared shuffled.
+  const [fetched, setFetched] = useState<{ id: string; url: string } | null>(
+    null,
+  );
 
   useEffect(() => {
-    if (previewUrl) {
-      setUrl(previewUrl);
-      return;
-    }
-    if (isHttpUrl(photoUrl)) {
-      setUrl(photoUrl);
-      return;
-    }
-    if (!studentId || !hasPhoto) {
-      setUrl(null);
-      return;
-    }
-
+    if (immediate || !studentId || !hasPhoto) return;
     let active = true;
     void fetchStudentPhotoUrl(studentId).then((next) => {
-      if (active) setUrl(next);
+      if (active && next) setFetched({ id: studentId, url: next });
     });
     return () => {
       active = false;
     };
-  }, [studentId, hasPhoto, photoUrl, previewUrl]);
+  }, [studentId, hasPhoto, immediate]);
 
-  return url;
+  if (immediate) return immediate;
+  // Never hand back a photo that belongs to somebody else.
+  return fetched && fetched.id === studentId ? fetched.url : null;
 }
