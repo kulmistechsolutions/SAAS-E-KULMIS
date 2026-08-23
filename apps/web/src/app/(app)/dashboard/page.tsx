@@ -127,7 +127,10 @@ function buildStats(data: AdminDashboardResponse, t: Translate) {
       key: "students",
       label: "Total Students",
       labelKey: "dashboard.totalStudents" as TranslationKey,
-      value: data.students.total.toLocaleString(),
+      // Enrolled students, not every student ever — the Students page counts
+      // the same way, and a total that quietly included a withdrawn student
+      // from a previous year is why the two screens disagreed.
+      value: data.students.active.toLocaleString(),
       hint: `+${data.students.newThisMonth} this month`,
       hintTone: "up" as const,
       icon: "students" as const,
