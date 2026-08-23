@@ -129,7 +129,10 @@ export class SettingsService {
     const exams = school.examSettings as { publicResultPortal?: boolean } | null;
     const { examSettings: _examSettings, ...rest } = school;
     return {
-      ...this.attachLogoUrl(rest),
+      // `attachLogoUrl` is async — spreading it unawaited yields an empty
+      // object, which stripped the name, logo and colours out of the public
+      // branding payload and crashed every school's login page.
+      ...(await this.attachLogoUrl(rest)),
       portals: {
         student: school.studentPortalEnabled,
         // Defaults to on, matching ExaminationsService.toggles().
