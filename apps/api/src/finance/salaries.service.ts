@@ -4,7 +4,8 @@ import {
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
-import type { Prisma, UserRole } from "@prisma/client";
+import { Prisma } from "@prisma/client";
+import type { UserRole } from "@prisma/client";
 import type {
   CreateSalaryInput,
   PaySalaryInput,
@@ -38,7 +39,34 @@ export class SalariesService {
     if (existing) return existing;
 
     const status = dto.status ?? "PENDING";
-    return this.prisma.forTenant(schoolId, (tx) =>
+    // Generating payroll fires one request per employee, and an impatient
+    // second click sends the whole batch again: two requests both pass the
+    // check above, then one loses the unique index. That is the same "already
+    // has payroll this month" case, so return the row that won rather than
+    // failing — the caller asked for the month to exist, and it does.
+    const onDuplicate = async (e: unknown) => {
+      if (
+        e instanceof Prisma.PrismaClientKnownRequestError &&
+        e.code === "P2002"
+      ) {
+        const winner = await this.prisma.forTenant(schoolId, (tx) =>
+          tx.salary.findFirst({
+            where: dto.teacherId
+              ? { teacherId: dto.teacherId, year: dto.year, month: dto.month }
+              : {
+                  employeeId: dto.employeeId ?? undefined,
+                  year: dto.year,
+                  month: dto.month,
+                },
+          }),
+        );
+        if (winner) return winner;
+      }
+      throw e;
+    };
+
+    return this.prisma
+      .forTenant(schoolId, (tx) =>
       tx.salary.create({
         data: {
           schoolId,
@@ -54,7 +82,8 @@ export class SalariesService {
           note: dto.note ?? null,
         },
       }),
-    );
+      )
+      .catch(onDuplicate);
   }
 
   /**

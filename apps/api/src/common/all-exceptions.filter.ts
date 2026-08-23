@@ -6,6 +6,7 @@ import {
   HttpStatus,
 } from "@nestjs/common";
 import { Logger } from "nestjs-pino";
+import { Prisma } from "@prisma/client";
 import type { Response } from "express";
 import { PrismaService } from "../prisma/prisma.service";
 import type { AuthUser } from "../auth/auth.types";
@@ -37,12 +38,20 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const req = ctx.getRequest<FilteredRequest>();
 
     const isHttp = exception instanceof HttpException;
+    // A handful of Prisma failures are ordinary outcomes of concurrent use,
+    // not bugs: two people submitting the same form at once, or deleting a
+    // record someone else just deleted. Services that expect them map these
+    // themselves with a specific message (see prisma-errors.ts); this is the
+    // net for the ones that don't, so a routine collision stops being a 500
+    // and stops filling the error log with noise.
+    const known = !isHttp ? mapPrismaError(exception) : null;
+
     const status = isHttp
       ? exception.getStatus()
-      : HttpStatus.INTERNAL_SERVER_ERROR;
+      : (known?.status ?? HttpStatus.INTERNAL_SERVER_ERROR);
     const responseBody = isHttp
       ? exception.getResponse()
-      : { message: "Internal server error" };
+      : { statusCode: status, message: known?.message ?? "Internal server error" };
     const message =
       exception instanceof Error ? exception.message : String(exception);
     const stack = exception instanceof Error ? exception.stack : undefined;
@@ -76,5 +85,36 @@ export class AllExceptionsFilter implements ExceptionFilter {
         ? responseBody
         : { statusCode: status, message: responseBody },
     );
+  }
+}
+
+/**
+ * The Prisma error codes that mean "someone else got there first", mapped to
+ * the status that actually describes them. Messages stay generic on purpose —
+ * the ones a user should read are raised at the call site, where the code
+ * knows which field collided.
+ */
+function mapPrismaError(
+  e: unknown,
+): { status: number; message: string } | null {
+  if (!(e instanceof Prisma.PrismaClientKnownRequestError)) return null;
+  switch (e.code) {
+    case "P2002":
+      return {
+        status: HttpStatus.CONFLICT,
+        message: "That record already exists.",
+      };
+    case "P2025":
+      return {
+        status: HttpStatus.NOT_FOUND,
+        message: "That record no longer exists.",
+      };
+    case "P2003":
+      return {
+        status: HttpStatus.CONFLICT,
+        message: "Other records still depend on this one.",
+      };
+    default:
+      return null;
   }
 }
