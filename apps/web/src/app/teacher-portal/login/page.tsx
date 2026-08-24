@@ -2,6 +2,7 @@
 
 
 import { useT } from "@/lib/i18n/provider";
+import { LanguageSwitcher } from "@/components/ui/language-switcher";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
@@ -60,6 +61,11 @@ export default function TeacherPortalLoginPage() {
     <main className="flex min-h-screen items-center justify-center bg-gradient-to-br from-emerald-50 via-white to-teal-50 p-4 dark:from-slate-950 dark:via-slate-900 dark:to-emerald-950">
       <Card className="w-full max-w-md shadow-lg">
         <CardContent className="pt-8">
+          {/* Switchable before signing in, not only after — the language a
+              parent or teacher reads is what gets them through this page. */}
+          <div className="mb-2 flex justify-end">
+            <LanguageSwitcher />
+          </div>
           <div className="mb-6 text-center">
             {branding.logoUrl ? (
               // eslint-disable-next-line @next/next/no-img-element

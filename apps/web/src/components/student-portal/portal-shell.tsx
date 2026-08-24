@@ -15,6 +15,7 @@ import {
 import { apiFetchStudentPortalPhotoBlob, studentPortalLogout } from "@/lib/student-portal/api";
 import type { StudentPortalMe } from "@/lib/student-portal/api";
 import { ImageLightbox } from "@/components/ui/image-lightbox";
+import { LanguageSwitcher } from "@/components/ui/language-switcher";
 import { cn } from "@/lib/utils";
 
 const NAV = [
@@ -84,13 +85,18 @@ export function StudentPortalShell({
               </p>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={signOut}
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-          >
-            <LogOut className="h-4 w-4" /> Sign out
-          </button>
+          <div className="flex shrink-0 items-center gap-2">
+            {/* Students read this portal in the same three languages everyone
+                else does — the parent and teacher shells already offer it. */}
+            <LanguageSwitcher />
+            <button
+              type="button"
+              onClick={signOut}
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+            >
+              <LogOut className="h-4 w-4" /> Sign out
+            </button>
+          </div>
         </div>
         <nav className="mx-auto flex max-w-4xl gap-1 overflow-x-auto px-4 pb-2.5">
           {NAV.map((item) => {

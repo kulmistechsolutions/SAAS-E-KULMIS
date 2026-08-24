@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { LanguageSwitcher } from "@/components/ui/language-switcher";
 import { useRouter } from "next/navigation";
 import { GraduationCap } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -35,6 +36,11 @@ export default function StudentPortalLoginPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-slate-50 to-slate-100/80 px-4 dark:from-slate-950 dark:to-slate-900">
       <div className="w-full max-w-sm space-y-6">
+        {/* A student who cannot read English has to be able to switch
+            before signing in, not only after. */}
+        <div className="flex justify-end">
+          <LanguageSwitcher />
+        </div>
         <div className="flex flex-col items-center gap-2 text-center">
           {branding.logoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
