@@ -2632,6 +2632,12 @@ export const arGenerated: PartialDictionary = {
     dismiss: "تجاهل",
   },
   quiz: {
+    passMark: "درجة النجاح",
+    passMarkPlaceholder: "نصف المجموع",
+    passMarkHint: "اتركه فارغاً للنجاح عند النصف. هذا الاختبار من",
+    archivedCannotEdit: "هذا الاختبار مؤرشف ولا يمكن تعديله.",
+    publishedCanStillEdit: "هذا الاختبار منشور. لم يجب عليه أحد بعد، فيمكن تعديله.",
+    answeredSoQuestionsLocked: "طالباً أجابوا، لذا الأسئلة مقفلة. لا يزال بالإمكان تغيير الإعدادات ودرجة النجاح — وتُطبَّق الدرجة الجديدة على النتائج السابقة.",
     loadingQuizModule: "جارٍ تحميل وحدة الاختبار…",
     onlineQuiz: "الاختبار الإلكتروني",
     createPublishAndEvaluateDigitalAssessments: "أنشئ ونشر وقيّم الاختبارات الرقمية.",

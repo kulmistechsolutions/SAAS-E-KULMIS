@@ -116,6 +116,7 @@ export default function QuizBuilderPage({ params }: { params: Promise<{ id: stri
   const [allowPdf, setAllowPdf] = useState(true);
   const [duration, setDuration] = useState("");
   const [maxAttempts, setMaxAttempts] = useState("1");
+  const [passing, setPassing] = useState("");
   const [addType, setAddType] = useState<QType>("MCQ");
 
   const load = useCallback(async () => {
@@ -133,6 +134,7 @@ export default function QuizBuilderPage({ params }: { params: Promise<{ id: stri
       setAllowPdf(q.allowPdfDownload ?? true);
       setDuration(q.timeLimitMin ? String(q.timeLimitMin) : "");
       setMaxAttempts(String(q.maxAttempts ?? 1));
+      setPassing(q.passingMarks != null ? String(q.passingMarks) : "");
     } catch {
       toast("Could not load quiz", "error");
     } finally {
@@ -148,6 +150,14 @@ export default function QuizBuilderPage({ params }: { params: Promise<{ id: stri
   if (!quiz) return <p className="text-muted-foreground">{tr("quiz.quizNotFound")}</p>;
 
   const isDraft = quiz.status === "DRAFT";
+  // A published quiz was frozen whole, which meant a pass mark set too high —
+  // or a typo in the instructions — could never be corrected. None of that
+  // touches what a student answered. The questions are the exception: once
+  // somebody has answered them, rewriting them changes what their marks were
+  // awarded against, so those stay locked.
+  const attemptCount = quiz._count?.attempts ?? 0;
+  const canEdit = quiz.status !== "ARCHIVED";
+  const canEditQuestions = canEdit && attemptCount === 0;
   const totalMarks = questions.reduce((s, q) => s + (Number(q.marks) || 0), 0);
 
   const patch = (key: string, next: Partial<BQ>) =>
@@ -174,7 +184,8 @@ export default function QuizBuilderPage({ params }: { params: Promise<{ id: stri
       if (q.questionType === "FILL_BLANK" && q.blanks.filter((b) => b.trim()).length < 1)
         return toast("Fill-blank needs at least one answer", "error");
     }
-    if (questions.length === 0) return toast("Add at least one question", "error");
+    if (canEditQuestions && questions.length === 0)
+      return toast("Add at least one question", "error");
 
     setSaving(true);
     try {
@@ -188,7 +199,11 @@ export default function QuizBuilderPage({ params }: { params: Promise<{ id: stri
         allowPdfDownload: allowPdf,
         timeLimitMin: duration ? Number(duration) : null,
         maxAttempts: Number(maxAttempts) || 1,
-        questions: toPayload(questions),
+        passingMarks: passing.trim() === "" ? null : Number(passing),
+        // Omitted once anyone has answered: the server refuses a question
+        // rewrite then, because it would change what their marks were
+        // awarded against.
+        ...(canEditQuestions ? { questions: toPayload(questions) } : {}),
       });
       if (thenPublish) {
         await apiPublishQuiz(quiz!.id);
@@ -233,12 +248,16 @@ export default function QuizBuilderPage({ params }: { params: Promise<{ id: stri
 
       {!isDraft && (
         <p className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
-          {tr("quiz.thisQuizIs")} {quiz.status.toLowerCase()} {tr("quiz.andCanNoLongerBeEdited")}
+          {!canEdit
+            ? tr("quiz.archivedCannotEdit")
+            : canEditQuestions
+              ? tr("quiz.publishedCanStillEdit")
+              : `${attemptCount} ${tr("quiz.answeredSoQuestionsLocked")}`}
         </p>
       )}
 
       {/* ── Settings ── */}
-      <fieldset disabled={!isDraft} className="space-y-4 rounded-xl border bg-card p-5 shadow-sm disabled:opacity-70">
+      <fieldset disabled={!canEdit} className="space-y-4 rounded-xl border bg-card p-5 shadow-sm disabled:opacity-70">
         <h2 className="font-semibold">{tr("quiz.instructionsAmpRules")}</h2>
         <div className="space-y-2">
           <Label>{tr("quiz.instructionsForStudentsShownBeforeThey")}</Label>
@@ -253,6 +272,20 @@ export default function QuizBuilderPage({ params }: { params: Promise<{ id: stri
             <Label>{tr("quiz.maxAttempts")}</Label>
             <Input type="number" value={maxAttempts} onChange={(e) => setMaxAttempts(e.target.value)} />
           </div>
+          <div className="space-y-2">
+            <Label>{tr("quiz.passMark")}</Label>
+            <Input
+              type="number"
+              min={1}
+              max={totalMarks || undefined}
+              value={passing}
+              placeholder={tr("quiz.passMarkPlaceholder")}
+              onChange={(e) => setPassing(e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground">
+              {tr("quiz.passMarkHint")} {totalMarks}.
+            </p>
+          </div>
         </div>
         <div className="space-y-2">
           <Toggle label={tr("quiz.showResultToStudentImmediatelyAfter")} checked={showResults} onChange={setShowResults} />
@@ -265,7 +298,7 @@ export default function QuizBuilderPage({ params }: { params: Promise<{ id: stri
       </fieldset>
 
       {/* ── Questions ── */}
-      <fieldset disabled={!isDraft} className="space-y-4 rounded-xl border bg-card p-5 shadow-sm disabled:opacity-70">
+      <fieldset disabled={!canEditQuestions} className="space-y-4 rounded-xl border bg-card p-5 shadow-sm disabled:opacity-70">
         <div className="flex items-center justify-between">
           <h2 className="font-semibold">{tr("quiz.questions")}{questions.length})</h2>
         </div>
@@ -290,14 +323,17 @@ export default function QuizBuilderPage({ params }: { params: Promise<{ id: stri
         </div>
       </fieldset>
 
-      {isDraft && (
+      {canEdit && (
         <div className="flex flex-wrap justify-end gap-2">
           <Button variant="outline" className="h-10" disabled={saving} onClick={() => void save(false)}>
-            <Save className="me-2 h-4 w-4" />{saving ? "Saving…" : "Save draft"}
+            <Save className="me-2 h-4 w-4" />
+            {saving ? "Saving…" : isDraft ? "Save draft" : "Save changes"}
           </Button>
+          {isDraft && (
           <Button className="h-10" disabled={saving} onClick={() => void save(true)}>
             {saving ? "Publishing…" : "Save & Publish"}
           </Button>
+          )}
         </div>
       )}
     </div>

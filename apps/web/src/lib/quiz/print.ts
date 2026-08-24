@@ -1,4 +1,5 @@
 import type { QuizAttemptReview } from "./api";
+import { resolveLogoUrl } from "@/lib/settings/api";
 
 function esc(s: string | null | undefined): string {
   return (s ?? "")
@@ -9,8 +10,13 @@ function esc(s: string | null | undefined): string {
 }
 
 export function attemptReviewPdfHtml(review: QuizAttemptReview): string {
-  const logo = review.logoUrl
-    ? `<img src="${esc(review.logoUrl)}" alt="" style="height:56px;width:56px;object-fit:contain;border-radius:10px"/>`
+  // On the local storage backend the server cannot mint a direct URL, so
+  // `logoUrl` is always null in production and this sheet went out unbranded.
+  // `logoKey` is returned alongside it for exactly this reason — fall back to
+  // the public logo endpoint, the same way every other screen does.
+  const logoSrc = resolveLogoUrl(review.logoUrl, review.logoKey ?? null);
+  const logo = logoSrc
+    ? `<img src="${esc(logoSrc)}" alt="" style="height:56px;width:56px;object-fit:contain;border-radius:10px"/>`
     : "";
   const rows = review.questions
     .map(

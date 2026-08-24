@@ -2633,6 +2633,12 @@ export const soGenerated: PartialDictionary = {
     dismiss: "Iska daa",
   },
   quiz: {
+    passMark: "Heerka guusha",
+    passMarkPlaceholder: "Kala badhka wadarta",
+    passMarkHint: "Ka tag madhan si kala badhku gudbo. Imtixaankan qiimihiisu waa",
+    archivedCannotEdit: "Imtixaankan waa la kaydiyay, mar dambe lama beddeli karo.",
+    publishedCanStillEdit: "Imtixaankan waa la daabacay. Weli qofna ma qaadin, marka wuu beddelmi karaa.",
+    answeredSoQuestionsLocked: "arday ayaa qaatay, marka su'aalaha waa xidhan. Dejinta iyo heerka guushu weli waa la beddeli karaa — heer cusub waxaa lagu dabaqayaa natiijooyinkii hore.",
     loadingQuizModule: "Qaybta imtixaanka waa la soo dejinayaa…",
     onlineQuiz: "Imtixaanka Onlaynka",
     createPublishAndEvaluateDigitalAssessments: "Abuur, daabac, oo qiimee imtixaannada dijitaalka ah.",

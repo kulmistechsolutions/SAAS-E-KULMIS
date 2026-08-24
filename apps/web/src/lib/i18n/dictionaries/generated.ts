@@ -2692,6 +2692,12 @@ export const generated = {
     dismiss: "Dismiss",
   },
   quiz: {
+    passMark: "Pass mark",
+    passMarkPlaceholder: "Half the total",
+    passMarkHint: "Leave empty to pass at half. This quiz is worth",
+    archivedCannotEdit: "This quiz is archived and can no longer be edited.",
+    publishedCanStillEdit: "This quiz is published. Nobody has answered yet, so it can still be edited.",
+    answeredSoQuestionsLocked: "student(s) have answered, so the questions are locked. Settings and the pass mark can still be changed — a new pass mark is applied to the results already in.",
     loadingQuizModule: "Loading quiz module…",
     onlineQuiz: "Online Quiz",
     createPublishAndEvaluateDigitalAssessments: "Create, publish, and evaluate digital assessments.",

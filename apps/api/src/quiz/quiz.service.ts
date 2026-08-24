@@ -335,11 +335,31 @@ export class QuizService {
     return this.prisma.forTenant(schoolId, async (tx) => {
       const quiz = await tx.quiz.findFirst({
         where: { id: quizId },
-        select: { id: true, status: true },
+        select: {
+          id: true,
+          status: true,
+          passingMarks: true,
+          _count: { select: { attempts: true } },
+        },
       });
       if (!quiz) throw new NotFoundException("Quiz not found");
-      if (quiz.status !== "DRAFT") {
-        throw new BadRequestException("Only draft quizzes can be edited");
+      if (quiz.status === "ARCHIVED") {
+        throw new BadRequestException("Archived quizzes cannot be edited");
+      }
+
+      // A published quiz stayed frozen, which sounds safe until the thing that
+      // needs fixing is the quiz itself — a pass mark set too high, a time
+      // limit, a typo in the instructions. None of that touches what a student
+      // answered, so it is allowed at any point.
+      //
+      // The questions are the exception: once somebody has answered them,
+      // rewriting them changes what their marks were awarded against, and
+      // nothing on the result would say so.
+      if (dto.questions && quiz._count.attempts > 0) {
+        throw new BadRequestException(
+          `${quiz._count.attempts} student(s) have already answered this quiz, so its questions can no longer be changed. ` +
+            "Everything else — instructions, time limit, attempts, pass mark — can still be edited.",
+        );
       }
 
       const set = <K extends keyof UpdateQuizBuilderInput>(k: K) =>
@@ -395,6 +415,32 @@ export class QuizService {
             },
           },
         });
+      }
+
+      // Pass/fail is stored on the attempt, decided by the pass mark as it
+      // stood when the student submitted. Change the mark and those verdicts
+      // are stale — at HUDEYFA every one of fifteen students read FAIL,
+      // including 4 out of 5, against a mark the quiz could never reach. So a
+      // new mark is applied to what has already been sat, not only to what
+      // comes next.
+      const passingChanged =
+        dto.passingMarks !== undefined && dto.passingMarks !== quiz.passingMarks;
+      if (passingChanged && quiz._count.attempts > 0) {
+        const totalMarks = await tx.quizQuestion
+          .aggregate({ where: { quizId }, _sum: { marks: true } })
+          .then((r) => r._sum.marks ?? 0);
+        const passing = dto.passingMarks ?? Math.ceil(totalMarks * 0.5);
+
+        const settled = await tx.quizAttempt.findMany({
+          where: { quizId, status: "GRADED" },
+          select: { id: true, score: true },
+        });
+        for (const a of settled) {
+          await tx.quizAttempt.update({
+            where: { id: a.id },
+            data: { result: (a.score ?? 0) >= passing ? "PASS" : "FAIL" },
+          });
+        }
       }
 
       return tx.quiz.findFirst({
