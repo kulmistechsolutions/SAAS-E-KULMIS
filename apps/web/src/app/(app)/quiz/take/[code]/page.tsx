@@ -107,6 +107,9 @@ function TakeQuizContent({ code }: { code: string }) {
   const [step, setStep] = useState<Step>("landing");
   const [landing, setLanding] = useState<QuizLandingResponse | null>(null);
   const [landingError, setLandingError] = useState<string | null>(null);
+  /** Why sign-in was refused. Kept on the page — a toast is gone before a
+   *  student on a phone has finished reading it. */
+  const [accessError, setAccessError] = useState<string | null>(null);
   const [studentCode, setStudentCode] = useState("");
   const [access, setAccess] = useState<QuizAccessResponse | null>(null);
   const [quiz, setQuiz] = useState<PublicQuiz | null>(null);
@@ -280,6 +283,7 @@ function TakeQuizContent({ code }: { code: string }) {
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
+    setAccessError(null);
     try {
       void apiQuizLinkOpened({
         quizCode: code,
@@ -292,7 +296,9 @@ function TakeQuizContent({ code }: { code: string }) {
       setAccess(res);
       setStep("instructions");
     } catch (err) {
-      toast(err instanceof Error ? err.message : "Access denied", "error");
+      const message = err instanceof Error ? err.message : "Access denied";
+      setAccessError(message);
+      toast(message, "error");
     } finally {
       setLoading(false);
     }
@@ -514,6 +520,14 @@ function TakeQuizContent({ code }: { code: string }) {
                 required
               />
             </div>
+            {accessError && (
+              <p
+                role="alert"
+                className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2.5 text-sm font-medium text-destructive"
+              >
+                {accessError}
+              </p>
+            )}
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? "Verifying…" : "Continue"}
             </Button>

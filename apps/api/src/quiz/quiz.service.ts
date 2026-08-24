@@ -487,22 +487,39 @@ export class QuizService {
       sectionId: string | null;
       extraClasses?: { classId: string; sectionId: string | null }[];
     },
-    quiz: { classId: string; sectionId: string | null },
+    quiz: {
+      classId: string;
+      sectionId: string | null;
+      class?: { name: string } | null;
+      section?: { name: string } | null;
+    },
   ) {
     if (student.status !== "ACTIVE") {
-      throw new ForbiddenException("Student account is not active");
+      throw new ForbiddenException(
+        "This student account is not active. Ask the school office to check it.",
+      );
     }
-    // A student may sit in more than one class, so the quiz's class can be
-    // either their home class or one of the extras.
+    // A quiz belongs to one class, and most of a school is not in it — at
+    // HUDEYFA, 75 of 98 students. "Not in the assigned class" left them with
+    // no idea what had gone wrong, so name the class it is actually for.
+    const target = [quiz.class?.name, quiz.section?.name]
+      .filter(Boolean)
+      .join(" — ");
+    const forWhom = target ? ` This quiz is for ${target}.` : "";
+
     const seats = [
       { classId: student.classId, sectionId: student.sectionId },
       ...(student.extraClasses ?? []),
     ].filter((s) => s.classId === quiz.classId);
     if (seats.length === 0) {
-      throw new ForbiddenException("Student is not in the assigned class");
+      throw new ForbiddenException(
+        `You are not in the class this quiz was set for.${forWhom} Check the link with your teacher.`,
+      );
     }
     if (quiz.sectionId && !seats.some((s) => s.sectionId === quiz.sectionId)) {
-      throw new ForbiddenException("Student is not in the assigned section");
+      throw new ForbiddenException(
+        `You are in the right class but a different section.${forWhom} Check with your teacher.`,
+      );
     }
   }
 
@@ -1090,7 +1107,11 @@ export class QuizService {
     return this.prisma.forTenant(schoolId, async (tx) => {
       const quiz = await tx.quiz.findFirst({
         where: { code: dto.quizCode, status: "PUBLISHED" },
-        include: { questions: { select: { id: true } } },
+        include: {
+          questions: { select: { id: true } },
+          class: { select: { name: true } },
+          section: { select: { name: true } },
+        },
       });
       if (!quiz) throw new NotFoundException("Quiz not found");
       this.assertQuizWindow(quiz);
@@ -1586,7 +1607,11 @@ export class QuizService {
     const prep = await this.prisma.forTenant(schoolId, async (tx) => {
       const quiz = await tx.quiz.findFirst({
         where: { code: dto.quizCode, status: "PUBLISHED" },
-        include: { questions: true },
+        include: {
+          questions: true,
+          class: { select: { name: true } },
+          section: { select: { name: true } },
+        },
       });
       if (!quiz) throw new NotFoundException("Quiz not found");
       this.assertQuizWindow(quiz);
