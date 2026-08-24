@@ -3,14 +3,18 @@
 import { GraduationCap, Phone, User, Wallet } from "lucide-react";
 import { useStudentPortal } from "@/components/student-portal/portal-context";
 import { money } from "@/lib/students/format";
+import { useT } from "@/lib/i18n/provider";
 
 export default function StudentPortalOverviewPage() {
+  const t = useT();
   const { me } = useStudentPortal();
 
   return (
     <div className="space-y-6">
       <div className="rounded-2xl border bg-card p-6 shadow-sm">
-        <h1 className="text-2xl font-bold tracking-tight">Welcome, {me.fullName.split(" ")[0]}</h1>
+        <h1 className="text-2xl font-bold tracking-tight">
+          {t("studentPortal.welcome")}, {me.fullName.split(" ")[0]}
+        </h1>
         <p className="mt-1 text-sm text-muted-foreground">
           <span className="font-mono">{me.code}</span> · {me.class.name}
           {me.section ? ` · ${me.section.name}` : ""}
@@ -23,7 +27,7 @@ export default function StudentPortalOverviewPage() {
             <GraduationCap className="h-4 w-4" />
           </span>
           <div>
-            <p className="text-xs text-muted-foreground">Class</p>
+            <p className="text-xs text-muted-foreground">{t("studentPortal.class")}</p>
             <p className="mt-0.5 text-base font-semibold">
               {me.class.name}
               {me.section ? ` · ${me.section.name}` : ""}
@@ -35,9 +39,9 @@ export default function StudentPortalOverviewPage() {
             <Wallet className="h-4 w-4" />
           </span>
           <div>
-            <p className="text-xs text-muted-foreground">Monthly Fee</p>
+            <p className="text-xs text-muted-foreground">{t("studentPortal.monthlyFee")}</p>
             <p className="mt-0.5 text-base font-semibold">
-              {me.feeWaived ? "Waived" : money(me.monthlyFee)}
+              {me.feeWaived ? t("studentPortal.waived") : money(me.monthlyFee)}
             </p>
           </div>
         </div>
@@ -46,7 +50,7 @@ export default function StudentPortalOverviewPage() {
             <User className="h-4 w-4" />
           </span>
           <div>
-            <p className="text-xs text-muted-foreground">Gender</p>
+            <p className="text-xs text-muted-foreground">{t("studentPortal.gender")}</p>
             <p className="mt-0.5 text-base font-semibold">{me.gender}</p>
           </div>
         </div>
@@ -55,7 +59,7 @@ export default function StudentPortalOverviewPage() {
             <Phone className="h-4 w-4" />
           </span>
           <div>
-            <p className="text-xs text-muted-foreground">Parent / Guardian</p>
+            <p className="text-xs text-muted-foreground">{t("studentPortal.parentGuardian")}</p>
             <p className="mt-0.5 text-base font-semibold">{me.parent.name}</p>
             <p className="text-xs text-muted-foreground">{me.parent.phone}</p>
           </div>
@@ -63,8 +67,7 @@ export default function StudentPortalOverviewPage() {
       </div>
 
       <div className="rounded-2xl border bg-card p-4 text-sm text-muted-foreground shadow-sm">
-        Use the tabs above to view your exam results, quizzes, attendance history,
-        and fee status.
+        {t("studentPortal.useTheTabsAbove")}
       </div>
     </div>
   );

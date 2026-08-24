@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useT } from "@/lib/i18n/provider";
 import { apiStudentPortalFees } from "@/lib/student-portal/api";
 import { money } from "@/lib/students/format";
 import { Badge } from "@/components/ui/badge";
@@ -53,6 +54,7 @@ const STATUS_TONE: Record<string, "success" | "danger" | "warning" | "muted"> = 
 };
 
 export default function StudentPortalFeesPage() {
+  const t = useT();
   const [fees, setFees] = useState<FeesResponse | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -64,27 +66,27 @@ export default function StudentPortalFeesPage() {
   }, []);
 
   if (loading) {
-    return <p className="text-muted-foreground">Loading fee information…</p>;
+    return <p className="text-muted-foreground">{t("studentPortalFees.loadingFeeInformation")}</p>;
   }
 
   if (!fees) {
-    return <p className="text-muted-foreground">No fee information available.</p>;
+    return <p className="text-muted-foreground">{t("studentPortalFees.noFeeInformationAvailable")}</p>;
   }
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Fee Information</h1>
+        <h1 className="text-2xl font-bold">{t("studentPortalFees.feeInformation")}</h1>
       </div>
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {[
-          { label: "Monthly Fee", value: money(fees.summary.monthlyFee) },
-          { label: "Outstanding", value: money(fees.summary.outstandingBalance) },
-          { label: "Paid Months", value: String(fees.summary.paidMonths) },
-          { label: "Unpaid Months", value: String(fees.summary.unpaidMonths) },
+          { id: "monthly", label: t("studentPortalFees.monthlyFee"), value: money(fees.summary.monthlyFee) },
+          { id: "outstanding", label: t("studentPortalFees.outstanding"), value: money(fees.summary.outstandingBalance) },
+          { id: "paid", label: t("studentPortalFees.paidMonths"), value: String(fees.summary.paidMonths) },
+          { id: "unpaid", label: t("studentPortalFees.unpaidMonths"), value: String(fees.summary.unpaidMonths) },
         ].map((c) => (
-          <div key={c.label} className="rounded-xl border bg-card p-4">
+          <div key={c.id} className="rounded-xl border bg-card p-4">
             <p className="text-xs text-muted-foreground">{c.label}</p>
             <p className="mt-1 text-xl font-bold">{c.value}</p>
           </div>
@@ -95,18 +97,18 @@ export default function StudentPortalFeesPage() {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b bg-secondary/50 text-start">
-              <th className="px-4 py-3">Month</th>
-              <th className="px-4 py-3">Charge</th>
-              <th className="px-4 py-3">Paid</th>
-              <th className="px-4 py-3">Balance</th>
-              <th className="px-4 py-3">Status</th>
+              <th className="px-4 py-3">{t("studentPortalFees.month")}</th>
+              <th className="px-4 py-3">{t("studentPortalFees.charge")}</th>
+              <th className="px-4 py-3">{t("studentPortalFees.paid")}</th>
+              <th className="px-4 py-3">{t("studentPortalFees.balance")}</th>
+              <th className="px-4 py-3">{t("studentPortalFees.status")}</th>
             </tr>
           </thead>
           <tbody>
             {fees.charges.length === 0 ? (
               <tr>
                 <td colSpan={5} className="px-4 py-10 text-center text-muted-foreground">
-                  No charges yet.
+                  {t("studentPortalFees.noChargesYet")}
                 </td>
               </tr>
             ) : (
@@ -131,15 +133,15 @@ export default function StudentPortalFeesPage() {
       {fees.payments.length > 0 && (
         <div className="overflow-x-auto rounded-xl border bg-card">
           <div className="border-b bg-secondary/50 px-4 py-3 text-sm font-medium">
-            Payment Transactions
+            {t("studentPortalFees.paymentTransactions")}
           </div>
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b bg-secondary/30 text-start">
-                <th className="px-4 py-3">Receipt No</th>
-                <th className="px-4 py-3">Amount</th>
-                <th className="px-4 py-3">Date</th>
-                <th className="px-4 py-3">Status</th>
+                <th className="px-4 py-3">{t("studentPortalFees.receiptNo")}</th>
+                <th className="px-4 py-3">{t("studentPortalFees.amount")}</th>
+                <th className="px-4 py-3">{t("studentPortalFees.date")}</th>
+                <th className="px-4 py-3">{t("studentPortalFees.status")}</th>
               </tr>
             </thead>
             <tbody>
@@ -152,11 +154,11 @@ export default function StudentPortalFeesPage() {
                   </td>
                   <td className="px-4 py-3">
                     {p.isReversal ? (
-                      <Badge tone="danger">Reversal</Badge>
+                      <Badge tone="danger">{t("studentPortalFees.reversal")}</Badge>
                     ) : p.status === "REVERSED" ? (
-                      <Badge tone="muted">Reversed</Badge>
+                      <Badge tone="muted">{t("studentPortalFees.reversed")}</Badge>
                     ) : (
-                      <Badge tone="success">Paid</Badge>
+                      <Badge tone="success">{t("studentPortalFees.paid")}</Badge>
                     )}
                   </td>
                 </tr>

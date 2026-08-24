@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useT } from "@/lib/i18n/provider";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,6 +20,7 @@ interface CardEntry {
 }
 
 export default function StudentPortalResultsPage() {
+  const t = useT();
   const [data, setData] = useState<StudentPortalResults | null>(null);
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -133,28 +135,29 @@ export default function StudentPortalResultsPage() {
   }
 
   if (loading) {
-    return <p className="text-muted-foreground">Loading results…</p>;
+    return <p className="text-muted-foreground">{t("studentPortalResults.loadingResults")}</p>;
   }
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Exam Results</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Published results only.</p>
+        <h1 className="text-2xl font-bold">{t("studentPortalResults.examResults")}</h1>
+        <p className="mt-1 text-sm text-muted-foreground">{t("studentPortalResults.publishedResultsOnly")}</p>
       </div>
 
       {data && data.finalGrade && results.length > 1 && (
         <div className="rounded-xl border bg-card p-5 shadow-sm">
-          <h2 className="font-semibold">Final Academic Result</h2>
+          <h2 className="font-semibold">{t("studentPortalResults.finalAcademicResult")}</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Grade {data.finalGrade} · {data.passed ? "Pass" : "Fail"}
+            {t("studentPortalResults.grade")} {data.finalGrade} ·{" "}
+            {data.passed ? t("studentPortalResults.pass") : t("studentPortalResults.fail")}
           </p>
         </div>
       )}
 
       {cards.length === 0 && (
         <div className="rounded-xl border bg-card p-8 text-center text-muted-foreground">
-          No published examination results yet.
+          {t("studentPortalResults.noPublishedExaminationResultsYet")}
         </div>
       )}
 
@@ -176,7 +179,9 @@ export default function StudentPortalResultsPage() {
                   ) : (
                     <ChevronDown className="me-1.5 h-3.5 w-3.5" />
                   )}
-                  {expanded ? "Hide individual exams" : "View individual exams"}
+                  {expanded
+                    ? t("studentPortalResults.hideIndividualExams")
+                    : t("studentPortalResults.viewIndividualExams")}
                 </Button>
               </div>
             )}
