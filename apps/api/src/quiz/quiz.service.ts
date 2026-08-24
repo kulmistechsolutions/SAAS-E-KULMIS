@@ -790,6 +790,7 @@ export class QuizService {
         include: {
           _count: { select: { questions: true } },
           class: { select: { hasSections: true } },
+          questions: { select: { marks: true } },
         },
       });
       if (!quiz) throw new NotFoundException("Quiz not found");
@@ -798,6 +799,18 @@ export class QuizService {
       }
       if (quiz._count.questions < 1) {
         throw new BadRequestException("Add at least one question before publishing");
+      }
+
+      // A pass mark above what the questions are worth cannot be reached, so
+      // every student fails however well they do — and nothing says why. The
+      // pass mark is set before the questions exist, which is exactly how it
+      // ends up out of step with them, so publishing is where it gets checked.
+      const totalMarks = quiz.questions.reduce((sum, q) => sum + q.marks, 0);
+      if (quiz.passingMarks != null && quiz.passingMarks > totalMarks) {
+        throw new BadRequestException(
+          `The pass mark is ${quiz.passingMarks} but this quiz is only worth ${totalMarks}. ` +
+            "Nobody could pass it. Lower the pass mark or add more questions.",
+        );
       }
       return tx.quiz.update({
         where: { id: quizId },

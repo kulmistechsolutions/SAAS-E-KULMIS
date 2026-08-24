@@ -59,6 +59,23 @@ const CHECKS: CheckSpec[] = [
       GROUP BY s.name`,
   },
   {
+    id: "quiz-unreachable-pass",
+    title: "Quiz nobody can pass",
+    meaning:
+      "The pass mark is higher than the marks the questions carry, so every student fails however well they do — and nothing on screen says why.",
+    severity: "critical",
+    sql: Prisma.sql`
+      SELECT s.name AS school, count(*)::int AS count,
+             string_agg(q.title || ' (' || q."passingMarks" || '/' ||
+               coalesce((SELECT sum(qq.marks) FROM quiz_questions qq
+                         WHERE qq."quizId" = q.id), 0) || ')', ', ') AS detail
+      FROM quizzes q JOIN schools s ON s.id = q."schoolId"
+      WHERE q."passingMarks" IS NOT NULL
+        AND q."passingMarks" > coalesce(
+          (SELECT sum(qq.marks) FROM quiz_questions qq WHERE qq."quizId" = q.id), 0)
+      GROUP BY s.name`,
+  },
+  {
     id: "fee-overpaid",
     title: "Fee charge paid beyond what was charged",
     meaning:

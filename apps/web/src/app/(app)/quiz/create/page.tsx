@@ -43,7 +43,12 @@ export default function CreateQuizPage() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [duration, setDuration] = useState("30");
-  const [passing, setPassing] = useState("10");
+  // Deliberately empty: the pass mark is set on this screen, before a single
+  // question exists, so any number here is a guess about a quiz not yet
+  // written. Every school left the old default of 10 and then wrote quizzes
+  // worth 1-5 marks, so nobody could pass. Blank falls back to half the marks
+  // actually written — see QuizService.
+  const [passing, setPassing] = useState("");
   // Seeded from Settings → Online Quiz so a school's own default is what a
   // teacher starts from; they can still change it for this one quiz.
   const [maxAttempts, setMaxAttempts] = useState(
@@ -166,7 +171,7 @@ export default function CreateQuizPage() {
       startDate,
       endDate,
       durationMinutes: Number(duration),
-      passingMarks: Number(passing),
+      passingMarks: passing.trim() === "" ? null : Number(passing),
       maxAttempts: Number(maxAttempts),
       status: "DRAFT",
     });
@@ -324,9 +329,14 @@ export default function CreateQuizPage() {
             <Label>{tr("quizCreate.passingMarks")}</Label>
             <Input
               type="number"
+              min={1}
               value={passing}
+              placeholder={tr("quizCreate.passingMarksPlaceholder")}
               onChange={(e) => setPassing(e.target.value)}
             />
+            <p className="text-xs text-muted-foreground">
+              {tr("quizCreate.passingMarksHint")}
+            </p>
           </div>
           <div className="space-y-2">
             <Label>{tr("quizCreate.maxAttempts")}</Label>

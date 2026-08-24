@@ -2689,6 +2689,8 @@ export const soGenerated: PartialDictionary = {
     saveFailed: "Kaydintii waa fashilantay",
   },
   quizCreate: {
+    passingMarksPlaceholder: "Kala badhka wadarta",
+    passingMarksHint: "Ka tag madhan si loo gudbo kala badhka dhibcaha su'aaluhu qiimahoodu yahay.",
     createQuiz: "Abuur Imtixaan Onlayn",
     classSectionAndSubjectOptionsCome: "Doorashooyinka fasalka, qaybta, iyo maadada waxay kaliya ka yimaadaan hawlaha macallinkan.",
     teacher: "Macallinka",

@@ -192,7 +192,8 @@ export interface CreateQuizInput {
   startDate: string;
   endDate: string;
   durationMinutes: number;
-  passingMarks: number;
+  /** null = pass at half the marks the questions actually carry. */
+  passingMarks: number | null;
   maxAttempts: number;
   shuffleQuestions?: boolean;
   shuffleAnswers?: boolean;

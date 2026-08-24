@@ -2748,6 +2748,8 @@ export const generated = {
     saveFailed: "Save failed",
   },
   quizCreate: {
+    passingMarksPlaceholder: "Half the total",
+    passingMarksHint: "Leave empty to pass at half the marks the questions are worth.",
     createQuiz: "Create Quiz",
     classSectionAndSubjectOptionsCome: "Class, section, and subject options come only from this teacher's assignments.",
     teacher: "Teacher",

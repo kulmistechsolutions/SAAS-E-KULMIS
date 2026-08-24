@@ -2688,6 +2688,8 @@ export const arGenerated: PartialDictionary = {
     saveFailed: "فشل الحفظ",
   },
   quizCreate: {
+    passingMarksPlaceholder: "نصف المجموع",
+    passingMarksHint: "اتركه فارغاً ليكون النجاح عند نصف درجات الأسئلة.",
     createQuiz: "إنشاء اختبار",
     classSectionAndSubjectOptionsCome: "تأتي خيارات الصف والشعبة والمادة من مهام هذا المعلم فقط.",
     teacher: "المعلم",
