@@ -1,5 +1,6 @@
 import { Controller, Get, Param, Query, UseGuards } from "@nestjs/common";
 import { PlatformService } from "./platform.service";
+import { DataHealthService } from "./data-health.service";
 import { PlatformGuard } from "./platform.guard";
 import { Public } from "../auth/public.decorator";
 
@@ -7,7 +8,10 @@ import { Public } from "../auth/public.decorator";
 @UseGuards(PlatformGuard)
 @Controller("platform/dashboard")
 export class PlatformDashboardController {
-  constructor(private readonly platform: PlatformService) {}
+  constructor(
+    private readonly platform: PlatformService,
+    private readonly dataHealth: DataHealthService,
+  ) {}
 
   @Get()
   dashboard() {
@@ -30,6 +34,12 @@ export class PlatformDashboardController {
     return this.platform.schoolActivityDetail(schoolId, {
       days: days ? Number(days) : undefined,
     });
+  }
+
+  /** Standing invariants — the faults that never raise an error. */
+  @Get("data-health")
+  dataHealthReport() {
+    return this.dataHealth.run();
   }
 
   @Get("error-logs")

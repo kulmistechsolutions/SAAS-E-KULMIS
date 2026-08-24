@@ -1134,3 +1134,27 @@ export async function fetchSchoolActivityDetail(
     `/platform/dashboard/school-activity/${schoolId}${days ? `?days=${days}` : ""}`,
   );
 }
+
+// ── Data health ──
+// Standing invariants: the faults that never raise an error and are only ever
+// found by somebody noticing a wrong number.
+
+export interface HealthCheck {
+  id: string;
+  title: string;
+  meaning: string;
+  severity: "critical" | "warning" | "info";
+  count: number;
+  schools: { school: string; count: number; detail: string | null }[];
+  failed: boolean;
+}
+
+export interface DataHealth {
+  checkedAt: string;
+  failing: number;
+  checks: HealthCheck[];
+}
+
+export async function fetchDataHealth(): Promise<DataHealth> {
+  return platformFetch<DataHealth>("/platform/dashboard/data-health");
+}

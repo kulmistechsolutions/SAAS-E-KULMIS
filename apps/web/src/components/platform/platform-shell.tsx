@@ -8,6 +8,7 @@ import { usePathname, useRouter } from "next/navigation";
 import {
   Activity,
   AlertTriangle,
+  HeartPulse,
   Bell,
   Building2,
   CreditCard,
@@ -29,6 +30,7 @@ const NAV = [
   { href: "/platform/notifications", label: "Notifications", icon: Bell },
   { href: "/platform/schools", label: "Schools", icon: Building2 },
   { href: "/platform/school-activity", label: "School Activity", icon: Activity },
+  { href: "/platform/data-health", label: "Data Health", icon: HeartPulse },
   { href: "/platform/subscriptions", label: "Subscriptions", icon: Layers },
   { href: "/platform/sms/settings", label: "SMS Settings", icon: Settings2 },
   { href: "/platform/sms/payments", label: "Waafi Payments", icon: CreditCard },
