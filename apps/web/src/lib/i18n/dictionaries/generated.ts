@@ -3916,6 +3916,27 @@ export const generated = {
     clickToInsertTheseFillIn: "Click to insert — these fill in automatically for each recipient",
     willSendBlankReplaceWithReal: "Will send blank — replace with real text:",
   },
+  studentPortalLogin: {
+    studentPortal: "Student Portal",
+    studentSignIn: "Student Sign In",
+    useYourStudentIdAndPortalPassword: "Use your Student ID and portal password.",
+    studentId: "Student ID",
+    password: "Password",
+    yourDefaultPasswordIsYourStudentId:
+      "Your default password is your Student ID unless the school gave you a different one.",
+    signingIn: "Signing in…",
+    signIn: "Sign In",
+    signInFailedPleaseTryAgain: "Sign-in failed. Please try again.",
+  },
+  studentPortalPortalShell: {
+    overview: "Overview",
+    results: "Results",
+    quizzes: "Quizzes",
+    attendance: "Attendance",
+    fees: "Fees",
+    announcements: "Announcements",
+    signOut: "Sign out",
+  },
   studentPortalAnnouncements: {
     title: "School Announcements",
     subtitle: "Notices your school has published for students.",

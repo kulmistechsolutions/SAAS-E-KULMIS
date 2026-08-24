@@ -16,15 +16,23 @@ import { apiFetchStudentPortalPhotoBlob, studentPortalLogout } from "@/lib/stude
 import type { StudentPortalMe } from "@/lib/student-portal/api";
 import { ImageLightbox } from "@/components/ui/image-lightbox";
 import { LanguageSwitcher } from "@/components/ui/language-switcher";
+import { useT, type TranslationKey } from "@/lib/i18n/provider";
 import { cn } from "@/lib/utils";
 
-const NAV = [
-  { href: "/student-portal", label: "Overview", icon: LayoutDashboard, exact: true },
-  { href: "/student-portal/results", label: "Results", icon: FileText },
-  { href: "/student-portal/quizzes", label: "Quizzes", icon: ClipboardList },
-  { href: "/student-portal/attendance", label: "Attendance", icon: CalendarCheck },
-  { href: "/student-portal/fees", label: "Fees", icon: Wallet },
-  { href: "/student-portal/announcements", label: "Announcements", icon: Megaphone },
+/** Labels are keys, translated at the render site — a module-level const is
+ *  evaluated before any provider exists (see components/layout/sidebar.tsx). */
+const NAV: {
+  href: string;
+  label: TranslationKey;
+  icon: typeof LayoutDashboard;
+  exact?: boolean;
+}[] = [
+  { href: "/student-portal", label: "studentPortalPortalShell.overview", icon: LayoutDashboard, exact: true },
+  { href: "/student-portal/results", label: "studentPortalPortalShell.results", icon: FileText },
+  { href: "/student-portal/quizzes", label: "studentPortalPortalShell.quizzes", icon: ClipboardList },
+  { href: "/student-portal/attendance", label: "studentPortalPortalShell.attendance", icon: CalendarCheck },
+  { href: "/student-portal/fees", label: "studentPortalPortalShell.fees", icon: Wallet },
+  { href: "/student-portal/announcements", label: "studentPortalPortalShell.announcements", icon: Megaphone },
 ];
 
 export function StudentPortalShell({
@@ -34,6 +42,7 @@ export function StudentPortalShell({
   me: StudentPortalMe;
   children: React.ReactNode;
 }) {
+  const t = useT();
   const pathname = usePathname();
   const router = useRouter();
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
@@ -94,7 +103,7 @@ export function StudentPortalShell({
               onClick={signOut}
               className="inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
             >
-              <LogOut className="h-4 w-4" /> Sign out
+              <LogOut className="h-4 w-4" /> {t("studentPortalPortalShell.signOut")}
             </button>
           </div>
         </div>
@@ -112,7 +121,7 @@ export function StudentPortalShell({
                     : "text-muted-foreground hover:bg-secondary",
                 )}
               >
-                <item.icon className="h-4 w-4" /> {item.label}
+                <item.icon className="h-4 w-4" /> {t(item.label)}
               </Link>
             );
           })}

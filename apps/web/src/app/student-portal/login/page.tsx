@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { LanguageSwitcher } from "@/components/ui/language-switcher";
+import { useT } from "@/lib/i18n/provider";
 import { useRouter } from "next/navigation";
 import { GraduationCap } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -12,6 +13,7 @@ import { apiStudentPortalLogin } from "@/lib/student-portal/api";
 import { ApiError } from "@/lib/api";
 
 export default function StudentPortalLoginPage() {
+  const t = useT();
   const router = useRouter();
   const branding = useSchoolBranding();
   const [studentCode, setStudentCode] = useState("");
@@ -27,7 +29,7 @@ export default function StudentPortalLoginPage() {
       await apiStudentPortalLogin(studentCode.trim(), password);
       router.push("/student-portal");
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Sign-in failed. Please try again.");
+      setError(err instanceof ApiError ? err.message : t("studentPortalLogin.signInFailedPleaseTryAgain"));
     } finally {
       setLoading(false);
     }
@@ -55,7 +57,7 @@ export default function StudentPortalLoginPage() {
             </div>
           )}
           <h1 className="text-lg font-semibold">{branding.name}</h1>
-          <p className="text-sm text-muted-foreground">Student Portal</p>
+          <p className="text-sm text-muted-foreground">{t("studentPortalLogin.studentPortal")}</p>
         </div>
 
         <form
@@ -63,13 +65,13 @@ export default function StudentPortalLoginPage() {
           className="space-y-4 rounded-2xl border bg-card p-6 shadow-lg"
         >
           <div>
-            <h2 className="text-xl font-bold">Student Sign In</h2>
+            <h2 className="text-xl font-bold">{t("studentPortalLogin.studentSignIn")}</h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              Use your Student ID and portal password.
+              {t("studentPortalLogin.useYourStudentIdAndPortalPassword")}
             </p>
           </div>
           <div>
-            <Label htmlFor="studentCode">Student ID</Label>
+            <Label htmlFor="studentCode">{t("studentPortalLogin.studentId")}</Label>
             <Input
               id="studentCode"
               className="mt-1.5"
@@ -81,7 +83,7 @@ export default function StudentPortalLoginPage() {
             />
           </div>
           <div>
-            <Label htmlFor="password">Password</Label>
+            <Label htmlFor="password">{t("studentPortalLogin.password")}</Label>
             <Input
               id="password"
               type="password"
@@ -91,13 +93,12 @@ export default function StudentPortalLoginPage() {
               required
             />
             <p className="mt-1 text-xs text-muted-foreground">
-              Your default password is your Student ID unless the school gave you a
-              different one.
+              {t("studentPortalLogin.yourDefaultPasswordIsYourStudentId")}
             </p>
           </div>
           {error && <p className="text-sm text-destructive">{error}</p>}
           <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? "Signing in…" : "Sign In"}
+            {loading ? t("studentPortalLogin.signingIn") : t("studentPortalLogin.signIn")}
           </Button>
         </form>
       </div>
