@@ -2,6 +2,7 @@
 
 
 import { useT } from "@/lib/i18n/provider";
+import { InstallAppCard } from "@/components/pwa/install-app-card";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -238,6 +239,9 @@ export default function TeacherProfilePage() {
           </div>
         )}
       </section>
+
+      {/* Anyone who closed the install banner can still get the app here. */}
+      <InstallAppCard />
     </div>
   );
 }

@@ -5,12 +5,7 @@ import { useT } from "@/lib/i18n/provider";
 import { useEffect, useState } from "react";
 import { Download, X } from "lucide-react";
 import { useSchoolBranding } from "@/lib/settings/use-school-branding";
-
-/** The `beforeinstallprompt` event isn't in the DOM lib types yet. */
-interface BeforeInstallPromptEvent extends Event {
-  prompt: () => Promise<void>;
-  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
-}
+import { useInstallState, promptInstall } from "@/lib/pwa/install";
 
 const DISMISS_KEY = "ekulmis_pwa_install_dismissed_v1";
 
@@ -25,11 +20,8 @@ const DISMISS_KEY = "ekulmis_pwa_install_dismissed_v1";
 export function PwaInstaller() {
   const t = useT();
   const branding = useSchoolBranding();
-  const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(
-    null,
-  );
-  const [visible, setVisible] = useState(false);
-  const [iosHint, setIosHint] = useState(false);
+  const support = useInstallState();
+  const [dismissed, setDismissed] = useState(true);
 
   // Register the service worker once.
   useEffect(() => {
@@ -45,47 +37,23 @@ export function PwaInstaller() {
     return () => window.removeEventListener("load", onLoad);
   }, []);
 
+  // Read the dismissal after mount so the server and first client render agree.
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (localStorage.getItem(DISMISS_KEY)) return;
-
-    const standalone =
-      window.matchMedia("(display-mode: standalone)").matches ||
-      // iOS Safari
-      (window.navigator as unknown as { standalone?: boolean }).standalone ===
-        true;
-    if (standalone) return;
-
-    const onPrompt = (e: Event) => {
-      e.preventDefault();
-      setDeferred(e as BeforeInstallPromptEvent);
-      setVisible(true);
-    };
-    window.addEventListener("beforeinstallprompt", onPrompt);
-
-    // iOS: no install event exists — offer the manual hint instead.
-    const ua = window.navigator.userAgent;
-    const isIos = /iphone|ipad|ipod/i.test(ua);
-    const isSafari = /safari/i.test(ua) && !/crios|fxios|edgios/i.test(ua);
-    if (isIos && isSafari) {
-      setIosHint(true);
-      setVisible(true);
+    try {
+      setDismissed(!!localStorage.getItem(DISMISS_KEY));
+    } catch {
+      setDismissed(false);
     }
-
-    const onInstalled = () => {
-      setVisible(false);
-      localStorage.setItem(DISMISS_KEY, "1");
-    };
-    window.addEventListener("appinstalled", onInstalled);
-
-    return () => {
-      window.removeEventListener("beforeinstallprompt", onPrompt);
-      window.removeEventListener("appinstalled", onInstalled);
-    };
   }, []);
 
+  const iosHint = support === "ios-manual";
+  // Closing this hides the banner only. The offer itself is held by the shared
+  // store, so Settings and Profile can still install afterwards.
+  const visible =
+    !dismissed && (support === "ready" || support === "ios-manual");
+
   function dismiss() {
-    setVisible(false);
+    setDismissed(true);
     try {
       localStorage.setItem(DISMISS_KEY, "1");
     } catch {
@@ -94,16 +62,8 @@ export function PwaInstaller() {
   }
 
   async function install() {
-    if (!deferred) return;
-    await deferred.prompt();
-    await deferred.userChoice.catch(() => undefined);
-    setDeferred(null);
-    setVisible(false);
-    try {
-      localStorage.setItem(DISMISS_KEY, "1");
-    } catch {
-      /* ignore */
-    }
+    await promptInstall();
+    dismiss();
   }
 
   if (!visible) return null;

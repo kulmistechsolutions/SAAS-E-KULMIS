@@ -4,6 +4,7 @@
 import { useT } from "@/lib/i18n/provider";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { InstallAppCard } from "@/components/pwa/install-app-card";
 import { SettingsSummaryCards } from "@/components/settings/summary-cards";
 import { getSettings, settingsDashboard, useSettingsState } from "@/lib/settings/store";
 import { dateTime } from "@/lib/users/format";
@@ -51,6 +52,7 @@ export default function SettingsDashboardPage() {
             </div>
           </dl>
         </div>
+        <InstallAppCard />
         <div className="rounded-xl border bg-card p-5">
           <h2 className="font-semibold">{t("settings.recentAudit")}</h2>
           <ul className="mt-3 space-y-2 text-sm">
