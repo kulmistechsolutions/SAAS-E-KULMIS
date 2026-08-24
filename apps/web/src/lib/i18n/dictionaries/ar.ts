@@ -63,6 +63,7 @@ const curated: PartialDictionary = {
   },
 
   nav: {
+    copilot: "مساعد المدرسة",
     dashboard: "لوحة التحكم",
     students: "الطلاب",
     teachers: "المعلمون",

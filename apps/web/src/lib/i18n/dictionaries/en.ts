@@ -68,6 +68,7 @@ const core = {
   },
 
   nav: {
+    copilot: "School Copilot",
     dashboard: "Dashboard",
     students: "Students",
     teachers: "Teachers",

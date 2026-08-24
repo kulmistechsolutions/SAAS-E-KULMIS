@@ -27,7 +27,7 @@ const MODULE_PREFIXES: Record<PermissionModule, string[]> = {
   fees: ["/finance"],
   examinations: ["/examinations", "/id-cards"],
   quiz: ["/quiz"],
-  reports: ["/reports"],
+  reports: ["/reports", "/copilot"],
   finance: ["/finance"],
   expenses: ["/expenses"],
   salaries: ["/salary"],

@@ -68,6 +68,7 @@ const curated: PartialDictionary = {
   },
 
   nav: {
+    copilot: "Kaaliyaha Dugsiga",
     dashboard: "Shaxda Guud",
     students: "Ardayda",
     teachers: "Macallimiinta",

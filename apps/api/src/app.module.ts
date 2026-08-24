@@ -30,6 +30,7 @@ import { PlatformModule } from "./platform/platform.module";
 import { StorageModule } from "./storage/storage.module";
 import { SearchModule } from "./search/search.module";
 import { QueueModule } from "./queue/queue.module";
+import { CopilotModule } from "./copilot/copilot.module";
 import { DocumentsModule } from "./documents/documents.module";
 import { ExaminationsModule } from "./examinations/examinations.module";
 import { PromotionsModule } from "./promotions/promotions.module";
@@ -72,6 +73,7 @@ import { TenantModule } from "./tenant/tenant.module";
     ThrottlerModule.forRoot([{ name: "default", ttl: 60_000, limit: 300 }]),
     PrismaModule,
     QueueModule.forRoot(),
+    CopilotModule,
     DocumentsModule,
     AuditModule,
     StorageModule,
