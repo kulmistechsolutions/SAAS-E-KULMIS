@@ -19,32 +19,45 @@ export function attemptReviewPdfHtml(review: QuizAttemptReview): string {
     ? `<img src="${esc(logoSrc)}" alt="" style="height:56px;width:56px;object-fit:contain;border-radius:10px"/>`
     : "";
   const rows = review.questions
-    .map(
-      (q) => `
-    <div class="q">
+    .map((q) => {
+      const right = q.status === "CORRECT";
+      const missed = q.status === "UNANSWERED";
+      // The student's answer and the right answer are the two things this page
+      // exists to compare, so they sit side by side, each labelled and colour-
+      // coded, rather than as two rows of a table that read the same.
+      const verdict = right
+        ? { label: "Correct", cls: "ok", mark: "✓" }
+        : missed
+          ? { label: "Not answered", cls: "skip", mark: "–" }
+          : { label: "Incorrect", cls: "bad", mark: "✗" };
+      return `
+    <div class="q ${verdict.cls}">
       <div class="qhead">
-        <strong>Question ${q.number}</strong>
-        <span class="badge ${q.status.toLowerCase()}">${
-          q.status === "CORRECT"
-            ? "Correct"
-            : q.status === "INCORRECT"
-              ? "Incorrect"
-              : "Not Answered"
-        }</span>
+        <span class="qnum">${q.number}</span>
+        <p class="prompt">${esc(q.question)}</p>
+        <span class="badge ${verdict.cls}">${verdict.mark} ${verdict.label}</span>
       </div>
-      <p class="prompt">${esc(q.question)}</p>
-      <table class="ans">
-        <tr><th>Your Answer</th><td>${esc(q.studentAnswer) || "—"}</td></tr>
-        <tr><th>Correct Answer</th><td>${esc(q.correctAnswer) || "—"}</td></tr>
-        <tr><th>Marks</th><td>${q.marksAwarded} / ${q.maxMarks}</td></tr>
-      </table>
+      <div class="cmp">
+        <div class="cell ${right ? "ok" : missed ? "skip" : "bad"}">
+          <span class="lbl">Student's answer</span>
+          <span class="val">${esc(q.studentAnswer) || "<em>left blank</em>"}</span>
+        </div>
+        <div class="cell ok">
+          <span class="lbl">Correct answer</span>
+          <span class="val">${esc(q.correctAnswer) || "—"}</span>
+        </div>
+        <div class="cell marks">
+          <span class="lbl">Marks</span>
+          <span class="val big">${q.marksAwarded}<small> / ${q.maxMarks}</small></span>
+        </div>
+      </div>
       ${
         q.explanation
           ? `<p class="expl"><strong>Explanation:</strong> ${esc(q.explanation)}</p>`
           : ""
       }
-    </div>`,
-    )
+    </div>`;
+    })
     .join("");
 
   const mins = Math.floor(review.timeTakenSec / 60);
@@ -67,16 +80,34 @@ export function attemptReviewPdfHtml(review: QuizAttemptReview): string {
   .meta{width:100%;border-collapse:collapse;margin:16px 0 28px;font-size:13px}
   .meta th,.meta td{border-bottom:1px solid #e2e8f0;padding:8px 10px;text-align:left}
   .meta th{width:34%;color:#64748b;font-weight:600}
-  .q{border:1px solid #e2e8f0;border-radius:12px;padding:14px 16px;margin-bottom:14px;page-break-inside:avoid}
-  .qhead{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;font-size:13px}
-  .badge{font-size:11px;padding:2px 8px;border-radius:999px;font-weight:600}
-  .badge.correct{background:#d1fae5;color:#065f46}
-  .badge.incorrect{background:#fee2e2;color:#991b1b}
-  .badge.unanswered{background:#f1f5f9;color:#475569}
-  .prompt{margin:0 0 10px;font-size:14px}
-  .ans{width:100%;border-collapse:collapse;font-size:12px}
-  .ans th,.ans td{padding:6px 8px;border-bottom:1px solid #f1f5f9;vertical-align:top}
-  .ans th{width:28%;color:#64748b;font-weight:600}
+  /* A coloured spine down the left tells right from wrong before a word is
+     read; the label inside each cell says which answer is whose. */
+  .q{border:1px solid #e2e8f0;border-inline-start-width:5px;border-radius:12px;
+     padding:14px 16px;margin-bottom:14px;page-break-inside:avoid}
+  .q.ok{border-inline-start-color:#10b981}
+  .q.bad{border-inline-start-color:#ef4444}
+  .q.skip{border-inline-start-color:#cbd5e1}
+  .qhead{display:flex;gap:10px;align-items:flex-start;margin-bottom:12px}
+  .qnum{flex:0 0 24px;height:24px;border-radius:50%;background:#0f172a;color:#fff;
+        font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center}
+  .prompt{margin:2px 0 0;font-size:14px;font-weight:600;flex:1}
+  .badge{flex:0 0 auto;font-size:11px;padding:3px 10px;border-radius:999px;font-weight:700;white-space:nowrap}
+  .badge.ok{background:#d1fae5;color:#065f46}
+  .badge.bad{background:#fee2e2;color:#991b1b}
+  .badge.skip{background:#f1f5f9;color:#475569}
+  /* Student answer and correct answer side by side — the whole point of the
+     sheet is telling them apart at a glance. */
+  .cmp{display:flex;gap:10px;flex-wrap:wrap}
+  .cell{flex:1 1 200px;border:1px solid #e2e8f0;border-radius:9px;padding:8px 10px;background:#f8fafc}
+  .cell.ok{border-color:#a7f3d0;background:#ecfdf5}
+  .cell.bad{border-color:#fecaca;background:#fef2f2}
+  .cell.skip{border-color:#e2e8f0;background:#f8fafc}
+  .cell.marks{flex:0 0 92px;text-align:center;background:#fff}
+  .lbl{display:block;font-size:10px;text-transform:uppercase;letter-spacing:.05em;
+       color:#64748b;font-weight:700;margin-bottom:3px}
+  .val{display:block;font-size:13px}
+  .val.big{font-size:20px;font-weight:700}
+  .val.big small{font-size:12px;font-weight:400;color:#64748b}
   .expl{margin:10px 0 0;font-size:12px;background:#fffbeb;border:1px solid #fde68a;padding:8px 10px;border-radius:8px}
   .foot{margin-top:28px;padding-top:12px;border-top:1px solid #e2e8f0;font-size:11px;color:#64748b;text-align:center}
 </style></head><body>
