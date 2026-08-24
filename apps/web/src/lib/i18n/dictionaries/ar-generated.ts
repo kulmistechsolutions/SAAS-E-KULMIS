@@ -2632,6 +2632,7 @@ export const arGenerated: PartialDictionary = {
     dismiss: "تجاهل",
   },
   quiz: {
+    answeredEditWarning: "طالباً أجابوا. لا يزال بإمكانك تعديل كل شيء، بما في ذلك الأسئلة — لكن تغيير الأسئلة يستبدل الورقة التي جلسوا لها، ولن تعود أوراق نتائجهم تعرضها.",
     passMark: "درجة النجاح",
     passMarkPlaceholder: "نصف المجموع",
     passMarkHint: "اتركه فارغاً للنجاح عند النصف. هذا الاختبار من",

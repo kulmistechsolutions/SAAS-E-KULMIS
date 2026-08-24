@@ -348,19 +348,15 @@ export class QuizService {
       }
 
       // A published quiz stayed frozen, which sounds safe until the thing that
-      // needs fixing is the quiz itself — a pass mark set too high, a time
-      // limit, a typo in the instructions. None of that touches what a student
-      // answered, so it is allowed at any point.
+      // needs fixing is the quiz itself — a pass mark set too high, a wrong
+      // correct answer, a typo. Schools have to be able to fix their own paper,
+      // so everything here is editable at any point.
       //
-      // The questions are the exception: once somebody has answered them,
-      // rewriting them changes what their marks were awarded against, and
-      // nothing on the result would say so.
-      if (dto.questions && quiz._count.attempts > 0) {
-        throw new BadRequestException(
-          `${quiz._count.attempts} student(s) have already answered this quiz, so its questions can no longer be changed. ` +
-            "Everything else — instructions, time limit, attempts, pass mark — can still be edited.",
-        );
-      }
+      // Rewriting the questions after students have answered does have a cost:
+      // answers are stored against question ids, and saving replaces them, so
+      // those attempts keep the score they were given but their sheets can no
+      // longer show the paper they sat. The UI states that and asks first —
+      // this is the school's call to make, not a thing to refuse.
 
       const set = <K extends keyof UpdateQuizBuilderInput>(k: K) =>
         dto[k] !== undefined ? { [k]: dto[k] } : {};

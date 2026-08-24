@@ -2633,6 +2633,7 @@ export const soGenerated: PartialDictionary = {
     dismiss: "Iska daa",
   },
   quiz: {
+    answeredEditWarning: "arday ayaa jawaabay. Weli wax walba waad beddeli kartaa, su'aalaha oo ay ku jiraan — laakiin su'aalaha beddelkoodu wuxuu beddelayaa waraaqdii ay qaateen, warqadahooduna mar dambe ma muujin doonaan.",
     passMark: "Heerka guusha",
     passMarkPlaceholder: "Kala badhka wadarta",
     passMarkHint: "Ka tag madhan si kala badhku gudbo. Imtixaankan qiimihiisu waa",

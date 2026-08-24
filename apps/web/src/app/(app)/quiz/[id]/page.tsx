@@ -117,6 +117,8 @@ export default function QuizBuilderPage({ params }: { params: Promise<{ id: stri
   const [duration, setDuration] = useState("");
   const [maxAttempts, setMaxAttempts] = useState("1");
   const [passing, setPassing] = useState("");
+  /** JSON of the questions as loaded, to tell a real edit from a plain save. */
+  const [questionsAtLoad, setQuestionsAtLoad] = useState("");
   const [addType, setAddType] = useState<QType>("MCQ");
 
   const load = useCallback(async () => {
@@ -124,7 +126,9 @@ export default function QuizBuilderPage({ params }: { params: Promise<{ id: stri
     try {
       const q = await apiGetQuiz(id);
       setQuiz(q);
-      setQuestions((q.questions ?? []).map(toBQ));
+      const loaded = (q.questions ?? []).map(toBQ);
+      setQuestions(loaded);
+      setQuestionsAtLoad(JSON.stringify(toPayload(loaded)));
       setInstructions(q.instructions ?? "");
       setPreventMinimize(!!q.preventMinimize);
       setDisableCopyPaste(!!q.disableCopyPaste);
@@ -157,7 +161,13 @@ export default function QuizBuilderPage({ params }: { params: Promise<{ id: stri
   // awarded against, so those stay locked.
   const attemptCount = quiz._count?.attempts ?? 0;
   const canEdit = quiz.status !== "ARCHIVED";
-  const canEditQuestions = canEdit && attemptCount === 0;
+  // Schools have to be able to fix their own paper — a wrong correct answer, a
+  // typo — whenever they spot it. Rewriting questions after students have
+  // answered costs them the ability to review those sheets against the paper,
+  // so it is confirmed rather than refused.
+  const canEditQuestions = canEdit;
+  const questionsDirty =
+    questionsAtLoad !== "" && JSON.stringify(toPayload(questions)) !== questionsAtLoad;
   const totalMarks = questions.reduce((s, q) => s + (Number(q.marks) || 0), 0);
 
   const patch = (key: string, next: Partial<BQ>) =>
@@ -169,6 +179,20 @@ export default function QuizBuilderPage({ params }: { params: Promise<{ id: stri
   }
 
   async function save(thenPublish = false) {
+    // Saving replaces the questions wholesale, and answers are stored against
+    // question ids — so for a paper students have already sat, say what that
+    // costs before doing it rather than after.
+    if (attemptCount > 0 && questionsDirty) {
+      const ok = window.confirm(
+        [
+          `${attemptCount} student(s) have already answered this quiz.`,
+          "Changing the questions replaces the paper they sat. They keep the marks they were given, but their result sheets will no longer show these questions.",
+          "Settings and the pass mark can be changed without this.",
+          "Continue?",
+        ].join("\n\n"),
+      );
+      if (!ok) return;
+    }
     // basic validation
     for (const q of questions) {
       if (!q.question.trim()) return toast("Every question needs text", "error");
@@ -200,9 +224,6 @@ export default function QuizBuilderPage({ params }: { params: Promise<{ id: stri
         timeLimitMin: duration ? Number(duration) : null,
         maxAttempts: Number(maxAttempts) || 1,
         passingMarks: passing.trim() === "" ? null : Number(passing),
-        // Omitted once anyone has answered: the server refuses a question
-        // rewrite then, because it would change what their marks were
-        // awarded against.
         ...(canEditQuestions ? { questions: toPayload(questions) } : {}),
       });
       if (thenPublish) {
@@ -250,9 +271,9 @@ export default function QuizBuilderPage({ params }: { params: Promise<{ id: stri
         <p className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
           {!canEdit
             ? tr("quiz.archivedCannotEdit")
-            : canEditQuestions
+            : attemptCount === 0
               ? tr("quiz.publishedCanStillEdit")
-              : `${attemptCount} ${tr("quiz.answeredSoQuestionsLocked")}`}
+              : `${attemptCount} ${tr("quiz.answeredEditWarning")}`}
         </p>
       )}
 

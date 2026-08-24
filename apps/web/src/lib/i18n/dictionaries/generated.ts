@@ -2692,6 +2692,7 @@ export const generated = {
     dismiss: "Dismiss",
   },
   quiz: {
+    answeredEditWarning: "student(s) have answered. You can still edit everything, including the questions — but changing the questions replaces the paper they sat, and their sheets will no longer show it.",
     passMark: "Pass mark",
     passMarkPlaceholder: "Half the total",
     passMarkHint: "Leave empty to pass at half. This quiz is worth",
