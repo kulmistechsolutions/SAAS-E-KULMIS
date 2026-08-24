@@ -55,6 +55,24 @@ type StudentFeeProfile = {
 
 type TenantTx = Parameters<Parameters<PrismaService["forTenant"]>[1]>[0];
 
+/**
+ * A student registered mid-year can be told their fee starts next month. That
+ * choice is stored as feeBillingStartYear/Month, and until it arrives the
+ * school does not want them billed — so the monthly run has to leave them out,
+ * not charge them and leave the school to reverse it.
+ *
+ * Students with no start recorded are billed as before.
+ */
+function notYetBillable(
+  student: { feeBillingStartYear: number | null; feeBillingStartMonth: number | null },
+  year: number,
+  month: number,
+): boolean {
+  const { feeBillingStartYear: y, feeBillingStartMonth: m } = student;
+  if (!y || !m) return false;
+  return year * 100 + month < y * 100 + m;
+}
+
 @Injectable()
 export class FeesService {
   constructor(
@@ -142,12 +160,21 @@ export class FeesService {
           status: "ACTIVE",
           feeWaived: false,
         },
-        select: { id: true, monthlyFee: true },
+        select: {
+          id: true,
+          monthlyFee: true,
+          feeBillingStartYear: true,
+          feeBillingStartMonth: true,
+        },
       });
 
       let charged = 0;
       let skipped = 0;
       for (const s of students) {
+        if (notYetBillable(s, dto.year, dto.month)) {
+          skipped++;
+          continue;
+        }
         const existing = await tx.feeCharge.findFirst({
           where: {
             studentId: s.id,
@@ -252,9 +279,18 @@ export class FeesService {
 
           const students = await tx.student.findMany({
             where: { classId: cls.id, status: "ACTIVE", feeWaived: false },
-            select: { id: true, monthlyFee: true },
+            select: {
+              id: true,
+              monthlyFee: true,
+              feeBillingStartYear: true,
+              feeBillingStartMonth: true,
+            },
           });
           for (const s of students) {
+            if (notYetBillable(s, dto.year, dto.month)) {
+              skipped++;
+              continue;
+            }
             const existing = await tx.feeCharge.findFirst({
               where: {
                 studentId: s.id,
