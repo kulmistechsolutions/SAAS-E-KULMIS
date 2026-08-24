@@ -179,15 +179,22 @@ const CHECKS: CheckSpec[] = [
     id: "student-stale-year",
     title: "Student left in a previous year's class",
     meaning:
-      "They sit in a class from an academic year that is over, so year-scoped lists and reports quietly leave them out.",
+      "They sit in a class from an academic year that has ended, so year-scoped lists and reports quietly leave them out.",
     severity: "warning",
+    // Only a year that has *ended* is a fault. Enrolling into next year before
+    // it starts is how a school prepares — Alpha Bal'ad had 164 students
+    // waiting in 2026-2027, and flagging that taught nobody anything except to
+    // ignore this page.
     sql: Prisma.sql`
       SELECT s.name AS school, count(*)::int AS count, NULL::text AS detail
       FROM students st
       JOIN schools s ON s.id = st."schoolId"
       JOIN classes c ON c.id = st."classId"
       JOIN academic_years ay ON ay.id = c."academicYearId"
-      WHERE st.status = 'ACTIVE' AND ay."isActive" = false
+      WHERE st.status = 'ACTIVE'
+        AND ay."isActive" = false
+        AND ay."endDate" IS NOT NULL
+        AND ay."endDate" < now()
         AND EXISTS (
           SELECT 1 FROM academic_years a2
           WHERE a2."schoolId" = s.id AND a2."isActive" = true
