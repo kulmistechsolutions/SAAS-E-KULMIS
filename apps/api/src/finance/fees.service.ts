@@ -114,7 +114,12 @@ export class FeesService {
       },
     });
     if (!school) throw new NotFoundException("School not found");
-    return school;
+    // The "activate after the Nth" gate below is enforced client-side against
+    // whatever clock the device reports — a school laptop with its date wrong
+    // (common, and invisible to the person using it) then blocks or unlocks
+    // setup on the wrong day with no way to tell why. Handing back the
+    // server's own clock lets the page correct for that gap.
+    return { ...school, serverNow: new Date().toISOString() };
   }
 
   async chargeMonth(schoolId: string, dto: ChargeMonthInput) {

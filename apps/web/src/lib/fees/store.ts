@@ -56,7 +56,19 @@ let loaded = false;
 let feeSettingsCache: {
   billingMode: "MONTHLY" | "ACADEMIC_YEAR";
   monthSetupDay: number;
-} = { billingMode: "MONTHLY", monthSetupDay: 25 };
+  /** serverClock - deviceClock at the last settings fetch, in ms. */
+  clockOffsetMs: number;
+} = { billingMode: "MONTHLY", monthSetupDay: 25, clockOffsetMs: 0 };
+
+/**
+ * "Now", corrected for whatever gap exists between this device's clock and
+ * the server's — a school laptop with its date wrong otherwise blocks or
+ * unlocks month setup on the wrong day with no visible reason. Falls back to
+ * the device clock before the first successful settings fetch.
+ */
+function serverNow(): Date {
+  return new Date(Date.now() + feeSettingsCache.clockOffsetMs);
+}
 const listeners = new Set<() => void>();
 
 function subscribe(cb: () => void) {
@@ -93,7 +105,7 @@ function activeAcademicYear(): string {
  */
 function deriveActiveMonth(activatedKeys: string[]): string {
   if (activatedKeys.length === 0) {
-    const now = new Date();
+    const now = serverNow();
     return monthKey(now.getFullYear(), now.getMonth() + 1);
   }
   return activatedKeys[activatedKeys.length - 1]!;
@@ -124,9 +136,11 @@ export async function refreshFees(): Promise<void> {
       apiListActivatedMonths().catch(() => []),
     ]);
     if (feeSettings) {
+      const parsed = Date.parse(feeSettings.serverNow);
       feeSettingsCache = {
         billingMode: feeSettings.billingMode,
         monthSetupDay: feeSettings.feeMonthSetupDay,
+        clockOffsetMs: Number.isFinite(parsed) ? parsed - Date.now() : 0,
       };
     }
     const activatedKeys = [
@@ -283,7 +297,7 @@ export function aggregateStudentStatus(
   return { status: "UNPAID" };
 }
 
-export function canActivateNextMonth(at = new Date()): boolean {
+export function canActivateNextMonth(at = serverNow()): boolean {
   if (feeSettingsCache.billingMode === "ACADEMIC_YEAR") return false;
   const s = ensure();
   const { year, month } = parseMonthKey(s.activeMonthKey);

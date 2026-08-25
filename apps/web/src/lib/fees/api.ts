@@ -348,6 +348,7 @@ export async function apiFeeSettings() {
     feeAllowPartial: boolean;
     feeAllowAdvance: boolean;
     feeMonthSetupDay: number;
+    serverNow: string;
   }>("/fees/settings");
 }
 
