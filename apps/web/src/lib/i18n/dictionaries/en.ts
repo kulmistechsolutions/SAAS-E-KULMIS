@@ -274,6 +274,7 @@ const core = {
   },
 
   students: {
+    excused: "Excused",
     loadingStudents: "Loading students…",
     students: "Students",
     manageStudentRecordsRegistrationAndProfiles:

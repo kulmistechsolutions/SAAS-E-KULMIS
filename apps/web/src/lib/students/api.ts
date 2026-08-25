@@ -545,11 +545,12 @@ export interface ApiAttendanceSummary {
   present: number;
   absent: number;
   late: number;
+  excused: number;
   totalMarked: number;
   percentage: number;
   rows: {
     date: string;
-    status: "PRESENT" | "ABSENT" | "LATE";
+    status: "PRESENT" | "ABSENT" | "LATE" | "EXCUSED";
     shiftName: string | null;
   }[];
 }

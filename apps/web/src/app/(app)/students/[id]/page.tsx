@@ -682,11 +682,12 @@ function AttendanceTab({ student }: { student: StudentWithParent }) {
   const hasShifts = a.rows.some((r) => r.shiftName);
   return (
     <div className="space-y-5">
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-6">
         <StatPill label={tr("students.totalMarked")} value={a.totalMarked} tone="bg-violet-500/10" />
         <StatPill label={tr("students.present")} value={a.present} tone="bg-emerald-500/10" />
         <StatPill label={tr("students.absent")} value={a.absent} tone="bg-rose-500/10" />
         <StatPill label={tr("students.late")} value={a.late} tone="bg-amber-500/10" />
+        <StatPill label={tr("students.excused")} value={a.excused} tone="bg-indigo-500/10" />
         <StatPill label={tr("students.attendance")} value={`${a.percentage}%`} tone="bg-sky-500/10" />
       </div>
       <div className="overflow-hidden rounded-xl border">
@@ -716,7 +717,9 @@ function AttendanceTab({ student }: { student: StudentWithParent }) {
                         ? "success"
                         : r.status === "LATE"
                           ? "warning"
-                          : "danger"
+                          : r.status === "EXCUSED"
+                            ? "info"
+                            : "danger"
                     }
                   >
                     {statusLabel(r.status)}

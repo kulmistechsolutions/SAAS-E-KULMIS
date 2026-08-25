@@ -1769,6 +1769,7 @@ export const generated = {
     pinned: "Pinned",
   },
   parentPortalAttendance: {
+    excused: "Excused",
     selectAChildToViewAttendance: "Select a child to view attendance.",
     attendance: "Attendance",
     print: "Print",

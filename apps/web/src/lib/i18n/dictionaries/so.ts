@@ -273,6 +273,7 @@ const curated: PartialDictionary = {
   },
 
   students: {
+    excused: "La Cudur Daaray",
     loadingStudents: "Ardayda waa la soo dejinayaa…",
     students: "Ardayda",
     manageStudentRecordsRegistrationAndProfiles:

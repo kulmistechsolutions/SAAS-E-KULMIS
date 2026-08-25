@@ -36,6 +36,7 @@ const STATUS_KEYS: Record<string, Parameters<typeof translateIn>[1]> = {
   PRESENT: "students.present",
   ABSENT: "students.absent",
   LATE: "students.late",
+  EXCUSED: "students.excused",
 };
 
 /** Falls back to a plain capitalized string for statuses outside the

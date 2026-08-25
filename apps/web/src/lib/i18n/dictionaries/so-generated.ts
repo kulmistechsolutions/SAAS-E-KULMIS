@@ -1738,6 +1738,7 @@ export const soGenerated: PartialDictionary = {
     pinned: "La dhejiyay",
   },
   parentPortalAttendance: {
+    excused: "La Cudur Daaray",
     selectAChildToViewAttendance: "Dooro ilmo si aad u aragto xaadiriska.",
     attendance: "Xaadiriska",
     print: "Daabac",

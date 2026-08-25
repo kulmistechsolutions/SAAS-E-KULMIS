@@ -23,6 +23,7 @@ const STATUS_TONE = {
   PRESENT: "success",
   ABSENT: "danger",
   LATE: "warning",
+  EXCUSED: "info",
 } as const;
 
 export default function ParentAttendancePage() {
@@ -89,11 +90,12 @@ export default function ParentAttendancePage() {
       </div>
 
       {att && (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
           {[
             { label: t("parentPortalAttendance.present"), value: att.present, tone: "success" as const },
             { label: t("parentPortalAttendance.absent"), value: att.absent, tone: "danger" as const },
             { label: t("parentPortalAttendance.late"), value: att.late, tone: "warning" as const },
+            { label: t("parentPortalAttendance.excused"), value: att.excused, tone: "info" as const },
             {
               label: t("parentPortalAttendance.rate"),
               value: `${att.percentage}%`,
@@ -130,6 +132,7 @@ export default function ParentAttendancePage() {
           <option value="PRESENT">{t("parentPortalAttendance.present")}</option>
           <option value="ABSENT">{t("parentPortalAttendance.absent")}</option>
           <option value="LATE">{t("parentPortalAttendance.late")}</option>
+          <option value="EXCUSED">{t("parentPortalAttendance.excused")}</option>
         </Select>
         <Select
           value={range}

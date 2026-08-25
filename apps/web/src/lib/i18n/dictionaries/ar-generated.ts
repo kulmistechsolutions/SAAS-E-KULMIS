@@ -1737,6 +1737,7 @@ export const arGenerated: PartialDictionary = {
     pinned: "مثبّت",
   },
   parentPortalAttendance: {
+    excused: "بعذر",
     selectAChildToViewAttendance: "اختر طفلًا لعرض الحضور.",
     attendance: "الحضور",
     print: "طباعة",

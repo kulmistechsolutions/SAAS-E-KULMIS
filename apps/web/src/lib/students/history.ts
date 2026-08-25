@@ -22,13 +22,14 @@ const attendanceCache = new Map<string, AttendanceSummary>();
 
 export interface AttendanceRow {
   date: string;
-  status: "PRESENT" | "ABSENT" | "LATE";
+  status: "PRESENT" | "ABSENT" | "LATE" | "EXCUSED";
   shiftName?: string | null;
 }
 export interface AttendanceSummary {
   present: number;
   absent: number;
   late: number;
+  excused: number;
   totalMarked: number;
   percentage: number;
   rows: AttendanceRow[];
@@ -58,15 +59,18 @@ export async function loadPortalAttendanceHistory(
   let present = 0;
   let absent = 0;
   let late = 0;
+  let excused = 0;
   const mapped: AttendanceRow[] = [];
   for (const r of rows) {
     if (r.status === "PRESENT") present++;
     else if (r.status === "ABSENT") absent++;
     else if (r.status === "LATE") late++;
+    else if (r.status === "EXCUSED") excused++;
     if (
       r.status === "PRESENT" ||
       r.status === "ABSENT" ||
-      r.status === "LATE"
+      r.status === "LATE" ||
+      r.status === "EXCUSED"
     ) {
       mapped.push({ date: r.date, status: r.status, shiftName: r.shift?.name ?? null });
     }
@@ -76,6 +80,7 @@ export async function loadPortalAttendanceHistory(
     present,
     absent,
     late,
+    excused,
     totalMarked,
     percentage: Math.round((present / (totalMarked || 1)) * 1000) / 10,
     rows: mapped,
@@ -97,6 +102,7 @@ export function attendanceHistory(
       present: 0,
       absent: 0,
       late: 0,
+      excused: 0,
       totalMarked: 0,
       percentage: 0,
       rows: [],

@@ -47,7 +47,7 @@ export function printAttendanceReport(student: Student) {
   printWindow(
     `Attendance — ${student.fullName}`,
     `<p><strong>${escapeHtml(student.fullName)}</strong> · ${escapeHtml(student.className)}${student.section ? ` — ${escapeHtml(student.section)}` : ""}</p>
-    <p>Present: ${att.present} · Absent: ${att.absent} · Late: ${att.late} · Rate: ${att.percentage}%</p>
+    <p>Present: ${att.present} · Absent: ${att.absent} · Late: ${att.late} · Excused: ${att.excused} · Rate: ${att.percentage}%</p>
     <table><thead><tr><th>Date</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table>`,
   );
 }

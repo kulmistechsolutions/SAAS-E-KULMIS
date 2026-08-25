@@ -268,6 +268,7 @@ const curated: PartialDictionary = {
   },
 
   students: {
+    excused: "بعذر",
     loadingStudents: "جارٍ تحميل الطلاب…",
     students: "الطلاب",
     manageStudentRecordsRegistrationAndProfiles:

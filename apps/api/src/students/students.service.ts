@@ -589,21 +589,24 @@ export class StudentsService {
       let present = 0;
       let absent = 0;
       let late = 0;
+      let excused = 0;
       for (const r of records) {
         if (r.status === "PRESENT") present++;
         else if (r.status === "ABSENT") absent++;
         else if (r.status === "LATE") late++;
+        else if (r.status === "EXCUSED") excused++;
       }
       const totalMarked = present + absent + late;
       return {
         present,
         absent,
         late,
+        excused,
         totalMarked,
         percentage: Math.round((present / (totalMarked || 1)) * 1000) / 10,
         rows: records.map((r) => ({
           date: r.date.toISOString(),
-          status: r.status as "PRESENT" | "ABSENT" | "LATE",
+          status: r.status as "PRESENT" | "ABSENT" | "LATE" | "EXCUSED",
           shiftName: r.shift?.name ?? null,
         })),
       };
