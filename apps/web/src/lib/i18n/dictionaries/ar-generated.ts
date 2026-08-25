@@ -3850,6 +3850,7 @@ export const arGenerated: PartialDictionary = {
     useTheTabsAbove: "استخدم التبويبات أعلاه لعرض نتائج اختباراتك والاختبارات وسجل الحضور وحالة الرسوم.",
   },
   studentPortalAttendance: {
+    excused: "بعذر",
     loadingAttendance: "جارٍ تحميل الحضور…",
     attendance: "الحضور",
     lastRecordedDays: "آخر {n} يوم مسجّل.",

@@ -3873,6 +3873,7 @@ export const soGenerated: PartialDictionary = {
     useTheTabsAbove: "Isticmaal tabka kore si aad u aragto natiijooyinkaaga, imtixaannada, taariikhda xaadiriska iyo xaaladda khidmadaha.",
   },
   studentPortalAttendance: {
+    excused: "La Cudur Daaray",
     loadingAttendance: "Xaadiriska waa la soo raraya…",
     attendance: "Xaadiriska",
     lastRecordedDays: "{n} maalmood ee ugu dambeeyay ee la diiwaangeliyay.",

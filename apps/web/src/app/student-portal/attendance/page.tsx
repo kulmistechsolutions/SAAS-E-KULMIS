@@ -31,8 +31,9 @@ export default function StudentPortalAttendancePage() {
     const present = rows.filter((r) => r.status === "PRESENT").length;
     const absent = rows.filter((r) => r.status === "ABSENT").length;
     const late = rows.filter((r) => r.status === "LATE").length;
+    const excused = rows.filter((r) => r.status === "EXCUSED").length;
     const percentage = rows.length ? Math.round((present / rows.length) * 100) : 0;
-    return { present, absent, late, percentage };
+    return { present, absent, late, excused, percentage };
   }, [rows]);
 
   if (loading) {
@@ -48,11 +49,12 @@ export default function StudentPortalAttendancePage() {
         </p>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
         {[
           { id: "present", label: t("studentPortalAttendance.present"), value: stats.present },
           { id: "absent", label: t("studentPortalAttendance.absent"), value: stats.absent },
           { id: "late", label: t("studentPortalAttendance.late"), value: stats.late },
+          { id: "excused", label: t("studentPortalAttendance.excused"), value: stats.excused },
           { id: "rate", label: t("studentPortalAttendance.attendance"), value: `${stats.percentage}%` },
         ].map((c) => (
           <div key={c.id} className="rounded-xl border bg-card p-4">

@@ -3936,6 +3936,7 @@ export const generated = {
     useTheTabsAbove: "Use the tabs above to view your exam results, quizzes, attendance history, and fee status.",
   },
   studentPortalAttendance: {
+    excused: "Excused",
     loadingAttendance: "Loading attendance…",
     attendance: "Attendance",
     lastRecordedDays: "Last {n} recorded days.",
