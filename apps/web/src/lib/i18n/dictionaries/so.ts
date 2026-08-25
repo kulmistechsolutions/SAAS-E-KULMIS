@@ -67,6 +67,20 @@ const curated: PartialDictionary = {
     somethingWentWrong: "Khalad ayaa dhacay",
   },
 
+  platformAi: {
+    aiGradingOpenai: "Adeegyada AI",
+    platformWideOpenaiKeyUsedTo: "Hal fure oo platform-ka oo dhan u shaqeeya: dhibcaynta imtixaannada, warbixinnada qoran ee Kaaliyaha Dugsiga, iyo xeerarka jadwalka.",
+    provider: "Bixiyaha",
+    providerHelp: "Labaduba isku API bay ku hadlaan. OpenRouter wuxuu hal fure ku iibiyaa model-yo badan, kuwa bilaashka ahna waa ku jiraan.",
+    keyHintOpenai: "Furuhu wuxuu u eg yahay sk-…",
+    keyHintOpenrouter: "Furuhu wuxuu u eg yahay sk-or-v1-… — ka hel openrouter.ai/keys",
+    modelHintOpenai: "tusaale: gpt-4o-mini",
+    modelHintOpenrouter: "Model-yada OpenRouter waxay wataan sameeyahooda: openai/gpt-4o-mini, google/gemini-2.0-flash-001, ama mid :free ah.",
+    providerChanged: "Bixiyaha waa la beddelay — kaydi, kadibna tijaabi xiriirka.",
+    saving: "Waa kaydinayaa…",
+    saveSettings: "Kaydi dejinta",
+    notTested: "Lama tijaabin",
+  },
   copilot: {
     title: "Kaaliyaha Dugsiga",
     subtitle: "Wax kasta oo la duubay {from} - {to}{year}, hal meel.",

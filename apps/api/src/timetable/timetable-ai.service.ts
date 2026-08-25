@@ -331,13 +331,11 @@ export class TimetableAiService {
       "If the sentence is not a timetable rule, return an empty rules list.",
     ].join("\n");
 
+    const ep = this.ai.endpoint(cfg);
     try {
-      const res = await fetch("https://api.openai.com/v1/chat/completions", {
+      const res = await fetch(`${ep.base}/chat/completions`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${cfg.apiKey}`,
-        },
+        headers: ep.headers,
         body: JSON.stringify({
           model: cfg.model || "gpt-4o-mini",
           temperature: 0,
@@ -349,7 +347,10 @@ export class TimetableAiService {
         }),
       });
       if (!res.ok) {
-        this.logger.warn(`Timetable AI failed: HTTP ${res.status}`);
+        const body = await res.text().catch(() => "");
+        this.logger.warn(
+          `Timetable AI failed via ${ep.label}: HTTP ${res.status} ${body.slice(0, 200)}`,
+        );
         return [];
       }
       const data = (await res.json()) as {

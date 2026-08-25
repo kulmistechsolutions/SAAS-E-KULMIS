@@ -22,6 +22,12 @@ import {
 } from "@/lib/platform/api";
 import { toast } from "@/lib/toast";
 
+/** The two services the platform can talk to, and what a key for each looks like. */
+const PROVIDERS = [
+  { id: "openai", name: "OpenAI", host: "api.openai.com", defaultModel: "gpt-4o-mini" },
+  { id: "openrouter", name: "OpenRouter", host: "openrouter.ai", defaultModel: "openai/gpt-4o-mini" },
+];
+
 export default function PlatformAiSettingsPage() {
   const t = useT();
   const [cfg, setCfg] = useState<PlatformAiConfig | null>(null);
@@ -29,6 +35,7 @@ export default function PlatformAiSettingsPage() {
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
   const [enabled, setEnabled] = useState(false);
+  const [provider, setProvider] = useState("openai");
   const [model, setModel] = useState("gpt-4o-mini");
   const [apiKey, setApiKey] = useState("");
 
@@ -38,6 +45,7 @@ export default function PlatformAiSettingsPage() {
       const c = await fetchPlatformAiConfig();
       setCfg(c);
       setEnabled(c.enabled);
+      setProvider(c.provider ?? "openai");
       setModel(c.model);
       setApiKey("");
     } catch {
@@ -56,6 +64,7 @@ export default function PlatformAiSettingsPage() {
     try {
       const c = await updatePlatformAiConfig({
         enabled,
+        provider,
         model: model.trim() || "gpt-4o-mini",
         ...(apiKey.trim() ? { apiKey: apiKey.trim() } : {}),
       });
@@ -108,7 +117,7 @@ export default function PlatformAiSettingsPage() {
             ) : (
               <XCircle className="h-4 w-4 text-muted-foreground" />
             )}
-            <span>{cfg?.connectionMessage ?? cfg?.connectionStatus ?? "Not tested"}</span>
+            <span>{cfg?.connectionMessage ?? cfg?.connectionStatus ?? t("platformAi.notTested")}</span>
           </div>
           <Button variant="outline" className="h-9" disabled={testing} onClick={() => void test()}>
             {testing ? <Loader2 className="me-2 h-4 w-4 animate-spin" /> : null}
@@ -122,28 +131,81 @@ export default function PlatformAiSettingsPage() {
         </label>
 
         <div className="space-y-2">
+          <Label>{t("platformAi.provider")}</Label>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {PROVIDERS.map((p) => (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => {
+                  setProvider(p.id);
+                  // The default model name differs per provider; carrying the
+                  // old one over is the mistake that makes a good key look
+                  // broken, so offer the right shape as soon as they switch.
+                  if (p.id !== provider) setModel(p.defaultModel);
+                }}
+                className={
+                  "rounded-lg border p-3 text-start text-sm transition " +
+                  (provider === p.id
+                    ? "border-primary bg-primary/5 ring-1 ring-primary/30"
+                    : "hover:bg-secondary")
+                }
+              >
+                <span className="block font-medium">{p.name}</span>
+                <span className="block text-xs text-muted-foreground">{p.host}</span>
+              </button>
+            ))}
+          </div>
+          <p className="text-xs text-muted-foreground">{t("platformAi.providerHelp")}</p>
+          {cfg?.provider && cfg.provider !== provider && (
+            <p className="text-xs text-amber-600 dark:text-amber-400">
+              {t("platformAi.providerChanged")}
+            </p>
+          )}
+        </div>
+
+        <div className="space-y-2">
           <Label>{t("platformAi.openaiApiKey")}</Label>
           <Input
             type="password"
             value={apiKey}
             onChange={(e) => setApiKey(e.target.value)}
-            placeholder={cfg?.hasKey ? `Key set (${cfg.keyHint}) — enter a new key to replace` : "sk-…"}
+            placeholder={
+              cfg?.hasKey
+                ? `Key set (${cfg.keyHint}) — enter a new key to replace`
+                : provider === "openrouter"
+                  ? "sk-or-v1-…"
+                  : "sk-…"
+            }
             autoComplete="off"
           />
           <p className="text-xs text-muted-foreground">
             {t("platformAi.storedSecurelyOnTheServerAnd")}
           </p>
+          <p className="text-xs text-muted-foreground">
+            {provider === "openrouter"
+              ? t("platformAi.keyHintOpenrouter")
+              : t("platformAi.keyHintOpenai")}
+          </p>
         </div>
 
         <div className="space-y-2">
           <Label>{t("platformAi.model")}</Label>
-          <Input value={model} onChange={(e) => setModel(e.target.value)} placeholder={t("platformAi.gpt4oMini")} />
-          <p className="text-xs text-muted-foreground">{t("platformAi.eGGpt4oMiniCheap")}</p>
+          <Input
+            value={model}
+            onChange={(e) => setModel(e.target.value)}
+            placeholder={provider === "openrouter" ? "openai/gpt-4o-mini" : "gpt-4o-mini"}
+          />
+          <p className="text-xs text-muted-foreground">
+            {provider === "openrouter"
+              ? t("platformAi.modelHintOpenrouter")
+              : t("platformAi.modelHintOpenai")}
+          </p>
         </div>
 
         <div className="flex justify-end">
           <Button className="h-10" disabled={saving} onClick={() => void save()}>
-            {saving ? "Saving…" : "Save settings"}
+            {saving ? t("platformAi.saving") : t("platformAi.saveSettings")}
           </Button>
         </div>
       </div>

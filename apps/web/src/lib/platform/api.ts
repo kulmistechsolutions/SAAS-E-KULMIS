@@ -207,6 +207,7 @@ export const fetchPlatformAiConfig = () =>
 
 export const updatePlatformAiConfig = (body: {
   enabled?: boolean;
+  provider?: string;
   apiKey?: string;
   model?: string;
 }) =>

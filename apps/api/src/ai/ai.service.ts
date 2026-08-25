@@ -7,11 +7,47 @@ export interface ConceptScore {
   feedback: string;
 }
 
+/**
+ * Where each provider's OpenAI-compatible endpoint lives.
+ *
+ * OpenRouter speaks the same chat-completions API, so switching is a base URL
+ * and a model name — not a second code path to keep in step with the first.
+ */
+const PROVIDERS: Record<string, { base: string; label: string }> = {
+  openai: { base: "https://api.openai.com/v1", label: "OpenAI" },
+  openrouter: { base: "https://openrouter.ai/api/v1", label: "OpenRouter" },
+};
+
+const DEFAULT_PROVIDER = "openai";
+
 @Injectable()
 export class AiService {
   private readonly logger = new Logger(AiService.name);
 
   constructor(private readonly prisma: PrismaService) {}
+
+  /**
+   * Base URL, label and headers for whichever provider is configured.
+   *
+   * Public because other modules call the same chat API with their own prompts
+   * — a second hardcoded openai.com is exactly how one of them gets left
+   * behind when the platform switches provider.
+   */
+  endpoint(cfg: { provider: string; apiKey: string }) {
+    const p = PROVIDERS[cfg.provider] ?? PROVIDERS[DEFAULT_PROVIDER];
+    return {
+      base: p.base,
+      label: p.label,
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${cfg.apiKey}`,
+        // OpenRouter attributes requests to an app; it ignores unknown headers
+        // from other providers, so these are safe to send either way.
+        "HTTP-Referer": "https://ekulmis.com",
+        "X-Title": "eKulmis",
+      } as Record<string, string>,
+    };
+  }
 
   /** The singleton platform AI config (created on first access). */
   async getConfig() {
@@ -30,6 +66,13 @@ export class AiService {
     const data: Record<string, unknown> = {};
     if (dto.enabled !== undefined) data.enabled = dto.enabled;
     if (dto.model !== undefined) data.model = dto.model;
+    // Changing provider invalidates the last test: the same key almost never
+    // works on both, so the badge must not keep claiming CONNECTED.
+    if (dto.provider !== undefined && dto.provider !== cfg.provider) {
+      data.provider = dto.provider;
+      data.connectionStatus = "DISCONNECTED";
+      data.connectionMessage = null;
+    }
     // Only overwrite the key when a non-empty value is supplied, so a masked
     // round-trip from the UI never wipes the stored key.
     if (dto.apiKey !== undefined && dto.apiKey.trim().length > 0) {
@@ -44,14 +87,16 @@ export class AiService {
     if (!cfg.apiKey.trim()) {
       return { ok: false, message: "No API key configured." };
     }
+    const ep = this.endpoint(cfg);
     try {
-      const res = await fetch("https://api.openai.com/v1/models", {
-        headers: { Authorization: `Bearer ${cfg.apiKey}` },
-      });
+      const res = await fetch(`${ep.base}/models`, { headers: ep.headers });
       const ok = res.ok;
+      // A failed test must say what the provider said. "HTTP 429" alone sent
+      // us looking for a rate limit when the account was simply out of credit.
+      const detail = ok ? "" : (await res.text().catch(() => "")).slice(0, 200);
       const message = ok
-        ? "OpenAI connection successful."
-        : `OpenAI returned HTTP ${res.status}.`;
+        ? `${ep.label} connection successful.`
+        : `${ep.label} returned HTTP ${res.status}. ${detail}`.trim();
       await this.prisma.aiGlobalConfig.update({
         where: { id: cfg.id },
         data: {
@@ -95,12 +140,10 @@ export class AiService {
     if (!cfg.enabled || !cfg.apiKey.trim()) return null;
     const limit = opts.maxWords ?? 220;
     try {
-      const res = await fetch("https://api.openai.com/v1/chat/completions", {
+      const ep = this.endpoint(cfg);
+      const res = await fetch(`${ep.base}/chat/completions`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${cfg.apiKey}`,
-        },
+        headers: ep.headers,
         body: JSON.stringify({
           model: cfg.model || "gpt-4o-mini",
           temperature: 0.2,
@@ -128,7 +171,7 @@ ${facts}` },
         // "out of credit", and those need different people to fix them.
         const body = await res.text().catch(() => "");
         this.logger.warn(
-          `OpenAI narrative failed: HTTP ${res.status} ${body.slice(0, 300)}`,
+          `${ep.label} narrative failed: HTTP ${res.status} ${body.slice(0, 300)}`,
         );
         return null;
       }
@@ -160,13 +203,11 @@ ${facts}` },
     if (!studentAnswer.trim()) {
       return { score: 0, feedback: "No answer was provided." };
     }
+    const ep = this.endpoint(cfg);
     try {
-      const res = await fetch("https://api.openai.com/v1/chat/completions", {
+      const res = await fetch(`${ep.base}/chat/completions`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${cfg.apiKey}`,
-        },
+        headers: ep.headers,
         body: JSON.stringify({
           model: cfg.model || "gpt-4o-mini",
           temperature: 0,
@@ -185,7 +226,10 @@ ${facts}` },
         }),
       });
       if (!res.ok) {
-        this.logger.warn(`OpenAI grading failed: HTTP ${res.status}`);
+        const body = await res.text().catch(() => "");
+        this.logger.warn(
+          `${ep.label} grading failed: HTTP ${res.status} ${body.slice(0, 300)}`,
+        );
         return null;
       }
       const data = (await res.json()) as {
@@ -199,7 +243,7 @@ ${facts}` },
       return { score, feedback: String(parsed.feedback ?? "").slice(0, 300) };
     } catch (err) {
       this.logger.warn(
-        `OpenAI grading error: ${err instanceof Error ? err.message : err}`,
+        `${ep.label} grading error: ${err instanceof Error ? err.message : err}`,
       );
       return null;
     }

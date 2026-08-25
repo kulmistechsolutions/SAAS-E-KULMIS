@@ -62,6 +62,20 @@ const curated: PartialDictionary = {
     somethingWentWrong: "حدث خطأ ما",
   },
 
+  platformAi: {
+    aiGradingOpenai: "ميزات الذكاء الاصطناعي",
+    platformWideOpenaiKeyUsedTo: "مفتاح واحد للمنصة بأكملها: تصحيح الاختبارات، وتقارير مساعد المدرسة المكتوبة، وقواعد الجدول.",
+    provider: "المزود",
+    providerHelp: "كلاهما يستخدم نفس الواجهة. يوفر OpenRouter نماذج متعددة بمفتاح واحد، بما فيها المجانية.",
+    keyHintOpenai: "يبدو المفتاح مثل sk-…",
+    keyHintOpenrouter: "يبدو المفتاح مثل sk-or-v1-… — احصل عليه من openrouter.ai/keys",
+    modelHintOpenai: "مثال: gpt-4o-mini",
+    modelHintOpenrouter: "تحمل نماذج OpenRouter اسم صانعها: openai/gpt-4o-mini أو google/gemini-2.0-flash-001 أو نموذج :free.",
+    providerChanged: "تم تغيير المزود — احفظ ثم اختبر الاتصال.",
+    saving: "جارٍ الحفظ…",
+    saveSettings: "حفظ الإعدادات",
+    notTested: "لم يُختبر",
+  },
   copilot: {
     title: "مساعد المدرسة",
     subtitle: "كل ما تم تسجيله من {from} إلى {to}{year}، في مكان واحد.",

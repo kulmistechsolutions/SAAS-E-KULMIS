@@ -67,6 +67,20 @@ const core = {
     somethingWentWrong: "Something went wrong",
   },
 
+  platformAi: {
+    aiGradingOpenai: "AI features",
+    platformWideOpenaiKeyUsedTo: "One key for the whole platform: quiz grading, the School Copilot's written reports, and timetable rules.",
+    provider: "Provider",
+    providerHelp: "Both speak the same API. OpenRouter resells many models behind one key, including free ones.",
+    keyHintOpenai: "Key looks like sk-…",
+    keyHintOpenrouter: "Key looks like sk-or-v1-… — get one at openrouter.ai/keys",
+    modelHintOpenai: "e.g. gpt-4o-mini",
+    modelHintOpenrouter: "OpenRouter models carry their maker: openai/gpt-4o-mini, google/gemini-2.0-flash-001, or a :free one.",
+    providerChanged: "Provider changed — save, then test the connection.",
+    saving: "Saving…",
+    saveSettings: "Save settings",
+    notTested: "Not tested",
+  },
   copilot: {
     title: "School Copilot",
     subtitle: "Everything recorded for {from} - {to}{year}, in one place.",
@@ -349,6 +363,7 @@ export const en = {
   // Both halves contribute keys to these two, so merge rather than replace.
   dashboard: { ...generated.dashboard, ...core.dashboard },
   students: { ...generated.students, ...core.students },
+  platformAi: { ...generated.platformAi, ...core.platformAi },
 } as const;
 
 /**
