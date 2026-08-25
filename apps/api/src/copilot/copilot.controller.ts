@@ -6,7 +6,11 @@ import { Roles } from "../auth/roles.decorator";
 import { CurrentUser } from "../auth/current-user.decorator";
 import type { AuthUser } from "../auth/auth.types";
 
-const askSchema = z.object({ question: z.string().min(3).max(500) });
+const askSchema = z.object({
+  question: z.string().min(3).max(500),
+  /** Which language to answer in — the one the asker is reading the system in. */
+  locale: z.enum(["en", "so", "ar"]).optional(),
+});
 
 /** Read-only. Management sees the school; nobody else needs the whole picture. */
 @Roles(UserRole.ADMINISTRATOR, UserRole.FINANCE_OFFICER, UserRole.ACADEMIC_MANAGER)
@@ -33,8 +37,12 @@ export class CopilotController {
 
   /** The written summary. Degrades to the figures alone when AI is off. */
   @Get("brief")
-  brief(@CurrentUser() me: AuthUser, @Query("month") month?: string) {
-    return this.copilot.brief(me.schoolId, month);
+  brief(
+    @CurrentUser() me: AuthUser,
+    @Query("month") month?: string,
+    @Query("locale") locale?: string,
+  ) {
+    return this.copilot.brief(me.schoolId, month, locale);
   }
 
   @Get("quota")
@@ -54,6 +62,7 @@ export class CopilotController {
     return this.copilot.ask(me.schoolId, parsed.data.question, {
       userId: me.userId,
       username: me.username,
+      locale: parsed.data.locale,
     });
   }
 }

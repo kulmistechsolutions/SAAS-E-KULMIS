@@ -29,8 +29,10 @@ import {
   type CopilotQuota,
   type CopilotRisks,
   type CopilotStudents,
+  type NamedTotal,
 } from "@/lib/copilot/api";
 import { money } from "@/lib/students/format";
+import { useT, useI18n } from "@/lib/i18n/provider";
 import { cn } from "@/lib/utils";
 
 const CARD = "rounded-xl border bg-card p-5 shadow-sm";
@@ -45,6 +47,7 @@ function Stat({
   value,
   hint,
   delta,
+  deltaSuffix,
   icon: Icon,
   tone = "text-primary",
 }: {
@@ -52,6 +55,7 @@ function Stat({
   value: string;
   hint?: string;
   delta?: number | null;
+  deltaSuffix?: string;
   icon: typeof Users;
   tone?: string;
 }) {
@@ -76,8 +80,47 @@ function Stat({
         >
           {delta >= 0 ? <TrendingUp className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />}
           {delta >= 0 ? "+" : ""}
-          {delta}pt vs last month
+          {delta}
+          {deltaSuffix}
         </p>
+      )}
+    </div>
+  );
+}
+
+/** A category list that shows each share against the biggest one. */
+function Breakdown({
+  title,
+  rows,
+  tone,
+  empty,
+  entries,
+}: {
+  title: string;
+  rows: NamedTotal[];
+  tone: string;
+  empty: string;
+  entries: (n: number) => string;
+}) {
+  const top = rows.length > 0 ? Math.max(...rows.map((r) => r.amount)) : 0;
+  return (
+    <div className={CARD}>
+      <h2 className="font-semibold">{title}</h2>
+      {rows.length === 0 ? (
+        <p className="mt-3 text-sm text-muted-foreground">{empty}</p>
+      ) : (
+        <ul className="mt-4 space-y-3">
+          {rows.slice(0, 8).map((r) => (
+            <li key={r.name} className="space-y-1.5">
+              <div className="flex items-baseline justify-between gap-3 text-sm">
+                <span className="min-w-0 truncate">{r.name}</span>
+                <span className="shrink-0 font-semibold tabular-nums">{money(r.amount)}</span>
+              </div>
+              <Bar value={top > 0 ? (r.amount / top) * 100 : 0} tone={tone} />
+              <p className="text-xs text-muted-foreground">{entries(r.count)}</p>
+            </li>
+          ))}
+        </ul>
       )}
     </div>
   );
@@ -92,6 +135,8 @@ function Bar({ value, tone }: { value: number; tone: string }) {
 }
 
 export default function CopilotPage() {
+  const t = useT();
+  const { lang } = useI18n();
   const [overview, setOverview] = useState<CopilotOverview | null>(null);
   const [students, setStudents] = useState<CopilotStudents | null>(null);
   const [risks, setRisks] = useState<CopilotRisks | null>(null);
@@ -119,7 +164,7 @@ export default function CopilotPage() {
       setFailed(false);
       // The written summary and the allowance are secondary — the figures
       // above must render even when AI is switched off or the key expires.
-      void fetchCopilotBrief().then(setBrief).catch(() => setBrief(null));
+      void fetchCopilotBrief(undefined, lang).then(setBrief).catch(() => setBrief(null));
       void fetchCopilotQuota().then(setQuota).catch(() => setQuota(null));
       void fetchCopilotHistory().then(setHistory).catch(() => setHistory([]));
     } catch {
@@ -127,7 +172,7 @@ export default function CopilotPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [lang]);
 
   const submitQuestion = useCallback(async () => {
     const q = question.trim();
@@ -136,7 +181,7 @@ export default function CopilotPage() {
     setAnswer(null);
     setAskNote(null);
     try {
-      const res = await askCopilot(q);
+      const res = await askCopilot(q, lang);
       if (res.ok) {
         setAnswer(res.answer);
         setQuestion("");
@@ -145,18 +190,16 @@ export default function CopilotPage() {
         );
         void fetchCopilotHistory().then(setHistory).catch(() => undefined);
       } else if (res.reason === "limit") {
-        setAskNote(
-          "This school has used all its questions for today. The figures above stay open, and the allowance returns tomorrow.",
-        );
+        setAskNote(t("copilot.limitReached"));
       } else {
-        setAskNote("The writing service is not answering right now. The figures above are unaffected.");
+        setAskNote(t("copilot.askUnavailable"));
       }
     } catch {
-      setAskNote("Could not send the question. Nothing else on this page is affected.");
+      setAskNote(t("copilot.askFailed"));
     } finally {
       setAsking(false);
     }
-  }, [asking, question]);
+  }, [asking, question, lang, t]);
 
   useEffect(() => {
     void load();
@@ -171,13 +214,15 @@ export default function CopilotPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold">School Copilot</h1>
+          <h1 className="text-2xl font-bold">{t("copilot.title")}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             {overview
-              ? `Everything recorded for ${overview.period.from} – ${overview.period.to}${
-                  overview.period.academicYear ? ` · ${overview.period.academicYear}` : ""
-                }, in one place.`
-              : "Your school's own figures, in one place."}
+              ? t("copilot.subtitle", {
+                  from: overview.period.from,
+                  to: overview.period.to,
+                  year: overview.period.academicYear ? ` · ${overview.period.academicYear}` : "",
+                })
+              : t("copilot.subtitleFallback")}
           </p>
         </div>
         <button
@@ -185,7 +230,7 @@ export default function CopilotPage() {
           onClick={() => void load()}
           disabled={loading}
           className="rounded-lg border p-2 text-muted-foreground hover:bg-secondary hover:text-foreground disabled:opacity-50"
-          aria-label="Refresh"
+          aria-label={t("copilot.refresh")}
         >
           <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
         </button>
@@ -193,23 +238,27 @@ export default function CopilotPage() {
 
       {failed && (
         <div className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-          Could not load the school figures.
+          {t("copilot.loadFailed")}
         </div>
+      )}
+
+      {brief && !brief.available && (
+        <p className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-700 dark:text-amber-400">
+          {t("copilot.briefUnavailable")}
+        </p>
       )}
 
       {brief?.available && brief.summary && (
         <div className={cn(CARD, "border-primary/25 bg-primary/[0.03]")}>
           <h2 className="flex items-center gap-2 font-semibold">
             <Sparkles className="h-4 w-4 text-primary" />
-            This month, in short
+            {t("copilot.briefTitle")}
           </h2>
           <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-muted-foreground">
             {brief.summary}
           </p>
           <p className="mt-3 border-t pt-3 text-xs text-muted-foreground/70">
-            Written from this school&apos;s own recorded figures for{" "}
-            {brief.period.from} – {brief.period.to}. No student, parent or staff
-            name is sent to write it.
+            {t("copilot.briefFooter", { from: brief.period.from, to: brief.period.to })}
           </p>
         </div>
       )}
@@ -218,32 +267,43 @@ export default function CopilotPage() {
         <>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <Stat
-              label="Students"
+              label={t("copilot.students")}
               value={overview.students.total.toLocaleString()}
-              hint={`${overview.students.male} male · ${overview.students.female} female`}
+              hint={t("copilot.maleFemale", {
+                male: overview.students.male,
+                female: overview.students.female,
+              })}
               icon={Users}
             />
             <Stat
-              label="Collected this month"
+              label={t("copilot.collected")}
               value={money(overview.fees.collectedThisMonth)}
-              hint={`${money(overview.fees.collectedToday)} today · ${pct(overview.fees.collectionRate)} of expected`}
+              hint={t("copilot.collectedHint", {
+                today: money(overview.fees.collectedToday),
+                rate: pct(overview.fees.collectionRate),
+              })}
               icon={Wallet}
               tone="text-emerald-600 dark:text-emerald-400"
             />
             <Stat
-              label="Attendance"
+              label={t("copilot.attendance")}
               value={pct(overview.attendance.monthRate)}
-              hint={`${overview.attendance.todayPresent} in today, ${overview.attendance.todayAbsent} out`}
+              hint={t("copilot.attendanceHint", {
+                inCount: overview.attendance.todayPresent,
+                outCount: overview.attendance.todayAbsent,
+              })}
               delta={attDelta}
+              deltaSuffix={t("copilot.vsLastMonth", { delta: "" })}
               icon={CalendarCheck}
               tone="text-sky-600 dark:text-sky-400"
             />
             <Stat
-              label="Net income"
+              label={t("copilot.netIncome")}
               value={money(overview.finance.netIncome)}
-              hint={`${money(overview.finance.totalIncome)} in · ${money(
-                overview.finance.salaries + overview.finance.expenses,
-              )} out`}
+              hint={t("copilot.netIncomeHint", {
+                inAmount: money(overview.finance.totalIncome),
+                outAmount: money(overview.finance.salaries + overview.finance.expenses),
+              })}
               icon={TrendingUp}
               tone={
                 overview.finance.netIncome >= 0
@@ -256,13 +316,13 @@ export default function CopilotPage() {
           <div className="grid gap-5 lg:grid-cols-2">
             {/* Where the money went — the whole month on one line each. */}
             <div className={CARD}>
-              <h2 className="font-semibold">This month&apos;s money</h2>
+              <h2 className="font-semibold">{t("copilot.moneyTitle")}</h2>
               <dl className="mt-4 space-y-3 text-sm">
                 {[
-                  { k: "Fees collected", v: overview.finance.feeIncome, tone: "text-emerald-600 dark:text-emerald-400" },
-                  { k: "Additional income", v: overview.finance.otherIncome, tone: "text-emerald-600 dark:text-emerald-400" },
-                  { k: "Salaries paid", v: -overview.finance.salaries, tone: "text-rose-600 dark:text-rose-400" },
-                  { k: "Expenses", v: -overview.finance.expenses, tone: "text-rose-600 dark:text-rose-400" },
+                  { k: t("copilot.feesCollected"), v: overview.finance.feeIncome, tone: "text-emerald-600 dark:text-emerald-400" },
+                  { k: t("copilot.additionalIncome"), v: overview.finance.otherIncome, tone: "text-emerald-600 dark:text-emerald-400" },
+                  { k: t("copilot.salariesPaid"), v: -overview.finance.salaries, tone: "text-rose-600 dark:text-rose-400" },
+                  { k: t("copilot.expenses"), v: -overview.finance.expenses, tone: "text-rose-600 dark:text-rose-400" },
                 ].map((row) => (
                   <div key={row.k} className="flex items-center justify-between">
                     <dt className="text-muted-foreground">{row.k}</dt>
@@ -272,7 +332,7 @@ export default function CopilotPage() {
                   </div>
                 ))}
                 <div className="flex items-center justify-between border-t pt-3">
-                  <dt className="font-medium">Net income</dt>
+                  <dt className="font-medium">{t("copilot.netIncome")}</dt>
                   <dd
                     className={cn(
                       "text-lg font-bold tabular-nums",
@@ -287,33 +347,48 @@ export default function CopilotPage() {
               </dl>
               <div className="mt-4 space-y-1.5">
                 <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>Fee collection</span>
+                  <span>{t("copilot.feeCollection")}</span>
                   <span>
                     {money(overview.fees.collectedThisMonth)} of {money(overview.fees.expectedThisMonth)}
                   </span>
                 </div>
                 <Bar value={overview.fees.collectionRate ?? 0} tone="bg-emerald-500" />
                 <p className="text-xs text-muted-foreground">
-                  {money(overview.fees.outstanding)} still outstanding across all months.
+                  {t("copilot.outstandingAll", { amount: money(overview.fees.outstanding) })}
                 </p>
               </div>
             </div>
 
             <div className={CARD}>
-              <h2 className="font-semibold">The school today</h2>
+              <h2 className="font-semibold">{t("copilot.schoolToday")}</h2>
               <dl className="mt-4 space-y-3 text-sm">
                 {[
-                  { k: "Teachers", v: `${overview.staff.teachers}`, s: `${pct(overview.teacherAttendance.rate)} attendance this month` },
-                  { k: "Parents", v: `${overview.staff.parents}`, s: "with portal accounts" },
-                  { k: "Classes / sections", v: `${overview.academics.classes} / ${overview.academics.sections}`, s: `${overview.academics.exams} exams recorded` },
-                  { k: "New students", v: `${overview.students.newThisMonth}`, s: "registered this month" },
                   {
-                    k: "Quizzes sat",
+                    k: t("copilot.teachers"),
+                    v: `${overview.staff.teachers}`,
+                    s: t("copilot.teacherAtt", { rate: pct(overview.teacherAttendance.rate) }),
+                  },
+                  { k: t("copilot.parents"), v: `${overview.staff.parents}`, s: t("copilot.parentsHint") },
+                  {
+                    k: t("copilot.classesSections"),
+                    v: `${overview.academics.classes} / ${overview.academics.sections}`,
+                    s: t("copilot.examsRecorded", { count: overview.academics.exams }),
+                  },
+                  {
+                    k: t("copilot.newStudents"),
+                    v: `${overview.students.newThisMonth}`,
+                    s: t("copilot.newStudentsHint"),
+                  },
+                  {
+                    k: t("copilot.quizzesSat"),
                     v: `${overview.quiz.attempts}`,
                     s:
                       overview.quiz.averagePercent != null
-                        ? `${overview.quiz.averagePercent}% average · ${pct(overview.quiz.passRate)} passing`
-                        : "none graded yet",
+                        ? t("copilot.quizHint", {
+                            avg: `${overview.quiz.averagePercent}%`,
+                            pass: pct(overview.quiz.passRate),
+                          })
+                        : t("copilot.quizNone"),
                   },
                 ].map((row) => (
                   <div key={row.k} className="flex items-start justify-between gap-3">
@@ -327,6 +402,99 @@ export default function CopilotPage() {
               </dl>
             </div>
           </div>
+
+          <div className="grid gap-5 lg:grid-cols-3">
+            {/* Payroll on its own: "salaries paid" alone never says how much
+                of the wage bill that was, which is the question managers ask. */}
+            <div className={CARD}>
+              <h2 className="font-semibold">{t("copilot.payrollTitle")}</h2>
+              <dl className="mt-4 space-y-3 text-sm">
+                <div className="flex items-center justify-between">
+                  <dt className="text-muted-foreground">{t("copilot.payrollDue")}</dt>
+                  <dd className="font-semibold tabular-nums">{money(overview.breakdown.salary.due)}</dd>
+                </div>
+                <div className="flex items-center justify-between">
+                  <dt className="text-muted-foreground">{t("copilot.payrollPaid")}</dt>
+                  <dd className="font-semibold tabular-nums text-emerald-600 dark:text-emerald-400">
+                    {money(overview.breakdown.salary.paid)}
+                  </dd>
+                </div>
+                <div className="flex items-center justify-between border-t pt-3">
+                  <dt className="font-medium">{t("copilot.payrollLeft")}</dt>
+                  <dd className="font-bold tabular-nums text-rose-600 dark:text-rose-400">
+                    {money(overview.breakdown.salary.outstanding)}
+                  </dd>
+                </div>
+              </dl>
+              <div className="mt-4 space-y-1.5">
+                <Bar
+                  value={
+                    overview.breakdown.salary.due > 0
+                      ? (overview.breakdown.salary.paid / overview.breakdown.salary.due) * 100
+                      : 0
+                  }
+                  tone="bg-sky-500"
+                />
+                <p className="text-xs text-muted-foreground">
+                  {t("copilot.payrollStaff", {
+                    paid: overview.breakdown.salary.fullyPaid,
+                    total: overview.breakdown.salary.staffCount,
+                  })}
+                </p>
+              </div>
+            </div>
+
+            <Breakdown
+              title={t("copilot.expenseBreakdown")}
+              rows={overview.breakdown.expenseByCategory}
+              tone="bg-rose-500"
+              empty={t("copilot.nothingRecorded")}
+              entries={(n) => t("copilot.entries", { count: n })}
+            />
+            <Breakdown
+              title={t("copilot.incomeBreakdown")}
+              rows={overview.breakdown.incomeByCategory}
+              tone="bg-emerald-500"
+              empty={t("copilot.nothingRecorded")}
+              entries={(n) => t("copilot.entries", { count: n })}
+            />
+          </div>
+
+          {/* One month's collection means little without the months around it. */}
+          <div className={CARD}>
+            <h2 className="font-semibold">{t("copilot.sixMonths")}</h2>
+            <div className="mt-4 overflow-x-auto">
+              <table className="w-full min-w-[420px] text-sm">
+                <thead>
+                  <tr className="border-b text-left text-xs uppercase text-muted-foreground">
+                    <th className="pb-2 font-medium">&nbsp;</th>
+                    <th className="pb-2 text-right font-medium">{t("copilot.billed")}</th>
+                    <th className="pb-2 text-right font-medium">{t("copilot.collectedCol")}</th>
+                    <th className="w-1/3 pb-2 ps-4 font-medium">&nbsp;</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {overview.breakdown.months.map((m) => (
+                    <tr key={m.month} className="border-b last:border-0">
+                      <td className="py-2 font-medium tabular-nums">{m.month}</td>
+                      <td className="py-2 text-right tabular-nums text-muted-foreground">
+                        {money(m.expected)}
+                      </td>
+                      <td className="py-2 text-right font-semibold tabular-nums text-emerald-600 dark:text-emerald-400">
+                        {money(m.collected)}
+                      </td>
+                      <td className="py-2 ps-4">
+                        <Bar
+                          value={m.expected > 0 ? (m.collected / m.expected) * 100 : 0}
+                          tone="bg-emerald-500"
+                        />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </>
       )}
 
@@ -334,7 +502,7 @@ export default function CopilotPage() {
         <div className={CARD}>
           <h2 className="flex items-center gap-2 font-semibold">
             <Trophy className="h-4 w-4 text-amber-500" />
-            Top students
+            {t("copilot.topStudents")}
           </h2>
           {students && students.top.length > 0 ? (
             <>
@@ -360,8 +528,8 @@ export default function CopilotPage() {
           ) : (
             <p className="mt-3 text-sm text-muted-foreground">
               {students
-                ? "There are not enough recorded exam marks to rank students yet."
-                : "Loading…"}
+                ? t("copilot.noneYet")
+                : t("copilot.loading")}
             </p>
           )}
         </div>
@@ -369,7 +537,7 @@ export default function CopilotPage() {
         <div className={CARD}>
           <h2 className="flex items-center gap-2 font-semibold">
             <GraduationCap className="h-4 w-4 text-sky-500" />
-            Needs attention
+            {t("copilot.needsAttention")}
           </h2>
           {students && students.needsAttention.length > 0 ? (
             <ol className="mt-3 space-y-2">
@@ -387,7 +555,7 @@ export default function CopilotPage() {
             </ol>
           ) : (
             <p className="mt-3 text-sm text-muted-foreground">
-              {students ? "Nothing to flag from the recorded marks." : "Loading…"}
+              {students ? t("copilot.nothingOutstanding") : t("copilot.loading")}
             </p>
           )}
         </div>
@@ -397,7 +565,7 @@ export default function CopilotPage() {
         <div className={CARD}>
           <h2 className="flex items-center gap-2 font-semibold">
             <AlertTriangle className="h-4 w-4 text-amber-500" />
-            Attendance below 75%
+            {t("copilot.lowAttendance")}
           </h2>
           {risks && risks.lowAttendance.length > 0 ? (
             <ul className="mt-3 space-y-2">
@@ -416,7 +584,7 @@ export default function CopilotPage() {
             </ul>
           ) : (
             <p className="mt-3 text-sm text-muted-foreground">
-              {risks ? "Nobody is below 75% this month." : "Loading…"}
+              {risks ? t("copilot.nothingOutstanding") : t("copilot.loading")}
             </p>
           )}
         </div>
@@ -424,7 +592,7 @@ export default function CopilotPage() {
         <div className={CARD}>
           <h2 className="flex items-center gap-2 font-semibold">
             <Wallet className="h-4 w-4 text-rose-500" />
-            Owing the most
+            {t("copilot.owingMost")}
           </h2>
           {risks && risks.owing.length > 0 ? (
             <ul className="mt-3 space-y-2">
@@ -442,7 +610,7 @@ export default function CopilotPage() {
             </ul>
           ) : (
             <p className="mt-3 text-sm text-muted-foreground">
-              {risks ? "Nothing outstanding." : "Loading…"}
+              {risks ? t("copilot.nothingOutstanding") : t("copilot.loading")}
             </p>
           )}
         </div>
@@ -452,18 +620,15 @@ export default function CopilotPage() {
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="flex items-center gap-2 font-semibold">
             <MessageSquare className="h-4 w-4 text-primary" />
-            Ask about your school
+            {t("copilot.askTitle")}
           </h2>
           {quota && (
             <span className="text-xs text-muted-foreground">
-              {quota.remaining} of {quota.limit} questions left today
+              {t("copilot.quotaLeft", { remaining: quota.remaining, limit: quota.limit })}
             </span>
           )}
         </div>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Answered only from what this school has recorded — never invented. If
-          the figures do not hold the answer, it says which record is missing.
-        </p>
+        <p className="mt-1 text-sm text-muted-foreground">{t("copilot.askHelp")}</p>
         <div className="mt-3 flex gap-2">
           <input
             value={question}
@@ -474,7 +639,7 @@ export default function CopilotPage() {
                 void submitQuestion();
               }
             }}
-            placeholder="How is fee collection doing compared to last month?"
+            placeholder={t("copilot.askPlaceholder")}
             maxLength={500}
             disabled={asking || quota?.remaining === 0}
             className="flex-1 rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60"
@@ -486,7 +651,7 @@ export default function CopilotPage() {
             className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50"
           >
             <Send className={cn("h-4 w-4", asking && "animate-pulse")} />
-            {asking ? "Asking…" : "Ask"}
+            {asking ? t("copilot.asking") : t("copilot.askButton")}
           </button>
         </div>
 
@@ -504,7 +669,7 @@ export default function CopilotPage() {
         {history.length > 0 && (
           <details className="mt-4 border-t pt-3">
             <summary className="cursor-pointer text-sm text-muted-foreground">
-              Earlier questions ({history.length})
+              {t("copilot.historyTitle", { count: history.length })}
             </summary>
             <ul className="mt-3 space-y-3">
               {history.map((h) => (

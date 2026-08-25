@@ -124,7 +124,12 @@ ${facts}` },
         }),
       });
       if (!res.ok) {
-        this.logger.warn(`OpenAI narrative failed: HTTP ${res.status}`);
+        // The status alone cannot be acted on: a 429 is either "too fast" or
+        // "out of credit", and those need different people to fix them.
+        const body = await res.text().catch(() => "");
+        this.logger.warn(
+          `OpenAI narrative failed: HTTP ${res.status} ${body.slice(0, 300)}`,
+        );
         return null;
       }
       const data = (await res.json()) as {

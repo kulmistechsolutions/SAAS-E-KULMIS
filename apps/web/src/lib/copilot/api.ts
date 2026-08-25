@@ -21,6 +21,21 @@ export interface CopilotOverview {
     salaries: number; expenses: number; netIncome: number;
   };
   quiz: { attempts: number; averagePercent: number | null; passRate: number | null };
+  breakdown: {
+    salary: {
+      staffCount: number; fullyPaid: number;
+      due: number; paid: number; outstanding: number;
+    };
+    expenseByCategory: NamedTotal[];
+    incomeByCategory: NamedTotal[];
+    months: { month: string; expected: number; collected: number }[];
+  };
+}
+
+export interface NamedTotal {
+  name: string;
+  amount: number;
+  count: number;
 }
 
 export interface RankedStudent {
@@ -79,13 +94,18 @@ export type CopilotAnswer =
   | { ok: true; answer: string; remaining: number }
   | { ok: false; reason: "limit" | "unavailable"; remaining: number };
 
-export const fetchCopilotBrief = (month?: string) =>
-  api<CopilotBrief>(`/copilot/brief${month ? `?month=${month}` : ""}`);
+export const fetchCopilotBrief = (month?: string, locale?: string) => {
+  const q = new URLSearchParams();
+  if (month) q.set("month", month);
+  if (locale) q.set("locale", locale);
+  const s = q.toString();
+  return api<CopilotBrief>(`/copilot/brief${s ? `?${s}` : ""}`);
+};
 
 export const fetchCopilotQuota = () => api<CopilotQuota>("/copilot/quota");
 
 export const fetchCopilotHistory = () =>
   api<CopilotHistoryItem[]>("/copilot/history");
 
-export const askCopilot = (question: string) =>
-  api<CopilotAnswer>("/copilot/ask", { method: "POST", body: { question } });
+export const askCopilot = (question: string, locale?: string) =>
+  api<CopilotAnswer>("/copilot/ask", { method: "POST", body: { question, locale } });

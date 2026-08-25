@@ -46,7 +46,46 @@ export interface CopilotOverview {
     netIncome: number;
   };
   quiz: { attempts: number; averagePercent: number | null; passRate: number | null };
+  /** Where each figure above actually came from, line by line. */
+  breakdown: {
+    salary: {
+      staffCount: number;
+      fullyPaid: number;
+      due: number;
+      paid: number;
+      outstanding: number;
+    };
+    expenseByCategory: NamedTotal[];
+    incomeByCategory: NamedTotal[];
+    /** The last six months, so a figure can be read against its neighbours. */
+    months: { month: string; expected: number; collected: number }[];
+  };
 }
+
+export interface NamedTotal {
+  name: string;
+  amount: number;
+  count: number;
+}
+
+interface NamedTotalRow {
+  name: string;
+  amount: number | bigint;
+  count: number | bigint;
+}
+
+interface MonthRow {
+  month: string;
+  expected: number | bigint;
+  collected: number | bigint;
+}
+
+/** Raw SQL hands back bigints for sums; the page wants plain numbers. */
+const named = (r: NamedTotalRow): NamedTotal => ({
+  name: r.name,
+  amount: Number(r.amount),
+  count: Number(r.count),
+});
 
 interface RankedStudent {
   studentId: string;
@@ -79,6 +118,21 @@ export class CopilotService {
   private static thisMonth(): string {
     const d = new Date();
     return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+  }
+
+  /**
+   * Answer in the language the user is reading the system in. A Somali school
+   * asking in Somali and getting English back is a report nobody can hand to a
+   * board, so the language travels with the request rather than being guessed.
+   */
+  private static languageRule(locale?: string): string {
+    if (locale === "so") {
+      return "Ku qor af-Soomaali oo kaliya. Isticmaal erayo fudud oo maamulka dugsigu fahmi karo.";
+    }
+    if (locale === "ar") {
+      return "اكتب باللغة العربية فقط.";
+    }
+    return "Write in English.";
   }
 
   private rate(part: number, whole: number): number | null {
@@ -125,6 +179,11 @@ export class CopilotService {
           otherIncomeAgg,
           quizAgg,
           quizPass,
+          salaryDue,
+          salaryFullyPaid,
+          expenseCats,
+          incomeCats,
+          monthRows,
         ] = await Promise.all([
           tx.student.groupBy({
             by: ["gender"],
@@ -195,6 +254,42 @@ export class CopilotService {
             _avg: { percentage: true },
           }),
           tx.quizAttempt.count({ where: { status: "GRADED", result: "PASS" } }),
+          tx.salary.aggregate({
+            where: { year: r.year, month: r.month },
+            _sum: { amount: true },
+            _count: { _all: true },
+          }),
+          tx.salary.count({ where: { year: r.year, month: r.month, status: "PAID" } }),
+          tx.$queryRaw<NamedTotalRow[]>`
+            SELECT coalesce(c.name, 'Uncategorised') AS name,
+                   sum(e.amount)::int AS amount, count(*)::int AS count
+            FROM expenses e
+            LEFT JOIN expense_categories c ON c.id = e."categoryId"
+            WHERE e."spentAt" >= ${r.start} AND e."spentAt" < ${r.end}
+            GROUP BY 1 ORDER BY 2 DESC`,
+          tx.$queryRaw<NamedTotalRow[]>`
+            SELECT coalesce(c.name, oi.title) AS name,
+                   sum(oi.amount)::int AS amount, count(*)::int AS count
+            FROM other_income oi
+            LEFT JOIN income_categories c ON c.id = oi."categoryId"
+            WHERE oi."receivedAt" >= ${r.start} AND oi."receivedAt" < ${r.end}
+            GROUP BY 1 ORDER BY 2 DESC`,
+          tx.$queryRaw<MonthRow[]>`
+            WITH m AS (
+              SELECT to_char(d, 'YYYY-MM') AS month,
+                     d AS start, (d + interval '1 month') AS stop
+              FROM generate_series(
+                ${r.start}::timestamp - interval '5 months',
+                ${r.start}::timestamp, interval '1 month') d
+            )
+            SELECT m.month,
+              coalesce((SELECT sum(fc.amount)::int FROM fee_charges fc
+                        WHERE fc.kind = 'MONTHLY'
+                          AND fc.year = extract(year FROM m.start)::int
+                          AND fc.month = extract(month FROM m.start)::int), 0) AS expected,
+              coalesce((SELECT sum(p.amount)::int FROM payments p
+                        WHERE p."paidAt" >= m.start AND p."paidAt" < m.stop), 0) AS collected
+            FROM m ORDER BY m.month`,
         ]);
 
         const g = (v: string) =>
@@ -270,6 +365,22 @@ export class CopilotService {
                 : null,
             passRate: this.rate(quizPass, quizAgg._count._all),
           },
+          breakdown: {
+            salary: {
+              staffCount: salaryDue._count._all,
+              fullyPaid: salaryFullyPaid,
+              due: salaryDue._sum.amount ?? 0,
+              paid: salaries,
+              outstanding: (salaryDue._sum.amount ?? 0) - salaries,
+            },
+            expenseByCategory: expenseCats.map(named),
+            incomeByCategory: incomeCats.map(named),
+            months: monthRows.map((m) => ({
+              month: m.month,
+              expected: Number(m.expected),
+              collected: Number(m.collected),
+            })),
+          },
         };
       },
       { timeout: 60_000, maxWait: 30_000 },
@@ -287,6 +398,7 @@ export class CopilotService {
   private factSheet(o: CopilotOverview): string {
     const money = (n: number) => `$${n.toLocaleString()}`;
     const pct = (n: number | null) => (n == null ? "not recorded" : `${n}%`);
+    const b = o.breakdown;
     const L = [
       `Period: ${o.period.from} to ${o.period.to}` +
         (o.period.academicYear ? ` (academic year ${o.period.academicYear})` : ""),
@@ -303,6 +415,24 @@ export class CopilotService {
       o.quiz.attempts > 0
         ? `Online quizzes graded: ${o.quiz.attempts}, average ${pct(o.quiz.averagePercent)}, passing ${pct(o.quiz.passRate)}`
         : "Online quizzes: none graded this school",
+      `Payroll this month: ${b.salary.staffCount} staff on the payroll, ${b.salary.fullyPaid} paid in full; ` +
+        `${money(b.salary.due)} due, ${money(b.salary.paid)} paid, ${money(b.salary.outstanding)} still owed to staff`,
+      b.expenseByCategory.length
+        ? "Expenses by category: " +
+          b.expenseByCategory
+            .map((c) => `${c.name} ${money(c.amount)} (${c.count} entries)`)
+            .join("; ")
+        : "Expenses by category: nothing recorded this month",
+      b.incomeByCategory.length
+        ? "Additional income by source: " +
+          b.incomeByCategory
+            .map((c) => `${c.name} ${money(c.amount)} (${c.count} entries)`)
+            .join("; ")
+        : "Additional income: nothing recorded this month",
+      "Fee collection over the last six months (billed vs collected): " +
+        b.months
+          .map((m) => `${m.month} ${money(m.collected)} of ${money(m.expected)}`)
+          .join("; "),
     ];
     return L.join("\n");
   }
@@ -314,15 +444,22 @@ export class CopilotService {
    * their own, and a page that needs the model to be useful would be a page
    * that breaks when the key expires.
    */
-  async brief(schoolId: string, month?: string) {
+  async brief(schoolId: string, month?: string, locale?: string) {
     const overview = await this.overview(schoolId, month);
     const facts = this.factSheet(overview);
     const text = await this.ai.writeFrom(
-      "Write a short briefing for this school's principal covering: how the month is going, " +
-        "what stands out, and what management should look at next. " +
-        "Compare against the previous month only where a previous figure is given.",
+      [
+        "Write a full monthly report for this school's principal, in short labelled",
+        "paragraphs: (1) money in - fees and each source of additional income,",
+        "(2) money out - payroll and each expense category, naming the amounts,",
+        "(3) fees expected against fees collected, and what is still outstanding,",
+        "(4) students, attendance and results, (5) what management should do next.",
+        "Give the actual amounts in every paragraph; do not summarise them away.",
+        "Compare against earlier months only where an earlier figure is given.",
+        CopilotService.languageRule(locale),
+      ].join(" "),
       facts,
-      { maxWords: 200 },
+      { maxWords: 450 },
     );
     return {
       period: overview.period,
@@ -368,7 +505,7 @@ export class CopilotService {
   async ask(
     schoolId: string,
     question: string,
-    actor: { userId?: string; username?: string },
+    actor: { userId?: string; username?: string; locale?: string },
     dailyLimit = 5,
   ): Promise<
     | { ok: true; answer: string; remaining: number }
@@ -381,9 +518,12 @@ export class CopilotService {
     const facts = this.factSheet(overview);
     const answer = await this.ai.writeFrom(
       `Answer this question from the school's own figures: "${question}"\n` +
-        "If the figures do not contain the answer, say which record the school would need to have entered.",
+        "Give the amounts and counts that support the answer. If the figures do " +
+        "not contain the answer, say which record the school would need to have " +
+        "entered. " +
+        CopilotService.languageRule(actor.locale),
       facts,
-      { maxWords: 180 },
+      { maxWords: 250 },
     );
     if (!answer) return { ok: false, reason: "unavailable", remaining: q.remaining };
 
