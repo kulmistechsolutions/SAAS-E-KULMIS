@@ -76,6 +76,71 @@ export class AiService {
   }
 
   /**
+   * Ask the model to write prose from figures already computed here.
+   *
+   * Deliberately narrow: the caller supplies the numbers, the model supplies
+   * the sentences. Nothing is looked up on the model's side, so it cannot
+   * invent a figure the school does not have — the worst it can do is describe
+   * the real ones badly.
+   *
+   * Returns null when AI is switched off or unreachable, so every caller has
+   * to have something sensible to show without it.
+   */
+  async writeFrom(
+    instruction: string,
+    facts: string,
+    opts: { maxWords?: number } = {},
+  ): Promise<string | null> {
+    const cfg = await this.getConfig();
+    if (!cfg.enabled || !cfg.apiKey.trim()) return null;
+    const limit = opts.maxWords ?? 220;
+    try {
+      const res = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${cfg.apiKey}`,
+        },
+        body: JSON.stringify({
+          model: cfg.model || "gpt-4o-mini",
+          temperature: 0.2,
+          max_tokens: Math.ceil(limit * 2),
+          messages: [
+            {
+              role: "system",
+              content:
+                "You write short management briefings for a school principal, from figures you are given. " +
+                "Use ONLY those figures — never estimate, extrapolate or invent a number, a name or a trend. " +
+                "If the figures do not answer something, say plainly that the school has not recorded it. " +
+                "Separate what the data says from what you suggest: state the facts first, then any recommendation, " +
+                "and never present a recommendation as a finding. " +
+                `Plain professional English, no marketing tone, at most ${limit} words. No headings unless asked.`,
+            },
+            { role: "user", content: `${instruction}
+
+Figures:
+${facts}` },
+          ],
+        }),
+      });
+      if (!res.ok) {
+        this.logger.warn(`OpenAI narrative failed: HTTP ${res.status}`);
+        return null;
+      }
+      const data = (await res.json()) as {
+        choices?: { message?: { content?: string } }[];
+      };
+      const text = data.choices?.[0]?.message?.content?.trim();
+      return text ? text : null;
+    } catch (err) {
+      this.logger.warn(
+        `OpenAI narrative error: ${err instanceof Error ? err.message : err}`,
+      );
+      return null;
+    }
+  }
+
+  /**
    * Score a free-text answer against the model answer (0-100 similarity of
    * meaning). Returns null when AI grading is unavailable so the caller can
    * fall back to manual review.

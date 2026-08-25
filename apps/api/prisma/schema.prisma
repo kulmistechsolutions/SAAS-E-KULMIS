@@ -1606,6 +1606,25 @@ model QuizActivityEvent {
   @@map("quiz_activity_events")
 }
 
+/// One question a school's management asked the Copilot, and what it answered.
+/// Kept so the school can revisit an analysis, and so the daily allowance can
+/// be counted without a second store of truth.
+model CopilotQuestion {
+  id        String   @id @default(cuid())
+  schoolId  String
+  userId    String?
+  username  String?
+  question  String
+  answer    String
+  /// The figures the answer was written from, so an old answer can be read
+  /// back knowing what it was looking at.
+  snapshot  Json?
+  createdAt DateTime @default(now())
+
+  @@index([schoolId, createdAt])
+  @@map("copilot_questions")
+}
+
 // ── Announcements & Notifications (Module 17) ───────────────────────────────
 
 model Announcement {

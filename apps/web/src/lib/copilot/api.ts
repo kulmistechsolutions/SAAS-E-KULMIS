@@ -53,3 +53,39 @@ export const fetchCopilotStudents = (limit = 10) =>
 
 export const fetchCopilotRisks = (month?: string) =>
   api<CopilotRisks>(`/copilot/risks${month ? `?month=${month}` : ""}`);
+
+export interface CopilotBrief {
+  period: CopilotOverview["period"];
+  available: boolean;
+  summary: string | null;
+  basedOn: string;
+}
+
+export interface CopilotQuota {
+  used: number;
+  limit: number;
+  remaining: number;
+}
+
+export interface CopilotHistoryItem {
+  id: string;
+  question: string;
+  answer: string;
+  username: string | null;
+  createdAt: string;
+}
+
+export type CopilotAnswer =
+  | { ok: true; answer: string; remaining: number }
+  | { ok: false; reason: "limit" | "unavailable"; remaining: number };
+
+export const fetchCopilotBrief = (month?: string) =>
+  api<CopilotBrief>(`/copilot/brief${month ? `?month=${month}` : ""}`);
+
+export const fetchCopilotQuota = () => api<CopilotQuota>("/copilot/quota");
+
+export const fetchCopilotHistory = () =>
+  api<CopilotHistoryItem[]>("/copilot/history");
+
+export const askCopilot = (question: string) =>
+  api<CopilotAnswer>("/copilot/ask", { method: "POST", body: { question } });

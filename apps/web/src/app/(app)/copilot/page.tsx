@@ -5,7 +5,10 @@ import {
   AlertTriangle,
   CalendarCheck,
   GraduationCap,
+  MessageSquare,
   RefreshCw,
+  Send,
+  Sparkles,
   TrendingDown,
   TrendingUp,
   Trophy,
@@ -13,10 +16,17 @@ import {
   Wallet,
 } from "lucide-react";
 import {
+  askCopilot,
+  fetchCopilotBrief,
+  fetchCopilotHistory,
   fetchCopilotOverview,
+  fetchCopilotQuota,
   fetchCopilotRisks,
   fetchCopilotStudents,
+  type CopilotBrief,
+  type CopilotHistoryItem,
   type CopilotOverview,
+  type CopilotQuota,
   type CopilotRisks,
   type CopilotStudents,
 } from "@/lib/copilot/api";
@@ -85,6 +95,13 @@ export default function CopilotPage() {
   const [overview, setOverview] = useState<CopilotOverview | null>(null);
   const [students, setStudents] = useState<CopilotStudents | null>(null);
   const [risks, setRisks] = useState<CopilotRisks | null>(null);
+  const [brief, setBrief] = useState<CopilotBrief | null>(null);
+  const [quota, setQuota] = useState<CopilotQuota | null>(null);
+  const [history, setHistory] = useState<CopilotHistoryItem[]>([]);
+  const [question, setQuestion] = useState("");
+  const [asking, setAsking] = useState(false);
+  const [answer, setAnswer] = useState<string | null>(null);
+  const [askNote, setAskNote] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -100,12 +117,46 @@ export default function CopilotPage() {
       setStudents(s);
       setRisks(r);
       setFailed(false);
+      // The written summary and the allowance are secondary — the figures
+      // above must render even when AI is switched off or the key expires.
+      void fetchCopilotBrief().then(setBrief).catch(() => setBrief(null));
+      void fetchCopilotQuota().then(setQuota).catch(() => setQuota(null));
+      void fetchCopilotHistory().then(setHistory).catch(() => setHistory([]));
     } catch {
       setFailed(true);
     } finally {
       setLoading(false);
     }
   }, []);
+
+  const submitQuestion = useCallback(async () => {
+    const q = question.trim();
+    if (q.length < 3 || asking) return;
+    setAsking(true);
+    setAnswer(null);
+    setAskNote(null);
+    try {
+      const res = await askCopilot(q);
+      if (res.ok) {
+        setAnswer(res.answer);
+        setQuestion("");
+        setQuota((prev) =>
+          prev ? { ...prev, used: prev.limit - res.remaining, remaining: res.remaining } : prev,
+        );
+        void fetchCopilotHistory().then(setHistory).catch(() => undefined);
+      } else if (res.reason === "limit") {
+        setAskNote(
+          "This school has used all its questions for today. The figures above stay open, and the allowance returns tomorrow.",
+        );
+      } else {
+        setAskNote("The writing service is not answering right now. The figures above are unaffected.");
+      }
+    } catch {
+      setAskNote("Could not send the question. Nothing else on this page is affected.");
+    } finally {
+      setAsking(false);
+    }
+  }, [asking, question]);
 
   useEffect(() => {
     void load();
@@ -143,6 +194,23 @@ export default function CopilotPage() {
       {failed && (
         <div className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
           Could not load the school figures.
+        </div>
+      )}
+
+      {brief?.available && brief.summary && (
+        <div className={cn(CARD, "border-primary/25 bg-primary/[0.03]")}>
+          <h2 className="flex items-center gap-2 font-semibold">
+            <Sparkles className="h-4 w-4 text-primary" />
+            This month, in short
+          </h2>
+          <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-muted-foreground">
+            {brief.summary}
+          </p>
+          <p className="mt-3 border-t pt-3 text-xs text-muted-foreground/70">
+            Written from this school&apos;s own recorded figures for{" "}
+            {brief.period.from} – {brief.period.to}. No student, parent or staff
+            name is sent to write it.
+          </p>
         </div>
       )}
 
@@ -378,6 +446,79 @@ export default function CopilotPage() {
             </p>
           )}
         </div>
+      </div>
+
+      <div className={CARD}>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="flex items-center gap-2 font-semibold">
+            <MessageSquare className="h-4 w-4 text-primary" />
+            Ask about your school
+          </h2>
+          {quota && (
+            <span className="text-xs text-muted-foreground">
+              {quota.remaining} of {quota.limit} questions left today
+            </span>
+          )}
+        </div>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Answered only from what this school has recorded — never invented. If
+          the figures do not hold the answer, it says which record is missing.
+        </p>
+        <div className="mt-3 flex gap-2">
+          <input
+            value={question}
+            onChange={(e) => setQuestion(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                void submitQuestion();
+              }
+            }}
+            placeholder="How is fee collection doing compared to last month?"
+            maxLength={500}
+            disabled={asking || quota?.remaining === 0}
+            className="flex-1 rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-60"
+          />
+          <button
+            type="button"
+            onClick={() => void submitQuestion()}
+            disabled={asking || question.trim().length < 3 || quota?.remaining === 0}
+            className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50"
+          >
+            <Send className={cn("h-4 w-4", asking && "animate-pulse")} />
+            {asking ? "Asking…" : "Ask"}
+          </button>
+        </div>
+
+        {askNote && (
+          <p className="mt-3 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-700 dark:text-amber-400">
+            {askNote}
+          </p>
+        )}
+        {answer && (
+          <p className="mt-3 whitespace-pre-line rounded-lg bg-secondary/60 p-3 text-sm leading-relaxed">
+            {answer}
+          </p>
+        )}
+
+        {history.length > 0 && (
+          <details className="mt-4 border-t pt-3">
+            <summary className="cursor-pointer text-sm text-muted-foreground">
+              Earlier questions ({history.length})
+            </summary>
+            <ul className="mt-3 space-y-3">
+              {history.map((h) => (
+                <li key={h.id} className="text-sm">
+                  <p className="font-medium">{h.question}</p>
+                  <p className="mt-1 whitespace-pre-line text-muted-foreground">{h.answer}</p>
+                  <p className="mt-1 text-xs text-muted-foreground/70">
+                    {h.username ?? "—"} · {new Date(h.createdAt).toLocaleString()}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          </details>
+        )}
       </div>
     </div>
   );

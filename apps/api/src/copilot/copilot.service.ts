@@ -1,5 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
+import { AiService } from "../ai/ai.service";
 
 /**
  * School Copilot — the reading half.
@@ -57,7 +58,10 @@ interface RankedStudent {
 
 @Injectable()
 export class CopilotService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly ai: AiService,
+  ) {}
 
   /** `YYYY-MM` → the half-open range covering it. */
   private monthRange(month: string) {
@@ -270,6 +274,132 @@ export class CopilotService {
       },
       { timeout: 60_000, maxWait: 30_000 },
     );
+  }
+
+  /**
+   * The month's figures as a block of plain lines.
+   *
+   * Only aggregates: no student, parent or staff name ever goes to the model.
+   * The narrative is written from counts and totals, and the page renders the
+   * names beside it from our own data — so nobody's record leaves the system
+   * to have a sentence written about it.
+   */
+  private factSheet(o: CopilotOverview): string {
+    const money = (n: number) => `$${n.toLocaleString()}`;
+    const pct = (n: number | null) => (n == null ? "not recorded" : `${n}%`);
+    const L = [
+      `Period: ${o.period.from} to ${o.period.to}` +
+        (o.period.academicYear ? ` (academic year ${o.period.academicYear})` : ""),
+      `Students enrolled: ${o.students.total} (${o.students.male} male, ${o.students.female} female); ${o.students.newThisMonth} registered this month`,
+      `Teachers: ${o.staff.teachers}. Parents with accounts: ${o.staff.parents}. Classes: ${o.academics.classes}, sections: ${o.academics.sections}`,
+      `Student attendance this month: ${pct(o.attendance.monthRate)}; previous month: ${pct(o.attendance.previousMonthRate)}`,
+      `Today: ${o.attendance.todayPresent} present, ${o.attendance.todayAbsent} absent, ${o.attendance.todayLate} late`,
+      `Teacher attendance this month: ${pct(o.teacherAttendance.rate)} (${o.teacherAttendance.present} present, ${o.teacherAttendance.absent} absent)`,
+      `Fees billed this month: ${money(o.fees.expectedThisMonth)}; collected: ${money(o.fees.collectedThisMonth)} (${pct(o.fees.collectionRate)}); collected today: ${money(o.fees.collectedToday)}`,
+      `Outstanding across all months: ${money(o.fees.outstanding)}`,
+      `Income this month: fees ${money(o.finance.feeIncome)} + other ${money(o.finance.otherIncome)} = ${money(o.finance.totalIncome)}`,
+      `Spending this month: salaries ${money(o.finance.salaries)} + expenses ${money(o.finance.expenses)}`,
+      `Net income this month: ${money(o.finance.netIncome)}`,
+      o.quiz.attempts > 0
+        ? `Online quizzes graded: ${o.quiz.attempts}, average ${pct(o.quiz.averagePercent)}, passing ${pct(o.quiz.passRate)}`
+        : "Online quizzes: none graded this school",
+    ];
+    return L.join("\n");
+  }
+
+  /**
+   * A written summary of the month, and what it suggests management look at.
+   *
+   * `available: false` when AI is switched off — the figures above stand on
+   * their own, and a page that needs the model to be useful would be a page
+   * that breaks when the key expires.
+   */
+  async brief(schoolId: string, month?: string) {
+    const overview = await this.overview(schoolId, month);
+    const facts = this.factSheet(overview);
+    const text = await this.ai.writeFrom(
+      "Write a short briefing for this school's principal covering: how the month is going, " +
+        "what stands out, and what management should look at next. " +
+        "Compare against the previous month only where a previous figure is given.",
+      facts,
+      { maxWords: 200 },
+    );
+    return {
+      period: overview.period,
+      available: text != null,
+      summary: text,
+      basedOn: facts,
+    };
+  }
+
+  /** How many questions this school has left today. */
+  async quota(schoolId: string, dailyLimit = 5) {
+    const since = new Date();
+    since.setHours(0, 0, 0, 0);
+    const used = await this.prisma.forTenant(schoolId, (tx) =>
+      tx.copilotQuestion.count({ where: { createdAt: { gte: since } } }),
+    );
+    return { used, limit: dailyLimit, remaining: Math.max(0, dailyLimit - used) };
+  }
+
+  /** The questions this school has asked, most recent first. */
+  history(schoolId: string, limit = 20) {
+    return this.prisma.forTenant(schoolId, (tx) =>
+      tx.copilotQuestion.findMany({
+        orderBy: { createdAt: "desc" },
+        take: Math.min(Math.max(limit, 1), 100),
+        select: {
+          id: true,
+          question: true,
+          answer: true,
+          username: true,
+          createdAt: true,
+        },
+      }),
+    );
+  }
+
+  /**
+   * Answer one question about the school, from the month's figures.
+   *
+   * The model is given the same fact sheet and nothing else, so an answer it
+   * cannot support from those lines has to say so rather than be filled in.
+   */
+  async ask(
+    schoolId: string,
+    question: string,
+    actor: { userId?: string; username?: string },
+    dailyLimit = 5,
+  ): Promise<
+    | { ok: true; answer: string; remaining: number }
+    | { ok: false; reason: "limit" | "unavailable"; remaining: number }
+  > {
+    const q = await this.quota(schoolId, dailyLimit);
+    if (q.remaining <= 0) return { ok: false, reason: "limit", remaining: 0 };
+
+    const overview = await this.overview(schoolId);
+    const facts = this.factSheet(overview);
+    const answer = await this.ai.writeFrom(
+      `Answer this question from the school's own figures: "${question}"\n` +
+        "If the figures do not contain the answer, say which record the school would need to have entered.",
+      facts,
+      { maxWords: 180 },
+    );
+    if (!answer) return { ok: false, reason: "unavailable", remaining: q.remaining };
+
+    await this.prisma.forTenant(schoolId, (tx) =>
+      tx.copilotQuestion.create({
+        data: {
+          schoolId,
+          userId: actor.userId ?? null,
+          username: actor.username ?? null,
+          question: question.slice(0, 500),
+          answer,
+          snapshot: { period: overview.period, facts },
+        },
+      }),
+    );
+    return { ok: true, answer, remaining: q.remaining - 1 };
   }
 
   /**
