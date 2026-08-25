@@ -15,6 +15,8 @@ export interface CopilotOverview {
   fees: {
     expectedThisMonth: number; collectedThisMonth: number; collectedToday: number;
     outstanding: number; collectionRate: number | null;
+    studentsBilled: number; studentsPaidFull: number;
+    studentsPartial: number; studentsUnpaid: number;
   };
   finance: {
     feeIncome: number; otherIncome: number; totalIncome: number;

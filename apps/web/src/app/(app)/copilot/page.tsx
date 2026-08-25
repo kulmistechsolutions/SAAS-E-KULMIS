@@ -357,6 +357,29 @@ export default function CopilotPage() {
                   {t("copilot.outstandingAll", { amount: money(overview.fees.outstanding) })}
                 </p>
               </div>
+              {/* "Collected $X" alone hides whether that came from a few
+                  families paying in full or most paying part — the question a
+                  principal actually asks next. */}
+              <div className="mt-4 grid grid-cols-3 gap-2 border-t pt-3 text-center">
+                <div>
+                  <p className="text-lg font-bold tabular-nums text-emerald-600 dark:text-emerald-400">
+                    {overview.fees.studentsPaidFull}
+                  </p>
+                  <p className="text-xs text-muted-foreground">{t("copilot.paidFull")}</p>
+                </div>
+                <div>
+                  <p className="text-lg font-bold tabular-nums text-amber-600 dark:text-amber-400">
+                    {overview.fees.studentsPartial}
+                  </p>
+                  <p className="text-xs text-muted-foreground">{t("copilot.paidPart")}</p>
+                </div>
+                <div>
+                  <p className="text-lg font-bold tabular-nums text-rose-600 dark:text-rose-400">
+                    {overview.fees.studentsUnpaid}
+                  </p>
+                  <p className="text-xs text-muted-foreground">{t("copilot.paidNone")}</p>
+                </div>
+              </div>
             </div>
 
             <div className={CARD}>

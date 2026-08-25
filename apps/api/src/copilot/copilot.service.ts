@@ -36,6 +36,11 @@ export interface CopilotOverview {
     collectedToday: number;
     outstanding: number;
     collectionRate: number | null;
+    /** Students billed this month, split by how much of their charge is settled. */
+    studentsBilled: number;
+    studentsPaidFull: number;
+    studentsPartial: number;
+    studentsUnpaid: number;
   };
   finance: {
     feeIncome: number;
@@ -174,6 +179,7 @@ export class CopilotService {
           paidMonth,
           paidToday,
           outstandingAgg,
+          feeStudentCounts,
           expenseAgg,
           salaryAgg,
           otherIncomeAgg,
@@ -235,6 +241,11 @@ export class CopilotService {
           tx.feeCharge.aggregate({
             where: { status: { not: "PAID" } },
             _sum: { amount: true, paidAmount: true },
+          }),
+          tx.feeCharge.groupBy({
+            by: ["status"],
+            where: { year: r.year, month: r.month, kind: "MONTHLY" },
+            _count: { _all: true },
           }),
           tx.expense.aggregate({
             where: { spentAt: { gte: r.start, lt: r.end } },
@@ -348,6 +359,10 @@ export class CopilotService {
             outstanding:
               (outstandingAgg._sum.amount ?? 0) - (outstandingAgg._sum.paidAmount ?? 0),
             collectionRate: this.rate(feeIncome, expected),
+            studentsBilled: feeStudentCounts.reduce((sum, x) => sum + x._count._all, 0),
+            studentsPaidFull: att(feeStudentCounts, "PAID"),
+            studentsPartial: att(feeStudentCounts, "PARTIAL"),
+            studentsUnpaid: att(feeStudentCounts, "UNPAID"),
           },
           finance: {
             feeIncome,
@@ -408,6 +423,8 @@ export class CopilotService {
       `Today: ${o.attendance.todayPresent} present, ${o.attendance.todayAbsent} absent, ${o.attendance.todayLate} late`,
       `Teacher attendance this month: ${pct(o.teacherAttendance.rate)} (${o.teacherAttendance.present} present, ${o.teacherAttendance.absent} absent)`,
       `Fees billed this month: ${money(o.fees.expectedThisMonth)}; collected: ${money(o.fees.collectedThisMonth)} (${pct(o.fees.collectionRate)}); collected today: ${money(o.fees.collectedToday)}`,
+      `Of ${o.fees.studentsBilled} students billed this month: ${o.fees.studentsPaidFull} paid in full, ` +
+        `${o.fees.studentsPartial} paid part of what they owe, ${o.fees.studentsUnpaid} have paid nothing yet`,
       `Outstanding across all months: ${money(o.fees.outstanding)}`,
       `Income this month: fees ${money(o.finance.feeIncome)} + other ${money(o.finance.otherIncome)} = ${money(o.finance.totalIncome)}`,
       `Spending this month: salaries ${money(o.finance.salaries)} + expenses ${money(o.finance.expenses)}`,
