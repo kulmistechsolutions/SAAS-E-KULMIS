@@ -220,18 +220,21 @@ export class StudentAttendanceService {
         select: { studentId: true, status: true },
       });
 
-      // Who was marked that day, not who sits in the class today. After a
-      // promotion the class holds the year below, so opening a past date
-      // listed this year's children against last year's register — the marks
-      // were there, attached to students the roster no longer named. A day
-      // already taken names its own roll; live membership is only right for a
-      // day nobody has marked yet.
+      // Whose register this is depends on the class's year, not on whether
+      // anything has been marked yet. In the current year the roll is the
+      // class as it stands — a half-marked day must still list everyone left
+      // to mark. In a year that has ended the class has been refilled by the
+      // one below, so the register belongs to whoever was marked in it.
+      const cls = await tx.class.findFirst({
+        where: { id: classId },
+        select: { academicYear: { select: { isActive: true } } },
+      });
+      const currentYear = cls?.academicYear.isActive ?? true;
       const markedIds = records.map((r) => r.studentId);
       const students = await tx.student.findMany({
-        where:
-          markedIds.length > 0
-            ? { id: { in: markedIds } }
-            : { ...studentInClassWhere(classId, sectionId), status: "ACTIVE" },
+        where: currentYear
+          ? { ...studentInClassWhere(classId, sectionId), status: "ACTIVE" }
+          : { id: { in: markedIds } },
         orderBy: { fullName: "asc" },
         select: { id: true, code: true, fullName: true, gender: true },
       });

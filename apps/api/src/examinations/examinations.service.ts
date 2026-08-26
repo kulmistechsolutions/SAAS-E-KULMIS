@@ -1345,37 +1345,52 @@ export class ExaminationsService {
     );
   }
 
+  /** Whether an academic year is the one the school is currently running. */
+  private async isCurrentYear(
+    tx: Parameters<Parameters<PrismaService["forTenant"]>[1]>[0],
+    academicYearId: string,
+  ): Promise<boolean> {
+    const year = await tx.academicYear.findFirst({
+      where: { id: academicYearId },
+      select: { isActive: true },
+    });
+    return year?.isActive ?? true;
+  }
+
   /**
    * How many students a class held *for the exams being looked at*.
    *
    * Counting who sits in the class right now is only right for the current
    * year. Once a school promotes, last year's classes empty out and every past
    * year's results page reports 0 students against exams that plainly have
-   * marks in them — the roll moved on, the history did not. Where marks exist
-   * they are the roll: each one names a student who sat that exam in that
-   * class. Only when nothing has been entered yet does the live class
-   * membership stand in, which is the right answer for an exam still ahead.
+   * marks in them — the roll moved on, the history did not. So the year
+   * decides: the live class while it is still running (a student nobody has
+   * marked yet is still in the class), the students who actually sat the exams
+   * once it has ended.
    */
   private async examRosterCount(
     schoolId: string,
     classId: string,
     examIds: string[],
   ): Promise<number> {
-    if (examIds.length > 0) {
-      const sat = await this.prisma.forTenant(schoolId, (tx) =>
-        tx.examMark.findMany({
-          where: { examId: { in: examIds } },
-          distinct: ["studentId"],
-          select: { studentId: true },
-        }),
-      );
-      if (sat.length > 0) return sat.length;
-    }
-    return this.prisma.forTenant(schoolId, (tx) =>
-      tx.student.count({
-        where: { ...studentInClassWhere(classId), status: "ACTIVE" },
-      }),
-    );
+    return this.prisma.forTenant(schoolId, async (tx) => {
+      const cls = await tx.class.findFirst({
+        where: { id: classId },
+        select: { academicYear: { select: { isActive: true } } },
+      });
+      if (cls?.academicYear.isActive ?? true) {
+        return tx.student.count({
+          where: { ...studentInClassWhere(classId), status: "ACTIVE" },
+        });
+      }
+      if (examIds.length === 0) return 0;
+      const sat = await tx.examMark.findMany({
+        where: { examId: { in: examIds } },
+        distinct: ["studentId"],
+        select: { studentId: true },
+      });
+      return sat.length;
+    });
   }
 
   /** Class-level monitoring overview — one row per class. */
@@ -1655,19 +1670,16 @@ export class ExaminationsService {
 
       const result = [];
       for (const entry of byClass.values()) {
-        const satIds = await tx.examMark.findMany({
-          where: { examId: { in: entry.exams.map((e) => e.id) } },
-          distinct: ["studentId"],
-          select: { studentId: true },
-        });
-        const [liveCount, sectionCount] = await Promise.all([
-          tx.student.count({
-            where: { ...studentInClassWhere(entry.classId), status: "ACTIVE" },
-          }),
+        // See examRosterCount: the live class while the year is running, the
+        // students who sat the exams once it has ended.
+        const [studentCount, sectionCount] = await Promise.all([
+          this.examRosterCount(
+            schoolId,
+            entry.classId,
+            entry.exams.map((e) => e.id),
+          ),
           tx.section.count({ where: { classId: entry.classId } }),
         ]);
-        // See examRosterCount: marks are the roll for a year already taught.
-        const studentCount = satIds.length > 0 ? satIds.length : liveCount;
         const published = entry.exams.some((e) => e.status === "PUBLISHED");
         const teacherLocked = entry.exams.some(
           (e) => e.status === "LOCKED" || e.status === "PUBLISHED",
@@ -1730,21 +1742,22 @@ export class ExaminationsService {
         where: { examId: exam.id },
       });
 
-      // Who sat this exam, not who sits in the class today. After a promotion
-      // the class is refilled with the year below, so reading live membership
-      // showed a past year's results sheet as empty while its marks sat right
-      // there. Anyone holding a mark for this exam belongs on the sheet; the
-      // live roster only fills in for an exam nobody has been marked in yet.
+      // Whose sheet this is depends on the exam's year, not on whether marks
+      // have been entered. In the current year the roll is the class as it
+      // stands, so a student nobody has marked yet still appears with their
+      // subjects blank — which is the whole point of the missing-marks column.
+      // In a year that has ended the class has been refilled by the one below,
+      // so the sheet belongs to whoever actually sat the exam.
+      const currentYear = await this.isCurrentYear(tx, exam.academicYear.id);
       const satIds = [...new Set(marks.map((m) => m.studentId))];
       const students = await tx.student.findMany({
-        where:
-          satIds.length > 0
-            ? { id: { in: satIds } }
-            : {
-                classId: opts.classId,
-                ...(sectionFilter ? { sectionId: sectionFilter } : {}),
-                status: "ACTIVE",
-              },
+        where: currentYear
+          ? {
+              classId: opts.classId,
+              ...(sectionFilter ? { sectionId: sectionFilter } : {}),
+              status: "ACTIVE",
+            }
+          : { id: { in: satIds } },
         select: { id: true, code: true, fullName: true, sectionId: true },
         orderBy: { fullName: "asc" },
       });
@@ -1901,18 +1914,18 @@ export class ExaminationsService {
         where: { examId: { in: exams.map((e) => e.id) } },
       });
 
-      // Same as classResultsMatrix: whoever holds a mark sat these exams, and
-      // that is the roll a past year's combined sheet must be built from.
+      // Same rule as classResultsMatrix: the live class for a year still
+      // running, the students who sat the exams for one that has ended.
+      const currentYear = await this.isCurrentYear(tx, cls.academicYearId);
       const satIds = [...new Set(marks.map((m) => m.studentId))];
       const students = await tx.student.findMany({
-        where:
-          satIds.length > 0
-            ? { id: { in: satIds } }
-            : {
-                classId: opts.classId,
-                ...(sectionFilter ? { sectionId: sectionFilter } : {}),
-                status: "ACTIVE",
-              },
+        where: currentYear
+          ? {
+              classId: opts.classId,
+              ...(sectionFilter ? { sectionId: sectionFilter } : {}),
+              status: "ACTIVE",
+            }
+          : { id: { in: satIds } },
         select: { id: true, code: true, fullName: true },
         orderBy: { fullName: "asc" },
       });
@@ -2323,14 +2336,15 @@ export class ExaminationsService {
       // was in then, which is not the one they sit in now — after a promotion
       // `student.classId` points at the new year entirely, so filtering on it
       // returned nothing for every year but the current one. Their own marks
-      // name the exams they actually sat; the current class only stands in for
-      // a year in which nothing has been marked yet.
+      // name the exams they actually sat. For the year still running the class
+      // stays the source, so an exam they have yet to be marked in still shows.
+      const currentYear = await this.isCurrentYear(tx, yearId);
       const satExamIds = [...new Set(marks.map((m) => m.examId))];
       const exams = await tx.exam.findMany({
         where: {
           academicYearId: yearId,
           status: "PUBLISHED",
-          ...(satExamIds.length > 0
+          ...(!currentYear
             ? { id: { in: satExamIds } }
             : {
                 classId: student.classId,
