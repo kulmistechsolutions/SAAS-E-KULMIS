@@ -76,8 +76,15 @@ export default function TeacherProfilePage() {
       setNewPassword("");
       setConfirmPassword("");
       toast("Password changed", "success");
-    } catch {
-      toast("Could not change password — check current password", "error");
+    } catch (e) {
+      // Show what the server said: it names the policy rule the new password
+      // breaks, which is the usual cause and nothing to do with the current one.
+      toast(
+        e instanceof Error && e.message
+          ? e.message
+          : "Could not change password — check current password",
+        "error",
+      );
     } finally {
       setChangingPw(false);
     }

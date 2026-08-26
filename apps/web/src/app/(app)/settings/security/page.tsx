@@ -37,8 +37,17 @@ export default function SecuritySettingsPage() {
       setNewPassword("");
       setConfirmPassword("");
       toast(t("auth.passwordChanged"), "success");
-    } catch {
-      toast(t("settingsSecurity.changePasswordFailed"), "error");
+    } catch (e) {
+      // The server already says exactly what was wrong — usually a policy rule
+      // the new password breaks, not the current one being mistyped. Swallowing
+      // it and always blaming the current password sent schools hunting for a
+      // password that was right all along.
+      toast(
+        e instanceof Error && e.message
+          ? e.message
+          : t("settingsSecurity.changePasswordFailed"),
+        "error",
+      );
     } finally {
       setChangingPw(false);
     }
