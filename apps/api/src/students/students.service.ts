@@ -674,6 +674,26 @@ export class StudentsService {
         include: studentInclude,
       });
 
+      // Turning a student free must settle what they already owed, not just
+      // stop billing them going forward — a charge created before the waive
+      // sat UNPAID/PARTIAL forever, so a "Free" student's own record kept
+      // showing money owed with nowhere left to pay it. Only the remaining
+      // balance is forgiven; money already collected and receipted is untouched.
+      const wasFree = current.feeWaived || current.monthlyFee === 0;
+      const isFreeNow = updated.feeWaived || updated.monthlyFee === 0;
+      if (!wasFree && isFreeNow) {
+        const unsettled = await tx.feeCharge.findMany({
+          where: { studentId: id, kind: "MONTHLY", status: { not: "PAID" } },
+          select: { id: true, paidAmount: true },
+        });
+        for (const c of unsettled) {
+          await tx.feeCharge.update({
+            where: { id: c.id },
+            data: { amount: c.paidAmount, status: "PAID" },
+          });
+        }
+      }
+
       // Only once the child has actually left is the old family checked. A
       // parent record with nobody under it is the same orphan a deletion
       // leaves behind, and is cleared the same way.
