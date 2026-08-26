@@ -1514,6 +1514,9 @@ export class FeesService {
       if (!student) throw new NotFoundException("Student not found");
       const charges = await tx.feeCharge.findMany({
         where: { studentId },
+        // Carries every year the student has been billed in, so a ledger read
+        // after a promotion still separates last year's fees from this one's.
+        include: { academicYear: { select: { name: true } } },
         orderBy: [
           { year: "asc" },
           { month: "asc" },
@@ -1628,6 +1631,10 @@ export class FeesService {
           ...(month ? { month } : {}),
         },
         include: {
+          // The charge's OWN year, not the school's current one. Labelling
+          // every row with the active year meant a promotion silently moved
+          // last year's fees into this year on screen.
+          academicYear: { select: { name: true } },
           student: {
             select: {
               code: true,

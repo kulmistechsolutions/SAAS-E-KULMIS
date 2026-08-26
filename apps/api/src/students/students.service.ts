@@ -577,11 +577,24 @@ export class StudentsService {
     return this.attachPhotoMeta(updated);
   }
 
-  async attendanceHistory(schoolId: string, studentId: string, limit = 60) {
+  /**
+   * A student's attendance, optionally for one academic year.
+   *
+   * Every record carries the year it was taken in, so asking for a past year
+   * returns that year's register rather than the last N days of whatever the
+   * student is doing now — which is what a school looking back at a finished
+   * year actually needs to see.
+   */
+  async attendanceHistory(
+    schoolId: string,
+    studentId: string,
+    limit = 60,
+    academicYearId?: string,
+  ) {
     await this.findOne(schoolId, studentId);
     return this.prisma.forTenant(schoolId, async (tx) => {
       const records = await tx.studentAttendance.findMany({
-        where: { studentId },
+        where: { studentId, ...(academicYearId ? { academicYearId } : {}) },
         orderBy: { date: "desc" },
         take: limit,
         include: { shift: { select: { name: true } } },

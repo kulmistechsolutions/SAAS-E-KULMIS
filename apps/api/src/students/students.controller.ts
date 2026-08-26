@@ -90,12 +90,14 @@ export class StudentsController {
     @CurrentUser() me: AuthUser,
     @Param("id") id: string,
     @Query("limit") limit?: string,
+    @Query("academicYearId") academicYearId?: string,
   ) {
     await this.assertTeacherCanAccessStudent(me, id);
     return this.students.attendanceHistory(
       me.schoolId,
       id,
       limit ? Number(limit) : 60,
+      academicYearId,
     );
   }
 

@@ -215,17 +215,25 @@ export class StudentAttendanceService {
   ) {
     const date = parseDate(dateStr);
     return this.prisma.forTenant(schoolId, async (tx) => {
-      const students = await tx.student.findMany({
-        where: {
-          ...studentInClassWhere(classId, sectionId),
-          status: "ACTIVE",
-        },
-        orderBy: { fullName: "asc" },
-        select: { id: true, code: true, fullName: true, gender: true },
-      });
       const records = await tx.studentAttendance.findMany({
         where: { classId, sectionId, date, shiftId: shiftId ?? null },
         select: { studentId: true, status: true },
+      });
+
+      // Who was marked that day, not who sits in the class today. After a
+      // promotion the class holds the year below, so opening a past date
+      // listed this year's children against last year's register — the marks
+      // were there, attached to students the roster no longer named. A day
+      // already taken names its own roll; live membership is only right for a
+      // day nobody has marked yet.
+      const markedIds = records.map((r) => r.studentId);
+      const students = await tx.student.findMany({
+        where:
+          markedIds.length > 0
+            ? { id: { in: markedIds } }
+            : { ...studentInClassWhere(classId, sectionId), status: "ACTIVE" },
+        orderBy: { fullName: "asc" },
+        select: { id: true, code: true, fullName: true, gender: true },
       });
       const byStudent = new Map(records.map((r) => [r.studentId, r.status]));
       return {

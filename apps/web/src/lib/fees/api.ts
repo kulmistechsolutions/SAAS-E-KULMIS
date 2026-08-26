@@ -17,6 +17,8 @@ export interface ApiFeeCharge {
   /** Name shown on the invoice for EXTRA/REGISTRATION rows, e.g. "Exam Fee". */
   label?: string | null;
   extraFeeId?: string | null;
+  /** The year this charge belongs to — null on rows created before it was stamped. */
+  academicYear?: { name: string } | null;
   student?: {
     code: string;
     fullName: string;
@@ -104,7 +106,9 @@ export function mapApiCharge(
   return {
     id: c.id,
     studentId: c.studentId,
-    academicYear,
+    // A charge keeps the year it was raised in. The caller's year is only the
+    // fallback for rows predating the stamp.
+    academicYear: c.academicYear?.name ?? academicYear,
     monthKey: mk,
     monthlyFee: c.amount,
     amountPaid: c.paidAmount,
