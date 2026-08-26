@@ -1345,6 +1345,39 @@ export class ExaminationsService {
     );
   }
 
+  /**
+   * How many students a class held *for the exams being looked at*.
+   *
+   * Counting who sits in the class right now is only right for the current
+   * year. Once a school promotes, last year's classes empty out and every past
+   * year's results page reports 0 students against exams that plainly have
+   * marks in them — the roll moved on, the history did not. Where marks exist
+   * they are the roll: each one names a student who sat that exam in that
+   * class. Only when nothing has been entered yet does the live class
+   * membership stand in, which is the right answer for an exam still ahead.
+   */
+  private async examRosterCount(
+    schoolId: string,
+    classId: string,
+    examIds: string[],
+  ): Promise<number> {
+    if (examIds.length > 0) {
+      const sat = await this.prisma.forTenant(schoolId, (tx) =>
+        tx.examMark.findMany({
+          where: { examId: { in: examIds } },
+          distinct: ["studentId"],
+          select: { studentId: true },
+        }),
+      );
+      if (sat.length > 0) return sat.length;
+    }
+    return this.prisma.forTenant(schoolId, (tx) =>
+      tx.student.count({
+        where: { ...studentInClassWhere(classId), status: "ACTIVE" },
+      }),
+    );
+  }
+
   /** Class-level monitoring overview — one row per class. */
   async monitoringClassesOverview(
     schoolId: string,
@@ -1362,6 +1395,7 @@ export class ExaminationsService {
         className: string;
         sections: Set<string>;
         subjects: Set<string>;
+        examIds: Set<string>;
         submitted: number;
         pending: number;
       }
@@ -1375,6 +1409,7 @@ export class ExaminationsService {
           className: row.className,
           sections: new Set(),
           subjects: new Set(),
+          examIds: new Set(),
           submitted: 0,
           pending: 0,
         };
@@ -1382,6 +1417,7 @@ export class ExaminationsService {
       }
       if (row.sectionId) entry.sections.add(row.sectionId);
       entry.subjects.add(row.subjectId);
+      entry.examIds.add(row.examId);
       if (row.status === "SUBMITTED" || row.status === "LOCKED") {
         entry.submitted += 1;
       } else {
@@ -1392,11 +1428,7 @@ export class ExaminationsService {
     const result = [];
     for (const entry of byClass.values()) {
       const [studentCount, sectionCount] = await Promise.all([
-        this.prisma.forTenant(schoolId, (tx) =>
-          tx.student.count({
-            where: { ...studentInClassWhere(entry.classId), status: "ACTIVE" },
-          }),
-        ),
+        this.examRosterCount(schoolId, entry.classId, [...entry.examIds]),
         this.prisma.forTenant(schoolId, (tx) =>
           tx.section.count({ where: { classId: entry.classId } }),
         ),
@@ -1623,12 +1655,19 @@ export class ExaminationsService {
 
       const result = [];
       for (const entry of byClass.values()) {
-        const [studentCount, sectionCount] = await Promise.all([
+        const satIds = await tx.examMark.findMany({
+          where: { examId: { in: entry.exams.map((e) => e.id) } },
+          distinct: ["studentId"],
+          select: { studentId: true },
+        });
+        const [liveCount, sectionCount] = await Promise.all([
           tx.student.count({
             where: { ...studentInClassWhere(entry.classId), status: "ACTIVE" },
           }),
           tx.section.count({ where: { classId: entry.classId } }),
         ]);
+        // See examRosterCount: marks are the roll for a year already taught.
+        const studentCount = satIds.length > 0 ? satIds.length : liveCount;
         const published = entry.exams.some((e) => e.status === "PUBLISHED");
         const teacherLocked = entry.exams.some(
           (e) => e.status === "LOCKED" || e.status === "PUBLISHED",
@@ -1686,18 +1725,28 @@ export class ExaminationsService {
       if (!exam) throw new NotFoundException("Exam not found for this class");
 
       const sectionFilter = opts.sectionId ?? exam.sectionId ?? undefined;
-      const students = await tx.student.findMany({
-        where: {
-          classId: opts.classId,
-          ...(sectionFilter ? { sectionId: sectionFilter } : {}),
-          status: "ACTIVE",
-        },
-        select: { id: true, code: true, fullName: true, sectionId: true },
-        orderBy: { fullName: "asc" },
-      });
 
       const marks = await tx.examMark.findMany({
         where: { examId: exam.id },
+      });
+
+      // Who sat this exam, not who sits in the class today. After a promotion
+      // the class is refilled with the year below, so reading live membership
+      // showed a past year's results sheet as empty while its marks sat right
+      // there. Anyone holding a mark for this exam belongs on the sheet; the
+      // live roster only fills in for an exam nobody has been marked in yet.
+      const satIds = [...new Set(marks.map((m) => m.studentId))];
+      const students = await tx.student.findMany({
+        where:
+          satIds.length > 0
+            ? { id: { in: satIds } }
+            : {
+                classId: opts.classId,
+                ...(sectionFilter ? { sectionId: sectionFilter } : {}),
+                status: "ACTIVE",
+              },
+        select: { id: true, code: true, fullName: true, sectionId: true },
+        orderBy: { fullName: "asc" },
       });
       const markMap = new Map(
         marks.map((m) => [`${m.studentId}_${m.subjectId}`, m.marks]),
@@ -1847,18 +1896,25 @@ export class ExaminationsService {
       }
 
       const sectionFilter = opts.sectionId ?? undefined;
-      const students = await tx.student.findMany({
-        where: {
-          classId: opts.classId,
-          ...(sectionFilter ? { sectionId: sectionFilter } : {}),
-          status: "ACTIVE",
-        },
-        select: { id: true, code: true, fullName: true },
-        orderBy: { fullName: "asc" },
-      });
 
       const marks = await tx.examMark.findMany({
         where: { examId: { in: exams.map((e) => e.id) } },
+      });
+
+      // Same as classResultsMatrix: whoever holds a mark sat these exams, and
+      // that is the roll a past year's combined sheet must be built from.
+      const satIds = [...new Set(marks.map((m) => m.studentId))];
+      const students = await tx.student.findMany({
+        where:
+          satIds.length > 0
+            ? { id: { in: satIds } }
+            : {
+                classId: opts.classId,
+                ...(sectionFilter ? { sectionId: sectionFilter } : {}),
+                status: "ACTIVE",
+              },
+        select: { id: true, code: true, fullName: true },
+        orderBy: { fullName: "asc" },
       });
       const markMap = new Map(
         marks.map((m) => [`${m.examId}_${m.studentId}_${m.subjectId}`, m.marks]),
@@ -2258,27 +2314,39 @@ export class ExaminationsService {
       const photoUrl = await this.studentPhotoUrl(student.photoKey);
 
       const yearId = academicYearId ?? student.class.academicYearId;
+
+      const marks = await tx.examMark.findMany({
+        where: { studentId, exam: { academicYearId: yearId, status: "PUBLISHED" } },
+      });
+
+      // Asking for an earlier year means asking about the class this student
+      // was in then, which is not the one they sit in now — after a promotion
+      // `student.classId` points at the new year entirely, so filtering on it
+      // returned nothing for every year but the current one. Their own marks
+      // name the exams they actually sat; the current class only stands in for
+      // a year in which nothing has been marked yet.
+      const satExamIds = [...new Set(marks.map((m) => m.examId))];
       const exams = await tx.exam.findMany({
         where: {
           academicYearId: yearId,
-          classId: student.classId,
           status: "PUBLISHED",
-          // An exam with no section is scoped to the WHOLE class — every
-          // section, including this student's. An exact-match filter here
-          // silently hid every whole-class exam from any student who had a
-          // real section assigned (the common case), while a sectionless
-          // student still matched by accident. Prisma's `in` can't express
-          // "or NULL" (SQL IN never matches NULL), hence the explicit OR.
-          OR: [{ sectionId: student.sectionId }, { sectionId: null }],
+          ...(satExamIds.length > 0
+            ? { id: { in: satExamIds } }
+            : {
+                classId: student.classId,
+                // An exam with no section is scoped to the WHOLE class — every
+                // section, including this student's. An exact-match filter here
+                // silently hid every whole-class exam from any student who had a
+                // real section assigned (the common case), while a sectionless
+                // student still matched by accident. Prisma's `in` can't express
+                // "or NULL" (SQL IN never matches NULL), hence the explicit OR.
+                OR: [{ sectionId: student.sectionId }, { sectionId: null }],
+              }),
         },
         include: {
           subjects: { include: { subject: { select: { name: true } } } },
           examGroup: { select: { id: true, name: true } },
         },
-      });
-
-      const marks = await tx.examMark.findMany({
-        where: { studentId, exam: { academicYearId: yearId, status: "PUBLISHED" } },
       });
       const markMap = new Map(
         marks.map((m) => [`${m.examId}_${m.subjectId}`, m.marks]),
