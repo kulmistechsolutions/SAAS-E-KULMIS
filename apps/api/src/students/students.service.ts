@@ -707,6 +707,54 @@ export class StudentsService {
         }
       }
 
+      // Changing the monthly fee must reprice what is still owed, not only
+      // what gets billed next. A student set up at $10 whose fee is raised to
+      // $15 kept a $10 charge sitting there, so the school collected the old
+      // rate for the month it had just changed and the difference was simply
+      // lost. Only months not yet settled move: a paid month is history, and
+      // a part-payment keeps what was already collected against it.
+      const feeChanged =
+        dto.monthlyFee !== undefined &&
+        dto.monthlyFee !== current.monthlyFee &&
+        !isFreeNow;
+      if (feeChanged) {
+        const newFee = updated.monthlyFee;
+        const now = new Date();
+        const y = now.getUTCFullYear();
+        const m = now.getUTCMonth() + 1;
+        const open = await tx.feeCharge.findMany({
+          where: {
+            studentId: id,
+            kind: "MONTHLY",
+            status: { in: ["UNPAID", "PARTIAL"] },
+            // Only rows still carrying the old rate — a month priced by hand
+            // (a one-off discount) was set deliberately and is left alone.
+            amount: current.monthlyFee,
+            // And only this month onward. A month already gone was billed at
+            // the rate in force then; repricing it now would invent a debt for
+            // a month the family was correctly charged less for.
+            OR: [{ year: { gt: y } }, { year: y, month: { gte: m } }],
+          },
+          select: { id: true, paidAmount: true },
+        });
+        for (const c of open) {
+          // Raising the fee past what a family already paid reopens the month;
+          // lowering it below that settles it rather than owing them money back.
+          await tx.feeCharge.update({
+            where: { id: c.id },
+            data: {
+              amount: newFee,
+              status:
+                c.paidAmount >= newFee
+                  ? "PAID"
+                  : c.paidAmount > 0
+                    ? "PARTIAL"
+                    : "UNPAID",
+            },
+          });
+        }
+      }
+
       // Only once the child has actually left is the old family checked. A
       // parent record with nobody under it is the same orphan a deletion
       // leaves behind, and is cleared the same way.

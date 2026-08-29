@@ -56,9 +56,15 @@ let loaded = false;
 let feeSettingsCache: {
   billingMode: "MONTHLY" | "ACADEMIC_YEAR";
   monthSetupDay: number;
+  allowAdvance: boolean;
   /** serverClock - deviceClock at the last settings fetch, in ms. */
   clockOffsetMs: number;
-} = { billingMode: "MONTHLY", monthSetupDay: 25, clockOffsetMs: 0 };
+} = {
+  billingMode: "MONTHLY",
+  monthSetupDay: 25,
+  allowAdvance: true,
+  clockOffsetMs: 0,
+};
 
 /**
  * "Now", corrected for whatever gap exists between this device's clock and
@@ -140,6 +146,7 @@ export async function refreshFees(): Promise<void> {
       feeSettingsCache = {
         billingMode: feeSettings.billingMode,
         monthSetupDay: feeSettings.feeMonthSetupDay,
+        allowAdvance: feeSettings.feeAllowAdvance,
         clockOffsetMs: Number.isFinite(parsed) ? parsed - Date.now() : 0,
       };
     }
@@ -244,6 +251,11 @@ export function getFeeBillingMode(): "MONTHLY" | "ACADEMIC_YEAR" {
 
 export function getFeeMonthSetupDay(): number {
   return feeSettingsCache.monthSetupDay;
+}
+
+/** Whether the school lets families pay months ahead of the current one. */
+export function getFeeAllowAdvance(): boolean {
+  return feeSettingsCache.allowAdvance;
 }
 
 export function outstandingBalance(studentId: string, upToMonth?: string): number {

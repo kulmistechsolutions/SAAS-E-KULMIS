@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Pagination } from "@/components/ui/pagination";
 import { feeStatusLabel, money, monthLabel } from "@/lib/fees/format";
-import { listStudentFees, useFeesState } from "@/lib/fees/store";
+import { getFeeAllowAdvance, listStudentFees, useFeesState } from "@/lib/fees/store";
 import { printClassCollectionList } from "@/lib/fees/print";
 import { useStudentsState } from "@/lib/students/store";
 import { shortDate } from "@/lib/students/format";
@@ -288,10 +288,19 @@ export function CollectFeesSection({
           </thead>
           <tbody>
             {pageRows.map((r, i) => {
+              // Settling this month is not the end of what a family can pay.
+              // Hiding the button the moment the month cleared left a parent
+              // standing at the desk with money for next month and no way to
+              // take it — so a school that allows advance payment keeps Pay,
+              // and the dialog decides which months are actually offered.
+              // A free student has nothing to pay either way.
+              const isFree = r.feeWaived || r.monthlyFee === 0;
               const canPay =
-                r.status === "UNPAID" ||
-                r.status === "PARTIAL" ||
-                (r.outstandingBalance > 0 && r.status !== "ADVANCE_MULTI");
+                !isFree &&
+                (r.status === "UNPAID" ||
+                  r.status === "PARTIAL" ||
+                  (r.outstandingBalance > 0 && r.status !== "ADVANCE_MULTI") ||
+                  getFeeAllowAdvance());
               const promise = promisesByStudent[r.studentId];
               return (
                 <tr key={r.studentId} className="border-t">
