@@ -255,6 +255,27 @@ const CHECKS: CheckSpec[] = [
       GROUP BY s.name`,
   },
   {
+    id: "fee-drifted-from-rate",
+    title: "Unsettled month billed at a rate the student no longer carries",
+    meaning:
+      "The student's monthly fee has changed since this month was charged, and nothing collected against it yet holds it back from moving. It should have repriced automatically when the fee changed — check whether the edit happened before this fix shipped.",
+    severity: "info",
+    sql: Prisma.sql`
+      SELECT s.name AS school, count(*)::int AS count, NULL::text AS detail
+      FROM fee_charges fc
+      JOIN students st ON st.id = fc."studentId"
+      JOIN schools s ON s.id = fc."schoolId"
+      WHERE fc.kind = 'MONTHLY'
+        AND fc.status IN ('UNPAID', 'PARTIAL')
+        AND fc.year = extract(year FROM now())::int
+        AND fc.month = extract(month FROM now())::int
+        AND st.status = 'ACTIVE'
+        AND st."feeWaived" = false
+        AND coalesce(st."feeStartMode"::text, '') <> 'AGREEMENT'
+        AND fc.amount <> st."monthlyFee"
+      GROUP BY s.name`,
+  },
+  {
     id: "rls-missing",
     title: "A school-scoped table without tenant isolation",
     meaning:
