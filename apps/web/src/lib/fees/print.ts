@@ -30,6 +30,16 @@ export function receiptHtml(payment: FeePayment): string {
   const dir = dirOf(lang);
   const tr = (key: Parameters<typeof translateIn>[1]) => translateIn(lang, key);
 
+  // Name every charge this money settled. "Month(s): August 2026" beside a
+  // type of "Partial" could not tell a family whether they had paid August's
+  // tuition or the one-off admission fee — the two read identically.
+  const paidFor =
+    payment.lines && payment.lines.length > 0
+      ? `<tr><th>${tr("feesReceiptPrint.paidFor")}</th><td>${payment.lines
+          .map((l) => `${escapeHtml(l.label)} — ${money(l.amount)}`)
+          .join("<br/>")}</td></tr>`
+      : "";
+
   return `<!DOCTYPE html>
 <html lang="${lang}" dir="${dir}"><head><meta charset="utf-8"/><title>${payment.receiptNo}</title>
 <style>
@@ -55,6 +65,7 @@ export function receiptHtml(payment: FeePayment): string {
     <tr><th>${tr("feesReceiptPrint.classSection")}</th><td>${student?.className ?? "—"} — ${student?.section ?? "—"}</td></tr>
     <tr><th>${tr("feesReceiptPrint.paymentType")}</th><td>${paymentTypeLabel(payment.paymentType, payment.advanceMonths)}</td></tr>
     <tr><th>${tr("feesReceiptPrint.monthS")}</th><td>${months || "—"}</td></tr>
+    ${paidFor}
     <tr><th>${tr("feesReceiptPrint.collectedBy")}</th><td>${payment.collectedBy}</td></tr>
     <tr><th>${tr("feesReceiptPrint.collectionDate")}</th><td>${receiptDate(payment.collectedAt)}</td></tr>
     <tr><th>${tr("feesReceiptPrint.outstandingBalance")}</th><td>${money(outstanding)}</td></tr>

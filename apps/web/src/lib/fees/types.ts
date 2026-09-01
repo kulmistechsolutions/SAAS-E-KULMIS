@@ -29,6 +29,8 @@ export interface FeePayment {
   paymentType: PaymentType;
   advanceMonths?: number;
   monthKeys: string[];
+  /** Exactly what this money settled, one line per charge it was applied to. */
+  lines?: { label: string; amount: number }[];
   collectedBy: string;
   collectedAt: string;
   outstandingAfter: number;

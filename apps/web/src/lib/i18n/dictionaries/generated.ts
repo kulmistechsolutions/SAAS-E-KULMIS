@@ -1269,6 +1269,7 @@ export const generated = {
     outstanding: "Outstanding",
   },
   feesReceiptPrint: {
+    paidFor: "Paid for",
     feeReceiptDefault: "Fee Receipt",
     receiptNo: "Receipt No.",
     studentName: "Student Name",

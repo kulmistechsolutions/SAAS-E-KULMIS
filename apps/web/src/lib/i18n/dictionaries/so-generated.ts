@@ -1238,6 +1238,7 @@ export const soGenerated: PartialDictionary = {
     outstanding: "La sugayo",
   },
   feesReceiptPrint: {
+    paidFor: "Waxa la bixiyay",
     feeReceiptDefault: "Rasiidka Lacagta",
     receiptNo: "Lambarka Rasiidka.",
     studentName: "Magaca Ardayga",

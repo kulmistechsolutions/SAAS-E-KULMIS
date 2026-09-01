@@ -1,7 +1,7 @@
 "use client";
 
 import { api } from "@/lib/api";
-import { monthKey } from "./format";
+import { monthKey, monthLabel } from "./format";
 import type { FeeCharge, FeePayment, PaymentType } from "./types";
 
 export interface ApiFeeCharge {
@@ -48,8 +48,16 @@ export interface ApiPayment {
     fullName: string;
     class: { name: string } | null;
   };
-  /** Present when returned from /fees/payments — which months this payment covered. */
-  allocations?: { feeCharge: { year: number; month: number } }[];
+  /** Present when returned from /fees/payments — what this payment settled. */
+  allocations?: {
+    amount?: number;
+    feeCharge: {
+      year: number;
+      month: number;
+      kind?: "MONTHLY" | "EXTRA" | "REGISTRATION" | null;
+      label?: string | null;
+    };
+  }[];
 }
 
 export interface ApiFinanceDashboard {
@@ -127,13 +135,33 @@ export function mapApiPayment(p: ApiPayment, academicYear: string): FeePayment {
   // Previously always empty, so every receipt printed "Month(s): —"
   // regardless of what was paid.
   const monthKeys = p.allocations
-    ? [...new Set(p.allocations.map((a) => monthKey(a.feeCharge.year, a.feeCharge.month)))].sort()
+    ? [
+        ...new Set(
+          p.allocations
+            .filter((a) => (a.feeCharge.kind ?? "MONTHLY") === "MONTHLY")
+            .map((a) => monthKey(a.feeCharge.year, a.feeCharge.month)),
+        ),
+      ].sort()
     : [];
+  // What the money actually settled. A receipt listing only month names told
+  // a family their admission fee was a month's tuition; each line now names
+  // the charge it paid off.
+  const lines = (p.allocations ?? []).map((a) => {
+    const c = a.feeCharge;
+    const kind = c.kind ?? "MONTHLY";
+    const label =
+      kind === "MONTHLY"
+        ? monthLabel(monthKey(c.year, c.month))
+        : c.label || (kind === "REGISTRATION" ? "Registration Fee" : "Extra Fee");
+    return { label, amount: a.amount ?? 0 };
+  });
+
   return {
     id: p.id,
     receiptNo: p.receiptNumber,
     studentId: p.studentId,
     academicYear,
+    lines,
     amount: p.amount,
     paymentType: p.type,
     monthKeys,

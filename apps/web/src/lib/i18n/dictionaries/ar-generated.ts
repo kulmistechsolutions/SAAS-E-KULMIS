@@ -1237,6 +1237,7 @@ export const arGenerated: PartialDictionary = {
     outstanding: "المستحق",
   },
   feesReceiptPrint: {
+    paidFor: "المدفوع مقابل",
     feeReceiptDefault: "إيصال الرسوم",
     receiptNo: "رقم الإيصال.",
     studentName: "اسم الطالب",

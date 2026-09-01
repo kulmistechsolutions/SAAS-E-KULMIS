@@ -1674,7 +1674,15 @@ export class FeesService {
           // payment was previously returned with no way to answer that, so a
           // receipt reopened from the history list always printed "Month(s): —".
           allocations: {
-            select: { feeCharge: { select: { year: true, month: true } } },
+            select: {
+              amount: true,
+              // kind and label turn the receipt from a list of month names
+              // into a statement of what the money actually settled: an
+              // admission fee looked exactly like a month's tuition before.
+              feeCharge: {
+                select: { year: true, month: true, kind: true, label: true },
+              },
+            },
           },
         },
       }),
