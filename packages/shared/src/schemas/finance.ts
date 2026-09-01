@@ -62,6 +62,15 @@ export const payFeeSchema = z.object({
   type: paymentTypeSchema,
   method: z.string().min(1).nullable().optional(),
   note: z.string().min(1).nullable().optional(),
+  /**
+   * Settle exactly these charges and nothing else.
+   *
+   * Without it every payment runs oldest-first across the whole balance, so a
+   * school meaning to collect the admission fee could silently clear an older
+   * month instead and hand the family a receipt naming the wrong debt. The
+   * desk picks what is being paid; this carries that choice to the ledger.
+   */
+  chargeIds: z.array(z.string().min(1)).min(1).optional(),
 });
 export type PayFeeInput = z.infer<typeof payFeeSchema>;
 

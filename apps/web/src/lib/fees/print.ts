@@ -35,9 +35,22 @@ export function receiptHtml(payment: FeePayment): string {
   // tuition or the one-off admission fee — the two read identically.
   const paidFor =
     payment.lines && payment.lines.length > 0
-      ? `<tr><th>${tr("feesReceiptPrint.paidFor")}</th><td>${payment.lines
-          .map((l) => `${escapeHtml(l.label)} — ${money(l.amount)}`)
-          .join("<br/>")}</td></tr>`
+      ? `<table class="lines">
+          <thead><tr>
+            <th>${tr("feesReceiptPrint.paidFor")}</th>
+            <th class="num">${tr("feesReceiptPrint.amountCol")}</th>
+          </tr></thead>
+          <tbody>${payment.lines
+            .map(
+              (l) =>
+                `<tr><td>${escapeHtml(l.label)}</td><td class="num">${money(l.amount)}</td></tr>`,
+            )
+            .join("")}</tbody>
+          <tfoot><tr>
+            <td>${tr("feesReceiptPrint.totalPaid")}</td>
+            <td class="num">${money(payment.amount)}</td>
+          </tr></tfoot>
+        </table>`
       : "";
 
   return `<!DOCTYPE html>
@@ -52,6 +65,14 @@ export function receiptHtml(payment: FeePayment): string {
   th,td{text-align:start;padding:10px 12px;border-bottom:1px solid #e2e8f0;font-size:14px}
   th{width:40%;color:#64748b;font-weight:500}
   .amount{font-size:28px;font-weight:700;color:#16a34a;text-align:center;margin:24px 0}
+  /* What the money settled, itemised. A single total told a family nothing
+     about which debt was cleared; each line names its own. */
+  table.lines{margin:20px 0;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden}
+  table.lines thead th{background:#f8fafc;color:#475569;font-weight:600;font-size:12px;
+    text-transform:uppercase;letter-spacing:.04em;width:auto}
+  table.lines td{font-size:14px}
+  table.lines .num{text-align:end;font-variant-numeric:tabular-nums;white-space:nowrap}
+  table.lines tfoot td{font-weight:700;background:#f8fafc;border-bottom:none}
   .foot{margin-top:32px;padding-top:16px;border-top:1px solid #e2e8f0;font-size:12px;color:#94a3b8;text-align:center}
   @media print{body{padding:20px}}
 </style></head><body>
@@ -65,11 +86,11 @@ export function receiptHtml(payment: FeePayment): string {
     <tr><th>${tr("feesReceiptPrint.classSection")}</th><td>${student?.className ?? "—"} — ${student?.section ?? "—"}</td></tr>
     <tr><th>${tr("feesReceiptPrint.paymentType")}</th><td>${paymentTypeLabel(payment.paymentType, payment.advanceMonths)}</td></tr>
     <tr><th>${tr("feesReceiptPrint.monthS")}</th><td>${months || "—"}</td></tr>
-    ${paidFor}
     <tr><th>${tr("feesReceiptPrint.collectedBy")}</th><td>${payment.collectedBy}</td></tr>
     <tr><th>${tr("feesReceiptPrint.collectionDate")}</th><td>${receiptDate(payment.collectedAt)}</td></tr>
     <tr><th>${tr("feesReceiptPrint.outstandingBalance")}</th><td>${money(outstanding)}</td></tr>
   </table>
+  ${paidFor}
   <div class="amount">${tr("feesReceiptPrint.amountPaid")} ${money(payment.amount)}</div>
   <div class="foot">${receiptFooter || tr("feesReceiptPrint.defaultFooter")}</div>
 </body></html>`;

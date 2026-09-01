@@ -1207,6 +1207,9 @@ export const arGenerated: PartialDictionary = {
     openMonthlySetup: "فتح الإعداد الشهري",
   },
   feesPaymentDialog: {
+    payAll: "دفع الكل",
+    nothingToPay: "لا شيء للدفع",
+    settlesInFull: "يسدد بالكامل:",
     arrears: "متأخرات",
     totalOwed: "إجمالي المستحق",
     collectPayment: "تحصيل الدفعة",
@@ -1237,6 +1240,8 @@ export const arGenerated: PartialDictionary = {
     outstanding: "المستحق",
   },
   feesReceiptPrint: {
+    amountCol: "المبلغ",
+    totalPaid: "إجمالي المدفوع",
     paidFor: "المدفوع مقابل",
     feeReceiptDefault: "إيصال الرسوم",
     receiptNo: "رقم الإيصال.",

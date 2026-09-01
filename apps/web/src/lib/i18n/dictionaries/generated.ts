@@ -1213,6 +1213,9 @@ export const generated = {
     openMonthlySetup: "Open Monthly Setup",
   },
   feesPaymentDialog: {
+    payAll: "Pay all",
+    nothingToPay: "Nothing to pay",
+    settlesInFull: "Settles in full:",
     arrears: "Arrears",
     totalOwed: "Total owed",
     collectPayment: "Collect Payment",
@@ -1269,6 +1272,8 @@ export const generated = {
     outstanding: "Outstanding",
   },
   feesReceiptPrint: {
+    amountCol: "Amount",
+    totalPaid: "Total paid",
     paidFor: "Paid for",
     feeReceiptDefault: "Fee Receipt",
     receiptNo: "Receipt No.",

@@ -436,6 +436,15 @@ export interface PayInput {
   amount?: number;
   advanceMonths?: number;
   collectedBy?: string;
+  /**
+   * Settle exactly these charges. Set when the desk picked a named debt —
+   * the admission fee, an exam fee, this month, or All — so the money lands
+   * on what the receipt is about to say it paid, not merely on the oldest
+   * thing owed.
+   */
+  chargeIds?: string[];
+  /** Pre-computed total for a targeted selection; skips the type-based rules. */
+  targetedAmount?: number;
 }
 
 export async function collectPayment(input: PayInput): Promise<{
@@ -464,7 +473,12 @@ export async function collectPayment(input: PayInput): Promise<{
 
   let amount = 0;
 
-  if (input.paymentType === "THIS_MONTH") {
+  // A targeted selection already knows its own total — the charges were
+  // picked on screen and their balances summed there.
+  if (input.chargeIds && input.targetedAmount !== undefined) {
+    amount = input.targetedAmount;
+    if (amount <= 0) return { ok: false, error: "Nothing to pay." };
+  } else if (input.paymentType === "THIS_MONTH") {
     if (!activeCharge || activeCharge.advanceCovered)
       return { ok: false, error: "This month is already covered." };
     if (activeCharge.balance === 0)
@@ -500,6 +514,7 @@ export async function collectPayment(input: PayInput): Promise<{
       studentId: student.id,
       amount,
       type: input.paymentType,
+      ...(input.chargeIds ? { chargeIds: input.chargeIds } : {}),
     });
     await refreshFees();
     const payment = mapApiPayment(res.payment, s.academicYear);

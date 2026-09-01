@@ -336,6 +336,8 @@ export interface PayFeeApiInput {
   type: PaymentType;
   method?: string | null;
   note?: string | null;
+  /** Settle exactly these charges — see payFeeSchema.chargeIds. */
+  chargeIds?: string[];
 }
 
 export async function apiPayFee(input: PayFeeApiInput) {

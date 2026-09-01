@@ -1063,6 +1063,12 @@ export class FeesService {
         where: {
           studentId: student.id,
           status: { in: ["UNPAID", "PARTIAL"] },
+          // When the desk names what it is collecting — the admission fee, an
+          // exam fee, this month — settle only that. Left open, the payment
+          // runs oldest-first across everything, which is right for "Partial"
+          // and "All" but would quietly pay a different debt than the one the
+          // receipt is about to claim.
+          ...(dto.chargeIds ? { id: { in: dto.chargeIds } } : {}),
         },
         // A month can now hold both the regular fee and extra charges, so
         // year+month alone is no longer a total order — settle the regular fee

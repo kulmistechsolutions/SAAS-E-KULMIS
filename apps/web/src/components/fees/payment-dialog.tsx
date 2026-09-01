@@ -37,7 +37,12 @@ export function PaymentDialog({
   onSuccess,
 }: PaymentDialogProps) {
   const t = useT();
-  const [type, setType] = useState<PaymentType>("THIS_MONTH");
+  // The dropdown is built from what this student actually owes, not from a
+  // fixed list: "Registration Fee" is only offered to a student who has one,
+  // an exam fee appears under the name the school gave it, and "All" clears
+  // everything outstanding in one receipt. Each option carries the charge ids
+  // it settles, so the money lands on the debt the receipt will name.
+  const [choice, setChoice] = useState("THIS_MONTH");
   const [amount, setAmount] = useState("");
   const [advanceMonths, setAdvanceMonths] = useState("1");
   const [submitting, setSubmitting] = useState(false);
@@ -55,47 +60,104 @@ export function PaymentDialog({
   const partialOk = student ? canPayPartial(student.studentId) : false;
   const advanceOk = student ? canPayAdvance(student.studentId) : false;
 
+  interface PayOption {
+    id: string;
+    label: string;
+    /** Fixed total, or undefined for the ones the user types/picks. */
+    total?: number;
+    chargeIds?: string[];
+    type: PaymentType;
+  }
+
+  const options = useMemo<PayOption[]>(() => {
+    const list: PayOption[] = [];
+    if (breakdown.thisMonth) {
+      list.push({
+        id: "THIS_MONTH",
+        label: `${t("feesPaymentDialog.thisMonth")} — ${breakdown.thisMonth.label}`,
+        total: breakdown.thisMonth.balance,
+        chargeIds: [breakdown.thisMonth.key],
+        type: "THIS_MONTH",
+      });
+    }
+    // Each earlier month and each non-tuition charge stands on its own, so a
+    // school can take exactly the one the family came to settle.
+    for (const l of breakdown.arrears) {
+      list.push({
+        id: `C:${l.key}`,
+        label: `${l.label} — ${t("feesPaymentDialog.arrears")}`,
+        total: l.balance,
+        chargeIds: [l.key],
+        type: "PARTIAL",
+      });
+    }
+    for (const l of breakdown.other) {
+      list.push({
+        id: `C:${l.key}`,
+        label: l.label,
+        total: l.balance,
+        chargeIds: [l.key],
+        type: "PARTIAL",
+      });
+    }
+    // "All" settles the whole balance at once. It is deliberately not an
+    // advance: paying ahead is a separate decision, and rolling it in here
+    // would take next month's money from a parent clearing this month's.
+    if (breakdown.total > 0 && list.length > 1) {
+      list.push({
+        id: "ALL",
+        label: `${t("feesPaymentDialog.payAll")} — ${money(breakdown.total)}`,
+        total: breakdown.total,
+        chargeIds: [
+          ...(breakdown.thisMonth ? [breakdown.thisMonth.key] : []),
+          ...breakdown.arrears.map((l) => l.key),
+          ...breakdown.other.map((l) => l.key),
+        ],
+        type: "PARTIAL",
+      });
+    }
+    if (partialOk) {
+      list.push({ id: "PARTIAL", label: t("feesPaymentDialog.partialPayment"), type: "PARTIAL" });
+    }
+    if (advanceOk) {
+      list.push({ id: "ADVANCE", label: t("feesPaymentDialog.advancePayment"), type: "ADVANCE" });
+    }
+    return list;
+  }, [breakdown, partialOk, advanceOk, t]);
+
+  const selected = options.find((o) => o.id === choice) ?? options[0] ?? null;
+
   useEffect(() => {
     if (!open || !student) return;
-    if (thisMonthOk) setType("THIS_MONTH");
-    else if (partialOk) setType("PARTIAL");
-    else if (advanceOk) setType("ADVANCE");
+    setChoice(options[0]?.id ?? "PARTIAL");
     setAmount("");
     setAdvanceMonths("1");
-  }, [open, student, thisMonthOk, partialOk, advanceOk]);
+    // Re-seeding on every options change would fight the user's own pick;
+    // this runs when the dialog opens on a student, which is when it matters.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, student]);
 
   const previewAmount = useMemo(() => {
-    if (!student) return 0;
-    if (type === "THIS_MONTH") {
-      if (getFeeBillingMode() === "ACADEMIC_YEAR") {
-        const next = studentCharges(student.studentId)
-          .filter((c) => c.status !== "INACTIVE" && c.balance > 0 && !c.advanceCovered)
-          .sort((a, b) => a.monthKey.localeCompare(b.monthKey))[0];
-        return next?.balance ?? 0;
-      }
-      const s = getFeesState();
-      const charge = s.charges.find(
-        (c) =>
-          c.studentId === student.studentId &&
-          c.monthKey === s.activeMonthKey &&
-          !c.advanceCovered,
-      );
-      return charge?.balance ?? 0;
-    }
-    if (type === "PARTIAL") return Number(amount) || 0;
-    if (type === "ADVANCE")
+    if (!student || !selected) return 0;
+    if (selected.total !== undefined) return selected.total;
+    if (selected.id === "PARTIAL") return Number(amount) || 0;
+    if (selected.id === "ADVANCE")
       return student.monthlyFee * (Number(advanceMonths) || 1);
     return 0;
-  }, [type, student, amount, advanceMonths]);
+  }, [selected, student, amount, advanceMonths]);
 
   async function handleSubmit() {
     if (!student) return;
     setSubmitting(true);
     const res = await collectPayment({
       studentId: student.studentId,
-      paymentType: type,
-      amount: type === "PARTIAL" ? Number(amount) : undefined,
-      advanceMonths: type === "ADVANCE" ? Number(advanceMonths) : undefined,
+      paymentType: selected?.type ?? "PARTIAL",
+      amount: selected?.id === "PARTIAL" ? Number(amount) : undefined,
+      advanceMonths:
+        selected?.id === "ADVANCE" ? Number(advanceMonths) : undefined,
+      ...(selected?.chargeIds
+        ? { chargeIds: selected.chargeIds, targetedAmount: selected.total }
+        : {}),
     });
     setSubmitting(false);
     if (!res.ok) {
@@ -144,18 +206,18 @@ export function PaymentDialog({
             <Label required>{t("feesPaymentDialog.paymentType")}</Label>
             <Select
               className="mt-1.5"
-              value={type}
-              onChange={(e) => setType(e.target.value as PaymentType)}
+              value={selected?.id ?? ""}
+              onChange={(e) => setChoice(e.target.value)}
             >
-              <option value="THIS_MONTH" disabled={!thisMonthOk}>
-                {t("feesPaymentDialog.thisMonth")} {!thisMonthOk ? "(unavailable)" : ""}
-              </option>
-              <option value="PARTIAL" disabled={!partialOk}>
-                {t("feesPaymentDialog.partialPayment")} {!partialOk ? "(unavailable)" : ""}
-              </option>
-              <option value="ADVANCE" disabled={!advanceOk}>
-                {t("feesPaymentDialog.advancePayment")} {!advanceOk ? "(unavailable)" : ""}
-              </option>
+              {options.length === 0 ? (
+                <option value="">{t("feesPaymentDialog.nothingToPay")}</option>
+              ) : (
+                options.map((o) => (
+                  <option key={o.id} value={o.id}>
+                    {o.label}
+                  </option>
+                ))
+              )}
             </Select>
           </div>
 
@@ -213,7 +275,7 @@ export function PaymentDialog({
             </div>
           )}
 
-          {type === "PARTIAL" && (
+          {selected?.id === "PARTIAL" && (
             <div className="space-y-3">
               <div>
                 <Label required>{t("feesPaymentDialog.paymentAmount")}</Label>
@@ -230,7 +292,7 @@ export function PaymentDialog({
             </div>
           )}
 
-          {type === "ADVANCE" && (
+          {selected?.id === "ADVANCE" && (
             <div>
               <Label required>{t("feesPaymentDialog.numberOfMonths")}</Label>
               <Select
@@ -247,14 +309,13 @@ export function PaymentDialog({
             </div>
           )}
 
-          {type === "THIS_MONTH" && thisMonthOk && (
+          {selected?.chargeIds && (
             <p className="text-sm text-muted-foreground">
-              {getFeeBillingMode() === "ACADEMIC_YEAR"
-                ? "Pays the next unpaid month in full:"
-                : "Pays the active month fee in full:"}{" "}
+              {t("feesPaymentDialog.settlesInFull")}{" "}
               <span className="font-semibold text-foreground">
-                {money(previewAmount)}
-              </span>
+                {selected.label}
+              </span>{" "}
+              — <span className="font-semibold text-foreground">{money(previewAmount)}</span>
             </p>
           )}
         </div>

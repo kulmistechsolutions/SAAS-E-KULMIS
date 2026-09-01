@@ -1208,6 +1208,9 @@ export const soGenerated: PartialDictionary = {
     openMonthlySetup: "Fur Dejinta Bishii",
   },
   feesPaymentDialog: {
+    payAll: "Bixi dhammaan",
+    nothingToPay: "Waxba lama bixinayo",
+    settlesInFull: "Si buuxda ayuu u bixinayaa:",
     arrears: "Bishii hore",
     totalOwed: "Wadarta lagu leeyahay",
     collectPayment: "Qaad Lacagta",
@@ -1238,6 +1241,8 @@ export const soGenerated: PartialDictionary = {
     outstanding: "La sugayo",
   },
   feesReceiptPrint: {
+    amountCol: "Qiimaha",
+    totalPaid: "Wadarta la bixiyay",
     paidFor: "Waxa la bixiyay",
     feeReceiptDefault: "Rasiidka Lacagta",
     receiptNo: "Lambarka Rasiidka.",
