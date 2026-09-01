@@ -26,6 +26,7 @@ import {
   monthIndexInSequence,
   nextCalendarMonth,
   parseAcademicStartYear,
+  previousCalendarMonth,
 } from "./fee-billing.util";
 
 function pad(n: number): string {
@@ -733,19 +734,22 @@ export class FeesService {
     // live month was the one just ended got no charge at all — the fault
     // several schools reported as "we register a student and no fee appears".
     // The class's own latest set-up month is the one they belong to.
-    const nextYm = next.year * 100 + next.month;
+    // The lag is at most one month — a school sets the next month up around
+    // the 25th, so the live month is either the calendar's or the one just
+    // before it. A setup older than that is a school that has stopped
+    // running them, and billing a newcomer for a month that ended before
+    // they arrived would be inventing a debt.
+    const prev = previousCalendarMonth(now.year, now.month);
     const liveActivation =
       activated || nextActivated
         ? null
         : await tx.monthlyFeeActivation.findFirst({
-            where: { classId },
-            orderBy: [{ year: "desc" }, { month: "desc" }],
+            where: { classId, year: prev.year, month: prev.month },
             select: { year: true, month: true },
           });
-    const live =
-      liveActivation && liveActivation.year * 100 + liveActivation.month <= nextYm
-        ? { year: liveActivation.year, month: liveActivation.month }
-        : null;
+    const live = liveActivation
+      ? { year: liveActivation.year, month: liveActivation.month }
+      : null;
 
     if (!activated && !nextActivated && !live) return 0;
 

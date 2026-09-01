@@ -72,3 +72,17 @@ export function nextCalendarMonth(year: number, month: number): {
   }
   return { year: y, month: m };
 }
+
+/** The month before — a school's live billing month is usually this one. */
+export function previousCalendarMonth(year: number, month: number): {
+  year: number;
+  month: number;
+} {
+  let m = month - 1;
+  let y = year;
+  if (m < 1) {
+    m = 12;
+    y -= 1;
+  }
+  return { year: y, month: m };
+}

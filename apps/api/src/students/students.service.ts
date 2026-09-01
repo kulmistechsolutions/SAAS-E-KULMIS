@@ -778,18 +778,26 @@ export class StudentsService {
         // is usually still collecting the month the calendar has just left,
         // so keying off the calendar found no activation and billed nothing.
         const now = new Date();
-        const cal = now.getUTCFullYear() * 100 + (now.getUTCMonth() + 1);
-        const activation = await tx.monthlyFeeActivation.findFirst({
-          where: { classId: updated.classId },
+        const calY = now.getUTCFullYear();
+        const calM = now.getUTCMonth() + 1;
+        const prevY = calM === 1 ? calY - 1 : calY;
+        const prevM = calM === 1 ? 12 : calM - 1;
+        // The calendar's month, or the one just before it — that is the whole
+        // range a school's live month can sit in, since the next month is set
+        // up around the 25th. An older setup means the school has stopped
+        // running them, and billing a month that ended before this student
+        // arrived would invent a debt.
+        const usable = await tx.monthlyFeeActivation.findFirst({
+          where: {
+            classId: updated.classId,
+            OR: [
+              { year: calY, month: calM },
+              { year: prevY, month: prevM },
+            ],
+          },
           orderBy: [{ year: "desc" }, { month: "desc" }],
           select: { year: true, month: true },
         });
-        // Never bill a month the school has not reached yet — a class set up
-        // a month ahead should not charge somebody joining today for it.
-        const usable =
-          activation && activation.year * 100 + activation.month <= cal
-            ? activation
-            : null;
         const y = usable?.year ?? now.getUTCFullYear();
         const m = usable?.month ?? now.getUTCMonth() + 1;
         const notYetBillable =
