@@ -53,6 +53,10 @@ const CHECKS: CheckSpec[] = [
       JOIN students st ON st.id = fc."studentId"
       JOIN schools s ON s.id = fc."schoolId"
       WHERE fc.kind = 'MONTHLY'
+        -- A voided charge is the fix, not the fault. Once a month billed
+        -- before the start date has been withdrawn it owes nobody anything,
+        -- and counting it keeps a resolved problem on the page forever.
+        AND fc.status <> 'INACTIVE'
         AND st."feeBillingStartYear" IS NOT NULL
         AND (fc.year * 100 + fc.month)
             < (st."feeBillingStartYear" * 100 + st."feeBillingStartMonth")
@@ -101,8 +105,11 @@ const CHECKS: CheckSpec[] = [
     sql: Prisma.sql`
       SELECT s.name AS school, count(*)::int AS count, NULL::text AS detail
       FROM fee_charges fc JOIN schools s ON s.id = fc."schoolId"
-      WHERE (fc.status = 'PAID' AND fc."paidAmount" < fc.amount)
-         OR (fc.status <> 'PAID' AND fc.amount > 0 AND fc."paidAmount" >= fc.amount)
+      -- INACTIVE is a withdrawn charge; its amounts are deliberately no
+      -- longer held to the settled/unsettled rule the others follow.
+      WHERE fc.status <> 'INACTIVE'
+        AND ((fc.status = 'PAID' AND fc."paidAmount" < fc.amount)
+          OR (fc.status <> 'PAID' AND fc.amount > 0 AND fc."paidAmount" >= fc.amount))
       GROUP BY s.name`,
   },
   {
