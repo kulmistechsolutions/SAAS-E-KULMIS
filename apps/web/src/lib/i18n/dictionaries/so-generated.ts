@@ -1208,6 +1208,8 @@ export const soGenerated: PartialDictionary = {
     openMonthlySetup: "Fur Dejinta Bishii",
   },
   feesPaymentDialog: {
+    arrears: "Bishii hore",
+    totalOwed: "Wadarta lagu leeyahay",
     collectPayment: "Qaad Lacagta",
     cancel: "Jooji",
     monthlyFee: "Khidmadda Bishii",

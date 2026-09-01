@@ -1207,6 +1207,8 @@ export const arGenerated: PartialDictionary = {
     openMonthlySetup: "فتح الإعداد الشهري",
   },
   feesPaymentDialog: {
+    arrears: "متأخرات",
+    totalOwed: "إجمالي المستحق",
     collectPayment: "تحصيل الدفعة",
     cancel: "إلغاء",
     monthlyFee: "الرسوم الشهرية",

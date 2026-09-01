@@ -228,6 +228,33 @@ const CHECKS: CheckSpec[] = [
         )`,
   },
   {
+    id: "month-setup-gap",
+    title: "Student in a set-up month with no charge for it",
+    meaning:
+      "Their class has been billed for this month but they were not — they joined after the setup ran. The month looks free to them and the school collects nothing. Re-running Setup This Month for the class charges exactly the missing students.",
+    severity: "warning",
+    sql: Prisma.sql`
+      SELECT s.name AS school, count(*)::int AS count,
+             string_agg(DISTINCT c.name, ', ') AS detail
+      FROM students st
+      JOIN classes c ON c.id = st."classId"
+      JOIN academic_years ay ON ay.id = c."academicYearId" AND ay."isActive"
+      JOIN schools s ON s.id = st."schoolId"
+      JOIN monthly_fee_activations m ON m."classId" = c.id
+        AND m.year = extract(year FROM now())::int
+        AND m.month = extract(month FROM now())::int
+      WHERE st.status = 'ACTIVE'
+        AND st."feeWaived" = false
+        AND st."monthlyFee" > 0
+        AND NOT EXISTS (
+          SELECT 1 FROM fee_charges f
+          WHERE f."studentId" = st.id
+            AND f.kind = 'MONTHLY'
+            AND f.year = extract(year FROM now())::int
+            AND f.month = extract(month FROM now())::int)
+      GROUP BY s.name`,
+  },
+  {
     id: "rls-missing",
     title: "A school-scoped table without tenant isolation",
     meaning:

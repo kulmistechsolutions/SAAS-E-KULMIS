@@ -1213,6 +1213,8 @@ export const generated = {
     openMonthlySetup: "Open Monthly Setup",
   },
   feesPaymentDialog: {
+    arrears: "Arrears",
+    totalOwed: "Total owed",
     collectPayment: "Collect Payment",
     cancel: "Cancel",
     monthlyFee: "Monthly Fee",

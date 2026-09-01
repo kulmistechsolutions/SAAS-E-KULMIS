@@ -8,7 +8,7 @@ import { Dialog } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
-import { money, monthLabel } from "@/lib/fees/format";
+import { money } from "@/lib/fees/format";
 import {
   canPayAdvance,
   canPayPartial,
@@ -17,7 +17,7 @@ import {
   getFeeBillingMode,
   getFeesState,
   outstandingBalance,
-  partialOutstandingMonths,
+  outstandingBreakdown,
   studentCharges,
 } from "@/lib/fees/store";
 import type { FeePayment, PaymentType, StudentFeeRow } from "@/lib/fees/types";
@@ -43,9 +43,13 @@ export function PaymentDialog({
   const [submitting, setSubmitting] = useState(false);
 
   const outstanding = student ? outstandingBalance(student.studentId) : 0;
-  const outstandingMonths = student
-    ? partialOutstandingMonths(student.studentId).map(monthLabel)
-    : [];
+  const breakdown = useMemo(
+    () =>
+      student
+        ? outstandingBreakdown(student.studentId)
+        : { thisMonth: null, arrears: [], other: [], total: 0 },
+    [student],
+  );
 
   const thisMonthOk = student ? canPayThisMonth(student.studentId) : false;
   const partialOk = student ? canPayPartial(student.studentId) : false;
@@ -155,21 +159,62 @@ export function PaymentDialog({
             </Select>
           </div>
 
+          {/* What is owed, split the way the desk thinks about it: this
+              month's fee, what is still carried from earlier months, and
+              anything that is not tuition. One lump under a heading reading
+              "Month(s)" could not tell them apart, and named an admission fee
+              as a month the family had supposedly not paid. */}
+          {breakdown.total > 0 && (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm dark:border-amber-900/50 dark:bg-amber-950/30">
+              <dl className="space-y-1.5">
+                {breakdown.thisMonth && (
+                  <div className="flex items-center justify-between gap-3">
+                    <dt className="text-amber-900 dark:text-amber-200">
+                      {breakdown.thisMonth.label}
+                      <span className="ms-1.5 text-xs text-muted-foreground">
+                        {t("feesPaymentDialog.thisMonth")}
+                      </span>
+                    </dt>
+                    <dd className="shrink-0 font-semibold tabular-nums text-amber-900 dark:text-amber-200">
+                      {money(breakdown.thisMonth.balance)}
+                    </dd>
+                  </div>
+                )}
+                {breakdown.arrears.map((l) => (
+                  <div key={l.key} className="flex items-center justify-between gap-3">
+                    <dt className="text-amber-900 dark:text-amber-200">
+                      {l.label}
+                      <span className="ms-1.5 text-xs text-rose-600 dark:text-rose-400">
+                        {t("feesPaymentDialog.arrears")}
+                      </span>
+                    </dt>
+                    <dd className="shrink-0 font-semibold tabular-nums text-amber-900 dark:text-amber-200">
+                      {money(l.balance)}
+                    </dd>
+                  </div>
+                ))}
+                {breakdown.other.map((l) => (
+                  <div key={l.key} className="flex items-center justify-between gap-3">
+                    <dt className="text-amber-900 dark:text-amber-200">{l.label}</dt>
+                    <dd className="shrink-0 font-semibold tabular-nums text-amber-900 dark:text-amber-200">
+                      {money(l.balance)}
+                    </dd>
+                  </div>
+                ))}
+                <div className="flex items-center justify-between gap-3 border-t border-amber-300/60 pt-1.5 dark:border-amber-800/60">
+                  <dt className="font-medium text-amber-900 dark:text-amber-200">
+                    {t("feesPaymentDialog.totalOwed")}
+                  </dt>
+                  <dd className="shrink-0 font-bold tabular-nums text-amber-900 dark:text-amber-100">
+                    {money(breakdown.total)}
+                  </dd>
+                </div>
+              </dl>
+            </div>
+          )}
+
           {type === "PARTIAL" && (
             <div className="space-y-3">
-              {outstandingMonths.length > 0 && (
-                <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm dark:border-amber-900/50 dark:bg-amber-950/30">
-                  <p className="text-xs font-medium text-amber-800 dark:text-amber-300">
-                    {t("feesPaymentDialog.outstandingMonthS")}
-                  </p>
-                  <p className="mt-1 text-amber-900 dark:text-amber-200">
-                    {outstandingMonths.join(", ")}
-                  </p>
-                  <p className="mt-2 text-xs text-muted-foreground">
-                    {t("feesPaymentDialog.remainingBalance")} {money(outstanding)}
-                  </p>
-                </div>
-              )}
               <div>
                 <Label required>{t("feesPaymentDialog.paymentAmount")}</Label>
                 <Input

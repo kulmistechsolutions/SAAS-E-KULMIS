@@ -755,6 +755,48 @@ export class StudentsService {
         }
       }
 
+      // Moving a student into a class whose month is already set up must bill
+      // them for it. Month setup charges whoever is in the class at the moment
+      // it runs; a student who arrives afterwards was silently never charged,
+      // and the desk found the month simply missing when the family came to
+      // pay. HUDEYFA's Aisha was moved in four days after September was set
+      // up and ended the month with no tuition charge at all.
+      const movedClass =
+        dto.classId !== undefined && dto.classId !== current.classId;
+      if (movedClass && !isFreeNow) {
+        const now = new Date();
+        const y = now.getUTCFullYear();
+        const m = now.getUTCMonth() + 1;
+        const notYetBillable =
+          updated.feeBillingStartYear && updated.feeBillingStartMonth
+            ? y * 100 + m <
+              updated.feeBillingStartYear * 100 + updated.feeBillingStartMonth
+            : false;
+        const activated = await tx.monthlyFeeActivation.findFirst({
+          where: { year: y, month: m, classId: updated.classId },
+          select: { id: true },
+        });
+        if (activated && !notYetBillable) {
+          const existing = await tx.feeCharge.findFirst({
+            where: { studentId: id, year: y, month: m, kind: "MONTHLY" },
+            select: { id: true },
+          });
+          if (!existing) {
+            const amount = updated.monthlyFee;
+            await tx.feeCharge.create({
+              data: {
+                schoolId,
+                studentId: id,
+                year: y,
+                month: m,
+                amount,
+                status: amount === 0 ? "PAID" : "UNPAID",
+              },
+            });
+          }
+        }
+      }
+
       // Only once the child has actually left is the old family checked. A
       // parent record with nobody under it is the same orphan a deletion
       // leaves behind, and is cleared the same way.

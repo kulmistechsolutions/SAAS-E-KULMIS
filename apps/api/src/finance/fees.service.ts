@@ -707,7 +707,26 @@ export class FeesService {
       },
       select: { id: true },
     });
-    if (!activated) return 0;
+
+    // Schools set the next month up before it arrives — the setup day defaults
+    // to the 25th. A student enrolling in those last days was checked against
+    // the current month only, so they joined a class whose next month was
+    // already billed and were the one child in it with no charge for that
+    // month. Nothing re-ran afterwards to notice.
+    const next = nextCalendarMonth(now.year, now.month);
+    const nextActivated = await tx.monthlyFeeActivation.findUnique({
+      where: {
+        schoolId_year_month_classId: {
+          schoolId,
+          year: next.year,
+          month: next.month,
+          classId,
+        },
+      },
+      select: { id: true },
+    });
+
+    if (!activated && !nextActivated) return 0;
 
     if (mode === "NEXT_MONTH") {
       const next = nextCalendarMonth(now.year, now.month);
@@ -725,37 +744,45 @@ export class FeesService {
       mode === "AGREEMENT"
         ? (student.feeAgreementAmount ?? student.monthlyFee)
         : student.monthlyFee;
+    // A 0-amount month (fee waived/exempt) is settled by definition — it must
+    // never sit in the ledger as UNPAID.
+    const status =
+      amount === 0
+        ? "PAID"
+        : mode === "AGREEMENT" && amount < student.monthlyFee
+          ? "PARTIAL"
+          : "UNPAID";
 
-    const existing = await tx.feeCharge.findFirst({
-      where: {
-        studentId: student.id,
-        year: now.year,
-        month: now.month,
-        kind: "MONTHLY",
-      },
-      select: { id: true },
-    });
-    if (existing) return 0;
-
-    await tx.feeCharge.create({
-      data: {
-        schoolId,
-        studentId: student.id,
-        year: now.year,
-        month: now.month,
-        amount,
-        paidAmount: 0,
-        // A 0-amount month (fee waived/exempt) is settled by definition — it
-        // must never sit in the ledger as UNPAID.
-        status:
-          amount === 0
-            ? "PAID"
-            : mode === "AGREEMENT" && amount < student.monthlyFee
-              ? "PARTIAL"
-              : "UNPAID",
-      },
-    });
-    return 1;
+    let created = 0;
+    const months = [
+      ...(activated ? [now] : []),
+      ...(nextActivated ? [next] : []),
+    ];
+    for (const slot of months) {
+      const existing = await tx.feeCharge.findFirst({
+        where: {
+          studentId: student.id,
+          year: slot.year,
+          month: slot.month,
+          kind: "MONTHLY",
+        },
+        select: { id: true },
+      });
+      if (existing) continue;
+      await tx.feeCharge.create({
+        data: {
+          schoolId,
+          studentId: student.id,
+          year: slot.year,
+          month: slot.month,
+          amount,
+          paidAmount: 0,
+          status,
+        },
+      });
+      created++;
+    }
+    return created;
   }
 
   private async createStudentYearCharges(

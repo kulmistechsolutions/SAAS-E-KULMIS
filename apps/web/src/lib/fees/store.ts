@@ -1049,9 +1049,76 @@ export function partialOutstandingMonths(studentId: string): string[] {
   return studentCharges(studentId)
     .filter(
       (c) =>
-        c.status !== "INACTIVE" && c.balance > 0 && !c.advanceCovered,
+        c.status !== "INACTIVE" &&
+        c.balance > 0 &&
+        !c.advanceCovered &&
+        // A registration or exam fee is not a month. Listing it under
+        // "Outstanding Month(s)" told a school it still owed August when
+        // August's tuition was never the debt — the admission fee was.
+        c.kind === "MONTHLY",
     )
     .map((c) => c.monthKey);
+}
+
+export interface OutstandingLine {
+  key: string;
+  /** Ready to show: a month name, or the charge's own label. */
+  label: string;
+  balance: number;
+}
+
+export interface OutstandingBreakdown {
+  /** The month the school is currently collecting, if it is still owed. */
+  thisMonth: OutstandingLine | null;
+  /** Earlier months left unpaid — arrears, owed on top of this month. */
+  arrears: OutstandingLine[];
+  /** Registration, exam and other one-off charges, which are not months. */
+  other: OutstandingLine[];
+  total: number;
+}
+
+/**
+ * What a student owes, split the way the person at the desk thinks about it.
+ *
+ * One lump "Outstanding: $5" over a list headed "Month(s)" could not say
+ * whether that was this month's tuition, a leftover from a month already
+ * closed, or an admission fee — and it named non-month charges as months.
+ * Each part is separated here so the desk sees this month's fee, what is
+ * still carried from before, and anything that is not tuition at all.
+ */
+export function outstandingBreakdown(studentId: string): OutstandingBreakdown {
+  const s = ensure();
+  const active = s.activeMonthKey;
+  const open = studentCharges(studentId).filter(
+    (c) => c.status !== "INACTIVE" && c.balance > 0 && !c.advanceCovered,
+  );
+
+  let thisMonth: OutstandingLine | null = null;
+  const arrears: OutstandingLine[] = [];
+  const other: OutstandingLine[] = [];
+
+  for (const c of open) {
+    if (c.kind !== "MONTHLY") {
+      other.push({
+        key: c.id,
+        label: c.label || monthLabel(c.monthKey),
+        balance: c.balance,
+      });
+      continue;
+    }
+    if (c.monthKey > active) continue; // not due yet
+    const line = { key: c.id, label: monthLabel(c.monthKey), balance: c.balance };
+    if (c.monthKey === active) thisMonth = line;
+    else arrears.push(line);
+  }
+
+  arrears.sort((a, b) => a.label.localeCompare(b.label));
+  const total =
+    (thisMonth?.balance ?? 0) +
+    arrears.reduce((n, l) => n + l.balance, 0) +
+    other.reduce((n, l) => n + l.balance, 0);
+
+  return { thisMonth, arrears, other, total };
 }
 
 /** Per-student annual fee summary from charge records. */
