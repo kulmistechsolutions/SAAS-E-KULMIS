@@ -545,6 +545,37 @@ export class FeesService {
           feeBillingStartYear: opts.billingStartYear ?? null,
           feeBillingStartMonth: opts.billingStartMonth ?? null,
         });
+
+        // Telling the system a student's fee starts later must also undo the
+        // months already billed before that date. Month setup skips a student
+        // whose start is still ahead, but a school that runs the setup first
+        // and sets the start date afterwards — the ordinary way round when
+        // enrolling a new intake — left those charges standing, and the family
+        // saw months they had been excused sitting there as debt. BARWAAQO hit
+        // this with 149 students in one afternoon.
+        //
+        // Only unsettled months move, and they are marked INACTIVE rather than
+        // deleted: the row stays as the record that it was raised and voided.
+        if (opts.billingStartYear && opts.billingStartMonth) {
+          const start = opts.billingStartYear * 100 + opts.billingStartMonth;
+          const early = await tx.feeCharge.findMany({
+            where: {
+              studentId,
+              kind: "MONTHLY",
+              status: { in: ["UNPAID", "PARTIAL"] },
+            },
+            select: { id: true, year: true, month: true },
+          });
+          const voidable = early
+            .filter((c) => c.year * 100 + c.month < start)
+            .map((c) => c.id);
+          if (voidable.length > 0) {
+            await tx.feeCharge.updateMany({
+              where: { id: { in: voidable } },
+              data: { status: "INACTIVE" },
+            });
+          }
+        }
       }
 
       // The registration fee is a separate, one-time item — independent of

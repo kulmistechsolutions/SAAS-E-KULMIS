@@ -64,6 +64,9 @@ const CHECKS: CheckSpec[] = [
     meaning:
       "The pass mark is higher than the marks the questions carry, so every student fails however well they do — and nothing on screen says why.",
     severity: "critical",
+    // A DRAFT quiz is still being written: one question in and a pass mark of
+    // five is a teacher mid-build, not a fault, and flagging it teaches people
+    // to ignore this page. Only a quiz students can actually sit counts.
     sql: Prisma.sql`
       SELECT s.name AS school, count(*)::int AS count,
              string_agg(q.title || ' (' || q."passingMarks" || '/' ||
@@ -71,6 +74,7 @@ const CHECKS: CheckSpec[] = [
                          WHERE qq."quizId" = q.id), 0) || ')', ', ') AS detail
       FROM quizzes q JOIN schools s ON s.id = q."schoolId"
       WHERE q."passingMarks" IS NOT NULL
+        AND q.status <> 'DRAFT'
         AND q."passingMarks" > coalesce(
           (SELECT sum(qq.marks) FROM quiz_questions qq WHERE qq."quizId" = q.id), 0)
       GROUP BY s.name`,
