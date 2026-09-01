@@ -49,6 +49,7 @@ const EMPTY: StudentsState = {
 };
 
 let state: StudentsState | null = null;
+let loaded = false;
 let refreshing = false;
 let refreshFailed = false;
 const listeners = new Set<() => void>();
@@ -225,6 +226,19 @@ function ensure(): StudentsState {
   if (state) return state;
   if (typeof window === "undefined") return EMPTY;
   state = EMPTY;
+  // Every page that reads a student roster without going through the
+  // Students page first — Fee Management chief among them — silently saw
+  // zero students: nothing here ever kicked off the fetch, so
+  // activeStudents() and everything built on it (expected income,
+  // outstanding, fully-paid counts) computed against an empty array while
+  // charge- and payment-derived figures on the same screen, which don't
+  // depend on this cache, showed real numbers. HUDEYFA's Fee Management
+  // opened straight to $0.00 expected income with $919 outstanding on the
+  // card beside it. refreshStudents() already guards auth and dedupes.
+  if (!loaded) {
+    loaded = true;
+    void refreshStudents();
+  }
   return state;
 }
 
