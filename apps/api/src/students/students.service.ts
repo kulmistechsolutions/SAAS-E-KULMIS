@@ -719,9 +719,19 @@ export class StudentsService {
         !isFreeNow;
       if (feeChanged) {
         const newFee = updated.monthlyFee;
+        // The boundary is the school's own current billing month, not the
+        // calendar's. Schools set the next month up around the 25th, so on any
+        // given day a school is usually still collecting the month before —
+        // KTS was live on August with the calendar reading September, and
+        // raising a fee to $95 left their live August charge at $60 because
+        // the calendar had already moved past it.
+        const latest = await tx.monthlyFeeActivation.findFirst({
+          orderBy: [{ year: "desc" }, { month: "desc" }],
+          select: { year: true, month: true },
+        });
         const now = new Date();
-        const y = now.getUTCFullYear();
-        const m = now.getUTCMonth() + 1;
+        const y = latest?.year ?? now.getUTCFullYear();
+        const m = latest?.month ?? now.getUTCMonth() + 1;
         const open = await tx.feeCharge.findMany({
           where: {
             studentId: id,
@@ -730,9 +740,9 @@ export class StudentsService {
             // Only rows still carrying the old rate — a month priced by hand
             // (a one-off discount) was set deliberately and is left alone.
             amount: current.monthlyFee,
-            // And only this month onward. A month already gone was billed at
-            // the rate in force then; repricing it now would invent a debt for
-            // a month the family was correctly charged less for.
+            // And only the live month onward. A month the school has already
+            // moved past was billed at the rate in force then; repricing it
+            // now would invent a debt for a month correctly charged less.
             OR: [{ year: { gt: y } }, { year: y, month: { gte: m } }],
           },
           select: { id: true, paidAmount: true },

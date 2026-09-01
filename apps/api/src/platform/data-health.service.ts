@@ -84,6 +84,36 @@ const CHECKS: CheckSpec[] = [
       GROUP BY s.name`,
   },
   {
+    id: "fee-rate-drift",
+    title: "Live month billed at a fee the student no longer has",
+    meaning:
+      "The student's monthly fee was changed but the month still being collected kept the old amount, so the school takes the wrong money for the month it just repriced.",
+    severity: "warning",
+    // Scoped to each school's own live billing month — the latest month it
+    // has actually set up — because a school on the 1st is usually still
+    // collecting the month before, and months already closed were correctly
+    // billed at the rate in force then.
+    sql: Prisma.sql`
+      WITH live AS (
+        SELECT "schoolId", max(year * 100 + month) AS ym
+        FROM monthly_fee_activations GROUP BY "schoolId"
+      )
+      SELECT s.name AS school, count(*)::int AS count,
+             'off by $' || sum(abs(fc.amount - st."monthlyFee")) AS detail
+      FROM fee_charges fc
+      JOIN students st ON st.id = fc."studentId"
+      JOIN schools s ON s.id = fc."schoolId"
+      JOIN live ON live."schoolId" = fc."schoolId"
+      WHERE fc.kind = 'MONTHLY'
+        AND fc.status IN ('UNPAID', 'PARTIAL')
+        AND (fc.year * 100 + fc.month) >= live.ym
+        AND st.status = 'ACTIVE'
+        AND st."feeWaived" = false
+        AND coalesce(st."feeStartMode"::text, '') <> 'AGREEMENT'
+        AND fc.amount <> st."monthlyFee"
+      GROUP BY s.name`,
+  },
+  {
     id: "fee-overpaid",
     title: "Fee charge paid beyond what was charged",
     meaning:
