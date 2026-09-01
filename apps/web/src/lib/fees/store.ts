@@ -525,6 +525,15 @@ export async function collectPayment(input: PayInput): Promise<{
     // to say nothing, so every receipt printed "Month(s): —" no matter what
     // was paid.
     payment.monthKeys = res.monthKeys ?? [];
+    // Name each charge the money settled. Built here rather than read back,
+    // so the receipt shown at the desk says exactly what the reprint will.
+    payment.lines = (res.lines ?? []).map((l) => ({
+      label:
+        l.kind === "MONTHLY"
+          ? monthLabel(monthKey(l.year, l.month))
+          : l.label || (l.kind === "REGISTRATION" ? "Registration Fee" : "Extra Fee"),
+      amount: l.amount,
+    }));
     logAudit(
       "Fee Collection",
       payment.collectedBy,

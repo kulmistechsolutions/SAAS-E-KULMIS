@@ -347,6 +347,14 @@ export async function apiPayFee(input: PayFeeApiInput) {
     unallocated: number;
     /** "YYYY-MM" for every month this payment actually covered. */
     monthKeys: string[];
+    /** Each charge this payment settled, so the receipt can name them. */
+    lines?: {
+      kind: string;
+      label: string | null;
+      year: number;
+      month: number;
+      amount: number;
+    }[];
   }>("/fees/pay", { method: "POST", body: input });
 }
 

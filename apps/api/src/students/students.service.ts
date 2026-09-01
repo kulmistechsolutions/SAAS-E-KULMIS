@@ -774,18 +774,30 @@ export class StudentsService {
       const movedClass =
         dto.classId !== undefined && dto.classId !== current.classId;
       if (movedClass && !isFreeNow) {
+        // The class's own latest set-up month, not the calendar's. A school
+        // is usually still collecting the month the calendar has just left,
+        // so keying off the calendar found no activation and billed nothing.
         const now = new Date();
-        const y = now.getUTCFullYear();
-        const m = now.getUTCMonth() + 1;
+        const cal = now.getUTCFullYear() * 100 + (now.getUTCMonth() + 1);
+        const activation = await tx.monthlyFeeActivation.findFirst({
+          where: { classId: updated.classId },
+          orderBy: [{ year: "desc" }, { month: "desc" }],
+          select: { year: true, month: true },
+        });
+        // Never bill a month the school has not reached yet — a class set up
+        // a month ahead should not charge somebody joining today for it.
+        const usable =
+          activation && activation.year * 100 + activation.month <= cal
+            ? activation
+            : null;
+        const y = usable?.year ?? now.getUTCFullYear();
+        const m = usable?.month ?? now.getUTCMonth() + 1;
         const notYetBillable =
           updated.feeBillingStartYear && updated.feeBillingStartMonth
             ? y * 100 + m <
               updated.feeBillingStartYear * 100 + updated.feeBillingStartMonth
             : false;
-        const activated = await tx.monthlyFeeActivation.findFirst({
-          where: { year: y, month: m, classId: updated.classId },
-          select: { id: true },
-        });
+        const activated = usable;
         if (activated && !notYetBillable) {
           const existing = await tx.feeCharge.findFirst({
             where: { studentId: id, year: y, month: m, kind: "MONTHLY" },

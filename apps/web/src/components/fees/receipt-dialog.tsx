@@ -87,6 +87,42 @@ export function ReceiptDialog({ payment, onClose }: ReceiptDialogProps) {
             )}
           />
         </dl>
+
+        {/* What the money settled, itemised. The printed receipt has named
+            each charge for a while; the copy the desk actually looks at said
+            only "Partial Payment" and a dash, which is the one moment it
+            matters — the family is standing there. */}
+        {payment.lines && payment.lines.length > 0 && (
+          <div className="overflow-hidden rounded-lg border">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b bg-secondary/50 text-xs uppercase text-muted-foreground">
+                  <th className="px-3 py-2 text-start font-medium">
+                    {t("feesReceiptPrint.paidFor")}
+                  </th>
+                  <th className="px-3 py-2 text-end font-medium">
+                    {t("feesReceiptPrint.amountCol")}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {payment.lines.map((l, i) => (
+                  <tr key={i} className="border-b last:border-0">
+                    <td className="px-3 py-2">{l.label}</td>
+                    <td className="px-3 py-2 text-end tabular-nums">{money(l.amount)}</td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr className="bg-secondary/50 font-semibold">
+                  <td className="px-3 py-2">{t("feesReceiptPrint.totalPaid")}</td>
+                  <td className="px-3 py-2 text-end tabular-nums">{money(payment.amount)}</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        )}
+
         <p className="border-t pt-4 text-center text-2xl font-bold text-emerald-600">
           {money(payment.amount)}
         </p>

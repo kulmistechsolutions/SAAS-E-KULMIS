@@ -726,7 +726,28 @@ export class FeesService {
       select: { id: true },
     });
 
-    if (!activated && !nextActivated) return 0;
+    // A school is usually still collecting the month before the calendar's:
+    // the next month is set up around the 25th, so for most of any given month
+    // the live month is the previous one. Checking only the calendar's current
+    // and next months meant a student enrolling on the 1st into a class whose
+    // live month was the one just ended got no charge at all — the fault
+    // several schools reported as "we register a student and no fee appears".
+    // The class's own latest set-up month is the one they belong to.
+    const nextYm = next.year * 100 + next.month;
+    const liveActivation =
+      activated || nextActivated
+        ? null
+        : await tx.monthlyFeeActivation.findFirst({
+            where: { classId },
+            orderBy: [{ year: "desc" }, { month: "desc" }],
+            select: { year: true, month: true },
+          });
+    const live =
+      liveActivation && liveActivation.year * 100 + liveActivation.month <= nextYm
+        ? { year: liveActivation.year, month: liveActivation.month }
+        : null;
+
+    if (!activated && !nextActivated && !live) return 0;
 
     if (mode === "NEXT_MONTH") {
       const next = nextCalendarMonth(now.year, now.month);
@@ -757,6 +778,7 @@ export class FeesService {
     const months = [
       ...(activated ? [now] : []),
       ...(nextActivated ? [next] : []),
+      ...(live ? [live] : []),
     ];
     for (const slot of months) {
       const existing = await tx.feeCharge.findFirst({
@@ -1092,7 +1114,14 @@ export class FeesService {
       // year/month travel with each allocation so the receipt can say which
       // months this payment actually covered — previously nothing recorded
       // that, so every receipt printed "Month(s): —" regardless of type.
-      const allocations: { feeChargeId: string; amount: number; year: number; month: number }[] = [];
+      const allocations: {
+        feeChargeId: string;
+        amount: number;
+        year: number;
+        month: number;
+        kind: string;
+        label: string | null;
+      }[] = [];
 
       let remaining = dto.amount;
       for (const charge of outstanding) {
@@ -1108,7 +1137,7 @@ export class FeesService {
             status: paidAmount >= charge.amount ? "PAID" : "PARTIAL",
           },
         });
-        allocations.push({ feeChargeId: charge.id, amount: applied, year: charge.year, month: charge.month });
+        allocations.push({ feeChargeId: charge.id, amount: applied, year: charge.year, month: charge.month, kind: charge.kind, label: charge.label });
         remaining -= applied;
       }
 
@@ -1140,7 +1169,7 @@ export class FeesService {
                   : "PARTIAL",
             },
           });
-          allocations.push({ feeChargeId: charge.id, amount: applied, year: charge.year, month: charge.month });
+          allocations.push({ feeChargeId: charge.id, amount: applied, year: charge.year, month: charge.month, kind: charge.kind, label: charge.label });
           remaining -= applied;
         }
 
@@ -1182,7 +1211,7 @@ export class FeesService {
                     dup.paidAmount + applied >= dup.amount ? "PAID" : "PARTIAL",
                 },
               });
-              allocations.push({ feeChargeId: dup.id, amount: applied, year: dup.year, month: dup.month });
+              allocations.push({ feeChargeId: dup.id, amount: applied, year: dup.year, month: dup.month, kind: dup.kind, label: dup.label });
               remaining -= applied;
               continue;
             }
@@ -1198,7 +1227,7 @@ export class FeesService {
                 status: applied >= student.monthlyFee ? "PAID" : "PARTIAL",
               },
             });
-            allocations.push({ feeChargeId: newCharge.id, amount: applied, year: y, month: m });
+            allocations.push({ feeChargeId: newCharge.id, amount: applied, year: y, month: m, kind: newCharge.kind, label: newCharge.label });
             remaining -= applied;
           }
         }
@@ -1250,7 +1279,18 @@ export class FeesService {
         data: { status: "FULFILLED" },
       });
 
-      return { receiptNumber, payment, unallocated: remaining, monthKeys };
+      // What the money settled, named. The receipt is written from this the
+      // instant a payment is taken — reading it back later would mean the
+      // desk's own copy said less than a reprint of it.
+      const lines = allocations.map((a) => ({
+        kind: a.kind,
+        label: a.label,
+        year: a.year,
+        month: a.month,
+        amount: a.amount,
+      }));
+
+      return { receiptNumber, payment, unallocated: remaining, monthKeys, lines };
     });
   }
 
