@@ -22,6 +22,10 @@ export const attendanceSettingsSchema = z.object({
   lateTime: clockTime,
   lockTime: clockTime,
   excusedEnabled: z.boolean(),
+  // What an attendance officer may do to a register somebody has already
+  // taken. Optional so schools saved before this existed keep validating, and
+  // defaulted to the behaviour they already have.
+  officerEdits: z.enum(["ALWAYS", "OWN", "NEVER"]).optional().default("ALWAYS"),
 });
 
 export const examSettingsSchema = z.object({
