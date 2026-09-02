@@ -478,7 +478,12 @@ export class AttendanceScopeService {
 
       const grants = await tx.attendanceAssignment.findMany({
         where: { userId: { in: officerIds } },
-        select: { userId: true, classId: true, shiftId: true },
+        select: {
+          userId: true,
+          classId: true,
+          shiftId: true,
+          createdAt: true,
+        },
       });
 
       // The days the school actually ran, read off the register itself rather
@@ -488,7 +493,8 @@ export class AttendanceScopeService {
         select: { date: true },
         distinct: ["date"],
       });
-      const schoolDays = activeDays.length;
+      const dayKeys = activeDays.map((d) => d.date.toISOString().slice(0, 10));
+      const schoolDays = dayKeys.length;
 
       const records = await tx.studentAttendance.groupBy({
         by: ["markedByUserId", "date", "classId", "shiftId"],
@@ -508,7 +514,13 @@ export class AttendanceScopeService {
           const taken = records.filter((r) => r.markedByUserId === o.id);
           // One register is one class-and-shift on one day. Expected is what
           // they hold multiplied by the days the school ran.
-          const expected = mine.length * schoolDays;
+          // Counted per grant from the day it was given. A grant added this
+          // morning is not owed the last four weeks — measuring it that way
+          // makes anyone newly assigned look negligent on their first day.
+          const expected = mine.reduce((n, g) => {
+            const since = g.createdAt.toISOString().slice(0, 10);
+            return n + dayKeys.filter((d) => d >= since).length;
+          }, 0);
           const done = new Set(
             taken.map(
               (r) =>
