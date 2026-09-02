@@ -258,6 +258,13 @@ export const generated = {
     recordAndMonitorDailyAttendanceFor: "Record and monitor daily attendance for students and teachers.",
     openModule: "Open module →",
   },
+  printPaper: {
+    label: "Paper size",
+    a4: "A4",
+    a5: "A5",
+    letter: "Letter",
+    roll80: "80mm roll (till printer)",
+  },
   attendanceMonitoring: {
     title: "Attendance Monitoring",
     description: "Which registers were taken, by whom, and which are still outstanding.",

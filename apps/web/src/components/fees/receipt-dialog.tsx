@@ -1,6 +1,7 @@
 "use client";
 
 
+import { useState } from "react";
 import { useT } from "@/lib/i18n/provider";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
@@ -10,6 +11,8 @@ import { money, monthLabel, paymentTypeLabel, receiptDate } from "@/lib/fees/for
 import { printReceipt } from "@/lib/fees/print";
 import { outstandingBalance, recordReceiptPrint } from "@/lib/fees/store";
 import type { FeePayment } from "@/lib/fees/types";
+import { PaperPicker } from "@/components/print/paper-picker";
+import type { PaperSize } from "@/lib/print/paper";
 
 interface ReceiptDialogProps {
   payment: FeePayment | null;
@@ -19,6 +22,7 @@ interface ReceiptDialogProps {
 export function ReceiptDialog({ payment, onClose }: ReceiptDialogProps) {
   const t = useT();
   const branding = useSchoolBranding();
+  const [paper, setPaper] = useState<PaperSize>();
   if (!payment) return null;
   const student = getStudentsState().students.find((s) => s.id === payment.studentId);
 
@@ -30,13 +34,17 @@ export function ReceiptDialog({ payment, onClose }: ReceiptDialogProps) {
       className="max-w-lg"
       footer={
         <>
+          {/* The size sits with the button that uses it, not in Settings —
+              a desk switches between A5 slips and the roll printer during
+              the same morning. */}
+          <PaperPicker value={paper} onChange={setPaper} className="me-auto" />
           <Button variant="outline" onClick={onClose}>
             {t("feesReceiptDialog.close")}
           </Button>
           <Button
             onClick={() => {
               recordReceiptPrint(payment.id);
-              printReceipt(payment);
+              printReceipt(payment, paper);
             }}
           >
             {t("feesReceiptDialog.printReceipt")}

@@ -26,13 +26,19 @@ function escapeHtml(s: string): string {
 }
 
 /** Stable for a student and period — a reprint is the same invoice, not a new one. */
+import { getStoredPaper, paperCss, type PaperSize } from "@/lib/print/paper";
+
 export function invoiceNumber(position: StudentPosition, periodKey: string): string {
   const prefix = getSettings().fees.receiptPrefix || "INV";
   const code = position.code.replace(/[^A-Za-z0-9]/g, "").toUpperCase();
   return `${prefix}-${code}-${periodKey.replace("-", "")}`;
 }
 
-export function invoiceHtml(position: StudentPosition, periodKey: string): string {
+export function invoiceHtml(
+  position: StudentPosition,
+  periodKey: string,
+  paper: PaperSize = getStoredPaper(),
+): string {
   const lang = getStoredLang();
   const dir = dirOf(lang);
   const tr = (k: Parameters<typeof translateIn>[1], vars?: Record<string, string | number>) =>
@@ -83,9 +89,9 @@ export function invoiceHtml(position: StudentPosition, periodKey: string): strin
 <style>
   ${PRINT_HEADER_CSS}
   *{box-sizing:border-box}
-  body{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;margin:0;padding:32px;
-    color:#0f172a;background:#fff}
-  .sheet{max-width:760px;margin:0 auto}
+  body{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;color:#0f172a;background:#fff}
+  ${paperCss(paper)}
+  .sheet{width:100%;margin:0 auto}
   .meta{font-size:12px;text-align:end;line-height:1.9}
   .meta span{color:#64748b;margin-inline-end:8px}
   .pill{display:inline-block;padding:2px 10px;border-radius:999px;font-size:11px;
@@ -161,10 +167,14 @@ export function invoiceHtml(position: StudentPosition, periodKey: string): strin
 </div></body></html>`;
 }
 
-export function printInvoice(position: StudentPosition, periodKey: string) {
+export function printInvoice(
+  position: StudentPosition,
+  periodKey: string,
+  paper: PaperSize = getStoredPaper(),
+) {
   const w = window.open("", "_blank", "width=840,height=1000");
   if (!w) return;
-  w.document.write(invoiceHtml(position, periodKey));
+  w.document.write(invoiceHtml(position, periodKey, paper));
   w.document.close();
   w.focus();
   w.print();

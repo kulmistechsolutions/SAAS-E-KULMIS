@@ -6,6 +6,7 @@ import type { ClassFeeSummary, FeePayment, StudentFeeRow } from "./types";
 import { outstandingBalance } from "./store";
 import { dirOf } from "@/lib/i18n/config";
 import { getStoredLang, translateIn } from "@/lib/i18n/provider";
+import { getStoredPaper, paperCss, type PaperSize } from "@/lib/print/paper";
 
 function escapeHtml(s: string): string {
   return s
@@ -15,7 +16,10 @@ function escapeHtml(s: string): string {
     .replace(/"/g, "&quot;");
 }
 
-export function receiptHtml(payment: FeePayment): string {
+export function receiptHtml(
+  payment: FeePayment,
+  paper: PaperSize = getStoredPaper(),
+): string {
   const { receiptHeader, receiptFooter } = getSettings().fees;
   const student = getStudentsState().students.find((s) => s.id === payment.studentId);
   const months = payment.monthKeys.map(monthLabel).join(", ");
@@ -57,7 +61,8 @@ export function receiptHtml(payment: FeePayment): string {
 <html lang="${lang}" dir="${dir}"><head><meta charset="utf-8"/><title>${payment.receiptNo}</title>
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:system-ui,sans-serif;padding:40px;color:#0f172a;max-width:720px;margin:0 auto}
+  body{font-family:system-ui,sans-serif;color:#0f172a}
+  ${paperCss(paper)}
   ${PRINT_HEADER_CSS}
   .receipt-no{font-size:14px;color:#64748b}
   .receipt-no strong{display:block;font-size:20px;color:#0f172a}
@@ -67,14 +72,13 @@ export function receiptHtml(payment: FeePayment): string {
   .amount{font-size:28px;font-weight:700;color:#16a34a;text-align:center;margin:24px 0}
   /* What the money settled, itemised. A single total told a family nothing
      about which debt was cleared; each line names its own. */
-  table.lines{margin:20px 0;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden}
+  table.lines{margin:20px 0;border:1px solid #e2e8f0;border-radius:8px}
   table.lines thead th{background:#f8fafc;color:#475569;font-weight:600;font-size:12px;
     text-transform:uppercase;letter-spacing:.04em;width:auto}
   table.lines td{font-size:14px}
   table.lines .num{text-align:end;font-variant-numeric:tabular-nums;white-space:nowrap}
   table.lines tfoot td{font-weight:700;background:#f8fafc;border-bottom:none}
   .foot{margin-top:32px;padding-top:16px;border-top:1px solid #e2e8f0;font-size:12px;color:#94a3b8;text-align:center}
-  @media print{body{padding:20px}}
 </style></head><body>
   ${printHeaderHtml(
     receiptHeader || tr("feesReceiptPrint.feeReceiptDefault"),
@@ -96,10 +100,13 @@ export function receiptHtml(payment: FeePayment): string {
 </body></html>`;
 }
 
-export function printReceipt(payment: FeePayment) {
+export function printReceipt(
+  payment: FeePayment,
+  paper: PaperSize = getStoredPaper(),
+) {
   const w = window.open("", "_blank", "width=800,height=900");
   if (!w) return;
-  w.document.write(receiptHtml(payment));
+  w.document.write(receiptHtml(payment, paper));
   w.document.close();
   w.focus();
   w.print();

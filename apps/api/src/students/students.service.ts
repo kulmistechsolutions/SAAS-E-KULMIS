@@ -710,6 +710,40 @@ export class StudentsService {
         }
       }
 
+      // Taking a student off Free has to undo what making them free did.
+      //
+      // Waiving settles their open months to nothing, which is right — a free
+      // student should not be shown a debt. But nothing ever put that back.
+      // A student freed in July and made a paying student again in September
+      // kept a zero charge for the month, so the desk saw "$12.00 monthly fee,
+      // $0.00 outstanding, Paid" and the school collected nothing. Six
+      // families at HANUUNIYE were sitting like that, and the money was not
+      // owed on paper anywhere.
+      //
+      // Only zero charges are touched, and only from the live month onward: a
+      // zero row can only have come from a waive or from a genuinely free
+      // student, and a month the school has already closed was correctly
+      // billed at the rate in force then.
+      if (wasFree && !isFreeNow && updated.monthlyFee > 0) {
+        const latestSetup = await tx.monthlyFeeActivation.findFirst({
+          orderBy: [{ year: "desc" }, { month: "desc" }],
+          select: { year: true, month: true },
+        });
+        const now = new Date();
+        const fy = latestSetup?.year ?? now.getUTCFullYear();
+        const fm = latestSetup?.month ?? now.getUTCMonth() + 1;
+        await tx.feeCharge.updateMany({
+          where: {
+            studentId: id,
+            kind: "MONTHLY",
+            amount: 0,
+            paidAmount: 0,
+            OR: [{ year: { gt: fy } }, { year: fy, month: { gte: fm } }],
+          },
+          data: { amount: updated.monthlyFee, status: "UNPAID" },
+        });
+      }
+
       // Changing the monthly fee must reprice what is still owed, not only
       // what gets billed next. A student set up at $10 whose fee is raised to
       // $15 kept a $10 charge sitting there, so the school collected the old

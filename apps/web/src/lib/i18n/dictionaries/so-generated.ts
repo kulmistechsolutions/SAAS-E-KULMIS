@@ -258,6 +258,13 @@ export const soGenerated: PartialDictionary = {
     recordAndMonitorDailyAttendanceFor: "Diiwaan geli oo kormeer xaadiriska maalinlaha ah ee ardayda iyo macallimiinta.",
     openModule: "Fur qaybta →",
   },
+  printPaper: {
+    label: "Cabbirka warqadda",
+    a4: "A4",
+    a5: "A5",
+    letter: "Letter",
+    roll80: "Rool 80mm (daabacaha rasiidka)",
+  },
   attendanceMonitoring: {
     title: "Kormeerka Xaadiriska",
     description: "Diiwaannada la qaaday, cidda qaaday, iyo kuwa weli hadhay.",

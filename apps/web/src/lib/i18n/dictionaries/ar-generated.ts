@@ -257,6 +257,13 @@ export const arGenerated: PartialDictionary = {
     recordAndMonitorDailyAttendanceFor: "سجّل وتابع الحضور اليومي للطلاب والمعلمين.",
     openModule: "فتح الوحدة ←",
   },
+  printPaper: {
+    label: "حجم الورق",
+    a4: "A4",
+    a5: "A5",
+    letter: "Letter",
+    roll80: "لفة 80 مم (طابعة الإيصالات)",
+  },
   attendanceMonitoring: {
     title: "مراقبة الحضور",
     description: "السجلات التي أُخذت، ومن أخذها، وأيها لا يزال معلقاً.",
