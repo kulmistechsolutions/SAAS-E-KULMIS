@@ -7,9 +7,12 @@ import { FeeChangeDialog } from "@/components/fees/fee-change-dialog";
 import {
   apiFeeChangeHistory,
   apiListAdjustments,
+  apiStudentPosition,
   type FeeAdjustmentRow,
   type FeeChangeRow,
+  type StudentPosition,
 } from "@/lib/fees/api";
+import { printInvoice } from "@/lib/fees/invoice";
 import { use, useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
@@ -808,12 +811,20 @@ function FeesTab({ student }: { student: StudentWithParent }) {
   const [reversingPayment, setReversingPayment] = useState<FeePayment | null>(null);
   const [adjustTarget, setAdjustTarget] = useState<AdjustTarget | null>(null);
   const [changingFee, setChangingFee] = useState(false);
+  // The engine's own view of this student, which the invoice is rendered
+  // from — so a printed invoice and the screen behind it cannot disagree.
+  const [position, setPosition] = useState<StudentPosition | null>(null);
   const [adjustments, setAdjustments] = useState<FeeAdjustmentRow[]>([]);
   const [feeChanges, setFeeChanges] = useState<FeeChangeRow[]>([]);
 
   // Why a month costs what it costs, and how the standing fee got here. Both
   // read alongside the ledger so a discount and the change that followed it
   // are visible on the same screen as the balance they produced.
+  const loadPosition = useCallback(() => {
+    void apiStudentPosition(student.id).then(setPosition).catch(() => setPosition(null));
+  }, [student.id]);
+  useEffect(loadPosition, [loadPosition]);
+
   const loadHistory = useCallback(() => {
     void apiListAdjustments(student.id).then(setAdjustments).catch(() => setAdjustments([]));
     void apiFeeChangeHistory(student.id).then(setFeeChanges).catch(() => setFeeChanges([]));
@@ -858,7 +869,17 @@ function FeesTab({ student }: { student: StudentWithParent }) {
     <div className="space-y-4">
       {/* Changing the fee lives here rather than on the edit form, because it
           is a financial act: it needs a scope and leaves a record. */}
-      <div className="flex justify-end">
+      <div className="flex flex-wrap justify-end gap-2">
+        <Button
+          variant="outline"
+          className="h-9"
+          disabled={!position}
+          onClick={() =>
+            position && printInvoice(position, position.lines.at(-1)?.monthKey ?? "")
+          }
+        >
+          {tr("feesInvoice.printAction")}
+        </Button>
         <Button
           variant="outline"
           className="h-9"
@@ -877,6 +898,7 @@ function FeesTab({ student }: { student: StudentWithParent }) {
         onDone={() => {
           loadLedger();
           loadHistory();
+          loadPosition();
         }}
       />
 
@@ -1074,6 +1096,7 @@ function FeesTab({ student }: { student: StudentWithParent }) {
         onDone={() => {
           loadLedger();
           loadHistory();
+          loadPosition();
         }}
       />
 
