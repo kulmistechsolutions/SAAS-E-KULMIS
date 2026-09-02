@@ -354,6 +354,8 @@ export class StudentsService {
       sectionId?: string;
       status?: string;
       gender?: string;
+      /** Restrict to these classes — set for roles that only hold some. */
+      classIds?: string[];
     } = {},
     opts: { includePhotoUrls?: boolean } = {},
   ) {
@@ -361,6 +363,7 @@ export class StudentsService {
       tx.student.findMany({
         where: {
           ...studentInClassWhere(filters.classId, filters.sectionId),
+          ...(filters.classIds ? { classId: { in: filters.classIds } } : {}),
           status: filters.status as never,
           gender: filters.gender as never,
         },

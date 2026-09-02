@@ -22,6 +22,7 @@ import {
 } from "@ekulmis/shared";
 import { StudentsService } from "./students.service";
 import { TeachersService } from "../teachers/teachers.service";
+import { AttendanceScopeService } from "../attendance/attendance-scope.service";
 import { Roles } from "../auth/roles.decorator";
 import { STAFF_ROLES } from "../auth/role-groups";
 import { CurrentUser } from "../auth/current-user.decorator";
@@ -35,6 +36,7 @@ export class StudentsController {
   constructor(
     private readonly students: StudentsService,
     private readonly teachers: TeachersService,
+    private readonly scope: AttendanceScopeService,
   ) {}
 
   private async assertTeacherCanAccessStudent(me: AuthUser, studentId: string) {
@@ -73,6 +75,21 @@ export class StudentsController {
       if (gender) mine = mine.filter((s) => s.gender === gender);
       return mine;
     }
+
+    // An attendance officer needs the children in the classes they were
+    // assigned, and no others. Without this they could read the school's whole
+    // student directory — every name, parent and phone number in it — which is
+    // more than taking a register requires and more than the school agreed to
+    // hand over when it granted them one class.
+    const allowed = await this.scope.visibleClassIds(
+      me.schoolId,
+      me.userId,
+      me.role,
+    );
+    if (allowed) {
+      if (allowed.length === 0) return [];
+      if (classId && !allowed.includes(classId)) return [];
+    }
     return this.students.findAll(
       me.schoolId,
       {
@@ -80,6 +97,7 @@ export class StudentsController {
         sectionId,
         status,
         gender,
+        ...(allowed && !classId ? { classIds: allowed } : {}),
       },
       { includePhotoUrls: lite !== "1" },
     );
