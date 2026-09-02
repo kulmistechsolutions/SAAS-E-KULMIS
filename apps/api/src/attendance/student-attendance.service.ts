@@ -107,7 +107,11 @@ export class StudentAttendanceService {
       );
     }
 
-    if (role === "ADMINISTRATOR") return;
+    // SUPER_ADMINISTRATOR as well as ADMINISTRATOR: the school owner signs in
+    // as the former, so checking only the latter left the escape valve below
+    // shut for the one person it was written for — a past register could not
+    // be corrected by anybody at all.
+    if (role === "ADMINISTRATOR" || role === "SUPER_ADMINISTRATOR") return;
     const lock = minutesOfDay(rules.lockTime);
     if (lock === null) return;
 
