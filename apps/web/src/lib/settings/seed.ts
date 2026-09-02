@@ -167,9 +167,11 @@ export function buildSettingsSeed(): SettingsState {
     },
     security: {
       minPasswordLength: 8,
-      requireComplexity: true,
-      requireUppercase: true,
-      requireNumber: true,
+      // Length only by default. Each of these is a switch a school can turn
+      // on for itself; none of them is assumed.
+      requireComplexity: false,
+      requireUppercase: false,
+      requireNumber: false,
       sessionTimeoutMinutes: 30,
       loginAttemptLimit: 5,
       twoFactorEnabled: false,

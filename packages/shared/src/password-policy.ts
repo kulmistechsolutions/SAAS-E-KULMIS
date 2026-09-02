@@ -15,12 +15,21 @@ export interface PasswordPolicy {
   requireNumber: boolean;
 }
 
-/** Applied when a school has not set its own — matches the settings seed. */
+/**
+ * Applied when a school has not set its own — matches the settings seed.
+ *
+ * Length only. Requiring a capital, a digit and a symbol on top of it was
+ * turning a two-minute job at the front desk into an argument: an
+ * administrator creating an attendance officer had a working password
+ * rejected three times over rules nobody had asked for. A school that wants
+ * them can switch each one on in Settings → Security; the product no longer
+ * assumes it for them.
+ */
 export const DEFAULT_PASSWORD_POLICY: PasswordPolicy = {
   minPasswordLength: 8,
-  requireComplexity: true,
-  requireUppercase: true,
-  requireNumber: true,
+  requireComplexity: false,
+  requireUppercase: false,
+  requireNumber: false,
 };
 
 /**
