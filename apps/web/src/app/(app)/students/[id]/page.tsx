@@ -3,6 +3,7 @@
 
 import { useT } from "@/lib/i18n/provider";
 import { FeeAdjustDialog, type AdjustTarget } from "@/components/fees/fee-adjust-dialog";
+import { FeeChangeDialog } from "@/components/fees/fee-change-dialog";
 import {
   apiFeeChangeHistory,
   apiListAdjustments,
@@ -806,6 +807,7 @@ function FeesTab({ student }: { student: StudentWithParent }) {
   const [loading, setLoading] = useState(true);
   const [reversingPayment, setReversingPayment] = useState<FeePayment | null>(null);
   const [adjustTarget, setAdjustTarget] = useState<AdjustTarget | null>(null);
+  const [changingFee, setChangingFee] = useState(false);
   const [adjustments, setAdjustments] = useState<FeeAdjustmentRow[]>([]);
   const [feeChanges, setFeeChanges] = useState<FeeChangeRow[]>([]);
 
@@ -854,6 +856,30 @@ function FeesTab({ student }: { student: StudentWithParent }) {
 
   return (
     <div className="space-y-4">
+      {/* Changing the fee lives here rather than on the edit form, because it
+          is a financial act: it needs a scope and leaves a record. */}
+      <div className="flex justify-end">
+        <Button
+          variant="outline"
+          className="h-9"
+          onClick={() => setChangingFee(true)}
+        >
+          {tr("feesAdjust.changeFeeTitle")}
+        </Button>
+      </div>
+
+      <FeeChangeDialog
+        open={changingFee}
+        studentId={student.id}
+        studentName={student.fullName}
+        currentFee={ledger?.student.monthlyFee ?? student.monthlyFee}
+        onClose={() => setChangingFee(false)}
+        onDone={() => {
+          loadLedger();
+          loadHistory();
+        }}
+      />
+
       {summary && (
         <div className="rounded-xl border bg-card p-4">
           <div className="flex flex-wrap items-start justify-between gap-3">
