@@ -481,6 +481,8 @@ export interface PayInput {
   chargeIds?: string[];
   /** Pre-computed total for a targeted selection; skips the type-based rules. */
   targetedAmount?: number;
+  /** Identifies this attempt so a repeat settles once. */
+  idempotencyKey?: string;
 }
 
 export async function collectPayment(input: PayInput): Promise<{
@@ -551,6 +553,9 @@ export async function collectPayment(input: PayInput): Promise<{
       amount,
       type: input.paymentType,
       ...(input.chargeIds ? { chargeIds: input.chargeIds } : {}),
+      // Identifies this attempt, so a retry or a second click settles once
+      // instead of collecting the same money twice.
+      idempotencyKey: input.idempotencyKey,
     });
     await refreshFees();
     const payment = mapApiPayment(res.payment, s.academicYear);

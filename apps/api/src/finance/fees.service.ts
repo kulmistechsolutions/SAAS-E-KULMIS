@@ -1073,6 +1073,51 @@ export class FeesService {
       );
     }
 
+    // A repeat of a collection the school already made — a second click, a
+    // retry after a timeout — must not take the money twice. The original
+    // receipt comes back instead, which is what the desk wanted anyway.
+    if (dto.idempotencyKey) {
+      const already = await this.prisma.forTenant(schoolId, (tx) =>
+        tx.payment.findFirst({
+          where: { idempotencyKey: dto.idempotencyKey },
+          include: {
+            allocations: {
+              include: {
+                feeCharge: {
+                  select: { year: true, month: true, kind: true, label: true },
+                },
+              },
+            },
+          },
+        }),
+      );
+      if (already) {
+        return {
+          receiptNumber: already.receiptNumber,
+          payment: already,
+          unallocated: 0,
+          duplicate: true,
+          monthKeys: [
+            ...new Set(
+              already.allocations
+                .filter((a) => a.feeCharge.kind === "MONTHLY")
+                .map(
+                  (a) =>
+                    `${a.feeCharge.year}-${String(a.feeCharge.month).padStart(2, "0")}`,
+                ),
+            ),
+          ].sort(),
+          lines: already.allocations.map((a) => ({
+            kind: a.feeCharge.kind,
+            label: a.feeCharge.label,
+            year: a.feeCharge.year,
+            month: a.feeCharge.month,
+            amount: a.amount,
+          })),
+        };
+      }
+    }
+
     return this.prisma.forTenant(schoolId, async (tx) => {
       // No money can be collected until the school has actually set up billing.
       // A school with no setup is told to do it first, even if old charges
@@ -1262,6 +1307,7 @@ export class FeesService {
           method: dto.method ?? null,
           note: dto.note ?? null,
           collectedByUserId,
+          idempotencyKey: dto.idempotencyKey ?? null,
         },
       });
       if (allocations.length > 0) {
@@ -1298,7 +1344,14 @@ export class FeesService {
         amount: a.amount,
       }));
 
-      return { receiptNumber, payment, unallocated: remaining, monthKeys, lines };
+      return {
+        receiptNumber,
+        payment,
+        unallocated: remaining,
+        duplicate: false,
+        monthKeys,
+        lines,
+      };
     });
   }
 

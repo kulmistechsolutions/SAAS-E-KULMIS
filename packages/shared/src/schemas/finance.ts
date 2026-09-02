@@ -71,6 +71,14 @@ export const payFeeSchema = z.object({
    * desk picks what is being paid; this carries that choice to the ledger.
    */
   chargeIds: z.array(z.string().min(1)).min(1).optional(),
+  /**
+   * Sent by the client so a resubmitted collection settles once.
+   *
+   * A slow connection, a second click, a retry after a timeout — each posts
+   * the same payment again. With a key the server recognises the repeat and
+   * returns the original receipt instead of taking the money twice.
+   */
+  idempotencyKey: z.string().min(8).max(100).optional(),
 });
 export type PayFeeInput = z.infer<typeof payFeeSchema>;
 

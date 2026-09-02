@@ -46,6 +46,11 @@ export function PaymentDialog({
   const [amount, setAmount] = useState("");
   const [advanceMonths, setAdvanceMonths] = useState("1");
   const [submitting, setSubmitting] = useState(false);
+  // Minted once per opening of this dialog for this student. A second click,
+  // or a retry after the network stalls, carries the same key — so the server
+  // recognises the repeat and returns the original receipt instead of
+  // collecting the money again.
+  const [attemptKey, setAttemptKey] = useState("");
 
   const outstanding = student ? outstandingBalance(student.studentId) : 0;
   const breakdown = useMemo(
@@ -132,6 +137,9 @@ export function PaymentDialog({
     setChoice(options[0]?.id ?? "PARTIAL");
     setAmount("");
     setAdvanceMonths("1");
+    setAttemptKey(
+      `${student.studentId}-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
+    );
     // Re-seeding on every options change would fight the user's own pick;
     // this runs when the dialog opens on a student, which is when it matters.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -158,6 +166,7 @@ export function PaymentDialog({
       ...(selected?.chargeIds
         ? { chargeIds: selected.chargeIds, targetedAmount: selected.total }
         : {}),
+      idempotencyKey: attemptKey || undefined,
     });
     setSubmitting(false);
     if (!res.ok) {

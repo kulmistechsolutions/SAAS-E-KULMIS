@@ -1152,6 +1152,15 @@ model Payment {
   reversalEntry Payment?            @relation("PaymentReversal")
   printLogs     PaymentPrintLog[]
 
+  /// Sent by the client so a resubmitted collection settles once.
+  ///
+  /// A slow network, an impatient second click, a retry after a timeout —
+  /// each of those posts the same payment again, and without a key to
+  /// recognise it by the school takes the money twice and hands out two
+  /// receipts. Null on everything recorded before this existed.
+  idempotencyKey String?
+
+  @@unique([schoolId, idempotencyKey])
   @@unique([schoolId, receiptNumber])
   @@index([schoolId])
   @@index([studentId])

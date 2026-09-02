@@ -338,6 +338,8 @@ export interface PayFeeApiInput {
   note?: string | null;
   /** Settle exactly these charges — see payFeeSchema.chargeIds. */
   chargeIds?: string[];
+  /** So a resubmitted collection settles once — see payFeeSchema. */
+  idempotencyKey?: string;
 }
 
 export async function apiPayFee(input: PayFeeApiInput) {
@@ -345,6 +347,8 @@ export async function apiPayFee(input: PayFeeApiInput) {
     receiptNumber: string;
     payment: ApiPayment;
     unallocated: number;
+    /** True when this was a repeat and the original receipt came back. */
+    duplicate?: boolean;
     /** "YYYY-MM" for every month this payment actually covered. */
     monthKeys: string[];
     /** Each charge this payment settled, so the receipt can name them. */
