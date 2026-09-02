@@ -21,6 +21,7 @@ import { PrismaService } from "../prisma/prisma.service";
 import { parseDateFrom, parseDateTo } from "../common/date-range.util";
 import { AuditService } from "../audit/audit.service";
 import { BalanceEngineService } from "./balance-engine.service";
+import { FeeAdjustmentsService } from "./fee-adjustments.service";
 import {
   buildMonthSlots,
   currentCalendarMonth,
@@ -81,6 +82,7 @@ export class FeesService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
     private readonly balances: BalanceEngineService,
+    private readonly adjustments: FeeAdjustmentsService,
   ) {}
 
   private async schoolConfig(schoolId: string): Promise<SchoolFeeConfig> {
@@ -1605,6 +1607,52 @@ export class FeesService {
     });
 
     return result;
+  }
+
+  /**
+   * Change a student's monthly fee, and reprice as far as the school says.
+   *
+   * The fee itself and the bills it produced are two different things, and
+   * this is the one place both move together: the student's standing rate,
+   * the charges within the chosen scope, and the record of what happened.
+   * Doing it through the general student update meant no scope could be
+   * asked for and no reason recorded.
+   */
+  async changeMonthlyFee(
+    schoolId: string,
+    input: {
+      studentId: string;
+      newFee: number;
+      scope: "CURRENT_MONTH" | "FUTURE_MONTHS" | "CURRENT_AND_FUTURE" | "ALL_UNPAID";
+      reason?: string;
+    },
+    actor: { userId?: string; username?: string; role?: string },
+  ) {
+    const student = await this.prisma.forTenant(schoolId, (tx) =>
+      tx.student.findFirst({
+        where: { id: input.studentId },
+        select: { id: true, monthlyFee: true, feeWaived: true },
+      }),
+    );
+    if (!student) throw new NotFoundException("Student not found");
+    if (student.monthlyFee === input.newFee) {
+      return { chargesUpdated: 0, oldFee: student.monthlyFee, newFee: input.newFee };
+    }
+
+    const oldFee = student.monthlyFee;
+    await this.prisma.forTenant(schoolId, (tx) =>
+      tx.student.update({
+        where: { id: input.studentId },
+        data: { monthlyFee: input.newFee },
+      }),
+    );
+
+    const result = await this.adjustments.applyFeeChange(
+      schoolId,
+      { studentId: input.studentId, oldFee, newFee: input.newFee, scope: input.scope, reason: input.reason },
+      actor,
+    );
+    return { ...result, oldFee, newFee: input.newFee };
   }
 
   async ledger(schoolId: string, studentId: string) {

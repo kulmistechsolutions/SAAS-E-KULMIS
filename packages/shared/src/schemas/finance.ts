@@ -299,3 +299,34 @@ export const updatePaymentPromiseSchema = z.object({
 export type UpdatePaymentPromiseInput = z.infer<
   typeof updatePaymentPromiseSchema
 >;
+
+/** Take an amount off one month's charge without touching the student's fee. */
+export const feeAdjustmentSchema = z.object({
+  feeChargeId: z.string().min(1),
+  type: z.enum(["DISCOUNT", "WAIVER", "ADJUSTMENT"]),
+  /** Ignored for WAIVER, which clears whatever is still owed. */
+  amount: z.number().int().positive().optional(),
+  reason: z.string().min(3).max(300),
+});
+export type FeeAdjustmentInput = z.infer<typeof feeAdjustmentSchema>;
+
+/**
+ * How far a fee change reaches. Chosen rather than assumed: "from now on" and
+ * "fix this month too" are different intentions, and guessing wrong either
+ * leaves the month being collected at the old rate or rewrites months a
+ * family has already settled around.
+ */
+export const feeChangeScopeSchema = z.enum([
+  "CURRENT_MONTH",
+  "FUTURE_MONTHS",
+  "CURRENT_AND_FUTURE",
+  "ALL_UNPAID",
+]);
+
+export const feeChangeSchema = z.object({
+  studentId: z.string().min(1),
+  newFee: z.number().int().min(0),
+  scope: feeChangeScopeSchema,
+  reason: z.string().min(3).max(300).optional(),
+});
+export type FeeChangeInput = z.infer<typeof feeChangeSchema>;

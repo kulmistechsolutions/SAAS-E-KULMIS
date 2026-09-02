@@ -608,6 +608,8 @@ model Student {
   @@index([villageId])
   @@index([districtId])
   @@map("students")
+  feeAdjustments  FeeAdjustment[]
+  feeChangeLogs   FeeChangeLog[]
 }
 
 /// An ADDITIONAL class a student sits in, on top of their home class
@@ -942,6 +944,7 @@ model FeeCharge {
 
   student      Student             @relation(fields: [studentId], references: [id], onDelete: Cascade)
   academicYear AcademicYear?       @relation(fields: [academicYearId], references: [id], onDelete: SetNull)
+  adjustments  FeeAdjustment[]
   extraFee     ExtraFee?           @relation(fields: [extraFeeId], references: [id], onDelete: SetNull)
   allocations  PaymentAllocation[]
 
@@ -1042,6 +1045,79 @@ model MonthlyFeeActivation {
   @@index([schoolId, year, month])
   @@index([classId])
   @@map("monthly_fee_activations")
+}
+
+/// Why a month costs what it costs when it is not simply the student's fee.
+///
+/// A school discounting one month must not have to change the student's
+/// permanent fee to do it — that is the distinction the fee module kept
+/// losing. The charge's `amount` carries the adjusted figure so every
+/// balance already reflects it; this row records what the original was, how
+/// much came off, who decided and why.
+model FeeAdjustment {
+  id                String            @id @default(cuid())
+  schoolId          String
+  studentId         String
+  feeChargeId       String
+  type              FeeAdjustmentType
+  /// What the charge asked before this adjustment.
+  originalAmount    Int
+  /// How much came off. `originalAmount - amount` is what remains payable.
+  amount            Int
+  reason            String
+  createdByUserId   String?
+  createdByUsername String?
+  createdAt         DateTime          @default(now())
+
+  feeCharge FeeCharge @relation(fields: [feeChargeId], references: [id], onDelete: Cascade)
+  student   Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([schoolId, createdAt])
+  @@index([feeChargeId])
+  @@index([studentId])
+  @@map("fee_adjustments")
+}
+
+enum FeeAdjustmentType {
+  DISCOUNT
+  WAIVER
+  ADJUSTMENT
+}
+
+/// Every change to a student's monthly fee, and what it did to their bills.
+///
+/// A fee that changes silently is a fee nobody can explain later: KTS raised
+/// a student to $95 and the month being collected stayed at $60, and there
+/// was no record of when the change happened or what it was meant to touch.
+model FeeChangeLog {
+  id                String         @id @default(cuid())
+  schoolId          String
+  studentId         String
+  oldFee            Int
+  newFee            Int
+  scope             FeeChangeScope
+  /// How many billing rows this change actually repriced.
+  chargesUpdated    Int            @default(0)
+  reason            String?
+  changedByUserId   String?
+  changedByUsername String?
+  createdAt         DateTime       @default(now())
+
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([schoolId, createdAt])
+  @@index([studentId])
+  @@map("fee_change_logs")
+}
+
+/// How far a fee change reaches. Chosen by the person making it, because
+/// "from now on" and "fix this month too" are different intentions and
+/// guessing between them rewrites months a family already settled.
+enum FeeChangeScope {
+  CURRENT_MONTH
+  FUTURE_MONTHS
+  CURRENT_AND_FUTURE
+  ALL_UNPAID
 }
 
 /// A fee payment with a receipt (Module 7).

@@ -21,9 +21,12 @@ import {
   updateExtraFeeSchema,
   updatePaymentPromiseSchema,
   UserRole,
+  feeAdjustmentSchema,
+  feeChangeSchema,
 } from "@ekulmis/shared";
 import { FeesService } from "./fees.service";
 import { BalanceEngineService } from "./balance-engine.service";
+import { FeeAdjustmentsService } from "./fee-adjustments.service";
 import { Roles } from "../auth/roles.decorator";
 import { CurrentUser } from "../auth/current-user.decorator";
 import type { AuthUser } from "../auth/auth.types";
@@ -33,6 +36,7 @@ import type { AuthUser } from "../auth/auth.types";
 export class FeesController {
   constructor(private readonly fees: FeesService,
     private readonly balances: BalanceEngineService,
+    private readonly adjustments: FeeAdjustmentsService,
   ) {}
 
   @Get("settings")
@@ -125,6 +129,47 @@ export class FeesController {
   @Get("positions")
   allPositions(@CurrentUser() me: AuthUser) {
     return this.balances.allPositions(me.schoolId);
+  }
+
+  // ── Adjustments and fee changes ──────────────────────────────────────────
+
+  /** Take an amount off one month, leaving the student's own fee alone. */
+  @Post("adjustments")
+  adjust(@CurrentUser() me: AuthUser, @Body() body: unknown) {
+    const parsed = feeAdjustmentSchema.safeParse(body);
+    if (!parsed.success) throw new BadRequestException(parsed.error.flatten());
+    return this.adjustments.adjust(me.schoolId, parsed.data, {
+      userId: me.userId,
+      username: me.username,
+      role: me.role,
+    });
+  }
+
+  @Get("adjustments/:studentId")
+  listAdjustments(@CurrentUser() me: AuthUser, @Param("studentId") studentId: string) {
+    return this.adjustments.listForStudent(me.schoolId, studentId);
+  }
+
+  /**
+   * Change a student's monthly fee and say how far the change reaches.
+   *
+   * Separate from the general student update because a fee change is a
+   * financial act: it needs a scope, a reason, and a record of both.
+   */
+  @Post("fee-change")
+  async changeFee(@CurrentUser() me: AuthUser, @Body() body: unknown) {
+    const parsed = feeChangeSchema.safeParse(body);
+    if (!parsed.success) throw new BadRequestException(parsed.error.flatten());
+    return this.fees.changeMonthlyFee(me.schoolId, parsed.data, {
+      userId: me.userId,
+      username: me.username,
+      role: me.role,
+    });
+  }
+
+  @Get("fee-change/:studentId")
+  feeHistory(@CurrentUser() me: AuthUser, @Param("studentId") studentId: string) {
+    return this.adjustments.feeHistory(me.schoolId, studentId);
   }
 
   @Get("ledger/:studentId")
