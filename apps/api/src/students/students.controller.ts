@@ -39,12 +39,35 @@ export class StudentsController {
     private readonly scope: AttendanceScopeService,
   ) {}
 
-  private async assertTeacherCanAccessStudent(me: AuthUser, studentId: string) {
-    if (me.role !== "TEACHER") return;
-    const mine = await this.teachers.myStudents(me.schoolId, me.userId);
-    if (!mine.some((s) => s.id === studentId)) {
+  /**
+   * Keep a single student behind the same fence as the list.
+   *
+   * Filtering the directory is only half the job: the record of any child in
+   * the school is one id away, and an id is easy to come by. Both roles that
+   * hold a slice of the school are checked here, so the by-id routes cannot be
+   * used to walk around the list.
+   */
+  private async assertCanAccessStudent(me: AuthUser, studentId: string) {
+    if (me.role === "TEACHER") {
+      const mine = await this.teachers.myStudents(me.schoolId, me.userId);
+      if (!mine.some((s) => s.id === studentId)) {
+        throw new ForbiddenException(
+          "You can only access students in your assigned classes",
+        );
+      }
+      return;
+    }
+
+    const allowed = await this.scope.visibleClassIds(
+      me.schoolId,
+      me.userId,
+      me.role,
+    );
+    if (!allowed) return;
+    const student = await this.students.findOne(me.schoolId, studentId);
+    if (!student || !allowed.includes(student.classId ?? "")) {
       throw new ForbiddenException(
-        "You can only access students in your assigned classes",
+        "That student is not in a class you have been assigned.",
       );
     }
   }
@@ -110,7 +133,7 @@ export class StudentsController {
     @Query("limit") limit?: string,
     @Query("academicYearId") academicYearId?: string,
   ) {
-    await this.assertTeacherCanAccessStudent(me, id);
+    await this.assertCanAccessStudent(me, id);
     return this.students.attendanceHistory(
       me.schoolId,
       id,
@@ -143,7 +166,7 @@ export class StudentsController {
     @Param("id") id: string,
     @Res() res: Response,
   ) {
-    await this.assertTeacherCanAccessStudent(me, id);
+    await this.assertCanAccessStudent(me, id);
     const { buffer, contentType } = await this.students.getPhoto(
       me.schoolId,
       id,
@@ -161,7 +184,7 @@ export class StudentsController {
 
   @Get(":id")
   async findOne(@CurrentUser() me: AuthUser, @Param("id") id: string) {
-    await this.assertTeacherCanAccessStudent(me, id);
+    await this.assertCanAccessStudent(me, id);
     return this.students.findOne(me.schoolId, id);
   }
 
