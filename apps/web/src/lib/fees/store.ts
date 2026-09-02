@@ -75,6 +75,14 @@ export async function refreshSchoolPosition(): Promise<void> {
     ]);
     positionCache = school;
     if (all.length > 0) studentPositions = new Map(all.map((p) => [p.studentId, p]));
+    // A fresh snapshot, not just a notification. Subscribers read the store
+    // through useSyncExternalStore, which compares snapshots by reference and
+    // skips the render when nothing moved — and these figures live outside
+    // the state object, so emitting alone changed nothing on screen. Opening
+    // Fee Management directly showed $0.00 until something else happened to
+    // rebuild the state; arriving from the Students page worked only because
+    // the cache was already warm by the time the page first rendered.
+    if (state) state = { ...state };
     emit();
   } catch {
     /* keep whatever we had */
