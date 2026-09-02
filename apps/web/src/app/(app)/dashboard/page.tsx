@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth";
+import { isRouteAllowedForRole } from "@/lib/rbac/routes";
 import { toast } from "@/lib/toast";
 import { StatCard, type StatTheme } from "@/components/dashboard/stat-card";
 import { TeacherDashboard } from "@/components/dashboard/teacher-dashboard";
@@ -402,6 +403,15 @@ function AdminDashboard() {
     ];
   }, [data, t]);
 
+  // A shortcut to a page the role cannot open is not a shortcut. These were
+  // offering an attendance officer "Collect Fees", "Add Student" and "Add
+  // Expense", each of which ends at a refusal.
+  const visibleQuickActions = quickActions.filter((q) => {
+    const href = ACTION_ROUTES[q.label];
+    if (!href) return true;
+    return isRouteAllowedForRole(user?.role ?? "", href.split("?")[0]!);
+  });
+
   function runAction(label: string) {
     const href = ACTION_ROUTES[label];
     if (href) router.push(href);
@@ -669,7 +679,7 @@ function AdminDashboard() {
 
         <Panel title={t("dashboard.quickActions")} id="quick-actions">
           <div className="grid grid-cols-3 gap-3">
-            {quickActions.map((q) => {
+            {visibleQuickActions.map((q) => {
               const Icon = ACTION_ICONS[q.icon];
               return (
                 <button

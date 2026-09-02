@@ -26,6 +26,7 @@ import {
 } from "@/lib/reports/catalog";
 import { activeAcademicYear } from "@/lib/academics/store";
 import { useAuth } from "@/lib/auth";
+import { isRouteAllowedForRole } from "@/lib/rbac/routes";
 import type { LucideIcon } from "lucide-react";
 
 const ICONS: Record<string, LucideIcon> = {
@@ -49,13 +50,28 @@ export default function ReportsDashboardPage() {
   const [query, setQuery] = useState("");
   useEffect(() => setMounted(true), []);
 
+  // A category is only listed when the role may actually open it. Fee,
+  // salary and financial reporting is not part of holding a register or an
+  // exam timetable, and listing it there described the school's money to
+  // people who were then refused at the door.
+  const role = user?.role ?? "";
+  const allowed = useMemo(
+    () => (id: string) => isRouteAllowedForRole(role, `/reports/${id}`),
+    [role],
+  );
   const categories = useMemo(
-    () => (isTeacher ? teacherReportCategories() : REPORT_CATEGORIES),
-    [isTeacher],
+    () =>
+      (isTeacher ? teacherReportCategories() : REPORT_CATEGORIES).filter((c) =>
+        allowed(c.id),
+      ),
+    [isTeacher, allowed],
   );
   const results = useMemo(
-    () => (isTeacher ? searchTeacherReports(query) : searchReports(query)),
-    [query, isTeacher],
+    () =>
+      (isTeacher ? searchTeacherReports(query) : searchReports(query)).filter(
+        ({ category }) => allowed(category.id),
+      ),
+    [query, isTeacher, allowed],
   );
   const year = mounted ? activeAcademicYear() : "";
   const count = categories.reduce((n, c) => n + c.reports.length, 0);

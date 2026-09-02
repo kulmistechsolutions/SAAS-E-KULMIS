@@ -111,10 +111,49 @@ export function allowedPrefixesForRole(role: string): string[] {
   return [...prefixes];
 }
 
+/**
+ * A report category is only as open as the module it reports on.
+ *
+ * `reports` is granted to almost every staff role, and it used to carry the
+ * whole of `/reports/*` with it — so an Attendance Officer, an Exam Manager, a
+ * Librarian and a Reception Officer were all shown Fee Reports and Financial
+ * Reports in the sidebar. The API refused them, but a menu that lists the
+ * school's fee and salary reporting to whoever holds a register is telling
+ * them something they were not granted, and offering a door that will be shut.
+ *
+ * Category ids come from REPORT_CATEGORIES; only the two whose names differ
+ * from their permission module need naming here.
+ */
+const REPORT_CATEGORY_MODULE: Record<string, PermissionModule> = {
+  students: "students",
+  teachers: "teachers",
+  attendance: "attendance",
+  fees: "fees",
+  examinations: "examinations",
+  promotions: "promotions",
+  salary: "salaries",
+  expenses: "expenses",
+  financial: "finance",
+  quiz: "quiz",
+};
+
 /** Whether a role may open a given (app) pathname. */
 export function isRouteAllowedForRole(role: string, pathname: string): boolean {
+  if (isFullAccessRole(role)) return true;
+  if (isPortalRole(role)) return false;
+
+  // The reports index stays with the `reports` grant; a category inside it
+  // needs the module that owns the data.
+  if (pathname.startsWith("/reports/")) {
+    const category = pathname.split("/")[2] ?? "";
+    const mod = REPORT_CATEGORY_MODULE[category];
+    if (mod) {
+      const perms = builtInRolePermissions(normalizeRole(role) as BuiltInRole);
+      if (!perms[mod]?.view) return false;
+    }
+  }
+
   const prefixes = allowedPrefixesForRole(role);
-  if (prefixes.includes("/")) return true;
   return prefixes.some(
     (p) => pathname === p || pathname.startsWith(`${p}/`),
   );
