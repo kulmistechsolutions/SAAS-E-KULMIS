@@ -112,29 +112,40 @@ export function allowedPrefixesForRole(role: string): string[] {
 }
 
 /**
- * A report category is only as open as the module it reports on.
+ * Who may open each report category, mirroring the `@Roles` on the endpoints
+ * that serve them (apps/api/src/reports/reports.controller.ts).
  *
  * `reports` is granted to almost every staff role, and it used to carry the
  * whole of `/reports/*` with it — so an Attendance Officer, an Exam Manager, a
  * Librarian and a Reception Officer were all shown Fee Reports and Financial
  * Reports in the sidebar. The API refused them, but a menu that lists the
  * school's fee and salary reporting to whoever holds a register is telling
- * them something they were not granted, and offering a door that will be shut.
+ * them something they were not granted.
  *
- * Category ids come from REPORT_CATEGORIES; only the two whose names differ
- * from their permission module need naming here.
+ * These lists are copied from the server rather than derived from the
+ * permission matrix, because the two genuinely differ: a Finance Officer has
+ * no `attendance` permission yet is allowed attendance reports, and an Exam
+ * Manager has no `students` permission yet is allowed student reports.
+ * Deriving would have quietly taken those away.
+ *
+ * Administrators short-circuit before this map is consulted.
  */
-const REPORT_CATEGORY_MODULE: Record<string, PermissionModule> = {
-  students: "students",
-  teachers: "teachers",
-  attendance: "attendance",
-  fees: "fees",
-  examinations: "examinations",
-  promotions: "promotions",
-  salary: "salaries",
-  expenses: "expenses",
-  financial: "finance",
-  quiz: "quiz",
+const REPORT_CATEGORY_ROLES: Record<string, string[]> = {
+  students: ["FINANCE_OFFICER", "EXAM_MANAGER", "RECEPTION_OFFICER", "LIBRARIAN"],
+  teachers: ["FINANCE_OFFICER", "EXAM_MANAGER", "ACADEMIC_MANAGER"],
+  attendance: [
+    "FINANCE_OFFICER",
+    "EXAM_MANAGER",
+    "ATTENDANCE_OFFICER",
+    "ACADEMIC_MANAGER",
+  ],
+  fees: ["FINANCE_OFFICER"],
+  examinations: ["FINANCE_OFFICER", "EXAM_MANAGER", "ACADEMIC_MANAGER"],
+  promotions: ["FINANCE_OFFICER", "EXAM_MANAGER", "ACADEMIC_MANAGER"],
+  salary: ["FINANCE_OFFICER"],
+  expenses: ["FINANCE_OFFICER"],
+  financial: ["FINANCE_OFFICER"],
+  quiz: ["FINANCE_OFFICER", "EXAM_MANAGER"],
 };
 
 /** Whether a role may open a given (app) pathname. */
@@ -143,14 +154,10 @@ export function isRouteAllowedForRole(role: string, pathname: string): boolean {
   if (isPortalRole(role)) return false;
 
   // The reports index stays with the `reports` grant; a category inside it
-  // needs the module that owns the data.
+  // answers only to the roles its endpoint answers to.
   if (pathname.startsWith("/reports/")) {
-    const category = pathname.split("/")[2] ?? "";
-    const mod = REPORT_CATEGORY_MODULE[category];
-    if (mod) {
-      const perms = builtInRolePermissions(normalizeRole(role) as BuiltInRole);
-      if (!perms[mod]?.view) return false;
-    }
+    const allowed = REPORT_CATEGORY_ROLES[pathname.split("/")[2] ?? ""];
+    if (allowed && !allowed.includes(normalizeRole(role))) return false;
   }
 
   const prefixes = allowedPrefixesForRole(role);

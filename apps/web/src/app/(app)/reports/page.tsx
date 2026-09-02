@@ -54,9 +54,13 @@ export default function ReportsDashboardPage() {
   // exam timetable, and listing it there described the school's money to
   // people who were then refused at the door.
   const role = user?.role ?? "";
+  // Teachers are scoped by teacherReportCategories() and are a portal role,
+  // which the route guard refuses outright — running them through it too
+  // would leave them with no reports at all.
   const allowed = useMemo(
-    () => (id: string) => isRouteAllowedForRole(role, `/reports/${id}`),
-    [role],
+    () => (id: string) =>
+      isTeacher || isRouteAllowedForRole(role, `/reports/${id}`),
+    [role, isTeacher],
   );
   const categories = useMemo(
     () =>
