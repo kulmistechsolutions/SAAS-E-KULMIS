@@ -636,7 +636,7 @@ export class ExaminationsController {
     @Param("id") id: string,
     @Query("force") force?: string,
   ) {
-    return this.exams.deleteExam(me.schoolId, id, force === "true");
+    return this.exams.deleteExam(me.schoolId, id, force === "true", me);
   }
 
   @Roles(UserRole.ADMINISTRATOR, UserRole.EXAM_MANAGER)

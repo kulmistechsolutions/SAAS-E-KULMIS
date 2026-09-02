@@ -2988,7 +2988,28 @@ export class ExaminationsService {
    * ExamSubject/ExamMark/BlockedStudent rows only, never touching Student,
    * Class, or Section records.
    */
-  async deleteExam(schoolId: string, examId: string, force = false) {
+  async deleteExam(
+    schoolId: string,
+    examId: string,
+    force = false,
+    actor?: Pick<AuthUser, "userId" | "username" | "role">,
+  ) {
+    // Recorded BEFORE the row goes, because afterwards there is nothing left
+    // to describe. Deleting an exam took its subjects, its marks and every
+    // trace that it had existed — so when a school later asked what had
+    // happened to a term of marking, the honest answer was that the system
+    // could not say. It can now.
+    const doomed = await this.prisma.forTenant(schoolId, (tx) =>
+      tx.exam.findFirst({
+        where: { id: examId },
+        include: {
+          class: { select: { name: true } },
+          section: { select: { name: true } },
+          _count: { select: { marks: true, subjects: true } },
+        },
+      }),
+    );
+
     return this.prisma.forTenant(schoolId, async (tx) => {
       const exam = await tx.exam.findFirst({
         where: { id: examId },
@@ -3012,6 +3033,27 @@ export class ExaminationsService {
       await tx.exam
         .delete({ where: { id: examId } })
         .catch(onRecordNotFound("Exam not found"));
+
+      await this.audit.record({
+        schoolId,
+        userId: actor?.userId ?? null,
+        username: actor?.username ?? null,
+        role: actor?.role ?? null,
+        module: "examinations",
+        action: "EXAM_DELETED",
+        metadata: {
+          examId,
+          examName: doomed?.name ?? null,
+          className: doomed?.class.name ?? null,
+          section: doomed?.section?.name ?? null,
+          status: doomed?.status ?? null,
+          // The number that matters when somebody asks later.
+          marksDeleted: doomed?._count.marks ?? 0,
+          subjectsDeleted: doomed?._count.subjects ?? 0,
+          forced: force,
+        },
+      });
+
       return { success: true };
     });
   }
