@@ -2,7 +2,14 @@
 
 
 import { useT } from "@/lib/i18n/provider";
-import { use, useEffect, useMemo, useState } from "react";
+import { FeeAdjustDialog, type AdjustTarget } from "@/components/fees/fee-adjust-dialog";
+import {
+  apiFeeChangeHistory,
+  apiListAdjustments,
+  type FeeAdjustmentRow,
+  type FeeChangeRow,
+} from "@/lib/fees/api";
+import { use, useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   AlertTriangle,
@@ -699,6 +706,7 @@ function AttendanceTab({ student }: { student: StudentWithParent }) {
                 <th className="px-4 py-2.5 font-medium">{tr("students.shift")}</th>
               )}
               <th className="px-4 py-2.5 font-medium">{tr("students.status")}</th>
+              <th className="px-4 py-2.5 font-medium" />
             </tr>
           </thead>
           <tbody>
@@ -797,6 +805,18 @@ function FeesTab({ student }: { student: StudentWithParent }) {
   const [ledger, setLedger] = useState<ApiStudentLedger | null>(null);
   const [loading, setLoading] = useState(true);
   const [reversingPayment, setReversingPayment] = useState<FeePayment | null>(null);
+  const [adjustTarget, setAdjustTarget] = useState<AdjustTarget | null>(null);
+  const [adjustments, setAdjustments] = useState<FeeAdjustmentRow[]>([]);
+  const [feeChanges, setFeeChanges] = useState<FeeChangeRow[]>([]);
+
+  // Why a month costs what it costs, and how the standing fee got here. Both
+  // read alongside the ledger so a discount and the change that followed it
+  // are visible on the same screen as the balance they produced.
+  const loadHistory = useCallback(() => {
+    void apiListAdjustments(student.id).then(setAdjustments).catch(() => setAdjustments([]));
+    void apiFeeChangeHistory(student.id).then(setFeeChanges).catch(() => setFeeChanges([]));
+  }, [student.id]);
+  useEffect(loadHistory, [loadHistory]);
 
   const loadLedger = () => {
     return apiStudentLedger(student.id)
@@ -906,7 +926,7 @@ function FeesTab({ student }: { student: StudentWithParent }) {
           <tbody>
             {loading && (
               <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">
+                <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
                   {tr("students.loadingFeeRecords")}
                 </td>
               </tr>
@@ -927,11 +947,32 @@ function FeesTab({ student }: { student: StudentWithParent }) {
                   <td className="px-4 py-2.5">
                     <FeeStatusBadge status={r.status} />
                   </td>
+                  <td className="px-4 py-2.5 text-end">
+                    {r.status !== "PAID" && r.status !== "INACTIVE" && (
+                      <button
+                        type="button"
+                        className="text-xs font-medium text-primary hover:underline"
+                        onClick={() =>
+                          setAdjustTarget({
+                            feeChargeId: r.id,
+                            label:
+                              r.kind && r.kind !== "MONTHLY" && r.label
+                                ? r.label
+                                : monthLabel(monthKey(r.year, r.month)),
+                            amount: r.amount,
+                            outstanding: Math.max(0, r.amount - r.paidAmount),
+                          })
+                        }
+                      >
+                        {tr("feesAdjust.adjustAction")}
+                      </button>
+                    )}
+                  </td>
                 </tr>
               ))}
             {!loading && rows.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">
+                <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
                   {tr("students.noFeeRecordsYet")}
                 </td>
               </tr>
@@ -939,6 +980,76 @@ function FeesTab({ student }: { student: StudentWithParent }) {
           </tbody>
         </table>
       </div>
+
+      {adjustments.length > 0 && (
+        <div className="overflow-hidden rounded-xl border">
+          <div className="border-b bg-secondary/40 px-4 py-2.5 text-xs font-medium text-muted-foreground">
+            {tr("feesAdjust.historyTitle")}
+          </div>
+          <ul className="divide-y">
+            {adjustments.map((a) => (
+              <li key={a.id} className="flex items-start justify-between gap-4 px-4 py-2.5 text-sm">
+                <div className="min-w-0">
+                  <p className="font-medium">
+                    {a.feeCharge.kind !== "MONTHLY" && a.feeCharge.label
+                      ? a.feeCharge.label
+                      : monthLabel(monthKey(a.feeCharge.year, a.feeCharge.month))}
+                    <span className="ms-2 text-xs text-muted-foreground">
+                      {tr(`feesAdjust.${a.type.toLowerCase()}Short` as never)}
+                    </span>
+                  </p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    {a.reason} · {a.createdByUsername ?? "—"} · {shortDate(a.createdAt)}
+                  </p>
+                </div>
+                <div className="shrink-0 text-end">
+                  <p className="font-semibold tabular-nums text-emerald-600 dark:text-emerald-400">
+                    −{feeMoney(a.amount)}
+                  </p>
+                  <p className="text-xs text-muted-foreground tabular-nums">
+                    {feeMoney(a.originalAmount)} → {feeMoney(a.originalAmount - a.amount)}
+                  </p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {feeChanges.length > 0 && (
+        <div className="overflow-hidden rounded-xl border">
+          <div className="border-b bg-secondary/40 px-4 py-2.5 text-xs font-medium text-muted-foreground">
+            {tr("feesAdjust.feeChangeTitle")}
+          </div>
+          <ul className="divide-y">
+            {feeChanges.map((c) => (
+              <li key={c.id} className="flex items-start justify-between gap-4 px-4 py-2.5 text-sm">
+                <div className="min-w-0">
+                  <p className="font-medium tabular-nums">
+                    {feeMoney(c.oldFee)} → {feeMoney(c.newFee)}
+                  </p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    {tr(`feesAdjust.scope${c.scope}` as never)} ·{" "}
+                    {tr("feesAdjust.chargesUpdated", { count: c.chargesUpdated })}
+                    {c.reason ? ` · ${c.reason}` : ""} · {c.changedByUsername ?? "—"} ·{" "}
+                    {shortDate(c.createdAt)}
+                  </p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      <FeeAdjustDialog
+        open={!!adjustTarget}
+        target={adjustTarget}
+        onClose={() => setAdjustTarget(null)}
+        onDone={() => {
+          loadLedger();
+          loadHistory();
+        }}
+      />
 
       {!loading && payments.length > 0 && (
         <div className="overflow-hidden rounded-xl border">

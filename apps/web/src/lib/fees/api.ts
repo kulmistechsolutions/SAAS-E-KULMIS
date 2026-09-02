@@ -616,3 +616,66 @@ export const apiStudentPosition = (studentId: string) =>
 
 export const apiAllPositions = () =>
   api<StudentPosition[]>("/fees/positions");
+
+// ── Adjustments and fee changes ────────────────────────────────────────────
+
+export type FeeAdjustmentType = "DISCOUNT" | "WAIVER" | "ADJUSTMENT";
+
+export interface FeeAdjustmentRow {
+  id: string;
+  type: FeeAdjustmentType;
+  originalAmount: number;
+  amount: number;
+  reason: string;
+  createdByUsername: string | null;
+  createdAt: string;
+  feeCharge: {
+    year: number;
+    month: number;
+    kind: "MONTHLY" | "EXTRA" | "REGISTRATION";
+    label: string | null;
+  };
+}
+
+export type FeeChangeScope =
+  | "CURRENT_MONTH"
+  | "FUTURE_MONTHS"
+  | "CURRENT_AND_FUTURE"
+  | "ALL_UNPAID";
+
+export interface FeeChangeRow {
+  id: string;
+  oldFee: number;
+  newFee: number;
+  scope: FeeChangeScope;
+  chargesUpdated: number;
+  reason: string | null;
+  changedByUsername: string | null;
+  createdAt: string;
+}
+
+/** Take an amount off one month, leaving the student's own fee alone. */
+export const apiAdjustCharge = (body: {
+  feeChargeId: string;
+  type: FeeAdjustmentType;
+  amount?: number;
+  reason: string;
+}) => api<FeeAdjustmentRow>("/fees/adjustments", { method: "POST", body });
+
+export const apiListAdjustments = (studentId: string) =>
+  api<FeeAdjustmentRow[]>(`/fees/adjustments/${studentId}`);
+
+/** Change the standing fee and say how far the change reaches. */
+export const apiChangeMonthlyFee = (body: {
+  studentId: string;
+  newFee: number;
+  scope: FeeChangeScope;
+  reason?: string;
+}) =>
+  api<{ chargesUpdated: number; oldFee: number; newFee: number }>(
+    "/fees/fee-change",
+    { method: "POST", body },
+  );
+
+export const apiFeeChangeHistory = (studentId: string) =>
+  api<FeeChangeRow[]>(`/fees/fee-change/${studentId}`);
