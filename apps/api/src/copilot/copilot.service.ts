@@ -1,6 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { AiService } from "../ai/ai.service";
+import { BalanceEngineService } from "../finance/balance-engine.service";
 
 /**
  * School Copilot — the reading half.
@@ -105,6 +106,7 @@ export class CopilotService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly ai: AiService,
+    private readonly balances: BalanceEngineService,
   ) {}
 
   /** `YYYY-MM` → the half-open range covering it. */
@@ -151,6 +153,10 @@ export class CopilotService {
     const startOfToday = new Date();
     startOfToday.setUTCHours(0, 0, 0, 0);
 
+    // Fetched before the read below because the engine runs its own
+    // transaction, and one school's money should be worked out once.
+    const position = await this.balances.schoolPosition(schoolId);
+
     return this.prisma.forTenant(
       schoolId,
       async (tx) => {
@@ -175,11 +181,7 @@ export class CopilotService {
           attMonth,
           attPrev,
           teacherAttMonth,
-          chargesMonth,
           paidMonth,
-          paidToday,
-          outstandingAgg,
-          feeStudentCounts,
           expenseAgg,
           salaryAgg,
           otherIncomeAgg,
@@ -226,26 +228,12 @@ export class CopilotService {
             where: { date: { gte: r.start, lt: r.end } },
             _count: { _all: true },
           }),
-          tx.feeCharge.aggregate({
-            where: { year: r.year, month: r.month, kind: "MONTHLY" },
-            _sum: { amount: true },
-          }),
+          // Fee income for the month still comes from payments directly — the
+          // finance block below is about money that arrived, not about what a
+          // charge says. Everything else the engine has already answered.
           tx.payment.aggregate({
             where: { paidAt: { gte: r.start, lt: r.end } },
             _sum: { amount: true },
-          }),
-          tx.payment.aggregate({
-            where: { paidAt: { gte: startOfToday } },
-            _sum: { amount: true },
-          }),
-          tx.feeCharge.aggregate({
-            where: { status: { not: "PAID" } },
-            _sum: { amount: true, paidAmount: true },
-          }),
-          tx.feeCharge.groupBy({
-            by: ["status"],
-            where: { year: r.year, month: r.month, kind: "MONTHLY" },
-            _count: { _all: true },
           }),
           tx.expense.aggregate({
             where: { spentAt: { gte: r.start, lt: r.end } },
@@ -321,7 +309,6 @@ export class CopilotService {
         const otherIncome = otherIncomeAgg._sum.amount ?? 0;
         const salaries = salaryAgg._sum.amountPaid ?? 0;
         const expenses = expenseAgg._sum.amount ?? 0;
-        const expected = chargesMonth._sum.amount ?? 0;
         const tPresent = att(teacherAttMonth, "PRESENT") + att(teacherAttMonth, "LATE");
         const tAbsent = att(teacherAttMonth, "ABSENT");
 
@@ -352,17 +339,20 @@ export class CopilotService {
             absent: tAbsent,
             rate: this.rate(tPresent, tPresent + tAbsent),
           },
+          // The engine's figures, not a second reading of the same tables.
+          // A briefing that quoted different money than the fee page would be
+          // worse than none — it is the one screen people trust to summarise.
           fees: {
-            expectedThisMonth: expected,
-            collectedThisMonth: feeIncome,
-            collectedToday: paidToday._sum.amount ?? 0,
-            outstanding:
-              (outstandingAgg._sum.amount ?? 0) - (outstandingAgg._sum.paidAmount ?? 0),
-            collectionRate: this.rate(feeIncome, expected),
-            studentsBilled: feeStudentCounts.reduce((sum, x) => sum + x._count._all, 0),
-            studentsPaidFull: att(feeStudentCounts, "PAID"),
-            studentsPartial: att(feeStudentCounts, "PARTIAL"),
-            studentsUnpaid: att(feeStudentCounts, "UNPAID"),
+            expectedThisMonth: position.expectedThisMonth,
+            collectedThisMonth: position.collectedThisMonth,
+            collectedToday: position.collectedToday,
+            outstanding: position.outstanding,
+            collectionRate: position.collectionRate,
+            studentsBilled:
+              position.students.total - position.students.unbilled,
+            studentsPaidFull: position.students.paid,
+            studentsPartial: position.students.partial,
+            studentsUnpaid: position.students.unpaid,
           },
           finance: {
             feeIncome,

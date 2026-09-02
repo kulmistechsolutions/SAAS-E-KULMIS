@@ -1,6 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { TeachersService } from "../teachers/teachers.service";
+import { BalanceEngineService } from "../finance/balance-engine.service";
 
 interface MonthBucket {
   label: string;
@@ -35,6 +36,7 @@ export class DashboardService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly teachers: TeachersService,
+    private readonly balances: BalanceEngineService,
   ) {}
 
   /** Teacher-scoped dashboard: only assigned classes/sections/subjects. */
@@ -285,6 +287,9 @@ export class DashboardService {
   }
 
   async admin(schoolId: string) {
+    // The school's money, worked out once by the engine rather than a second
+    // time here. Fetched outside the transaction below because it runs its own.
+    const position = await this.balances.schoolPosition(schoolId);
     const now = new Date();
     const y = now.getUTCFullYear();
     const mo = now.getUTCMonth();
@@ -327,50 +332,14 @@ export class DashboardService {
           }),
         ]);
 
-      const billableFeeStatuses = ["UNPAID", "PARTIAL"] as ("UNPAID" | "PARTIAL")[];
-      const [
-        outstandingAgg,
-        outstandingMonthAgg,
-        collectedToday,
-        collectedThisMonth,
-        partialCount,
-        freeStudentsCount,
-      ] = await Promise.all([
-        tx.feeCharge.aggregate({
-          _sum: { amount: true, paidAmount: true },
-          where: { status: { in: billableFeeStatuses } },
-        }),
-        tx.feeCharge.aggregate({
-          _sum: { amount: true, paidAmount: true },
-          where: {
-            status: { in: billableFeeStatuses },
-            year: y,
-            month: mo + 1,
-          },
-        }),
-        tx.payment.aggregate({
-          _sum: { amount: true },
-          where: { paidAt: { gte: startOfToday } },
-        }),
-        tx.payment.aggregate({
-          _sum: { amount: true },
-          where: { paidAt: { gte: startOfMonth } },
-        }),
-        tx.feeCharge.count({ where: { status: "PARTIAL" } }),
-        tx.student.count({
-          where: {
-            status: "ACTIVE",
-            OR: [{ feeWaived: true }, { monthlyFee: 0 }],
-          },
-        }),
-      ]);
-
+      // The six fee queries that used to live here are gone: the engine has
+      // already answered all of them, and asking again from a second place is
+      // exactly how this page and Fee Management came to disagree.
       const [
         incomeAgg,
         otherIncomeAgg,
         expenseAgg,
         salaryAgg,
-        advanceCount,
         activeYear,
         recentPayments,
       ] = await Promise.all([
@@ -383,7 +352,6 @@ export class DashboardService {
         // See FinanceService.dashboard: outflow is `amountPaid` on every row,
         // not `amount` on fully-paid ones, or partials vanish from Net Income.
         tx.salary.aggregate({ _sum: { amountPaid: true } }),
-        tx.payment.count({ where: { type: "ADVANCE" } }),
         tx.academicYear.findFirst({ where: { isActive: true } }),
         tx.payment.findMany({
           orderBy: { paidAt: "desc" },
@@ -444,13 +412,6 @@ export class DashboardService {
         rows: { status: string; _count: { _all: number } }[],
         s: string,
       ) => rows.find((r) => r.status === s)?._count._all ?? 0;
-
-      const totalOutstanding =
-        (outstandingAgg._sum?.amount ?? 0) -
-        (outstandingAgg._sum?.paidAmount ?? 0);
-      const outstandingThisMonth =
-        (outstandingMonthAgg._sum?.amount ?? 0) -
-        (outstandingMonthAgg._sum?.paidAmount ?? 0);
 
       const feeIncome = incomeAgg._sum.amount ?? 0;
       const otherIncome = otherIncomeAgg._sum.amount ?? 0;
@@ -537,14 +498,16 @@ export class DashboardService {
           present: byStatus(teacherAttToday, "PRESENT"),
           absent: byStatus(teacherAttToday, "ABSENT"),
         },
+        // Straight from the engine, so this page and Fee Management cannot
+        // report different debts for the same school on the same morning.
         fees: {
-          totalOutstanding,
-          outstandingThisMonth,
-          collectedToday: collectedToday._sum.amount ?? 0,
-          collectedThisMonth: collectedThisMonth._sum.amount ?? 0,
-          partialPayments: partialCount,
-          advancePayments: advanceCount,
-          freeStudents: freeStudentsCount,
+          totalOutstanding: position.outstanding,
+          outstandingThisMonth: position.outstandingThisMonth,
+          collectedToday: position.collectedToday,
+          collectedThisMonth: position.collectedThisMonth,
+          partialPayments: position.students.partial,
+          advancePayments: position.students.advance,
+          freeStudents: position.students.free,
         },
         finance: {
           totalIncome,
