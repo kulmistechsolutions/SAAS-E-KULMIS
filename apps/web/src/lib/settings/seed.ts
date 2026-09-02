@@ -135,6 +135,7 @@ export function buildSettingsSeed(): SettingsState {
       endTime: "14:00",
       lateTime: "07:30",
       excusedEnabled: true,
+      officerEdits: "ALWAYS",
       lockTime: "16:00",
     },
     quiz: {

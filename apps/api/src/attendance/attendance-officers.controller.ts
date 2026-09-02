@@ -5,6 +5,7 @@ import {
   Get,
   Param,
   Post,
+  Query,
 } from "@nestjs/common";
 import { attendanceAssignmentsSchema, UserRole } from "@ekulmis/shared";
 import { AttendanceScopeService } from "./attendance-scope.service";
@@ -33,6 +34,31 @@ export class AttendanceOfficersController {
   @Get()
   list(@CurrentUser() me: AuthUser) {
     return this.scope.listOfficers(me.schoolId);
+  }
+
+  /**
+   * Every register for one day and who took it — including the ones nobody
+   * did. A blank register and a class where everyone turned up look identical
+   * in the marks; only this tells them apart, and only while the day can
+   * still be fixed.
+   */
+  @Get("monitoring")
+  monitoring(@CurrentUser() me: AuthUser, @Query("date") date: string) {
+    if (!date) throw new BadRequestException("date is required");
+    return this.scope.monitoring(me.schoolId, date);
+  }
+
+  /** How each officer has kept up, measured against their own assignments. */
+  @Get("performance")
+  performance(
+    @CurrentUser() me: AuthUser,
+    @Query("from") from: string,
+    @Query("to") to: string,
+  ) {
+    if (!from || !to) {
+      throw new BadRequestException("from and to are required");
+    }
+    return this.scope.performance(me.schoolId, from, to);
   }
 
   @Get(":userId/assignments")

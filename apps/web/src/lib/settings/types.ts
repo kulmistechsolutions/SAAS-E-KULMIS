@@ -155,6 +155,11 @@ export interface AttendanceSettings {
   lateTime: string;
   excusedEnabled: boolean;
   lockTime: string;
+  /**
+   * What an attendance officer may do to a register somebody has already
+   * taken. ALWAYS is what every school has today.
+   */
+  officerEdits: "ALWAYS" | "OWN" | "NEVER";
 }
 
 export interface QuizSettings {

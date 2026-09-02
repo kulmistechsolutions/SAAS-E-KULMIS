@@ -24,6 +24,23 @@ import { PrismaService } from "../prisma/prisma.service";
  * a school that cannot see its own registers cannot supervise the people
  * taking them.
  */
+function lockMinutes(hhmm: string): number | null {
+  const m = /^([01]\d|2[0-3]):([0-5]\d)$/.exec(hhmm);
+  return m ? Number(m[1]) * 60 + Number(m[2]) : null;
+}
+
+/** Wall-clock minutes of a timestamp in the school own timezone. */
+function wallMinutes(at: Date, timezone: string): number {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: timezone,
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).formatToParts(at);
+  const get = (t: string) => Number(parts.find((x) => x.type === t)?.value ?? 0);
+  return get("hour") * 60 + get("minute");
+}
+
 @Injectable()
 export class AttendanceScopeService {
   constructor(private readonly prisma: PrismaService) {}
@@ -267,6 +284,254 @@ export class AttendanceScopeService {
   }
 
   // ── Administration ───────────────────────────────────────────────────────
+
+  /**
+   * Who took which register on one day, and which were not taken at all.
+   *
+   * The school could already see the marks; it could not see the taking. A
+   * register left blank looked exactly like a class with nobody absent until
+   * somebody went through it class by class, and there was no screen saying
+   * "Grade 3 has not been done today" while the day was still fixable.
+   *
+   * Every active class in the current year is listed, marked or not — the
+   * absence is the point.
+   */
+  async monitoring(schoolId: string, dateStr: string) {
+    const date = new Date(`${dateStr}T00:00:00.000Z`);
+    if (Number.isNaN(date.getTime())) {
+      throw new BadRequestException("Invalid date");
+    }
+
+    const school = await this.prisma.school.findUnique({
+      where: { id: schoolId },
+      select: { attendanceSettings: true, timezone: true },
+    });
+    const settings = (school?.attendanceSettings ?? {}) as { lockTime?: string };
+    const lock = lockMinutes(settings.lockTime ?? "23:59");
+    const timezone = school?.timezone || "UTC";
+
+    return this.prisma.forTenant(schoolId, async (tx) => {
+      const year = await tx.academicYear.findFirst({
+        where: { isActive: true },
+        select: { id: true },
+      });
+
+      const classes = await tx.class.findMany({
+        where: { status: "ACTIVE", ...(year ? { academicYearId: year.id } : {}) },
+        select: { id: true, name: true, orderIndex: true },
+        orderBy: { orderIndex: "asc" },
+      });
+      if (classes.length === 0) {
+        return { date: dateStr, lockTime: settings.lockTime ?? null, registers: [] };
+      }
+
+      const classIds = classes.map((c) => c.id);
+
+      const rolls = await tx.student.groupBy({
+        by: ["classId"],
+        where: { status: "ACTIVE", classId: { in: classIds } },
+        _count: { _all: true },
+      });
+      const rollOf = new Map(rolls.map((r) => [r.classId, r._count._all]));
+
+      const records = await tx.studentAttendance.findMany({
+        where: { date, classId: { in: classIds } },
+        select: {
+          classId: true,
+          shiftId: true,
+          status: true,
+          markedByUserId: true,
+          createdAt: true,
+        },
+      });
+
+      const shifts = await tx.attendanceShift.findMany({
+        select: { id: true, name: true },
+      });
+      const shiftName = new Map(shifts.map((x) => [x.id, x.name]));
+
+      const markerIds = [
+        ...new Set(
+          records
+            .map((r) => r.markedByUserId)
+            .filter((x): x is string => Boolean(x)),
+        ),
+      ];
+      const markers = markerIds.length
+        ? await tx.user.findMany({
+            where: { id: { in: markerIds } },
+            select: { id: true, fullName: true, username: true, role: true },
+          })
+        : [];
+      const markerOf = new Map(markers.map((m) => [m.id, m]));
+
+      // Grouped by class and shift, because that is the unit somebody sits
+      // down and takes. A class with two shifts is two jobs, and reporting it
+      // as one hides a missed afternoon behind a done morning.
+      const groups = new Map<string, typeof records>();
+      for (const r of records) {
+        const key = `${r.classId}|${r.shiftId ?? ""}`;
+        const list = groups.get(key);
+        if (list) list.push(r);
+        else groups.set(key, [r]);
+      }
+
+      const registers = [];
+      for (const c of classes) {
+        const roll = rollOf.get(c.id) ?? 0;
+        const keys = [...groups.keys()].filter((k) => k.startsWith(`${c.id}|`));
+
+        if (keys.length === 0) {
+          registers.push({
+            classId: c.id,
+            className: c.name,
+            shiftId: null,
+            shiftName: null,
+            total: roll,
+            marked: 0,
+            present: 0,
+            absent: 0,
+            state: roll === 0 ? "EMPTY" : "NOT_TAKEN",
+            takenBy: [] as { userId: string; name: string; role: string | null }[],
+            firstMarkedAt: null as Date | null,
+            afterLock: false,
+          });
+          continue;
+        }
+
+        for (const key of keys) {
+          const rows = groups.get(key) ?? [];
+          const shiftId = key.split("|")[1] || null;
+          const takenBy = [
+            ...new Set(
+              rows
+                .map((r) => r.markedByUserId)
+                .filter((x): x is string => Boolean(x)),
+            ),
+          ].map((id) => {
+            const u = markerOf.get(id);
+            return {
+              userId: id,
+              name: u ? u.fullName || u.username : "Unknown",
+              role: u?.role ?? null,
+            };
+          });
+          const first = rows.reduce<Date | null>(
+            (acc, r) => (!acc || r.createdAt < acc ? r.createdAt : acc),
+            null,
+          );
+
+          registers.push({
+            classId: c.id,
+            className: c.name,
+            shiftId,
+            shiftName: shiftId ? (shiftName.get(shiftId) ?? null) : null,
+            total: roll,
+            marked: rows.length,
+            present: rows.filter((r) => r.status === "PRESENT").length,
+            absent: rows.filter((r) => r.status === "ABSENT").length,
+            state:
+              roll === 0 ? "EMPTY" : rows.length < roll ? "PARTIAL" : "TAKEN",
+            takenBy,
+            firstMarkedAt: first,
+            // Whether it was taken after the school own lock time.
+            // Administrators are exempt from the lock, so this is the only
+            // place a late correction shows up at all.
+            afterLock:
+              lock !== null && first !== null
+                ? wallMinutes(first, timezone) >= lock
+                : false,
+          });
+        }
+      }
+
+      return { date: dateStr, lockTime: settings.lockTime ?? null, registers };
+    });
+  }
+
+  /**
+   * How each officer has kept up over a stretch of days.
+   *
+   * Counted against what they were assigned, not against the school: an
+   * officer holding one class has not missed the other nineteen. Days with no
+   * attendance anywhere are left out entirely — those are weekends and
+   * holidays, and counting them as misses would make everyone look negligent.
+   */
+  async performance(schoolId: string, fromStr: string, toStr: string) {
+    const from = new Date(`${fromStr}T00:00:00.000Z`);
+    const to = new Date(`${toStr}T00:00:00.000Z`);
+    if (Number.isNaN(from.getTime()) || Number.isNaN(to.getTime())) {
+      throw new BadRequestException("Invalid date range");
+    }
+    if (from > to) throw new BadRequestException("from must not be after to");
+
+    return this.prisma.forTenant(schoolId, async (tx) => {
+      const officers = await tx.user.findMany({
+        where: { role: "ATTENDANCE_OFFICER" },
+        select: { id: true, fullName: true, username: true, status: true },
+        orderBy: { fullName: "asc" },
+      });
+      if (officers.length === 0) {
+        return { from: fromStr, to: toStr, schoolDays: 0, officers: [] };
+      }
+      const officerIds = officers.map((o) => o.id);
+
+      const grants = await tx.attendanceAssignment.findMany({
+        where: { userId: { in: officerIds } },
+        select: { userId: true, classId: true, shiftId: true },
+      });
+
+      // The days the school actually ran, read off the register itself rather
+      // than from a term calendar the product does not have.
+      const activeDays = await tx.studentAttendance.findMany({
+        where: { date: { gte: from, lte: to } },
+        select: { date: true },
+        distinct: ["date"],
+      });
+      const schoolDays = activeDays.length;
+
+      const records = await tx.studentAttendance.groupBy({
+        by: ["markedByUserId", "date", "classId", "shiftId"],
+        where: {
+          date: { gte: from, lte: to },
+          markedByUserId: { in: officerIds },
+        },
+        _count: { _all: true },
+      });
+
+      return {
+        from: fromStr,
+        to: toStr,
+        schoolDays,
+        officers: officers.map((o) => {
+          const mine = grants.filter((g) => g.userId === o.id);
+          const taken = records.filter((r) => r.markedByUserId === o.id);
+          // One register is one class-and-shift on one day. Expected is what
+          // they hold multiplied by the days the school ran.
+          const expected = mine.length * schoolDays;
+          const done = new Set(
+            taken.map(
+              (r) =>
+                `${r.date.toISOString().slice(0, 10)}|${r.classId}|${r.shiftId ?? ""}`,
+            ),
+          ).size;
+          return {
+            userId: o.id,
+            name: o.fullName || o.username,
+            username: o.username,
+            status: o.status,
+            assignments: mine.length,
+            expected,
+            taken: done,
+            missed: Math.max(0, expected - done),
+            studentsMarked: taken.reduce((n, r) => n + r._count._all, 0),
+            rate:
+              expected === 0 ? null : Math.round((done / expected) * 1000) / 10,
+          };
+        }),
+      };
+    });
+  }
 
   /** Every officer with their grants, for the admin's management page. */
   listOfficers(schoolId: string) {

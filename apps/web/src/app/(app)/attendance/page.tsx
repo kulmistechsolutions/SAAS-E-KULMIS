@@ -6,6 +6,7 @@ import {
   CalendarCheck,
   Clock,
   GraduationCap,
+  Eye,
   ShieldCheck,
   Users,
   type LucideIcon,
@@ -66,6 +67,15 @@ const SECTIONS: HubCard[] = [
     color: "from-amber-500 to-orange-600",
     // Left open to officers: the API lets them create and edit shifts, and
     // hiding a capability the role actually has is its own kind of wrong.
+  },
+  {
+    title: "Attendance Monitoring",
+    description:
+      "See which registers were taken today, by whom, and which are still outstanding.",
+    href: "/attendance/monitoring",
+    icon: Eye,
+    color: "from-sky-500 to-cyan-600",
+    roles: ["ADMINISTRATOR", "SUPER_ADMINISTRATOR"],
   },
   {
     title: "Attendance Officers",

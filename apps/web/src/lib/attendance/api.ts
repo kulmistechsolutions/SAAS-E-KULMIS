@@ -297,3 +297,51 @@ export const apiMyAttendanceDay = (date: string) =>
   api<{ date: string; registers: MyDayRegister[] }>(
     `/student-attendance/my-day?date=${encodeURIComponent(date)}`,
   );
+
+// ── Admin monitoring ───────────────────────────────────────────────────────
+
+export interface MonitoringRegister {
+  classId: string;
+  className: string;
+  shiftId: string | null;
+  shiftName: string | null;
+  total: number;
+  marked: number;
+  present: number;
+  absent: number;
+  state: "TAKEN" | "PARTIAL" | "NOT_TAKEN" | "EMPTY";
+  takenBy: { userId: string; name: string; role: string | null }[];
+  firstMarkedAt: string | null;
+  /** Taken after the school lock time — administrators are exempt from it. */
+  afterLock: boolean;
+}
+
+export interface OfficerPerformance {
+  userId: string;
+  name: string;
+  username: string;
+  status: string;
+  assignments: number;
+  expected: number;
+  taken: number;
+  missed: number;
+  studentsMarked: number;
+  rate: number | null;
+}
+
+/** Every register for one day and who took it, including the untaken ones. */
+export const apiAttendanceMonitoring = (date: string) =>
+  api<{ date: string; lockTime: string | null; registers: MonitoringRegister[] }>(
+    `/attendance-officers/monitoring?date=${encodeURIComponent(date)}`,
+  );
+
+/** How each officer kept up over a range, measured against their own grants. */
+export const apiOfficerPerformance = (from: string, to: string) =>
+  api<{
+    from: string;
+    to: string;
+    schoolDays: number;
+    officers: OfficerPerformance[];
+  }>(
+    `/attendance-officers/performance?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
+  );
