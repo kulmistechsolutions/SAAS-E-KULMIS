@@ -9,11 +9,14 @@ import { SmsPaymentController } from "./sms-payment.controller";
 import { SmsSenderIdService } from "./sms-sender-id.service";
 import { PlatformGuard } from "../platform/platform.guard";
 import { StorageModule } from "../storage/storage.module";
+import { FinanceModule } from "../finance/finance.module";
 
 @Module({
   imports: [
     // Sender ID applications carry a licence document.
     StorageModule,
+    // Outstanding-fee reminders read the balance engine, not raw charges.
+    FinanceModule,
     JwtModule.registerAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({

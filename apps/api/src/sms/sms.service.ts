@@ -24,6 +24,7 @@ import type {
 import { formatMoney } from "@ekulmis/shared";
 import { Prisma } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
+import { BalanceEngineService } from "../finance/balance-engine.service";
 import { resolveSendingName } from "./sender-id-feature";
 import {
   clearHormuudTokenCache,
@@ -52,7 +53,10 @@ export class SmsService {
   /** Guards against a slow batch overlapping with the next cron tick. */
   private scheduledRunning = false;
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly balances: BalanceEngineService,
+  ) {}
 
   // ── Platform: global config ──────────────────────────────────────────────
 
@@ -1634,25 +1638,28 @@ export class SmsService {
       }
 
       if (input.audience === "OUTSTANDING") {
-        const charges = await tx.feeCharge.findMany({
-          where: {
-            status: { not: "PAID" },
-            student: {
-              status: "ACTIVE",
-              ...(input.classId ? { classId: input.classId } : {}),
-              ...(input.sectionId ? { sectionId: input.sectionId } : {}),
-            },
-          },
-          include: {
-            student: {
-              include: {
-                parent: true,
-                class: true,
-                section: true,
-              },
-            },
-          },
-        });
+        // What each student owes comes from the engine, not from reading
+        // charges here. `status != PAID` swept in withdrawn charges and months
+        // that have not arrived yet, so a parent could be texted about a fee
+        // the school had voided, or one for a month still ahead of them.
+        const owing = new Map(
+          (await this.balances.allPositions(schoolId))
+            .filter((p) => p.outstanding > 0)
+            .map((p) => [p.studentId, p.outstanding]),
+        );
+        const charges = (
+          owing.size === 0
+            ? []
+            : await tx.student.findMany({
+                where: {
+                  id: { in: [...owing.keys()] },
+                  status: "ACTIVE",
+                  ...(input.classId ? { classId: input.classId } : {}),
+                  ...(input.sectionId ? { sectionId: input.sectionId } : {}),
+                },
+                include: { parent: true, class: true, section: true },
+              })
+        ).map((student) => ({ student, owed: owing.get(student.id) ?? 0 }));
 
         // One recipient per PARENT (not per child, and not per charge) —
         // grouping by `${parent.id}:${student.id}` sent one SMS per owing
@@ -1675,7 +1682,7 @@ export class SmsService {
           const st = c.student;
           const parent = st.parent;
           if (!parent?.phone) continue;
-          const outstanding = Number(c.amount) - Number(c.paidAmount);
+          const outstanding = c.owed;
           const key = normalizeSomaliPhone(parent.phone);
           const entry = byParent.get(key);
           if (entry) {

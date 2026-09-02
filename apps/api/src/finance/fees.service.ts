@@ -20,6 +20,7 @@ import type { PaymentType, Prisma, UserRole } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { parseDateFrom, parseDateTo } from "../common/date-range.util";
 import { AuditService } from "../audit/audit.service";
+import { BalanceEngineService } from "./balance-engine.service";
 import {
   buildMonthSlots,
   currentCalendarMonth,
@@ -79,6 +80,7 @@ export class FeesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
+    private readonly balances: BalanceEngineService,
   ) {}
 
   private async schoolConfig(schoolId: string): Promise<SchoolFeeConfig> {
@@ -1607,6 +1609,11 @@ export class FeesService {
 
   async ledger(schoolId: string, studentId: string) {
     const config = await this.schoolConfig(schoolId);
+    // The engine's answer for what this student actually owes. Everything
+    // that shows a balance — the profile, the parent portal, the collection
+    // screens — comes through here, so taking the number from one place makes
+    // all of them agree at once.
+    const position = await this.balances.studentPosition(schoolId, studentId);
     return this.prisma.forTenant(schoolId, async (tx) => {
       const student = await tx.student.findFirst({
         where: { id: studentId },
@@ -1667,7 +1674,10 @@ export class FeesService {
         student,
         charges,
         payments,
-        outstanding,
+        outstanding: position?.outstanding ?? outstanding,
+        /** Paid ahead, and paid beyond what was asked — the engine tracks both. */
+        advance: position?.advance ?? 0,
+        credit: position?.credit ?? 0,
         summary: {
           billingMode: config.billingMode,
           monthlyFee: student.monthlyFee,
@@ -1678,7 +1688,7 @@ export class FeesService {
             (student.annualFeeAmount ?? monthlyTotal) + extraTotal,
           extraFeesTotal: extraTotal,
           amountPaid: totalPaid,
-          outstandingBalance: outstanding,
+          outstandingBalance: position?.outstanding ?? outstanding,
           paidMonths,
           unpaidMonths,
           inactiveMonths,
