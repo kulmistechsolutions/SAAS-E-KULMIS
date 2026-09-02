@@ -945,6 +945,8 @@ export const soGenerated: PartialDictionary = {
     reportPages: "Bogagga Warbixinta",
   },
   examinationsResults: {
+    marksEntered: "{count} buundo la geliyay",
+    noMarksYet: "weli buundo lama gelin",
     resultsPublishing: "Natiijooyinka & Daabacaadda",
     manageResultsByClassTeacherLock: "Natiijooyinka fasal kasta maamul. Xidhitaanka macallinka iyo daabacaadda bogga ardayga si gaar ah ayaa loo maamulaa imtixaan kasta.",
     academicYear: "Sannad-dugsiyeedka",

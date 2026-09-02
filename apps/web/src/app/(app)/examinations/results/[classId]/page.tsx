@@ -85,6 +85,8 @@ function ClassResultsContent() {
       section: string | null;
       examGroupId: string | null;
       examGroupName: string | null;
+      startDate: string;
+      marksEntered: number;
     }[];
   } | null>(null);
   const [sections, setSections] = useState<{ id: string; name: string }[]>([]);
@@ -500,8 +502,18 @@ function ClassResultsContent() {
           <Select value={examId} onChange={(e) => setExamId(e.target.value)}>
             <option value="">{t("examinationsResults.selectExam")}</option>
             {(classMeta?.exams ?? []).map((e) => (
+              // The date and the mark count are what tell two same-named
+              // exams apart. Without them a school reads "Monthly Tes" twice
+              // and has no way to know which one holds its results.
               <option key={e.id} value={e.id}>
-                {e.name} {e.section ? `(${e.section})` : ""} — {e.status}
+                {e.name} {e.section ? `(${e.section})` : ""} ·{" "}
+                {e.startDate ? String(e.startDate).slice(0, 10) : ""} —{" "}
+                {e.status} ·{" "}
+                {e.marksEntered > 0
+                  ? t("examinationsResults.marksEntered", {
+                      count: e.marksEntered,
+                    })
+                  : t("examinationsResults.noMarksYet")}
               </option>
             ))}
             {combinedOptions.map((o) => (

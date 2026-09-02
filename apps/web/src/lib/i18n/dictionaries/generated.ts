@@ -945,6 +945,8 @@ export const generated = {
     reportPages: "Report Pages",
   },
   examinationsResults: {
+    marksEntered: "{count} marks entered",
+    noMarksYet: "no marks yet",
     resultsPublishing: "Results & Publishing",
     manageResultsByClassTeacherLock: "Manage results by class. Teacher lock and student portal publishing are controlled separately per examination.",
     academicYear: "Academic Year",

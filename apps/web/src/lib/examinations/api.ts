@@ -398,6 +398,9 @@ export interface ApiResultsClassOverview {
     section: string | null;
     examGroupId: string | null;
     examGroupName: string | null;
+    startDate: string;
+    /** Marks actually entered. Zero means nobody has been graded yet. */
+    marksEntered: number;
   }[];
 }
 

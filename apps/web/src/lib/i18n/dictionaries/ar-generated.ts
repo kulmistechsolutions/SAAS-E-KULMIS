@@ -944,6 +944,8 @@ export const arGenerated: PartialDictionary = {
     reportPages: "صفحات التقارير",
   },
   examinationsResults: {
+    marksEntered: "{count} درجة مُدخلة",
+    noMarksYet: "لا توجد درجات بعد",
     resultsPublishing: "النتائج والنشر",
     manageResultsByClassTeacherLock: "أدر النتائج حسب الصف. يُتحكَّم بقفل المعلم والنشر في بوابة الطالب بشكل منفصل لكل امتحان.",
     academicYear: "العام الدراسي",

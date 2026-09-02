@@ -1643,6 +1643,24 @@ export class ExaminationsService {
         orderBy: { createdAt: "desc" },
       });
 
+      // How many marks each exam actually carries. One grouped query rather
+      // than one per exam — the pooler is slow enough that a loop here would
+      // be felt on a school with a term's worth of exams.
+      //
+      // This exists because two exams in one class can share a name: a school
+      // created a September test with the same title as an August one that was
+      // already marked and published, and the results screen — which simply
+      // took the newest — opened the empty one. To them the completed exam had
+      // vanished. It had not; nothing on the screen said which was which.
+      const markCounts = exams.length
+        ? await tx.examMark.groupBy({
+            by: ["examId"],
+            where: { examId: { in: exams.map((e) => e.id) }, marks: { not: null } },
+            _count: { _all: true },
+          })
+        : [];
+      const marksOf = new Map(markCounts.map((m) => [m.examId, m._count._all]));
+
       const byClass = new Map<
         string,
         {
@@ -1693,14 +1711,26 @@ export class ExaminationsService {
           teacherLocked,
           studentPortalOpen: published,
           examCount: entry.exams.length,
-          exams: entry.exams.map((e) => ({
-            id: e.id,
-            name: e.name,
-            status: e.status,
-            section: e.section?.name ?? null,
-            examGroupId: e.examGroupId,
-            examGroupName: e.examGroup?.name ?? null,
-          })),
+          exams: entry.exams
+            .map((e) => ({
+              id: e.id,
+              name: e.name,
+              status: e.status,
+              section: e.section?.name ?? null,
+              examGroupId: e.examGroupId,
+              examGroupName: e.examGroup?.name ?? null,
+              startDate: e.startDate,
+              marksEntered: marksOf.get(e.id) ?? 0,
+            }))
+            // Exams that have been marked come first, newest among them. An
+            // empty exam created this morning is almost never what someone
+            // opening "Results" came to look at.
+            .sort((a, b) => {
+              if ((a.marksEntered > 0) !== (b.marksEntered > 0)) {
+                return a.marksEntered > 0 ? -1 : 1;
+              }
+              return 0;
+            }),
         });
       }
 
