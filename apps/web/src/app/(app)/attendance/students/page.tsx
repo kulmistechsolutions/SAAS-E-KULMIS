@@ -2,8 +2,9 @@
 
 
 import { useT } from "@/lib/i18n/provider";
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import {
   ArrowLeft,
   CheckCheck,
@@ -62,7 +63,7 @@ const TABS = [
   { id: "reports", label: "Reports" },
 ];
 
-export default function StudentAttendancePage() {
+function StudentAttendanceScreen() {
   const t = useT();
   const { user } = useAuth();
   const isTeacher = user?.role === "TEACHER";
@@ -93,6 +94,32 @@ export default function StudentAttendancePage() {
   const [section, setSection] = useState("");
   const [shiftId, setShiftId] = useState("");
   const [shifts, setShifts] = useState<ApiShift[]>([]);
+
+  // Arriving from "My Classes" with a specific register in mind. The pickers
+  // below are keyed by name rather than id, so the ids in the link are
+  // translated once the academic lists have loaded — and only once, or a
+  // change of class would be dragged back to the link every render.
+  const search = useSearchParams();
+  const deepLinked = useRef(false);
+  useEffect(() => {
+    if (deepLinked.current) return;
+    const classId = search.get("classId");
+    if (!classId || academics.classes.length === 0) return;
+    const cls = academics.classes.find((c) => c.id === classId);
+    if (!cls) return;
+    deepLinked.current = true;
+    setYear(cls.academicYear);
+    setKlass(cls.name);
+    const sectionId = search.get("sectionId");
+    if (sectionId) {
+      const sec = academics.sections.find((x) => x.id === sectionId);
+      if (sec) setSection(sec.name);
+    }
+    const sid = search.get("shiftId");
+    if (sid) setShiftId(sid);
+    const d = search.get("date");
+    if (d) setDate(d);
+  }, [search, academics.classes, academics.sections]);
 
   // A school's attendance shifts, independent of academic year — schools
   // that never set any up simply get an empty list and the picker below
@@ -276,6 +303,14 @@ export default function StudentAttendancePage() {
     toast(
       `Attendance saved. ${res.summary?.present} present, ${res.summary?.absent} absent (${res.summary?.percentage}%).`,
     );
+    // Said out loud rather than swallowed: this register already carried
+    // somebody else's marks, and they have just been replaced.
+    if (res.overwroteWorkOf && res.overwroteWorkOf.length > 0) {
+      toast(
+        `This register had already been taken by ${res.overwroteWorkOf.join(", ")}. Your marks have replaced theirs.`,
+        "info",
+      );
+    }
   }
 
   const eligibleRows = rows.filter((r) => r.eligible);
@@ -626,5 +661,23 @@ export default function StudentAttendancePage() {
         </div>
       </div>
     </div>
+  );
+}
+
+/**
+ * useSearchParams needs a Suspense boundary for this route to build; the
+ * screen itself is unchanged behind it.
+ */
+export default function StudentAttendancePage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex h-64 items-center justify-center text-muted-foreground">
+          Loading…
+        </div>
+      }
+    >
+      <StudentAttendanceScreen />
+    </Suspense>
   );
 }

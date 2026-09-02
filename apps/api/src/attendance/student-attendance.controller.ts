@@ -98,6 +98,20 @@ export class StudentAttendanceController {
     return this.scope.assignmentsFor(me.schoolId, me.userId);
   }
 
+  /**
+   * Every register this account holds for one day, with how far each has got.
+   *
+   * The officer's own screen. It answers the question they actually have —
+   * "what have I still not done today?" — which four separate class screens
+   * cannot, and which is how a register quietly goes unmarked.
+   */
+  @Roles(UserRole.ATTENDANCE_OFFICER, UserRole.ADMINISTRATOR)
+  @Get("my-day")
+  myDay(@CurrentUser() me: AuthUser, @Query("date") date: string) {
+    if (!date) throw new BadRequestException("date is required");
+    return this.scope.myDay(me.schoolId, me.userId, date);
+  }
+
   @Get("dashboard")
   async dashboard(
     @CurrentUser() me: AuthUser,

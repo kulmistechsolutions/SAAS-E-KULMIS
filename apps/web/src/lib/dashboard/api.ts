@@ -39,6 +39,12 @@ export interface AdminDashboardResponse {
     totalSalaries: number;
     netIncome: number;
   };
+  /**
+   * False when the signed-in role has no claim on the school's money — the
+   * fee, finance, payment and chart figures come back zeroed and the screen
+   * leaves those panels out rather than drawing a school with no income.
+   */
+  financeVisible?: boolean;
   activeAcademicYear: string | null;
   charts: {
     studentGrowth: { label: string; value: number }[];

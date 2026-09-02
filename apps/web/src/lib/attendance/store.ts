@@ -108,6 +108,12 @@ export interface SaveStudentResult {
   ok: boolean;
   error?: string;
   summary?: AttendanceSummary;
+  /**
+   * Names of other people whose marks this save replaced. Empty in the normal
+   * case; non-empty means somebody had already taken this register today and
+   * the person saving should be told rather than left to find out later.
+   */
+  overwroteWorkOf?: string[];
 }
 
 export interface AttendanceSummary {
@@ -290,7 +296,7 @@ export async function saveStudentAttendance(
   }
 
   try {
-    await apiMarkStudentAttendance({
+    const res = await apiMarkStudentAttendance({
       classId,
       sectionId,
       shiftId,
@@ -298,7 +304,11 @@ export async function saveStudentAttendance(
       records: rows,
     });
     notify();
-    return { ok: true, summary: summarizeStudent(rows) };
+    return {
+      ok: true,
+      summary: summarizeStudent(rows),
+      overwroteWorkOf: res.overwrittenFrom ?? [],
+    };
   } catch (e) {
     return { ok: false, error: apiErr(e, "Failed to save attendance.") };
   }

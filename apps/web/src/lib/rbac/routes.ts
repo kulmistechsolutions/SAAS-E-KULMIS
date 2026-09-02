@@ -27,7 +27,7 @@ const MODULE_PREFIXES: Record<PermissionModule, string[]> = {
   fees: ["/finance"],
   examinations: ["/examinations", "/id-cards"],
   quiz: ["/quiz"],
-  reports: ["/reports", "/copilot"],
+  reports: ["/reports"],
   finance: ["/finance"],
   expenses: ["/expenses"],
   salaries: ["/salary"],
@@ -84,6 +84,16 @@ export function portalHomeForRole(role: string): string | null {
   return PORTAL_HOME[normalizeRole(role)] ?? null;
 }
 
+/**
+ * Roles the School Copilot answers to, matching its `@Roles` on the API.
+ *
+ * It reads the school's finances to answer questions, so it cannot ride along
+ * with the `reports` permission the way it used to: that grant belongs to the
+ * Attendance Officer, Exam Manager, Librarian and Reception Officer as well,
+ * and all four were shown a Copilot link that the server then refused.
+ */
+const COPILOT_ROLES = ["ADMINISTRATOR", "SUPER_ADMINISTRATOR", "FINANCE_OFFICER", "ACADEMIC_MANAGER"];
+
 /** Allowed route prefixes for a role, or `["/"]` for full access. */
 export function allowedPrefixesForRole(role: string): string[] {
   if (isFullAccessRole(role)) return ["/"];
@@ -97,6 +107,7 @@ export function allowedPrefixesForRole(role: string): string[] {
       for (const p of MODULE_PREFIXES[mod]) prefixes.add(p);
     }
   }
+  if (COPILOT_ROLES.includes(normalized)) prefixes.add("/copilot");
   return [...prefixes];
 }
 
@@ -112,6 +123,9 @@ export function isRouteAllowedForRole(role: string, pathname: string): boolean {
 /** The page a role should land on / be redirected to when blocked. */
 export function landingRouteForRole(role: string): string {
   if (isFullAccessRole(role)) return "/dashboard";
+  // An attendance officer's first screen is the work they came to do, not the
+  // module's front door.
+  if (normalizeRole(role) === "ATTENDANCE_OFFICER") return "/attendance/my-classes";
   const portal = portalHomeForRole(role);
   if (portal) return portal;
   const prefixes = allowedPrefixesForRole(role).filter(

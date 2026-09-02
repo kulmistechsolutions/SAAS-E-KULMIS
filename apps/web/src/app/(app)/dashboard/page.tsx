@@ -166,7 +166,9 @@ function buildStats(data: AdminDashboardResponse, t: Translate) {
       icon: "classes" as const,
       theme: "sky" as const,
     },
-    {
+    ...(data.financeVisible === false
+      ? []
+      : [{
       key: "fees",
       label: "Fees Outstanding",
       labelKey: "dashboard.feesOutstanding" as TranslationKey,
@@ -175,7 +177,7 @@ function buildStats(data: AdminDashboardResponse, t: Translate) {
       hintTone: "muted" as const,
       icon: "fees" as const,
       theme: "rose" as const,
-    },
+    }]),
     {
       key: "attendance",
       label: "Today's Attendance",
@@ -204,7 +206,8 @@ function buildAttendance(data: AdminDashboardResponse, t: Translate) {
 
 function buildAlerts(data: AdminDashboardResponse, t: Translate) {
   const alerts: { text: string; icon: "alert" | "info" | "check"; tone: string }[] = [];
-  if (data.fees.totalOutstanding > 0) {
+  const money_ = data.financeVisible !== false;
+  if (money_ && data.fees.totalOutstanding > 0) {
     alerts.push({
       text: `${money(data.fees.totalOutstanding)} in outstanding fees`,
       icon: "alert",
@@ -218,7 +221,7 @@ function buildAlerts(data: AdminDashboardResponse, t: Translate) {
       tone: "amber",
     });
   }
-  if (data.fees.partialPayments > 0) {
+  if (money_ && data.fees.partialPayments > 0) {
     alerts.push({
       text: `${data.fees.partialPayments} students with partial payments`,
       icon: "info",
@@ -429,6 +432,11 @@ function AdminDashboard() {
     );
   }
 
+  // The API zeroes the money for roles that have no claim on it and says so
+  // here; the screen leaves those panels out rather than reporting a school
+  // that earned nothing.
+  const showFinance = data?.financeVisible !== false;
+
   if (!data || !attendanceBreakdown || !feeCollection || !incomeVsExpense) {
     return (
       <div className="flex h-64 flex-col items-center justify-center gap-3 text-muted-foreground">
@@ -524,6 +532,7 @@ function AdminDashboard() {
           </div>
         </Panel>
 
+        {showFinance && (
         <Panel title={tr("dashboard.feeCollectionOverviewThisMonth")}>
           <p className="text-xs text-muted-foreground">
             {t("dashboard.totalCollected")}
@@ -540,7 +549,9 @@ function AdminDashboard() {
             <FeeAreaChart data={feeCollection.series} />
           </div>
         </Panel>
+        )}
 
+        {showFinance && (
         <Panel title={tr("dashboard.incomeVsExpenseThisMonth")}>
           <div className="flex flex-wrap items-center gap-4 text-xs">
             <span className="inline-flex items-center gap-1.5">
@@ -576,6 +587,7 @@ function AdminDashboard() {
             </div>
           </div>
         </Panel>
+        )}
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -684,6 +696,7 @@ function AdminDashboard() {
           <AdmissionAreaChart data={admissionTrend} />
         </Panel>
 
+        {showFinance && (
         <Panel
           title={t("dashboard.recentPayments")}
           action={t("dashboard.viewAll")}
@@ -711,6 +724,7 @@ function AdminDashboard() {
             )}
           </ul>
         </Panel>
+        )}
 
         <Panel title={t("dashboard.systemInformation")}>
           <ul className="divide-y">

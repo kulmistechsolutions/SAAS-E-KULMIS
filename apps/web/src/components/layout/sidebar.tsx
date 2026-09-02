@@ -258,7 +258,21 @@ export function Sidebar({
     !user || isFullAccessRole(role)
       ? ADMIN_NAV
       : scopeNavToRole(ADMIN_NAV, role);
-  const NAV = isTeacher ? TEACHER_NAV : scopedAdminNav;
+  // An officer's own registers come first — it is the page they open every
+  // morning, and reaching it through the module hub is two clicks for a job
+  // that is the whole of their role.
+  const NAV = isTeacher
+    ? TEACHER_NAV
+    : role === "ATTENDANCE_OFFICER"
+      ? [
+          {
+            label: "myAttendanceClasses.title" as TranslationKey,
+            icon: CalendarCheck,
+            href: "/attendance/my-classes",
+          },
+          ...scopedAdminNav,
+        ]
+      : scopedAdminNav;
   const QUICK_LINKS = isTeacher
     ? TEACHER_QUICK_LINKS
     : !user || isFullAccessRole(role)

@@ -149,6 +149,22 @@ export class StudentAttendanceService {
       });
       const activeIds = new Set(active.map((s) => s.id));
 
+      // Who has already been here today. Two officers can hold one register
+      // deliberately, so a second save is allowed — but it must be reported,
+      // not silent: a morning's work disappearing without anyone being told is
+      // how two people end up disagreeing about what the register said.
+      const priorRows = await tx.studentAttendance.findMany({
+        where: {
+          studentId: { in: dto.records.map((r) => r.studentId) },
+          date,
+          shiftId,
+        },
+        select: { studentId: true, markedByUserId: true },
+      });
+      const priorByOthers = priorRows.filter(
+        (r) => r.markedByUserId && r.markedByUserId !== markedByUserId,
+      );
+
       let marked = 0;
       let skipped = 0;
       for (const rec of dto.records) {
@@ -201,7 +217,28 @@ export class StudentAttendanceService {
         }
         marked++;
       }
-      return { date: dto.date, marked, skipped };
+
+      const otherIds = [
+        ...new Set(
+          priorByOthers
+            .map((r) => r.markedByUserId)
+            .filter((x): x is string => Boolean(x)),
+        ),
+      ];
+      const others = otherIds.length
+        ? await tx.user.findMany({
+            where: { id: { in: otherIds } },
+            select: { fullName: true, username: true },
+          })
+        : [];
+
+      return {
+        date: dto.date,
+        marked,
+        skipped,
+        overwritten: priorByOthers.length,
+        overwrittenFrom: others.map((u) => u.fullName || u.username),
+      };
     });
   }
 

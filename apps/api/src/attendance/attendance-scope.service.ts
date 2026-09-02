@@ -1,4 +1,8 @@
-import { ForbiddenException, Injectable } from "@nestjs/common";
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+} from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 
 /**
@@ -103,6 +107,163 @@ export class AttendanceScopeService {
       }),
     );
     return grants.map((g) => g.classId);
+  }
+
+  /**
+   * One officer's whole working day in a single answer.
+   *
+   * An officer holding four registers should not have to open four screens to
+   * find out which ones are still outstanding, and the school should not have
+   * to trust that they remembered. Each grant comes back with how many
+   * children it covers, how many are already marked, and who marked them.
+   *
+   * "Who marked them" is the part that matters beyond convenience: two
+   * officers can be assigned the same register deliberately, and when they are,
+   * the second one arriving should see that the first has already been there
+   * rather than quietly overwriting the morning's work.
+   */
+  async myDay(schoolId: string, userId: string, dateStr: string) {
+    const date = new Date(`${dateStr}T00:00:00.000Z`);
+    if (Number.isNaN(date.getTime())) {
+      throw new BadRequestException("Invalid date");
+    }
+
+    return this.prisma.forTenant(schoolId, async (tx) => {
+      const grants = await tx.attendanceAssignment.findMany({
+        where: { userId },
+        include: {
+          class: { select: { id: true, name: true, orderIndex: true } },
+          section: { select: { id: true, name: true } },
+          shift: { select: { id: true, name: true } },
+        },
+        orderBy: [{ class: { orderIndex: "asc" } }],
+      });
+      if (grants.length === 0) return { date: dateStr, registers: [] };
+
+      const classIds = [...new Set(grants.map((g) => g.classId))];
+
+      // Counted once for every class rather than once per grant: a class held
+      // twice (two shifts) covers the same children both times.
+      const students = await tx.student.findMany({
+        where: {
+          status: "ACTIVE",
+          OR: [
+            { classId: { in: classIds } },
+            { extraClasses: { some: { classId: { in: classIds } } } },
+          ],
+        },
+        select: {
+          id: true,
+          classId: true,
+          sectionId: true,
+          extraClasses: { select: { classId: true, sectionId: true } },
+        },
+      });
+
+      const records = await tx.studentAttendance.findMany({
+        where: { date, classId: { in: classIds } },
+        select: {
+          studentId: true,
+          classId: true,
+          sectionId: true,
+          shiftId: true,
+          status: true,
+          markedByUserId: true,
+          updatedAt: true,
+        },
+      });
+
+      const markers = await tx.user.findMany({
+        where: {
+          id: {
+            in: [
+              ...new Set(
+                records
+                  .map((r) => r.markedByUserId)
+                  .filter((x): x is string => Boolean(x)),
+              ),
+            ],
+          },
+        },
+        select: { id: true, fullName: true, username: true },
+      });
+      const nameOf = new Map(
+        markers.map((m) => [m.id, m.fullName || m.username]),
+      );
+
+      const sitsIn = (
+        s: (typeof students)[number],
+        classId: string,
+        sectionId: string | null,
+      ) =>
+        (s.classId === classId &&
+          (sectionId === null || s.sectionId === sectionId)) ||
+        s.extraClasses.some(
+          (e) =>
+            e.classId === classId &&
+            (sectionId === null || e.sectionId === sectionId),
+        );
+
+      return {
+        date: dateStr,
+        registers: grants.map((g) => {
+          const roll = students.filter((s) =>
+            sitsIn(s, g.classId, g.sectionId),
+          );
+          const rollIds = new Set(roll.map((s) => s.id));
+          const mine = records.filter(
+            (r) =>
+              rollIds.has(r.studentId) &&
+              r.classId === g.classId &&
+              (g.sectionId === null || r.sectionId === g.sectionId) &&
+              (g.shiftId === null
+                ? true
+                : r.shiftId === g.shiftId),
+          );
+
+          const others = [
+            ...new Set(
+              mine
+                .map((r) => r.markedByUserId)
+                .filter((x): x is string => Boolean(x) && x !== userId),
+            ),
+          ].map((id) => nameOf.get(id) ?? "Someone else");
+
+          const last = mine.reduce<Date | null>(
+            (acc, r) => (!acc || r.updatedAt > acc ? r.updatedAt : acc),
+            null,
+          );
+
+          return {
+            id: g.id,
+            classId: g.classId,
+            className: g.class.name,
+            sectionId: g.sectionId,
+            sectionName: g.section?.name ?? null,
+            shiftId: g.shiftId,
+            shiftName: g.shift?.name ?? null,
+            total: roll.length,
+            marked: mine.length,
+            present: mine.filter((r) => r.status === "PRESENT").length,
+            absent: mine.filter((r) => r.status === "ABSENT").length,
+            late: mine.filter((r) => r.status === "LATE").length,
+            excused: mine.filter((r) => r.status === "EXCUSED").length,
+            // An empty class is "done" rather than permanently outstanding —
+            // there is nobody in it to mark.
+            state:
+              roll.length === 0
+                ? "EMPTY"
+                : mine.length === 0
+                  ? "NOT_STARTED"
+                  : mine.length < roll.length
+                    ? "PARTIAL"
+                    : "DONE",
+            markedByOthers: others,
+            lastMarkedAt: last,
+          };
+        }),
+      };
+    });
   }
 
   // ── Administration ───────────────────────────────────────────────────────

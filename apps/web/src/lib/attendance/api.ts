@@ -92,7 +92,14 @@ export async function apiMarkStudentAttendance(body: {
   shiftId?: string | null;
   date: string;
   records: { studentId: string; status: StudentAttendanceStatus }[];
-}): Promise<{ date: string; marked: number; skipped: number }> {
+}): Promise<{
+  date: string;
+  marked: number;
+  skipped: number;
+  /** Rows that already carried someone else's mark and were replaced. */
+  overwritten: number;
+  overwrittenFrom: string[];
+}> {
   return api("/student-attendance/mark", { method: "POST", body });
 }
 
@@ -264,3 +271,29 @@ export const apiSetAttendanceAssignments = (
 /** The classes the signed-in account may take attendance for. */
 export const apiMyAttendanceAssignments = () =>
   api<AttendanceGrant[]>("/student-attendance/my-assignments");
+
+/** One register on one day, as it stands for the officer who holds it. */
+export interface MyDayRegister {
+  id: string;
+  classId: string;
+  className: string;
+  sectionId: string | null;
+  sectionName: string | null;
+  shiftId: string | null;
+  shiftName: string | null;
+  total: number;
+  marked: number;
+  present: number;
+  absent: number;
+  late: number;
+  excused: number;
+  state: "EMPTY" | "NOT_STARTED" | "PARTIAL" | "DONE";
+  markedByOthers: string[];
+  lastMarkedAt: string | null;
+}
+
+/** Every register this account holds for one day, with how far each has got. */
+export const apiMyAttendanceDay = (date: string) =>
+  api<{ date: string; registers: MyDayRegister[] }>(
+    `/student-attendance/my-day?date=${encodeURIComponent(date)}`,
+  );
