@@ -20,6 +20,7 @@ import {
   apiPayFee,
   apiPrintHistory,
   apiRecordReceiptPrint,
+  apiAllPositions,
   apiSchoolPosition,
   apiReversePayment,
   mapApiCharge,
@@ -63,10 +64,17 @@ let loaded = false;
  * engine computes them once, on the server, from the whole ledger.
  */
 let positionCache: import("./api").SchoolPosition | null = null;
+/** Per student, keyed by id — what the collection lists read. */
+let studentPositions = new Map<string, import("./api").StudentPosition>();
 
 export async function refreshSchoolPosition(): Promise<void> {
   try {
-    positionCache = await apiSchoolPosition();
+    const [school, all] = await Promise.all([
+      apiSchoolPosition(),
+      apiAllPositions().catch(() => [] as import("./api").StudentPosition[]),
+    ]);
+    positionCache = school;
+    if (all.length > 0) studentPositions = new Map(all.map((p) => [p.studentId, p]));
     emit();
   } catch {
     /* keep whatever we had */
@@ -866,6 +874,25 @@ export function recentPayments(limit = 5): RecentPaymentRow[] {
   });
 }
 
+/** The engine's per-student state, in the vocabulary the rows already use. */
+function engineStatus(
+  p: import("./api").StudentPosition,
+): FeeChargeStatus | "ADVANCE_MULTI" {
+  if (p.state === "ADVANCE") return "ADVANCE_MULTI";
+  if (p.state === "FREE") return "PAID";
+  // Nothing billed yet reads as unpaid, which is what the browser-side
+  // version returned and what the filters below expect.
+  if (p.state === "UNBILLED") return "UNPAID";
+  return p.state;
+}
+
+/** How many months ahead are already settled — for the "paid ahead" badge. */
+function countAdvanceMonths(p: import("./api").StudentPosition): number {
+  return p.lines.filter(
+    (l) => !l.due && l.kind === "MONTHLY" && l.paid >= l.expected && l.expected > 0,
+  ).length;
+}
+
 export function listStudentFees(opts: {
   academicYear?: string;
   className?: string;
@@ -898,9 +925,17 @@ export function listStudentFees(opts: {
     );
   }
 
+  // For the month the school is collecting, each row's money comes from the
+  // engine — the same figures the cards above it show. Only a month the user
+  // has scrolled back to falls through to the browser arithmetic below, which
+  // is the one case the engine is not asked about.
+  const live = positionCache?.liveMonth.monthKey;
+  const useEngine = !!live && month === live && studentPositions.size > 0;
+
   let rows = students
     .map((st) => {
-      const agg = aggregateStudentStatus(st.id, month);
+      const pos = useEngine ? studentPositions.get(st.id) : undefined;
+      const agg = pos ? null : aggregateStudentStatus(st.id, month);
       return {
         studentId: st.id,
         code: st.code,
@@ -909,9 +944,13 @@ export function listStudentFees(opts: {
         section: st.section ?? "—",
         monthlyFee: st.monthlyFee,
         feeWaived: st.feeWaived ?? false,
-        outstandingBalance: outstandingBalance(st.id, month),
-        status: agg.status,
-        advanceMonthsLeft: agg.advanceMonthsLeft,
+        outstandingBalance: pos
+          ? pos.outstanding
+          : outstandingBalance(st.id, month),
+        status: pos ? engineStatus(pos) : agg!.status,
+        advanceMonthsLeft: pos
+          ? countAdvanceMonths(pos)
+          : agg!.advanceMonthsLeft,
         parentId: st.parentId,
         parentName: st.parent.name,
         parentPhone: st.parent.phone,
@@ -1162,6 +1201,34 @@ export interface OutstandingBreakdown {
  * still carried from before, and anything that is not tuition at all.
  */
 export function outstandingBreakdown(studentId: string): OutstandingBreakdown {
+  // The engine's own lines when we have them: it already knows which periods
+  // are due, which are paid ahead and what each charge is called, and the
+  // payment dialog must offer exactly what the ledger will accept.
+  const pos = studentPositions.get(studentId);
+  const liveKey = positionCache?.liveMonth.monthKey;
+  if (pos && liveKey) {
+    let thisMonth: OutstandingLine | null = null;
+    const arrears: OutstandingLine[] = [];
+    const other: OutstandingLine[] = [];
+    for (const l of pos.lines) {
+      if (l.outstanding <= 0 || !l.due) continue;
+      const line = { key: l.id, label: l.label, balance: l.outstanding };
+      if (l.kind !== "MONTHLY") other.push(line);
+      else if (l.monthKey === liveKey) thisMonth = line;
+      else arrears.push(line);
+    }
+    arrears.sort((a, b) => a.label.localeCompare(b.label));
+    return {
+      thisMonth,
+      arrears,
+      other,
+      total:
+        (thisMonth?.balance ?? 0) +
+        arrears.reduce((n, l) => n + l.balance, 0) +
+        other.reduce((n, l) => n + l.balance, 0),
+    };
+  }
+
   const s = ensure();
   const active = s.activeMonthKey;
   const open = studentCharges(studentId).filter(
