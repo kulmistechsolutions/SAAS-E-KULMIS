@@ -361,6 +361,7 @@ model Class {
   @@index([schoolId])
   @@index([academicYearId])
   @@map("classes")
+  attendanceAssignments AttendanceAssignment[]
 }
 
 /// An independent classroom within a Class (§10). Never shares students/marks.
@@ -390,6 +391,7 @@ model Section {
   @@index([schoolId])
   @@index([classId])
   @@map("sections")
+  attendanceAssignments AttendanceAssignment[]
 }
 
 /// School-level subject catalog. Linked to Class+Section via TeacherAssignment.
@@ -463,6 +465,7 @@ model User {
   @@unique([schoolId, username])
   @@index([schoolId])
   @@map("users")
+  attendanceAssignments AttendanceAssignment[]
 }
 
 /// Hashed refresh tokens for JWT session rotation. System-level (no RLS):
@@ -813,6 +816,7 @@ model AttendanceShift {
   @@unique([schoolId, name])
   @@index([schoolId])
   @@map("attendance_shifts")
+  attendanceAssignments AttendanceAssignment[]
 }
 
 /// Which shift(s) a teacher works — join table between Teacher and
@@ -1118,6 +1122,42 @@ enum FeeChangeScope {
   FUTURE_MONTHS
   CURRENT_AND_FUTURE
   ALL_UNPAID
+}
+
+/// Where one attendance officer is allowed to take attendance.
+///
+/// The role existed and was granted the attendance module wholesale, which
+/// meant every officer could see and mark every class in the school. A school
+/// with four officers had four people able to alter anyone's register. This
+/// row is the grant: a class, optionally narrowed to one section, optionally
+/// narrowed to one shift. Nothing outside the rows an officer holds is
+/// reachable — checked on the server, not hidden in the interface.
+///
+/// A null `sectionId` means the whole class; a null `shiftId` means every
+/// shift. That is deliberate: most schools assign "Grade 1, mornings" rather
+/// than enumerating sections, and forcing them to would make the common case
+/// tedious and the uncommon one no safer.
+model AttendanceAssignment {
+  id              String   @id @default(cuid())
+  schoolId        String
+  /// The officer's user account.
+  userId          String
+  classId         String
+  sectionId       String?
+  shiftId         String?
+  createdByUserId String?
+  createdAt       DateTime @default(now())
+
+  user    User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  class   Class            @relation(fields: [classId], references: [id], onDelete: Cascade)
+  section Section?         @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  shift   AttendanceShift? @relation(fields: [shiftId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, classId, sectionId, shiftId])
+  @@index([schoolId])
+  @@index([userId])
+  @@index([classId])
+  @@map("attendance_assignments")
 }
 
 /// A fee payment with a receipt (Module 7).

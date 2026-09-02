@@ -78,3 +78,24 @@ export const markTeacherAttendanceSchema = z.object({
 export type MarkTeacherAttendanceInput = z.infer<
   typeof markTeacherAttendanceSchema
 >;
+
+/**
+ * Where one attendance officer may take attendance.
+ *
+ * A null section means the whole class; a null shift means every shift. Both
+ * widen rather than restrict, because schools assign "Grade 1, mornings"
+ * rather than enumerating every section of it.
+ */
+export const attendanceAssignmentsSchema = z.object({
+  userId: z.string().min(1),
+  assignments: z
+    .array(
+      z.object({
+        classId: z.string().min(1),
+        sectionId: z.string().min(1).nullable().optional(),
+        shiftId: z.string().min(1).nullable().optional(),
+      }),
+    )
+    .max(500),
+});
+export type AttendanceAssignmentsInput = z.infer<typeof attendanceAssignmentsSchema>;
