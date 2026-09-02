@@ -64,7 +64,8 @@ const SECTIONS: HubCard[] = [
     href: "/attendance/shifts",
     icon: Clock,
     color: "from-amber-500 to-orange-600",
-    roles: ["ADMINISTRATOR", "SUPER_ADMINISTRATOR"],
+    // Left open to officers: the API lets them create and edit shifts, and
+    // hiding a capability the role actually has is its own kind of wrong.
   },
   {
     title: "Attendance Officers",
