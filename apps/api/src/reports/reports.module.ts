@@ -1,5 +1,6 @@
 import { Module } from "@nestjs/common";
 import { ExaminationsModule } from "../examinations/examinations.module";
+import { FinanceModule } from "../finance/finance.module";
 import { ReportsController } from "./reports.controller";
 import { ReportsService } from "./reports.service";
 import { FeeReportsService } from "./fee-reports.service";
@@ -18,7 +19,7 @@ import { CardIssuesController } from "./card-issues.controller";
 import { CardIssuesService } from "./card-issues.service";
 
 @Module({
-  imports: [ExaminationsModule],
+  imports: [ExaminationsModule, FinanceModule],
   controllers: [ReportsController, CardDesignsController, CardIssuesController],
   providers: [
     ReportsService,

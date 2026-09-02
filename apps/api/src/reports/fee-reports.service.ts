@@ -1,6 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { formatMoney } from "@ekulmis/shared";
 import { PrismaService } from "../prisma/prisma.service";
+import { BalanceEngineService } from "../finance/balance-engine.service";
 import { parseDateFrom, parseDateTo } from "../common/date-range.util";
 
 export interface ReportColumn {
@@ -39,7 +40,10 @@ export interface FeeReportFilters {
  */
 @Injectable()
 export class FeeReportsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly balanceEngine: BalanceEngineService,
+  ) {}
 
   async build(
     schoolId: string,
@@ -62,6 +66,13 @@ export class FeeReportsService {
       case "advance":
       case "academic-year-summary":
         return this.balances(schoolId, slug, filters, money);
+      case "discounts":
+      case "waivers":
+        return this.adjustmentsReport(schoolId, slug, filters, money);
+      case "payment-methods":
+        return this.paymentMethods(schoolId, filters, money);
+      case "reconciliation":
+        return this.reconciliation(schoolId, money);
       default:
         return this.balances(schoolId, "outstanding", filters, money);
     }
@@ -74,63 +85,41 @@ export class FeeReportsService {
     filters: FeeReportFilters,
     money: (n: number) => string,
   ): Promise<ReportData> {
-    const rows = await this.prisma.forTenant(schoolId, async (tx) => {
-      const students = await tx.student.findMany({
-        where: {
-          status: "ACTIVE",
-          ...(filters.className ? { class: { name: filters.className } } : {}),
-          ...(filters.section ? { section: { name: filters.section } } : {}),
-          ...(filters.search
-            ? {
-                OR: [
-                  { fullName: { contains: filters.search, mode: "insensitive" } },
-                  { code: { contains: filters.search, mode: "insensitive" } },
-                ],
-              }
-            : {}),
+    // The engine's positions, not a third reading of the same tables. Summing
+    // every charge as "due" counted months that have not arrived and charges
+    // the school had withdrawn, and summing every payment against that total
+    // ignored which charge each one settled — so the Outstanding report and
+    // the dashboard quoted different debts for the same school.
+    const positions = await this.balanceEngine.allPositions(schoolId);
+    const search = filters.search?.trim().toLowerCase();
+    const rows = positions
+      .filter((p) => {
+        if (filters.className && p.className !== filters.className) return false;
+        if (filters.section && (p.section ?? "") !== filters.section) return false;
+        if (
+          search &&
+          !p.fullName.toLowerCase().includes(search) &&
+          !p.code.toLowerCase().includes(search)
+        ) {
+          return false;
+        }
+        return true;
+      })
+      .sort((a, b) => a.code.localeCompare(b.code))
+      .map((p) => ({
+        student: {
+          id: p.studentId,
+          code: p.code,
+          fullName: p.fullName,
+          class: p.className ? { name: p.className } : null,
+          section: p.section ? { name: p.section } : null,
         },
-        orderBy: [{ code: "asc" }],
-        select: {
-          id: true,
-          code: true,
-          fullName: true,
-          class: { select: { name: true } },
-          section: { select: { name: true } },
-        },
-      });
-      if (students.length === 0) return [];
-
-      const ids = students.map((s) => s.id);
-      // Two grouped queries rather than a per-student loop: a whole school is
-      // thousands of students, and this database sits behind a slow pooler.
-      const [charged, paid] = await Promise.all([
-        tx.feeCharge.groupBy({
-          by: ["studentId"],
-          where: { studentId: { in: ids } },
-          _sum: { amount: true },
-        }),
-        tx.payment.groupBy({
-          by: ["studentId"],
-          where: { studentId: { in: ids } },
-          _sum: { amount: true },
-        }),
-      ]);
-      const chargedBy = new Map(
-        charged.map((c) => [c.studentId, Number(c._sum.amount ?? 0)]),
-      );
-      const paidBy = new Map(paid.map((p) => [p.studentId, Number(p._sum.amount ?? 0)]));
-
-      return students.map((s) => {
-        const due = chargedBy.get(s.id) ?? 0;
-        const got = paidBy.get(s.id) ?? 0;
-        return {
-          student: s,
-          due,
-          got,
-          balance: due - got,
-        };
-      });
-    });
+        due: p.expected,
+        got: p.paid,
+        // Negative means paid ahead — which is what the advance report looks
+        // for, and the engine tracks separately rather than as a debt.
+        balance: p.advance > 0 && p.outstanding === 0 ? -p.advance : p.outstanding,
+      }));
 
     // "Partial" means some money has arrived but not all of it; "advance" means
     // more has arrived than has been billed. Both are states a school chases,
@@ -280,6 +269,173 @@ export class FeeReportsService {
       summary: [
         { label: "Payments", value: String(payments.length) },
         { label: "Collected", value: money(total) },
+      ],
+    };
+  }
+
+  /**
+   * Who was charged less than the fee said, and why.
+   *
+   * A discount that leaves no report is a discount nobody can audit: it looks
+   * identical to a fee typed in wrong, which is exactly the ambiguity that
+   * made one school's seven students unreadable.
+   */
+  private async adjustmentsReport(
+    schoolId: string,
+    slug: string,
+    filters: FeeReportFilters,
+    money: (n: number) => string,
+  ): Promise<ReportData> {
+    const rows = await this.prisma.forTenant(schoolId, (tx) =>
+      tx.feeAdjustment.findMany({
+        where: {
+          ...(slug === "waivers" ? { type: "WAIVER" } : { type: { in: ["DISCOUNT", "ADJUSTMENT"] } }),
+          ...(filters.className || filters.section || filters.search
+            ? {
+                student: {
+                  ...(filters.className ? { class: { name: filters.className } } : {}),
+                  ...(filters.section ? { section: { name: filters.section } } : {}),
+                  ...(filters.search
+                    ? {
+                        OR: [
+                          { fullName: { contains: filters.search, mode: "insensitive" as const } },
+                          { code: { contains: filters.search, mode: "insensitive" as const } },
+                        ],
+                      }
+                    : {}),
+                },
+              }
+            : {}),
+        },
+        orderBy: { createdAt: "desc" },
+        include: {
+          student: {
+            select: { code: true, fullName: true, class: { select: { name: true } } },
+          },
+          feeCharge: { select: { year: true, month: true, kind: true, label: true } },
+        },
+      }),
+    );
+
+    const total = rows.reduce((n, r) => n + r.amount, 0);
+    return {
+      columns: [
+        { key: "code", label: "Student ID" },
+        { key: "name", label: "Name" },
+        { key: "className", label: "Class" },
+        { key: "period", label: "Applied to" },
+        { key: "type", label: "Type" },
+        { key: "original", label: "Was", align: "right" },
+        { key: "amount", label: "Taken off", align: "right" },
+        { key: "now", label: "Now", align: "right" },
+        { key: "reason", label: "Reason" },
+        { key: "by", label: "By" },
+        { key: "date", label: "Date" },
+      ],
+      rows: rows.map((r) => ({
+        code: r.student.code,
+        name: r.student.fullName,
+        className: r.student.class?.name ?? "",
+        period:
+          r.feeCharge.kind === "MONTHLY" || !r.feeCharge.label
+            ? `${r.feeCharge.year}-${String(r.feeCharge.month).padStart(2, "0")}`
+            : r.feeCharge.label,
+        type: r.type,
+        original: money(r.originalAmount),
+        amount: money(r.amount),
+        now: money(r.originalAmount - r.amount),
+        reason: r.reason,
+        by: r.createdByUsername ?? "",
+        date: r.createdAt.toISOString().slice(0, 10),
+      })),
+      summary: [
+        { label: slug === "waivers" ? "Waivers" : "Discounts", value: String(rows.length) },
+        { label: "Total given up", value: money(total) },
+      ],
+    };
+  }
+
+  /** What money arrived through which channel — cash, EVC, bank and the rest. */
+  private async paymentMethods(
+    schoolId: string,
+    filters: FeeReportFilters,
+    money: (n: number) => string,
+  ): Promise<ReportData> {
+    const from = filters.dateFrom ? new Date(filters.dateFrom) : undefined;
+    const to = filters.dateTo ? new Date(filters.dateTo) : undefined;
+    if (to) to.setUTCHours(23, 59, 59, 999);
+
+    const rows = await this.prisma.forTenant(schoolId, (tx) =>
+      tx.payment.groupBy({
+        by: ["method"],
+        where: {
+          status: "ACTIVE",
+          ...(from || to ? { paidAt: { ...(from ? { gte: from } : {}), ...(to ? { lte: to } : {}) } } : {}),
+        },
+        _sum: { amount: true },
+        _count: { _all: true },
+      }),
+    );
+
+    const total = rows.reduce((n, r) => n + Number(r._sum.amount ?? 0), 0);
+    return {
+      columns: [
+        { key: "method", label: "Method" },
+        { key: "count", label: "Payments", align: "right" },
+        { key: "amount", label: "Collected", align: "right" },
+        { key: "share", label: "Share", align: "right" },
+      ],
+      rows: rows
+        .map((r) => ({
+          method: r.method || "Unrecorded",
+          count: String(r._count._all),
+          amount: money(Number(r._sum.amount ?? 0)),
+          share: total > 0
+            ? `${Math.round((Number(r._sum.amount ?? 0) / total) * 1000) / 10}%`
+            : "—",
+          _sort: Number(r._sum.amount ?? 0),
+        }))
+        .sort((a, b) => b._sort - a._sort)
+        .map(({ _sort, ...rest }) => rest),
+      summary: [
+        { label: "Methods used", value: String(rows.length) },
+        { label: "Collected", value: money(total) },
+      ],
+    };
+  }
+
+  /**
+   * The school's money in one place: billed, collected, owed, paid ahead.
+   *
+   * All four from the engine, so they add up against each other. Management
+   * asking "why does the bank hold less than the reports say" needs the parts
+   * to be the same arithmetic, not four screens each doing their own.
+   */
+  private async reconciliation(
+    schoolId: string,
+    money: (n: number) => string,
+  ): Promise<ReportData> {
+    const pos = await this.balanceEngine.schoolPosition(schoolId);
+    const rows = [
+      { item: "Expected — due to date", amount: money(pos.expected), note: "Every period up to and including the month being collected" },
+      { item: "Collected — against what is due", amount: money(pos.collected), note: "Payments matched to due charges" },
+      { item: "Outstanding", amount: money(pos.outstanding), note: "Due, unsettled" },
+      { item: "Paid ahead", amount: money(pos.advance), note: "Received for months not yet due — not income for this month" },
+      { item: "Credit", amount: money(pos.credit), note: "Paid beyond what a charge asked, usually after a fee was lowered" },
+      { item: "Collected this month", amount: money(pos.collectedThisMonth), note: "Every payment banked in the live month, due or ahead" },
+      { item: "Expected this month", amount: money(pos.expectedThisMonth), note: "The live month's own billing, arrears excluded" },
+    ];
+    return {
+      columns: [
+        { key: "item", label: "Item" },
+        { key: "amount", label: "Amount", align: "right" },
+        { key: "note", label: "What it means" },
+      ],
+      rows,
+      summary: [
+        { label: "Live month", value: pos.liveMonth.monthKey },
+        { label: "Students", value: String(pos.students.total) },
+        { label: "Collection rate", value: pos.collectionRate != null ? `${pos.collectionRate}%` : "—" },
       ],
     };
   }
