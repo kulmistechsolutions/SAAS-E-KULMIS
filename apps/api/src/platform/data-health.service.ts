@@ -114,6 +114,32 @@ const CHECKS: CheckSpec[] = [
       GROUP BY s.name`,
   },
   {
+    id: "fee-annual-in-monthly",
+    title: "Annual fee typed into the monthly field",
+    meaning:
+      "The student is carrying the school's whole-year total as their per-month rate, so every month is billed at roughly ten times what the school set up. It reads as a normal fee everywhere, because the charges agree with the student record — they are simply both wrong.",
+    severity: "critical",
+    sql: Prisma.sql`
+      SELECT s.name AS school, count(*)::int AS count,
+             'billed at $' || max(st."monthlyFee")
+               || '/month where the setup says $' || max(a."monthlyFee")
+               AS detail
+      FROM students st
+      JOIN schools s ON s.id = st."schoolId"
+      JOIN academic_year_fee_setups a ON a."schoolId" = st."schoolId"
+      JOIN academic_years ay ON ay.id = a."academicYearId" AND ay."isActive"
+      WHERE st.status = 'ACTIVE'
+        AND st."feeWaived" = false
+        AND a."monthlyFee" IS NOT NULL
+        AND a."monthlyFee" > 0
+        -- The exact signature: the year's total sitting in the month's field.
+        -- A school with genuinely varied per-student rates does not trip this,
+        -- because the figure has to match the annual total precisely.
+        AND st."monthlyFee" = a."totalAnnualFee"
+        AND a."totalAnnualFee" <> a."monthlyFee"
+      GROUP BY s.name`,
+  },
+  {
     id: "fee-overpaid",
     title: "Fee charge paid beyond what was charged",
     meaning:
