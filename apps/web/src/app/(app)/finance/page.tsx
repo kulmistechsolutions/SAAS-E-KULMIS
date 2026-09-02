@@ -27,11 +27,20 @@ import {
 } from "@/lib/fees/store";
 import type { FeePayment, StudentFeeRow } from "@/lib/fees/types";
 import { AcademicYearSelect } from "@/components/academics/academic-year-select";
+import { useStudentsState } from "@/lib/students/store";
 
 export default function FeeManagementPage() {
   const t = useT();
   const [mounted, setMounted] = useState(false);
   const fees = useFeesState();
+  // Every figure on this page that counts students — expected income, total
+  // outstanding, the fully-paid/partial/advance/free tallies — is derived from
+  // the student roster, but the page only ever subscribed to the fee store.
+  // The roster arrives a moment later on a fresh load, and nothing here
+  // recomputed when it did: KTS opened to Expected Monthly Income $0.00 beside
+  // Outstanding This Month $6,780. Visiting Students first happened to warm
+  // the cache, which is why it looked intermittent.
+  const studentsState = useStudentsState();
   const [filterMonth, setFilterMonth] = useState("");
   const [filterYear, setFilterYear] = useState("");
   const [payStudent, setPayStudent] = useState<StudentFeeRow | null>(null);
@@ -59,16 +68,16 @@ export default function FeeManagementPage() {
 
   const summary = useMemo(
     () => (mounted ? dashboardSummary(month, year) : null),
-    [mounted, month, year, fees],
+    [mounted, month, year, fees, studentsState],
   );
   const slices = useMemo(
     () => (mounted ? paymentSummary(month) : []),
-    [mounted, month, fees],
+    [mounted, month, fees, studentsState],
   );
   const recent = useMemo(() => (mounted ? recentPayments(5) : []), [mounted, fees]);
   const outstanding = useMemo(
     () => (mounted ? outstandingStudents(8) : []),
-    [mounted, fees],
+    [mounted, fees, studentsState],
   );
   const months = useMemo(() => (mounted ? availableMonths() : []), [mounted, fees]);
   const receipt = receiptNo ? getPayment(receiptNo) ?? null : null;
