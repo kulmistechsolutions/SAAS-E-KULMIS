@@ -211,3 +211,56 @@ export async function apiTeacherDashboard(
     `/teacher-attendance/dashboard?${params}`,
   );
 }
+
+// ── Attendance officers ────────────────────────────────────────────────────
+// Where each officer may take attendance. A null section means the whole
+// class; a null shift means every shift — both widen rather than restrict.
+
+export interface AttendanceGrant {
+  id: string;
+  classId: string;
+  sectionId: string | null;
+  shiftId: string | null;
+  class: { id: string; name: string };
+  section: { id: string; name: string } | null;
+  shift: { id: string; name: string } | null;
+}
+
+export interface AttendanceOfficer {
+  id: string;
+  username: string;
+  fullName: string | null;
+  status: string;
+  createdAt: string;
+  assignments: AttendanceGrant[];
+}
+
+export interface GrantInput {
+  classId: string;
+  sectionId?: string | null;
+  shiftId?: string | null;
+}
+
+export const apiListAttendanceOfficers = () =>
+  api<AttendanceOfficer[]>("/attendance-officers");
+
+export const apiSetAttendanceAssignments = (
+  userId: string,
+  assignments: GrantInput[],
+) =>
+  api<{
+    count: number;
+    conflicts: {
+      officer: string;
+      className: string;
+      section: string | null;
+      shift: string | null;
+    }[];
+  }>("/attendance-officers/assignments", {
+    method: "POST",
+    body: { userId, assignments },
+  });
+
+/** The classes the signed-in account may take attendance for. */
+export const apiMyAttendanceAssignments = () =>
+  api<AttendanceGrant[]>("/student-attendance/my-assignments");

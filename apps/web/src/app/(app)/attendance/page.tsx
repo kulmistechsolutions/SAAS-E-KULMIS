@@ -3,7 +3,7 @@
 
 import { useT } from "@/lib/i18n/provider";
 import Link from "next/link";
-import { CalendarCheck, Clock, GraduationCap, Users } from "lucide-react";
+import { CalendarCheck, Clock, GraduationCap, ShieldCheck, Users } from "lucide-react";
 
 const SECTIONS = [
   {
@@ -26,6 +26,13 @@ const SECTIONS = [
     href: "/attendance/shifts",
     icon: Clock,
     color: "from-amber-500 to-orange-600",
+  },
+  {
+    title: "Attendance Officers",
+    description: "Choose which classes, sections and shifts each officer may take attendance for.",
+    href: "/attendance/officers",
+    icon: ShieldCheck,
+    color: "from-emerald-500 to-teal-600",
   },
 ];
 
