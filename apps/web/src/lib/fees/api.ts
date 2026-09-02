@@ -593,8 +593,10 @@ export interface StudentPosition {
 export interface SchoolPosition {
   liveMonth: { year: number; month: number; monthKey: string; fromSetup: boolean };
   expected: number;
+  expectedThisMonth: number;
   collected: number;
   outstanding: number;
+  outstandingThisMonth: number;
   advance: number;
   credit: number;
   collectedThisMonth: number;

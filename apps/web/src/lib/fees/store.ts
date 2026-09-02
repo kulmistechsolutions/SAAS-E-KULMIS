@@ -678,7 +678,7 @@ export function dashboardSummary(
   if (pos && (!filterMonth || filterMonth === pos.liveMonth.monthKey)) {
     return {
       totalOutstanding: pos.outstanding,
-      outstandingThisMonth: pos.outstanding,
+      outstandingThisMonth: pos.outstandingThisMonth,
       collectedToday: pos.collectedToday,
       collectedThisMonth: pos.collectedThisMonth,
       collectionPercentage: pos.collectionRate ?? 0,
@@ -686,7 +686,7 @@ export function dashboardSummary(
       partialPayments: pos.students.partial,
       advancePayments: pos.students.advance,
       freeStudents: pos.students.free,
-      expectedMonthlyIncome: pos.expected,
+      expectedMonthlyIncome: pos.expectedThisMonth,
       netFeeCollection: pos.collectedThisMonth,
       totalActiveStudents: pos.students.total,
     };

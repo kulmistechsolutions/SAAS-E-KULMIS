@@ -81,9 +81,14 @@ export interface StudentPosition {
 export interface SchoolPosition {
   /** The month the school is collecting, and where that came from. */
   liveMonth: { year: number; month: number; monthKey: string; fromSetup: boolean };
+  /** Everything due to date, arrears included. */
   expected: number;
+  /** Just the live month's own billing — what "expected this month" means. */
+  expectedThisMonth: number;
   collected: number;
   outstanding: number;
+  /** Still owed on the live month alone, separate from carried arrears. */
+  outstandingThisMonth: number;
   advance: number;
   credit: number;
   collectedThisMonth: number;
@@ -399,11 +404,20 @@ export class BalanceEngineService {
       ),
     ]);
 
+    // The live month on its own, and everything due. A card headed "expected
+    // this month" that quietly included three months of arrears would read as
+    // a fee rise nobody made.
+    const liveKey = live.monthKey;
     const totals = positions.reduce(
       (acc, p) => {
         acc.expected += p.expected;
         acc.collected += p.paid;
         acc.outstanding += p.outstanding;
+        for (const l of p.lines) {
+          if (l.monthKey !== liveKey || l.status === "INACTIVE") continue;
+          acc.expectedThisMonth += l.expected;
+          acc.outstandingThisMonth += l.outstanding;
+        }
         acc.advance += p.advance;
         acc.credit += p.credit;
         acc.students[
@@ -423,8 +437,10 @@ export class BalanceEngineService {
       },
       {
         expected: 0,
+        expectedThisMonth: 0,
         collected: 0,
         outstanding: 0,
+        outstandingThisMonth: 0,
         advance: 0,
         credit: 0,
         students: {
@@ -442,15 +458,23 @@ export class BalanceEngineService {
     return {
       liveMonth: live,
       expected: totals.expected,
+      expectedThisMonth: totals.expectedThisMonth,
       collected: totals.collected,
       outstanding: totals.outstanding,
+      outstandingThisMonth: totals.outstandingThisMonth,
       advance: totals.advance,
       credit: totals.credit,
       collectedThisMonth: monthAgg._sum.amount ?? 0,
       collectedToday: todayAgg._sum.amount ?? 0,
+      // Against the month's own billing, which is what a collection rate means
+      // to a school — not against a total dragging every unpaid month with it.
       collectionRate:
-        totals.expected > 0
-          ? Math.round((totals.collected / totals.expected) * 1000) / 10
+        totals.expectedThisMonth > 0
+          ? Math.round(
+              ((totals.expectedThisMonth - totals.outstandingThisMonth) /
+                totals.expectedThisMonth) *
+                1000,
+            ) / 10
           : null,
       students: totals.students,
     };
