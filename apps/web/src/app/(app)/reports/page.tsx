@@ -22,7 +22,6 @@ import {
   searchReports,
   searchTeacherReports,
   teacherReportCategories,
-  totalReportCount,
 } from "@/lib/reports/catalog";
 import { activeAcademicYear } from "@/lib/academics/store";
 import { useAuth } from "@/lib/auth";
@@ -93,7 +92,7 @@ export default function ReportsDashboardPage() {
         <p className="mt-1 text-sm text-muted-foreground">
           {isTeacher
             ? `${count} reports for your assigned classes and subjects.`
-            : `Centralized analytics — ${totalReportCount()} reports across ${REPORT_CATEGORIES.length} categories.`}{" "}
+            : `Centralized analytics — ${count} reports across ${categories.length} categories.`}{" "}
           {t("reports.academicYear")} {year}.
         </p>
       </div>
