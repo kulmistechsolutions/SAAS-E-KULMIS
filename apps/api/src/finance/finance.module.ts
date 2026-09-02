@@ -1,6 +1,7 @@
 import { Module } from "@nestjs/common";
 import { FeesController } from "./fees.controller";
 import { FeesService } from "./fees.service";
+import { BalanceEngineService } from "./balance-engine.service";
 import { SalariesController } from "./salaries.controller";
 import { SalariesService } from "./salaries.service";
 import { ExpensesController } from "./expenses.controller";
@@ -21,6 +22,7 @@ import { FinanceService } from "./finance.service";
     FinanceController,
   ],
   providers: [
+    BalanceEngineService,
     FeesService,
     SalariesService,
     ExpensesService,
@@ -28,6 +30,7 @@ import { FinanceService } from "./finance.service";
     FinanceService,
   ],
   exports: [
+    BalanceEngineService,
     FeesService,
     SalariesService,
     ExpensesService,

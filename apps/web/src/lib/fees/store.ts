@@ -20,6 +20,7 @@ import {
   apiPayFee,
   apiPrintHistory,
   apiRecordReceiptPrint,
+  apiSchoolPosition,
   apiReversePayment,
   mapApiCharge,
   mapApiPayment,
@@ -53,6 +54,29 @@ const EMPTY: FeesState = {
 
 let state: FeesState | null = null;
 let loaded = false;
+/**
+ * The server's own answer for the school's money.
+ *
+ * The figures below used to be worked out here, from whatever charges the
+ * browser happened to hold and whichever stores had loaded — which is how one
+ * card could read $0.00 beside another reading $6,780 on the same screen. The
+ * engine computes them once, on the server, from the whole ledger.
+ */
+let positionCache: import("./api").SchoolPosition | null = null;
+
+export async function refreshSchoolPosition(): Promise<void> {
+  try {
+    positionCache = await apiSchoolPosition();
+    emit();
+  } catch {
+    /* keep whatever we had */
+  }
+}
+
+export function getSchoolPosition(): import("./api").SchoolPosition | null {
+  return positionCache;
+}
+
 let feeSettingsCache: {
   billingMode: "MONTHLY" | "ACADEMIC_YEAR";
   monthSetupDay: number;
@@ -150,6 +174,10 @@ export async function refreshFees(): Promise<void> {
         clockOffsetMs: Number.isFinite(parsed) ? parsed - Date.now() : 0,
       };
     }
+    // The engine's totals travel with the rest, so a screen never shows
+    // freshly-loaded charges beside a stale set of headline figures.
+    void refreshSchoolPosition();
+
     const activatedKeys = [
       ...new Set(activatedMonths.map((a) => monthKey(a.year, a.month))),
     ].sort();
@@ -641,6 +669,29 @@ export function dashboardSummary(
   academicYear?: string,
 ): FeeDashboardSummary {
   const s = ensure();
+
+  // The engine's answer, whenever we have one and the caller is asking about
+  // the month the school is actually collecting. Everything below is the old
+  // browser-side arithmetic, kept only for a month the user has scrolled back
+  // to and for the moment before the first fetch lands.
+  const pos = positionCache;
+  if (pos && (!filterMonth || filterMonth === pos.liveMonth.monthKey)) {
+    return {
+      totalOutstanding: pos.outstanding,
+      outstandingThisMonth: pos.outstanding,
+      collectedToday: pos.collectedToday,
+      collectedThisMonth: pos.collectedThisMonth,
+      collectionPercentage: pos.collectionRate ?? 0,
+      fullyPaidStudents: pos.students.paid,
+      partialPayments: pos.students.partial,
+      advancePayments: pos.students.advance,
+      freeStudents: pos.students.free,
+      expectedMonthlyIncome: pos.expected,
+      netFeeCollection: pos.collectedThisMonth,
+      totalActiveStudents: pos.students.total,
+    };
+  }
+
   const month = filterMonth ?? s.activeMonthKey;
   const year = academicYear ?? s.academicYear;
   const students = activeStudents(year);

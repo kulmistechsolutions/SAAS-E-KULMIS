@@ -552,3 +552,65 @@ export const apiUpdatePaymentPromise = (
     method: "PATCH",
     body,
   });
+
+// ── The balance engine ─────────────────────────────────────────────────────
+// One server-side answer for every money figure. Screens read these rather
+// than adding charges up themselves, which is what let two cards on the same
+// page disagree.
+
+export interface ChargeLine {
+  id: string;
+  kind: "MONTHLY" | "EXTRA" | "REGISTRATION";
+  label: string;
+  year: number;
+  month: number;
+  monthKey: string;
+  expected: number;
+  paid: number;
+  outstanding: number;
+  credit: number;
+  due: boolean;
+  status: "UNPAID" | "PARTIAL" | "PAID" | "INACTIVE" | "ADVANCE" | "FREE";
+}
+
+export interface StudentPosition {
+  studentId: string;
+  code: string;
+  fullName: string;
+  className: string | null;
+  section: string | null;
+  monthlyFee: number;
+  free: boolean;
+  expected: number;
+  paid: number;
+  outstanding: number;
+  advance: number;
+  credit: number;
+  lines: ChargeLine[];
+  state: "FREE" | "PAID" | "PARTIAL" | "UNPAID" | "ADVANCE" | "UNBILLED";
+}
+
+export interface SchoolPosition {
+  liveMonth: { year: number; month: number; monthKey: string; fromSetup: boolean };
+  expected: number;
+  collected: number;
+  outstanding: number;
+  advance: number;
+  credit: number;
+  collectedThisMonth: number;
+  collectedToday: number;
+  collectionRate: number | null;
+  students: {
+    total: number; paid: number; partial: number; unpaid: number;
+    free: number; advance: number; unbilled: number;
+  };
+}
+
+export const apiSchoolPosition = () =>
+  api<SchoolPosition>("/fees/position");
+
+export const apiStudentPosition = (studentId: string) =>
+  api<StudentPosition | null>(`/fees/position/${studentId}`);
+
+export const apiAllPositions = () =>
+  api<StudentPosition[]>("/fees/positions");

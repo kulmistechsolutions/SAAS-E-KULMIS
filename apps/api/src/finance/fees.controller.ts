@@ -23,6 +23,7 @@ import {
   UserRole,
 } from "@ekulmis/shared";
 import { FeesService } from "./fees.service";
+import { BalanceEngineService } from "./balance-engine.service";
 import { Roles } from "../auth/roles.decorator";
 import { CurrentUser } from "../auth/current-user.decorator";
 import type { AuthUser } from "../auth/auth.types";
@@ -30,7 +31,9 @@ import type { AuthUser } from "../auth/auth.types";
 @Roles(UserRole.ADMINISTRATOR, UserRole.FINANCE_OFFICER)
 @Controller("fees")
 export class FeesController {
-  constructor(private readonly fees: FeesService) {}
+  constructor(private readonly fees: FeesService,
+    private readonly balances: BalanceEngineService,
+  ) {}
 
   @Get("settings")
   settings(@CurrentUser() me: AuthUser) {
@@ -100,6 +103,28 @@ export class FeesController {
     const parsed = payFamilySchema.safeParse(body);
     if (!parsed.success) throw new BadRequestException(parsed.error.flatten());
     return this.fees.payFamily(me.schoolId, parsed.data, me.userId);
+  }
+
+  /**
+   * The one authoritative answer for a student's money — what is expected,
+   * paid, owed, paid ahead and credited. Every screen that shows a balance
+   * should read this rather than adding charges up for itself.
+   */
+  @Get("position/:studentId")
+  studentPosition(@CurrentUser() me: AuthUser, @Param("studentId") studentId: string) {
+    return this.balances.studentPosition(me.schoolId, studentId);
+  }
+
+  /** The same, for the whole school — the numbers behind the fee dashboard. */
+  @Get("position")
+  schoolPosition(@CurrentUser() me: AuthUser) {
+    return this.balances.schoolPosition(me.schoolId);
+  }
+
+  /** Every active student's position in one call, for the collection lists. */
+  @Get("positions")
+  allPositions(@CurrentUser() me: AuthUser) {
+    return this.balances.allPositions(me.schoolId);
   }
 
   @Get("ledger/:studentId")
