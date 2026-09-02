@@ -5,6 +5,7 @@ import {
   NotFoundException,
 } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
+import type { Prisma } from "@prisma/client";
 import ExcelJS from "exceljs";
 import type {
   BlockStudentInput,
@@ -189,6 +190,7 @@ export class ExaminationsService {
       academicYearId?: string;
       classId?: string;
       classIds?: string[];
+      includeArchived?: boolean;
     },
   ) {
     return this.prisma.forTenant(schoolId, (tx) =>
@@ -201,6 +203,11 @@ export class ExaminationsService {
           ...(filters?.classIds?.length
             ? { classId: { in: filters.classIds } }
             : {}),
+          // Archiving is how a school puts an exam away — usually one created
+          // by mistake. Every results and monitoring screen already honours
+          // that; this list did not, so the exam a school had just archived
+          // was still sitting in front of them.
+          ...(filters?.includeArchived ? {} : { status: { not: "ARCHIVED" } }),
         },
         orderBy: { createdAt: "desc" },
         include: {
@@ -2490,9 +2497,17 @@ export class ExaminationsService {
 
   dashboard(schoolId: string) {
     return this.prisma.forTenant(schoolId, async (tx) => {
+      // "Pending submissions" is meant to read as work the school still owes.
+      // Counting every exam_subject regardless of its exam made an archived
+      // mistake and an unstarted draft look like outstanding marking: one
+      // school archived an accidental exam and its twelve untouched subjects
+      // kept showing as pending, so the exam appeared not to have gone away.
+      const liveExam: Prisma.ExamWhereInput = {
+        status: { notIn: ["ARCHIVED", "DRAFT"] },
+      };
       const [total, draft, active, locked, published, groups, pending, completed] =
         await Promise.all([
-          tx.exam.count(),
+          tx.exam.count({ where: { status: { not: "ARCHIVED" } } }),
           tx.exam.count({ where: { status: "DRAFT" } }),
           tx.exam.count({
             where: { status: { in: ["OPEN", "IN_PROGRESS"] } },
@@ -2500,8 +2515,12 @@ export class ExaminationsService {
           tx.exam.count({ where: { status: "LOCKED" } }),
           tx.exam.count({ where: { status: "PUBLISHED" } }),
           tx.examGroup.count(),
-          tx.examSubject.count({ where: { submissionStatus: "PENDING" } }),
-          tx.examSubject.count({ where: { submissionStatus: "SUBMITTED" } }),
+          tx.examSubject.count({
+            where: { submissionStatus: "PENDING", exam: liveExam },
+          }),
+          tx.examSubject.count({
+            where: { submissionStatus: "SUBMITTED", exam: liveExam },
+          }),
         ]);
       return {
         totalExams: total,
