@@ -217,6 +217,9 @@ export class BalanceEngineService {
     let advance = 0;
     let credit = 0;
     let anyDue = false;
+    // Whether any single month is itself part-paid. Not the same question as
+    // "has this family paid anything", and it is the one the desk is asking.
+    let anyPartLine = false;
 
     for (const l of lines) {
       if (l.status === "INACTIVE") continue;
@@ -226,6 +229,7 @@ export class BalanceEngineService {
         expected += l.expected;
         paid += Math.min(l.paid, l.expected);
         outstanding += l.outstanding;
+        if (l.paid > 0 && l.paid < l.expected) anyPartLine = true;
       } else {
         advance += l.paid;
       }
@@ -235,7 +239,13 @@ export class BalanceEngineService {
     if (free) state = "FREE";
     else if (!anyDue) state = advance > 0 ? "ADVANCE" : "UNBILLED";
     else if (outstanding === 0) state = advance > 0 ? "ADVANCE" : "PAID";
-    else if (paid > 0) state = "PARTIAL";
+    // PARTIAL has to mean a month somebody part-paid. Deriving it from "paid
+    // anything at all across every month due" labelled a family who settled
+    // August in full and had not touched September as Partial — with the whole
+    // of September still outstanding. The desk went looking for a part-payment
+    // that did not exist. A month owed in full is UNPAID, whatever was settled
+    // before it.
+    else if (anyPartLine) state = "PARTIAL";
     else state = "UNPAID";
 
     return { expected, paid, outstanding, advance, credit, state };
