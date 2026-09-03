@@ -115,6 +115,22 @@ export function StudentPhotoUpload({
             <Camera className="h-4 w-4" />
           </label>
         )}
+        {/* Removing a photo has to be possible wherever one can be added.
+            The text button below is hidden in the compact layout the edit
+            dialog uses, which left the form able to replace a photo and never
+            to clear one — a picture put on the wrong child could not be taken
+            off. */}
+        {displayUrl && !disabled && (
+          <button
+            type="button"
+            onClick={clearPhoto}
+            title={t("studentsStudentPhotoUpload.remove")}
+            aria-label={t("studentsStudentPhotoUpload.remove")}
+            className="absolute -top-1 -end-1 flex h-7 w-7 items-center justify-center rounded-full border-2 border-background bg-rose-600 text-white shadow-md transition hover:bg-rose-700"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
+        )}
       </div>
 
       <input

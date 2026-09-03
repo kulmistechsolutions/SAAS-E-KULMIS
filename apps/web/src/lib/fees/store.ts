@@ -40,6 +40,7 @@ import type {
   PaymentType,
   RecentPaymentRow,
   StudentFeeRow,
+  StudentFeeState,
   StudentLedgerRow,
 } from "./types";
 
@@ -337,7 +338,13 @@ export function advanceMonthsLeft(studentId: string, fromMonth: string): number 
 export function aggregateStudentStatus(
   studentId: string,
   monthKeyArg: string,
-): { status: FeeChargeStatus | "ADVANCE_MULTI"; advanceMonthsLeft?: number } {
+): { status: StudentFeeState; advanceMonthsLeft?: number } {
+  // The browser-side fallback has to agree with the engine, or scrolling back
+  // to an older month would quietly reclassify every free student as paid.
+  const student = getStudentsState().students.find((x) => x.id === studentId);
+  if (student && (student.feeWaived || student.monthlyFee === 0)) {
+    return { status: "FREE" };
+  }
   const adv = advanceMonthsLeft(studentId, monthKeyArg);
   if (adv > 0) return { status: "ADVANCE_MULTI", advanceMonthsLeft: adv };
 
@@ -890,9 +897,12 @@ export function recentPayments(limit = 5): RecentPaymentRow[] {
 /** The engine's per-student state, in the vocabulary the rows already use. */
 function engineStatus(
   p: import("./api").StudentPosition,
-): FeeChargeStatus | "ADVANCE_MULTI" {
+): StudentFeeState {
   if (p.state === "ADVANCE") return "ADVANCE_MULTI";
-  if (p.state === "FREE") return "PAID";
+  // FREE stands on its own. Reporting it as PAID put students who pay nothing
+  // in among the families who had just paid, and left no way to list the free
+  // ones — the school could see the badge but could not filter for it.
+  if (p.state === "FREE") return "FREE";
   // Nothing billed yet reads as unpaid, which is what the browser-side
   // version returned and what the filters below expect.
   if (p.state === "UNBILLED") return "UNPAID";
@@ -914,7 +924,7 @@ export function listStudentFees(opts: {
   monthKey?: string;
   /** Matches the badge shown per row — "ADVANCE_MULTI" included since that's
    *  what a student paid several months ahead actually displays as. */
-  status?: FeeChargeStatus | "ADVANCE_MULTI";
+  status?: StudentFeeState;
 }): StudentFeeRow[] {
   const s = ensure();
   const month = opts.monthKey ?? s.activeMonthKey;

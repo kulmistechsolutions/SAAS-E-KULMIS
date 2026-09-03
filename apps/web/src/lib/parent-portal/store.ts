@@ -480,8 +480,37 @@ export function portalAuditForParent(parentId: string): PortalAuditEntry[] {
   return ensure().audit.filter((a) => a.parentId === parentId);
 }
 
-export function studentPayments(_studentId: string): FeePayment[] {
-  return [];
+/**
+ * The payments a family has actually made for one child.
+ *
+ * This returned an empty array — the Payment History screen has been telling
+ * every parent "No payments found" since it shipped, including families who
+ * had paid and been given a receipt. The ledger endpoint has carried the
+ * payments all along; nothing was reading them.
+ */
+export async function studentPayments(studentId: string): Promise<FeePayment[]> {
+  try {
+    const data = await apiPortalFees(studentId);
+    return data.payments.map((p) => ({
+      id: p.id,
+      studentId,
+      receiptNo: p.receiptNumber,
+      amount: p.amount,
+      paymentType: p.type as FeePayment["paymentType"],
+      collectedAt: p.paidAt,
+      // The ledger names the receipt and the money; the month breakdown lives
+      // on the charges it settled, which the portal does not need here.
+      monthKeys: [],
+      collectedBy: "",
+      academicYear: "",
+      outstandingAfter: 0,
+      status: p.status,
+      isReversal: p.isReversal,
+      reversalReason: p.reversalReason,
+    })) as FeePayment[];
+  } catch {
+    return [];
+  }
 }
 
 export { getParentWithChildren };

@@ -14,6 +14,7 @@ const TONE: Record<
   ADVANCE: "info",
   ADVANCE_MULTI: "info",
   INACTIVE: "muted",
+  FREE: "info",
 };
 
 export function FeeStatusBadge({

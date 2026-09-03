@@ -1,5 +1,15 @@
 export type FeeChargeStatus = "UNPAID" | "PARTIAL" | "PAID" | "ADVANCE" | "INACTIVE";
 
+/**
+ * What a student's month reads as on the collection screens.
+ *
+ * FREE is its own state and not a kind of PAID. Folding it into PAID meant
+ * filtering the list to "Paid" returned every free student alongside the
+ * families who had actually handed money over, and there was no way to ask
+ * for the free ones at all.
+ */
+export type StudentFeeState = FeeChargeStatus | "ADVANCE_MULTI" | "FREE";
+
 export type PaymentType = "THIS_MONTH" | "PARTIAL" | "ADVANCE";
 
 export interface FeeCharge {
@@ -96,7 +106,7 @@ export interface StudentFeeRow {
   monthlyFee: number;
   feeWaived?: boolean;
   outstandingBalance: number;
-  status: FeeChargeStatus | "ADVANCE_MULTI";
+  status: StudentFeeState;
   advanceMonthsLeft?: number;
   parentId: string;
   parentName: string;
@@ -111,7 +121,7 @@ export interface FamilyChildRow {
   className: string;
   section: string;
   outstandingBalance: number;
-  status: FeeChargeStatus | "ADVANCE_MULTI";
+  status: StudentFeeState;
 }
 
 /** A parent with every active sibling grouped under them, for the Family collect view. */

@@ -1263,6 +1263,7 @@ export const generated = {
     smsFailed: "Could not send SMS. Check SMS credits/settings.",
   },
   feesFormat: {
+    free: "Free",
     month1: "January",
     month2: "February",
     month3: "March",
@@ -2058,6 +2059,7 @@ export const generated = {
     noNotificationsYet: "No notifications yet.",
   },
   parentPortalPayments: {
+    loading: "Loading…",
     selectAChildToViewPayment: "Select a child to view payment history.",
     paymentHistory: "Payment History",
     searchReceiptNumber: "Search receipt number…",

@@ -1257,6 +1257,7 @@ export const arGenerated: PartialDictionary = {
     smsFailed: "تعذر إرسال الرسالة. تحقق من رصيد الرسائل/الإعدادات.",
   },
   feesFormat: {
+    free: "مجاني",
     month1: "يناير",
     month2: "فبراير",
     month3: "مارس",
@@ -2026,6 +2027,7 @@ export const arGenerated: PartialDictionary = {
     noNotificationsYet: "لا توجد إشعارات بعد.",
   },
   parentPortalPayments: {
+    loading: "جارٍ التحميل…",
     selectAChildToViewPayment: "اختر طفلًا لعرض سجل المدفوعات.",
     paymentHistory: "سجل المدفوعات",
     searchReceiptNumber: "ابحث برقم الإيصال…",

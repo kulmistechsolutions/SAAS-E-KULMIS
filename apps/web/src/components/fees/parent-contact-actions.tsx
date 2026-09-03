@@ -8,7 +8,7 @@ import { Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { apiSendSms } from "@/lib/sms/api";
 import { money } from "@/lib/fees/format";
-import type { FeeChargeStatus } from "@/lib/fees/types";
+import type { StudentFeeState } from "@/lib/fees/types";
 
 interface ParentContactActionsProps {
   parentPhone: string;
@@ -16,7 +16,7 @@ interface ParentContactActionsProps {
   /** Who the message is about, e.g. "Amina Hassan (Grade 5)" or "3 children". */
   subject: string;
   outstandingBalance: number;
-  status?: FeeChargeStatus | "ADVANCE_MULTI";
+  status?: StudentFeeState;
 }
 
 function defaultMessage(props: ParentContactActionsProps): {

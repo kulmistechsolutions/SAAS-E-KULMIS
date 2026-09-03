@@ -2,12 +2,14 @@
 
 
 import { useT } from "@/lib/i18n/provider";
+import { useEffect, useState } from "react";
 import { Download, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { usePortal } from "@/components/parent-portal/portal-context";
 import {
   childExamResults,
   childFeeSummary,
+  loadChildFeeSummary,
   logPortalAudit,
   studentPayments,
 } from "@/lib/parent-portal/store";
@@ -23,13 +25,35 @@ export default function ParentDownloadsPage() {
   const t = useT();
   const { parent, selectedChild } = usePortal();
 
-  if (!selectedChild) {
+  // Both of these come from the API and were previously read from stubs that
+  // returned nothing, so the fee statement was permanently empty and the
+  // receipt button permanently disabled — for families who had paid.
+  const [fees, setFees] = useState(() =>
+    selectedChild ? childFeeSummary(selectedChild) : null,
+  );
+  const [latestPayment, setLatestPayment] = useState<
+    Awaited<ReturnType<typeof studentPayments>>[number] | undefined
+  >(undefined);
+
+  useEffect(() => {
+    let live = true;
+    if (!selectedChild) return;
+    void loadChildFeeSummary(selectedChild).then((f) => {
+      if (live) setFees(f);
+    });
+    void studentPayments(selectedChild.id).then((rows) => {
+      if (live) setLatestPayment(rows[0]);
+    });
+    return () => {
+      live = false;
+    };
+  }, [selectedChild]);
+
+  if (!selectedChild || !fees) {
     return <p className="text-muted-foreground">{t("parentPortalDownloads.selectAChildToAccessDownloads")}</p>;
   }
 
-  const fees = childFeeSummary(selectedChild);
   const results = childExamResults(selectedChild.id);
-  const latestPayment = studentPayments(selectedChild.id)[0];
   const latestResult = studentPublishedResults(selectedChild.id).slice(-1)[0];
 
   const downloads = [

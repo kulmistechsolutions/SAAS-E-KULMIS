@@ -81,6 +81,7 @@ export function feeStatusLabel(
     return `${translateIn(lang, "feesFormat.advance")} (${advanceMonthsLeft})`;
   if (status === "ADVANCE") return translateIn(lang, "feesFormat.advance");
   if (status === "INACTIVE") return translateIn(lang, "feesFormat.inactive");
+  if (status === "FREE") return translateIn(lang, "feesFormat.free");
   if (status === "PAID") return translateIn(lang, "feesFormat.paid");
   if (status === "UNPAID") return translateIn(lang, "feesFormat.unpaid");
   if (status === "PARTIAL") return translateIn(lang, "feesFormat.partial");

@@ -18,7 +18,7 @@ import {
   apiListActivePaymentPromises,
   type ApiActivePaymentPromise,
 } from "@/lib/fees/api";
-import type { FeeChargeStatus, StudentFeeRow } from "@/lib/fees/types";
+import type { StudentFeeRow, StudentFeeState } from "@/lib/fees/types";
 import {
   classNamesForYear,
   groupClassNames,
@@ -60,12 +60,12 @@ export function CollectFeesSection({
   const [klass, setKlass] = useState(initialClass ?? "");
   const [section, setSection] = useState("");
   const [search, setSearch] = useState("");
-  const [status, setStatus] = useState<FeeChargeStatus | "ADVANCE_MULTI" | "">("");
+  const [status, setStatus] = useState<StudentFeeState | "">("");
   const [applied, setApplied] = useState({
     klass: initialClass ?? "",
     section: "",
     search: "",
-    status: "" as FeeChargeStatus | "ADVANCE_MULTI" | "",
+    status: "" as StudentFeeState | "",
   });
   const [page, setPage] = useState(1);
   const [mounted, setMounted] = useState(false);
@@ -255,12 +255,13 @@ export function CollectFeesSection({
           </label>
           <Select
             value={status}
-            onChange={(e) => setStatus(e.target.value as FeeChargeStatus | "ADVANCE_MULTI" | "")}
+            onChange={(e) => setStatus(e.target.value as StudentFeeState | "")}
           >
             <option value="">{t("feesCollectFeesSection.allStatuses")}</option>
             <option value="UNPAID">{feeStatusLabel("UNPAID")}</option>
             <option value="PARTIAL">{feeStatusLabel("PARTIAL")}</option>
             <option value="PAID">{feeStatusLabel("PAID")}</option>
+            <option value="FREE">{feeStatusLabel("FREE")}</option>
             <option value="ADVANCE">{feeStatusLabel("ADVANCE")}</option>
             <option value="ADVANCE_MULTI">{t("feesCollectFeesSection.advanceMultipleMonths")}</option>
             <option value="INACTIVE">{feeStatusLabel("INACTIVE")}</option>

@@ -1258,6 +1258,7 @@ export const soGenerated: PartialDictionary = {
     smsFailed: "SMS-ka lama diri karin. Hubi kaararka SMS-ka/dejinta.",
   },
   feesFormat: {
+    free: "Bilaash",
     month1: "Jannaayo",
     month2: "Febraayo",
     month3: "Maarso",
@@ -2027,6 +2028,7 @@ export const soGenerated: PartialDictionary = {
     noNotificationsYet: "Wali ogeysiis ma jiro.",
   },
   parentPortalPayments: {
+    loading: "Waa soo raraya…",
     selectAChildToViewPayment: "Dooro ilmo si aad u aragto taariikhda lacag-bixinta.",
     paymentHistory: "Taariikhda Lacag-bixinta",
     searchReceiptNumber: "Raadi lambarka rasiidhka…",

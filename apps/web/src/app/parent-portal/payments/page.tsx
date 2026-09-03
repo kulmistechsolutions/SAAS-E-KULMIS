@@ -2,7 +2,7 @@
 
 
 import { useT } from "@/lib/i18n/provider";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Download, Printer, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,10 +17,30 @@ export default function ParentPaymentsPage() {
   const { parent, selectedChild } = usePortal();
   const [search, setSearch] = useState("");
 
-  const payments = useMemo(
-    () => (selectedChild ? studentPayments(selectedChild.id) : []),
-    [selectedChild],
-  );
+  const [payments, setPayments] = useState<
+    Awaited<ReturnType<typeof studentPayments>>
+  >([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let live = true;
+    if (!selectedChild) {
+      setPayments([]);
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    void studentPayments(selectedChild.id)
+      .then((rows) => {
+        if (live) setPayments(rows);
+      })
+      .finally(() => {
+        if (live) setLoading(false);
+      });
+    return () => {
+      live = false;
+    };
+  }, [selectedChild]);
 
   const filtered = useMemo(() => {
     if (!search.trim()) return payments;
@@ -70,7 +90,9 @@ export default function ParentPaymentsPage() {
           <tbody>
             {filtered.map((p) => (
               <tr key={p.id} className="border-b">
-                <td className="px-4 py-3">{p.monthKeys.join(", ")}</td>
+                <td className="px-4 py-3">
+                  {p.monthKeys.length > 0 ? p.monthKeys.join(", ") : "—"}
+                </td>
                 <td className="px-4 py-3 font-medium">{money(p.amount)}</td>
                 <td className="px-4 py-3">
                   <Badge tone="success">{p.paymentType.replace(/_/g, " ")}</Badge>
@@ -92,7 +114,9 @@ export default function ParentPaymentsPage() {
             {filtered.length === 0 && (
               <tr>
                 <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
-                  {t("parentPortalPayments.noPaymentsFound")}
+                  {loading
+                    ? t("parentPortalPayments.loading")
+                    : t("parentPortalPayments.noPaymentsFound")}
                 </td>
               </tr>
             )}
