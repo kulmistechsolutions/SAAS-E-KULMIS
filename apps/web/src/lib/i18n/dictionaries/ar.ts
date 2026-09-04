@@ -100,6 +100,7 @@ const curated: PartialDictionary = {
     additionalIncome: "دخل إضافي",
     salariesPaid: "الرواتب المدفوعة",
     expenses: "المصروفات",
+    debtRepayments: "سداد الديون",
     feeCollection: "تحصيل الرسوم",
     outstandingAll: "{amount} لا تزال مستحقة عبر جميع الأشهر.",
     payrollTitle: "الرواتب بالتفصيل",

@@ -68,6 +68,7 @@ export interface ApiFinanceDashboard {
   otherIncome: number;
   totalExpenses: number;
   totalSalaries: number;
+  debtRepaid: number;
   netIncome: number;
   totalFinancialOutflow: number;
   totalOutstanding: number;

@@ -105,6 +105,7 @@ const core = {
     additionalIncome: "Additional income",
     salariesPaid: "Salaries paid",
     expenses: "Expenses",
+    debtRepayments: "Debt repayments",
     feeCollection: "Fee collection",
     outstandingAll: "{amount} still outstanding across all months.",
     payrollTitle: "Payroll, in detail",

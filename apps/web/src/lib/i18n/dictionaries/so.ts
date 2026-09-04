@@ -105,6 +105,7 @@ const curated: PartialDictionary = {
     additionalIncome: "Dakhli dheeraad ah",
     salariesPaid: "Mushaharka la bixiyay",
     expenses: "Kharashaadka",
+    debtRepayments: "Dib-u-bixinta deynta",
     feeCollection: "Ururinta khidmadda",
     outstandingAll: "{amount} ayaa weli lagu leeyahay bilaha oo dhan.",
     payrollTitle: "Mushaharka, faahfaahin",

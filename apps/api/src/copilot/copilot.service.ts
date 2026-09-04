@@ -49,6 +49,7 @@ export interface CopilotOverview {
     totalIncome: number;
     salaries: number;
     expenses: number;
+    debtRepaid: number;
     netIncome: number;
   };
   quiz: { attempts: number; averagePercent: number | null; passRate: number | null };
@@ -185,6 +186,7 @@ export class CopilotService {
           expenseAgg,
           salaryAgg,
           otherIncomeAgg,
+          debtRepaidAgg,
           quizAgg,
           quizPass,
           salaryDue,
@@ -245,6 +247,13 @@ export class CopilotService {
           }),
           tx.otherIncome.aggregate({
             where: { receivedAt: { gte: r.start, lt: r.end } },
+            _sum: { amount: true },
+          }),
+          // Repaying a loan is money leaving the school, same as an expense —
+          // see BalanceEngine/DashboardService for why the principal itself
+          // never appears as income here.
+          tx.schoolDebtRepayment.aggregate({
+            where: { paidAt: { gte: r.start, lt: r.end } },
             _sum: { amount: true },
           }),
           tx.quizAttempt.aggregate({
@@ -309,6 +318,7 @@ export class CopilotService {
         const otherIncome = otherIncomeAgg._sum.amount ?? 0;
         const salaries = salaryAgg._sum.amountPaid ?? 0;
         const expenses = expenseAgg._sum.amount ?? 0;
+        const debtRepaid = debtRepaidAgg._sum.amount ?? 0;
         const tPresent = att(teacherAttMonth, "PRESENT") + att(teacherAttMonth, "LATE");
         const tAbsent = att(teacherAttMonth, "ABSENT");
 
@@ -360,7 +370,8 @@ export class CopilotService {
             totalIncome: feeIncome + otherIncome,
             salaries,
             expenses,
-            netIncome: feeIncome + otherIncome - salaries - expenses,
+            debtRepaid,
+            netIncome: feeIncome + otherIncome - salaries - expenses - debtRepaid,
           },
           quiz: {
             attempts: quizAgg._count._all,
@@ -417,7 +428,9 @@ export class CopilotService {
         `${o.fees.studentsPartial} paid part of what they owe, ${o.fees.studentsUnpaid} have paid nothing yet`,
       `Outstanding across all months: ${money(o.fees.outstanding)}`,
       `Income this month: fees ${money(o.finance.feeIncome)} + other ${money(o.finance.otherIncome)} = ${money(o.finance.totalIncome)}`,
-      `Spending this month: salaries ${money(o.finance.salaries)} + expenses ${money(o.finance.expenses)}`,
+      o.finance.debtRepaid > 0
+        ? `Spending this month: salaries ${money(o.finance.salaries)} + expenses ${money(o.finance.expenses)} + debt repayments ${money(o.finance.debtRepaid)}`
+        : `Spending this month: salaries ${money(o.finance.salaries)} + expenses ${money(o.finance.expenses)}`,
       `Net income this month: ${money(o.finance.netIncome)}`,
       o.quiz.attempts > 0
         ? `Online quizzes graded: ${o.quiz.attempts}, average ${pct(o.quiz.averagePercent)}, passing ${pct(o.quiz.passRate)}`

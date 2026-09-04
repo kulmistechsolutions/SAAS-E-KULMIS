@@ -302,7 +302,11 @@ export default function CopilotPage() {
               value={money(overview.finance.netIncome)}
               hint={t("copilot.netIncomeHint", {
                 inAmount: money(overview.finance.totalIncome),
-                outAmount: money(overview.finance.salaries + overview.finance.expenses),
+                outAmount: money(
+                  overview.finance.salaries +
+                    overview.finance.expenses +
+                    overview.finance.debtRepaid,
+                ),
               })}
               icon={TrendingUp}
               tone={
@@ -323,6 +327,11 @@ export default function CopilotPage() {
                   { k: t("copilot.additionalIncome"), v: overview.finance.otherIncome, tone: "text-emerald-600 dark:text-emerald-400" },
                   { k: t("copilot.salariesPaid"), v: -overview.finance.salaries, tone: "text-rose-600 dark:text-rose-400" },
                   { k: t("copilot.expenses"), v: -overview.finance.expenses, tone: "text-rose-600 dark:text-rose-400" },
+                  // Only shown when there is one — a school that has never
+                  // borrowed anything should not see a debt line at all.
+                  ...(overview.finance.debtRepaid > 0
+                    ? [{ k: t("copilot.debtRepayments"), v: -overview.finance.debtRepaid, tone: "text-rose-600 dark:text-rose-400" }]
+                    : []),
                 ].map((row) => (
                   <div key={row.k} className="flex items-center justify-between">
                     <dt className="text-muted-foreground">{row.k}</dt>

@@ -20,7 +20,7 @@ export interface CopilotOverview {
   };
   finance: {
     feeIncome: number; otherIncome: number; totalIncome: number;
-    salaries: number; expenses: number; netIncome: number;
+    salaries: number; expenses: number; debtRepaid: number; netIncome: number;
   };
   quiz: { attempts: number; averagePercent: number | null; passRate: number | null };
   breakdown: {
