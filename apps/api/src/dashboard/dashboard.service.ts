@@ -340,6 +340,7 @@ export class DashboardService {
         otherIncomeAgg,
         expenseAgg,
         salaryAgg,
+        debtRepaidAgg,
         activeYear,
         recentPayments,
       ] = await Promise.all([
@@ -352,6 +353,10 @@ export class DashboardService {
         // See FinanceService.dashboard: outflow is `amountPaid` on every row,
         // not `amount` on fully-paid ones, or partials vanish from Net Income.
         tx.salary.aggregate({ _sum: { amountPaid: true } }),
+        // Repaying a loan is money leaving the school, so it belongs in Net
+        // Income beside expenses and salaries. The principal is deliberately
+        // absent from income: borrowing does not make a school richer.
+        tx.schoolDebtRepayment.aggregate({ _sum: { amount: true } }),
         tx.academicYear.findFirst({ where: { isActive: true } }),
         tx.payment.findMany({
           orderBy: { paidAt: "desc" },
@@ -418,6 +423,7 @@ export class DashboardService {
       const totalIncome = feeIncome + otherIncome;
       const totalExpenses = expenseAgg._sum.amount ?? 0;
       const totalSalaries = salaryAgg._sum.amountPaid ?? 0;
+      const debtRepaid = debtRepaidAgg._sum.amount ?? 0;
 
       const present = byStatus(attToday, "PRESENT");
       const absent = byStatus(attToday, "ABSENT");
@@ -515,7 +521,8 @@ export class DashboardService {
           otherIncome,
           totalExpenses,
           totalSalaries,
-          netIncome: totalIncome - totalExpenses - totalSalaries,
+          debtRepaid,
+          netIncome: totalIncome - totalExpenses - totalSalaries - debtRepaid,
         },
         activeAcademicYear: activeYear?.name ?? null,
         charts: { studentGrowth, feeCollection, incomeVsExpense },

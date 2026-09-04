@@ -39,10 +39,9 @@ export class FinancialReportsService {
     });
     const money = (n: number) => formatMoney(n, school?.currency);
 
-    const { fees, otherIncome, expenses, salaries } = await this.prisma.forTenant(
-      schoolId,
-      async (tx) => {
-        const [paySum, otherSum, expSum, salSum] = await Promise.all([
+    const { fees, otherIncome, expenses, salaries, debtRepaid } =
+      await this.prisma.forTenant(schoolId, async (tx) => {
+        const [paySum, otherSum, expSum, salSum, debtSum] = await Promise.all([
           tx.payment.aggregate({
             where: range ? { paidAt: range } : {},
             _sum: { amount: true },
@@ -66,18 +65,25 @@ export class FinancialReportsService {
             // `amount` counted payroll that has not been paid yet as spent.
             _sum: { amountPaid: true },
           }),
+          // Loan repayments leave the school the same way an expense does.
+          // The money borrowed is not income, so only what goes back out
+          // reaches this report.
+          tx.schoolDebtRepayment.aggregate({
+            where: range ? { paidAt: range } : {},
+            _sum: { amount: true },
+          }),
         ]);
         return {
           fees: paySum._sum.amount ?? 0,
           otherIncome: otherSum._sum.amount ?? 0,
           expenses: expSum._sum.amount ?? 0,
           salaries: salSum._sum.amountPaid ?? 0,
+          debtRepaid: debtSum._sum.amount ?? 0,
         };
-      },
-    );
+      });
 
     const income = fees + otherIncome;
-    const net = income - expenses - salaries;
+    const net = income - expenses - salaries - debtRepaid;
     // Only worth its own line when there is something on it.
     const incomeLines = [
       { line: "Fee Collections", amount: money(fees) },
@@ -115,6 +121,9 @@ export class FinancialReportsService {
           { line: "Total Income", amount: money(income) },
           { line: "Expenses", amount: money(-expenses) },
           { line: "Salaries", amount: money(-salaries) },
+          ...(debtRepaid > 0
+            ? [{ line: "Debt Repayments", amount: money(-debtRepaid) }]
+            : []),
           { line: "Net Income", amount: money(net) },
         ],
         summary: [{ label: "Net Income", value: money(net) }],

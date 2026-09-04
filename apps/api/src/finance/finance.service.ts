@@ -32,7 +32,15 @@ export class FinanceService {
       const startOfToday = new Date();
       startOfToday.setHours(0, 0, 0, 0);
 
-      const [payAgg, todayAgg, expAgg, salAgg, otherAgg, outstandingCharges] = await Promise.all([
+      const [
+        payAgg,
+        todayAgg,
+        expAgg,
+        salAgg,
+        otherAgg,
+        outstandingCharges,
+        debtAgg,
+      ] = await Promise.all([
         // Reversals are stored as a second, negative Payment row, so summing
         // every row already nets a reversed collection back out.
         tx.payment.aggregate({ _sum: { amount: true }, where: { paidAt } }),
@@ -62,6 +70,13 @@ export class FinanceService {
           where: { status: { not: "PAID" } },
           select: { amount: true, paidAmount: true },
         }),
+        // What the school paid back on its own borrowing. Money out, so it
+        // belongs beside expenses and salaries — the principal it borrowed is
+        // not income and never appears above.
+        tx.schoolDebtRepayment.aggregate({
+          _sum: { amount: true },
+          where: period ? { paidAt: { gte: period.start, lt: period.end } } : {},
+        }),
       ]);
 
       const feeIncome = payAgg._sum.amount ?? 0;
@@ -69,6 +84,7 @@ export class FinanceService {
       const totalIncome = feeIncome + otherIncome;
       const totalExpenses = expAgg._sum.amount ?? 0;
       const totalSalaries = salAgg._sum.amountPaid ?? 0;
+      const debtRepaid = debtAgg._sum.amount ?? 0;
       const totalOutstanding = outstandingCharges.reduce(
         (sum, c) => sum + (c.amount - c.paidAmount),
         0,
@@ -82,8 +98,9 @@ export class FinanceService {
         otherIncome,
         totalExpenses,
         totalSalaries,
-        netIncome: totalIncome - totalExpenses - totalSalaries,
-        totalFinancialOutflow: totalExpenses + totalSalaries,
+        debtRepaid,
+        netIncome: totalIncome - totalExpenses - totalSalaries - debtRepaid,
+        totalFinancialOutflow: totalExpenses + totalSalaries + debtRepaid,
         totalOutstanding,
       };
     });

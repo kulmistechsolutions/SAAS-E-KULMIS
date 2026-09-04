@@ -37,6 +37,7 @@ export interface AdminDashboardResponse {
     otherIncome: number;
     totalExpenses: number;
     totalSalaries: number;
+    debtRepaid: number;
     netIncome: number;
   };
   /**

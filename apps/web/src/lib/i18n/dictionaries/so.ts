@@ -197,6 +197,7 @@ const curated: PartialDictionary = {
     monthlySetup: "Dejinta Bishii",
     academicYearSetup: "Dejinta Sannad-dugsiyeedka",
     extraFees: "Khidmado Dheeraad ah",
+    schoolDebts: "Deynta Dugsiga",
     receipts: "Rasiidhada",
     monthlyPayroll: "Mushaharka Bishii",
     employees: "Shaqaalaha",

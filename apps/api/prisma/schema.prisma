@@ -3070,3 +3070,64 @@ model SubjectTimePreference {
   @@index([schoolId, academicYearId])
   @@map("subject_time_preferences")
 }
+
+/// Money the school itself has borrowed — a bank loan, an advance from an
+/// owner, credit from a supplier.
+///
+/// Deliberately not income. Borrowing does not make a school richer; it
+/// creates an obligation, and it is the repayments that leave the building.
+/// So the principal sits here as a debt to be tracked, and every repayment
+/// counts against net income the same way an expense does.
+model SchoolDebt {
+  id       String @id @default(cuid())
+  schoolId String
+  /// Who the money is owed to.
+  lender   String
+  /// What it was taken for, in the school's own words.
+  purpose  String?
+  /// The amount borrowed. Repayments are counted against this.
+  principal Int
+  /// The lender's own reference — a loan number, an agreement id.
+  reference String?
+  takenAt   DateTime         @default(now())
+  dueAt     DateTime?
+  status    SchoolDebtStatus @default(OPEN)
+  note      String?
+  recordedByUserId String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  repayments SchoolDebtRepayment[]
+
+  @@index([schoolId])
+  @@index([schoolId, status])
+  @@map("school_debts")
+}
+
+/// One repayment against a school debt. This is the row that reaches the
+/// school's net income.
+model SchoolDebtRepayment {
+  id       String @id @default(cuid())
+  schoolId String
+  debtId   String
+  amount   Int
+  method   String?
+  /// Receipt or transfer reference from the lender.
+  reference String?
+  note      String?
+  recordedByUserId String?
+  paidAt    DateTime @default(now())
+  createdAt DateTime @default(now())
+
+  debt SchoolDebt @relation(fields: [debtId], references: [id], onDelete: Cascade)
+
+  @@index([schoolId])
+  @@index([debtId])
+  @@map("school_debt_repayments")
+}
+
+enum SchoolDebtStatus {
+  OPEN
+  SETTLED
+  CANCELLED
+}

@@ -338,3 +338,41 @@ export const feeChangeSchema = z.object({
   reason: z.string().min(3).max(300).optional(),
 });
 export type FeeChangeInput = z.infer<typeof feeChangeSchema>;
+
+// ── School debts ───────────────────────────────────────────────────────────
+// Money the school itself has borrowed. The principal is a liability, not
+// income; the repayments are what reach net income.
+
+export const SchoolDebtStatus = {
+  OPEN: "OPEN",
+  SETTLED: "SETTLED",
+  CANCELLED: "CANCELLED",
+} as const;
+export type SchoolDebtStatus =
+  (typeof SchoolDebtStatus)[keyof typeof SchoolDebtStatus];
+export const schoolDebtStatusSchema = z.nativeEnum(SchoolDebtStatus);
+
+export const createSchoolDebtSchema = z.object({
+  lender: z.string().min(1, "Who the money is owed to is required").max(160),
+  purpose: z.string().max(300).optional(),
+  principal: z.number().int().positive("Amount must be more than zero"),
+  reference: z.string().max(120).optional(),
+  takenAt: z.string().optional(),
+  dueAt: z.string().optional().nullable(),
+  note: z.string().max(600).optional(),
+});
+export type CreateSchoolDebtInput = z.infer<typeof createSchoolDebtSchema>;
+
+export const updateSchoolDebtSchema = createSchoolDebtSchema
+  .partial()
+  .extend({ status: schoolDebtStatusSchema.optional() });
+export type UpdateSchoolDebtInput = z.infer<typeof updateSchoolDebtSchema>;
+
+export const createDebtRepaymentSchema = z.object({
+  amount: z.number().int().positive("Amount must be more than zero"),
+  method: z.string().max(60).optional(),
+  reference: z.string().max(120).optional(),
+  note: z.string().max(600).optional(),
+  paidAt: z.string().optional(),
+});
+export type CreateDebtRepaymentInput = z.infer<typeof createDebtRepaymentSchema>;

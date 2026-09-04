@@ -192,6 +192,7 @@ const curated: PartialDictionary = {
     monthlySetup: "الإعداد الشهري",
     academicYearSetup: "إعداد العام الدراسي",
     extraFees: "رسوم إضافية",
+    schoolDebts: "ديون المدرسة",
     receipts: "الإيصالات",
     monthlyPayroll: "كشف الرواتب الشهري",
     employees: "الموظفون",

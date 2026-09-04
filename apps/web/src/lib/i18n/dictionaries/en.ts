@@ -198,6 +198,7 @@ const core = {
     monthlySetup: "Monthly Setup",
     academicYearSetup: "Academic Year Setup",
     extraFees: "Extra Fees",
+    schoolDebts: "School Debts",
     receipts: "Receipts",
     monthlyPayroll: "Monthly Payroll",
     employees: "Employees",

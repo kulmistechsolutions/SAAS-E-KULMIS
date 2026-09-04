@@ -9,17 +9,20 @@ import { ExpensesController } from "./expenses.controller";
 import { ExpensesService } from "./expenses.service";
 import { OtherIncomeController } from "./other-income.controller";
 import { OtherIncomeService } from "./other-income.service";
+import { SchoolDebtsController } from "./school-debts.controller";
+import { SchoolDebtsService } from "./school-debts.service";
 import { FinanceController } from "./finance.controller";
 import { FinanceService } from "./finance.service";
 
 /** Phase 4 — Fees(7), Salary(8), Expense(9), Additional Income(9b),
- *  Finance Dashboard(10). */
+ *  Finance Dashboard(10), School Debts. */
 @Module({
   controllers: [
     FeesController,
     SalariesController,
     ExpensesController,
     OtherIncomeController,
+    SchoolDebtsController,
     FinanceController,
   ],
   providers: [
@@ -29,6 +32,7 @@ import { FinanceService } from "./finance.service";
     SalariesService,
     ExpensesService,
     OtherIncomeService,
+    SchoolDebtsService,
     FinanceService,
   ],
   exports: [
@@ -38,6 +42,7 @@ import { FinanceService } from "./finance.service";
     SalariesService,
     ExpensesService,
     OtherIncomeService,
+    SchoolDebtsService,
     FinanceService,
   ],
 })

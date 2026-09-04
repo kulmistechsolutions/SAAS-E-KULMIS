@@ -53,6 +53,7 @@ export class DashboardController {
         otherIncome: 0,
         totalExpenses: 0,
         totalSalaries: 0,
+        debtRepaid: 0,
         netIncome: 0,
       },
       charts: {
