@@ -1,3 +1,4 @@
+import { DEFAULT_PASSWORD_POLICY } from "@ekulmis/shared";
 import { getTeachersState } from "@/lib/teachers/store";
 import { getState as getStudentsState } from "@/lib/students/store";
 import {
@@ -136,9 +137,9 @@ export function buildSeed(): UsersState {
     security: {
       sessionTimeoutMinutes: 30,
       maxFailedLogins: 5,
-      minPasswordLength: 8,
-      requireUppercase: true,
-      requireNumber: true,
+      minPasswordLength: DEFAULT_PASSWORD_POLICY.minPasswordLength,
+      requireUppercase: DEFAULT_PASSWORD_POLICY.requireUppercase,
+      requireNumber: DEFAULT_PASSWORD_POLICY.requireNumber,
     },
     userSeq: seq,
   };

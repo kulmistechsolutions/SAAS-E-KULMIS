@@ -11,6 +11,11 @@ import {
 } from "./api";
 import { ApiError } from "@/lib/api";
 import {
+  DEFAULT_PASSWORD_POLICY,
+  passwordPolicyMessage,
+} from "@ekulmis/shared";
+import { getSettings } from "@/lib/settings/store";
+import {
   builtInRolePermissions,
   normalizePermissions,
   roleLabel,
@@ -42,9 +47,9 @@ const EMPTY: UsersState = {
   security: {
     sessionTimeoutMinutes: 30,
     maxFailedLogins: 5,
-    minPasswordLength: 8,
-    requireUppercase: true,
-    requireNumber: true,
+    minPasswordLength: DEFAULT_PASSWORD_POLICY.minPasswordLength,
+    requireUppercase: DEFAULT_PASSWORD_POLICY.requireUppercase,
+    requireNumber: DEFAULT_PASSWORD_POLICY.requireNumber,
   },
   userSeq: 0,
 };
@@ -165,18 +170,27 @@ function pushNotification(type: string, message: string) {
   });
 }
 
+/**
+ * The school's own password rule, asked of the school's own settings.
+ *
+ * This used to be a second copy of the rule, with its own defaults — and its
+ * defaults demanded a capital letter and a digit that the school had never
+ * asked for. An administrator creating an attendance officer was refused by
+ * this check while the server, holding the real policy, would have accepted
+ * the password. Both sides now read the one rule.
+ */
 export function validatePassword(password: string): string | null {
-  const sec = ensure().security;
-  if (!password || password.length < sec.minPasswordLength) {
-    return `Password must be at least ${sec.minPasswordLength} characters.`;
-  }
-  if (sec.requireUppercase && !/[A-Z]/.test(password)) {
-    return "Password must include an uppercase letter.";
-  }
-  if (sec.requireNumber && !/[0-9]/.test(password)) {
-    return "Password must include a number.";
-  }
-  return null;
+  const stored = getSettings().security;
+  return passwordPolicyMessage(password, {
+    minPasswordLength:
+      stored?.minPasswordLength ?? DEFAULT_PASSWORD_POLICY.minPasswordLength,
+    requireComplexity:
+      stored?.requireComplexity ?? DEFAULT_PASSWORD_POLICY.requireComplexity,
+    requireUppercase:
+      stored?.requireUppercase ?? DEFAULT_PASSWORD_POLICY.requireUppercase,
+    requireNumber:
+      stored?.requireNumber ?? DEFAULT_PASSWORD_POLICY.requireNumber,
+  });
 }
 
 export function getUser(id: string): SystemUser | undefined {
