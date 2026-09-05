@@ -1948,11 +1948,24 @@ export class FeesService {
     userId?: string,
   ) {
     return this.prisma.forTenant(schoolId, async (tx) => {
-      const classAmounts = dto.appliesToAllClasses ? [] : dto.classAmounts;
+      // A fee for one child carries no class pricing at all.
+      const forStudent = dto.studentId ?? null;
+      const classAmounts =
+        forStudent || dto.appliesToAllClasses ? [] : dto.classAmounts;
       await this.assertClassesExist(
         tx,
         classAmounts.map((c) => c.classId),
       );
+      if (forStudent) {
+        // Checked here rather than trusted from the form: a fee pointed at a
+        // student who is not this school's would bill nobody and sit in the
+        // list looking real.
+        const student = await tx.student.findFirst({
+          where: { id: forStudent },
+          select: { id: true },
+        });
+        if (!student) throw new NotFoundException("Student not found");
+      }
       const activeYear = await tx.academicYear.findFirst({
         where: { isActive: true },
         select: { id: true },
@@ -1966,10 +1979,12 @@ export class FeesService {
           description: dto.description ?? null,
           year: dto.year,
           month: dto.month,
-          appliesToAllClasses: dto.appliesToAllClasses,
-          defaultAmount: dto.appliesToAllClasses
-            ? (dto.defaultAmount ?? 0)
-            : null,
+          studentId: forStudent,
+          appliesToAllClasses: forStudent ? false : dto.appliesToAllClasses,
+          defaultAmount:
+            forStudent || dto.appliesToAllClasses
+              ? (dto.defaultAmount ?? 0)
+              : null,
           createdByUserId: userId ?? null,
           classAmounts: {
             create: classAmounts.map((c) => ({
@@ -2003,11 +2018,20 @@ export class FeesService {
         );
       }
 
-      const classAmounts = dto.appliesToAllClasses ? [] : dto.classAmounts;
+      const forStudent = dto.studentId ?? null;
+      const classAmounts =
+        forStudent || dto.appliesToAllClasses ? [] : dto.classAmounts;
       await this.assertClassesExist(
         tx,
         classAmounts.map((c) => c.classId),
       );
+      if (forStudent) {
+        const student = await tx.student.findFirst({
+          where: { id: forStudent },
+          select: { id: true },
+        });
+        if (!student) throw new NotFoundException("Student not found");
+      }
 
       await tx.extraFeeClassAmount.deleteMany({ where: { extraFeeId: id } });
       return tx.extraFee.update({
@@ -2017,10 +2041,12 @@ export class FeesService {
           description: dto.description ?? null,
           year: dto.year,
           month: dto.month,
-          appliesToAllClasses: dto.appliesToAllClasses,
-          defaultAmount: dto.appliesToAllClasses
-            ? (dto.defaultAmount ?? 0)
-            : null,
+          studentId: forStudent,
+          appliesToAllClasses: forStudent ? false : dto.appliesToAllClasses,
+          defaultAmount:
+            forStudent || dto.appliesToAllClasses
+              ? (dto.defaultAmount ?? 0)
+              : null,
           classAmounts: {
             create: classAmounts.map((c) => ({
               schoolId,
@@ -2085,9 +2111,13 @@ export class FeesService {
     const students = await tx.student.findMany({
       where: {
         status: "ACTIVE",
-        ...(fee.appliesToAllClasses
-          ? {}
-          : { classId: { in: [...amountByClass.keys()] } }),
+        // One named child, a chosen set of classes, or the whole school —
+        // in that order of narrowness.
+        ...(fee.studentId
+          ? { id: fee.studentId }
+          : fee.appliesToAllClasses
+            ? {}
+            : { classId: { in: [...amountByClass.keys()] } }),
       },
       select: {
         id: true,
@@ -2110,9 +2140,10 @@ export class FeesService {
       code: s.code,
       fullName: s.fullName,
       className: s.class.name,
-      amount: fee.appliesToAllClasses
-        ? (fee.defaultAmount ?? 0)
-        : (amountByClass.get(s.classId) ?? 0),
+      amount:
+        fee.studentId || fee.appliesToAllClasses
+          ? (fee.defaultAmount ?? 0)
+          : (amountByClass.get(s.classId) ?? 0),
       alreadyCharged: alreadyCharged.has(s.id),
     }));
 

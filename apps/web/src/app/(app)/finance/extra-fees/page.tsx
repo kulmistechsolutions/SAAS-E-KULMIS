@@ -31,6 +31,8 @@ import {
   type ExtraFeePreview,
 } from "@/lib/fees/api";
 import { refreshFees } from "@/lib/fees/store";
+import { apiListStudents } from "@/lib/students/api";
+import type { Student } from "@/lib/students/types";
 import {
   activeAcademicYear,
   ensureAcademicsLoaded,
@@ -47,15 +49,21 @@ const MONTHS = [
 
 const money = (n: number) => formatMoney(n, { decimals: 0 });
 
+/** Who a fee reaches, narrowest last. */
+type Audience = "ALL" | "CLASSES" | "STUDENT";
+
 interface FormState {
   id: string | null;
   name: string;
   description: string;
   year: number;
   month: number;
-  appliesToAllClasses: boolean;
+  audience: Audience;
   defaultAmount: string;
   classAmounts: Record<string, string>;
+  /** Which class to pick the one student from — a filter, never billed itself. */
+  studentClassId: string;
+  studentId: string;
 }
 
 function emptyForm(): FormState {
@@ -66,9 +74,11 @@ function emptyForm(): FormState {
     description: "",
     year: now.getFullYear(),
     month: now.getMonth() + 1,
-    appliesToAllClasses: true,
+    audience: "ALL",
     defaultAmount: "",
     classAmounts: {},
+    studentClassId: "",
+    studentId: "",
   };
 }
 
@@ -132,11 +142,13 @@ export default function ExtraFeesPage() {
       description: f.description ?? "",
       year: f.year,
       month: f.month,
-      appliesToAllClasses: f.appliesToAllClasses,
+      audience: f.studentId ? "STUDENT" : f.appliesToAllClasses ? "ALL" : "CLASSES",
       defaultAmount: f.defaultAmount != null ? String(f.defaultAmount) : "",
       classAmounts: Object.fromEntries(
         f.classAmounts.map((c) => [c.classId, String(c.amount)]),
       ),
+      studentClassId: "",
+      studentId: f.studentId ?? "",
     });
     setFormOpen(true);
   }
@@ -148,7 +160,12 @@ export default function ExtraFeesPage() {
       .filter(([, v]) => v.trim() !== "" && Number(v) > 0)
       .map(([classId, v]) => ({ classId, amount: Number(v) }));
 
-    if (form.appliesToAllClasses) {
+    if (form.audience === "STUDENT") {
+      if (!form.studentId) return toast("Pick the student to charge", "error");
+      if (!form.defaultAmount.trim() || Number(form.defaultAmount) <= 0) {
+        return toast("Enter the amount to charge this student", "error");
+      }
+    } else if (form.audience === "ALL") {
       if (!form.defaultAmount.trim() || Number(form.defaultAmount) <= 0) {
         return toast("Enter the amount to charge every class", "error");
       }
@@ -156,14 +173,16 @@ export default function ExtraFeesPage() {
       return toast("Set an amount for at least one class", "error");
     }
 
+    const priced = form.audience === "ALL" || form.audience === "STUDENT";
     const body = {
       name: form.name.trim(),
       description: form.description.trim() || null,
       year: form.year,
       month: form.month,
-      appliesToAllClasses: form.appliesToAllClasses,
-      defaultAmount: form.appliesToAllClasses ? Number(form.defaultAmount) : null,
-      classAmounts: form.appliesToAllClasses ? [] : classAmounts,
+      appliesToAllClasses: form.audience === "ALL",
+      defaultAmount: priced ? Number(form.defaultAmount) : null,
+      classAmounts: form.audience === "CLASSES" ? classAmounts : [],
+      studentId: form.audience === "STUDENT" ? form.studentId : null,
     };
 
     setSaving(true);
@@ -436,10 +455,8 @@ export default function ExtraFeesPage() {
                 <input
                   type="radio"
                   className="mt-1"
-                  checked={form.appliesToAllClasses}
-                  onChange={() =>
-                    setForm((f) => ({ ...f, appliesToAllClasses: true }))
-                  }
+                  checked={form.audience === "ALL"}
+                  onChange={() => setForm((f) => ({ ...f, audience: "ALL" }))}
                 />
                 <span>
                   {tr("financeExtraFees.everyClassSameAmount")}
@@ -452,10 +469,8 @@ export default function ExtraFeesPage() {
                 <input
                   type="radio"
                   className="mt-1"
-                  checked={!form.appliesToAllClasses}
-                  onChange={() =>
-                    setForm((f) => ({ ...f, appliesToAllClasses: false }))
-                  }
+                  checked={form.audience === "CLASSES"}
+                  onChange={() => setForm((f) => ({ ...f, audience: "CLASSES" }))}
                 />
                 <span>
                   {tr("financeExtraFees.chosenClassesOwnAmountEach")}
@@ -464,9 +479,28 @@ export default function ExtraFeesPage() {
                   </span>
                 </span>
               </label>
+              {/* A resit paper, a replaced book, a trip only one child went
+                  on. Without this a school had to invent a one-class fee to
+                  bill a single student, or not bill it at all. */}
+              <label className="flex items-start gap-2 text-sm">
+                <input
+                  type="radio"
+                  className="mt-1"
+                  checked={form.audience === "STUDENT"}
+                  onChange={() => setForm((f) => ({ ...f, audience: "STUDENT" }))}
+                />
+                <span>
+                  {tr("financeExtraFees.oneStudentOnly")}
+                  <span className="mt-0.5 block text-xs text-muted-foreground">
+                    {tr("financeExtraFees.oneStudentOnlyHint")}
+                  </span>
+                </span>
+              </label>
             </div>
 
-            {form.appliesToAllClasses ? (
+            {form.audience === "STUDENT" ? (
+              <StudentPicker form={form} setForm={setForm} classGroups={classGroups} />
+            ) : form.audience === "ALL" ? (
               <div className="mt-3">
                 <Label htmlFor="ef-amount">{tr("financeExtraFees.amountPerStudent")}</Label>
                 <Input
@@ -620,6 +654,169 @@ export default function ExtraFeesPage() {
           </div>
         ) : null}
       </Dialog>
+    </div>
+  );
+}
+
+/**
+ * Pick the one child this fee is for: narrow by class, then find them by name
+ * or ID.
+ *
+ * The class is a filter and nothing else — it is never billed. A school with
+ * a few hundred students cannot scroll a flat list to find one child, and the
+ * ID is what the desk usually has to hand, so both are searchable.
+ */
+function StudentPicker({
+  form,
+  setForm,
+  classGroups,
+}: {
+  form: FormState;
+  setForm: React.Dispatch<React.SetStateAction<FormState>>;
+  classGroups: { label: string | null; items: { id: string; name: string }[] }[];
+}) {
+  const tr = useT();
+  const [students, setStudents] = useState<Student[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [query, setQuery] = useState("");
+
+  useEffect(() => {
+    let live = true;
+    setLoading(true);
+    void apiListStudents()
+      .then((rows) => {
+        if (live) setStudents(rows.filter((s) => s.status === "ACTIVE"));
+      })
+      .catch(() => {
+        if (live) setStudents([]);
+      })
+      .finally(() => {
+        if (live) setLoading(false);
+      });
+    return () => {
+      live = false;
+    };
+  }, []);
+
+  const classNameById = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const g of classGroups) for (const c of g.items) m.set(c.id, c.name);
+    return m;
+  }, [classGroups]);
+
+  const matches = useMemo(() => {
+    const wanted = classNameById.get(form.studentClassId);
+    const q = query.trim().toLowerCase();
+    return students
+      .filter((s) => (wanted ? s.className === wanted : true))
+      .filter((s) =>
+        q
+          ? s.fullName.toLowerCase().includes(q) ||
+            s.code.toLowerCase().includes(q)
+          : true,
+      )
+      .slice(0, 50);
+  }, [students, form.studentClassId, query, classNameById]);
+
+  const chosen = students.find((s) => s.id === form.studentId) ?? null;
+
+  return (
+    <div className="mt-3 space-y-3">
+      <div className="grid gap-2 sm:grid-cols-2">
+        <div>
+          <Label htmlFor="ef-student-class">{tr("financeExtraFees.classFilter")}</Label>
+          <Select
+            id="ef-student-class"
+            className="mt-1.5"
+            value={form.studentClassId}
+            onChange={(e) =>
+              // Changing the class drops the chosen child: keeping them would
+              // leave a name on screen that the list below no longer contains.
+              setForm((f) => ({
+                ...f,
+                studentClassId: e.target.value,
+                studentId: "",
+              }))
+            }
+          >
+            <option value="">{tr("financeExtraFees.allClasses")}</option>
+            {classGroups.map((g) =>
+              g.items.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {g.label ? `${g.label} — ${c.name}` : c.name}
+                </option>
+              )),
+            )}
+          </Select>
+        </div>
+        <div>
+          <Label htmlFor="ef-student-amount">{tr("financeExtraFees.amount")}</Label>
+          <Input
+            id="ef-student-amount"
+            type="number"
+            min={0}
+            className="mt-1.5"
+            placeholder={tr("financeExtraFees.eG10")}
+            value={form.defaultAmount}
+            onChange={(e) =>
+              setForm((f) => ({ ...f, defaultAmount: e.target.value }))
+            }
+          />
+        </div>
+      </div>
+
+      <div>
+        <Label htmlFor="ef-student-search">{tr("financeExtraFees.findTheStudent")}</Label>
+        <Input
+          id="ef-student-search"
+          className="mt-1.5"
+          placeholder={tr("financeExtraFees.searchByNameOrId")}
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+        />
+      </div>
+
+      {chosen ? (
+        <div className="flex items-center justify-between gap-2 rounded-lg border border-primary/40 bg-primary/5 p-3">
+          <span className="min-w-0 text-sm">
+            <span className="font-medium">{chosen.fullName}</span>
+            <span className="block text-xs text-muted-foreground">
+              {chosen.code} · {chosen.className}
+            </span>
+          </span>
+          <Button
+            variant="ghost"
+            className="h-8 px-2 text-xs"
+            onClick={() => setForm((f) => ({ ...f, studentId: "" }))}
+          >
+            {tr("financeExtraFees.change")}
+          </Button>
+        </div>
+      ) : loading ? (
+        <p className="text-sm text-muted-foreground">
+          {tr("financeExtraFees.loadingStudents")}
+        </p>
+      ) : matches.length === 0 ? (
+        <p className="text-sm text-muted-foreground">
+          {tr("financeExtraFees.noStudentsMatch")}
+        </p>
+      ) : (
+        <div className="max-h-56 divide-y overflow-auto rounded-lg border bg-background">
+          {matches.map((s) => (
+            <button
+              key={s.id}
+              type="button"
+              className="flex w-full items-center justify-between gap-2 px-3 py-2 text-start text-sm hover:bg-secondary/50"
+              onClick={() => setForm((f) => ({ ...f, studentId: s.id }))}
+            >
+              <span className="min-w-0 truncate">{s.fullName}</span>
+              <span className="shrink-0 text-xs text-muted-foreground">
+                {s.code} · {s.className}
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

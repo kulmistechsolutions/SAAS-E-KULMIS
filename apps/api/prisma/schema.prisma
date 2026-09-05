@@ -977,6 +977,10 @@ model ExtraFee {
   /// true = every active class at `defaultAmount`; false = only the classes in
   /// classAmounts, each at its own price.
   appliesToAllClasses Boolean @default(true)
+  /// Set when this fee is for one named child rather than a class or the
+  /// whole school — a resit paper, a replaced book, a trip only they went on.
+  /// The amount is `defaultAmount`; appliesToAllClasses is false alongside it.
+  studentId           String?
 
   status          EntityStatus @default(ACTIVE)
   /// Set the first time it is pushed onto students; used to show "applied" state.
@@ -991,6 +995,7 @@ model ExtraFee {
 
   @@index([schoolId])
   @@index([academicYearId])
+  @@index([studentId])
   @@map("extra_fees")
 }
 

@@ -199,6 +199,11 @@ const extraFeeBase = z.object({
   defaultAmount: z.number().int().nonnegative().nullable().optional(),
   /** Required (non-empty) when appliesToAllClasses is false. */
   classAmounts: z.array(extraFeeClassAmountSchema).default([]),
+  /**
+   * Set to bill one named child instead of classes — a resit paper, a
+   * replaced book, a trip only they went on. Priced by `defaultAmount`.
+   */
+  studentId: z.string().trim().min(1).nullable().optional(),
 });
 
 /** Whichever targeting mode is picked must carry its amounts. */
@@ -206,6 +211,25 @@ const refineExtraFee = (
   val: z.infer<typeof extraFeeBase>,
   ctx: z.RefinementCtx,
 ) => {
+  // One named child: the amount is the only other thing it needs, and class
+  // pricing has no meaning here.
+  if (val.studentId) {
+    if (val.defaultAmount == null) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["defaultAmount"],
+        message: "Enter the amount to charge this student",
+      });
+    }
+    if (val.appliesToAllClasses) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["studentId"],
+        message: "A fee for one student cannot also apply to every class",
+      });
+    }
+    return;
+  }
   if (val.appliesToAllClasses) {
     if (val.defaultAmount == null) {
       ctx.addIssue({

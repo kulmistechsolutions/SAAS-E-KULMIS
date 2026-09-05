@@ -432,6 +432,8 @@ export interface ApiExtraFee {
   month: number;
   appliesToAllClasses: boolean;
   defaultAmount: number | null;
+  /** Set when this fee bills one named child rather than classes. */
+  studentId: string | null;
   status: "ACTIVE" | "INACTIVE";
   appliedAt: string | null;
   createdAt: string;
@@ -449,6 +451,8 @@ export interface ExtraFeeBody {
   appliesToAllClasses: boolean;
   defaultAmount?: number | null;
   classAmounts: { classId: string; amount: number }[];
+  /** Bills one named child; priced by defaultAmount. */
+  studentId?: string | null;
 }
 
 export const apiListExtraFees = () => api<ApiExtraFee[]>("/fees/extra");
