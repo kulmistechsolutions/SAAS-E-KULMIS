@@ -27,7 +27,8 @@ import {
   sectionsForClassName,
   suggestedNextClass,
 } from "@/lib/promotions/store";
-import { activeAcademicYear } from "@/lib/academics/store";
+import { academicYearNames, activeAcademicYear } from "@/lib/academics/store";
+import { nextAcademicYear } from "@ekulmis/shared";
 import { cn } from "@/lib/utils";
 import { toast } from "@/lib/toast";
 import type { PromotionType } from "@/lib/promotions/types";
@@ -89,6 +90,13 @@ export default function PromotePage() {
       toSection: toSection || null,
     });
   }, [step, fromClass, fromSection, toClass, toSection, year]);
+
+  // Promotion moves a school into the following year; showing which one is
+  // the difference between "it did nothing" and "it worked".
+  const toYear = useMemo(
+    () => (mounted ? nextAcademicYear(year, academicYearNames()) : null),
+    [mounted, year],
+  );
 
   const schoolWidePreview = useMemo(() => {
     if (type !== "SCHOOL_WIDE" || step < 3) return null;
@@ -152,7 +160,6 @@ export default function PromotePage() {
             type: "SCHOOL_WIDE",
             academicYear: year,
             studentIds: schoolWidePreview.candidates.filter((c) => c.eligible).map((c) => c.studentId),
-            toAcademicYear: year,
           })
         : { ok: false, error: "Nothing to promote.", promoted: 0, graduated: 0, skipped: 0 };
       finish(res);
@@ -165,7 +172,6 @@ export default function PromotePage() {
       studentIds: [...selected],
       toClass: preview?.graduating ? null : toClass || null,
       toSection: toSection || null,
-      toAcademicYear: year,
     });
     finish(res);
   }
@@ -302,6 +308,7 @@ export default function PromotePage() {
                 total={schoolWidePreview?.candidates.length ?? 0}
                 eligible={schoolWidePreview?.candidates.filter((c) => c.eligible).length ?? 0}
                 graduating={schoolWidePreview?.candidates.filter((c) => c.graduating && c.eligible).length ?? 0}
+                toYear={toYear}
               />
               <PreviewTable candidates={schoolWidePreview?.candidates ?? []} />
             </>
@@ -312,6 +319,7 @@ export default function PromotePage() {
                 eligible={selected.size}
                 graduating={preview?.candidates.filter((c) => c.graduating && selected.has(c.studentId)).length ?? 0}
                 destination={preview?.graduating ? "Graduation" : `${toClass}${toSection ? ` — Section ${toSection}` : ""}`}
+                toYear={preview?.graduating ? null : toYear}
               />
               <PreviewTable
                 candidates={
@@ -403,19 +411,26 @@ function PreviewSummary({
   eligible,
   graduating,
   destination,
+  toYear,
 }: {
   total: number;
   eligible: number;
   graduating: number;
   destination?: string;
+  /** The year students land in — the part of a promotion schools most need to see. */
+  toYear?: string | null;
 }) {
   const tr = useT();
+  const where = destination ?? tr("promotionsPromote.autoOneGradeUp");
   return (
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
       <Stat label={tr("promotionsPromote.totalStudents")} value={String(total)} />
       <Stat label={tr("promotionsPromote.selectedEligible")} value={String(eligible)} tone="emerald" />
       <Stat label={tr("promotionsPromote.graduating")} value={String(graduating)} tone="sky" />
-      <Stat label={tr("promotionsPromote.destination")} value={destination ?? "Auto (one grade up)"} />
+      <Stat
+        label={tr("promotionsPromote.destination")}
+        value={toYear ? `${where} · ${toYear}` : where}
+      />
     </div>
   );
 }

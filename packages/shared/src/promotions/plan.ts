@@ -147,3 +147,30 @@ export function explainEmptyPromotion(plan: PromotionPlan): string {
   }
   return `Nobody was promoted. ${parts.join(" ")}`;
 }
+
+/**
+ * The academic year a promotion lands in.
+ *
+ * Promotion is a year transition, not a reshuffle inside one: Grade 1 of
+ * 2025-2026 becomes Grade 2 of 2026-2027. Resolving the destination class in
+ * the year being promoted FROM moved 21 children at Haldoor up a grade while
+ * leaving them in the old year — so the new year's classes stayed empty, the
+ * old year's Grade 1 still listed students, and the school could not tell
+ * whether the promotion had run at all.
+ *
+ * Taken from the school's own list of years rather than by adding one to a
+ * number in the name: schools name years differently, and inventing
+ * "2026-2027" when the school has not created it would only move the failure
+ * one step later.
+ */
+export function nextAcademicYear(
+  current: string,
+  years: string[],
+): string | null {
+  const ordered = [...new Set(years)].sort((a, b) =>
+    a.localeCompare(b, undefined, { numeric: true }),
+  );
+  const index = ordered.indexOf(current);
+  if (index === -1 || index === ordered.length - 1) return null;
+  return ordered[index + 1] ?? null;
+}

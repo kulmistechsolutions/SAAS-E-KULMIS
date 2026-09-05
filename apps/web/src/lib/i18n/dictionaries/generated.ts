@@ -2897,6 +2897,7 @@ export const generated = {
     ready: "Ready",
   },
   promotionsPromote: {
+    autoOneGradeUp: "Auto (one grade up)",
     loading: "Loading…",
     backToPromotions: "Back to Promotions",
     promotionWizard: "Promotion Wizard",

@@ -3,6 +3,7 @@
 import { useSyncExternalStore } from "react";
 import { ApiError } from "@/lib/api";
 import {
+  academicYearNames,
   activeAcademicYear,
   classByName,
   getAcademicsState,
@@ -19,7 +20,11 @@ import {
   type ApiGraduatedStudent,
   type ApiPromotionRecord,
 } from "./api";
-import { explainEmptyPromotion, planPromotions } from "@ekulmis/shared";
+import {
+  explainEmptyPromotion,
+  nextAcademicYear,
+  planPromotions,
+} from "@ekulmis/shared";
 import { isFinalClass, money, nextClassName } from "./format";
 import type {
   EligibilityIssue,
@@ -354,7 +359,21 @@ export async function promoteStudents(opts: {
     return { ok: false, error: "No students selected.", promoted: 0, graduated: 0, skipped: 0 };
   }
 
-  const destinationYear = opts.toAcademicYear ?? opts.academicYear;
+  // Promotion moves a student into the FOLLOWING year, not up a grade inside
+  // the one they are leaving. Resolving the destination class in the year
+  // being promoted from is what left Haldoor's new year empty while the old
+  // year still listed the same children one grade higher.
+  const destinationYear =
+    opts.toAcademicYear ?? nextAcademicYear(opts.academicYear, academicYearNames());
+  if (!destinationYear) {
+    return {
+      ok: false,
+      error: `There is no academic year after ${opts.academicYear}. Create it under Classes & Sections → Academic Years, then promote into it.`,
+      promoted: 0,
+      graduated: 0,
+      skipped: 0,
+    };
+  }
 
   // Each student's own destination, worked out from the class ladder rather
   // than from one class chosen for the whole run. "Auto (one grade up)" used
@@ -373,6 +392,27 @@ export async function promoteStudents(opts: {
     return {
       ok: false,
       error: explainEmptyPromotion(plan),
+      promoted: 0,
+      graduated: 0,
+      skipped: plan.skipped,
+    };
+  }
+
+  // Every destination class is resolved before a single student is written.
+  // A class missing from the new year used to surface halfway through the
+  // loop, which left a school split across two years with no way back.
+  const destinationIds = new Map<string, string>();
+  const missing: string[] = [];
+  for (const step of plan.actions) {
+    if (step.action !== "PROMOTE" || destinationIds.has(step.toClassName)) continue;
+    const id = classByName(step.toClassName, destinationYear)?.id;
+    if (id) destinationIds.set(step.toClassName, id);
+    else missing.push(step.toClassName);
+  }
+  if (missing.length > 0) {
+    return {
+      ok: false,
+      error: `${[...new Set(missing)].join(", ")} ${missing.length === 1 ? "does" : "do"} not exist in ${destinationYear}. Create ${missing.length === 1 ? "it" : "them"} before promoting into that year.`,
       promoted: 0,
       graduated: 0,
       skipped: plan.skipped,
@@ -405,13 +445,7 @@ export async function promoteStudents(opts: {
         continue;
       }
 
-      const toClassId = classByName(step.toClassName, destinationYear)?.id;
-      if (!toClassId) {
-        // The ladder named a class this year does not actually carry.
-        throw new Error(
-          `${step.toClassName} does not exist in ${destinationYear}. Create it before promoting into it.`,
-        );
-      }
+      const toClassId = destinationIds.get(step.toClassName)!;
 
       await apiPromoteStudent({
         studentId: step.studentId,

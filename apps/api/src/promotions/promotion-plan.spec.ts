@@ -1,4 +1,8 @@
-import { explainEmptyPromotion, planPromotions } from "@ekulmis/shared";
+import {
+  explainEmptyPromotion,
+  nextAcademicYear,
+  planPromotions,
+} from "@ekulmis/shared";
 
 /**
  * Where each student goes when a class is promoted.
@@ -134,5 +138,55 @@ describe("planning a promotion", () => {
       expect(message).toContain("1 are already in the class you chose");
       expect(message).toContain("1 did not meet");
     });
+  });
+});
+
+describe("which academic year a promotion lands in", () => {
+  // Haldoor, 2026-09-05: 21 children were promoted one grade up and left in
+  // 2025-2026. The new year's classes stayed empty, the old year's Grade 1
+  // still listed students, and the school could not tell whether the
+  // promotion had run.
+  const YEARS = ["2024-2025", "2025-2026", "2026-2027"];
+
+  it("moves a school into the following year, not up a grade inside its own", () => {
+    expect(nextAcademicYear("2025-2026", YEARS)).toBe("2026-2027");
+  });
+
+  it("does not skip a year when the list arrives out of order", () => {
+    expect(nextAcademicYear("2024-2025", ["2026-2027", "2024-2025", "2025-2026"])).toBe(
+      "2025-2026",
+    );
+  });
+
+  it("refuses rather than inventing a year the school has not created", () => {
+    // Naming "2027-2028" when nobody has created it only moves the failure
+    // one step later, to a class lookup that cannot succeed.
+    expect(nextAcademicYear("2026-2027", YEARS)).toBeNull();
+  });
+
+  it("has no answer for a year that is not the school's", () => {
+    expect(nextAcademicYear("2019-2020", YEARS)).toBeNull();
+  });
+
+  it("handles a school that has only ever had one year", () => {
+    expect(nextAcademicYear("2025-2026", ["2025-2026"])).toBeNull();
+  });
+
+  it("ignores a duplicated year in the list", () => {
+    expect(
+      nextAcademicYear("2025-2026", ["2025-2026", "2025-2026", "2026-2027"]),
+    ).toBe("2026-2027");
+  });
+
+  it("puts the class ladder and the year together the way a promotion does", () => {
+    // Grade 1 of 2025-2026 becomes Grade 2 of 2026-2027: the plan supplies
+    // the class, this supplies the year, and neither alone is the answer.
+    const p = plan([student("a", "Grade 1")]);
+    expect(p.actions[0]).toEqual({
+      studentId: "a",
+      action: "PROMOTE",
+      toClassName: "Grade 2",
+    });
+    expect(nextAcademicYear("2025-2026", YEARS)).toBe("2026-2027");
   });
 });

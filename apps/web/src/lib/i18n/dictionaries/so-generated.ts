@@ -2838,6 +2838,7 @@ export const soGenerated: PartialDictionary = {
     ready: "Diyaar",
   },
   promotionsPromote: {
+    autoOneGradeUp: "Otomaatig (hal fasal kor)",
     loading: "Waa la soo dejinayaa…",
     backToPromotions: "Ku noqo Kor u Qaadista",
     promotionWizard: "Tilmaamaha Kor u Qaadista",
