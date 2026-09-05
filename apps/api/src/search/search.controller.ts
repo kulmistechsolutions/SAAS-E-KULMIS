@@ -45,8 +45,14 @@ export class SearchController {
     let studentIds: string[] | null = null;
     let classIds: string[] | null = null;
     if (me.role === UserRole.TEACHER) {
-      const mine = await this.teachers.myStudents(me.schoolId, me.userId);
-      studentIds = mine.map((s) => s.id);
+      // Most teacher accounts were never granted "view students". Such a
+      // teacher has nobody to find, which is an empty answer rather than a
+      // refusal — letting the refusal through would have broken the search
+      // box for them instead of narrowing it.
+      studentIds = await this.teachers
+        .myStudents(me.schoolId, me.userId)
+        .then((mine) => mine.map((s) => s.id))
+        .catch(() => []);
     } else {
       classIds = await this.scope.visibleClassIds(
         me.schoolId,
