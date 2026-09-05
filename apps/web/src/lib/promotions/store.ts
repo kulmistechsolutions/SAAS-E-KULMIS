@@ -19,6 +19,7 @@ import {
   type ApiGraduatedStudent,
   type ApiPromotionRecord,
 } from "./api";
+import { explainEmptyPromotion, planPromotions } from "@ekulmis/shared";
 import { isFinalClass, money, nextClassName } from "./format";
 import type {
   EligibilityIssue,
@@ -353,47 +354,73 @@ export async function promoteStudents(opts: {
     return { ok: false, error: "No students selected.", promoted: 0, graduated: 0, skipped: 0 };
   }
 
+  const destinationYear = opts.toAcademicYear ?? opts.academicYear;
+
+  // Each student's own destination, worked out from the class ladder rather
+  // than from one class chosen for the whole run. "Auto (one grade up)" used
+  // to resolve to nothing at all, so every child was skipped.
+  const plan = planPromotions({
+    students: targets.map((student) => ({
+      id: student.id,
+      className: student.className,
+      eligible: evaluateStudent(student).eligible,
+    })),
+    orderedClasses: orderedClassNames(opts.academicYear),
+    toClassName: opts.toClass ?? null,
+  });
+
+  if (plan.promoting === 0 && plan.graduating === 0) {
+    return {
+      ok: false,
+      error: explainEmptyPromotion(plan),
+      promoted: 0,
+      graduated: 0,
+      skipped: plan.skipped,
+    };
+  }
+
   let promoted = 0;
   let graduated = 0;
-  let skipped = 0;
+  const skipped = plan.skipped;
 
-  const toClassId = opts.toClass ? classByName(opts.toClass, opts.toAcademicYear ?? opts.academicYear)?.id : null;
-  const toSectionId =
-    opts.toSection && toClassId
-      ? getAcademicsState().sections.find((s) => s.classId === toClassId && s.name === opts.toSection)?.id
+  const sections = getAcademicsState().sections;
+  const sectionIdIn = (classId: string | undefined, name?: string | null) =>
+    classId && name
+      ? (sections.find((sec) => sec.classId === classId && sec.name === name)?.id ?? null)
       : null;
 
   try {
-    for (const student of targets) {
-      const candidate = evaluateStudent(student);
-      if (!candidate.eligible) {
-        skipped += 1;
+    for (const step of plan.actions) {
+      if (step.action === "SKIP") continue;
+
+      if (step.action === "GRADUATE") {
+        await apiPromoteStudent({
+          studentId: step.studentId,
+          academicYearId: yearId,
+          toClassId: null,
+          toSectionId: null,
+          graduate: true,
+        });
+        graduated += 1;
         continue;
       }
-      const graduate = candidate.graduating;
-      if (!graduate && !toClassId) {
-        skipped += 1;
-        continue;
-      }
-      if (!graduate && toClassId === classByName(student.className, opts.academicYear)?.id) {
-        skipped += 1;
-        continue;
+
+      const toClassId = classByName(step.toClassName, destinationYear)?.id;
+      if (!toClassId) {
+        // The ladder named a class this year does not actually carry.
+        throw new Error(
+          `${step.toClassName} does not exist in ${destinationYear}. Create it before promoting into it.`,
+        );
       }
 
       await apiPromoteStudent({
-        studentId: student.id,
+        studentId: step.studentId,
         academicYearId: yearId,
-        toClassId: graduate ? null : toClassId,
-        toSectionId: graduate ? null : toSectionId,
-        graduate,
+        toClassId,
+        toSectionId: sectionIdIn(toClassId, opts.toSection),
+        graduate: false,
       });
-
-      if (graduate) graduated += 1;
-      else promoted += 1;
-    }
-
-    if (promoted === 0 && graduated === 0) {
-      return { ok: false, error: "No eligible students to promote.", promoted: 0, graduated: 0, skipped };
+      promoted += 1;
     }
 
     await Promise.all([refreshPromotions(yearId), refreshStudents()]);

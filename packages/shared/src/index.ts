@@ -4,6 +4,7 @@
  */
 export * from "./roles";
 export * from "./rbac/staff-routes";
+export * from "./promotions/plan";
 export * from "./grades";
 export * from "./grading";
 export * from "./password-policy";
