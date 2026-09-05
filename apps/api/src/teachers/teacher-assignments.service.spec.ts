@@ -80,6 +80,15 @@ function fakePrisma() {
         );
       },
     },
+    // Creating an assignment also links the subject to the class, so the
+    // timetable and marks screens know it is taught there. Absent from this
+    // fake, every test that got as far as actually creating something died on
+    // an undefined model rather than on anything it meant to assert.
+    classSubject: {
+      create: () => Promise.resolve({ id: "cs1" }),
+      createMany: (args: { data: unknown[] }) =>
+        Promise.resolve({ count: args.data.length }),
+    },
     teacherAssignment: {
       findFirst: () => Promise.resolve(null),
       findMany: () => Promise.resolve([]),

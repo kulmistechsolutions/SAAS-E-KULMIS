@@ -69,6 +69,11 @@ function fakePrisma() {
     },
   };
   return {
+    // Read outside forTenant, so it hangs off the client itself. The template
+    // asks for the school's Grade Configuration to label the sheet; null here
+    // takes the built-in default, which is what a school that has not set one
+    // gets in production too.
+    school: { findUnique: () => Promise.resolve(null) },
     forTenant: <T>(_schoolId: string, fn: (t: unknown) => Promise<T>) => fn(tx),
   };
 }
