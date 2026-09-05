@@ -585,8 +585,17 @@ export class FeesService {
 
       // The registration fee is a separate, one-time item — independent of
       // billing mode and of whether tuition itself is waived below.
+      //
+      // Charged unless the school explicitly said not to. It used to require
+      // an explicit `true`, so anything that left the flag off the request —
+      // an older client, an import, a form whose settings had not loaded yet
+      // and so never rendered the tick box — registered the student with no
+      // registration fee and nothing to show it had been skipped. A school
+      // that configured a registration fee did so to charge it; not sending
+      // an opinion should not mean "waive it". chargeRegistrationFeeOnce is
+      // idempotent, so this can never double-charge.
       let registrationFeeCharged = 0;
-      if (opts?.chargeRegistrationFee) {
+      if (opts?.chargeRegistrationFee !== false) {
         registrationFeeCharged = await this.chargeRegistrationFeeOnce(
           tx,
           schoolId,

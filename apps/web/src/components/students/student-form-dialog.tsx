@@ -2,7 +2,7 @@
 
 
 import { useT } from "@/lib/i18n/provider";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -132,6 +132,12 @@ export function StudentFormDialog({ open, onClose, student, onSaved }: Props) {
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [removePhoto, setRemovePhoto] = useState(false);
+  // Whether the desk has actually made a choice about the registration fee.
+  // Until it has, the tick box follows the school's setting as that setting
+  // arrives — the settings store starts on its seed defaults, so a dialog
+  // opened before the real ones land would otherwise sit on a default nobody
+  // picked and quietly register the student without the fee.
+  const registrationFeeTouched = useRef(false);
 
   const classList = useMemo(
     () => classNamesForYear(form.academicYear, { includeInactive: isEdit }),
@@ -166,6 +172,7 @@ export function StudentFormDialog({ open, onClose, student, onSaved }: Props) {
     setPhotoFile(null);
     setRemovePhoto(false);
     setPhotoPreview(null);
+    registrationFeeTouched.current = false;
     if (student) {
       setForm({
         fullName: student.fullName,
@@ -204,6 +211,21 @@ export function StudentFormDialog({ open, onClose, student, onSaved }: Props) {
     // mid-keystroke whenever the store refreshed elsewhere in the app).
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, student?.id]);
+
+  // The settings store hands back its seed defaults until the school's real
+  // ones arrive, and registrationFeeAmount seeds to 0 — so a dialog opened in
+  // that window starts with the fee off and the tick box not rendered at all.
+  // When the true amount lands, take the default the school configured,
+  // unless the desk has already decided for itself.
+  useEffect(() => {
+    if (!open || isEdit || registrationFeeTouched.current) return;
+    const shouldCharge = settings.fees.registrationFeeAmount > 0;
+    setForm((f) =>
+      f.chargeRegistrationFee === shouldCharge
+        ? f
+        : { ...f, chargeRegistrationFee: shouldCharge },
+    );
+  }, [open, isEdit, settings.fees.registrationFeeAmount]);
 
   function set<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((f) => ({ ...f, [key]: value }));
@@ -316,7 +338,16 @@ export function StudentFormDialog({ open, onClose, student, onSaved }: Props) {
               ? Number(form.agreementAmount)
               : undefined,
           feeWaived: form.feeWaived,
-          chargeRegistrationFee: form.chargeRegistrationFee,
+          // Only an opinion the desk could actually see and act on is sent.
+          // Until settings arrive, registrationFeeAmount reads 0, the tick
+          // box is not rendered at all, and this field would otherwise carry
+          // a `false` nobody chose — which the server would honour as "waive
+          // it". Left undefined, the server charges the fee the school has
+          // configured, which is what the school set it up for.
+          chargeRegistrationFee:
+            settings.fees.registrationFeeAmount > 0
+              ? form.chargeRegistrationFee
+              : undefined,
         },
         { photo },
       );
@@ -715,7 +746,10 @@ export function StudentFormDialog({ open, onClose, student, onSaved }: Props) {
                 <input
                   type="checkbox"
                   checked={form.chargeRegistrationFee}
-                  onChange={(e) => set("chargeRegistrationFee", e.target.checked)}
+                  onChange={(e) => {
+                    registrationFeeTouched.current = true;
+                    set("chargeRegistrationFee", e.target.checked);
+                  }}
                 />
                 <span>
                   {t("studentsStudentFormDialog.chargeRegistrationFee")}
