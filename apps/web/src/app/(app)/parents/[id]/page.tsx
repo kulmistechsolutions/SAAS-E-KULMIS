@@ -48,7 +48,7 @@ import {
 import { apiStudentLedger, type ApiStudentLedger } from "@/lib/fees/api";
 import { apiStudentResults, type ApiStudentFinalResult } from "@/lib/examinations/api";
 import { studentPromotionHistory } from "@/lib/promotions/store";
-import { monthLabel } from "@/lib/fees/format";
+import { feeStatusLabel, monthLabel, paymentTypeLabel } from "@/lib/fees/format";
 import { printParentProfile, exportParentsCsv } from "@/lib/parents/print";
 import { ConfirmDialog } from "@/components/students/confirm-dialog";
 import type { ParentStatus, Student } from "@/lib/students/types";
@@ -548,7 +548,7 @@ function FeesTab({
               money(c.amount),
               money(c.paidAmount),
               money(Math.max(0, c.amount - c.paidAmount)),
-              statusLabel(c.status),
+              feeStatusLabel(c.status),
             ];
           })}
         />
@@ -565,7 +565,7 @@ function FeesTab({
             p.receiptNumber,
             p.childName,
             money(p.amount),
-            statusLabel(p.type),
+            paymentTypeLabel(p.type),
             shortDate(p.paidAt),
           ])}
         />
