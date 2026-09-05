@@ -193,13 +193,16 @@ export function builtInRolePermissions(role: BuiltInRole): PermissionMap {
       p = grant(p, "sms", ["view", "create", "export"]);
       return p;
     case "ACADEMIC_MANAGER":
-      p = grantAll(p, [
-        "academics",
-        "teachers",
-        "promotions",
-        "reports",
-        "examinations",
-      ]);
+      // Reads the school's academic picture and runs promotions. It does NOT
+      // run exams — creating one, entering marks and importing them are the
+      // exam manager's, and the server has always refused an academic manager
+      // there. Claiming them here is what put Create Exam and Enter Marks in
+      // this role's menu, three clicks from a refusal.
+      p = grantAll(p, ["promotions", "reports"]);
+      p = grant(p, "academics", ["view", "export", "print"]);
+      p = grant(p, "teachers", ["view", "export", "print"]);
+      p = grant(p, "examinations", ["view", "export", "print"]);
+      p = grant(p, "quiz", ["view", "export"]);
       p = grant(p, "sms", ["view", "create"]);
       return p;
     case "TEACHER":
@@ -229,17 +232,27 @@ export function builtInRolePermissions(role: BuiltInRole): PermissionMap {
       p = grant(p, "sms", ["view", "create", "export"]);
       return p;
     case "ATTENDANCE_OFFICER":
-      p = grantAll(p, ["attendance", "reports"]);
+      // Takes registers for the classes it was assigned. Appointing officers
+      // and reviewing how they perform belongs to the school, not to the
+      // officer being reviewed — so "attendance" here stops short of delete
+      // and approve, which are those screens.
+      p = grant(p, "attendance", ["view", "create", "update", "export", "print"]);
+      p = grantAll(p, ["reports"]);
       return p;
     case "EXAM_MANAGER":
-      p = grantAll(p, ["examinations", "reports"]);
+      // Quiz was left off this row even though the server has always let an
+      // exam manager build and run one — so the menu hid a job they hold.
+      p = grantAll(p, ["examinations", "quiz", "reports"]);
       p = grant(p, "sms", ["view", "create"]);
       return p;
     case "RECEPTION_OFFICER":
       p = grant(p, "students", ["view", "create", "update"]);
       p = grant(p, "parents", ["view", "create", "update"]);
-      p = grant(p, "teachers", ["view", "create", "update"]);
-      p = grant(p, "reports", ["view"]);
+      // Hiring is not a front-desk job: the server accepts a teacher record
+      // only from an administrator, so offering create and update here was
+      // promising something the reception officer could not do.
+      p = grant(p, "teachers", ["view"]);
+      p = grant(p, "reports", ["view", "export", "print"]);
       return p;
     case "LIBRARIAN":
       p = grantAll(p, ["library"]);

@@ -17,6 +17,14 @@ export class PostgresSearchService extends SearchService {
     if (!q) return [];
     const limit = options?.limit ?? 20;
     const types = options?.types ?? ["student", "teacher", "parent"];
+    // A viewer limited to certain classes or students matches nothing outside
+    // them — and an empty list means nothing at all, not "no limit".
+    const scope =
+      options?.studentIds !== undefined && options.studentIds !== null
+        ? { id: { in: options.studentIds } }
+        : options?.classIds !== undefined && options.classIds !== null
+          ? { classId: { in: options.classIds } }
+          : {};
 
     return this.prisma.forTenant(schoolId, async (tx) => {
       const hits: SearchHit[] = [];
@@ -25,6 +33,7 @@ export class PostgresSearchService extends SearchService {
       if (types.includes("student")) {
         const students = await tx.student.findMany({
           where: {
+            ...scope,
             OR: [
               { fullName: { contains: q, mode: "insensitive" } },
               { code: { contains: q, mode: "insensitive" } },

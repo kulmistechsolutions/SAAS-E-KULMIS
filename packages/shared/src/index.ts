@@ -3,6 +3,7 @@
  * the web app (Next.js). Single source of truth for validation.
  */
 export * from "./roles";
+export * from "./rbac/staff-routes";
 export * from "./grades";
 export * from "./grading";
 export * from "./password-policy";
