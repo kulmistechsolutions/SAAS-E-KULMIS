@@ -1194,7 +1194,15 @@ export class FeesService {
         remaining -= applied;
       }
 
-      if (dto.type === "ADVANCE" && remaining > 0 && student.monthlyFee > 0) {
+      // Money left over after settling everything it was aimed at is real
+      // money the school took — it must land somewhere, not vanish. This ran
+      // only for ADVANCE payments; a THIS_MONTH or PARTIAL payment that named
+      // one specific charge (dto.chargeIds) and collected more than that
+      // charge needed had the excess counted in the payment's own total (so
+      // "money collected" looked right) while never being applied to any
+      // charge at all — a family's receipt said $12, the ledger recorded $10,
+      // and the $2 gap showed up nowhere except a reconciliation report.
+      if (remaining > 0 && student.monthlyFee > 0) {
         const unpaidFuture = await tx.feeCharge.findMany({
           where: {
             studentId: student.id,
