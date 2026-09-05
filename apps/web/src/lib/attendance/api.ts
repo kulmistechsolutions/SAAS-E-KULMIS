@@ -123,8 +123,12 @@ export async function apiStudentDashboard(
  * sessions ("Morning", "Afternoon") used to tag attendance, independent of
  * the timetable module.
  */
-export async function apiListAttendanceShifts(): Promise<ApiShift[]> {
-  return api<ApiShift[]>("/attendance-shifts");
+export async function apiListAttendanceShifts(
+  includeInactive = false,
+): Promise<ApiShift[]> {
+  return api<ApiShift[]>(
+    `/attendance-shifts${includeInactive ? "?includeInactive=true" : ""}`,
+  );
 }
 
 export interface SaveAttendanceShiftBody {

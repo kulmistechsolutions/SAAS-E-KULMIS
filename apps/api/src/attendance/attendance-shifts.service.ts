@@ -11,10 +11,20 @@ import { PrismaService } from "../prisma/prisma.service";
 export class AttendanceShiftsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  list(schoolId: string) {
+  /**
+   * Every shift, or just the ones a school can still assign someone to.
+   *
+   * A retired shift stays exactly as retired-but-listed everywhere it is
+   * already referenced: a teacher record, a past attendance mark, a salary
+   * row. Scoping this to ACTIVE by default keeps it out of new pickers, but a
+   * caller that only wants to turn an id into a name needs the retired ones
+   * too — otherwise a shift retired after teachers were assigned to it makes
+   * their name resolve to a raw id forever, on every screen that shows it.
+   */
+  list(schoolId: string, includeInactive = false) {
     return this.prisma.forTenant(schoolId, (tx) =>
       tx.attendanceShift.findMany({
-        where: { status: "ACTIVE" },
+        where: includeInactive ? {} : { status: "ACTIVE" },
         orderBy: { orderIndex: "asc" },
       }),
     );

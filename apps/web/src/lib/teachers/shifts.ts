@@ -25,13 +25,20 @@ function subscribe(cb: () => void) {
 
 export function ensureShiftsLoaded(): void {
   if (loaded || loading) return;
-  loading = apiListAttendanceShifts()
+  // Includes retired shifts. This list is the only place a teacher's own
+  // shift, an assignment's shift, or a salary row's shift gets turned back
+  // into a name — a shift retired after people were assigned to it must
+  // still resolve, or every record that references it shows a raw id
+  // forever instead of the name it once had.
+  loading = apiListAttendanceShifts(true)
     .then((rows) => {
       shifts = rows;
       loaded = true;
     })
     .catch(() => {
-      loaded = true;
+      // `loaded` deliberately left false so the next call retries instead of
+      // being stuck on an empty list (and therefore raw ids) for the rest of
+      // the session — one bad request should not be permanent.
     })
     .finally(() => {
       loading = null;

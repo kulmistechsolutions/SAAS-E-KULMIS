@@ -7,6 +7,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
 } from "@nestjs/common";
 import { saveAttendanceShiftSchema, UserRole } from "@ekulmis/shared";
 import { AttendanceShiftsService } from "./attendance-shifts.service";
@@ -27,8 +28,11 @@ export class AttendanceShiftsController {
   constructor(private readonly shifts: AttendanceShiftsService) {}
 
   @Get()
-  list(@CurrentUser() me: AuthUser) {
-    return this.shifts.list(me.schoolId);
+  list(
+    @CurrentUser() me: AuthUser,
+    @Query("includeInactive") includeInactive?: string,
+  ) {
+    return this.shifts.list(me.schoolId, includeInactive === "true");
   }
 
   @Roles(UserRole.ADMINISTRATOR, UserRole.ATTENDANCE_OFFICER)
