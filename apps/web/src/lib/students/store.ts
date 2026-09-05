@@ -1109,43 +1109,44 @@ export function summarizeParents(st: StudentsState): ParentAdminSummary {
 export interface ParentDashboardSummary {
   totalChildren: number;
   activeStudents: number;
-  outstandingFees: number;
-  totalFeesPaid: number;
-  upcomingExams: number;
-  activeQuizzes: number;
-  attendancePercentage: number;
-  latestGrade: string;
+  /** null where the school has no record to show — rendered as a dash. */
+  outstandingFees: number | null;
+  totalFeesPaid: number | null;
+  upcomingExams: number | null;
+  activeQuizzes: number | null;
+  attendancePercentage: number | null;
+  latestGrade: string | null;
 }
 
+/**
+ * The headline cards on a parent's profile.
+ *
+ * Every figure here except the two child counts used to be generated from the
+ * student's code: outstanding was `monthlyFee * 2` when a character of the
+ * code happened to be high enough, fees paid was `monthlyFee * (6 + seed%3)`,
+ * attendance was `88 + code.length % 10`, and the latest grade was picked
+ * from a list by how many children the family had. A school read those as its
+ * own records.
+ *
+ * Money now comes from the caller, which has the family's real ledgers, and
+ * anything without a source is `null` — shown as a dash. A dash is honest;
+ * an invented 95% is not.
+ */
 export function parentDashboard(
   parentId: string,
   st: StudentsState,
+  fees?: { outstanding: number; paid: number },
 ): ParentDashboardSummary {
   const children = st.students.filter((s) => s.parentId === parentId);
-  const active = children.filter((s) => s.status === "ACTIVE").length;
-  let outstanding = 0;
-  let paid = 0;
-  for (const c of children) {
-    const seed = c.code.charCodeAt(c.code.length - 1) % 5;
-    outstanding += seed > 2 ? c.monthlyFee * 2 : 0;
-    paid += c.monthlyFee * (6 + (seed % 3));
-  }
-  const attPct =
-    children.length === 0
-      ? 0
-      : Math.round(
-          children.reduce((sum, c) => sum + (88 + (c.code.length % 10)), 0) /
-            children.length,
-        );
   return {
     totalChildren: children.length,
-    activeStudents: active,
-    outstandingFees: outstanding,
-    totalFeesPaid: paid,
-    upcomingExams: Math.min(children.length * 2, 6),
-    activeQuizzes: Math.min(children.length, 4),
-    attendancePercentage: attPct,
-    latestGrade: ["A", "B+", "A-", "B", "A+"][children.length % 5],
+    activeStudents: children.filter((s) => s.status === "ACTIVE").length,
+    outstandingFees: fees?.outstanding ?? null,
+    totalFeesPaid: fees?.paid ?? null,
+    upcomingExams: null,
+    activeQuizzes: null,
+    attendancePercentage: null,
+    latestGrade: null,
   };
 }
 

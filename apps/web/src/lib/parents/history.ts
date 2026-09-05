@@ -1,41 +1,19 @@
 import type { Student } from "@/lib/students/types";
 import { studentQuizHistory } from "@/lib/quiz/store";
-import {
-  attendanceHistory,
-  examHistory,
-  feeHistory,
-  promotionHistory,
-} from "@/lib/students/history";
+import { attendanceHistory } from "@/lib/students/history";
 
-export { attendanceHistory, examHistory, feeHistory, promotionHistory };
+/**
+ * A parent's profile reads the school's own records and nothing else.
+ *
+ * `feeHistory`, `examHistory`, `promotionHistory` and `parentPaymentHistory`
+ * used to live here. All four were generated — fee months the school never
+ * set up, receipt numbers built from the student's code, exam averages from a
+ * random number generator — and they were rendered on a real parent's page as
+ * if the school had recorded them. They are gone; the page now calls
+ * /fees/ledger, the published exam results, and the recorded promotions.
+ */
+export { attendanceHistory };
 
 export function quizHistory(student: Student) {
   return studentQuizHistory(student.id);
-}
-
-export interface PaymentRow {
-  receiptNumber: string;
-  studentName: string;
-  amount: number;
-  type: string;
-  paidAt: string;
-}
-
-export function parentPaymentHistory(children: Student[]): PaymentRow[] {
-  const rows: PaymentRow[] = [];
-  children.forEach((child, ci) => {
-    const fees = feeHistory(child, 4).filter((f) => f.paid > 0);
-    fees.forEach((f, fi) => {
-      rows.push({
-        receiptNumber: `RCP-${child.code.slice(-4)}-${ci}${fi}`,
-        studentName: child.fullName,
-        amount: f.paid,
-        type: f.status === "PAID" ? "This Month" : "Partial",
-        paidAt: f.date ?? new Date().toISOString(),
-      });
-    });
-  });
-  return rows.sort(
-    (a, b) => new Date(b.paidAt).getTime() - new Date(a.paidAt).getTime(),
-  );
 }

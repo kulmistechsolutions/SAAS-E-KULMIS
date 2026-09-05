@@ -69,7 +69,14 @@ export function ParentDashboardCards({ summary }: { summary: ParentDashboardSumm
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-8">
       {DASH_CARDS.map((c) => {
         const raw = summary[c.key];
-        const display = c.format ? c.format(raw) : String(raw);
+        // A dash where the school has no record, rather than a number nobody
+        // can trace back to anything.
+        const display =
+          raw === null || raw === undefined
+            ? "—"
+            : c.format
+              ? c.format(raw)
+              : String(raw);
         return (
           <div key={c.key} className="rounded-xl border bg-card p-4 shadow-sm">
             <span className={cn("mb-2 flex h-8 w-8 items-center justify-center rounded-lg", c.chip)}>

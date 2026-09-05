@@ -6,6 +6,10 @@ import { useEffect, useMemo, useState } from "react";
 import { Calendar } from "lucide-react";
 import { Select } from "@/components/ui/select";
 import { FeeSummaryCards } from "@/components/fees/summary-cards";
+import {
+  FeeMetricBreakdownDialog,
+  type FeeMetric,
+} from "@/components/fees/metric-breakdown-dialog";
 import { RecentPaymentsPanel } from "@/components/fees/recent-payments-panel";
 import { MonthSetupWidget } from "@/components/fees/month-setup-widget";
 import { PaymentSummaryWidget, FeeQuickActions } from "@/components/fees/widgets";
@@ -47,6 +51,7 @@ export default function FeeManagementPage() {
   const [receiptNo, setReceiptNo] = useState<string | null>(null);
   const [promiseStudent, setPromiseStudent] = useState<StudentFeeRow | null>(null);
   const [bannerKey, setBannerKey] = useState(0);
+  const [detailMetric, setDetailMetric] = useState<FeeMetric | null>(null);
 
   useEffect(() => setMounted(true), []);
   useEffect(() => {
@@ -119,7 +124,9 @@ export default function FeeManagementPage() {
 
       <PaymentPromisesBanner key={bannerKey} />
 
-      {summary && <FeeSummaryCards summary={summary} />}
+      {summary && (
+        <FeeSummaryCards summary={summary} onOpenDetails={setDetailMetric} />
+      )}
 
       <div className="grid items-start gap-6 xl:grid-cols-3">
         {/* Left column: Recent Payments, then Collect Fees */}
@@ -162,6 +169,13 @@ export default function FeeManagementPage() {
         student={payStudent}
         onClose={() => setPayStudent(null)}
         onSuccess={(p: FeePayment) => setReceiptNo(p.receiptNo)}
+      />
+
+      <FeeMetricBreakdownDialog
+        metric={detailMetric}
+        month={month}
+        academicYear={year}
+        onClose={() => setDetailMetric(null)}
       />
 
       <ReceiptDialog payment={receipt} onClose={() => setReceiptNo(null)} />

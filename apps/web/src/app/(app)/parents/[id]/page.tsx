@@ -43,12 +43,12 @@ import {
 } from "@/lib/students/format";
 import {
   attendanceHistory,
-  examHistory,
-  feeHistory,
-  parentPaymentHistory,
-  promotionHistory,
   quizHistory,
 } from "@/lib/parents/history";
+import { apiStudentLedger, type ApiStudentLedger } from "@/lib/fees/api";
+import { apiStudentResults, type ApiStudentFinalResult } from "@/lib/examinations/api";
+import { studentPromotionHistory } from "@/lib/promotions/store";
+import { monthLabel } from "@/lib/fees/format";
 import { printParentProfile, exportParentsCsv } from "@/lib/parents/print";
 import { ConfirmDialog } from "@/components/students/confirm-dialog";
 import type { ParentStatus, Student } from "@/lib/students/types";
@@ -94,9 +94,53 @@ export default function ParentProfilePage({
 
   const state = useStudentsState();
   const parent = useMemo(() => getParentWithChildren(id), [state, id]);
+
+  // The family's real ledgers, loaded once for the whole page: the headline
+  // cards and the Fees tab must not answer the same question differently.
+  const [ledgers, setLedgers] = useState<Record<string, ApiStudentLedger>>({});
+  const childIds = useMemo(
+    () => (parent?.children ?? []).map((c) => c.id).join(","),
+    [parent],
+  );
+  useEffect(() => {
+    if (!childIds) return;
+    let alive = true;
+    Promise.all(
+      childIds.split(",").map((cid) =>
+        apiStudentLedger(cid)
+          .then((l) => [cid, l] as const)
+          .catch(() => null),
+      ),
+    ).then((results) => {
+      if (!alive) return;
+      const next: Record<string, ApiStudentLedger> = {};
+      for (const r of results) if (r) next[r[0]] = r[1];
+      setLedgers(next);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [childIds]);
+
+  const feeTotals = useMemo(() => {
+    const loaded = Object.values(ledgers);
+    if (loaded.length === 0) return undefined;
+    return {
+      outstanding: loaded.reduce((n, l) => n + l.outstanding, 0),
+      paid: loaded.reduce(
+        (n, l) =>
+          n +
+          l.charges
+            .filter((c) => c.status !== "INACTIVE")
+            .reduce((m, c) => m + c.paidAmount, 0),
+        0,
+      ),
+    };
+  }, [ledgers]);
+
   const dashboard = useMemo(
-    () => (parent ? parentDashboard(parent.id, state) : null),
-    [parent, state],
+    () => (parent ? parentDashboard(parent.id, state, feeTotals) : null),
+    [parent, state, feeTotals],
   );
 
   const [tab, setTab] = useState("personal");
@@ -338,7 +382,11 @@ export default function ParentProfilePage({
                 <>
                   {tab === "attendance" && <AttendanceTab child={child} />}
                   {tab === "fees" && (
-                    <FeesTab child={child} allChildren={parent.children} />
+                    <FeesTab
+                      child={child}
+                      allChildren={parent.children}
+                      ledgers={ledgers}
+                    />
                   )}
                   {tab === "exams" && <ExamsTab child={child} />}
                   {tab === "quizzes" && <QuizzesTab child={child} />}
@@ -417,64 +465,160 @@ function AttendanceTab({ child }: { child: Student }) {
   );
 }
 
+/**
+ * What this family has actually been charged, and what they have actually paid.
+ *
+ * Both tables on this tab used to be invented. The ledger was eight months
+ * generated from the student's code with a random number generator, so a
+ * school opened a parent and read months its own fee setup had never covered,
+ * marked Paid or Partial at random. The receipts underneath were made up the
+ * same way — "RCP-0110-03" was the student code with a counter after it, not
+ * a receipt anybody had issued.
+ *
+ * Everything here now comes from /fees/ledger, which returns the charges the
+ * school raised and the payments it took. A month the school never set up has
+ * no charge, so it no longer appears at all — which is the whole point.
+ */
 function FeesTab({
   child,
   allChildren,
+  ledgers,
 }: {
   child: Student;
   allChildren: Student[];
+  ledgers: Record<string, ApiStudentLedger>;
 }) {
   const t = useT();
-  const fees = useMemo(() => feeHistory(child), [child]);
-  const payments = useMemo(
-    () => parentPaymentHistory(allChildren),
-    [allChildren],
+  const loading = Object.keys(ledgers).length === 0;
+
+  const ledger = ledgers[child.id];
+
+  // A voided charge is not money anybody owes, so it stays out of the table
+  // and out of every total on it.
+  const charges = useMemo(
+    () => (ledger?.charges ?? []).filter((c) => c.status !== "INACTIVE"),
+    [ledger],
   );
-  const outstanding = fees.reduce((s, f) => s + f.balance, 0);
-  const paid = fees.reduce((s, f) => s + f.paid, 0);
+
+  const payments = useMemo(() => {
+    const rows = allChildren.flatMap((c) =>
+      (ledgers[c.id]?.payments ?? []).map((p) => ({ ...p, childName: c.fullName })),
+    );
+    return rows.sort(
+      (a, b) => new Date(b.paidAt).getTime() - new Date(a.paidAt).getTime(),
+    );
+  }, [ledgers, allChildren]);
+
+  const paid = charges.reduce((s, c) => s + c.paidAmount, 0);
+  const outstanding = ledger?.outstanding ?? 0;
+
+  if (loading) {
+    return (
+      <p className="text-sm text-muted-foreground">{t("parents.loadingProfile")}</p>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Stat label={t("parents.monthlyFee")} value={money(child.monthlyFee)} />
+        <Stat
+          label={t("parents.monthlyFee")}
+          value={money(ledger?.student.monthlyFee ?? child.monthlyFee)}
+        />
         <Stat label={t("parents.paidRecent")} value={money(paid)} />
         <Stat label={t("parents.outstanding")} value={money(outstanding)} />
         <Stat label={t("parents.receipts")} value={payments.length} />
       </div>
       <h3 className="text-sm font-semibold">{t("parents.feeLedger")} {child.fullName}</h3>
-      <DataTable
-        headers={["Month", "Charged", "Paid", "Balance", "Status"]}
-        rows={fees.map((f) => [
-          f.month,
-          money(f.charged),
-          money(f.paid),
-          money(f.balance),
-          statusLabel(f.status),
-        ])}
-      />
+      {charges.length === 0 ? (
+        <p className="text-sm text-muted-foreground">
+          {t("parents.noFeeMonthsSetUp")}
+        </p>
+      ) : (
+        <DataTable
+          headers={["Month", "Charged", "Paid", "Balance", "Status"]}
+          rows={charges.map((c) => {
+            const label = monthLabel(
+              `${c.year}-${String(c.month).padStart(2, "0")}`,
+            );
+            return [
+              // An extra charge shares its month with the regular fee, so the
+              // row says what it is rather than repeating the month twice.
+              c.kind === "EXTRA" && c.label ? `${c.label} · ${label}` : label,
+              money(c.amount),
+              money(c.paidAmount),
+              money(Math.max(0, c.amount - c.paidAmount)),
+              statusLabel(c.status),
+            ];
+          })}
+        />
+      )}
       <h3 className="text-sm font-semibold">{t("parents.paymentHistoryAllChildren")}</h3>
-      <DataTable
-        headers={["Receipt", "Student", "Amount", "Type", "Date"]}
-        rows={payments.map((p) => [
-          p.receiptNumber,
-          p.studentName,
-          money(p.amount),
-          p.type,
-          shortDate(p.paidAt),
-        ])}
-      />
+      {payments.length === 0 ? (
+        <p className="text-sm text-muted-foreground">
+          {t("parents.noPaymentsRecorded")}
+        </p>
+      ) : (
+        <DataTable
+          headers={["Receipt", "Student", "Amount", "Type", "Date"]}
+          rows={payments.map((p) => [
+            p.receiptNumber,
+            p.childName,
+            money(p.amount),
+            statusLabel(p.type),
+            shortDate(p.paidAt),
+          ])}
+        />
+      )}
     </div>
   );
 }
 
+/**
+ * The exams this child actually sat.
+ *
+ * This used to be three fixed exam names with averages generated from the
+ * student's code — the same invention as the fee ledger, in a place a parent
+ * is likely to believe it. It now reads the published results, and says so
+ * plainly when there are none.
+ */
 function ExamsTab({ child }: { child: Student }) {
-  const rows = useMemo(() => examHistory(child), [child]);
+  const t = useT();
+  const [result, setResult] = useState<ApiStudentFinalResult | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let alive = true;
+    setLoading(true);
+    apiStudentResults(child.id)
+      .then((r) => alive && setResult(r))
+      .catch(() => alive && setResult(null))
+      .finally(() => alive && setLoading(false));
+    return () => {
+      alive = false;
+    };
+  }, [child.id]);
+
+  if (loading) {
+    return (
+      <p className="text-sm text-muted-foreground">{t("parents.loadingProfile")}</p>
+    );
+  }
+
+  const terms = result?.termResults ?? [];
+  if (terms.length === 0) {
+    return (
+      <p className="text-sm text-muted-foreground">{t("parents.noExamResultsYet")}</p>
+    );
+  }
+
   return (
     <DataTable
       headers={["Exam", "Term", "Total", "Average", "Grade", "Result"]}
-      rows={rows.map((r) => [
-        r.name,
+      rows={terms.map((r) => [
+        r.examName,
         r.term,
-        r.totalMarks,
+        r.totalMax,
         r.average,
         r.grade,
         r.passed ? "Pass" : "Fail",
@@ -501,7 +645,9 @@ function QuizzesTab({ child }: { child: Student }) {
 
 function ProgressTab({ child }: { child: Student }) {
   const t = useT();
-  const promos = useMemo(() => promotionHistory(child), [child]);
+  // The recorded promotions, not a ladder walked backwards from the class
+  // this child happens to be in today.
+  const promos = useMemo(() => studentPromotionHistory(child.id), [child.id]);
   return (
     <div className="space-y-4">
       <div className="grid gap-3 sm:grid-cols-3">
@@ -521,10 +667,10 @@ function ProgressTab({ child }: { child: Student }) {
         <DataTable
           headers={["Academic Year", "From", "To", "Date"]}
           rows={promos.map((p) => [
-            p.academicYear,
+            p.fromAcademicYear,
             p.fromClass,
-            p.toClass,
-            shortDate(p.date),
+            p.graduated ? "Graduated" : p.toClass,
+            shortDate(p.promotedAt),
           ])}
         />
       )}

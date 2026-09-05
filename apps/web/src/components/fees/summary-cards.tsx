@@ -115,7 +115,18 @@ const CARDS: {
   },
 ];
 
-export function FeeSummaryCards({ summary }: { summary: FeeDashboardSummary }) {
+/**
+ * `onOpenDetails` is what makes the "View details" link do anything. It was a
+ * button with no handler on every card, so a school could read that $684 was
+ * outstanding and had no way to ask which families that was.
+ */
+export function FeeSummaryCards({
+  summary,
+  onOpenDetails,
+}: {
+  summary: FeeDashboardSummary;
+  onOpenDetails?: (metric: keyof FeeDashboardSummary) => void;
+}) {
   const t = useT();
   return (
     <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
@@ -147,6 +158,7 @@ export function FeeSummaryCards({ summary }: { summary: FeeDashboardSummary }) {
           </p>
           <button
             type="button"
+            onClick={() => onOpenDetails?.(c.key)}
             className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
           >
             {t("feesSummaryCards.viewDetails")}
