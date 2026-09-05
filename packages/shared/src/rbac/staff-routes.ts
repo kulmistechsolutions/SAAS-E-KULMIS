@@ -84,14 +84,16 @@ export const STAFF_ROUTE_RULES: StaffRouteRule[] = [
   { prefix: "/salary", roles: [FO] },
 
   // --- Examinations --------------------------------------------------------
-  // An academic manager reads results; the exam manager runs the exam.
+  // The exam manager runs the exam. An academic manager gets the one screen
+  // the server answers for it — the school-wide summary — and not the class
+  // result sheets, which are still exam-desk only.
   { prefix: "/examinations/reports", roles: [EM, AM] },
-  { prefix: "/examinations/results", roles: [EM, AM] },
   { prefix: "/examinations", roles: [EM] },
 
   // --- Quiz ----------------------------------------------------------------
+  // Monitoring is a read of how quizzes are going, which the server allows an
+  // academic manager. The quiz report sheets themselves it does not.
   { prefix: "/quiz/monitoring", roles: [EM, AM] },
-  { prefix: "/quiz/reports", roles: [EM, AM] },
   { prefix: "/quiz", roles: [EM] },
 
   // --- Academic office -----------------------------------------------------

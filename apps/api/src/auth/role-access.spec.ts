@@ -100,10 +100,11 @@ describe("which pages a staff role may open", () => {
       // being shown Create Exam, Enter Marks and Import Marks, all of which
       // returned 403 the moment it touched them.
       expect(staffCanOpen(AM, "/examinations/reports")).toBe(true);
-      expect(staffCanOpen(AM, "/examinations/results")).toBe(true);
       expect(staffCanOpen(AM, "/examinations/create")).toBe(false);
       expect(staffCanOpen(AM, "/examinations/marks")).toBe(false);
       expect(staffCanOpen(AM, "/examinations/marks-import")).toBe(false);
+      // The class result sheets are served to the exam desk only.
+      expect(staffCanOpen(AM, "/examinations/results")).toBe(false);
     });
 
     it("runs promotions and reads the academic structure", () => {
@@ -115,6 +116,8 @@ describe("which pages a staff role may open", () => {
     it("watches quizzes without being handed the exam manager's builder", () => {
       expect(staffCanOpen(AM, "/quiz/monitoring")).toBe(true);
       expect(staffCanOpen(AM, "/quiz/create")).toBe(false);
+      // The quiz report sheets answer finance and the exam manager, not this role.
+      expect(staffCanOpen(AM, "/quiz/reports")).toBe(false);
     });
   });
 
