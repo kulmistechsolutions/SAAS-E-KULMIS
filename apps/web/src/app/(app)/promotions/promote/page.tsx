@@ -28,6 +28,10 @@ import {
   suggestedNextClass,
 } from "@/lib/promotions/store";
 import { academicYearNames, activeAcademicYear } from "@/lib/academics/store";
+import {
+  getState as getStudentsState,
+  useStudentsState,
+} from "@/lib/students/store";
 import { nextAcademicYear } from "@ekulmis/shared";
 import { cn } from "@/lib/utils";
 import { toast } from "@/lib/toast";
@@ -44,10 +48,38 @@ export default function PromotePage() {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
+  const studentsState = useStudentsState();
 
   const [step, setStep] = useState(1);
   const [type, setType] = useState<PromotionType>("CLASS");
-  const year = activeAcademicYear();
+
+  /**
+   * The year being promoted OUT of — which is not always the active one.
+   *
+   * The wizard used to read the active year and nothing else. A school that
+   * had already opened 2026-2027 could then only promote from a year with
+   * nobody in it: Haldoor's 172 students sat in 2025-2026, the wizard showed
+   * "0 Total Students", and their Grade 1 kept listing the same children.
+   *
+   * The default is the most recent year that actually holds students, since
+   * that is the one a promotion is for.
+   */
+  const yearsWithStudents = useMemo(() => {
+    if (!mounted) return [];
+    const held = new Set(
+      getStudentsState()
+        .students.filter((st) => st.status === "ACTIVE")
+        .map((st) => st.academicYear),
+    );
+    return academicYearNames().filter((y) => held.has(y));
+  }, [mounted, studentsState]);
+
+  const [fromYearChoice, setFromYearChoice] = useState("");
+  const year =
+    fromYearChoice ||
+    (yearsWithStudents.includes(activeAcademicYear())
+      ? activeAcademicYear()
+      : (yearsWithStudents[0] ?? activeAcademicYear()));
   const classes = useMemo(() => orderedClassNames(year), [year, mounted]);
 
   const [fromClass, setFromClass] = useState("");
@@ -193,7 +225,31 @@ export default function PromotePage() {
 
       <div>
         <h1 className="text-2xl font-bold">{tr("promotionsPromote.promotionWizard")}</h1>
-        <p className="mt-1 text-sm text-muted-foreground">{tr("promotionsPromote.academicYear")} {year}</p>
+        <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
+          <span className="text-muted-foreground">
+            {tr("promotionsPromote.promoteFrom")}
+          </span>
+          <Select
+            value={year}
+            onChange={(e) => setFromYearChoice(e.target.value)}
+            className="h-8 w-auto py-0"
+          >
+            {(yearsWithStudents.length > 0
+              ? yearsWithStudents
+              : [activeAcademicYear()]
+            ).map((y) => (
+              <option key={y} value={y}>
+                {y}
+              </option>
+            ))}
+          </Select>
+          <span className="text-muted-foreground">
+            {tr("promotionsPromote.into")}
+          </span>
+          <span className="font-medium">
+            {toYear ?? tr("promotionsPromote.noNextYear")}
+          </span>
+        </div>
       </div>
 
       <Stepper step={step} />

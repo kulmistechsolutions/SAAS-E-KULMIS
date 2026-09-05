@@ -2897,6 +2897,9 @@ export const generated = {
     ready: "Ready",
   },
   promotionsPromote: {
+    promoteFrom: "Promote from",
+    into: "into",
+    noNextYear: "no next year — create one first",
     autoOneGradeUp: "Auto (one grade up)",
     loading: "Loading…",
     backToPromotions: "Back to Promotions",

@@ -2837,6 +2837,9 @@ export const arGenerated: PartialDictionary = {
     ready: "جاهز",
   },
   promotionsPromote: {
+    promoteFrom: "الترفيع من",
+    into: "إلى",
+    noNextYear: "لا يوجد عام تالٍ — أنشئه أولاً",
     autoOneGradeUp: "تلقائي (صف واحد للأعلى)",
     loading: "جارٍ التحميل…",
     backToPromotions: "العودة إلى الترفيع",
