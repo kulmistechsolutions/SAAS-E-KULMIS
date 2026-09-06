@@ -421,11 +421,21 @@ function AdminDashboard() {
   );
   const systemInfo = useMemo(() => {
     if (!data) return [];
+    // The last place the school's money was still being read out to whoever
+    // could log in — as a zero, which is not a leak but is still a figure a
+    // register-taker was never granted.
+    const v = visibleSections(data);
     return [
       { label: "Academic Year", labelKey: "dashboard.academicYear" as TranslationKey, value: data.activeAcademicYear ?? "—", tone: "default" as const },
-      { label: "Total Subjects", labelKey: "dashboard.totalSubjects" as TranslationKey, value: String(data.academics.subjects), tone: "default" as const },
-      { label: "Net Income", labelKey: "dashboard.netIncome" as TranslationKey, value: money(data.finance.netIncome), tone: "default" as const },
-      { label: "Fee Collection (Month)", labelKey: "dashboard.feeCollectionMonth" as TranslationKey, value: money(data.fees.collectedThisMonth), tone: "default" as const },
+      ...(v.academics
+        ? [{ label: "Total Subjects", labelKey: "dashboard.totalSubjects" as TranslationKey, value: String(data.academics.subjects), tone: "default" as const }]
+        : []),
+      ...(v.finance
+        ? [{ label: "Net Income", labelKey: "dashboard.netIncome" as TranslationKey, value: money(data.finance.netIncome), tone: "default" as const }]
+        : []),
+      ...(v.fees
+        ? [{ label: "Fee Collection (Month)", labelKey: "dashboard.feeCollectionMonth" as TranslationKey, value: money(data.fees.collectedThisMonth), tone: "default" as const }]
+        : []),
       { label: "Database Status", labelKey: "dashboard.databaseStatus" as TranslationKey, value: t("dashboard.connected"), tone: "success" as const },
       { label: "Server Status", labelKey: "dashboard.serverStatus" as TranslationKey, value: t("dashboard.online"), tone: "success" as const },
     ];
