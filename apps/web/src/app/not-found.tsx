@@ -9,7 +9,7 @@ import { FailureScreen } from "@/components/system/failure-screen";
 export default function NotFound() {
   return (
     <FailureScreen
-      kind="UNKNOWN_TENANT"
+      kind="NOT_FOUND"
       onRetry={() => {
         window.location.href = "/login";
       }}

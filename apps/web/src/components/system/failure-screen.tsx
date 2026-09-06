@@ -16,7 +16,7 @@
  * The three languages are inlined for the same reason.
  */
 
-type Kind = "UNKNOWN_TENANT" | "OFFLINE" | "GENERIC";
+type Kind = "UNKNOWN_TENANT" | "NOT_FOUND" | "OFFLINE" | "GENERIC";
 
 const COPY: Record<Kind, Record<"so" | "en" | "ar", { title: string; body: string }>> = {
   UNKNOWN_TENANT: {
@@ -31,6 +31,20 @@ const COPY: Record<Kind, Record<"so" | "en" | "ar", { title: string; body: strin
     ar: {
       title: "لا توجد مدرسة على هذا العنوان",
       body: "تحقق من العنوان الذي كتبته. إذا كانت مدرستك جديدة، فقد لا تكون مفتوحة بعد.",
+    },
+  },
+  NOT_FOUND: {
+    so: {
+      title: "Boggan lama helin",
+      body: "Ciwaanku waa khaldan yahay ama boggii waa la beddelay. Ku noqo bogga gelitaanka.",
+    },
+    en: {
+      title: "Page not found",
+      body: "The address is wrong, or the page has moved. Go back to the sign-in page.",
+    },
+    ar: {
+      title: "الصفحة غير موجودة",
+      body: "العنوان خاطئ أو تم نقل الصفحة. عد إلى صفحة تسجيل الدخول.",
     },
   },
   OFFLINE: {
@@ -64,6 +78,7 @@ const COPY: Record<Kind, Record<"so" | "en" | "ar", { title: string; body: strin
 };
 
 const RETRY = { so: "Isku day mar kale", en: "Try again", ar: "حاول مرة أخرى" };
+const SIGN_IN = { so: "Ku noqo gelitaanka", en: "Back to sign in", ar: "العودة لتسجيل الدخول" };
 
 /**
  * The stored language, read defensively.
@@ -86,7 +101,7 @@ function lang(): "so" | "en" | "ar" {
   return "en";
 }
 
-/** Which of the three situations this is, from the error itself. */
+/** Which situation this is, from the error itself. */
 export function classifyFailure(error?: { message?: string } | null): Kind {
   const m = (error?.message ?? "").toLowerCase();
   if (m.includes("unknown tenant") || m.includes("no tenant")) {
@@ -150,7 +165,13 @@ export function FailureScreen({
             fontSize: "26px",
           }}
         >
-          {kind === "OFFLINE" ? "⚡" : kind === "UNKNOWN_TENANT" ? "🏫" : "↻"}
+          {kind === "OFFLINE"
+            ? "⚡"
+            : kind === "UNKNOWN_TENANT"
+              ? "🏫"
+              : kind === "NOT_FOUND"
+                ? "🔎"
+                : "↻"}
         </div>
         <h1 style={{ fontSize: "20px", fontWeight: 700, margin: "0 0 10px" }}>
           {copy.title}
@@ -180,7 +201,7 @@ export function FailureScreen({
               cursor: "pointer",
             }}
           >
-            {RETRY[l]}
+            {kind === "NOT_FOUND" ? SIGN_IN[l] : RETRY[l]}
           </button>
         )}
       </div>
