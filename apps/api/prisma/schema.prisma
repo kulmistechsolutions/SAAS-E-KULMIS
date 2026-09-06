@@ -1953,6 +1953,9 @@ enum PaymentType {
   THIS_MONTH
   PARTIAL
   ADVANCE
+  /// Settled an earlier month or a one-off charge in full. Derived from what
+  /// the payment did, never requested by the desk.
+  ARREARS
 }
 
 enum PaymentPromiseStatus {

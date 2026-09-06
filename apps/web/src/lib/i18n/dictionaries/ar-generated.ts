@@ -1330,6 +1330,7 @@ export const arGenerated: PartialDictionary = {
     smsFailed: "تعذر إرسال الرسالة. تحقق من رصيد الرسائل/الإعدادات.",
   },
   feesFormat: {
+    arrears: "سداد متأخرات",
     free: "مجاني",
     month1: "يناير",
     month2: "فبراير",

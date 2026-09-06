@@ -1331,6 +1331,7 @@ export const soGenerated: PartialDictionary = {
     smsFailed: "SMS-ka lama diri karin. Hubi kaararka SMS-ka/dejinta.",
   },
   feesFormat: {
+    arrears: "Bixin Deyn Hore",
     free: "Bilaash",
     month1: "Jannaayo",
     month2: "Febraayo",

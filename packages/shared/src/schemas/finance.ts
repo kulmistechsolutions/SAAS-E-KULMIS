@@ -4,9 +4,22 @@ export const PaymentType = {
   THIS_MONTH: "THIS_MONTH",
   PARTIAL: "PARTIAL",
   ADVANCE: "ADVANCE",
+  /**
+   * Settled an earlier month or a one-off charge, in full. Worked out from
+   * what the money did — never asked for, which is why it is absent from
+   * `requestedPaymentTypeSchema` below.
+   */
+  ARREARS: "ARREARS",
 } as const;
 export type PaymentType = (typeof PaymentType)[keyof typeof PaymentType];
 export const paymentTypeSchema = z.nativeEnum(PaymentType);
+
+/** What the desk may ask for. The recorded type is derived from the result. */
+export const requestedPaymentTypeSchema = z.enum([
+  "THIS_MONTH",
+  "PARTIAL",
+  "ADVANCE",
+]);
 
 /** ACTIVE is a normal payment; REVERSED means a reversal entry now cancels it out. */
 export const PaymentStatus = {
@@ -59,7 +72,9 @@ export type SetupMonthInput = z.infer<typeof setupMonthSchema>;
 export const payFeeSchema = z.object({
   studentId: z.string().min(1),
   amount: positiveAmount,
-  type: paymentTypeSchema,
+  /** What the desk is asking to do. The recorded type is derived from what
+   *  the money actually settled. */
+  type: requestedPaymentTypeSchema,
   method: z.string().min(1).nullable().optional(),
   note: z.string().min(1).nullable().optional(),
   /**

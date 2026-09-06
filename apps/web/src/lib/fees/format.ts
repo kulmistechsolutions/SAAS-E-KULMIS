@@ -69,6 +69,9 @@ export function paymentTypeLabel(t: string, advanceMonths?: number): string {
   if (t === "THIS_MONTH") return translateIn(lang, "feesFormat.thisMonth");
   if (t === "PARTIAL") return translateIn(lang, "feesFormat.partialPayment");
   if (t === "ADVANCE") return `${translateIn(lang, "feesFormat.advance")} (${advanceMonths ?? 1})`;
+  // Settled an earlier month, or a one-off charge, in full — which read as
+  // "Partial Payment" until the type stopped being the button pressed.
+  if (t === "ARREARS") return translateIn(lang, "feesFormat.arrears");
   return t;
 }
 

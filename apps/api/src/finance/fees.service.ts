@@ -16,6 +16,7 @@ import type {
   UpdateExtraFeeInput,
   UpdatePaymentPromiseInput,
 } from "@ekulmis/shared";
+import { classifyPayment } from "@ekulmis/shared";
 import type { PaymentType, Prisma, UserRole } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { parseDateFrom, parseDateTo } from "../common/date-range.util";
@@ -1070,6 +1071,9 @@ export class FeesService {
 
   async pay(schoolId: string, dto: PayFeeInput, collectedByUserId: string) {
     const config = await this.schoolConfig(schoolId);
+    // Read outside the transaction: the pooler is slow enough that a nested
+    // tenant call inside one has timed out before.
+    const live = await this.balances.liveMonth(schoolId);
 
     if (dto.type === "PARTIAL" && !config.feeAllowPartial) {
       throw new BadRequestException(
@@ -1165,10 +1169,27 @@ export class FeesService {
         ],
       });
 
-      if (dto.type === "ADVANCE" && outstanding.length > 0) {
-        throw new BadRequestException(
-          "Clear outstanding balances before accepting advance payments",
-        );
+      if (dto.type === "ADVANCE") {
+        // Asked of the whole balance, not of `outstanding` — that list is
+        // narrowed by dto.chargeIds, so naming a future charge would have
+        // hidden this month's unpaid fee from the very check meant to catch
+        // it. A school may not take next month's money while this month's is
+        // still owed.
+        const owed = await tx.feeCharge.count({
+          where: {
+            studentId: student.id,
+            status: { in: ["UNPAID", "PARTIAL"] },
+            OR: [
+              { year: { lt: live.year } },
+              { year: live.year, month: { lte: live.month } },
+            ],
+          },
+        });
+        if (owed > 0) {
+          throw new BadRequestException(
+            "Clear outstanding balances before accepting advance payments",
+          );
+        }
       }
 
       // Recorded alongside the payment so a later reversal knows exactly
@@ -1183,6 +1204,8 @@ export class FeesService {
         month: number;
         kind: string;
         label: string | null;
+        /** Whether the charge is fully paid once this money is applied. */
+        settled: boolean;
       }[] = [];
 
       let remaining = dto.amount;
@@ -1199,7 +1222,7 @@ export class FeesService {
             status: paidAmount >= charge.amount ? "PAID" : "PARTIAL",
           },
         });
-        allocations.push({ feeChargeId: charge.id, amount: applied, year: charge.year, month: charge.month, kind: charge.kind, label: charge.label });
+        allocations.push({ feeChargeId: charge.id, amount: applied, year: charge.year, month: charge.month, kind: charge.kind, label: charge.label, settled: paidAmount >= charge.amount });
         remaining -= applied;
       }
 
@@ -1239,7 +1262,7 @@ export class FeesService {
                   : "PARTIAL",
             },
           });
-          allocations.push({ feeChargeId: charge.id, amount: applied, year: charge.year, month: charge.month, kind: charge.kind, label: charge.label });
+          allocations.push({ feeChargeId: charge.id, amount: applied, year: charge.year, month: charge.month, kind: charge.kind, label: charge.label, settled: charge.paidAmount + applied >= charge.amount });
           remaining -= applied;
         }
 
@@ -1281,7 +1304,7 @@ export class FeesService {
                     dup.paidAmount + applied >= dup.amount ? "PAID" : "PARTIAL",
                 },
               });
-              allocations.push({ feeChargeId: dup.id, amount: applied, year: dup.year, month: dup.month, kind: dup.kind, label: dup.label });
+              allocations.push({ feeChargeId: dup.id, amount: applied, year: dup.year, month: dup.month, kind: dup.kind, label: dup.label, settled: dup.paidAmount + applied >= dup.amount });
               remaining -= applied;
               continue;
             }
@@ -1297,7 +1320,7 @@ export class FeesService {
                 status: applied >= student.monthlyFee ? "PAID" : "PARTIAL",
               },
             });
-            allocations.push({ feeChargeId: newCharge.id, amount: applied, year: y, month: m, kind: newCharge.kind, label: newCharge.label });
+            allocations.push({ feeChargeId: newCharge.id, amount: applied, year: y, month: m, kind: newCharge.kind, label: newCharge.label, settled: applied >= newCharge.amount });
             remaining -= applied;
           }
         }
@@ -1319,7 +1342,19 @@ export class FeesService {
           schoolId,
           studentId: student.id,
           receiptNumber,
-          type: dto.type,
+          // What the money did, not which button was pressed. Settling August
+          // in full through the arrears line used to be written down as
+          // PARTIAL, and so did clearing a whole balance.
+          type: classifyPayment({
+            lines: allocations.map((a) => ({
+              year: a.year,
+              month: a.month,
+              settled: a.settled,
+            })),
+            liveYear: live.year,
+            liveMonth: live.month,
+            fallback: dto.type,
+          }),
           amount: dto.amount,
           method: dto.method ?? null,
           note: dto.note ?? null,

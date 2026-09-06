@@ -52,9 +52,13 @@ export function PaymentTypeBadge({
   const tone =
     type === "THIS_MONTH"
       ? "success"
-      : type === "PARTIAL"
-        ? "warning"
-        : "info";
+      // Arrears cleared a debt in full, so it reads as settled, not as a
+      // warning — the warning tone belongs to money still owed.
+      : type === "ARREARS"
+        ? "success"
+        : type === "PARTIAL"
+          ? "warning"
+          : "info";
   return <Badge tone={tone}>{paymentTypeLabel(type, advanceMonths)}</Badge>;
 }
 

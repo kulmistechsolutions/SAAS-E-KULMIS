@@ -1336,6 +1336,7 @@ export const generated = {
     smsFailed: "Could not send SMS. Check SMS credits/settings.",
   },
   feesFormat: {
+    arrears: "Arrears Cleared",
     free: "Free",
     month1: "January",
     month2: "February",
