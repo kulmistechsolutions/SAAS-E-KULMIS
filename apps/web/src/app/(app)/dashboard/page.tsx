@@ -121,11 +121,33 @@ const ACTIVITY_COLORS = [
   "#22c55e",
 ];
 
+/**
+ * Every visible section a role holds. Absent (an older API, or an
+ * administrator) means all of them, which is what it meant before.
+ */
+function visibleSections(data: AdminDashboardResponse) {
+  return (
+    data.visible ?? {
+      students: true,
+      teachers: true,
+      parents: true,
+      academics: true,
+      attendance: true,
+      fees: data.financeVisible !== false,
+      finance: data.financeVisible !== false,
+      exams: true,
+      activity: true,
+    }
+  );
+}
+
 function buildStats(data: AdminDashboardResponse, t: Translate) {
   const outstandingStudents = data.fees.partialPayments;
-  return [
+  const shown = visibleSections(data);
+  const cards = [
     {
       key: "students",
+      section: "students" as const,
       label: "Total Students",
       labelKey: "dashboard.totalStudents" as TranslationKey,
       // Enrolled students, not every student ever — the Students page counts
@@ -139,6 +161,7 @@ function buildStats(data: AdminDashboardResponse, t: Translate) {
     },
     {
       key: "teachers",
+      section: "teachers" as const,
       label: "Total Teachers",
       labelKey: "dashboard.totalTeachers" as TranslationKey,
       value: data.teachers.total.toLocaleString(),
@@ -149,6 +172,7 @@ function buildStats(data: AdminDashboardResponse, t: Translate) {
     },
     {
       key: "parents",
+      section: "parents" as const,
       label: "Total Parents",
       labelKey: "dashboard.totalParents" as TranslationKey,
       value: data.parents.total.toLocaleString(),
@@ -159,6 +183,7 @@ function buildStats(data: AdminDashboardResponse, t: Translate) {
     },
     {
       key: "classes",
+      section: "academics" as const,
       label: "Total Classes",
       labelKey: "dashboard.totalClasses" as TranslationKey,
       value: data.academics.classes.toLocaleString(),
@@ -167,10 +192,9 @@ function buildStats(data: AdminDashboardResponse, t: Translate) {
       icon: "classes" as const,
       theme: "sky" as const,
     },
-    ...(data.financeVisible === false
-      ? []
-      : [{
+    {
       key: "fees",
+      section: "fees" as const,
       label: "Fees Outstanding",
       labelKey: "dashboard.feesOutstanding" as TranslationKey,
       value: money(data.fees.totalOutstanding),
@@ -178,9 +202,10 @@ function buildStats(data: AdminDashboardResponse, t: Translate) {
       hintTone: "muted" as const,
       icon: "fees" as const,
       theme: "rose" as const,
-    }]),
+    },
     {
       key: "attendance",
+      section: "attendance" as const,
       label: "Today's Attendance",
       labelKey: "dashboard.todaysAttendance" as TranslationKey,
       value: `${data.attendanceToday.percentage}%`,
@@ -190,6 +215,9 @@ function buildStats(data: AdminDashboardResponse, t: Translate) {
       theme: "teal" as const,
     },
   ];
+  // A card for a module the role was never granted is not a card with a zero
+  // in it — it is a card that should not be on the page.
+  return cards.filter((c) => shown[c.section]);
 }
 
 function buildAttendance(data: AdminDashboardResponse, t: Translate) {
@@ -445,7 +473,11 @@ function AdminDashboard() {
   // The API zeroes the money for roles that have no claim on it and says so
   // here; the screen leaves those panels out rather than reporting a school
   // that earned nothing.
-  const showFinance = data?.financeVisible !== false;
+  // Each panel answers to the module that grants it, the same way the cards
+  // above do — otherwise a role keeps whichever panels nobody remembered to
+  // gate, which is how the register-taker came to see the school's roll.
+  const shown = data ? visibleSections(data) : null;
+  const showFinance = shown ? shown.finance : data?.financeVisible !== false;
 
   if (!data || !attendanceBreakdown || !feeCollection || !incomeVsExpense) {
     return (
@@ -505,6 +537,7 @@ function AdminDashboard() {
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        {shown?.attendance !== false && (
         <Panel title={tr("dashboard.attendanceOverviewToday")}>
           <div className="flex flex-col items-center gap-4 sm:flex-row">
             <div className="relative w-full max-w-[220px]">
@@ -541,6 +574,7 @@ function AdminDashboard() {
             </div>
           </div>
         </Panel>
+        )}
 
         {showFinance && (
         <Panel title={tr("dashboard.feeCollectionOverviewThisMonth")}>
@@ -601,6 +635,7 @@ function AdminDashboard() {
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+        {shown?.exams !== false && (
         <Panel
           title={t("dashboard.upcomingExams")}
           action={t("dashboard.viewAll")}
@@ -634,7 +669,9 @@ function AdminDashboard() {
             </ul>
           )}
         </Panel>
+        )}
 
+        {shown?.activity !== false && (
         <Panel
           title={t("dashboard.recentActivities")}
           action={t("dashboard.viewAll")}
@@ -656,6 +693,7 @@ function AdminDashboard() {
             )}
           </ul>
         </Panel>
+        )}
 
         <Panel
           title={t("dashboard.alertsNotifications")}
@@ -702,9 +740,11 @@ function AdminDashboard() {
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-4">
+        {shown?.students !== false && (
         <Panel title={t("dashboard.studentAdmissionTrend")} className="xl:col-span-2">
           <AdmissionAreaChart data={admissionTrend} />
         </Panel>
+        )}
 
         {showFinance && (
         <Panel

@@ -46,6 +46,22 @@ export interface AdminDashboardResponse {
    * leaves those panels out rather than drawing a school with no income.
    */
   financeVisible?: boolean;
+  /**
+   * Which sections the signed-in role holds. Anything false comes back zeroed
+   * and is left off the screen — a role sees the modules it was granted, and
+   * a dashboard drawn from everything else is showing what nobody agreed to.
+   */
+  visible?: {
+    students: boolean;
+    teachers: boolean;
+    parents: boolean;
+    academics: boolean;
+    attendance: boolean;
+    fees: boolean;
+    finance: boolean;
+    exams: boolean;
+    activity: boolean;
+  };
   activeAcademicYear: string | null;
   charts: {
     studentGrowth: { label: string; value: number }[];
