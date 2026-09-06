@@ -7,7 +7,8 @@ const RELOADED_KEY = "ekulmis_chunk_reload_at";
 // without looping forever if a chunk is genuinely missing.
 const COOLDOWN_MS = 60_000;
 
-function looksLikeChunkLoadFailure(message: unknown): boolean {
+/** A build that no longer exists — the tab is holding the previous deploy. */
+export function looksLikeChunkLoadFailure(message: unknown): boolean {
   if (typeof message !== "string") return false;
   return (
     message.includes("ChunkLoadError") ||
@@ -16,7 +17,7 @@ function looksLikeChunkLoadFailure(message: unknown): boolean {
   );
 }
 
-function reloadOnce() {
+export function reloadOnce() {
   const last = Number(sessionStorage.getItem(RELOADED_KEY) ?? 0);
   if (Date.now() - last < COOLDOWN_MS) return;
   sessionStorage.setItem(RELOADED_KEY, String(Date.now()));
