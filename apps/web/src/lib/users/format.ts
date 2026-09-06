@@ -1,3 +1,4 @@
+import { PERMISSIONS_BY_ROLE } from "@ekulmis/shared";
 import type {
   BuiltInRole,
   PermissionAction,
@@ -176,92 +177,22 @@ function grantAll(
   return next;
 }
 
+/**
+ * A built-in role's permissions, expanded from the shared table.
+ *
+ * The table lives in `@ekulmis/shared` because the sidebar, the route guard,
+ * the dashboard and the server all have to agree with this screen. They did
+ * not: a finance officer's matrix showed Students ticked across all eight
+ * actions — a module the role has never held, on any screen, on any server.
+ */
 export function builtInRolePermissions(role: BuiltInRole): PermissionMap {
-  const allMods = MODULES.map((m) => m.id);
   let p = emptyPermissions();
-
-  switch (role) {
-    case "SUPER_ADMINISTRATOR":
-      return grantAll(p, allMods);
-    case "ADMINISTRATOR":
-      p = grantAll(
-        p,
-        allMods.filter((m) => m !== "users" && m !== "audit"),
-      );
-      p = grant(p, "users", ["view", "create", "update", "export", "print"]);
-      p = grant(p, "audit", ["view", "export"]);
-      p = grant(p, "sms", ["view", "create", "export"]);
-      return p;
-    case "ACADEMIC_MANAGER":
-      // Reads the school's academic picture and runs promotions. It does NOT
-      // run exams — creating one, entering marks and importing them are the
-      // exam manager's, and the server has always refused an academic manager
-      // there. Claiming them here is what put Create Exam and Enter Marks in
-      // this role's menu, three clicks from a refusal.
-      p = grantAll(p, ["promotions", "reports"]);
-      p = grant(p, "academics", ["view", "export", "print"]);
-      p = grant(p, "teachers", ["view", "export", "print"]);
-      p = grant(p, "examinations", ["view", "export", "print"]);
-      p = grant(p, "quiz", ["view", "export"]);
-      p = grant(p, "sms", ["view", "create"]);
-      return p;
-    case "TEACHER":
-      // Student access is per-teacher (canViewStudents) — not role-wide.
-      p = grant(p, "teachers", ["view", "update"]);
-      p = grant(p, "attendance", ["view", "create", "update"]);
-      // Official exams: view assigned + enter marks only (no create/delete/lock/publish).
-      p = grant(p, "examinations", ["view", "update"]);
-      p = grant(p, "quiz", ["view", "create", "update"]);
-      p = grant(p, "academics", ["view"]);
-      p = grant(p, "reports", ["view"]);
-      return p;
-    case "PARENT":
-      p = grant(p, "attendance", ["view"]);
-      p = grant(p, "fees", ["view", "print"]);
-      p = grant(p, "examinations", ["view"]);
-      p = grant(p, "quiz", ["view"]);
-      return p;
-    case "STUDENT":
-      p = grant(p, "attendance", ["view"]);
-      p = grant(p, "fees", ["view"]);
-      p = grant(p, "examinations", ["view"]);
-      p = grant(p, "quiz", ["view"]);
-      return p;
-    case "FINANCE_OFFICER":
-      p = grantAll(p, ["fees", "salaries", "expenses", "finance", "reports"]);
-      p = grant(p, "sms", ["view", "create", "export"]);
-      return p;
-    case "ATTENDANCE_OFFICER":
-      // Takes registers for the classes it was assigned. Appointing officers
-      // and reviewing how they perform belongs to the school, not to the
-      // officer being reviewed — so "attendance" here stops short of delete
-      // and approve, which are those screens.
-      p = grant(p, "attendance", ["view", "create", "update", "export", "print"]);
-      p = grantAll(p, ["reports"]);
-      return p;
-    case "EXAM_MANAGER":
-      // Quiz was left off this row even though the server has always let an
-      // exam manager build and run one — so the menu hid a job they hold.
-      p = grantAll(p, ["examinations", "quiz", "reports"]);
-      p = grant(p, "sms", ["view", "create"]);
-      return p;
-    case "RECEPTION_OFFICER":
-      p = grant(p, "students", ["view", "create", "update"]);
-      p = grant(p, "parents", ["view", "create", "update"]);
-      // Hiring is not a front-desk job: the server accepts a teacher record
-      // only from an administrator, so offering create and update here was
-      // promising something the reception officer could not do.
-      p = grant(p, "teachers", ["view"]);
-      p = grant(p, "reports", ["view", "export", "print"]);
-      return p;
-    case "LIBRARIAN":
-      p = grantAll(p, ["library"]);
-      p = grant(p, "students", ["view"]);
-      p = grant(p, "reports", ["view"]);
-      return p;
-    default:
-      return p;
+  const table = PERMISSIONS_BY_ROLE[role] ?? {};
+  for (const [module, actions] of Object.entries(table)) {
+    if (!actions?.length) continue;
+    p = grant(p, module as PermissionModule, actions as PermissionAction[]);
   }
+  return p;
 }
 
 export function hashPassword(password: string): string {

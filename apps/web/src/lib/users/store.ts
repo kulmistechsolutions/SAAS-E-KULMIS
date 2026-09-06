@@ -16,6 +16,7 @@ import {
 } from "@ekulmis/shared";
 import { getSettings } from "@/lib/settings/store";
 import {
+  BUILT_IN_ROLES,
   builtInRolePermissions,
   normalizePermissions,
   roleLabel,
@@ -28,6 +29,7 @@ import type {
   PermissionMap,
   PermissionModule,
   SecuritySettings,
+  RoleDefinition,
   SystemRole,
   SystemUser,
   UpdateUserInput,
@@ -81,6 +83,39 @@ export async function refreshUsers(): Promise<void> {
   }
 }
 
+/**
+ * A built-in role's permissions come from the code, never from the browser.
+ *
+ * They were being read back out of localStorage, so whatever the matrix
+ * happened to hold the first time that browser opened the app is what it kept
+ * showing — for months, and differently on every machine at the same school.
+ * That is how a finance officer's row came to show Students ticked across all
+ * eight actions: a module the role has never held on any screen or any
+ * server, frozen into one browser's copy of an older seed.
+ *
+ * A school's own custom roles are its data and are kept as stored.
+ */
+function withFreshBuiltIns(roles: RoleDefinition[]): RoleDefinition[] {
+  const seen = new Set<string>();
+  const fresh: RoleDefinition[] = BUILT_IN_ROLES.map((name) => {
+    seen.add(name);
+    const stored = roles.find((r) => r.name === name || r.id === name);
+    return {
+      id: name,
+      name,
+      label: roleLabel(name),
+      description: stored?.description ?? `Built-in ${roleLabel(name)} role`,
+      builtIn: true,
+      permissions: builtInRolePermissions(name),
+    };
+  });
+  const custom = roles.filter((r) => !r.builtIn && !seen.has(r.name));
+  return [...fresh, ...custom.map((r) => ({
+    ...r,
+    permissions: normalizePermissions(r.permissions),
+  }))];
+}
+
 function ensure(): UsersState {
   if (state) return state;
   if (typeof window === "undefined") return EMPTY;
@@ -90,10 +125,7 @@ function ensure(): UsersState {
       const parsed = JSON.parse(raw) as UsersState;
       state = {
         ...parsed,
-        roles: parsed.roles.map((r) => ({
-          ...r,
-          permissions: normalizePermissions(r.permissions),
-        })),
+        roles: withFreshBuiltIns(parsed.roles),
       };
     } catch {
       state = buildSeed();

@@ -1,4 +1,10 @@
-import { staffCanOpen, UserRole } from "@ekulmis/shared";
+import {
+  PERMISSIONS_BY_ROLE,
+  dashboardVisibilityFor,
+  modulesForRole,
+  staffCanOpen,
+  UserRole,
+} from "@ekulmis/shared";
 import { searchableTypesForRole } from "../search/search.service";
 
 /**
@@ -197,5 +203,74 @@ describe("what the search box may find", () => {
   it("finds nothing at all for a role outside the staff list", () => {
     expect(searchableTypesForRole(UserRole.PARENT)).toEqual([]);
     expect(searchableTypesForRole(UserRole.STUDENT)).toEqual([]);
+  });
+});
+
+describe("what the Roles & Permissions screen shows", () => {
+  // KTS: a finance officer's matrix showed Students ticked across all eight
+  // actions — a module the role has never held on any screen or any server.
+  // The screen was reading its own copy out of the browser's storage, so
+  // whatever it held the first time that machine opened the app is what it
+  // kept showing, differently on every machine at the same school.
+
+  it("gives a finance officer the money and nothing else", () => {
+    const p = PERMISSIONS_BY_ROLE[FO]!;
+    expect(Object.keys(p).sort()).toEqual(
+      ["expenses", "fees", "finance", "reports", "salaries", "sms"],
+    );
+    expect(p.students).toBeUndefined();
+    expect(p.attendance).toBeUndefined();
+    expect(p.examinations).toBeUndefined();
+  });
+
+  it("gives an attendance officer the register and the reports", () => {
+    expect(Object.keys(PERMISSIONS_BY_ROLE[AO]!).sort()).toEqual([
+      "attendance",
+      "reports",
+    ]);
+  });
+
+  it("never lists a module with no actions behind it", () => {
+    // An empty action list is a module a role does not hold, and a row of
+    // eight unticked boxes reads as "granted, but nothing allowed".
+    for (const [role, table] of Object.entries(PERMISSIONS_BY_ROLE)) {
+      for (const [module, actions] of Object.entries(table)) {
+        expect([role, module, actions?.length ?? 0]).not.toEqual([
+          role,
+          module,
+          0,
+        ]);
+      }
+    }
+  });
+
+  it("agrees with the module list every other screen reads", () => {
+    // The two used to be written out by hand, separately. Now one is derived
+    // from the other, and this is what says so.
+    for (const role of Object.keys(PERMISSIONS_BY_ROLE)) {
+      expect([role, modulesForRole(role).sort()]).toEqual([
+        role,
+        Object.keys(PERMISSIONS_BY_ROLE[role]!).sort(),
+      ]);
+    }
+  });
+
+  it("shows the dashboard exactly the sections the table grants", () => {
+    // The count cards and the permission matrix are the same claim made
+    // twice; this is the case that had 127 students on an officer's screen.
+    expect(dashboardVisibilityFor(AO)).toEqual({
+      students: false,
+      teachers: false,
+      parents: false,
+      academics: false,
+      attendance: true,
+      fees: false,
+      finance: false,
+      exams: false,
+      activity: false,
+    });
+    expect(dashboardVisibilityFor(FO).fees).toBe(true);
+    expect(dashboardVisibilityFor(FO).students).toBe(false);
+    expect(dashboardVisibilityFor(UserRole.ADMINISTRATOR).activity).toBe(true);
   });
 });
