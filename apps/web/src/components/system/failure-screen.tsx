@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useState } from "react";
+
 /**
  * What a school sees when something breaks.
  *
@@ -81,16 +83,18 @@ const RETRY = { so: "Isku day mar kale", en: "Try again", ar: "حاول مرة �
 const SIGN_IN = { so: "Ku noqo gelitaanka", en: "Back to sign in", ar: "العودة لتسجيل الدخول" };
 
 /**
- * The stored language, read defensively.
+ * The reader's language, found defensively.
  *
  * Storage throws outright in some contexts (a private window, site data
  * blocked), and this component exists precisely for the moments when the
- * usual paths are not working.
+ * usual paths are not working — so every read is guarded and English is the
+ * floor.
  */
-function lang(): "so" | "en" | "ar" {
+function detectLang(): "so" | "en" | "ar" {
   try {
     const v =
       document.documentElement.lang ||
+      document.cookie.match(/(?:^|;\s*)ekulmis_lang=([^;]+)/)?.[1] ||
       window.localStorage.getItem("ekulmis_lang") ||
       "";
     if (v.startsWith("so")) return "so";
@@ -99,6 +103,19 @@ function lang(): "so" | "en" | "ar" {
     /* fall through to English */
   }
   return "en";
+}
+
+/**
+ * English on the server, the reader's own language once mounted.
+ *
+ * Reading it during render would have meant a Somali school being served the
+ * English copy and keeping it: there is no `document` on the server, so the
+ * first paint answers "en" and hydration holds that answer.
+ */
+function useLang(): "so" | "en" | "ar" {
+  const [l, setL] = useState<"so" | "en" | "ar">("en");
+  useEffect(() => setL(detectLang()), []);
+  return l;
 }
 
 /** Which situation this is, from the error itself. */
@@ -131,7 +148,7 @@ export function FailureScreen({
   kind?: Kind;
   onRetry?: () => void;
 }) {
-  const l = lang();
+  const l = useLang();
   const copy = COPY[kind][l];
   const rtl = l === "ar";
 
