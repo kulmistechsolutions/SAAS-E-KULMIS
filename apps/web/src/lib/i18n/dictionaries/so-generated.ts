@@ -1511,6 +1511,11 @@ export const soGenerated: PartialDictionary = {
     recentPayments: "Lacag-bixinnadii Ugu Dambeeyay",
   },
   feesMetricBreakdown: {
+    loading: "Soo dejinaya…",
+    couldNotLoad: "Safafkan lama soo dejin karin. Hubi xiriirka oo mar kale isku day.",
+    expected: "La filayo",
+    paid: "La bixiyay",
+    balance: "Haraaga",
     payments: "lacag-bixin",
     students: "arday",
     nothingToShow: "Bishan waxba lama hayo.",

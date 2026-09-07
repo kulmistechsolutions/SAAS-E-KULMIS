@@ -1510,6 +1510,11 @@ export const arGenerated: PartialDictionary = {
     recentPayments: "آخر المدفوعات",
   },
   feesMetricBreakdown: {
+    loading: "جارٍ التحميل…",
+    couldNotLoad: "تعذر تحميل البيانات. تحقق من الاتصال ثم أعد المحاولة.",
+    expected: "المتوقع",
+    paid: "المدفوع",
+    balance: "الرصيد",
     payments: "دفعات",
     students: "طلاب",
     nothingToShow: "لا يوجد شيء لعرضه لهذا الشهر.",

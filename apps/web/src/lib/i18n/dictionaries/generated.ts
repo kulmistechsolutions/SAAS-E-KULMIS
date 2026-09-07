@@ -1542,6 +1542,11 @@ export const generated = {
     recentPayments: "Recent Payments",
   },
   feesMetricBreakdown: {
+    loading: "Loading…",
+    couldNotLoad: "Could not load these rows. Check the connection and try again.",
+    expected: "Expected",
+    paid: "Paid",
+    balance: "Balance",
     payments: "payments",
     students: "students",
     nothingToShow: "Nothing to show for this month.",

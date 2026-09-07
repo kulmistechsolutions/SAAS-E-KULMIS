@@ -1,37 +1,33 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useT } from "@/lib/i18n/provider";
 import { Dialog } from "@/components/ui/dialog";
 import { money, monthLabel } from "@/lib/fees/format";
+import { apiAllPositions, type StudentPosition } from "@/lib/fees/api";
 import { listStudentFees, useFeesState } from "@/lib/fees/store";
-import type { FeeDashboardSummary, StudentFeeState } from "@/lib/fees/types";
+import type { FeeDashboardSummary } from "@/lib/fees/types";
 
 /**
  * The rows behind a number on the fee dashboard.
  *
- * Every card carried a "View details" link that did nothing — a button with
- * no handler on all eleven of them. A school could see that $684 was
- * outstanding this month and had no way to ask which families that was.
+ * Read from `/fees/positions` — the same engine, the same charge lines, that
+ * the card itself was summed from. It used to add up the browser's roster
+ * instead, and the two sources disagreed on screen: the Expected card read
+ * $7,005 while the list it opened totalled $6,935, because a month priced by
+ * hand (a discount, an agreement, a mid-month start) is not the student's
+ * standing fee. A drill-down that cannot reproduce the figure that opened it
+ * is worse than no drill-down: it makes a school doubt both numbers.
  *
- * The rows here are read through the same functions the cards are summed
- * from, so the list can never disagree with the figure that opened it, and
- * every list is scoped to the month chosen on the dashboard — a card for
- * September must not open August's families.
+ * So nothing here recomputes. Each row is one student's line for the chosen
+ * month, and the total is those lines added — the card's own definition
+ * rather than a second opinion about it.
  */
 
 export type FeeMetric = keyof FeeDashboardSummary;
 
-const STUDENT_STATUS: Partial<Record<FeeMetric, StudentFeeState>> = {
-  fullyPaidStudents: "PAID",
-  partialPayments: "PARTIAL",
-  unpaidStudents: "UNPAID",
-  advancePayments: "ADVANCE_MULTI",
-  freeStudents: "FREE",
-};
-
 const TITLE: Record<FeeMetric, string> = {
-  totalOutstanding: "Everyone who still owes",
+  totalOutstanding: "Owed across every month",
   outstandingThisMonth: "Still owed for",
   collectedToday: "Collected today",
   collectedThisMonth: "Collected in",
@@ -53,6 +49,25 @@ const PAYMENT_METRICS: FeeMetric[] = [
   "netFeeCollection",
 ];
 
+/** The engine's own word for a student, per card. */
+const BY_STATE: Partial<Record<FeeMetric, StudentPosition["state"]>> = {
+  fullyPaidStudents: "PAID",
+  partialPayments: "PARTIAL",
+  unpaidStudents: "UNPAID",
+  advancePayments: "ADVANCE",
+  freeStudents: "FREE",
+};
+
+/** One student's numbers for the month on screen. */
+interface Row {
+  key: string;
+  name: string;
+  className: string;
+  expected: number;
+  paid: number;
+  outstanding: number;
+}
+
 export function FeeMetricBreakdownDialog({
   metric,
   month,
@@ -66,25 +81,62 @@ export function FeeMetricBreakdownDialog({
 }) {
   const t = useT();
   const fees = useFeesState();
+  const [positions, setPositions] = useState<StudentPosition[] | null>(null);
+  const [failed, setFailed] = useState(false);
 
-  const students = useMemo(() => {
-    if (!metric || PAYMENT_METRICS.includes(metric)) return [];
-    const status = STUDENT_STATUS[metric];
-    const rows = listStudentFees({ academicYear, monthKey: month, status });
-    if (status) return rows;
-    if (metric === "expectedMonthlyIncome") {
-      // A waived student is never charged, so they are not part of what the
-      // school expects to receive.
-      return rows.filter((r) => !r.feeWaived && r.monthlyFee > 0);
-    }
-    // Both outstanding cards list the families money is still owed by.
-    return rows
-      .filter((r) => r.outstandingBalance > 0)
-      .sort((a, b) => b.outstandingBalance - a.outstandingBalance);
-    // `fees` is here on purpose: listStudentFees reads the store directly, so
-    // the store's own version is what tells us the rows may have changed.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [metric, month, academicYear, fees]);
+  // Fetched when a card is opened rather than held on the page: it is every
+  // charge of every student, which is far more than a summary screen should
+  // load before anyone has asked for it.
+  useEffect(() => {
+    if (!metric || PAYMENT_METRICS.includes(metric)) return;
+    let alive = true;
+    setPositions(null);
+    setFailed(false);
+    apiAllPositions()
+      .then((rows) => alive && setPositions(rows))
+      .catch(() => alive && setFailed(true));
+    return () => {
+      alive = false;
+    };
+  }, [metric]);
+
+  const rows = useMemo<Row[]>(() => {
+    if (!metric || !positions || PAYMENT_METRICS.includes(metric)) return [];
+
+    const lineFor = (p: StudentPosition) =>
+      p.lines.find((l) => l.monthKey === month && l.status !== "INACTIVE");
+
+    const state = BY_STATE[metric];
+    const wanted = state ? positions.filter((p) => p.state === state) : positions;
+    // A card about one month reports that month; the all-months card reports
+    // the student's whole position.
+    const whole = metric === "totalOutstanding";
+
+    return wanted
+      .map((p) => {
+        const l = lineFor(p);
+        return {
+          key: p.studentId,
+          name: p.fullName,
+          className: [p.className, p.section].filter(Boolean).join(" - ") || "—",
+          expected: whole ? p.expected : (l?.expected ?? 0),
+          paid: whole ? p.paid : (l?.paid ?? 0),
+          outstanding: whole ? p.outstanding : (l?.outstanding ?? 0),
+        };
+      })
+      .filter((r) => {
+        if (metric === "expectedMonthlyIncome") return r.expected > 0;
+        if (metric === "totalOutstanding" || metric === "outstandingThisMonth") {
+          return r.outstanding > 0;
+        }
+        return true;
+      })
+      .sort((a, b) =>
+        metric === "expectedMonthlyIncome"
+          ? b.expected - a.expected
+          : b.outstanding - a.outstanding || a.name.localeCompare(b.name),
+      );
+  }, [metric, month, positions]);
 
   const payments = useMemo(() => {
     if (!metric || !PAYMENT_METRICS.includes(metric)) return [];
@@ -104,22 +156,28 @@ export function FeeMetricBreakdownDialog({
   if (!metric) return null;
 
   const isPayments = PAYMENT_METRICS.includes(metric);
-  const nameOf = (studentId: string) =>
-    listStudentFees({ academicYear, monthKey: month }).find(
-      (r) => r.studentId === studentId,
-    );
+  const loading = !isPayments && positions === null && !failed;
 
   const total = isPayments
     ? payments.reduce((s, p) => s + p.amount, 0)
     : metric === "expectedMonthlyIncome"
-      ? students.reduce((s, r) => s + r.monthlyFee, 0)
-      : students.reduce((s, r) => s + r.outstandingBalance, 0);
+      ? rows.reduce((s, r) => s + r.expected, 0)
+      : rows.reduce((s, r) => s + r.outstanding, 0);
 
   const showsMoney =
     isPayments ||
     metric === "totalOutstanding" ||
     metric === "outstandingThisMonth" ||
     metric === "expectedMonthlyIncome";
+
+  const count = isPayments ? payments.length : rows.length;
+
+  // A payment carries the student's id, not their name; the roster is where
+  // the name lives and is already loaded for the page behind this dialog.
+  const nameOf = (studentId: string) =>
+    listStudentFees({ academicYear, monthKey: month }).find(
+      (r) => r.studentId === studentId,
+    )?.fullName ?? studentId;
 
   return (
     <Dialog
@@ -130,12 +188,26 @@ export function FeeMetricBreakdownDialog({
     >
       <div className="space-y-4">
         <p className="text-sm text-muted-foreground">
-          {isPayments ? payments.length : students.length}{" "}
-          {isPayments ? t("feesMetricBreakdown.payments") : t("feesMetricBreakdown.students")}
-          {showsMoney ? ` · ${money(total)}` : ""}
+          {loading
+            ? t("feesMetricBreakdown.loading")
+            : `${count} ${
+                isPayments
+                  ? t("feesMetricBreakdown.payments")
+                  : t("feesMetricBreakdown.students")
+              }${showsMoney ? ` · ${money(total)}` : ""}`}
         </p>
 
-        {(isPayments ? payments.length : students.length) === 0 ? (
+        {failed ? (
+          <p className="rounded-lg border border-amber-300/60 bg-amber-50 p-6 text-center text-sm text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-200">
+            {t("feesMetricBreakdown.couldNotLoad")}
+          </p>
+        ) : loading ? (
+          <div className="space-y-2">
+            {[0, 1, 2, 3].map((i) => (
+              <div key={i} className="h-9 animate-pulse rounded bg-secondary/60" />
+            ))}
+          </div>
+        ) : count === 0 ? (
           <p className="rounded-lg border bg-secondary/30 p-6 text-center text-sm text-muted-foreground">
             {t("feesMetricBreakdown.nothingToShow")}
           </p>
@@ -155,44 +227,33 @@ export function FeeMetricBreakdownDialog({
                     <>
                       <th className="p-2 text-start">{t("feesMetricBreakdown.student")}</th>
                       <th className="p-2 text-start">{t("feesMetricBreakdown.classLabel")}</th>
-                      <th className="p-2 text-start">{t("feesMetricBreakdown.parent")}</th>
-                      <th className="p-2 text-end">
-                        {metric === "expectedMonthlyIncome"
-                          ? t("feesMetricBreakdown.monthlyFee")
-                          : t("feesMetricBreakdown.outstanding")}
-                      </th>
+                      <th className="p-2 text-end">{t("feesMetricBreakdown.expected")}</th>
+                      <th className="p-2 text-end">{t("feesMetricBreakdown.paid")}</th>
+                      <th className="p-2 text-end">{t("feesMetricBreakdown.balance")}</th>
                     </>
                   )}
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y">
                 {isPayments
                   ? payments.map((p) => (
-                      <tr key={p.id} className="border-t">
-                        <td className="p-2 font-mono text-xs">{p.receiptNo}</td>
-                        <td className="p-2">
-                          {nameOf(p.studentId)?.fullName ?? "—"}
+                      <tr key={p.id}>
+                        <td className="p-2 font-medium">{p.receiptNo}</td>
+                        <td className="p-2">{nameOf(p.studentId)}</td>
+                        <td className="p-2 text-end tabular-nums">{money(p.amount)}</td>
+                        <td className="p-2 text-muted-foreground">
+                          {p.collectedAt.slice(0, 10)}
                         </td>
-                        <td className="p-2 text-end tabular-nums">
-                          {money(p.amount)}
-                        </td>
-                        <td className="p-2">{p.collectedAt.slice(0, 10)}</td>
                       </tr>
                     ))
-                  : students.map((r) => (
-                      <tr key={r.studentId} className="border-t">
-                        <td className="p-2">{r.fullName}</td>
-                        <td className="p-2">
-                          {r.className}
-                          {r.section && r.section !== "—" ? ` — ${r.section}` : ""}
-                        </td>
-                        <td className="p-2 text-muted-foreground">{r.parentName}</td>
-                        <td className="p-2 text-end tabular-nums">
-                          {money(
-                            metric === "expectedMonthlyIncome"
-                              ? r.monthlyFee
-                              : r.outstandingBalance,
-                          )}
+                  : rows.map((r) => (
+                      <tr key={r.key}>
+                        <td className="p-2 font-medium">{r.name}</td>
+                        <td className="p-2 text-muted-foreground">{r.className}</td>
+                        <td className="p-2 text-end tabular-nums">{money(r.expected)}</td>
+                        <td className="p-2 text-end tabular-nums">{money(r.paid)}</td>
+                        <td className="p-2 text-end font-medium tabular-nums">
+                          {money(r.outstanding)}
                         </td>
                       </tr>
                     ))}
