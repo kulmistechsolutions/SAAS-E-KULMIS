@@ -4949,6 +4949,9 @@ export const soGenerated: PartialDictionary = {
     min8CharsUppercaseNumber: "Ugu yaraan 8 xaraf, xarfo waaweyn & tiro",
   },
   usersRoles: {
+    nothingChanged: "Waxba ma beddelmin",
+    resetToDefault: "Ku celi caadiga",
+    loading: "Waa soo shubmayaa…",
     rolesPermissions: "Doorarka & Oggolaanshaha",
     builtInAndCustomRolesWith: "Doorar caadi ah iyo kuwo gaar ah oo leh oggolaansho qeyb la dejin karo.",
     customRoleNameEGLibrary: "Magac door gaar ah (tusaale Sarkaalka Maktabadda)",

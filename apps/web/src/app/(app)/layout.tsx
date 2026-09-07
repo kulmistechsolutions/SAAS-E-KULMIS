@@ -6,6 +6,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth";
 import { refreshAcademics } from "@/lib/academics/store";
+import { refreshPermissions, usePermissions } from "@/lib/permissions/store";
 import { refreshStudents } from "@/lib/students/store";
 import { refreshSettings } from "@/lib/settings/store";
 import { Sidebar } from "@/components/layout/sidebar";
@@ -64,6 +65,9 @@ export default function AppLayout({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (user && !isPortalRole(user.role)) {
+      // Before anything else: what this user may do is what decides what the
+      // rest of this shell is allowed to draw.
+      void refreshPermissions();
       void refreshAcademics();
       void refreshStudents();
       // The settings store may have already been touched by an unauthenticated

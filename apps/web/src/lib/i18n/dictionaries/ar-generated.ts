@@ -4926,6 +4926,9 @@ export const arGenerated: PartialDictionary = {
     min8CharsUppercaseNumber: "8 أحرف على الأقل، حرف كبير ورقم",
   },
   usersRoles: {
+    nothingChanged: "لم يتغير شيء",
+    resetToDefault: "إعادة للافتراضي",
+    loading: "جارٍ التحميل…",
     rolesPermissions: "الأدوار والصلاحيات",
     builtInAndCustomRolesWith: "أدوار مدمجة ومخصّصة بصلاحيات وحدات قابلة للتهيئة.",
     customRoleNameEGLibrary: "اسم دور مخصص (مثال: مسؤول المكتبة)",

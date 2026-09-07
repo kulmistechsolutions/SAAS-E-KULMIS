@@ -5026,6 +5026,9 @@ export const generated = {
     min8CharsUppercaseNumber: "Min 8 chars, uppercase & number",
   },
   usersRoles: {
+    nothingChanged: "Nothing changed",
+    resetToDefault: "Reset to default",
+    loading: "Loading…",
     rolesPermissions: "Roles & Permissions",
     builtInAndCustomRolesWith: "Built-in and custom roles with configurable module permissions.",
     customRoleNameEGLibrary: "Custom role name (e.g. Library Officer)",

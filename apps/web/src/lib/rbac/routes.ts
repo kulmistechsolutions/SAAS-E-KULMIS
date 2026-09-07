@@ -1,6 +1,11 @@
 "use client";
 
-import { staffCanOpen, staffRoutePrefixes } from "@ekulmis/shared";
+import {
+  canOpenWithPermissions,
+  staffCanOpen,
+  staffRoutePrefixes,
+} from "@ekulmis/shared";
+import { getPermissionsState } from "@/lib/permissions/store";
 
 /**
  * Role-based route access for the (app) shell.
@@ -52,7 +57,12 @@ export function portalHomeForRole(role: string): string | null {
   return PORTAL_HOME[normalizeRole(role)] ?? null;
 }
 
-/** Allowed route prefixes for a role, or `["/"]` for full access. */
+/**
+ * Allowed route prefixes for a role, or `["/"]` for full access.
+ *
+ * Only used for the landing page; the menu and the guard ask about one path
+ * at a time, which is what the permission table can answer precisely.
+ */
 export function allowedPrefixesForRole(role: string): string[] {
   if (isFullAccessRole(role)) return ["/"];
   // Non-staff roles get no (app) route at all, not even the shared dashboard.
@@ -60,10 +70,20 @@ export function allowedPrefixesForRole(role: string): string[] {
   return staffRoutePrefixes(normalizeRole(role));
 }
 
-/** Whether a role may open a given (app) pathname. */
+/**
+ * Whether the signed-in user may open a page.
+ *
+ * The school's own effective permissions decide it, so a permission added by
+ * hand starts working at once and one taken away stops working at once. The
+ * role table is the fallback for the moment before the server's answer has
+ * arrived — without it every page would flash "no access" on load.
+ */
 export function isRouteAllowedForRole(role: string, pathname: string): boolean {
   if (isFullAccessRole(role)) return true;
   if (isPortalRole(role)) return false;
+
+  const { loaded, grants } = getPermissionsState();
+  if (loaded) return canOpenWithPermissions(grants, pathname);
   return staffCanOpen(normalizeRole(role), pathname);
 }
 

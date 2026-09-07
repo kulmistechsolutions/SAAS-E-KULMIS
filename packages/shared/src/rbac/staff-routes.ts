@@ -166,3 +166,95 @@ export function staffRoutePrefixes(role: string): string[] {
     (r) => r.prefix,
   );
 }
+
+/**
+ * The permission each page needs — "module.action".
+ *
+ * `STAFF_ROUTE_RULES` above answers "which roles", which cannot express a
+ * school having taken an action away from a role that otherwise holds the
+ * module. This answers "which permission", so a school's own override decides
+ * what opens, and a permission added by hand starts working at once instead of
+ * waiting for somebody to edit a list of roles.
+ *
+ * Ordered most specific first, exactly like the rules above. Every entry was
+ * chosen so that today's roles keep today's pages: `attendance.approve` for
+ * the officer-management screens, for instance, is a permission the school
+ * holds and the officer does not.
+ */
+export interface RoutePermissionRule {
+  prefix: string;
+  /** Holding any one of these opens the page. */
+  anyOf: string[];
+}
+
+export const ROUTE_PERMISSIONS: RoutePermissionRule[] = [
+  // Appointing officers and reviewing them is the school watching its own
+  // staff — "approve" is the part an officer is never granted.
+  { prefix: "/attendance/officers", anyOf: ["attendance.approve"] },
+  { prefix: "/attendance/monitoring", anyOf: ["attendance.approve"] },
+  { prefix: "/attendance", anyOf: ["attendance.view"] },
+  { prefix: "/student-cases", anyOf: ["attendance.view"] },
+
+  { prefix: "/students", anyOf: ["students.view"] },
+  { prefix: "/parents", anyOf: ["parents.view"] },
+  // Assignments are academic planning; shifts are the attendance clock.
+  { prefix: "/teachers/assignments", anyOf: ["academics.view"] },
+  { prefix: "/teachers/shifts", anyOf: ["attendance.update"] },
+  { prefix: "/teachers", anyOf: ["teachers.view"] },
+  // Cards are printed by two different desks, for two different reasons.
+  { prefix: "/id-cards", anyOf: ["students.print", "examinations.print"] },
+
+  { prefix: "/finance", anyOf: ["fees.view"] },
+  { prefix: "/expenses", anyOf: ["expenses.view"] },
+  { prefix: "/other-income", anyOf: ["expenses.view"] },
+  { prefix: "/salary", anyOf: ["salaries.view"] },
+
+  // Reading the results is not running the exam.
+  { prefix: "/examinations/reports", anyOf: ["examinations.view"] },
+  { prefix: "/examinations", anyOf: ["examinations.update"] },
+  { prefix: "/quiz/monitoring", anyOf: ["quiz.view"] },
+  { prefix: "/quiz", anyOf: ["quiz.create"] },
+
+  { prefix: "/promotions", anyOf: ["promotions.view"] },
+  { prefix: "/academics", anyOf: ["academics.view"] },
+  { prefix: "/timetable", anyOf: ["academics.update"] },
+
+  { prefix: "/library", anyOf: ["library.view"] },
+  // Buying credit spends the school's money.
+  { prefix: "/sms/packages", anyOf: ["sms.export"] },
+  { prefix: "/sms", anyOf: ["sms.view"] },
+  { prefix: "/copilot", anyOf: ["finance.view", "academics.view"] },
+  { prefix: "/reports", anyOf: ["reports.view"] },
+  { prefix: "/users", anyOf: ["users.view"] },
+  { prefix: "/settings", anyOf: ["settings.view"] },
+];
+
+/** Pages anyone signed in may open: their own profile and the shared notices. */
+export const COMMON_ROUTES = ["/dashboard", "/profile", "/announcements"];
+
+/** What a path needs, or null when it needs nothing beyond being signed in. */
+export function routePermissions(pathname: string): string[] | null {
+  if (COMMON_ROUTES.some((p) => matches(p, pathname))) return null;
+  const rule = ROUTE_PERMISSIONS.find((r) => matches(r.prefix, pathname));
+  // Deny by default: a page nobody has placed here is one nobody has decided
+  // about, and an empty list can never be satisfied.
+  return rule ? rule.anyOf : [];
+}
+
+/**
+ * Whether a set of effective permissions opens a page.
+ *
+ * `grants` is `{ fees: ["view", ...] }` — what the server says this user may
+ * do at this school, defaults and the school's own overrides already merged.
+ */
+export function canOpenWithPermissions(
+  grants: Record<string, string[] | undefined>,
+  pathname: string,
+): boolean {
+  const required = routePermissions(pathname);
+  if (required === null) return true;
+  return required.some((p) => {
+    const [module, action] = p.split(".");
+    return (grants[module ?? ""] ?? []).includes(action ?? "");
+  });
+}

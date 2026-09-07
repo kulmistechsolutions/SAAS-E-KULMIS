@@ -149,7 +149,9 @@ export const PERMISSIONS_BY_ROLE: Record<
     sms: ["view", "create"],
   },
   [UserRole.RECEPTION_OFFICER]: {
-    students: ["view", "create", "update"],
+    // Print included because issuing ID cards is a front-desk job, and the
+    // card pages are reached through it.
+    students: ["view", "create", "update", "print"],
     parents: ["view", "create", "update"],
     // Hiring is not a front-desk job: the server accepts a teacher record only
     // from an administrator.

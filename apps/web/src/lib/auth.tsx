@@ -18,6 +18,7 @@ import {
   setRefreshToken,
 } from "./api";
 import { useIdleLogout } from "./session/use-idle-logout";
+import { clearPermissions } from "@/lib/permissions/store";
 
 export interface AuthUser {
   userId: string;
@@ -182,6 +183,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   function logout() {
+    // The next person to sign in on this machine must not inherit this one's
+    // permissions for even a moment.
+    clearPermissions();
     // Best-effort: revoke the refresh token server-side too, so a copy of it
     // (stolen, or left in another tab) can't keep minting new access tokens
     // for its full 7-day life after this device has logged out.

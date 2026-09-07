@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   AlertTriangle,
   BarChart3,
@@ -39,6 +39,7 @@ import {
 } from "lucide-react";
 import { useSchoolBranding } from "@/lib/settings/use-school-branding";
 import { useAuth } from "@/lib/auth";
+import { usePermissions } from "@/lib/permissions/store";
 import { isFullAccessRole, isRouteAllowedForRole } from "@/lib/rbac/routes";
 import { cn } from "@/lib/utils";
 import { useT, type TranslationKey } from "@/lib/i18n/provider";
@@ -251,14 +252,23 @@ export function Sidebar({
   const branding = useSchoolBranding();
   const t = useT();
   const { user } = useAuth();
+  // The menu is drawn from what the server says this user may do, so it
+  // changes the moment an administrator changes it.
+  const perms = usePermissions();
   const isTeacher = user?.role === "TEACHER";
   const role = user?.role ?? "";
   // Admins see everything; teachers use their own nav; every other staff role
   // gets the admin nav filtered to the pages their permissions actually grant.
-  const scopedAdminNav =
-    !user || isFullAccessRole(role)
-      ? ADMIN_NAV
-      : scopeNavToRole(ADMIN_NAV, role);
+  const scopedAdminNav: NavItem[] = useMemo(
+    () =>
+      !user || isFullAccessRole(role)
+        ? ADMIN_NAV
+        : scopeNavToRole(ADMIN_NAV, role),
+    // `perms` is the dependency that matters: isRouteAllowedForRole reads the
+    // permission store, so the menu must be rebuilt when that answer changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [user, role, perms],
+  );
   // An officer's own registers come first — it is the page they open every
   // morning, and reaching it through the module hub is two clicks for a job
   // that is the whole of their role.

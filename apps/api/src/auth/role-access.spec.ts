@@ -1,5 +1,6 @@
 import {
   PERMISSIONS_BY_ROLE,
+  canOpenWithPermissions,
   dashboardVisibilityFor,
   modulesForRole,
   staffCanOpen,
@@ -272,5 +273,100 @@ describe("what the Roles & Permissions screen shows", () => {
     expect(dashboardVisibilityFor(FO).fees).toBe(true);
     expect(dashboardVisibilityFor(FO).students).toBe(false);
     expect(dashboardVisibilityFor(UserRole.ADMINISTRATOR).activity).toBe(true);
+  });
+});
+
+describe("what a page needs, as a permission", () => {
+  // Phase 2: the menu and the route guard stop reading a table compiled into
+  // the app and start reading the school's own effective permissions, so an
+  // administrator adding or removing one changes what opens straight away.
+  const grantsFor = (role: string) =>
+    Object.fromEntries(
+      Object.entries(PERMISSIONS_BY_ROLE[role] ?? {}).map(([m, a]) => [m, a ?? []]),
+    ) as Record<string, string[]>;
+
+  it("opens for every role that holds the page today", () => {
+    const cases: [string, string][] = [
+      [FO, "/finance/collect"],
+      [FO, "/salary/payroll"],
+      [FO, "/expenses/list"],
+      [FO, "/other-income"],
+      [FO, "/sms/packages"],
+      [AO, "/attendance/students"],
+      [AO, "/student-cases"],
+      [AM, "/promotions/promote"],
+      [AM, "/academics/classes"],
+      [AM, "/quiz/monitoring"],
+      [EM, "/examinations/create"],
+      [EM, "/quiz/create"],
+      [RO, "/students"],
+      [RO, "/parents"],
+      [LIB, "/library"],
+    ];
+    for (const [role, path] of cases) {
+      expect([role, path, canOpenWithPermissions(grantsFor(role), path)]).toEqual([
+        role,
+        path,
+        true,
+      ]);
+    }
+  });
+
+  it("stays shut for every role that does not", () => {
+    const cases: [string, string][] = [
+      // The officer-management screens turn on "approve", which the officer
+      // being managed is never granted.
+      [AO, "/attendance/officers"],
+      [AO, "/attendance/monitoring"],
+      [AO, "/finance"],
+      [FO, "/attendance/students"],
+      [FO, "/examinations/create"],
+      [FO, "/users"],
+      [FO, "/settings"],
+      // Reading the results is not running the exam.
+      [AM, "/examinations/create"],
+      [AM, "/quiz/create"],
+      [AM, "/sms/packages"],
+      [RO, "/finance/collect"],
+      [LIB, "/examinations"],
+      [LIB, "/id-cards"],
+      [EM, "/students"],
+    ];
+    for (const [role, path] of cases) {
+      expect([role, path, canOpenWithPermissions(grantsFor(role), path)]).toEqual([
+        role,
+        path,
+        false,
+      ]);
+    }
+  });
+
+  it("closes a page the moment the school revokes the permission behind it", () => {
+    // The whole point of Phase 2: this is what localStorage could never do.
+    const finance = grantsFor(FO);
+    expect(canOpenWithPermissions(finance, "/finance/collect")).toBe(true);
+    expect(canOpenWithPermissions({ ...finance, fees: [] }, "/finance/collect")).toBe(
+      false,
+    );
+  });
+
+  it("opens a page the moment the school grants the permission", () => {
+    const officer = grantsFor(AO);
+    expect(canOpenWithPermissions(officer, "/library")).toBe(false);
+    expect(
+      canOpenWithPermissions({ ...officer, library: ["view"] }, "/library"),
+    ).toBe(true);
+  });
+
+  it("lets anyone signed in reach their own profile and the notices", () => {
+    for (const path of ["/dashboard", "/profile", "/announcements"]) {
+      expect(canOpenWithPermissions({}, path)).toBe(true);
+    }
+  });
+
+  it("refuses a page nobody has placed in the table", () => {
+    expect(canOpenWithPermissions(grantsFor(UserRole.ADMINISTRATOR), "/brand-new")).toBe(
+      false,
+    );
   });
 });
