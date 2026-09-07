@@ -165,6 +165,7 @@ export class AuthService {
       sid: user.schoolId,
       role: user.role,
       username: user.username,
+      ...(user.customRoleId ? { crid: user.customRoleId } : {}),
     };
     const minutes = await this.getSessionTimeoutMinutes(user.schoolId);
     return this.jwt.signAsync(payload, { expiresIn: minutes * 60 });

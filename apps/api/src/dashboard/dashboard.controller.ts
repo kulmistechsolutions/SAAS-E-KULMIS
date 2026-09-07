@@ -55,7 +55,7 @@ export class DashboardController {
     // The school's own effective permissions, not the product default for the
     // role — a school that revokes fees must stop seeing fee figures here too.
     const visible = dashboardVisibilityFromGrants(
-      await this.permissions.effectiveFor(me.schoolId, me.role),
+      await this.permissions.effectiveFor(me.schoolId, me.permissionRole),
     );
 
     return {

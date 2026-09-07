@@ -59,7 +59,7 @@ export class StudentsController {
       return;
     }
 
-    const scope = await this.scope.visibleScope(me.schoolId, me.userId, me.role);
+    const scope = await this.scope.visibleScope(me.schoolId, me.userId, me.permissionRole);
     if (!scope) return;
     const student = await this.students.findOne(me.schoolId, studentId);
     // Section too: filtering the list by section while letting any id through
@@ -120,7 +120,7 @@ export class StudentsController {
     // no others. Without this they could read the whole student directory —
     // every name, parent and phone number in it — which is more than taking a
     // register requires and more than the school agreed to hand over.
-    const scope = await this.scope.visibleScope(me.schoolId, me.userId, me.role);
+    const scope = await this.scope.visibleScope(me.schoolId, me.userId, me.permissionRole);
     if (scope) {
       if (scope.length === 0) return [];
       // A named class outside the scope is answered with nothing rather than

@@ -43,7 +43,13 @@ export class PermissionsGuard implements CanActivate {
 
     // Any one of them opens the route.
     for (const permission of required) {
-      if (await this.permissions.can(user.schoolId, user.role, permission)) {
+      if (
+        await this.permissions.can(
+          user.schoolId,
+          user.permissionRole,
+          permission,
+        )
+      ) {
         return true;
       }
     }

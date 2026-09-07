@@ -53,6 +53,10 @@ export class JwtAuthGuard implements CanActivate {
       userId: payload.sub,
       schoolId: payload.sid,
       role: payload.role,
+      customRoleId: payload.crid,
+      // Read the permission table under the school's own role when there is
+      // one; the built-in role is only the fallback.
+      permissionRole: payload.crid ?? payload.role,
       username: payload.username,
     };
     // Ensure tenant scoping for token-authenticated requests.

@@ -165,6 +165,7 @@ model School {
 
   users              User[]
   rolePermissions    RolePermission[]
+  customRoles        CustomRole[]
   academicYears      AcademicYear[]
   subjects           Subject[]
   smsPurchases       SmsPurchase[]
@@ -453,6 +454,11 @@ model User {
   fullName     String?
   passwordHash String
   role         UserRole
+  /// Set when the school has put this person on a role of its own making.
+  /// `role` stays as the nearest built-in, so anything still keyed to the
+  /// enum — portal routing, the legacy @Roles lists — keeps working.
+  customRoleId String?
+  customRole   CustomRole? @relation(fields: [customRoleId], references: [id], onDelete: SetNull)
   status       UserStatus @default(ACTIVE)
   lastLoginAt  DateTime?
   createdAt    DateTime   @default(now())
@@ -500,6 +506,30 @@ model RefreshToken {
 /// `permissions` is `{ "<module>": ["view","create",...] }`. A module absent
 /// from the object falls back to the code default; a module present with an
 /// empty array is an explicit revoke, which is not the same thing.
+/// A role a school made for itself — "Library Officer", "Vice Principal".
+///
+/// The built-in roles are the product's; these are the school's. Its
+/// permissions live in the same table as an override of a built-in one,
+/// keyed by this row's id, so every guard reads one place either way.
+///
+/// The name is the school's own words and may be edited; the id is what a
+/// user account points at, so renaming a role never orphans anybody.
+model CustomRole {
+  id          String   @id @default(cuid())
+  schoolId    String
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  users  User[]
+
+  @@unique([schoolId, name])
+  @@index([schoolId])
+  @@map("custom_roles")
+}
+
 model RolePermission {
   id          String   @id @default(cuid())
   schoolId    String

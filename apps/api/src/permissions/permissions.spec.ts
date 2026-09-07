@@ -164,3 +164,44 @@ describe("adding a permission a role never had", () => {
     expect(has("teachers.delete")).toBe(false);
   });
 });
+
+describe("a role a school made for itself", () => {
+  /**
+   * Custom roles were an Add Role button that wrote to the browser: the role
+   * existed on one machine, could not be given to anybody, and vanished when
+   * that browser cleared its data.
+   *
+   * They now live in the school's own data, and their permissions sit in the
+   * same table as an override of a built-in role — so every guard reads one
+   * place whichever kind of role somebody is on.
+   */
+  it("starts holding nothing at all", () => {
+    // Deny by default matters most here: a new role that arrived holding
+    // something nobody chose is the grant this whole change exists to stop.
+    expect(mergeGrants(defaults("some-custom-role-id"), null)).toEqual({});
+  });
+
+  it("holds exactly what the school gave it", () => {
+    const granted = mergeGrants(defaults("some-custom-role-id"), {
+      library: ["view", "create"],
+      students: ["view"],
+    });
+    expect(granted).toEqual({
+      library: ["view", "create"],
+      students: ["view"],
+    });
+  });
+
+  it("is read under its own id, not the built-in role behind it", () => {
+    // The account keeps its built-in role so portal routing and the legacy
+    // @Roles lists still work, and so deleting a custom role leaves people
+    // able to sign in — but "may they" is answered by the custom role.
+    const builtIn = mergeGrants(defaults(UserRole.LIBRARIAN), null);
+    const custom = mergeGrants(defaults("some-custom-role-id"), {
+      fees: ["view"],
+    });
+    expect(builtIn.library).toBeDefined();
+    expect(custom.library).toBeUndefined();
+    expect(custom.fees).toEqual(["view"]);
+  });
+});

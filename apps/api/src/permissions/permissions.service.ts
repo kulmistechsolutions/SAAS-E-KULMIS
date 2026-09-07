@@ -102,6 +102,55 @@ export class PermissionsService {
     return mergeGrants(this.defaultsFor(role), clean);
   }
 
+  // ── A school's own roles ──────────────────────────────────────────────
+
+  /** Every role this school made for itself. */
+  listCustomRoles(schoolId: string) {
+    return this.prisma.forTenant(schoolId, (tx) =>
+      tx.customRole.findMany({ orderBy: { name: "asc" } }),
+    );
+  }
+
+  createCustomRole(schoolId: string, name: string, description?: string) {
+    return this.prisma.forTenant(schoolId, (tx) =>
+      tx.customRole.create({
+        data: { schoolId, name: name.trim(), description: description?.trim() || null },
+      }),
+    );
+  }
+
+  renameCustomRole(schoolId: string, id: string, name: string, description?: string) {
+    return this.prisma.forTenant(schoolId, (tx) =>
+      tx.customRole.update({
+        where: { id },
+        data: {
+          name: name.trim(),
+          ...(description === undefined ? {} : { description: description?.trim() || null }),
+        },
+      }),
+    );
+  }
+
+  /**
+   * Remove a role the school made.
+   *
+   * Anyone on it falls back to the built-in role their account still carries,
+   * which is why that column was never replaced: deleting a role must leave
+   * people able to sign in, not stranded on an id that no longer resolves.
+   */
+  async deleteCustomRole(schoolId: string, id: string) {
+    return this.prisma.forTenant(schoolId, async (tx) => {
+      const affected = await tx.user.count({ where: { customRoleId: id } });
+      await tx.user.updateMany({
+        where: { customRoleId: id },
+        data: { customRoleId: null },
+      });
+      await tx.rolePermission.deleteMany({ where: { role: id } });
+      await tx.customRole.delete({ where: { id } });
+      return { success: true, usersMovedBack: affected };
+    });
+  }
+
   /** Drop the override so the role returns to the product default. */
   async clearOverride(schoolId: string, role: string): Promise<PermissionGrants> {
     await this.prisma.forTenant(schoolId, (tx) =>

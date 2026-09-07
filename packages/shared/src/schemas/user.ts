@@ -26,11 +26,19 @@ export const updateUserSchema = z
     username: z.string().min(3, "Min 3 characters").max(50).optional(),
     fullName: z.string().min(1).max(120).optional(),
     role: userRoleSchema.optional(),
+    /**
+     * The school's own role for this person, or null to put them back on the
+     * built-in one. The built-in role is always kept alongside, so deleting a
+     * custom role leaves everyone able to sign in rather than stranded on an
+     * id that no longer resolves.
+     */
+    customRoleId: z.string().nullable().optional(),
     status: userStatusSchema.optional(),
   })
   .refine(
     (v) =>
       v.role !== undefined ||
+      v.customRoleId !== undefined ||
       v.status !== undefined ||
       v.username !== undefined ||
       v.fullName !== undefined,

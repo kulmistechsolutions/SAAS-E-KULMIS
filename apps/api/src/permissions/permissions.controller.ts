@@ -5,6 +5,7 @@ import {
   Delete,
   Get,
   Param,
+  Post,
   Put,
 } from "@nestjs/common";
 import { UserRole } from "@ekulmis/shared";
@@ -14,6 +15,7 @@ import { Roles } from "../auth/roles.decorator";
 import { STAFF_ROLES } from "../auth/role-groups";
 import { CurrentUser } from "../auth/current-user.decorator";
 import type { AuthUser } from "../auth/auth.types";
+import { RequirePermission } from "../auth/require-permission.decorator";
 
 /**
  * What roles may do, read and written from the server.
@@ -40,8 +42,11 @@ export class PermissionsController {
   @Get("me")
   async me(@CurrentUser() me: AuthUser) {
     return {
-      role: me.role,
-      permissions: await this.permissions.effectiveFor(me.schoolId, me.role),
+      role: me.permissionRole,
+      permissions: await this.permissions.effectiveFor(
+        me.schoolId,
+        me.permissionRole,
+      ),
     };
   }
 
@@ -92,6 +97,80 @@ export class PermissionsController {
       metadata: { role, granted: changed.granted, revoked: changed.revoked },
     });
     return { role, permissions: after, changed };
+  }
+
+  // ── A school's own roles ──────────────────────────────────────────────
+
+  @Roles(UserRole.ADMINISTRATOR)
+  @RequirePermission("users.view")
+  @Get("custom-roles")
+  customRoles(@CurrentUser() me: AuthUser) {
+    return this.permissions.listCustomRoles(me.schoolId);
+  }
+
+  /**
+   * Make a role of the school's own.
+   *
+   * It starts holding nothing. Deny by default is the rule everywhere else and
+   * a new role is where it matters most: a role that arrived holding something
+   * nobody chose is exactly the kind of grant this whole change exists to stop.
+   */
+  @Roles(UserRole.ADMINISTRATOR)
+  @RequirePermission("users.create")
+  @Post("custom-roles")
+  async createCustomRole(@CurrentUser() me: AuthUser, @Body() body: unknown) {
+    const name = (body as { name?: string })?.name?.trim();
+    if (!name) throw new BadRequestException("name is required");
+    const role = await this.permissions.createCustomRole(
+      me.schoolId,
+      name,
+      (body as { description?: string })?.description,
+    );
+    await this.audit.record({
+      schoolId: me.schoolId,
+      userId: me.userId,
+      username: me.username,
+      role: me.role,
+      module: "permissions",
+      action: "CUSTOM_ROLE_CREATED",
+      metadata: { roleId: role.id, name: role.name },
+    });
+    return role;
+  }
+
+  @Roles(UserRole.ADMINISTRATOR)
+  @RequirePermission("users.update")
+  @Put("custom-roles/:id")
+  async renameCustomRole(
+    @CurrentUser() me: AuthUser,
+    @Param("id") id: string,
+    @Body() body: unknown,
+  ) {
+    const name = (body as { name?: string })?.name?.trim();
+    if (!name) throw new BadRequestException("name is required");
+    return this.permissions.renameCustomRole(
+      me.schoolId,
+      id,
+      name,
+      (body as { description?: string })?.description,
+    );
+  }
+
+  @Roles(UserRole.ADMINISTRATOR)
+  @RequirePermission("users.delete", "users.update")
+  @Delete("custom-roles/:id")
+  async removeCustomRole(@CurrentUser() me: AuthUser, @Param("id") id: string) {
+    const result = await this.permissions.deleteCustomRole(me.schoolId, id);
+    await this.audit.record({
+      schoolId: me.schoolId,
+      userId: me.userId,
+      username: me.username,
+      role: me.role,
+      module: "permissions",
+      action: "CUSTOM_ROLE_DELETED",
+      metadata: { roleId: id, usersMovedBack: result.usersMovedBack },
+    });
+    return result;
   }
 
   /** Put a role back to the product default. */

@@ -154,7 +154,7 @@ export class FeesController {
     const classIds = await this.scope.visibleClassIds(
       me.schoolId,
       me.userId,
-      me.role,
+      me.permissionRole,
     );
     if (classIds === null) return all;
     const names = await this.classNamesFor(me.schoolId, classIds);

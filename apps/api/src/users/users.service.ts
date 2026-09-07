@@ -22,6 +22,7 @@ function toDto(u: User) {
     code: u.code,
     fullName: u.fullName,
     role: u.role,
+    customRoleId: u.customRoleId ?? null,
     status: u.status,
     lastLoginAt: u.lastLoginAt,
     createdAt: u.createdAt,
@@ -98,6 +99,11 @@ export class UsersService {
             username: dto.username,
             fullName: dto.fullName,
             role: dto.role,
+            // undefined leaves it alone; null puts them back on the built-in
+            // role, which is what "no custom role" has to mean.
+            ...(dto.customRoleId === undefined
+              ? {}
+              : { customRoleId: dto.customRoleId }),
             status: dto.status,
           },
         }),
