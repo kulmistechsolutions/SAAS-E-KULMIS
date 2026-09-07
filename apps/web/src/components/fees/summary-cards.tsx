@@ -1,171 +1,215 @@
-
 import { useT, type TranslationKey } from "@/lib/i18n/provider";
 import type { LucideIcon } from "lucide-react";
 import {
-  ArrowRight,
   ArrowUpRight,
   Banknote,
   CircleDollarSign,
-  ClipboardList,
   Gift,
+  Handshake,
   PieChart,
-  TrendingUp,
   UserCheck,
+  UserX,
   Wallet,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { money } from "@/lib/fees/format";
+import { money, monthLabel } from "@/lib/fees/format";
 import type { FeeDashboardSummary } from "@/lib/fees/types";
 
-const CARDS: {
-  key: keyof FeeDashboardSummary;
+/**
+ * What a school needs to know before it needs anything else.
+ *
+ * Eleven equal cards is not a summary — it is a list, and a school reading it
+ * had to work out for itself which four numbers ran the month. Worse, two of
+ * the eleven could not be reconciled from the screen: a collection rate of
+ * 4.10% sat beside $465 collected and $7,005 expected, which is 6.64%, because
+ * the rate was measuring a different thing (how much of *this month's own
+ * billing* had settled, while some of the $465 cleared older months) and said
+ * so nowhere.
+ *
+ * So the four that matter are large and carry their own arithmetic underneath
+ * — every one of them can be checked against the card beside it — and the
+ * counts that were competing with them for attention are a compact second row.
+ */
+
+type Primary = {
+  key: string;
   label: TranslationKey;
   icon: LucideIcon;
-  chip: string;
+  ring: string;
   value: string;
-  format: (v: number) => string;
-}[] = [
+  amount: (s: FeeDashboardSummary) => string;
+  /** The line that shows where the number came from. */
+  note: (s: FeeDashboardSummary, month: string) => string;
+  metric: keyof FeeDashboardSummary;
+};
+
+const PRIMARY: Primary[] = [
   {
-    key: "totalOutstanding",
-    label: "feesSummaryCards.totalOutstanding",
-    icon: CircleDollarSign,
-    chip: "bg-rose-100 text-rose-600 dark:bg-rose-500/15",
-    value: "text-rose-600 dark:text-rose-400",
-    format: money,
-  },
-  {
-    key: "outstandingThisMonth",
-    label: "feesSummaryCards.outstandingThisMonth",
-    icon: ClipboardList,
-    chip: "bg-orange-100 text-orange-600 dark:bg-orange-500/15",
-    value: "text-orange-600 dark:text-orange-400",
-    format: money,
-  },
-  {
-    key: "collectedToday",
-    label: "feesSummaryCards.feeCollectedToday",
-    icon: Banknote,
-    chip: "bg-emerald-100 text-emerald-600 dark:bg-emerald-500/15",
-    value: "text-emerald-600 dark:text-emerald-400",
-    format: money,
-  },
-  {
-    key: "collectedThisMonth",
-    label: "feesSummaryCards.feeCollectedThisMonth",
-    icon: TrendingUp,
-    chip: "bg-blue-100 text-blue-600 dark:bg-blue-500/15",
-    value: "text-blue-600 dark:text-blue-400",
-    format: money,
-  },
-  {
-    key: "collectionPercentage",
-    label: "feesSummaryCards.collectionPercentage",
-    icon: PieChart,
-    chip: "bg-violet-100 text-violet-600 dark:bg-violet-500/15",
-    value: "text-violet-600 dark:text-violet-400",
-    format: (v) => `${v.toFixed(2)}%`,
-  },
-  {
-    key: "fullyPaidStudents",
-    label: "feesSummaryCards.totalFullyPaidStudents",
-    icon: UserCheck,
-    chip: "bg-green-100 text-green-600 dark:bg-green-500/15",
-    value: "text-green-600 dark:text-green-400",
-    format: (v) => v.toLocaleString(),
-  },
-  {
-    key: "partialPayments",
-    label: "feesSummaryCards.totalPartialPayments",
-    icon: PieChart,
-    chip: "bg-amber-100 text-amber-600 dark:bg-amber-500/15",
-    value: "text-amber-600 dark:text-amber-400",
-    format: (v) => v.toLocaleString(),
-  },
-  {
-    key: "advancePayments",
-    label: "feesSummaryCards.totalAdvancePayments",
-    icon: ArrowUpRight,
-    chip: "bg-purple-100 text-purple-600 dark:bg-purple-500/15",
-    value: "text-purple-600 dark:text-purple-400",
-    format: (v) => v.toLocaleString(),
-  },
-  {
-    key: "freeStudents",
-    label: "feesSummaryCards.totalFreeStudents",
-    icon: Gift,
-    chip: "bg-teal-100 text-teal-600 dark:bg-teal-500/15",
-    value: "text-teal-600 dark:text-teal-400",
-    format: (v) => v.toLocaleString(),
-  },
-  {
-    key: "expectedMonthlyIncome",
-    label: "feesSummaryCards.expectedMonthlyIncome",
+    key: "expected",
+    label: "feesSummaryCards.totalExpected",
     icon: Wallet,
-    chip: "bg-sky-100 text-sky-600 dark:bg-sky-500/15",
+    ring: "bg-sky-100 text-sky-600 dark:bg-sky-500/15 dark:text-sky-400",
     value: "text-sky-600 dark:text-sky-400",
-    format: money,
+    amount: (s) => money(s.expectedMonthlyIncome),
+    note: (s, m) => `${s.totalActiveStudents} · ${monthLabel(m)}`,
+    metric: "expectedMonthlyIncome",
   },
   {
-    key: "netFeeCollection",
-    label: "feesSummaryCards.netFeeCollection",
-    icon: CircleDollarSign,
-    chip: "bg-emerald-100 text-emerald-600 dark:bg-emerald-500/15",
+    key: "collected",
+    label: "feesSummaryCards.totalCollected",
+    icon: Banknote,
+    ring: "bg-emerald-100 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-400",
     value: "text-emerald-600 dark:text-emerald-400",
-    format: money,
+    amount: (s) => money(s.collectedThisMonth),
+    note: (s) => `+ ${money(s.collectedToday)}`,
+    metric: "collectedThisMonth",
+  },
+  {
+    key: "outstanding",
+    label: "feesSummaryCards.totalOutstandingNow",
+    icon: CircleDollarSign,
+    ring: "bg-rose-100 text-rose-600 dark:bg-rose-500/15 dark:text-rose-400",
+    value: "text-rose-600 dark:text-rose-400",
+    amount: (s) => money(s.outstandingThisMonth),
+    note: (s) => `${s.unpaidStudents + s.partialPayments}`,
+    metric: "outstandingThisMonth",
+  },
+  {
+    key: "rate",
+    label: "feesSummaryCards.collectionRate",
+    icon: PieChart,
+    ring: "bg-violet-100 text-violet-600 dark:bg-violet-500/15 dark:text-violet-400",
+    value: "text-violet-600 dark:text-violet-400",
+    // Divided from the two cards beside it rather than taken from a separate
+    // figure, so the three can never disagree on screen.
+    amount: (s) =>
+      s.expectedMonthlyIncome > 0
+        ? `${((s.collectedThisMonth / s.expectedMonthlyIncome) * 100).toFixed(2)}%`
+        : "—",
+    note: (s) => `${money(s.collectedThisMonth)} / ${money(s.expectedMonthlyIncome)}`,
+    metric: "collectionPercentage",
   },
 ];
 
-/**
- * `onOpenDetails` is what makes the "View details" link do anything. It was a
- * button with no handler on every card, so a school could read that $684 was
- * outstanding and had no way to ask which families that was.
- */
+const SECONDARY: {
+  key: keyof FeeDashboardSummary;
+  label: TranslationKey;
+  icon: LucideIcon;
+  tone: string;
+}[] = [
+  {
+    key: "fullyPaidStudents",
+    label: "feesSummaryCards.paid",
+    icon: UserCheck,
+    tone: "text-emerald-600 dark:text-emerald-400",
+  },
+  {
+    key: "partialPayments",
+    label: "feesSummaryCards.partial",
+    icon: PieChart,
+    tone: "text-amber-600 dark:text-amber-400",
+  },
+  {
+    key: "unpaidStudents",
+    label: "feesSummaryCards.unpaid",
+    icon: UserX,
+    tone: "text-rose-600 dark:text-rose-400",
+  },
+  {
+    key: "freeStudents",
+    label: "feesSummaryCards.free",
+    icon: Gift,
+    tone: "text-teal-600 dark:text-teal-400",
+  },
+  {
+    key: "advancePayments",
+    label: "feesSummaryCards.advance",
+    icon: ArrowUpRight,
+    tone: "text-purple-600 dark:text-purple-400",
+  },
+  {
+    key: "totalOutstanding",
+    label: "feesSummaryCards.allMonthsOwed",
+    icon: Handshake,
+    tone: "text-slate-600 dark:text-slate-300",
+  },
+];
+
 export function FeeSummaryCards({
   summary,
+  month,
   onOpenDetails,
 }: {
   summary: FeeDashboardSummary;
+  month: string;
   onOpenDetails?: (metric: keyof FeeDashboardSummary) => void;
 }) {
   const t = useT();
   return (
-    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
-      {CARDS.map((c) => (
-        <div
-          key={c.key}
-          className="rounded-xl border bg-card p-4 shadow-sm transition-shadow hover:shadow-md"
-        >
-          <div className="flex items-center gap-3">
-            <span
+    <div className="space-y-3">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {PRIMARY.map((c) => (
+          <button
+            key={c.key}
+            type="button"
+            onClick={() => onOpenDetails?.(c.metric)}
+            className="group rounded-2xl border bg-card p-5 text-start shadow-sm transition hover:border-primary/40 hover:shadow-md"
+          >
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                {t(c.label)}
+              </p>
+              <span
+                className={cn(
+                  "flex h-9 w-9 shrink-0 items-center justify-center rounded-full",
+                  c.ring,
+                )}
+              >
+                <c.icon className="h-4 w-4" />
+              </span>
+            </div>
+            <p
               className={cn(
-                "flex h-11 w-11 shrink-0 items-center justify-center rounded-full",
-                c.chip,
+                "mt-3 text-3xl font-bold tabular-nums tracking-tight",
+                c.value,
               )}
             >
-              <c.icon className="h-5 w-5" />
-            </span>
-            <p className="text-xs font-medium leading-tight text-muted-foreground">
-              {t(c.label)}
+              {c.amount(summary)}
             </p>
-          </div>
-          <p
-            className={cn(
-              "mt-3 text-2xl font-bold tabular-nums tracking-tight",
-              c.value,
-            )}
-          >
-            {c.format(summary[c.key] as number)}
-          </p>
+            <p className="mt-1 text-xs tabular-nums text-muted-foreground">
+              {c.note(summary, month)}
+            </p>
+          </button>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
+        {SECONDARY.map((c) => (
           <button
+            key={c.key}
             type="button"
             onClick={() => onOpenDetails?.(c.key)}
-            className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+            className="flex items-center gap-3 rounded-xl border bg-card px-3 py-2.5 text-start transition hover:border-primary/40 hover:shadow-sm"
           >
-            {t("feesSummaryCards.viewDetails")}
-            <ArrowRight className="h-3 w-3" />
+            <c.icon className={cn("h-4 w-4 shrink-0", c.tone)} />
+            <span className="min-w-0">
+              <span
+                className={cn(
+                  "block text-lg font-semibold leading-none tabular-nums",
+                  c.tone,
+                )}
+              >
+                {c.key === "totalOutstanding"
+                  ? money(summary[c.key] as number)
+                  : (summary[c.key] as number).toLocaleString()}
+              </span>
+              <span className="mt-1 block truncate text-[11px] text-muted-foreground">
+                {t(c.label)}
+              </span>
+            </span>
           </button>
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
   );
 }

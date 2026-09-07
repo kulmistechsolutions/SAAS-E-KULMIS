@@ -92,6 +92,10 @@ export interface FeeDashboardSummary {
    *  no bearing on payment behavior, so it's counted apart from fullyPaid/
    *  partial/advance rather than trivially showing up as "fully paid". */
   freeStudents: number;
+  /** Billed for the period and nothing paid against it. Counted apart from
+   *  `partialPayments` so a school can see who has not started paying at all,
+   *  which is the list it chases first. */
+  unpaidStudents: number;
   expectedMonthlyIncome: number;
   netFeeCollection: number;
   totalActiveStudents: number;

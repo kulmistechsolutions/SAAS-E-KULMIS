@@ -290,6 +290,14 @@ export function studentCharges(
     .sort((a, b) => a.monthKey.localeCompare(b.monthKey));
 }
 
+/** What a student has actually paid across the months up to and including one. */
+function paidUpTo(studentId: string, upToMonth: string): number {
+  const s = ensure();
+  return s.charges
+    .filter((c) => c.studentId === studentId && c.monthKey <= upToMonth)
+    .reduce((sum, c) => sum + c.amountPaid, 0);
+}
+
 export function getFeeBillingMode(): "MONTHLY" | "ACADEMIC_YEAR" {
   return feeSettingsCache.billingMode;
 }
@@ -714,6 +722,7 @@ export function dashboardSummary(
       partialPayments: pos.students.partial,
       advancePayments: pos.students.advance,
       freeStudents: pos.students.free,
+      unpaidStudents: pos.students.unpaid,
       expectedMonthlyIncome: pos.expectedThisMonth,
       netFeeCollection: pos.collectedThisMonth,
       totalActiveStudents: pos.students.total,
@@ -770,6 +779,7 @@ export function dashboardSummary(
 
   let fullyPaid = 0;
   let partial = 0;
+  let unpaid = 0;
   let advance = 0;
   let free = 0;
   for (const st of students) {
@@ -786,7 +796,11 @@ export function dashboardSummary(
     const out = outstandingBalance(st.id, month);
     if (adv > 0) advance += 1;
     else if (out === 0) fullyPaid += 1;
-    else partial += 1;
+    // "Partial" means some money came in. Someone who has paid nothing is
+    // unpaid, and lumping the two together made the dashboard say a school had
+    // no unpaid families while a hundred owed it everything.
+    else if (paidUpTo(st.id, month) > 0) partial += 1;
+    else unpaid += 1;
   }
 
   const collectionPercentage =
@@ -804,6 +818,7 @@ export function dashboardSummary(
     partialPayments: partial,
     advancePayments: advance,
     freeStudents: free,
+    unpaidStudents: unpaid,
     expectedMonthlyIncome,
     netFeeCollection: collectedThisMonth,
     totalActiveStudents: students.length,

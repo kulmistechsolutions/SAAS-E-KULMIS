@@ -25,6 +25,7 @@ export type FeeMetric = keyof FeeDashboardSummary;
 const STUDENT_STATUS: Partial<Record<FeeMetric, StudentFeeState>> = {
   fullyPaidStudents: "PAID",
   partialPayments: "PARTIAL",
+  unpaidStudents: "UNPAID",
   advancePayments: "ADVANCE_MULTI",
   freeStudents: "FREE",
 };
@@ -37,6 +38,7 @@ const TITLE: Record<FeeMetric, string> = {
   collectionPercentage: "Collection rate for",
   fullyPaidStudents: "Fully paid",
   partialPayments: "Part paid",
+  unpaidStudents: "Nothing paid yet",
   advancePayments: "Paid ahead",
   freeStudents: "Free students",
   expectedMonthlyIncome: "Expected for",

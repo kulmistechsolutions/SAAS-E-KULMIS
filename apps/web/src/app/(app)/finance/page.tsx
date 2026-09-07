@@ -12,7 +12,7 @@ import {
 } from "@/components/fees/metric-breakdown-dialog";
 import { RecentPaymentsPanel } from "@/components/fees/recent-payments-panel";
 import { MonthSetupWidget } from "@/components/fees/month-setup-widget";
-import { PaymentSummaryWidget, FeeQuickActions } from "@/components/fees/widgets";
+import { FeeQuickActions } from "@/components/fees/widgets";
 import { CollectFeesSection } from "@/components/fees/collect-fees-section";
 import { PaymentDialog } from "@/components/fees/payment-dialog";
 import { ReceiptDialog } from "@/components/fees/receipt-dialog";
@@ -24,7 +24,6 @@ import {
   dashboardSummary,
   getPayment,
   outstandingStudents,
-  paymentSummary,
   recentPayments,
   refreshFinanceDashboard,
   useFeesState,
@@ -75,10 +74,6 @@ export default function FeeManagementPage() {
     () => (mounted ? dashboardSummary(month, year) : null),
     [mounted, month, year, fees, studentsState],
   );
-  const slices = useMemo(
-    () => (mounted ? paymentSummary(month) : []),
-    [mounted, month, fees, studentsState],
-  );
   const recent = useMemo(() => (mounted ? recentPayments(5) : []), [mounted, fees]);
   const outstanding = useMemo(
     () => (mounted ? outstandingStudents(8) : []),
@@ -125,7 +120,11 @@ export default function FeeManagementPage() {
       <PaymentPromisesBanner key={bannerKey} />
 
       {summary && (
-        <FeeSummaryCards summary={summary} onOpenDetails={setDetailMetric} />
+        <FeeSummaryCards
+          summary={summary}
+          month={month}
+          onOpenDetails={setDetailMetric}
+        />
       )}
 
       <div className="grid items-start gap-6 xl:grid-cols-3">
@@ -152,15 +151,7 @@ export default function FeeManagementPage() {
         {/* Right column: Month Setup, Payment Summary, Quick Actions */}
         <div className="space-y-6">
           <MonthSetupWidget activeMonthKey={month} academicYear={year} />
-          {mounted && (
-            <>
-              <PaymentSummaryWidget
-                slices={slices}
-                totalStudents={summary?.totalActiveStudents ?? 0}
-              />
-              <FeeQuickActions />
-            </>
-          )}
+          {mounted && <FeeQuickActions />}
         </div>
       </div>
 
