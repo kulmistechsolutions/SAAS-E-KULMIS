@@ -15,21 +15,23 @@ import type { PrismaService } from "../prisma/prisma.service";
  */
 
 /** A tenant client that answers only the one query this service makes. */
-function prismaWith(classIds: string[]): PrismaService {
+function prismaWith(
+  rows: { classId: string; sectionId: string | null }[],
+): PrismaService {
   return {
     forTenant: (_schoolId: string, fn: (tx: unknown) => unknown) =>
       Promise.resolve(
-        fn({
-          attendanceAssignment: {
-            findMany: () =>
-              Promise.resolve(classIds.map((classId) => ({ classId }))),
-          },
-        }),
+        fn({ attendanceAssignment: { findMany: () => Promise.resolve(rows) } }),
       ),
   } as unknown as PrismaService;
 }
 
-const scopeWith = (classIds: string[]) => new ScopeService(prismaWith(classIds));
+const scopeWith = (classIds: string[]) =>
+  new ScopeService(
+    prismaWith(classIds.map((classId) => ({ classId, sectionId: null }))),
+  );
+const scopeOf = (rows: { classId: string; sectionId: string | null }[]) =>
+  new ScopeService(prismaWith(rows));
 
 describe("who a person may act on", () => {
   describe("a role scoped by its nature", () => {
@@ -119,6 +121,86 @@ describe("who a person may act on", () => {
 
     it("refuses a student who is in no class at all", () => {
       expect(s.covers(["c6"], null)).toBe(false);
+    });
+  });
+});
+
+describe("narrowing a scope to a section", () => {
+  /**
+   * A school hands out "Grade 8" or "Grade 8, Section A", and the difference
+   * has to survive into every query. The database has stored the section
+   * since the officer feature was built; nothing outside attendance had ever
+   * read it.
+   */
+  it("keeps the section on a grant that has one", async () => {
+    const s = scopeOf([{ classId: "c8", sectionId: "sA" }]);
+    await expect(s.visibleScope("sch", "u1", "FINANCE_OFFICER")).resolves.toEqual([
+      { classId: "c8", sectionId: "sA" },
+    ]);
+  });
+
+  it("lets a whole-class grant swallow a narrower one on the same class", async () => {
+    // Otherwise "Grade 8" plus "Grade 8 Section A" would read as Section A
+    // only — the opposite of what was handed out.
+    const s = scopeOf([
+      { classId: "c8", sectionId: null },
+      { classId: "c8", sectionId: "sA" },
+    ]);
+    await expect(s.visibleScope("sch", "u1", "FINANCE_OFFICER")).resolves.toEqual([
+      { classId: "c8", sectionId: null },
+    ]);
+  });
+
+  it("still reports the class when only classes are asked for", async () => {
+    const s = scopeOf([
+      { classId: "c8", sectionId: "sA" },
+      { classId: "c8", sectionId: "sB" },
+    ]);
+    await expect(s.visibleClassIds("sch", "u1", "FINANCE_OFFICER")).resolves.toEqual([
+      "c8",
+    ]);
+  });
+
+  describe("turning a sectioned scope into a query", () => {
+    const s = scopeWith([]);
+
+    it("matches the whole class when no section was named", () => {
+      expect(s.studentWhere([{ classId: "c8", sectionId: null }])).toEqual({
+        OR: [{ classId: "c8" }],
+      });
+    });
+
+    it("matches only that section when one was", () => {
+      expect(s.studentWhere([{ classId: "c8", sectionId: "sA" }])).toEqual({
+        OR: [{ classId: "c8", sectionId: "sA" }],
+      });
+    });
+
+    it("still matches nothing when the scope is nothing", () => {
+      expect(s.studentWhere([])).toEqual({ classId: { in: [] } });
+    });
+  });
+
+  describe("asking about one student", () => {
+    const s = scopeWith([]);
+    const grants = [{ classId: "c8", sectionId: "sA" }];
+
+    it("admits a child in the named section", () => {
+      expect(s.covers(grants, "c8", "sA")).toBe(true);
+    });
+
+    it("refuses the same class in another section", () => {
+      expect(s.covers(grants, "c8", "sB")).toBe(false);
+    });
+
+    it("refuses a child with no section when a section was named", () => {
+      expect(s.covers(grants, "c8", null)).toBe(false);
+    });
+
+    it("admits every section when the grant named none", () => {
+      const whole = [{ classId: "c8", sectionId: null }];
+      expect(s.covers(whole, "c8", "sA")).toBe(true);
+      expect(s.covers(whole, "c8", null)).toBe(true);
     });
   });
 });

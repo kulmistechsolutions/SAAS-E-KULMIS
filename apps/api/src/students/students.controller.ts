@@ -59,14 +59,12 @@ export class StudentsController {
       return;
     }
 
-    const allowed = await this.scope.visibleClassIds(
-      me.schoolId,
-      me.userId,
-      me.role,
-    );
-    if (!allowed) return;
+    const scope = await this.scope.visibleScope(me.schoolId, me.userId, me.role);
+    if (!scope) return;
     const student = await this.students.findOne(me.schoolId, studentId);
-    if (!student || !allowed.includes(student.classId ?? "")) {
+    // Section too: filtering the list by section while letting any id through
+    // by URL would leave the fence with a gate in it.
+    if (!student || !this.scope.covers(scope, student.classId, student.sectionId)) {
       throw new ForbiddenException(
         "That student is not in a class you have been assigned.",
       );
@@ -118,19 +116,18 @@ export class StudentsController {
       return mine;
     }
 
-    // An attendance officer needs the children in the classes they were
-    // assigned, and no others. Without this they could read the school's whole
-    // student directory — every name, parent and phone number in it — which is
-    // more than taking a register requires and more than the school agreed to
-    // hand over when it granted them one class.
-    const allowed = await this.scope.visibleClassIds(
-      me.schoolId,
-      me.userId,
-      me.role,
-    );
-    if (allowed) {
-      if (allowed.length === 0) return [];
-      if (classId && !allowed.includes(classId)) return [];
+    // Anyone the school has scoped sees the children in their own classes and
+    // no others. Without this they could read the whole student directory —
+    // every name, parent and phone number in it — which is more than taking a
+    // register requires and more than the school agreed to hand over.
+    const scope = await this.scope.visibleScope(me.schoolId, me.userId, me.role);
+    if (scope) {
+      if (scope.length === 0) return [];
+      // A named class outside the scope is answered with nothing rather than
+      // quietly widened to what they may see.
+      if (classId && !this.scope.covers(scope, classId, sectionId ?? null)) {
+        return [];
+      }
     }
     return this.students.findAll(
       me.schoolId,
@@ -139,7 +136,9 @@ export class StudentsController {
         sectionId,
         status,
         gender,
-        ...(allowed && !classId ? { classIds: allowed } : {}),
+        // Passed whole so a grant narrowed to one section survives; sending a
+        // list of class ids lost the section every time.
+        ...(scope && !classId ? { scopeWhere: this.scope.studentWhere(scope) } : {}),
       },
       { includePhotoUrls: lite !== "1" },
     );

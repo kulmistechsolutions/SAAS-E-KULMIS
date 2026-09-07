@@ -356,6 +356,13 @@ export class StudentsService {
       gender?: string;
       /** Restrict to these classes — set for roles that only hold some. */
       classIds?: string[];
+      /**
+       * The caller's scope as a Prisma fragment, already built. Passed whole
+       * rather than as a list of classes so a grant narrowed to one section
+       * survives the trip — it did not, and a clerk held to Grade 8 Section A
+       * was reading all of Grade 8.
+       */
+      scopeWhere?: Record<string, unknown>;
     } = {},
     opts: { includePhotoUrls?: boolean } = {},
   ) {
@@ -364,6 +371,7 @@ export class StudentsService {
         where: {
           ...studentInClassWhere(filters.classId, filters.sectionId),
           ...(filters.classIds ? { classId: { in: filters.classIds } } : {}),
+          ...(filters.scopeWhere ?? {}),
           status: filters.status as never,
           gender: filters.gender as never,
         },

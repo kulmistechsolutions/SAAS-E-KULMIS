@@ -27,6 +27,17 @@ import { PrismaService } from "../prisma/prisma.service";
  *     school, which is what every role does today and what an administrator
  *     must keep doing.
  */
+/**
+ * One grant: a class, optionally narrowed to a section.
+ *
+ * A null section widens rather than restricts — "Grade 8" with no section is
+ * all of Grade 8 — because that is how schools hand the work out.
+ */
+export interface ScopeGrant {
+  classId: string;
+  sectionId: string | null;
+}
+
 @Injectable()
 export class ScopeService {
   constructor(private readonly prisma: PrismaService) {}
@@ -47,23 +58,46 @@ export class ScopeService {
    * null is "no restriction", `[]` is "restricted to nothing". Collapsing them
    * is how a scoped user with no grants would come to see everything.
    */
+  /**
+   * Everything this user may act within, class and section, or null for the
+   * whole school.
+   */
+  async visibleScope(
+    schoolId: string,
+    userId: string,
+    role: string,
+  ): Promise<ScopeGrant[] | null> {
+    // The people handing out the grants are not held by them.
+    if (role === "ADMINISTRATOR" || role === "SUPER_ADMINISTRATOR") return null;
+
+    const rows = await this.prisma.forTenant(schoolId, (tx) =>
+      tx.attendanceAssignment.findMany({
+        where: { userId },
+        select: { classId: true, sectionId: true },
+      }),
+    );
+    if (rows.length > 0) {
+      // A grant on the whole class swallows any narrower grant on a section
+      // of it — otherwise "Grade 8" plus "Grade 8 Section A" would read as
+      // Section A only, which is the opposite of what was handed out.
+      const wholeClasses = new Set(
+        rows.filter((r) => r.sectionId === null).map((r) => r.classId),
+      );
+      return rows.filter(
+        (r) => r.sectionId === null || !wholeClasses.has(r.classId),
+      );
+    }
+    return this.inherentlyScoped(role) ? [] : null;
+  }
+
   async visibleClassIds(
     schoolId: string,
     userId: string,
     role: string,
   ): Promise<string[] | null> {
-    // The people handing out the grants are not held by them.
-    if (role === "ADMINISTRATOR" || role === "SUPER_ADMINISTRATOR") return null;
-
-    const grants = await this.prisma.forTenant(schoolId, (tx) =>
-      tx.attendanceAssignment.findMany({
-        where: { userId },
-        select: { classId: true },
-        distinct: ["classId"],
-      }),
-    );
-    if (grants.length > 0) return grants.map((g) => g.classId);
-    return this.inherentlyScoped(role) ? [] : null;
+    const scope = await this.visibleScope(schoolId, userId, role);
+    if (scope === null) return null;
+    return [...new Set(scope.map((g) => g.classId))];
   }
 
   /**
@@ -73,13 +107,42 @@ export class ScopeService {
    * to get wrong: a scope of nothing has to match nothing, and `{ classId: {
    * in: [] } }` is the only shape that does.
    */
-  studentWhere(classIds: string[] | null): { classId?: { in: string[] } } {
-    return classIds === null ? {} : { classId: { in: classIds } };
+  studentWhere(scope: ScopeGrant[] | string[] | null): Record<string, unknown> {
+    if (scope === null) return {};
+    if (scope.length === 0) return { classId: { in: [] } };
+    if (typeof scope[0] === "string") {
+      return { classId: { in: scope as string[] } };
+    }
+    return {
+      OR: (scope as ScopeGrant[]).map((g) =>
+        g.sectionId === null
+          ? { classId: g.classId }
+          : { classId: g.classId, sectionId: g.sectionId },
+      ),
+    };
   }
 
-  /** Whether one class is inside the scope. Null scope admits every class. */
-  covers(classIds: string[] | null, classId: string | null): boolean {
-    if (classIds === null) return true;
-    return !!classId && classIds.includes(classId);
+  /**
+   * Whether one student's class and section are inside the scope.
+   *
+   * A grant with no section covers the whole class; a grant with one covers
+   * only that section.
+   */
+  covers(
+    scope: ScopeGrant[] | string[] | null,
+    classId: string | null,
+    sectionId?: string | null,
+  ): boolean {
+    if (scope === null) return true;
+    if (!classId) return false;
+    if (scope.length === 0) return false;
+    if (typeof scope[0] === "string") {
+      return (scope as string[]).includes(classId);
+    }
+    return (scope as ScopeGrant[]).some(
+      (g) =>
+        g.classId === classId &&
+        (g.sectionId === null || g.sectionId === (sectionId ?? null)),
+    );
   }
 }
