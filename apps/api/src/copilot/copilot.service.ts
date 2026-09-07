@@ -317,7 +317,8 @@ export class CopilotService {
         const feeIncome = paidMonth._sum.amount ?? 0;
         const otherIncome = otherIncomeAgg._sum.amount ?? 0;
         const salaries = salaryAgg._sum.amountPaid ?? 0;
-        const expenses = expenseAgg._sum.amount ?? 0;
+        // Decimal: the expense column carries cents.
+        const expenses = Number(expenseAgg._sum.amount ?? 0);
         const debtRepaid = debtRepaidAgg._sum.amount ?? 0;
         const tPresent = att(teacherAttMonth, "PRESENT") + att(teacherAttMonth, "LATE");
         const tAbsent = att(teacherAttMonth, "ABSENT");

@@ -8,6 +8,17 @@ import type {
 import { PrismaService } from "../prisma/prisma.service";
 import { onUniqueViolation } from "../academics/prisma-errors";
 
+/**
+ * The amount column carries cents, so Prisma hands back a Decimal object.
+ * Every screen, chart and report on the other side of the API expects a JSON
+ * number, and a Decimal serialises as a string — which would quietly turn
+ * "150" into "150.00" in a table and break every chart that adds it up. It is
+ * converted once, here, at the edge.
+ */
+function withNumericAmount<T extends { amount: Prisma.Decimal }>(row: T) {
+  return { ...row, amount: row.amount.toNumber() };
+}
+
 @Injectable()
 export class ExpensesService {
   constructor(private readonly prisma: PrismaService) {}
@@ -82,8 +93,8 @@ export class ExpensesService {
   }
 
   // ── Expenses ──
-  create(schoolId: string, dto: CreateExpenseInput, recordedByUserId: string) {
-    return this.prisma.forTenant(schoolId, (tx) =>
+  async create(schoolId: string, dto: CreateExpenseInput, recordedByUserId: string) {
+    const row = await this.prisma.forTenant(schoolId, (tx) =>
       tx.expense.create({
         data: {
           schoolId,
@@ -97,6 +108,7 @@ export class ExpensesService {
         },
       }),
     );
+    return withNumericAmount(row);
   }
 
   async update(schoolId: string, id: string, dto: UpdateExpenseInput) {
@@ -105,7 +117,7 @@ export class ExpensesService {
     );
     if (!existing) throw new NotFoundException("Expense not found");
 
-    return this.prisma.forTenant(schoolId, (tx) =>
+    const row = await this.prisma.forTenant(schoolId, (tx) =>
       tx.expense.update({
         where: { id },
         data: {
@@ -118,18 +130,20 @@ export class ExpensesService {
         },
       }),
     );
+    return withNumericAmount(row);
   }
 
-  findAll(schoolId: string, categoryId?: string) {
+  async findAll(schoolId: string, categoryId?: string) {
     const where: Prisma.ExpenseWhereInput = {};
     if (categoryId) where.categoryId = categoryId;
-    return this.prisma.forTenant(schoolId, (tx) =>
+    const rows = await this.prisma.forTenant(schoolId, (tx) =>
       tx.expense.findMany({
         where,
         include: { category: { select: { id: true, name: true } } },
         orderBy: { spentAt: "desc" },
       }),
     );
+    return rows.map(withNumericAmount);
   }
 
   async remove(schoolId: string, id: string) {

@@ -2,6 +2,7 @@
 
 import { useSyncExternalStore } from "react";
 import { ApiError } from "@/lib/api";
+import { isMoneyToCents, MONEY_CENTS_MESSAGE } from "@ekulmis/shared";
 import { activeAcademicYear as getActiveAcademicYear } from "@/lib/academics/store";
 import { apiFinanceDashboard, type ApiFinanceDashboard } from "@/lib/fees/api";
 import {
@@ -347,6 +348,9 @@ export async function createExpense(
   if (!input.amount || input.amount <= 0) {
     return { ok: false, error: "Amount must be greater than zero." };
   }
+  if (!isMoneyToCents(input.amount)) {
+    return { ok: false, error: MONEY_CENTS_MESSAGE + "." };
+  }
   if (!input.paymentMethod) return { ok: false, error: "Payment method is required." };
 
   try {
@@ -371,8 +375,8 @@ export async function updateExpense(
   if (input.amount !== undefined && input.amount <= 0) {
     return { ok: false, error: "Amount must be greater than zero." };
   }
-  if (input.amount !== undefined && !Number.isInteger(input.amount)) {
-    return { ok: false, error: "Amount must be a whole number (no cents)." };
+  if (input.amount !== undefined && !isMoneyToCents(input.amount)) {
+    return { ok: false, error: MONEY_CENTS_MESSAGE + "." };
   }
   if (input.categoryId) {
     const cat = getCategory(input.categoryId);

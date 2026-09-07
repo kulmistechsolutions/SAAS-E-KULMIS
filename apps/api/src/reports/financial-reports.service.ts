@@ -76,7 +76,8 @@ export class FinancialReportsService {
         return {
           fees: paySum._sum.amount ?? 0,
           otherIncome: otherSum._sum.amount ?? 0,
-          expenses: expSum._sum.amount ?? 0,
+          // Decimal: the expense column carries cents.
+          expenses: Number(expSum._sum.amount ?? 0),
           salaries: salSum._sum.amountPaid ?? 0,
           debtRepaid: debtSum._sum.amount ?? 0,
         };

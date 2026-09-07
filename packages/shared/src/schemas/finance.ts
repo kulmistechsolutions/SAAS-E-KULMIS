@@ -41,6 +41,33 @@ const year = z.number().int().min(2000).max(2100);
 const month = z.number().int().min(1).max(12);
 const positiveAmount = z.number().int().positive();
 
+/**
+ * Money that may carry cents — 0.50, 12.75, 150.
+ *
+ * Most money in the system is whole units because school fees and salaries are
+ * quoted that way. An expense is not: a school buys chalk for 0.50 and a receipt
+ * for 12.75, and rounding those to a whole unit either invents money or loses
+ * it. Two decimal places is the limit because that is what the column stores;
+ * a third would be silently rounded on save, which is worse than being refused.
+ */
+/**
+ * Compared with a tolerance, not exactly: 0.29 * 100 is 28.999999999999996 in
+ * binary floating point, so an exact test would refuse a perfectly ordinary
+ * 29-cent expense. Exported so the form refuses the same numbers the server
+ * does — two copies of this rule would eventually disagree, and the browser's
+ * copy would be the one telling the user something untrue.
+ */
+export function isMoneyToCents(n: number): boolean {
+  return Number.isFinite(n) && Math.abs(n * 100 - Math.round(n * 100)) < 1e-6;
+}
+
+export const MONEY_CENTS_MESSAGE = "Amount may have at most 2 decimal places";
+
+const fractionalAmount = z
+  .number()
+  .positive()
+  .refine(isMoneyToCents, { message: MONEY_CENTS_MESSAGE });
+
 // ── Fees (Module 7) ──
 export const chargeMonthSchema = z.object({
   classId: z.string().min(1),
@@ -279,7 +306,7 @@ export type CreateExpenseCategoryInput = z.infer<
 export const createExpenseSchema = z.object({
   categoryId: z.string().min(1).nullable().optional(),
   title: z.string().min(1),
-  amount: positiveAmount,
+  amount: fractionalAmount,
   method: z.string().min(1).nullable().optional(),
   note: z.string().min(1).nullable().optional(),
   spentAt: z.coerce.date().optional(),

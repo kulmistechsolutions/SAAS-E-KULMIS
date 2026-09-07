@@ -93,13 +93,16 @@ export class ExpenseReportsService {
       rows: expenses.map((e) => ({
         title: e.title,
         category: e.category?.name ?? "Uncategorised",
-        amount: money(e.amount),
+        amount: money(e.amount.toNumber()),
         method: e.method ?? "",
         date: e.spentAt.toISOString().slice(0, 10),
       })),
       summary: [
         { label: "Records", value: String(expenses.length) },
-        { label: "Total", value: money(expenses.reduce((s, e) => s + e.amount, 0)) },
+        {
+          label: "Total",
+          value: money(expenses.reduce((s, e) => s + e.amount.toNumber(), 0)),
+        },
       ],
     };
   }
@@ -120,7 +123,7 @@ export class ExpenseReportsService {
       const key = e.category?.name ?? "Uncategorised";
       const g = groups.get(key) ?? { count: 0, total: 0 };
       g.count += 1;
-      g.total += e.amount;
+      g.total += e.amount.toNumber();
       groups.set(key, g);
     }
     return {
@@ -138,7 +141,10 @@ export class ExpenseReportsService {
         })),
       summary: [
         { label: "Categories", value: String(groups.size) },
-        { label: "Total", value: money(expenses.reduce((s, e) => s + e.amount, 0)) },
+        {
+          label: "Total",
+          value: money(expenses.reduce((s, e) => s + e.amount.toNumber(), 0)),
+        },
       ],
     };
   }

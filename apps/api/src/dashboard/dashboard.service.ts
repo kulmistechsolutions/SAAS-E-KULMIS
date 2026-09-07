@@ -31,6 +31,11 @@ function sum<T>(rows: T[], pick: (r: T) => number): number {
   return rows.reduce((s, r) => s + pick(r), 0);
 }
 
+/** Cents added as binary floats drift; a money figure must not show the drift. */
+function round2(n: number): number {
+  return Math.round(n * 100) / 100;
+}
+
 @Injectable()
 export class DashboardService {
   constructor(
@@ -421,7 +426,8 @@ export class DashboardService {
       const feeIncome = incomeAgg._sum.amount ?? 0;
       const otherIncome = otherIncomeAgg._sum.amount ?? 0;
       const totalIncome = feeIncome + otherIncome;
-      const totalExpenses = expenseAgg._sum.amount ?? 0;
+      // Decimal: the expense column carries cents.
+      const totalExpenses = Number(expenseAgg._sum.amount ?? 0);
       const totalSalaries = salaryAgg._sum.amountPaid ?? 0;
       const debtRepaid = debtRepaidAgg._sum.amount ?? 0;
 
@@ -465,11 +471,16 @@ export class DashboardService {
             ),
             (o) => o.amount,
           ),
-        expense: sum(
-          expensesForChart.filter(
-            (e) => monthKey(new Date(e.spentAt)) === bucketKey(b),
+        expense: round2(
+          sum(
+            expensesForChart.filter(
+              (e) => monthKey(new Date(e.spentAt)) === bucketKey(b),
+            ),
+            // Decimal: the expense column carries cents. Rounded after the
+            // sum because adding cents as binary floats drifts (0.1 + 0.2),
+            // and a chart tick reading 0.30000000000000004 is a defect.
+            (e) => e.amount.toNumber(),
           ),
-          (e) => e.amount,
         ),
       }));
 

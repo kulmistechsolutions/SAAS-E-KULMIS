@@ -1475,7 +1475,11 @@ model Expense {
   schoolId         String
   categoryId       String?
   title            String
-  amount           Int
+  /// Carries cents. Fees and salaries are quoted in whole units and stay Int;
+  /// what a school actually spends is not — chalk at 0.50, a receipt at 12.75 —
+  /// and an Int column had to round those, inventing or losing money on every
+  /// row. Numeric, not float: money that is added up must not drift.
+  amount           Decimal  @db.Decimal(14, 2)
   method           String?
   note             String?
   recordedByUserId String?

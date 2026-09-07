@@ -22,6 +22,7 @@ import {
 import type { Expense, ExpenseAttachment, PaymentMethod } from "@/lib/expenses/types";
 import { AcademicYearSelect } from "@/components/academics/academic-year-select";
 import { toast } from "@/lib/toast";
+import { isMoneyToCents, MONEY_CENTS_MESSAGE } from "@ekulmis/shared";
 
 interface ExpenseFormDialogProps {
   open: boolean;
@@ -106,12 +107,11 @@ export function ExpenseFormDialog({
 
   async function handleSubmit() {
     const numericAmount = Number(amount);
-    // The backend stores amounts as whole currency units (no cents), same as
-    // every other money field in the app (fees, salaries) — reject a decimal
-    // here with a clear message instead of letting it 400 at the API with an
-    // opaque "Bad Request".
-    if (!Number.isInteger(numericAmount)) {
-      toast("Amount must be a whole number (no cents) — e.g. 150.", "error");
+    // Cents are allowed — a school buys chalk for 0.50. What is refused is a
+    // third decimal, which the column cannot hold and would be rounded away
+    // without anyone being told.
+    if (!isMoneyToCents(numericAmount)) {
+      toast(MONEY_CENTS_MESSAGE + " — e.g. 0.50, 12.75, 150.", "error");
       return;
     }
 
@@ -192,8 +192,9 @@ export function ExpenseFormDialog({
             <Input
               id="exp-amount"
               type="number"
-              min={1}
-              step={1}
+              min={0.01}
+              step={0.01}
+              inputMode="decimal"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
             />

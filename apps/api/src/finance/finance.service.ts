@@ -82,7 +82,8 @@ export class FinanceService {
       const feeIncome = payAgg._sum.amount ?? 0;
       const otherIncome = otherAgg._sum.amount ?? 0;
       const totalIncome = feeIncome + otherIncome;
-      const totalExpenses = expAgg._sum.amount ?? 0;
+      // Decimal: the expense column carries cents.
+      const totalExpenses = Number(expAgg._sum.amount ?? 0);
       const totalSalaries = salAgg._sum.amountPaid ?? 0;
       const debtRepaid = debtAgg._sum.amount ?? 0;
       const totalOutstanding = outstandingCharges.reduce(

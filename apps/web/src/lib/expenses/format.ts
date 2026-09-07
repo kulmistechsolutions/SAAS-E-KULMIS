@@ -1,7 +1,15 @@
 import { formatMoney } from "@/lib/settings/currency";
 import type { PaymentMethod } from "./types";
 
-export const money = (n: number) => formatMoney(n, { decimals: 0 });
+/**
+ * Whole amounts stay whole; cents show only when there are any.
+ *
+ * Expenses may carry cents while fees and salaries do not, so forcing two
+ * decimals here would print "$150.00" on every row of a ledger that has never
+ * needed them, and forcing none would hide the 50 cents a school just entered.
+ */
+export const money = (n: number) =>
+  formatMoney(n, Number.isInteger(n) ? { decimals: 0 } : {});
 
 export function shortDate(iso: string | null | undefined): string {
   if (!iso) return "—";
