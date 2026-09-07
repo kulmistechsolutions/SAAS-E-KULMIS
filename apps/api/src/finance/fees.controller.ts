@@ -134,8 +134,31 @@ export class FeesController {
   /** The same, for the whole school — the numbers behind the fee dashboard. */
   @RequirePermission("fees.view")
   @Get("position")
-  schoolPosition(@CurrentUser() me: AuthUser) {
-    return this.balances.schoolPosition(me.schoolId);
+  async schoolPosition(
+    @CurrentUser() me: AuthUser,
+    @Query("classId") classId?: string,
+    @Query("sectionId") sectionId?: string,
+  ) {
+    // A filter chosen on screen narrows the question; it can never widen it
+    // past what this person is allowed to see. So the class asked for is
+    // honoured only if it is one of theirs, and a class outside their scope
+    // returns their own scope rather than the school.
+    const scoped = await this.narrowToScope(me, classId, sectionId);
+    return this.balances.schoolPosition(me.schoolId, scoped);
+  }
+
+  /** The filter this person may actually have, given what they cover. */
+  private async narrowToScope(
+    me: AuthUser,
+    classId?: string,
+    sectionId?: string,
+  ) {
+    const mine = await this.scope.visibleClassIds(
+      me.schoolId,
+      me.userId,
+      me.permissionRole,
+    );
+    return narrowFilterToScope(mine, classId, sectionId);
   }
 
   /** Every active student's position in one call, for the collection lists. */
@@ -149,8 +172,14 @@ export class FeesController {
    */
   @RequirePermission("fees.view")
   @Get("positions")
-  async allPositions(@CurrentUser() me: AuthUser) {
-    const all = await this.balances.allPositions(me.schoolId);
+  async allPositions(
+    @CurrentUser() me: AuthUser,
+    @Query("classId") classId?: string,
+    @Query("sectionId") sectionId?: string,
+  ) {
+    // Same narrowing the cards get, so a filtered card opens a filtered list.
+    const within = await this.narrowToScope(me, classId, sectionId);
+    const all = await this.balances.allPositions(me.schoolId, within);
     const classIds = await this.scope.visibleClassIds(
       me.schoolId,
       me.userId,
@@ -385,4 +414,32 @@ export class FeesController {
     if (!parsed.success) throw new BadRequestException(parsed.error.flatten());
     return this.fees.updatePaymentPromise(me.schoolId, id, parsed.data);
   }
+}
+
+/**
+ * A requested fee filter, held inside the classes a person covers.
+ *
+ * Separated from the controller so it can be tested, because getting it wrong
+ * is not a display bug. Three cases and each has an opposite:
+ *
+ *  - Covers the school (`null`): whatever was asked for.
+ *  - Covers some classes and asks for one of them: that one.
+ *  - Covers some classes and asks for one that is not: **nothing**, expressed
+ *    as `classIds: []`. Returning no filter here would answer with the whole
+ *    school — a filter widening someone's reach past their scope is the exact
+ *    inversion this exists to prevent.
+ *  - Covers some classes and asks for nothing in particular: their own
+ *    classes, not everyone's. `/fees/position` used to answer with the school
+ *    for anyone holding `fees.view`, whatever they were scoped to.
+ */
+export function narrowFilterToScope(
+  covers: string[] | null,
+  classId?: string,
+  sectionId?: string,
+): { classId?: string; sectionId?: string; classIds?: string[] } {
+  if (covers === null) return { classId, sectionId };
+  if (classId) {
+    return covers.includes(classId) ? { classId, sectionId } : { classIds: [] };
+  }
+  return { classIds: covers, sectionId };
 }

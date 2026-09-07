@@ -1602,6 +1602,8 @@ export const arGenerated: PartialDictionary = {
     reasonZeroFee: "رسوم 0$",
   },
   finance: {
+    allClasses: "جميع الفصول",
+    allSections: "جميع الشعب",
     feeManagement: "إدارة الرسوم",
     realTimeOverviewOfFeeCollection: "نظرة فورية على تحصيل الرسوم والأرصدة المستحقة والمدفوعات.",
     month: "الشهر:",

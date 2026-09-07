@@ -73,11 +73,16 @@ export function FeeMetricBreakdownDialog({
   metric,
   month,
   academicYear,
+  classId,
+  sectionId,
   onClose,
 }: {
   metric: FeeMetric | null;
   month: string;
   academicYear: string;
+  /** The dashboard's own narrowing, so the list matches the card. */
+  classId?: string;
+  sectionId?: string;
   onClose: () => void;
 }) {
   const t = useT();
@@ -93,13 +98,13 @@ export function FeeMetricBreakdownDialog({
     let alive = true;
     setPositions(null);
     setFailed(false);
-    apiAllPositions()
+    apiAllPositions({ classId, sectionId })
       .then((rows) => alive && setPositions(rows))
       .catch(() => alive && setFailed(true));
     return () => {
       alive = false;
     };
-  }, [metric]);
+  }, [metric, classId, sectionId]);
 
   const rows = useMemo<Row[]>(() => {
     if (!metric || !positions || PAYMENT_METRICS.includes(metric)) return [];

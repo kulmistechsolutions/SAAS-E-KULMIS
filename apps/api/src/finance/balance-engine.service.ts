@@ -54,6 +54,19 @@ export interface ChargeLine {
   status: "UNPAID" | "PARTIAL" | "PAID" | "INACTIVE" | "ADVANCE" | "FREE";
 }
 
+/**
+ * Which students a question is about. Empty means the whole school.
+ *
+ * A section without a class is accepted and means exactly that section, since
+ * a section id already belongs to one class.
+ */
+export interface PositionFilter {
+  classId?: string;
+  sectionId?: string;
+  /** The classes this person covers at all. `[]` means none, not all. */
+  classIds?: string[];
+}
+
 /** Everything true about one student's fees, in one shape. */
 export interface StudentPosition {
   studentId: string;
@@ -311,7 +324,10 @@ export class BalanceEngineService {
    * Two queries for the whole school rather than one per student — the
    * per-student loop is what times out once a school passes a few hundred.
    */
-  async allPositions(schoolId: string): Promise<StudentPosition[]> {
+  async allPositions(
+    schoolId: string,
+    within: PositionFilter = {},
+  ): Promise<StudentPosition[]> {
     const live = await this.liveMonth(schoolId);
     const liveYm = live.year * 100 + live.month;
 
@@ -323,9 +339,16 @@ export class BalanceEngineService {
           select: { id: true },
         });
         const students = await tx.student.findMany({
+          // The narrowing happens here, before a single charge is read, so a
+          // filtered dashboard is the same engine answering a smaller
+          // question. Filtering the cards afterwards in the browser is how a
+          // page ends up with a total that no list on it can reproduce.
           where: {
             status: "ACTIVE",
             ...(activeYear ? { class: { academicYearId: activeYear.id } } : {}),
+            ...(within.classIds ? { classId: { in: within.classIds } } : {}),
+            ...(within.classId ? { classId: within.classId } : {}),
+            ...(within.sectionId ? { sectionId: within.sectionId } : {}),
           },
           select: {
             id: true,
@@ -391,25 +414,42 @@ export class BalanceEngineService {
    * charge; the rest is derived from the same student positions the
    * individual screens read, so a card and the row under it cannot disagree.
    */
-  async schoolPosition(schoolId: string): Promise<SchoolPosition> {
+  async schoolPosition(
+    schoolId: string,
+    within: PositionFilter = {},
+  ): Promise<SchoolPosition> {
     const live = await this.liveMonth(schoolId);
     const monthStart = new Date(Date.UTC(live.year, live.month - 1, 1));
     const monthEnd = new Date(Date.UTC(live.year, live.month, 1));
     const todayStart = new Date();
     todayStart.setUTCHours(0, 0, 0, 0);
 
+    // Money collected has to be narrowed the same way the expectations are, or
+    // a class-filtered dashboard would put one class's bill beside the whole
+    // school's takings and call the difference a collection rate.
+    const paidBy =
+      within.classId || within.sectionId || within.classIds
+        ? {
+            student: {
+              ...(within.classIds ? { classId: { in: within.classIds } } : {}),
+              ...(within.classId ? { classId: within.classId } : {}),
+              ...(within.sectionId ? { sectionId: within.sectionId } : {}),
+            },
+          }
+        : {};
+
     const [positions, monthAgg, todayAgg] = await Promise.all([
-      this.allPositions(schoolId),
+      this.allPositions(schoolId, within),
       this.prisma.forTenant(schoolId, (tx) =>
         tx.payment.aggregate({
           _sum: { amount: true },
-          where: { paidAt: { gte: monthStart, lt: monthEnd } },
+          where: { paidAt: { gte: monthStart, lt: monthEnd }, ...paidBy },
         }),
       ),
       this.prisma.forTenant(schoolId, (tx) =>
         tx.payment.aggregate({
           _sum: { amount: true },
-          where: { paidAt: { gte: todayStart } },
+          where: { paidAt: { gte: todayStart }, ...paidBy },
         }),
       ),
     ]);

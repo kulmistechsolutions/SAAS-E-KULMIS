@@ -26,8 +26,10 @@ import {
   outstandingStudents,
   recentPayments,
   refreshFinanceDashboard,
+  refreshSchoolPosition,
   useFeesState,
 } from "@/lib/fees/store";
+import { classesForYear, sectionsForClass } from "@/lib/academics/store";
 import type { FeePayment, StudentFeeRow } from "@/lib/fees/types";
 import { AcademicYearSelect } from "@/components/academics/academic-year-select";
 import { useStudentsState } from "@/lib/students/store";
@@ -46,6 +48,11 @@ export default function FeeManagementPage() {
   const studentsState = useStudentsState();
   const [filterMonth, setFilterMonth] = useState("");
   const [filterYear, setFilterYear] = useState("");
+  // Narrowing to a class is the server's job, not this page's. Filtering the
+  // cards here would leave a total that the list under it cannot reproduce —
+  // the disagreement this module has spent the longest fixing.
+  const [filterClass, setFilterClass] = useState("");
+  const [filterSection, setFilterSection] = useState("");
   const [payStudent, setPayStudent] = useState<StudentFeeRow | null>(null);
   const [receiptNo, setReceiptNo] = useState<string | null>(null);
   const [promiseStudent, setPromiseStudent] = useState<StudentFeeRow | null>(null);
@@ -69,6 +76,23 @@ export default function FeeManagementPage() {
     if (!mounted || !month) return;
     void refreshFinanceDashboard(month);
   }, [mounted, month]);
+
+  useEffect(() => {
+    if (!mounted) return;
+    void refreshSchoolPosition({
+      classId: filterClass || undefined,
+      sectionId: filterSection || undefined,
+    });
+  }, [mounted, filterClass, filterSection]);
+
+  const classes = useMemo(
+    () => (mounted ? classesForYear(year) : []),
+    [mounted, year],
+  );
+  const sections = useMemo(
+    () => (filterClass ? sectionsForClass(filterClass) : []),
+    [filterClass],
+  );
 
   const summary = useMemo(
     () => (mounted ? dashboardSummary(month, year) : null),
@@ -113,6 +137,39 @@ export default function FeeManagementPage() {
                 </option>
               ))}
             </Select>
+          </div>
+          <div className="flex items-center gap-2 rounded-lg border bg-card px-3 py-2 text-sm">
+            <Select
+              value={filterClass}
+              onChange={(e) => {
+                setFilterClass(e.target.value);
+                // A section belongs to one class, so keeping the old one
+                // would ask for a section of a class no longer chosen.
+                setFilterSection("");
+              }}
+              className="h-8 min-w-[130px] border-0 bg-transparent py-0 shadow-none"
+            >
+              <option value="">{t("finance.allClasses")}</option>
+              {classes.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </Select>
+            {sections.length > 0 && (
+              <Select
+                value={filterSection}
+                onChange={(e) => setFilterSection(e.target.value)}
+                className="h-8 min-w-[110px] border-0 bg-transparent py-0 shadow-none"
+              >
+                <option value="">{t("finance.allSections")}</option>
+                {sections.map((sec) => (
+                  <option key={sec.id} value={sec.id}>
+                    {sec.name}
+                  </option>
+                ))}
+              </Select>
+            )}
           </div>
         </div>
       </div>
@@ -166,6 +223,8 @@ export default function FeeManagementPage() {
         metric={detailMetric}
         month={month}
         academicYear={year}
+        classId={filterClass || undefined}
+        sectionId={filterSection || undefined}
         onClose={() => setDetailMetric(null)}
       />
 

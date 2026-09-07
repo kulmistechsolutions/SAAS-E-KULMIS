@@ -1634,6 +1634,8 @@ export const generated = {
     reasonZeroFee: "$0 Fee",
   },
   finance: {
+    allClasses: "All Classes",
+    allSections: "All Sections",
     feeManagement: "Fee Management",
     realTimeOverviewOfFeeCollection: "Real-time overview of fee collection, outstanding balances, and payments.",
     month: "Month:",

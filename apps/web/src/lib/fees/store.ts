@@ -68,10 +68,13 @@ let positionCache: import("./api").SchoolPosition | null = null;
 /** Per student, keyed by id — what the collection lists read. */
 let studentPositions = new Map<string, import("./api").StudentPosition>();
 
-export async function refreshSchoolPosition(): Promise<void> {
+export async function refreshSchoolPosition(within?: {
+  classId?: string;
+  sectionId?: string;
+}): Promise<void> {
   try {
     const [school, all] = await Promise.all([
-      apiSchoolPosition(),
+      apiSchoolPosition(within),
       apiAllPositions().catch(() => [] as import("./api").StudentPosition[]),
     ]);
     positionCache = school;

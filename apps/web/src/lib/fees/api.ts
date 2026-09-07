@@ -622,14 +622,37 @@ export interface SchoolPosition {
   };
 }
 
-export const apiSchoolPosition = () =>
-  api<SchoolPosition>("/fees/position");
+/**
+ * The school's money, optionally for one class or section.
+ *
+ * The narrowing is the server's, not the browser's: a filtered card and the
+ * list behind it have to be the same query, or the page grows a total nothing
+ * on it can reproduce.
+ */
+export const apiSchoolPosition = (within?: {
+  classId?: string;
+  sectionId?: string;
+}) => {
+  const q = new URLSearchParams();
+  if (within?.classId) q.set("classId", within.classId);
+  if (within?.sectionId) q.set("sectionId", within.sectionId);
+  const s = q.toString();
+  return api<SchoolPosition>(`/fees/position${s ? `?${s}` : ""}`);
+};
 
 export const apiStudentPosition = (studentId: string) =>
   api<StudentPosition | null>(`/fees/position/${studentId}`);
 
-export const apiAllPositions = () =>
-  api<StudentPosition[]>("/fees/positions");
+export const apiAllPositions = (within?: {
+  classId?: string;
+  sectionId?: string;
+}) => {
+  const q = new URLSearchParams();
+  if (within?.classId) q.set("classId", within.classId);
+  if (within?.sectionId) q.set("sectionId", within.sectionId);
+  const s = q.toString();
+  return api<StudentPosition[]>(`/fees/positions${s ? `?${s}` : ""}`);
+};
 
 // ── Adjustments and fee changes ────────────────────────────────────────────
 

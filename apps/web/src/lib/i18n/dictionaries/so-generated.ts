@@ -1603,6 +1603,8 @@ export const soGenerated: PartialDictionary = {
     reasonZeroFee: "Khidmad $0 ah",
   },
   finance: {
+    allClasses: "Fasallada oo dhan",
+    allSections: "Qeybaha oo dhan",
     feeManagement: "Maaraynta Khidmadaha",
     realTimeOverviewOfFeeCollection: "Aragti degdeg ah oo ku saabsan qaadista khidmadaha, hadhaagyada, iyo lacagaha.",
     month: "Bisha:",
