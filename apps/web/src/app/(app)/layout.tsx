@@ -41,6 +41,8 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
+  // What this user may do, from the server. The guard below waits for it.
+  const perms = usePermissions();
   const [mounted, setMounted] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
@@ -84,10 +86,19 @@ export default function AppLayout({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!user || !pathname || isFullAccessRole(user.role) || isPortalRole(user.role)) return;
+    // Wait for the server's answer before deciding. A full page load arrives
+    // here before /permissions/me has come back, and judging the URL on the
+    // compiled fallback let a revoked page open and then stay open, because
+    // nothing re-ran the check once the real answer landed.
+    if (!perms.loaded) return;
     if (!isRouteAllowedForRole(user.role, pathname)) {
       router.replace(landingRouteForRole(user.role));
     }
-  }, [user, pathname, router]);
+    // `perms` is the dependency that matters: isRouteAllowedForRole reads the
+    // permission store, so this must run again when that answer changes —
+    // including when an administrator changes it mid-session.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, pathname, router, perms]);
 
   function toggleCollapsed() {
     setCollapsed((prev) => {
@@ -118,6 +129,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   const routeBlocked =
     pathname != null &&
     !isFullAccessRole(user.role) &&
+    perms.loaded &&
     !isRouteAllowedForRole(user.role, pathname);
 
   const roleKey = ROLE_LABEL[user.role];
