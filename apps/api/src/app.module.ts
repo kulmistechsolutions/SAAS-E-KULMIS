@@ -28,6 +28,7 @@ import { FinanceModule } from "./finance/finance.module";
 import { DashboardModule } from "./dashboard/dashboard.module";
 import { PlatformModule } from "./platform/platform.module";
 import { StorageModule } from "./storage/storage.module";
+import { ScopeModule } from "./scope/scope.module";
 import { SearchModule } from "./search/search.module";
 import { PermissionsModule } from "./permissions/permissions.module";
 import { QueueModule } from "./queue/queue.module";
@@ -78,6 +79,7 @@ import { TenantModule } from "./tenant/tenant.module";
     DocumentsModule,
     AuditModule,
     StorageModule,
+    ScopeModule,
     SearchModule,
     PermissionsModule,
     AuthModule,

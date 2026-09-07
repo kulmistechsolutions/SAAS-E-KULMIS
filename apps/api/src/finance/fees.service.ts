@@ -1760,6 +1760,14 @@ export class FeesService {
     return { ...result, oldFee, newFee: input.newFee };
   }
 
+  /** The names of a set of classes — used to hold a list to somebody's scope. */
+  async classNames(schoolId: string, classIds: string[]): Promise<string[]> {
+    const rows = await this.prisma.forTenant(schoolId, (tx) =>
+      tx.class.findMany({ where: { id: { in: classIds } }, select: { name: true } }),
+    );
+    return rows.map((r) => r.name);
+  }
+
   async ledger(schoolId: string, studentId: string) {
     const config = await this.schoolConfig(schoolId);
     // The engine's answer for what this student actually owes. Everything

@@ -5,7 +5,7 @@ import { Roles } from "../auth/roles.decorator";
 import { STAFF_ROLES } from "../auth/role-groups";
 import { CurrentUser } from "../auth/current-user.decorator";
 import type { AuthUser } from "../auth/auth.types";
-import { AttendanceScopeService } from "../attendance/attendance-scope.service";
+import { ScopeService } from "../scope/scope.service";
 import { TeachersService } from "../teachers/teachers.service";
 
 /**
@@ -21,7 +21,7 @@ import { TeachersService } from "../teachers/teachers.service";
 export class SearchController {
   constructor(
     private readonly search: SearchService,
-    private readonly scope: AttendanceScopeService,
+    private readonly scope: ScopeService,
     private readonly teachers: TeachersService,
   ) {}
 

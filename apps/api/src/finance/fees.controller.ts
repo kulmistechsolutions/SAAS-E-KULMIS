@@ -31,6 +31,7 @@ import { Roles } from "../auth/roles.decorator";
 import { CurrentUser } from "../auth/current-user.decorator";
 import type { AuthUser } from "../auth/auth.types";
 import { RequirePermission } from "../auth/require-permission.decorator";
+import { ScopeService } from "../scope/scope.service";
 
 @Roles(UserRole.ADMINISTRATOR, UserRole.FINANCE_OFFICER)
 @Controller("fees")
@@ -38,6 +39,7 @@ export class FeesController {
   constructor(private readonly fees: FeesService,
     private readonly balances: BalanceEngineService,
     private readonly adjustments: FeeAdjustmentsService,
+    private readonly scope: ScopeService,
   ) {}
 
   @RequirePermission("fees.view")
@@ -137,10 +139,33 @@ export class FeesController {
   }
 
   /** Every active student's position in one call, for the collection lists. */
+  /**
+   * Every student's position, held to the classes this person covers.
+   *
+   * A permission says what someone may do; their assignments say to whom. A
+   * school that scopes a clerk to Grade 8 means the collection list too — not
+   * only the register — and this list is the whole school's money, so it is
+   * the one that most needs asking.
+   */
   @RequirePermission("fees.view")
   @Get("positions")
-  allPositions(@CurrentUser() me: AuthUser) {
-    return this.balances.allPositions(me.schoolId);
+  async allPositions(@CurrentUser() me: AuthUser) {
+    const all = await this.balances.allPositions(me.schoolId);
+    const classIds = await this.scope.visibleClassIds(
+      me.schoolId,
+      me.userId,
+      me.role,
+    );
+    if (classIds === null) return all;
+    const names = await this.classNamesFor(me.schoolId, classIds);
+    return all.filter((p) => p.className !== null && names.has(p.className));
+  }
+
+  /** Class names for a set of ids — positions carry the name, not the id. */
+  private async classNamesFor(schoolId: string, classIds: string[]) {
+    if (classIds.length === 0) return new Set<string>();
+    const rows = await this.fees.classNames(schoolId, classIds);
+    return new Set(rows);
   }
 
   // ── Adjustments and fee changes ──────────────────────────────────────────

@@ -22,7 +22,7 @@ import {
 } from "@ekulmis/shared";
 import { StudentsService } from "./students.service";
 import { TeachersService } from "../teachers/teachers.service";
-import { AttendanceScopeService } from "../attendance/attendance-scope.service";
+import { ScopeService } from "../scope/scope.service";
 import { Roles } from "../auth/roles.decorator";
 import { STAFF_ROLES } from "../auth/role-groups";
 import { CurrentUser } from "../auth/current-user.decorator";
@@ -37,7 +37,7 @@ export class StudentsController {
   constructor(
     private readonly students: StudentsService,
     private readonly teachers: TeachersService,
-    private readonly scope: AttendanceScopeService,
+    private readonly scope: ScopeService,
   ) {}
 
   /**
