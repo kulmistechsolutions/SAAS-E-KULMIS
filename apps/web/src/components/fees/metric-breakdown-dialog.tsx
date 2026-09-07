@@ -104,8 +104,21 @@ export function FeeMetricBreakdownDialog({
   const rows = useMemo<Row[]>(() => {
     if (!metric || !positions || PAYMENT_METRICS.includes(metric)) return [];
 
-    const lineFor = (p: StudentPosition) =>
-      p.lines.find((l) => l.monthKey === month && l.status !== "INACTIVE");
+    // Every line for the month, not the first one. A student can carry more
+    // than one charge in a month — an exam fee, an admission fee beside the
+    // tuition — and taking only the first put the dialog $80 below the card it
+    // opened from: 127 students, 143 lines.
+    const monthTotals = (p: StudentPosition) =>
+      p.lines
+        .filter((l) => l.monthKey === month && l.status !== "INACTIVE")
+        .reduce(
+          (acc, l) => ({
+            expected: acc.expected + l.expected,
+            paid: acc.paid + l.paid,
+            outstanding: acc.outstanding + l.outstanding,
+          }),
+          { expected: 0, paid: 0, outstanding: 0 },
+        );
 
     const state = BY_STATE[metric];
     const wanted = state ? positions.filter((p) => p.state === state) : positions;
@@ -115,14 +128,14 @@ export function FeeMetricBreakdownDialog({
 
     return wanted
       .map((p) => {
-        const l = lineFor(p);
+        const m = monthTotals(p);
         return {
           key: p.studentId,
           name: p.fullName,
           className: [p.className, p.section].filter(Boolean).join(" - ") || "—",
-          expected: whole ? p.expected : (l?.expected ?? 0),
-          paid: whole ? p.paid : (l?.paid ?? 0),
-          outstanding: whole ? p.outstanding : (l?.outstanding ?? 0),
+          expected: whole ? p.expected : m.expected,
+          paid: whole ? p.paid : m.paid,
+          outstanding: whole ? p.outstanding : m.outstanding,
         };
       })
       .filter((r) => {
