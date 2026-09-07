@@ -22,6 +22,7 @@ import { AttendanceReportsService } from "./attendance-reports.service";
 import { Roles } from "../auth/roles.decorator";
 import { CurrentUser } from "../auth/current-user.decorator";
 import type { AuthUser } from "../auth/auth.types";
+import { RequirePermission } from "../auth/require-permission.decorator";
 
 @Controller("reports")
 export class ReportsController {
@@ -41,6 +42,7 @@ export class ReportsController {
 
   /** Promotion and graduation reports, computed from the database. */
   @Roles(UserRole.ADMINISTRATOR, UserRole.FINANCE_OFFICER, UserRole.EXAM_MANAGER, UserRole.ACADEMIC_MANAGER)
+  @RequirePermission("promotions.view")
   @Get("promotion-reports/:slug")
   promotionReportsBySlug(
     @CurrentUser() me: AuthUser,
@@ -54,6 +56,7 @@ export class ReportsController {
 
   /** Staff salary reports, computed from the database. */
   @Roles(UserRole.ADMINISTRATOR, UserRole.FINANCE_OFFICER)
+  @RequirePermission("salaries.view")
   @Get("salary-reports/:slug")
   salaryReportsBySlug(
     @CurrentUser() me: AuthUser,
@@ -67,6 +70,7 @@ export class ReportsController {
 
   /** Operational expense reports, computed from the database. */
   @Roles(UserRole.ADMINISTRATOR, UserRole.FINANCE_OFFICER)
+  @RequirePermission("expenses.view")
   @Get("expense-reports/:slug")
   expenseReportsBySlug(
     @CurrentUser() me: AuthUser,
@@ -86,6 +90,7 @@ export class ReportsController {
 
   /** Income vs. expenses vs. salaries, computed from the database. */
   @Roles(UserRole.ADMINISTRATOR, UserRole.FINANCE_OFFICER)
+  @RequirePermission("finance.view")
   @Get("financial-reports/:slug")
   financialReportsBySlug(
     @CurrentUser() me: AuthUser,
@@ -97,6 +102,7 @@ export class ReportsController {
 
   /** Quiz performance and activity reports, computed from the database. */
   @Roles(UserRole.ADMINISTRATOR, UserRole.FINANCE_OFFICER, UserRole.EXAM_MANAGER)
+  @RequirePermission("quiz.view")
   @Get("quiz-reports/:slug")
   quizReportsBySlug(
     @CurrentUser() me: AuthUser,
@@ -109,6 +115,7 @@ export class ReportsController {
 
   /** Exams for the report picker, so it stops depending on a browser store. */
   @Roles(UserRole.ADMINISTRATOR, UserRole.FINANCE_OFFICER, UserRole.EXAM_MANAGER, UserRole.ACADEMIC_MANAGER)
+  @RequirePermission("examinations.view")
   @Get("exam-list")
   examList(@CurrentUser() me: AuthUser, @Query("academicYearId") yearId: string) {
     if (!yearId) return [];
@@ -117,6 +124,7 @@ export class ReportsController {
 
   /** Examination reports: results, rankings, distribution, submission status. */
   @Roles(UserRole.ADMINISTRATOR, UserRole.FINANCE_OFFICER, UserRole.EXAM_MANAGER, UserRole.ACADEMIC_MANAGER)
+  @RequirePermission("examinations.view")
   @Get("exam-reports/:slug")
   examReportsBySlug(
     @CurrentUser() me: AuthUser,
@@ -140,6 +148,7 @@ export class ReportsController {
 
   /** Teacher list, salary and assignment reports, from the database. */
   @Roles(UserRole.ADMINISTRATOR, UserRole.FINANCE_OFFICER, UserRole.EXAM_MANAGER, UserRole.ACADEMIC_MANAGER)
+  @RequirePermission("teachers.view")
   @Get("teacher-reports/:slug")
   teacherReportsBySlug(
     @CurrentUser() me: AuthUser,
@@ -163,6 +172,7 @@ export class ReportsController {
 
   /** Student and parent reports, computed from the database. */
   @Roles(UserRole.ADMINISTRATOR, UserRole.FINANCE_OFFICER, UserRole.EXAM_MANAGER, UserRole.RECEPTION_OFFICER, UserRole.LIBRARIAN)
+  @RequirePermission("students.view")
   @Get("student-reports/:slug")
   studentReportsBySlug(
     @CurrentUser() me: AuthUser,
@@ -191,6 +201,7 @@ export class ReportsController {
    * pages happened to leave in the browser's store.
    */
   @Roles(UserRole.ADMINISTRATOR, UserRole.FINANCE_OFFICER)
+  @RequirePermission("fees.view")
   @Get("fees/:slug")
   fees(
     @CurrentUser() me: AuthUser,
@@ -213,6 +224,7 @@ export class ReportsController {
   }
 
   @Roles(UserRole.ADMINISTRATOR, UserRole.FINANCE_OFFICER, UserRole.EXAM_MANAGER, UserRole.RECEPTION_OFFICER, UserRole.LIBRARIAN)
+  @RequirePermission("students.view")
   @Get("students")
   students(
     @CurrentUser() me: AuthUser,
@@ -222,6 +234,7 @@ export class ReportsController {
   }
 
   @Roles(UserRole.ADMINISTRATOR, UserRole.FINANCE_OFFICER, UserRole.EXAM_MANAGER, UserRole.RECEPTION_OFFICER, UserRole.LIBRARIAN)
+  @RequirePermission("students.export", "students.print")
   @Get("students/export/pdf")
   @Header("Content-Type", "application/pdf")
   async studentsPdf(
@@ -235,6 +248,7 @@ export class ReportsController {
   }
 
   @Roles(UserRole.ADMINISTRATOR, UserRole.FINANCE_OFFICER, UserRole.EXAM_MANAGER, UserRole.RECEPTION_OFFICER, UserRole.LIBRARIAN)
+  @RequirePermission("students.export")
   @Get("students/export/excel")
   async studentsExcel(
     @CurrentUser() me: AuthUser,
@@ -251,6 +265,7 @@ export class ReportsController {
   }
 
   @Roles(UserRole.ADMINISTRATOR, UserRole.FINANCE_OFFICER, UserRole.EXAM_MANAGER, UserRole.ATTENDANCE_OFFICER)
+  @RequirePermission("attendance.view")
   @Get("attendance")
   attendance(
     @CurrentUser() me: AuthUser,
@@ -266,6 +281,7 @@ export class ReportsController {
    * browser's attendance store — see AttendanceReportsService for why.
    */
   @Roles(UserRole.ADMINISTRATOR, UserRole.FINANCE_OFFICER, UserRole.EXAM_MANAGER, UserRole.ATTENDANCE_OFFICER, UserRole.ACADEMIC_MANAGER)
+  @RequirePermission("attendance.view")
   @Get("attendance-reports/:slug")
   attendanceReportsBySlug(
     @CurrentUser() me: AuthUser,
@@ -294,6 +310,7 @@ export class ReportsController {
   }
 
   @Roles(UserRole.ADMINISTRATOR, UserRole.FINANCE_OFFICER, UserRole.EXAM_MANAGER)
+  @RequirePermission("examinations.view")
   @Get("exam-results/:studentId")
   examResults(
     @CurrentUser() me: AuthUser,

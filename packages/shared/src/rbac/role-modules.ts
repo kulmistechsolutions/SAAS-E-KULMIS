@@ -105,15 +105,12 @@ export const PERMISSIONS_BY_ROLE: Record<
   ),
   [UserRole.ADMINISTRATOR]: {
     ...Object.fromEntries(
-      ALL_MODULES.filter((m) => m !== "users" && m !== "audit" && m !== "sms").map(
-        (m) => [m, FULL],
-      ),
+      ALL_MODULES.filter((m) => m !== "users" && m !== "audit").map((m) => [m, FULL]),
     ),
     // A school administrator manages accounts but does not delete the record
     // of what they did.
     users: ["view", "create", "update", "export", "print"],
     audit: ["view", "export"],
-    sms: ["view", "create", "export"],
   },
   [UserRole.ACADEMIC_MANAGER]: {
     promotions: FULL,
@@ -125,7 +122,7 @@ export const PERMISSIONS_BY_ROLE: Record<
     teachers: READ,
     examinations: READ,
     quiz: ["view", "update", "export"],
-    sms: ["view", "create"],
+    sms: ["view", "create", "update"],
   },
   [UserRole.FINANCE_OFFICER]: {
     fees: FULL,
@@ -133,7 +130,7 @@ export const PERMISSIONS_BY_ROLE: Record<
     salaries: FULL,
     expenses: FULL,
     reports: FULL,
-    sms: ["view", "create", "export"],
+    sms: ["view", "create", "update", "export"],
   },
   [UserRole.ATTENDANCE_OFFICER]: {
     // Takes registers for the classes it was assigned. Appointing officers and
@@ -146,12 +143,12 @@ export const PERMISSIONS_BY_ROLE: Record<
     examinations: FULL,
     quiz: FULL,
     reports: FULL,
-    sms: ["view", "create"],
+    sms: ["view", "create", "update"],
   },
   [UserRole.RECEPTION_OFFICER]: {
     // Print included because issuing ID cards is a front-desk job, and the
     // card pages are reached through it.
-    students: ["view", "create", "update", "print"],
+    students: ["view", "create", "update", "import", "print"],
     parents: ["view", "create", "update"],
     // Hiring is not a front-desk job: the server accepts a teacher record only
     // from an administrator.

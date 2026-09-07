@@ -12,6 +12,7 @@ import { Roles } from "../auth/roles.decorator";
 import { CurrentUser } from "../auth/current-user.decorator";
 import type { AuthUser } from "../auth/auth.types";
 import { CardDesignsService, saveCardDesignSchema } from "./card-designs.service";
+import { RequirePermission } from "../auth/require-permission.decorator";
 
 /**
  * Saved ID-card layouts, shared across a school.
@@ -33,12 +34,14 @@ import { CardDesignsService, saveCardDesignSchema } from "./card-designs.service
 export class CardDesignsController {
   constructor(private readonly designs: CardDesignsService) {}
 
+  @RequirePermission("students.print", "examinations.print")
   @Get()
   list(@CurrentUser() me: AuthUser) {
     return this.designs.list(me.schoolId);
   }
 
   @Roles(UserRole.ADMINISTRATOR, UserRole.SUPER_ADMINISTRATOR, UserRole.EXAM_MANAGER)
+  @RequirePermission("students.print", "examinations.print")
   @Post()
   save(@CurrentUser() me: AuthUser, @Body() body: unknown) {
     const parsed = saveCardDesignSchema.safeParse(body);
@@ -47,6 +50,7 @@ export class CardDesignsController {
   }
 
   @Roles(UserRole.ADMINISTRATOR, UserRole.SUPER_ADMINISTRATOR, UserRole.EXAM_MANAGER)
+  @RequirePermission("students.print", "examinations.print")
   @Delete(":designKey")
   remove(@CurrentUser() me: AuthUser, @Param("designKey") designKey: string) {
     return this.designs.remove(me.schoolId, decodeURIComponent(designKey));

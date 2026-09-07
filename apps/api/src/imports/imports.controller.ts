@@ -11,17 +11,20 @@ import { ImportsService } from "./imports.service";
 import { Roles } from "../auth/roles.decorator";
 import { CurrentUser } from "../auth/current-user.decorator";
 import type { AuthUser } from "../auth/auth.types";
+import { RequirePermission } from "../auth/require-permission.decorator";
 
 @Roles(UserRole.ADMINISTRATOR, UserRole.RECEPTION_OFFICER)
 @Controller("imports")
 export class ImportsController {
   constructor(private readonly imports: ImportsService) {}
 
+  @RequirePermission("students.import")
   @Get()
   list(@CurrentUser() me: AuthUser) {
     return this.imports.listJobs(me.schoolId);
   }
 
+  @RequirePermission("students.import")
   @Post("students")
   async importStudents(@CurrentUser() me: AuthUser, @Req() req: Request) {
     const body = req.body as { file?: string; classId?: string; sectionId?: string };

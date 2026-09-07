@@ -23,6 +23,7 @@ import { STAFF_ROLES } from "../auth/role-groups";
 import { CurrentUser } from "../auth/current-user.decorator";
 import { CurrentTenant } from "../tenant/current-tenant.decorator";
 import type { AuthUser } from "../auth/auth.types";
+import { RequirePermission } from "../auth/require-permission.decorator";
 
 @Controller("settings")
 export class SettingsController {
@@ -51,6 +52,9 @@ export class SettingsController {
 
   /** Full settings — staff only (portal roles read branding via /branding). */
   @Roles(...STAFF_ROLES)
+  // The school's name, currency, timezone and receipt prefix are rendered on
+  // every receipt, report and PDF this app produces, for every role. Reading
+  // them is reference data; changing them is not.
   @Get()
   get(@CurrentUser() me: AuthUser) {
     return this.settings.get(me.schoolId);
@@ -58,6 +62,7 @@ export class SettingsController {
 
   /** Update settings — administrators only. */
   @Roles(UserRole.ADMINISTRATOR)
+  @RequirePermission("settings.update")
   @Patch()
   update(@CurrentUser() me: AuthUser, @Body() body: unknown) {
     const parsed = updateSettingsSchema.safeParse(body);
@@ -69,6 +74,7 @@ export class SettingsController {
 
   /** Upload/replace the school logo — administrators only. */
   @Roles(UserRole.ADMINISTRATOR)
+  @RequirePermission("settings.update")
   @Post("logo")
   async uploadLogo(@CurrentUser() me: AuthUser, @Body() body: unknown) {
     const parsed = uploadSchoolLogoSchema.safeParse(body);
@@ -81,6 +87,7 @@ export class SettingsController {
   }
 
   @Roles(UserRole.ADMINISTRATOR)
+  @RequirePermission("settings.update")
   @Delete("logo")
   removeLogo(@CurrentUser() me: AuthUser) {
     return this.settings.removeLogo(me.schoolId);

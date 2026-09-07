@@ -29,9 +29,9 @@ for m in re.finditer(r'\[UserRole\.(\w+)\]: \{(.*?)\n  \},', block, re.S):
                               else [x.strip().strip('"') for x in v.strip('[]').split(',') if x.strip()])
     table[m.group(1)] = grants
 table['SUPER_ADMINISTRATOR'] = {m: FULL for m in ALLM}
-adm = {m: FULL for m in ALLM if m not in ('users', 'audit', 'sms')}
+adm = {m: FULL for m in ALLM if m not in ('users', 'audit')}
 adm.update({'users': ["view","create","update","export","print"],
-            'audit': ["view","export"], 'sms': ["view","create","export"]})
+            'audit': ["view","export"]})
 table['ADMINISTRATOR'] = adm
 table['RECEPTION'] = table.get('RECEPTION_OFFICER', {})
 
@@ -49,6 +49,42 @@ INTENTIONAL = {
               'EXAM_MANAGER', 'ACADEMIC_MANAGER')
 }
 
+# A report needs the module it reports on. The pages already work this way and
+# have since the route table moved onto permissions; these entries are the API
+# catching up, so the menu and the endpoint answer the same question.
+INTENTIONAL.update({
+    ('reports/reports.controller.ts', 'FINANCE_OFFICER', p): reason
+    for p, reason in {
+        'students.view': "student reporting belongs to the student office",
+        'students.export': "as above",
+        'students.export,students.print': "as above",
+        'teachers.view': "staff reporting belongs to whoever manages staff",
+        'examinations.view': "exam reporting belongs to the exam desk",
+        'promotions.view': "promotion reporting belongs to the academic office",
+        'quiz.view': "quiz reporting belongs to the exam desk",
+    }.items()
+})
+# Exporting a list is its own action in this product, separate from reading
+# it — a role holding students.view has not thereby been given the register
+# as a file. Both can be granted back in one click.
+INTENTIONAL.update({
+    ('reports/reports.controller.ts', r, p): "export is a separate grant from view"
+    for r in ('LIBRARIAN', 'RECEPTION_OFFICER', 'RECEPTION')
+    for p in ('students.export', 'students.export,students.print')
+})
+
+# Attendance and promotion reporting: same rule, same reason as the rest.
+INTENTIONAL.update({
+    ('reports/reports.controller.ts', r, p): "the report follows its own module"
+    for r in ('FINANCE_OFFICER', 'EXAM_MANAGER', 'ACADEMIC_MANAGER')
+    for p in ('attendance.view', 'promotions.view')
+})
+INTENTIONAL.update({
+    ('reports/reports.controller.ts', 'EXAM_MANAGER', p): "the report follows its own module"
+    for p in ('students.view', 'students.export', 'students.export,students.print',
+              'teachers.view')
+})
+
 problems = []
 for path in sorted(glob.glob('apps/api/src/**/*.controller.ts', recursive=True)):
     s = io.open(path, encoding='utf-8').read()
@@ -61,15 +97,24 @@ for path in sorted(glob.glob('apps/api/src/**/*.controller.ts', recursive=True))
         if not l.strip().startswith('@RequirePermission'):
             continue
         perms = re.findall(r'"([^"]+)"', '\n'.join(lines[i:i + 8]).split(')')[0])
-        roles_src = None
-        for j in range(i - 1, max(-1, i - 14), -1):
-            if '@Roles(' in lines[j]:
-                chunk = '\n'.join(lines[j:j + 8])
-                roles_src = chunk[chunk.index('(') + 1:chunk.index(')')] if ')' in chunk else chunk
-                break
-            if re.match(r'^\s*@(Get|Post|Patch|Put|Delete)\(', lines[j]):
-                break
-        roles_src = roles_src if roles_src is not None else cls_roles
+        # A handler's decorators are a contiguous block, and @Roles may sit
+        # either side of the verb - reading only upward missed every route in
+        # sms.controller.ts and quietly fell back to the class-level list,
+        # reporting breaks that were not there and hiding ones that were.
+        top = i
+        # A multi-line @Roles(...) has continuation lines that do not start
+        # with '@', so stopping at the first of those read the class-level
+        # list instead and reported breaks that were not real. The block ends
+        # at a blank line or the previous handler's closing brace.
+        while top > 0 and lines[top - 1].strip() not in ('', '}'):
+            top -= 1
+        bottom = i
+        while bottom < len(lines) - 1 and not re.match(
+                r'^  [a-zA-Z]\w*\s*\(', lines[bottom + 1]):
+            bottom += 1
+        block = ('\n').join(lines[top:bottom + 2])
+        rm = re.search(r'@Roles\((.*?)\)', block, re.S)
+        roles_src = rm.group(1) if rm else cls_roles
         if roles_src is None:
             continue
         roles = ([r for r in table if r not in ('PARENT', 'STUDENT', 'SUPER_ADMINISTRATOR')]
