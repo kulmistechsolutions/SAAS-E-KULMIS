@@ -13,6 +13,8 @@ import { PermissionMatrix } from "@/components/users/permission-matrix";
 import { dateTime, roleLabel } from "@/lib/users/format";
 import { printUserProfile } from "@/lib/users/print";
 import { getRole, getUser, sessionsForUser } from "@/lib/users/store";
+import { UserScopeCard } from "@/components/users/user-scope-card";
+import { activeAcademicYear } from "@/lib/academics/store";
 
 export default function UserProfilePage({
   params,
@@ -108,6 +110,13 @@ export default function UserProfilePage({
           </div>
         </div>
       </div>
+
+      {/* Which children this person's permissions actually reach. */}
+      <UserScopeCard
+        userId={user.id}
+        role={user.role}
+        academicYear={activeAcademicYear()}
+      />
 
       <UserFormDialog open={editing} user={user} onClose={() => setEditing(false)} />
       <ResetPasswordDialog

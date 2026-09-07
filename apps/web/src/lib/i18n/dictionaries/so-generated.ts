@@ -4948,6 +4948,16 @@ export const soGenerated: PartialDictionary = {
     newPassword: "Password Cusub",
     min8CharsUppercaseNumber: "Ugu yaraan 8 xaraf, xarfo waaweyn & tiro",
   },
+  usersScope: {
+    title: "Fasallada uu qofkani daboolo",
+    intro: "Permission-kiisu wuxuu go'aamiyaa waxa uu samayn karo; kanina cidda uu ku samayn karo — liiska ardayda, kan lacagta iyo diiwaannada uu arko.",
+    save: "Kaydi scope-ka",
+    saved: "Scope-ka waa la kaydiyay",
+    loading: "Waa soo shubmayaa…",
+    emptyNarrow: "Fasal lama dooran — rolkani waxba ma gaadho ilaa aad qaar dooratid.",
+    emptyWide: "Fasal lama dooran — rolkani dugsiga oo dhan buu gaadhaa.",
+    chosen: "{n} la doortay. Kuwaas oo keliya ayuu gaadhaa.",
+  },
   usersRoles: {
     nothingChanged: "Waxba ma beddelmin",
     resetToDefault: "Ku celi caadiga",

@@ -5025,6 +5025,16 @@ export const generated = {
     newPassword: "New Password",
     min8CharsUppercaseNumber: "Min 8 chars, uppercase & number",
   },
+  usersScope: {
+    title: "Classes this person covers",
+    intro: "Their permissions decide what they may do; this decides who they may do it to — the student lists, fee lists and registers they see.",
+    save: "Save scope",
+    saved: "Scope saved",
+    loading: "Loading…",
+    emptyNarrow: "No classes chosen — this role reaches nothing until you pick some.",
+    emptyWide: "No classes chosen — this role reaches the whole school.",
+    chosen: "{n} chosen. They reach only these.",
+  },
   usersRoles: {
     nothingChanged: "Nothing changed",
     resetToDefault: "Reset to default",

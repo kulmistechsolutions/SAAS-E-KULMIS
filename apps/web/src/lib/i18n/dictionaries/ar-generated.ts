@@ -4925,6 +4925,16 @@ export const arGenerated: PartialDictionary = {
     newPassword: "كلمة مرور جديدة",
     min8CharsUppercaseNumber: "8 أحرف على الأقل، حرف كبير ورقم",
   },
+  usersScope: {
+    title: "الفصول التي يغطيها هذا الشخص",
+    intro: "الصلاحيات تحدد ما يمكنه فعله؛ وهذا يحدد لمن — قوائم الطلاب والرسوم والسجلات التي يراها.",
+    save: "حفظ النطاق",
+    saved: "تم حفظ النطاق",
+    loading: "جارٍ التحميل…",
+    emptyNarrow: "لم يتم اختيار فصول — لن يصل هذا الدور إلى شيء حتى تختار.",
+    emptyWide: "لم يتم اختيار فصول — يصل هذا الدور إلى المدرسة كلها.",
+    chosen: "{n} مختارة. لن يصل إلا إليها.",
+  },
   usersRoles: {
     nothingChanged: "لم يتغير شيء",
     resetToDefault: "إعادة للافتراضي",

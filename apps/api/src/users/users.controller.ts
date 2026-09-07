@@ -7,6 +7,7 @@ import {
   Param,
   Patch,
   Post,
+  Put,
 } from "@nestjs/common";
 import {
   ASSIGNABLE_STAFF_ROLES,
@@ -16,6 +17,8 @@ import {
   UserRole,
 } from "@ekulmis/shared";
 import { UsersService } from "./users.service";
+import { AttendanceScopeService } from "../attendance/attendance-scope.service";
+import { attendanceAssignmentsSchema } from "@ekulmis/shared";
 import { Roles } from "../auth/roles.decorator";
 import { CurrentUser } from "../auth/current-user.decorator";
 import type { AuthUser } from "../auth/auth.types";
@@ -25,7 +28,53 @@ import { RequirePermission } from "../auth/require-permission.decorator";
 @Roles(UserRole.ADMINISTRATOR)
 @Controller("users")
 export class UsersController {
-  constructor(private readonly users: UsersService) {}
+  constructor(
+    private readonly users: UsersService,
+    private readonly scope: AttendanceScopeService,
+  ) {}
+
+  /**
+   * Which classes this person covers.
+   *
+   * Scope stopped being an attendance idea when it began deciding fee lists
+   * and student directories, so it belongs where a school manages the person
+   * rather than behind the officers screen — and it is user administration,
+   * which is why it asks for users.update rather than attendance.approve.
+   *
+   * The same grants either way: one screen writing them under a different
+   * name would be two answers to one question, which is the fault this whole
+   * change exists to stop.
+   */
+  @RequirePermission("users.view")
+  @Get(":id/scope")
+  scopeFor(@CurrentUser() me: AuthUser, @Param("id") id: string) {
+    return this.scope.assignmentsFor(me.schoolId, id);
+  }
+
+  /**
+   * Replace what this person covers. An empty list means the whole school for
+   * a role that is not scoped by its nature, and nothing at all for one that
+   * is — the same rule ScopeService applies when reading it back.
+   */
+  @RequirePermission("users.update")
+  @Put(":id/scope")
+  async setScope(
+    @CurrentUser() me: AuthUser,
+    @Param("id") id: string,
+    @Body() body: unknown,
+  ) {
+    const parsed = attendanceAssignmentsSchema.safeParse({
+      userId: id,
+      assignments: (body as { assignments?: unknown })?.assignments ?? [],
+    });
+    if (!parsed.success) throw new BadRequestException(parsed.error.flatten());
+    return this.scope.setAssignments(
+      me.schoolId,
+      id,
+      parsed.data.assignments,
+      { userId: me.userId },
+    );
+  }
 
   @RequirePermission("users.create")
   @Post()
