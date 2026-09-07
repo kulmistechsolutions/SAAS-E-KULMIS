@@ -1540,7 +1540,7 @@ export const arGenerated: PartialDictionary = {
     byClassNote: "مقابل المستحق لا القادم.",
     classLabel: "الفصل",
     expected: "المتوقع",
-    collected: "المحصل",
+    collected: "المسدد",
     rate: "النسبة",
     nothingBilledYet: "لم تتم المطالبة بأي شهر بعد.",
   },
