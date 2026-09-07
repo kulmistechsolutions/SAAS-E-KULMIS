@@ -74,6 +74,13 @@ export class PostgresSearchService extends SearchService {
       if (types.includes("parent")) {
         const parents = await tx.parent.findMany({
           where: {
+            // A family is reachable through the children in it. Somebody held
+            // to Grade 1 was still finding every parent in the school by name
+            // or phone number, which is the same directory the scope exists to
+            // close — one table further along.
+            ...(options?.classIds
+              ? { students: { some: { classId: { in: options.classIds } } } }
+              : {}),
             OR: [
               { name: { contains: q, mode: "insensitive" } },
               { code: { contains: q, mode: "insensitive" } },

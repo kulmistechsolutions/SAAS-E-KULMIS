@@ -11,9 +11,11 @@ export interface SearchOptions {
   types?: string[];
   limit?: number;
   /**
-   * Classes the viewer may look at, or null for the whole school. Set for an
-   * attendance officer, whose student list is limited to the registers they
-   * were assigned.
+   * Classes the viewer may look at, or null for the whole school.
+   *
+   * Limits students to those classes and families to the ones with a child in
+   * them — a search box must not reach further than the lists it is a
+   * shortcut to.
    */
   classIds?: string[] | null;
   /** Students the viewer may look at, or null for no such limit (teachers). */
