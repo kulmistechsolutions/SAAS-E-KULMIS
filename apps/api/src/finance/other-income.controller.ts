@@ -19,12 +19,14 @@ import { OtherIncomeService } from "./other-income.service";
 import { Roles } from "../auth/roles.decorator";
 import { CurrentUser } from "../auth/current-user.decorator";
 import type { AuthUser } from "../auth/auth.types";
+import { RequirePermission } from "../auth/require-permission.decorator";
 
 @Roles(UserRole.ADMINISTRATOR, UserRole.FINANCE_OFFICER)
 @Controller("other-income")
 export class OtherIncomeController {
   constructor(private readonly income: OtherIncomeService) {}
 
+  @RequirePermission("expenses.create")
   @Post("categories")
   createCategory(@CurrentUser() me: AuthUser, @Body() body: unknown) {
     const parsed = createIncomeCategorySchema.safeParse(body);
@@ -32,21 +34,25 @@ export class OtherIncomeController {
     return this.income.createCategory(me.schoolId, parsed.data);
   }
 
+  @RequirePermission("expenses.view")
   @Get("categories")
   listCategories(@CurrentUser() me: AuthUser) {
     return this.income.listCategories(me.schoolId);
   }
 
+  @RequirePermission("expenses.delete")
   @Delete("categories/:id")
   removeCategory(@CurrentUser() me: AuthUser, @Param("id") id: string) {
     return this.income.removeCategory(me.schoolId, id);
   }
 
+  @RequirePermission("expenses.view")
   @Get("summary")
   summary(@CurrentUser() me: AuthUser, @Query("month") month?: string) {
     return this.income.summary(me.schoolId, month);
   }
 
+  @RequirePermission("expenses.create")
   @Post()
   create(@CurrentUser() me: AuthUser, @Body() body: unknown) {
     const parsed = createOtherIncomeSchema.safeParse(body);
@@ -54,11 +60,13 @@ export class OtherIncomeController {
     return this.income.create(me.schoolId, parsed.data, me.userId);
   }
 
+  @RequirePermission("expenses.view")
   @Get()
   findAll(@CurrentUser() me: AuthUser, @Query("categoryId") categoryId?: string) {
     return this.income.findAll(me.schoolId, categoryId);
   }
 
+  @RequirePermission("expenses.update")
   @Patch(":id")
   update(
     @CurrentUser() me: AuthUser,
@@ -70,6 +78,7 @@ export class OtherIncomeController {
     return this.income.update(me.schoolId, id, parsed.data);
   }
 
+  @RequirePermission("expenses.delete")
   @Delete(":id")
   remove(@CurrentUser() me: AuthUser, @Param("id") id: string) {
     return this.income.remove(me.schoolId, id);

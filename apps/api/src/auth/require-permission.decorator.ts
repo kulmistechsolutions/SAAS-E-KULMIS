@@ -9,6 +9,11 @@ export const PERMISSION_KEY = "requiredPermission";
  * an action away from a role it otherwise holds. This answers "which
  * permission", so removing `fees.update` from Finance Officer stops the
  * request rather than only hiding the button.
+ *
+ * Several may be listed, and holding any one of them is enough. Some routes
+ * genuinely serve two jobs: the class roster is read both by the office that
+ * manages students and by the officer about to take its register, and those
+ * are different grants for the same data.
  */
-export const RequirePermission = (permission: string) =>
-  SetMetadata(PERMISSION_KEY, permission);
+export const RequirePermission = (...permissions: string[]) =>
+  SetMetadata(PERMISSION_KEY, permissions);

@@ -30,6 +30,7 @@ import { FeeAdjustmentsService } from "./fee-adjustments.service";
 import { Roles } from "../auth/roles.decorator";
 import { CurrentUser } from "../auth/current-user.decorator";
 import type { AuthUser } from "../auth/auth.types";
+import { RequirePermission } from "../auth/require-permission.decorator";
 
 @Roles(UserRole.ADMINISTRATOR, UserRole.FINANCE_OFFICER)
 @Controller("fees")
@@ -39,11 +40,13 @@ export class FeesController {
     private readonly adjustments: FeeAdjustmentsService,
   ) {}
 
+  @RequirePermission("fees.view")
   @Get("settings")
   settings(@CurrentUser() me: AuthUser) {
     return this.fees.getSettings(me.schoolId);
   }
 
+  @RequirePermission("fees.create")
   @Post("setup-academic-year")
   setupAcademicYear(@CurrentUser() me: AuthUser, @Body() body: unknown) {
     const parsed = setupAcademicYearFeesSchema.safeParse(body);
@@ -51,6 +54,7 @@ export class FeesController {
     return this.fees.setupAcademicYear(me.schoolId, parsed.data);
   }
 
+  @RequirePermission("fees.create")
   @Post("charge")
   charge(@CurrentUser() me: AuthUser, @Body() body: unknown) {
     const parsed = chargeMonthSchema.safeParse(body);
@@ -59,6 +63,7 @@ export class FeesController {
   }
 
   /** Monthly fee setup — turn billing on for a month, all or chosen classes. */
+  @RequirePermission("fees.create")
   @Post("setup-month")
   setupMonth(@CurrentUser() me: AuthUser, @Body() body: unknown) {
     const parsed = setupMonthSchema.safeParse(body);
@@ -67,6 +72,7 @@ export class FeesController {
   }
 
   /** Which classes are set up (activated) for a given month. */
+  @RequirePermission("fees.view")
   @Get("month-status")
   monthStatus(
     @CurrentUser() me: AuthUser,
@@ -90,11 +96,13 @@ export class FeesController {
    * charges for a future month a family paid ahead into — neither means
    * that month was ever actually set up.
    */
+  @RequirePermission("fees.view")
   @Get("activated-months")
   activatedMonths(@CurrentUser() me: AuthUser) {
     return this.fees.activatedMonths(me.schoolId);
   }
 
+  @RequirePermission("fees.create")
   @Post("pay")
   pay(@CurrentUser() me: AuthUser, @Body() body: unknown) {
     const parsed = payFeeSchema.safeParse(body);
@@ -102,6 +110,7 @@ export class FeesController {
     return this.fees.pay(me.schoolId, parsed.data, me.userId);
   }
 
+  @RequirePermission("fees.create")
   @Post("pay-family")
   payFamily(@CurrentUser() me: AuthUser, @Body() body: unknown) {
     const parsed = payFamilySchema.safeParse(body);
@@ -114,18 +123,21 @@ export class FeesController {
    * paid, owed, paid ahead and credited. Every screen that shows a balance
    * should read this rather than adding charges up for itself.
    */
+  @RequirePermission("fees.view")
   @Get("position/:studentId")
   studentPosition(@CurrentUser() me: AuthUser, @Param("studentId") studentId: string) {
     return this.balances.studentPosition(me.schoolId, studentId);
   }
 
   /** The same, for the whole school — the numbers behind the fee dashboard. */
+  @RequirePermission("fees.view")
   @Get("position")
   schoolPosition(@CurrentUser() me: AuthUser) {
     return this.balances.schoolPosition(me.schoolId);
   }
 
   /** Every active student's position in one call, for the collection lists. */
+  @RequirePermission("fees.view")
   @Get("positions")
   allPositions(@CurrentUser() me: AuthUser) {
     return this.balances.allPositions(me.schoolId);
@@ -134,6 +146,7 @@ export class FeesController {
   // ── Adjustments and fee changes ──────────────────────────────────────────
 
   /** Take an amount off one month, leaving the student's own fee alone. */
+  @RequirePermission("fees.create")
   @Post("adjustments")
   adjust(@CurrentUser() me: AuthUser, @Body() body: unknown) {
     const parsed = feeAdjustmentSchema.safeParse(body);
@@ -145,6 +158,7 @@ export class FeesController {
     });
   }
 
+  @RequirePermission("fees.view")
   @Get("adjustments/:studentId")
   listAdjustments(@CurrentUser() me: AuthUser, @Param("studentId") studentId: string) {
     return this.adjustments.listForStudent(me.schoolId, studentId);
@@ -156,6 +170,7 @@ export class FeesController {
    * Separate from the general student update because a fee change is a
    * financial act: it needs a scope, a reason, and a record of both.
    */
+  @RequirePermission("fees.update")
   @Post("fee-change")
   async changeFee(@CurrentUser() me: AuthUser, @Body() body: unknown) {
     const parsed = feeChangeSchema.safeParse(body);
@@ -167,16 +182,19 @@ export class FeesController {
     });
   }
 
+  @RequirePermission("fees.view")
   @Get("fee-change/:studentId")
   feeHistory(@CurrentUser() me: AuthUser, @Param("studentId") studentId: string) {
     return this.adjustments.feeHistory(me.schoolId, studentId);
   }
 
+  @RequirePermission("fees.view")
   @Get("ledger/:studentId")
   ledger(@CurrentUser() me: AuthUser, @Param("studentId") studentId: string) {
     return this.fees.ledger(me.schoolId, studentId);
   }
 
+  @RequirePermission("fees.view")
   @Get("outstanding")
   outstanding(
     @CurrentUser() me: AuthUser,
@@ -186,12 +204,14 @@ export class FeesController {
     return this.fees.outstanding(me.schoolId, classId, sectionId);
   }
 
+  @RequirePermission("fees.view")
   @Get("payments")
   payments(@CurrentUser() me: AuthUser, @Query("limit") limit?: string) {
     return this.fees.listPayments(me.schoolId, limit ? Number(limit) : 100);
   }
 
   /** Reverse a payment recorded wrong — never edits/deletes, creates a linked undo entry. */
+  @RequirePermission("fees.delete")
   @Post("payments/:id/reverse")
   reversePayment(
     @CurrentUser() me: AuthUser,
@@ -208,12 +228,14 @@ export class FeesController {
   }
 
   /** Records that a receipt was printed, so the school can count how many actually were. */
+  @RequirePermission("fees.print")
   @Post("payments/:id/print")
   recordPrint(@CurrentUser() me: AuthUser, @Param("id") id: string) {
     return this.fees.recordPrint(me.schoolId, id, me.userId, me.username);
   }
 
   /** How many receipts were printed, filterable by date range and payment type. */
+  @RequirePermission("fees.view")
   @Get("print-history")
   printHistory(
     @CurrentUser() me: AuthUser,
@@ -224,6 +246,7 @@ export class FeesController {
     return this.fees.printHistory(me.schoolId, { dateFrom, dateTo, type });
   }
 
+  @RequirePermission("fees.view")
   @Get("charges")
   charges(
     @CurrentUser() me: AuthUser,
@@ -238,11 +261,13 @@ export class FeesController {
   }
 
   // ── Extra fees ──
+  @RequirePermission("fees.view")
   @Get("extra")
   listExtraFees(@CurrentUser() me: AuthUser) {
     return this.fees.listExtraFees(me.schoolId);
   }
 
+  @RequirePermission("fees.create")
   @Post("extra")
   createExtraFee(@CurrentUser() me: AuthUser, @Body() body: unknown) {
     const parsed = createExtraFeeSchema.safeParse(body);
@@ -250,6 +275,7 @@ export class FeesController {
     return this.fees.createExtraFee(me.schoolId, parsed.data, me.userId);
   }
 
+  @RequirePermission("fees.update")
   @Patch("extra/:id")
   updateExtraFee(
     @CurrentUser() me: AuthUser,
@@ -261,17 +287,20 @@ export class FeesController {
     return this.fees.updateExtraFee(me.schoolId, id, parsed.data);
   }
 
+  @RequirePermission("fees.delete")
   @Delete("extra/:id")
   deleteExtraFee(@CurrentUser() me: AuthUser, @Param("id") id: string) {
     return this.fees.deleteExtraFee(me.schoolId, id);
   }
 
   /** Who would be charged and how much, before actually billing it. */
+  @RequirePermission("fees.view")
   @Get("extra/:id/preview")
   previewExtraFee(@CurrentUser() me: AuthUser, @Param("id") id: string) {
     return this.fees.previewExtraFee(me.schoolId, id);
   }
 
+  @RequirePermission("fees.approve")
   @Post("extra/:id/apply")
   applyExtraFee(@CurrentUser() me: AuthUser, @Param("id") id: string) {
     return this.fees.applyExtraFee(me.schoolId, id);
@@ -281,6 +310,7 @@ export class FeesController {
   // "Parent says they'll pay on [date]" — recorded when collection isn't
   // possible today, surfaced back as a reminder on the Finance pages.
 
+  @RequirePermission("fees.create")
   @Post("payment-promises")
   createPaymentPromise(@CurrentUser() me: AuthUser, @Body() body: unknown) {
     const parsed = createPaymentPromiseSchema.safeParse(body);
@@ -289,17 +319,20 @@ export class FeesController {
   }
 
   /** Overdue or due-soon promises, for the Finance banner. */
+  @RequirePermission("fees.view")
   @Get("payment-promises/due")
   listDuePaymentPromises(@CurrentUser() me: AuthUser) {
     return this.fees.listDuePaymentPromises(me.schoolId);
   }
 
   /** Every still-open promise, no date horizon — badges rows on Collect Fees. */
+  @RequirePermission("fees.view")
   @Get("payment-promises/active")
   listActivePaymentPromises(@CurrentUser() me: AuthUser) {
     return this.fees.listActivePaymentPromises(me.schoolId);
   }
 
+  @RequirePermission("fees.view")
   @Get("payment-promises/student/:studentId")
   listPaymentPromisesForStudent(
     @CurrentUser() me: AuthUser,
@@ -308,6 +341,7 @@ export class FeesController {
     return this.fees.listPaymentPromisesForStudent(me.schoolId, studentId);
   }
 
+  @RequirePermission("fees.update")
   @Patch("payment-promises/:id")
   updatePaymentPromise(
     @CurrentUser() me: AuthUser,

@@ -28,6 +28,7 @@ import { Roles } from "../auth/roles.decorator";
 import { CurrentUser } from "../auth/current-user.decorator";
 import type { AuthUser } from "../auth/auth.types";
 import { contentDispositionHeader } from "../common/content-disposition.util";
+import { RequirePermission } from "../auth/require-permission.decorator";
 
 /**
  * Minimal shape of a multer upload — @types/multer isn't installed and the
@@ -45,17 +46,20 @@ interface UploadedPdf {
 export class LibraryController {
   constructor(private readonly library: LibraryService) {}
 
+  @RequirePermission("library.view")
   @Get("dashboard")
   dashboard(@CurrentUser() me: AuthUser) {
     return this.library.dashboard(me.schoolId);
   }
 
   // ── Books ──
+  @RequirePermission("library.view")
   @Get("books")
   listBooks(@CurrentUser() me: AuthUser, @Query("q") q?: string) {
     return this.library.listBooks(me.schoolId, q?.trim() || undefined);
   }
 
+  @RequirePermission("library.create")
   @Post("books")
   createBook(@CurrentUser() me: AuthUser, @Body() body: unknown) {
     const parsed = createBookSchema.safeParse(body);
@@ -63,6 +67,7 @@ export class LibraryController {
     return this.library.createBook(me.schoolId, parsed.data);
   }
 
+  @RequirePermission("library.update")
   @Patch("books/:id")
   updateBook(
     @CurrentUser() me: AuthUser,
@@ -74,12 +79,14 @@ export class LibraryController {
     return this.library.updateBook(me.schoolId, id, parsed.data);
   }
 
+  @RequirePermission("library.delete")
   @Delete("books/:id")
   removeBook(@CurrentUser() me: AuthUser, @Param("id") id: string) {
     return this.library.removeBook(me.schoolId, id);
   }
 
   // ── Loans ──
+  @RequirePermission("library.view")
   @Get("loans")
   listLoans(
     @CurrentUser() me: AuthUser,
@@ -90,6 +97,7 @@ export class LibraryController {
     return this.library.listLoans(me.schoolId, { status, studentId, bookId });
   }
 
+  @RequirePermission("library.create")
   @Post("loans")
   issue(@CurrentUser() me: AuthUser, @Body() body: unknown) {
     const parsed = issueBookSchema.safeParse(body);
@@ -97,12 +105,14 @@ export class LibraryController {
     return this.library.issueBook(me.schoolId, parsed.data, me.userId);
   }
 
+  @RequirePermission("library.update")
   @Post("loans/:id/return")
   return(@CurrentUser() me: AuthUser, @Param("id") id: string) {
     return this.library.returnBook(me.schoolId, id);
   }
 
   // ── PDF documents ──
+  @RequirePermission("library.view")
   @Get("documents")
   listDocuments(
     @CurrentUser() me: AuthUser,
@@ -115,6 +125,7 @@ export class LibraryController {
     });
   }
 
+  @RequirePermission("library.view")
   @Get("documents/usage")
   storageUsage(@CurrentUser() me: AuthUser) {
     return this.library.storageUsage(me.schoolId);
@@ -125,6 +136,7 @@ export class LibraryController {
    * and blow past API_JSON_BODY_LIMIT. Multer buffers it in memory and the
    * limit below rejects oversized uploads before they reach the handler.
    */
+  @RequirePermission("library.create")
   @Post("documents")
   @UseInterceptors(
     FileInterceptor("file", { limits: { fileSize: LIBRARY_PDF_MAX_BYTES } }),
@@ -140,6 +152,7 @@ export class LibraryController {
     return this.library.uploadDocument(me.schoolId, me.userId, parsed.data, file);
   }
 
+  @RequirePermission("library.update")
   @Patch("documents/:id")
   updateDocument(
     @CurrentUser() me: AuthUser,
@@ -151,12 +164,14 @@ export class LibraryController {
     return this.library.updateDocument(me.schoolId, id, parsed.data);
   }
 
+  @RequirePermission("library.delete")
   @Delete("documents/:id")
   removeDocument(@CurrentUser() me: AuthUser, @Param("id") id: string) {
     return this.library.deleteDocument(me.schoolId, id);
   }
 
   /** Stream the PDF for staff preview. Inline so it opens in the viewer. */
+  @RequirePermission("library.view")
   @Get("documents/:id/file")
   async documentFile(
     @CurrentUser() me: AuthUser,

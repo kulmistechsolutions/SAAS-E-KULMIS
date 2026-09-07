@@ -20,6 +20,7 @@ import { AuditService } from "../audit/audit.service";
 import { Roles } from "../auth/roles.decorator";
 import { CurrentUser } from "../auth/current-user.decorator";
 import type { AuthUser } from "../auth/auth.types";
+import { RequirePermission } from "../auth/require-permission.decorator";
 
 /**
  * The school's own borrowing.
@@ -36,22 +37,26 @@ export class SchoolDebtsController {
     private readonly audit: AuditService,
   ) {}
 
+  @RequirePermission("finance.view")
   @Get()
   list(@CurrentUser() me: AuthUser, @Query("status") status?: string) {
     return this.debts.list(me.schoolId, status);
   }
 
   /** Totals for the cards: borrowed, repaid, still owed. */
+  @RequirePermission("finance.view")
   @Get("summary")
   summary(@CurrentUser() me: AuthUser) {
     return this.debts.summary(me.schoolId);
   }
 
+  @RequirePermission("finance.view")
   @Get(":id")
   get(@CurrentUser() me: AuthUser, @Param("id") id: string) {
     return this.debts.get(me.schoolId, id);
   }
 
+  @RequirePermission("finance.create")
   @Post()
   async create(@CurrentUser() me: AuthUser, @Body() body: unknown) {
     const parsed = createSchoolDebtSchema.safeParse(body);
@@ -73,6 +78,7 @@ export class SchoolDebtsController {
     return debt;
   }
 
+  @RequirePermission("finance.update")
   @Patch(":id")
   async update(
     @CurrentUser() me: AuthUser,
@@ -94,6 +100,7 @@ export class SchoolDebtsController {
     return debt;
   }
 
+  @RequirePermission("finance.create")
   @Post(":id/repayments")
   async repay(
     @CurrentUser() me: AuthUser,
@@ -122,6 +129,7 @@ export class SchoolDebtsController {
 
   /** Remove a repayment that should not have been recorded. */
   @Roles(UserRole.ADMINISTRATOR)
+  @RequirePermission("finance.delete")
   @Delete("repayments/:repaymentId")
   async removeRepayment(
     @CurrentUser() me: AuthUser,

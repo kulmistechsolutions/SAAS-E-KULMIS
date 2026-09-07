@@ -13,6 +13,7 @@ import { ParentsService } from "./parents.service";
 import { Roles } from "../auth/roles.decorator";
 import { CurrentUser } from "../auth/current-user.decorator";
 import type { AuthUser } from "../auth/auth.types";
+import { RequirePermission } from "../auth/require-permission.decorator";
 
 /**
  * Parent Management (Module 2). Parents are auto-created; details are editable.
@@ -24,16 +25,19 @@ import type { AuthUser } from "../auth/auth.types";
 export class ParentsController {
   constructor(private readonly parents: ParentsService) {}
 
+  @RequirePermission("parents.view")
   @Get()
   findAll(@CurrentUser() me: AuthUser) {
     return this.parents.findAll(me.schoolId);
   }
 
+  @RequirePermission("parents.view")
   @Get(":id")
   findOne(@CurrentUser() me: AuthUser, @Param("id") id: string) {
     return this.parents.findOne(me.schoolId, id);
   }
 
+  @RequirePermission("parents.update")
   @Patch(":id")
   update(
     @CurrentUser() me: AuthUser,
@@ -50,6 +54,7 @@ export class ParentsController {
    * With no body it resets to the default 12345; pass `{ password }` to set a
    * specific one the admin chose.
    */
+  @RequirePermission("parents.update")
   @Post(":id/reset-password")
   resetPassword(
     @CurrentUser() me: AuthUser,
@@ -76,6 +81,7 @@ export class ParentsController {
 
   /** Blocked if the parent still guards any student — see ParentsService.remove. */
   @Roles(UserRole.ADMINISTRATOR)
+  @RequirePermission("parents.delete")
   @Delete(":id")
   remove(@CurrentUser() me: AuthUser, @Param("id") id: string) {
     return this.parents.remove(me.schoolId, id);

@@ -20,12 +20,14 @@ import { SalariesService } from "./salaries.service";
 import { Roles } from "../auth/roles.decorator";
 import { CurrentUser } from "../auth/current-user.decorator";
 import type { AuthUser } from "../auth/auth.types";
+import { RequirePermission } from "../auth/require-permission.decorator";
 
 @Roles(UserRole.ADMINISTRATOR, UserRole.FINANCE_OFFICER)
 @Controller("salaries")
 export class SalariesController {
   constructor(private readonly salaries: SalariesService) {}
 
+  @RequirePermission("salaries.create")
   @Post()
   create(@CurrentUser() me: AuthUser, @Body() body: unknown) {
     const parsed = createSalarySchema.safeParse(body);
@@ -33,6 +35,7 @@ export class SalariesController {
     return this.salaries.create(me.schoolId, parsed.data);
   }
 
+  @RequirePermission("salaries.view")
   @Get()
   findAll(
     @CurrentUser() me: AuthUser,
@@ -46,6 +49,7 @@ export class SalariesController {
     );
   }
 
+  @RequirePermission("salaries.update")
   @Patch(":id")
   update(
     @CurrentUser() me: AuthUser,
@@ -58,6 +62,7 @@ export class SalariesController {
   }
 
   /** What deleting this payroll month would destroy — shown before confirming. */
+  @RequirePermission("salaries.view")
   @Get("month/preview")
   monthPreview(
     @CurrentUser() me: AuthUser,
@@ -71,6 +76,7 @@ export class SalariesController {
   /** Danger Zone: delete a whole payroll month. `includePaid=true` is required
    *  to remove rows that already have money against them. */
   @Roles(UserRole.ADMINISTRATOR, UserRole.SUPER_ADMINISTRATOR)
+  @RequirePermission("salaries.delete")
   @Delete("month")
   removeMonth(
     @CurrentUser() me: AuthUser,
@@ -84,11 +90,13 @@ export class SalariesController {
     });
   }
 
+  @RequirePermission("salaries.delete")
   @Delete(":id")
   remove(@CurrentUser() me: AuthUser, @Param("id") id: string) {
     return this.salaries.remove(me.schoolId, id);
   }
 
+  @RequirePermission("salaries.approve")
   @Post(":id/pay")
   pay(
     @CurrentUser() me: AuthUser,
@@ -100,11 +108,13 @@ export class SalariesController {
     return this.salaries.pay(me.schoolId, id, parsed.data, me.userId);
   }
 
+  @RequirePermission("salaries.view")
   @Get(":id/payments")
   payments(@CurrentUser() me: AuthUser, @Param("id") id: string) {
     return this.salaries.paymentsFor(me.schoolId, id);
   }
 
+  @RequirePermission("salaries.delete")
   @Post("payments/:paymentId/reverse")
   reversePayment(
     @CurrentUser() me: AuthUser,

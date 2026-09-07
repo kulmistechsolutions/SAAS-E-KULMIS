@@ -27,6 +27,7 @@ import { Roles } from "../auth/roles.decorator";
 import { STAFF_ROLES } from "../auth/role-groups";
 import { CurrentUser } from "../auth/current-user.decorator";
 import type { AuthUser } from "../auth/auth.types";
+import { RequirePermission } from "../auth/require-permission.decorator";
 
 // Staff-only by default (excludes PARENT/STUDENT). Mutation handlers below
 // override this with the stricter @Roles(ADMINISTRATOR).
@@ -74,6 +75,7 @@ export class StudentsController {
 
   // Reception registers students at the front desk (matrix: students create).
   @Roles(UserRole.ADMINISTRATOR, UserRole.RECEPTION_OFFICER)
+  @RequirePermission("students.create")
   @Post()
   register(@CurrentUser() me: AuthUser, @Body() body: unknown) {
     const parsed = registerStudentSchema.safeParse(body);
@@ -81,6 +83,23 @@ export class StudentsController {
     return this.students.register(me.schoolId, parsed.data);
   }
 
+  /**
+   * Reading the roster is not owning the student directory.
+   *
+   * Five desks need these names to do their own job: the office that manages
+   * students, the officer taking a register, the clerk collecting fees, the
+   * exam manager building a roster, the academic manager running promotions.
+   * Naming each one keeps the list exactly as wide as it is today while
+   * making the reason readable — and the Students *page* still needs
+   * students.view, so this widens no menu.
+   */
+  @RequirePermission(
+    "students.view",
+    "attendance.view",
+    "fees.view",
+    "examinations.view",
+    "promotions.view",
+  )
   @Get()
   async findAll(
     @CurrentUser() me: AuthUser,
@@ -126,6 +145,13 @@ export class StudentsController {
     );
   }
 
+  @RequirePermission(
+    "students.view",
+    "attendance.view",
+    "fees.view",
+    "examinations.view",
+    "promotions.view",
+  )
   @Get(":id/attendance")
   async attendance(
     @CurrentUser() me: AuthUser,
@@ -143,6 +169,7 @@ export class StudentsController {
   }
 
   @Roles(UserRole.ADMINISTRATOR)
+  @RequirePermission("students.update")
   @Post(":id/photo")
   async uploadPhoto(
     @CurrentUser() me: AuthUser,
@@ -160,6 +187,13 @@ export class StudentsController {
     );
   }
 
+  @RequirePermission(
+    "students.view",
+    "attendance.view",
+    "fees.view",
+    "examinations.view",
+    "promotions.view",
+  )
   @Get(":id/photo")
   async getPhoto(
     @CurrentUser() me: AuthUser,
@@ -177,11 +211,19 @@ export class StudentsController {
   }
 
   @Roles(UserRole.ADMINISTRATOR)
+  @RequirePermission("students.update")
   @Delete(":id/photo")
   removePhoto(@CurrentUser() me: AuthUser, @Param("id") id: string) {
     return this.students.deletePhoto(me.schoolId, id);
   }
 
+  @RequirePermission(
+    "students.view",
+    "attendance.view",
+    "fees.view",
+    "examinations.view",
+    "promotions.view",
+  )
   @Get(":id")
   async findOne(@CurrentUser() me: AuthUser, @Param("id") id: string) {
     await this.assertCanAccessStudent(me, id);
@@ -190,6 +232,7 @@ export class StudentsController {
 
   // Reception updates student records (matrix: students update).
   @Roles(UserRole.ADMINISTRATOR, UserRole.RECEPTION_OFFICER)
+  @RequirePermission("students.update")
   @Patch(":id")
   update(
     @CurrentUser() me: AuthUser,
@@ -203,6 +246,7 @@ export class StudentsController {
 
   /** Bulk delete from the students page multi-select. IDs are not reused. */
   @Roles(UserRole.ADMINISTRATOR)
+  @RequirePermission("students.delete")
   @Post("bulk-delete")
   removeMany(@CurrentUser() me: AuthUser, @Body() body: unknown) {
     const ids = (body as { ids?: unknown } | null)?.ids;
@@ -213,12 +257,14 @@ export class StudentsController {
   }
 
   @Roles(UserRole.ADMINISTRATOR)
+  @RequirePermission("students.delete")
   @Delete(":id")
   remove(@CurrentUser() me: AuthUser, @Param("id") id: string) {
     return this.students.remove(me.schoolId, id);
   }
 
   @Roles(UserRole.ADMINISTRATOR, UserRole.RECEPTION_OFFICER)
+  @RequirePermission("students.update")
   @Post(":id/reset-portal-password")
   resetPortalPassword(
     @CurrentUser() me: AuthUser,
@@ -232,6 +278,7 @@ export class StudentsController {
 
   /** Put an existing student into one more class (they keep one record). */
   @Roles(UserRole.ADMINISTRATOR, UserRole.RECEPTION_OFFICER)
+  @RequirePermission("students.update")
   @Post(":id/classes")
   addClass(
     @CurrentUser() me: AuthUser,
@@ -244,6 +291,7 @@ export class StudentsController {
   }
 
   @Roles(UserRole.ADMINISTRATOR, UserRole.RECEPTION_OFFICER)
+  @RequirePermission("students.update")
   @Delete(":id/classes/:enrollmentId")
   removeClass(
     @CurrentUser() me: AuthUser,

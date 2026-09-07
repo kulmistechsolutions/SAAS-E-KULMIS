@@ -21,6 +21,7 @@ import { TeachersService } from "./teachers.service";
 import { Roles } from "../auth/roles.decorator";
 import { CurrentUser } from "../auth/current-user.decorator";
 import type { AuthUser } from "../auth/auth.types";
+import { RequirePermission } from "../auth/require-permission.decorator";
 
 const updateSelfSchema = z
   .object({
@@ -35,6 +36,7 @@ export class TeachersController {
   constructor(private readonly teachers: TeachersService) {}
 
   @Roles(UserRole.ADMINISTRATOR)
+  @RequirePermission("teachers.create")
   @Post()
   register(@CurrentUser() me: AuthUser, @Body() body: unknown) {
     const parsed = registerTeacherSchema.safeParse(body);
@@ -44,6 +46,7 @@ export class TeachersController {
 
   /** Logged-in teacher's own profile + assignments. */
   @Roles(UserRole.TEACHER, UserRole.ADMINISTRATOR)
+  @RequirePermission("teachers.view")
   @Get("me")
   me(@CurrentUser() me: AuthUser) {
     if (me.role === "TEACHER") {
@@ -55,6 +58,7 @@ export class TeachersController {
   }
 
   @Roles(UserRole.TEACHER)
+  @RequirePermission("teachers.update")
   @Patch("me")
   updateMe(@CurrentUser() me: AuthUser, @Body() body: unknown) {
     const parsed = updateSelfSchema.safeParse(body);
@@ -63,6 +67,7 @@ export class TeachersController {
   }
 
   @Roles(UserRole.TEACHER)
+  @RequirePermission("teachers.view")
   @Get("me/students")
   myStudents(@CurrentUser() me: AuthUser) {
     return this.teachers.myStudents(me.schoolId, me.userId);
@@ -75,6 +80,7 @@ export class TeachersController {
     UserRole.RECEPTION_OFFICER,
     UserRole.ACADEMIC_MANAGER,
   )
+  @RequirePermission("teachers.view")
   @Get()
   findAll(@CurrentUser() me: AuthUser, @Query("shift") shift?: string) {
     return this.teachers.findAll(me.schoolId, shift);
@@ -88,6 +94,7 @@ export class TeachersController {
     UserRole.RECEPTION_OFFICER,
     UserRole.ACADEMIC_MANAGER,
   )
+  @RequirePermission("teachers.view")
   @Get(":id")
   findOne(@CurrentUser() me: AuthUser, @Param("id") id: string) {
     if (me.role === "TEACHER") {
@@ -97,6 +104,7 @@ export class TeachersController {
   }
 
   @Roles(UserRole.ADMINISTRATOR)
+  @RequirePermission("teachers.update")
   @Patch(":id")
   update(
     @CurrentUser() me: AuthUser,
@@ -109,6 +117,7 @@ export class TeachersController {
   }
 
   @Roles(UserRole.ADMINISTRATOR)
+  @RequirePermission("teachers.update")
   @Post(":id/reset-password")
   resetPassword(
     @CurrentUser() me: AuthUser,
@@ -121,6 +130,7 @@ export class TeachersController {
   }
 
   @Roles(UserRole.ADMINISTRATOR)
+  @RequirePermission("teachers.delete")
   @Delete(":id")
   remove(@CurrentUser() me: AuthUser, @Param("id") id: string) {
     return this.teachers.remove(me.schoolId, id);

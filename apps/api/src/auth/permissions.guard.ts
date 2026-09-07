@@ -31,26 +31,26 @@ export class PermissionsGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const required = this.reflector.getAllAndOverride<string | undefined>(
+    const required = this.reflector.getAllAndOverride<string[] | undefined>(
       PERMISSION_KEY,
       [context.getHandler(), context.getClass()],
     );
-    if (!required) return true;
+    if (!required?.length) return true;
 
     const user = context.switchToHttp().getRequest<{ user?: AuthUser }>().user;
     if (!user) throw new ForbiddenException("Not signed in");
     if (user.role === UserRole.SUPER_ADMINISTRATOR) return true;
 
-    const allowed = await this.permissions.can(
-      user.schoolId,
-      user.role,
-      required,
-    );
-    if (!allowed) {
-      // Names the permission, not the role: the administrator reading this in
-      // support needs to know which switch to turn back on.
-      throw new ForbiddenException(`Missing permission: ${required}`);
+    // Any one of them opens the route.
+    for (const permission of required) {
+      if (await this.permissions.can(user.schoolId, user.role, permission)) {
+        return true;
+      }
     }
-    return true;
+    // Names the permission, not the role: the administrator reading this in
+    // support needs to know which switch to turn back on.
+    throw new ForbiddenException(
+      `Missing permission: ${required.join(" or ")}`,
+    );
   }
 }
