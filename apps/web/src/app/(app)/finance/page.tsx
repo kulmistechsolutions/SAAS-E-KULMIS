@@ -14,6 +14,7 @@ import { RecentPaymentsPanel } from "@/components/fees/recent-payments-panel";
 import { MonthSetupWidget } from "@/components/fees/month-setup-widget";
 import { FeeQuickActions } from "@/components/fees/widgets";
 import { CollectFeesSection } from "@/components/fees/collect-fees-section";
+import { FeeCollectionCharts } from "@/components/fees/collection-charts";
 import { PaymentDialog } from "@/components/fees/payment-dialog";
 import { ReceiptDialog } from "@/components/fees/receipt-dialog";
 import { PaymentPromisesBanner } from "@/components/fees/payment-promises-banner";
@@ -181,6 +182,13 @@ export default function FeeManagementPage() {
           summary={summary}
           month={month}
           onOpenDetails={setDetailMetric}
+        />
+      )}
+
+      {mounted && (
+        <FeeCollectionCharts
+          classId={filterClass || undefined}
+          sectionId={filterSection || undefined}
         />
       )}
 

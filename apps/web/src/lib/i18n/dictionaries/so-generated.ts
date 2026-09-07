@@ -1534,6 +1534,17 @@ export const soGenerated: PartialDictionary = {
     freeStudent: "Bilaash",
     print: "Daabac",
   },
+  feeCharts: {
+    expectedVsCollected: "La filayo iyo la qaaday",
+    expectedVsCollectedNote: "Kaliya bilaha dugsigu dhab ahaan u qoray.",
+    byClass: "Qaadista fasal walba",
+    byClassNote: "Marka loo eego waxa la gaaray, ee ma aha waxa soo socda.",
+    classLabel: "Fasalka",
+    expected: "La filayo",
+    collected: "La qaaday",
+    rate: "Heerka",
+    nothingBilledYet: "Weli bil lama qorin, sidaas darteed jaantus lama sameyn karo.",
+  },
   feesMetricBreakdown: {
     loading: "Soo dejinaya…",
     couldNotLoad: "Safafkan lama soo dejin karin. Hubi xiriirka oo mar kale isku day.",

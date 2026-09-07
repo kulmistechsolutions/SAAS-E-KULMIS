@@ -161,6 +161,18 @@ export class FeesController {
     return narrowFilterToScope(mine, classId, sectionId);
   }
 
+  /** How collection has moved, by month and by class — the dashboard charts. */
+  @RequirePermission("fees.view")
+  @Get("analytics")
+  async analytics(
+    @CurrentUser() me: AuthUser,
+    @Query("classId") classId?: string,
+    @Query("sectionId") sectionId?: string,
+  ) {
+    const within = await this.narrowToScope(me, classId, sectionId);
+    return this.balances.analytics(me.schoolId, within);
+  }
+
   /** Every active student's position in one call, for the collection lists. */
   /**
    * Every student's position, held to the classes this person covers.

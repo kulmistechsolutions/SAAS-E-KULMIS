@@ -1565,6 +1565,17 @@ export const generated = {
     freeStudent: "Free",
     print: "Print",
   },
+  feeCharts: {
+    expectedVsCollected: "Expected vs collected",
+    expectedVsCollectedNote: "Only months this school has actually billed.",
+    byClass: "Collection by class",
+    byClassNote: "Against what is due, not what is still to come.",
+    classLabel: "Class",
+    expected: "Expected",
+    collected: "Collected",
+    rate: "Rate",
+    nothingBilledYet: "No month has been billed yet, so there is nothing to chart.",
+  },
   feesMetricBreakdown: {
     loading: "Loading…",
     couldNotLoad: "Could not load these rows. Check the connection and try again.",

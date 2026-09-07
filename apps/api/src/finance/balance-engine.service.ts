@@ -67,6 +67,30 @@ export interface PositionFilter {
   classIds?: string[];
 }
 
+/** One month of a school's collection, for the trend chart. */
+export interface MonthPoint {
+  monthKey: string;
+  expected: number;
+  collected: number;
+  outstanding: number;
+}
+
+/** One class's collection performance. */
+export interface ClassPoint {
+  className: string;
+  students: number;
+  expected: number;
+  collected: number;
+  outstanding: number;
+  /** Percent of what is due that has been collected. */
+  rate: number;
+}
+
+export interface FeeAnalytics {
+  trend: MonthPoint[];
+  byClass: ClassPoint[];
+}
+
 /** Everything true about one student's fees, in one shape. */
 export interface StudentPosition {
   studentId: string;
@@ -404,6 +428,65 @@ export class BalanceEngineService {
       },
       { timeout: 60_000, maxWait: 30_000 },
     );
+  }
+
+  /**
+   * The shape of a school's collection, by month and by class.
+   *
+   * Charts were the last part of this page still drawing invented numbers, and
+   * a chart is the most persuasive thing on a dashboard — a school reads a
+   * trend line and plans against it. These come from the same charge lines
+   * every card and every list are built from, so the trend for a month equals
+   * the cards on the day that month was live.
+   *
+   * Only months that were actually billed appear. A flat run of zeros for
+   * months the school had not set up is not history, it is a picture of a
+   * school that collected nothing.
+   */
+  async analytics(
+    schoolId: string,
+    within: PositionFilter = {},
+  ): Promise<FeeAnalytics> {
+    const positions = await this.allPositions(schoolId, within);
+
+    const months = new Map<string, MonthPoint>();
+    const classes = new Map<string, ClassPoint>();
+
+    for (const p of positions) {
+      const className = p.className ?? "—";
+      const cls =
+        classes.get(className) ??
+        { className, expected: 0, collected: 0, outstanding: 0, students: 0, rate: 0 };
+      cls.students += 1;
+
+      for (const l of p.lines) {
+        if (l.status === "INACTIVE") continue;
+        const m =
+          months.get(l.monthKey) ??
+          { monthKey: l.monthKey, expected: 0, collected: 0, outstanding: 0 };
+        m.expected += l.expected;
+        m.collected += l.paid;
+        m.outstanding += l.outstanding;
+        months.set(l.monthKey, m);
+
+        // A class's performance is its due work: money not yet owed would
+        // read as a class falling behind on a bill it has not been sent.
+        if (!l.due) continue;
+        cls.expected += l.expected;
+        cls.collected += l.paid;
+        cls.outstanding += l.outstanding;
+      }
+      classes.set(className, cls);
+    }
+
+    for (const c of classes.values()) {
+      c.rate = c.expected > 0 ? Math.round((c.collected / c.expected) * 1000) / 10 : 0;
+    }
+
+    return {
+      trend: [...months.values()].sort((a, b) => a.monthKey.localeCompare(b.monthKey)),
+      byClass: [...classes.values()].sort((a, b) => b.expected - a.expected),
+    };
   }
 
   /**

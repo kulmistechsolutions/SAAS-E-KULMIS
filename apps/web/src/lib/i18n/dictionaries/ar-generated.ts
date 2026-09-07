@@ -1533,6 +1533,17 @@ export const arGenerated: PartialDictionary = {
     freeStudent: "مجاني",
     print: "طباعة",
   },
+  feeCharts: {
+    expectedVsCollected: "المتوقع مقابل المحصل",
+    expectedVsCollectedNote: "الأشهر التي تمت المطالبة بها فقط.",
+    byClass: "التحصيل حسب الفصل",
+    byClassNote: "مقابل المستحق لا القادم.",
+    classLabel: "الفصل",
+    expected: "المتوقع",
+    collected: "المحصل",
+    rate: "النسبة",
+    nothingBilledYet: "لم تتم المطالبة بأي شهر بعد.",
+  },
   feesMetricBreakdown: {
     loading: "جارٍ التحميل…",
     couldNotLoad: "تعذر تحميل البيانات. تحقق من الاتصال ثم أعد المحاولة.",
