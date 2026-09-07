@@ -120,7 +120,14 @@ export function RecentPaymentsPanel({
               {outstanding.map((r) => (
                 <tr key={r.studentId} className="border-t">
                   <td className="px-4 py-2.5 font-mono text-xs">{r.code}</td>
-                  <td className="px-4 py-2.5">{r.fullName}</td>
+                  <td className="px-4 py-2.5">
+                    <Link
+                      href={`/finance/students/${r.studentId}`}
+                      className="text-primary hover:underline"
+                    >
+                      {r.fullName}
+                    </Link>
+                  </td>
                   <td className="px-4 py-2.5 text-muted-foreground">
                     {r.className} - {r.section}
                   </td>

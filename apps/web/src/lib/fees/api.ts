@@ -188,8 +188,13 @@ export async function apiListCharges(
   return api<ApiFeeCharge[]>(`/fees/charges${q ? `?${q}` : ""}`);
 }
 
-export async function apiListPayments(limit = 100): Promise<ApiPayment[]> {
-  return api<ApiPayment[]>(`/fees/payments?limit=${limit}`);
+export async function apiListPayments(
+  limit = 100,
+  studentId?: string,
+): Promise<ApiPayment[]> {
+  const q = new URLSearchParams({ limit: String(limit) });
+  if (studentId) q.set("studentId", studentId);
+  return api<ApiPayment[]>(`/fees/payments?${q.toString()}`);
 }
 
 export interface ApiActivatedMonth {

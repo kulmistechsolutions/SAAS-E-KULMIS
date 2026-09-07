@@ -1878,9 +1878,18 @@ export class FeesService {
     );
   }
 
-  listPayments(schoolId: string, limit = 100) {
+  /**
+   * Payments, newest first — the whole school's, or one student's.
+   *
+   * The student filter exists so a fee account can show that student's own
+   * history. Without it the page would have had to pull the school's newest
+   * hundred payments and hope the ones it needed were among them, which for
+   * any school of size they would not be.
+   */
+  listPayments(schoolId: string, limit = 100, studentId?: string) {
     return this.prisma.forTenant(schoolId, (tx) =>
       tx.payment.findMany({
+        where: studentId ? { studentId } : {},
         orderBy: { paidAt: "desc" },
         take: limit,
         include: {

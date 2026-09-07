@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useT } from "@/lib/i18n/provider";
 import { Dialog } from "@/components/ui/dialog";
 import { money, monthLabel } from "@/lib/fees/format";
@@ -248,7 +249,17 @@ export function FeeMetricBreakdownDialog({
                     ))
                   : rows.map((r) => (
                       <tr key={r.key}>
-                        <td className="p-2 font-medium">{r.name}</td>
+                        <td className="p-2 font-medium">
+                          {/* The row is the answer to "which families"; the
+                              link is the answer to "why this much". */}
+                          <Link
+                            href={`/finance/students/${r.key}`}
+                            className="text-primary hover:underline"
+                            onClick={onClose}
+                          >
+                            {r.name}
+                          </Link>
+                        </td>
                         <td className="p-2 text-muted-foreground">{r.className}</td>
                         <td className="p-2 text-end tabular-nums">{money(r.expected)}</td>
                         <td className="p-2 text-end tabular-nums">{money(r.paid)}</td>

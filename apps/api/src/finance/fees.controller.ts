@@ -231,8 +231,16 @@ export class FeesController {
 
   @RequirePermission("fees.view")
   @Get("payments")
-  payments(@CurrentUser() me: AuthUser, @Query("limit") limit?: string) {
-    return this.fees.listPayments(me.schoolId, limit ? Number(limit) : 100);
+  payments(
+    @CurrentUser() me: AuthUser,
+    @Query("limit") limit?: string,
+    @Query("studentId") studentId?: string,
+  ) {
+    return this.fees.listPayments(
+      me.schoolId,
+      limit ? Number(limit) : 100,
+      studentId,
+    );
   }
 
   /** Reverse a payment recorded wrong — never edits/deletes, creates a linked undo entry. */
