@@ -1595,6 +1595,8 @@ export const generated = {
     outstanding: "Outstanding",
   },
   feesSummaryCards: {
+    students: "students",
+    today: "today",
     totalExpected: "Total Expected",
     totalCollected: "Total Collected",
     totalOutstandingNow: "Outstanding This Month",

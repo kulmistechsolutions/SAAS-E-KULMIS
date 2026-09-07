@@ -1564,6 +1564,8 @@ export const soGenerated: PartialDictionary = {
     outstanding: "Lagu Leeyahay",
   },
   feesSummaryCards: {
+    students: "arday",
+    today: "maanta",
     totalExpected: "Wadarta la Filayo",
     totalCollected: "Wadarta la Qaaday",
     totalOutstandingNow: "Maqan Bishan",

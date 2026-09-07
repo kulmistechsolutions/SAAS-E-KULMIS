@@ -1563,6 +1563,8 @@ export const arGenerated: PartialDictionary = {
     outstanding: "المستحق",
   },
   feesSummaryCards: {
+    students: "طالب",
+    today: "اليوم",
     totalExpected: "المتوقع",
     totalCollected: "المحصل",
     totalOutstandingNow: "متبقي هذا الشهر",

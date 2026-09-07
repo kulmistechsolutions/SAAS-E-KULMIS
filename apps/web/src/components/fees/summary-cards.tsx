@@ -39,7 +39,11 @@ type Primary = {
   value: string;
   amount: (s: FeeDashboardSummary) => string;
   /** The line that shows where the number came from. */
-  note: (s: FeeDashboardSummary, month: string) => string;
+  note: (
+    s: FeeDashboardSummary,
+    month: string,
+    t: (k: TranslationKey) => string,
+  ) => string;
   metric: keyof FeeDashboardSummary;
 };
 
@@ -51,7 +55,8 @@ const PRIMARY: Primary[] = [
     ring: "bg-sky-100 text-sky-600 dark:bg-sky-500/15 dark:text-sky-400",
     value: "text-sky-600 dark:text-sky-400",
     amount: (s) => money(s.expectedMonthlyIncome),
-    note: (s, m) => `${s.totalActiveStudents} · ${monthLabel(m)}`,
+    note: (s, m, t) =>
+      `${s.totalActiveStudents} ${t("feesSummaryCards.students")} · ${monthLabel(m)}`,
     metric: "expectedMonthlyIncome",
   },
   {
@@ -61,7 +66,7 @@ const PRIMARY: Primary[] = [
     ring: "bg-emerald-100 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-400",
     value: "text-emerald-600 dark:text-emerald-400",
     amount: (s) => money(s.collectedThisMonth),
-    note: (s) => `+ ${money(s.collectedToday)}`,
+    note: (s, _m, t) => `+ ${money(s.collectedToday)} ${t("feesSummaryCards.today")}`,
     metric: "collectedThisMonth",
   },
   {
@@ -71,7 +76,8 @@ const PRIMARY: Primary[] = [
     ring: "bg-rose-100 text-rose-600 dark:bg-rose-500/15 dark:text-rose-400",
     value: "text-rose-600 dark:text-rose-400",
     amount: (s) => money(s.outstandingThisMonth),
-    note: (s) => `${s.unpaidStudents + s.partialPayments}`,
+    note: (s, _m, t) =>
+      `${s.unpaidStudents + s.partialPayments} ${t("feesSummaryCards.students")}`,
     metric: "outstandingThisMonth",
   },
   {
@@ -86,7 +92,8 @@ const PRIMARY: Primary[] = [
       s.expectedMonthlyIncome > 0
         ? `${((s.collectedThisMonth / s.expectedMonthlyIncome) * 100).toFixed(2)}%`
         : "—",
-    note: (s) => `${money(s.collectedThisMonth)} / ${money(s.expectedMonthlyIncome)}`,
+    note: (s) =>
+      `${money(s.collectedThisMonth)} / ${money(s.expectedMonthlyIncome)}`,
     metric: "collectionPercentage",
   },
 ];
@@ -177,7 +184,7 @@ export function FeeSummaryCards({
               {c.amount(summary)}
             </p>
             <p className="mt-1 text-xs tabular-nums text-muted-foreground">
-              {c.note(summary, month)}
+              {c.note(summary, month, t)}
             </p>
           </button>
         ))}

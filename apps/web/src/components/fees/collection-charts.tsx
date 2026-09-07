@@ -182,7 +182,7 @@ export function FeeCollectionCharts({
                   <td className="p-2 font-medium">
                     {c.className}
                     <span className="ms-2 text-xs text-muted-foreground">
-                      {c.students}
+                      ({c.students})
                     </span>
                   </td>
                   <td className="p-2 text-end tabular-nums">{money(c.expected)}</td>
