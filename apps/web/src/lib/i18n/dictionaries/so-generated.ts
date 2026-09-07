@@ -4959,6 +4959,12 @@ export const soGenerated: PartialDictionary = {
     chosen: "{n} la doortay. Kuwaas oo keliya ayuu gaadhaa.",
   },
   usersRoles: {
+    roleCreated: "Rolka \"{name}\" waa la abuuray",
+    customRoleOfThisSchool: "Rol dugsigu isagu sameeyay.",
+    custom: "Gaar ah",
+    deleteRole: "Tirtir rolka",
+    deleteRoleConfirm: "Rolkan tirtir? Cid kasta oo ku jirta waxay ku noqonaysaa rolkeedii asalka ahaa.",
+    roleDeleted: "Rolkii waa la tirtiray — {n} ayaa ku noqday rolkoodii asalka ahaa",
     nothingChanged: "Waxba ma beddelmin",
     resetToDefault: "Ku celi caadiga",
     loading: "Waa soo shubmayaa…",
@@ -4986,6 +4992,9 @@ export const soGenerated: PartialDictionary = {
     receptionOfficers: "Saraakiisha Soo Dhaweynta",
   },
   usersUserFormDialog: {
+    schoolRole: "Rol dugsigu isagu sameeyay",
+    useBuiltInRole: "Isticmaal rolka kor ku qoran",
+    schoolRoleHint: "Marka la dhigo, kanaa go'aamiya waxa uu samayn karo. Rolka kore wuxuu ahaanayaa kan uu ku noqonayo haddii rolkan mar dambe la tirtiro.",
     cancel: "Jooji",
     fullName: "Magaca oo dhan",
     username: "Magaca isticmaalaha",

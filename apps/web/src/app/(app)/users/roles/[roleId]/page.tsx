@@ -4,6 +4,7 @@
 import { useT } from "@/lib/i18n/provider";
 import { use, useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -11,9 +12,12 @@ import { PermissionMatrix } from "@/components/users/permission-matrix";
 import { getRole } from "@/lib/users/store";
 import { normalizePermissions } from "@/lib/users/format";
 import {
+  apiCustomRoles,
+  apiDeleteCustomRole,
   apiResetRolePermissions,
   apiRolePermissions,
   apiSaveRolePermissions,
+  type CustomRole,
 } from "@/lib/permissions/api";
 import { refreshPermissions } from "@/lib/permissions/store";
 import type { Grants } from "@/lib/permissions/store";
@@ -30,10 +34,37 @@ export default function RolePermissionsPage({
 }) {
   const t = useT();
   const { roleId } = use(params);
+  const router = useRouter();
   // Strict: only the real owner account, not every Administrator (see
   // useIsSuperAdministrator).
   const isOwner = useIsSuperAdministrator();
-  const role = useMemo(() => getRole(roleId), [roleId]);
+  const builtInRole = useMemo(() => getRole(roleId), [roleId]);
+  /** Set when this page is a role the school made rather than a built-in one. */
+  const [customRole, setCustomRole] = useState<CustomRole | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    apiCustomRoles()
+      .then((rows) => alive && setCustomRole(rows.find((r) => r.id === roleId) ?? null))
+      .catch(() => alive && setCustomRole(null));
+    return () => {
+      alive = false;
+    };
+  }, [roleId]);
+
+  const role = useMemo(
+    () =>
+      customRole
+        ? {
+            id: customRole.id,
+            name: customRole.id,
+            label: customRole.name,
+            description: customRole.description ?? "",
+            builtIn: false,
+          }
+        : builtInRole,
+    [customRole, builtInRole],
+  );
   const [permissions, setPermissions] = useState<PermissionMap | null>(null);
   const [server, setServer] = useState<PermissionMap | null>(null);
   const [dirty, setDirty] = useState(false);
@@ -63,7 +94,8 @@ export default function RolePermissionsPage({
     };
   }, [roleId]);
 
-  const perms = permissions ?? server ?? role?.permissions;
+  const perms =
+    permissions ?? server ?? (customRole ? null : builtInRole?.permissions);
   const readOnly = role?.name === "SUPER_ADMINISTRATOR";
 
   // The owner's own role is not part of what a school manages — reaching this
@@ -95,6 +127,24 @@ export default function RolePermissionsPage({
       setSaving(false);
     }
   }, [role, perms, t]);
+
+  const handleDelete = useCallback(async () => {
+    if (!customRole) return;
+    if (!window.confirm(t("usersRoles.deleteRoleConfirm"))) return;
+    setSaving(true);
+    try {
+      const res = await apiDeleteCustomRole(customRole.id);
+      toast(
+        t("usersRoles.roleDeleted").replace("{n}", String(res.usersMovedBack)),
+        "success",
+      );
+      router.push("/users/roles");
+    } catch (e) {
+      toast(e instanceof Error ? e.message : "Delete failed", "error");
+    } finally {
+      setSaving(false);
+    }
+  }, [customRole, t, router]);
 
   const handleReset = useCallback(async () => {
     if (!role) return;
@@ -146,14 +196,27 @@ export default function RolePermissionsPage({
         </div>
         {!readOnly && (
           <div className="flex gap-2">
-            <Button
-              variant="outline"
-              className="h-9"
-              onClick={handleReset}
-              disabled={saving}
-            >
-              {t("usersRoles.resetToDefault")}
-            </Button>
+            {customRole ? (
+              // A role the school made can be removed; a built-in one can only
+              // be put back to what the product ships.
+              <Button
+                variant="outline"
+                className="h-9 text-destructive"
+                onClick={handleDelete}
+                disabled={saving}
+              >
+                {t("usersRoles.deleteRole")}
+              </Button>
+            ) : (
+              <Button
+                variant="outline"
+                className="h-9"
+                onClick={handleReset}
+                disabled={saving}
+              >
+                {t("usersRoles.resetToDefault")}
+              </Button>
+            )}
             {dirty && (
               <Button className="h-9" onClick={handleSave} disabled={saving}>
                 {t("usersRoles.savePermissions")}

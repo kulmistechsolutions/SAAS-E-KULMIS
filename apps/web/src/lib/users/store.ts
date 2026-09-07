@@ -348,6 +348,11 @@ export async function updateUser(
       fullName: input.fullName?.trim(),
       username: input.username?.trim(),
       role: input.role,
+      // A role of the school's own is set here, not when the account is made:
+      // the built-in role is chosen first and stays as the fallback.
+      ...(input.customRoleId === undefined
+        ? {}
+        : { customRoleId: input.customRoleId }),
       status: input.status,
     });
     await refreshUsers();

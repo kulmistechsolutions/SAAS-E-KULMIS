@@ -25,3 +25,36 @@ export const apiResetRolePermissions = (role: string) =>
     `/permissions/roles/${encodeURIComponent(role)}`,
     { method: "DELETE" },
   );
+
+/** A role a school made for itself. */
+export interface CustomRole {
+  id: string;
+  name: string;
+  description: string | null;
+}
+
+export const apiCustomRoles = () =>
+  api<CustomRole[]>("/permissions/custom-roles");
+
+export const apiCreateCustomRole = (name: string, description?: string) =>
+  api<CustomRole>("/permissions/custom-roles", {
+    method: "POST",
+    body: { name, description },
+  });
+
+export const apiRenameCustomRole = (
+  id: string,
+  name: string,
+  description?: string,
+) =>
+  api<CustomRole>(`/permissions/custom-roles/${encodeURIComponent(id)}`, {
+    method: "PUT",
+    body: { name, description },
+  });
+
+/** Anyone on it falls back to the built-in role their account still carries. */
+export const apiDeleteCustomRole = (id: string) =>
+  api<{ success: boolean; usersMovedBack: number }>(
+    `/permissions/custom-roles/${encodeURIComponent(id)}`,
+    { method: "DELETE" },
+  );

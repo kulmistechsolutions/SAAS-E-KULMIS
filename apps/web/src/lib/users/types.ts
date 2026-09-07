@@ -66,6 +66,8 @@ export interface SystemUser {
   username: string;
   passwordHash: string;
   role: SystemRole;
+  /** The school's own role, when it has put this person on one. */
+  customRoleId?: string | null;
   status: AccountStatus;
   lastLogin: string | null;
   createdAt: string;
@@ -166,5 +168,7 @@ export interface UpdateUserInput {
   fullName?: string;
   username?: string;
   role?: SystemRole;
+  /** null puts them back on the built-in role; undefined leaves it alone. */
+  customRoleId?: string | null;
   status?: AccountStatus;
 }

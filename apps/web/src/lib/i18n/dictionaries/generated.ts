@@ -5036,6 +5036,12 @@ export const generated = {
     chosen: "{n} chosen. They reach only these.",
   },
   usersRoles: {
+    roleCreated: "Role \"{name}\" created",
+    customRoleOfThisSchool: "A role this school made for itself.",
+    custom: "Custom",
+    deleteRole: "Delete role",
+    deleteRoleConfirm: "Delete this role? Anyone on it goes back to their built-in role.",
+    roleDeleted: "Role deleted — {n} moved back to their built-in role",
     nothingChanged: "Nothing changed",
     resetToDefault: "Reset to default",
     loading: "Loading…",
@@ -5063,6 +5069,9 @@ export const generated = {
     receptionOfficers: "Reception Officers",
   },
   usersUserFormDialog: {
+    schoolRole: "Role of this school's own",
+    useBuiltInRole: "Use the built-in role above",
+    schoolRoleHint: "When set, this decides what they may do. The role above stays as the one they fall back to if this role is ever deleted.",
     cancel: "Cancel",
     fullName: "Full Name",
     username: "Username",

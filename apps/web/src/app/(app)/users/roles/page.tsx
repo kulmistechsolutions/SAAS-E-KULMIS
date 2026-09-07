@@ -2,13 +2,18 @@
 
 
 import { useT } from "@/lib/i18n/provider";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { ChevronRight, Plus, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { createCustomRole, useUsersState } from "@/lib/users/store";
+import { useUsersState } from "@/lib/users/store";
+import {
+  apiCreateCustomRole,
+  apiCustomRoles,
+  type CustomRole,
+} from "@/lib/permissions/api";
 import { OWNER_ONLY_ROLES } from "@/lib/users/format";
 import { isPortalRole } from "@/lib/rbac/routes";
 import { useIsSuperAdministrator } from "@/lib/users/super-admin";
@@ -22,21 +27,43 @@ export default function RolesPage() {
   // sees the owner's own role card too.
   const isOwner = useIsSuperAdministrator();
   const [name, setName] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  /**
+   * The school's own roles, from the server.
+   *
+   * Add Role used to write to this browser and nowhere else: the role existed
+   * on one machine, could not be given to anybody, and vanished when that
+   * browser cleared its data.
+   */
+  const [custom, setCustom] = useState<CustomRole[]>([]);
+  const load = useCallback(() => {
+    apiCustomRoles()
+      .then(setCustom)
+      .catch(() => setCustom([]));
+  }, []);
+  useEffect(load, [load]);
 
   // The school manages its own roles; Super Administrator is the owner's own
   // account and is not one of them, so it only shows to the real owner.
-  const visibleRoles = state.roles.filter(
-    (r) => isOwner || !OWNER_ONLY_ROLES.includes(r.name as never),
+  const builtIn = state.roles.filter(
+    (r) => r.builtIn && (isOwner || !OWNER_ONLY_ROLES.includes(r.name as never)),
   );
 
-  function handleCreate() {
-    const res = createCustomRole(name);
-    if (!res.ok) {
-      toast(res.error ?? "Failed", "error");
-      return;
+  async function handleCreate() {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    setSaving(true);
+    try {
+      await apiCreateCustomRole(trimmed);
+      toast(t("usersRoles.roleCreated").replace("{name}", trimmed), "success");
+      setName("");
+      load();
+    } catch (e) {
+      toast(e instanceof Error ? e.message : "Failed", "error");
+    } finally {
+      setSaving(false);
     }
-    toast(`Role "${name}" created`, "success");
-    setName("");
   }
 
   return (
@@ -55,14 +82,35 @@ export default function RolesPage() {
           onChange={(e) => setName(e.target.value)}
           className="h-10"
         />
-        <Button className="h-10 shrink-0" onClick={handleCreate}>
+        <Button className="h-10 shrink-0" onClick={handleCreate} disabled={saving}>
           <Plus className="me-2 h-4 w-4" />
           {t("usersRoles.addRole")}
         </Button>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {visibleRoles.map((role) => (
+        {custom.map((role) => (
+          <Link
+            key={role.id}
+            href={`/users/roles/${role.id}`}
+            className="group rounded-xl border bg-card p-5 shadow-sm transition hover:border-primary/30 hover:shadow-md"
+          >
+            <div className="flex items-start justify-between">
+              <span className="flex h-11 w-11 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <Shield className="h-5 w-5" />
+              </span>
+              <ChevronRight className="h-5 w-5 text-muted-foreground opacity-0 transition group-hover:opacity-100" />
+            </div>
+            <p className="mt-3 font-semibold">{role.name}</p>
+            <p className="mt-1 text-sm text-muted-foreground line-clamp-2">
+              {role.description || t("usersRoles.customRoleOfThisSchool")}
+            </p>
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <Badge tone="default">{t("usersRoles.custom")}</Badge>
+            </div>
+          </Link>
+        ))}
+        {builtIn.map((role) => (
           <Link
             key={role.id}
             href={`/users/roles/${role.id}`}

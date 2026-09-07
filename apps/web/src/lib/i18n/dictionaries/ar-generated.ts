@@ -4936,6 +4936,12 @@ export const arGenerated: PartialDictionary = {
     chosen: "{n} مختارة. لن يصل إلا إليها.",
   },
   usersRoles: {
+    roleCreated: "تم إنشاء الدور \"{name}\"",
+    customRoleOfThisSchool: "دور أنشأته المدرسة لنفسها.",
+    custom: "مخصص",
+    deleteRole: "حذف الدور",
+    deleteRoleConfirm: "حذف هذا الدور؟ سيعود كل من عليه إلى دوره الأصلي.",
+    roleDeleted: "تم حذف الدور — عاد {n} إلى دورهم الأصلي",
     nothingChanged: "لم يتغير شيء",
     resetToDefault: "إعادة للافتراضي",
     loading: "جارٍ التحميل…",
@@ -4963,6 +4969,9 @@ export const arGenerated: PartialDictionary = {
     receptionOfficers: "مسؤولو الاستقبال",
   },
   usersUserFormDialog: {
+    schoolRole: "دور خاص بهذه المدرسة",
+    useBuiltInRole: "استخدم الدور أعلاه",
+    schoolRoleHint: "عند تعيينه، هو ما يحدد صلاحياته. ويبقى الدور أعلاه هو ما يعود إليه إذا حُذف هذا الدور.",
     cancel: "إلغاء",
     fullName: "الاسم الكامل",
     username: "اسم المستخدم",

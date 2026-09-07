@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { ASSIGNABLE_ROLES, roleLabel } from "@/lib/users/format";
+import { apiCustomRoles, type CustomRole } from "@/lib/permissions/api";
 import { createUser, updateUser } from "@/lib/users/store";
 import type { AccountStatus, SystemRole, SystemUser } from "@/lib/users/types";
 import { toast } from "@/lib/toast";
@@ -35,6 +36,14 @@ export function UserFormDialog({
   const [role, setRole] = useState<SystemRole>("ADMINISTRATOR");
   const [status, setStatus] = useState<AccountStatus>("ACTIVE");
   const [submitting, setSubmitting] = useState(false);
+  /**
+   * The school's own roles. Offered on edit only, because the create endpoint
+   * takes the built-in role — a person is made first and then put on a role of
+   * the school's own, which also keeps the built-in role they fall back to if
+   * that role is ever deleted.
+   */
+  const [customRoles, setCustomRoles] = useState<CustomRole[]>([]);
+  const [customRoleId, setCustomRoleId] = useState<string>("");
 
   useEffect(() => {
     if (!open) return;
@@ -43,20 +52,38 @@ export function UserFormDialog({
       setUsername(user.username);
       setPassword("");
       setRole(user.role);
+      setCustomRoleId(user.customRoleId ?? "");
       setStatus(user.status);
     } else {
       setFullName("");
       setUsername("");
       setPassword("");
       setRole("ADMINISTRATOR");
+      setCustomRoleId("");
       setStatus("ACTIVE");
     }
   }, [open, user]);
 
+  useEffect(() => {
+    if (!open) return;
+    apiCustomRoles()
+      .then(setCustomRoles)
+      .catch(() => setCustomRoles([]));
+  }, [open]);
+
   async function handleSubmit() {
     setSubmitting(true);
     const res = isEdit
-      ? await updateUser({ id: user!.id, fullName, username, role, status })
+      ? await updateUser({
+          id: user!.id,
+          fullName,
+          username,
+          role,
+          status,
+          // "" means back to the built-in role, which has to reach the server
+          // as null rather than being left out.
+          customRoleId: customRoleId || null,
+        })
       : await createUser({ fullName, username, password, role, status });
     setSubmitting(false);
     if (!res.ok) {
@@ -70,9 +97,6 @@ export function UserFormDialog({
 
   // Parent/Student logins come with student registration and Super
   // Administrator is the owner's own account — none of them are handed out here.
-  // Custom roles created on the Roles & Permissions page aren't included: the
-  // backend only accepts the fixed built-in role values, so offering them here
-  // would let an admin "assign" a role that then fails to save.
   const roleOptions: { id: SystemRole; label: string }[] = [
     ...ASSIGNABLE_ROLES.map((r) => ({ id: r, label: roleLabel(r) })),
   ];
@@ -157,6 +181,28 @@ export function UserFormDialog({
             </Select>
           </div>
         </div>
+        {isEdit && customRoles.length > 0 && (
+          <div className="space-y-2">
+            <Label htmlFor="u-custom-role">
+              {t("usersUserFormDialog.schoolRole")}
+            </Label>
+            <Select
+              id="u-custom-role"
+              value={customRoleId}
+              onChange={(e) => setCustomRoleId(e.target.value)}
+            >
+              <option value="">{t("usersUserFormDialog.useBuiltInRole")}</option>
+              {customRoles.map((r) => (
+                <option key={r.id} value={r.id}>
+                  {r.name}
+                </option>
+              ))}
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              {t("usersUserFormDialog.schoolRoleHint")}
+            </p>
+          </div>
+        )}
       </div>
     </Dialog>
   );
