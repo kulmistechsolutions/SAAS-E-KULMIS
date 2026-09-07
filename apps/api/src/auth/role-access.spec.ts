@@ -369,4 +369,32 @@ describe("what a page needs, as a permission", () => {
       false,
     );
   });
+
+  describe("a report needs the module it reports on", () => {
+    // Found while checking the menu against a revoked permission: the report
+    // categories were falling through to the hub's own rule, so every role
+    // holding "reports" could reach the school's fee and salary reporting.
+    it("keeps a finance officer to the money it already holds", () => {
+      const g = grantsFor(FO);
+      expect(canOpenWithPermissions(g, "/reports/fees")).toBe(true);
+      expect(canOpenWithPermissions(g, "/reports/salary")).toBe(true);
+      expect(canOpenWithPermissions(g, "/reports/financial")).toBe(true);
+      expect(canOpenWithPermissions(g, "/reports/students")).toBe(false);
+      expect(canOpenWithPermissions(g, "/reports/examinations")).toBe(false);
+    });
+
+    it("keeps an attendance officer to attendance reporting", () => {
+      const g = grantsFor(AO);
+      expect(canOpenWithPermissions(g, "/reports/attendance")).toBe(true);
+      expect(canOpenWithPermissions(g, "/reports/fees")).toBe(false);
+      expect(canOpenWithPermissions(g, "/reports/salary")).toBe(false);
+    });
+
+    it("closes fee reporting the moment fees are revoked", () => {
+      const g = { ...grantsFor(FO), fees: [] };
+      expect(canOpenWithPermissions(g, "/reports/fees")).toBe(false);
+      // The hub itself stays open; the role still has other reports.
+      expect(canOpenWithPermissions(g, "/reports")).toBe(true);
+    });
+  });
 });

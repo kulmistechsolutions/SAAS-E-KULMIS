@@ -224,6 +224,21 @@ export const ROUTE_PERMISSIONS: RoutePermissionRule[] = [
   { prefix: "/sms/packages", anyOf: ["sms.export"] },
   { prefix: "/sms", anyOf: ["sms.view"] },
   { prefix: "/copilot", anyOf: ["finance.view", "academics.view"] },
+
+  // A report follows the module it reports on. Reaching Fee Reports has to
+  // need the fees the report is about, not merely "reports" — otherwise every
+  // role holding the reports hub could read the school's fee and salary
+  // reporting through it, which is the door this closes.
+  { prefix: "/reports/students", anyOf: ["students.view"] },
+  { prefix: "/reports/teachers", anyOf: ["teachers.view"] },
+  { prefix: "/reports/attendance", anyOf: ["attendance.view"] },
+  { prefix: "/reports/fees", anyOf: ["fees.view"] },
+  { prefix: "/reports/examinations", anyOf: ["examinations.view"] },
+  { prefix: "/reports/promotions", anyOf: ["promotions.view"] },
+  { prefix: "/reports/salary", anyOf: ["salaries.view"] },
+  { prefix: "/reports/expenses", anyOf: ["expenses.view"] },
+  { prefix: "/reports/financial", anyOf: ["finance.view"] },
+  { prefix: "/reports/quiz", anyOf: ["quiz.view"] },
   { prefix: "/reports", anyOf: ["reports.view"] },
   { prefix: "/users", anyOf: ["users.view"] },
   { prefix: "/settings", anyOf: ["settings.view"] },
