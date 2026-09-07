@@ -129,3 +129,38 @@ describe("what the dashboard shows once a school has had its say", () => {
     expect(v.fees).toBe(false);
   });
 });
+
+describe("adding a permission a role never had", () => {
+  /**
+   * The half of the system that did not work at first.
+   *
+   * Granting `teachers.view` to the Librarian changed nothing: GET /teachers
+   * carried a hard-coded role list that rejected the librarian before the
+   * permission was ever consulted. A permission you cannot add is not a
+   * permission — so where a route declares one, the role list steps aside.
+   */
+  it("puts the module into the role's effective permissions", () => {
+    const before = mergeGrants(defaults(UserRole.LIBRARIAN), null);
+    expect(before.teachers).toBeUndefined();
+
+    const after = mergeGrants(defaults(UserRole.LIBRARIAN), {
+      teachers: ["view"],
+    });
+    expect(after.teachers).toEqual(["view"]);
+    // And leaves the rest of the role exactly as it was.
+    expect(after.library).toEqual(defaults(UserRole.LIBRARIAN).library);
+  });
+
+  it("adds one action without granting the others", () => {
+    const after = mergeGrants(defaults(UserRole.LIBRARIAN), {
+      teachers: ["view"],
+    });
+    const has = (p: string) => {
+      const [m, a] = p.split(".");
+      return (after[m as keyof PermissionGrants] ?? []).includes(a as never);
+    };
+    expect(has("teachers.view")).toBe(true);
+    expect(has("teachers.create")).toBe(false);
+    expect(has("teachers.delete")).toBe(false);
+  });
+});
