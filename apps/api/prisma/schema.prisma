@@ -164,6 +164,7 @@ model School {
   updatedAt DateTime @updatedAt
 
   users              User[]
+  rolePermissions    RolePermission[]
   academicYears      AcademicYear[]
   subjects           Subject[]
   smsPurchases       SmsPurchase[]
@@ -487,6 +488,36 @@ model RefreshToken {
 
 /// Append-only audit trail (Module 18). Denormalized (keeps username/role
 /// snapshots) so entries survive user deletion. Tenant-scoped via RLS.
+/// A school's own answer to "what may this role do?".
+///
+/// The code carries a default for every built-in role; a row here is the
+/// school's override of it, and the effective permission is the two merged.
+/// Before this there was nowhere to keep an override at all — the Roles &
+/// Permissions screen wrote to the browser's localStorage, so a change was
+/// invisible to the server, invisible to every other machine at the school,
+/// and gone the moment that browser cleared its data.
+///
+/// `permissions` is `{ "<module>": ["view","create",...] }`. A module absent
+/// from the object falls back to the code default; a module present with an
+/// empty array is an explicit revoke, which is not the same thing.
+model RolePermission {
+  id          String   @id @default(cuid())
+  schoolId    String
+  /// The role this overrides. Stored as text so a school's own custom role
+  /// (which is not in the UserRole enum) can be kept here too.
+  role        String
+  permissions Json
+  updatedById String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@unique([schoolId, role])
+  @@index([schoolId])
+  @@map("role_permissions")
+}
+
 model AuditLog {
   id        String    @id @default(cuid())
   schoolId  String

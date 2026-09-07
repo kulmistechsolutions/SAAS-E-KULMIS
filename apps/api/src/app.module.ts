@@ -29,6 +29,7 @@ import { DashboardModule } from "./dashboard/dashboard.module";
 import { PlatformModule } from "./platform/platform.module";
 import { StorageModule } from "./storage/storage.module";
 import { SearchModule } from "./search/search.module";
+import { PermissionsModule } from "./permissions/permissions.module";
 import { QueueModule } from "./queue/queue.module";
 import { CopilotModule } from "./copilot/copilot.module";
 import { DocumentsModule } from "./documents/documents.module";
@@ -78,6 +79,7 @@ import { TenantModule } from "./tenant/tenant.module";
     AuditModule,
     StorageModule,
     SearchModule,
+    PermissionsModule,
     AuthModule,
     UsersModule,
     SettingsModule,

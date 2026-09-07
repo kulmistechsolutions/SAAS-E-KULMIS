@@ -7,6 +7,7 @@ import { AuthController } from "./auth.controller";
 import { AuthService } from "./auth.service";
 import { JwtAuthGuard } from "./jwt-auth.guard";
 import { RolesGuard } from "./roles.guard";
+import { PermissionsGuard } from "./permissions.guard";
 
 @Module({
   imports: [
@@ -30,6 +31,10 @@ import { RolesGuard } from "./roles.guard";
     // Global auth + RBAC. JwtAuthGuard runs first, then RolesGuard.
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_GUARD, useClass: RolesGuard },
+    // Runs after RolesGuard, and only bites on routes carrying
+    // @RequirePermission — so a school's own override is enforced without
+    // every existing route having to be re-declared at once.
+    { provide: APP_GUARD, useClass: PermissionsGuard },
   ],
   exports: [AuthService],
 })
