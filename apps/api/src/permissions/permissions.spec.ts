@@ -1,4 +1,8 @@
-import { PERMISSIONS_BY_ROLE, UserRole } from "@ekulmis/shared";
+import {
+  PERMISSIONS_BY_ROLE,
+  UserRole,
+  dashboardVisibilityFromGrants,
+} from "@ekulmis/shared";
 import { mergeGrants, type PermissionGrants } from "./permissions.service";
 import { diffGrants } from "./permissions.controller";
 
@@ -93,5 +97,35 @@ describe("what the audit log records", () => {
   it("records nothing when a save changed nothing", () => {
     const same: PermissionGrants = { fees: ["view"] };
     expect(diffGrants(same, { ...same })).toEqual({ granted: [], revoked: [] });
+  });
+});
+
+describe("what the dashboard shows once a school has had its say", () => {
+  it("hides the fee cards when the school revokes fees", () => {
+    // The dashboard read the product default for the role, so a revoke
+    // emptied the menu and the routes while the cards went on showing the
+    // money the role no longer held.
+    const revoked = mergeGrants(defaults(FO), { fees: [] });
+    const v = dashboardVisibilityFromGrants(revoked as Record<string, string[]>);
+    expect(v.fees).toBe(false);
+    // Finance is a separate grant and is left alone.
+    expect(v.finance).toBe(true);
+  });
+
+  it("shows them again when the school grants them back", () => {
+    const restored = mergeGrants(defaults(FO), null);
+    expect(
+      dashboardVisibilityFromGrants(restored as Record<string, string[]>).fees,
+    ).toBe(true);
+  });
+
+  it("shows a card for a module the school added to a role", () => {
+    const widened = mergeGrants(defaults(UserRole.ATTENDANCE_OFFICER), {
+      students: ["view"],
+    });
+    const v = dashboardVisibilityFromGrants(widened as Record<string, string[]>);
+    expect(v.students).toBe(true);
+    expect(v.attendance).toBe(true);
+    expect(v.fees).toBe(false);
   });
 });

@@ -1,5 +1,6 @@
 import { Controller, Get } from "@nestjs/common";
-import { UserRole, dashboardVisibilityFor } from "@ekulmis/shared";
+import { UserRole, dashboardVisibilityFromGrants } from "@ekulmis/shared";
+import { PermissionsService } from "../permissions/permissions.service";
 import { DashboardService } from "./dashboard.service";
 import { Roles } from "../auth/roles.decorator";
 import { STAFF_ROLES } from "../auth/role-groups";
@@ -29,7 +30,10 @@ const ZERO_ATTENDANCE = { present: 0, absent: 0, late: 0, total: 0, percentage: 
 
 @Controller("dashboard")
 export class DashboardController {
-  constructor(private readonly dashboard: DashboardService) {}
+  constructor(
+    private readonly dashboard: DashboardService,
+    private readonly permissions: PermissionsService,
+  ) {}
 
   /**
    * The dashboard, cut to what the signed-in role actually holds.
@@ -48,7 +52,11 @@ export class DashboardController {
   @Get("admin")
   async admin(@CurrentUser() me: AuthUser) {
     const data = await this.dashboard.admin(me.schoolId);
-    const visible = dashboardVisibilityFor(me.role);
+    // The school's own effective permissions, not the product default for the
+    // role — a school that revokes fees must stop seeing fee figures here too.
+    const visible = dashboardVisibilityFromGrants(
+      await this.permissions.effectiveFor(me.schoolId, me.role),
+    );
 
     return {
       ...data,

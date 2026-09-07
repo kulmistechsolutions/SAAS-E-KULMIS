@@ -242,6 +242,31 @@ export interface DashboardVisibility {
   activity: boolean;
 }
 
+/**
+ * The same decision, from a school's own effective permissions rather than
+ * the product default for a role.
+ *
+ * This is the one the server uses: a school that revokes `fees` must stop
+ * seeing fee figures on the dashboard too, and reading the default table
+ * there would have left the cards showing money the role no longer holds.
+ */
+export function dashboardVisibilityFromGrants(
+  grants: Record<string, string[] | undefined>,
+): DashboardVisibility {
+  const has = (m: PermissionModule) => (grants[m] ?? []).includes("view");
+  return {
+    students: has("students"),
+    teachers: has("teachers"),
+    parents: has("parents"),
+    academics: has("academics"),
+    attendance: has("attendance"),
+    fees: has("fees"),
+    finance: has("finance"),
+    exams: has("examinations"),
+    activity: has("audit"),
+  };
+}
+
 export function dashboardVisibilityFor(role: string): DashboardVisibility {
   const has = (m: PermissionModule) => roleHasModule(role, m);
   return {
