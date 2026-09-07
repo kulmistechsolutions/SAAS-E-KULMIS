@@ -14,6 +14,7 @@ import { Roles } from "../auth/roles.decorator";
 import { STAFF_ROLES } from "../auth/role-groups";
 import { CurrentUser } from "../auth/current-user.decorator";
 import type { AuthUser } from "../auth/auth.types";
+import { RequirePermission } from "../auth/require-permission.decorator";
 
 // Staff-only by default (excludes PARENT/STUDENT). The `mark` handler below
 // overrides this with a stricter write-role set.
@@ -58,6 +59,7 @@ export class StudentAttendanceController {
     UserRole.ATTENDANCE_OFFICER,
     UserRole.TEACHER,
   )
+  @RequirePermission("attendance.create")
   @Post("mark")
   async mark(@CurrentUser() me: AuthUser, @Body() body: unknown) {
     const parsed = markStudentAttendanceSchema.safeParse(body);
@@ -71,6 +73,7 @@ export class StudentAttendanceController {
     return this.attendance.mark(me.schoolId, parsed.data, me.userId, me.role);
   }
 
+  @RequirePermission("attendance.view")
   @Get()
   async list(
     @CurrentUser() me: AuthUser,
@@ -93,6 +96,7 @@ export class StudentAttendanceController {
   }
 
   /** The classes this account may take attendance for. */
+  @RequirePermission("attendance.view")
   @Get("my-assignments")
   myAssignments(@CurrentUser() me: AuthUser) {
     return this.scope.assignmentsFor(me.schoolId, me.userId);
@@ -106,12 +110,14 @@ export class StudentAttendanceController {
    * cannot, and which is how a register quietly goes unmarked.
    */
   @Roles(UserRole.ATTENDANCE_OFFICER, UserRole.ADMINISTRATOR)
+  @RequirePermission("attendance.view")
   @Get("my-day")
   myDay(@CurrentUser() me: AuthUser, @Query("date") date: string) {
     if (!date) throw new BadRequestException("date is required");
     return this.scope.myDay(me.schoolId, me.userId, date);
   }
 
+  @RequirePermission("attendance.view")
   @Get("dashboard")
   async dashboard(
     @CurrentUser() me: AuthUser,

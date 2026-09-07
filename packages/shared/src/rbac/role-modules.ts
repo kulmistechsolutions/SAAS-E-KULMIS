@@ -124,7 +124,7 @@ export const PERMISSIONS_BY_ROLE: Record<
     academics: READ,
     teachers: READ,
     examinations: READ,
-    quiz: ["view", "export"],
+    quiz: ["view", "update", "export"],
     sms: ["view", "create"],
   },
   [UserRole.FINANCE_OFFICER]: {

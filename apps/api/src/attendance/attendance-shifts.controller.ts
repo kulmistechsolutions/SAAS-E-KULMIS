@@ -15,6 +15,7 @@ import { Roles } from "../auth/roles.decorator";
 import { STAFF_ROLES } from "../auth/role-groups";
 import { CurrentUser } from "../auth/current-user.decorator";
 import type { AuthUser } from "../auth/auth.types";
+import { RequirePermission } from "../auth/require-permission.decorator";
 
 /**
  * Attendance Shift Management — a school's own list of named sessions
@@ -27,6 +28,9 @@ import type { AuthUser } from "../auth/auth.types";
 export class AttendanceShiftsController {
   constructor(private readonly shifts: AttendanceShiftsService) {}
 
+  // The list is reference data — registration forms, class pickers and
+  // timetables all render it — so reading it is not gated on holding the
+  // attendance module. Changing it is.
   @Get()
   list(
     @CurrentUser() me: AuthUser,
@@ -36,6 +40,7 @@ export class AttendanceShiftsController {
   }
 
   @Roles(UserRole.ADMINISTRATOR, UserRole.ATTENDANCE_OFFICER)
+  @RequirePermission("attendance.update")
   @Post()
   create(@CurrentUser() me: AuthUser, @Body() body: unknown) {
     const parsed = saveAttendanceShiftSchema.safeParse(body);
@@ -44,6 +49,7 @@ export class AttendanceShiftsController {
   }
 
   @Roles(UserRole.ADMINISTRATOR, UserRole.ATTENDANCE_OFFICER)
+  @RequirePermission("attendance.update")
   @Patch(":id")
   update(
     @CurrentUser() me: AuthUser,
@@ -56,6 +62,7 @@ export class AttendanceShiftsController {
   }
 
   @Roles(UserRole.ADMINISTRATOR, UserRole.ATTENDANCE_OFFICER)
+  @RequirePermission("attendance.update")
   @Delete(":id")
   remove(@CurrentUser() me: AuthUser, @Param("id") id: string) {
     return this.shifts.remove(me.schoolId, id);

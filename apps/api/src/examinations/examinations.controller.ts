@@ -35,12 +35,14 @@ import { Public } from "../auth/public.decorator";
 import { CurrentTenant } from "../tenant/current-tenant.decorator";
 import type { TenantContext } from "@ekulmis/shared";
 import { contentDispositionHeader } from "../common/content-disposition.util";
+import { RequirePermission } from "../auth/require-permission.decorator";
 
 @Controller("examinations")
 export class ExaminationsController {
   constructor(private readonly exams: ExaminationsService) {}
 
   @Roles(UserRole.ADMINISTRATOR, UserRole.EXAM_MANAGER)
+  @RequirePermission("examinations.view")
   @Get("dashboard")
   dashboard(@CurrentUser() me: AuthUser) {
     return this.exams.dashboard(me.schoolId);
@@ -48,6 +50,7 @@ export class ExaminationsController {
 
   /** School-wide performance behind the Reports Center. */
   @Roles(UserRole.ADMINISTRATOR, UserRole.EXAM_MANAGER, UserRole.ACADEMIC_MANAGER)
+  @RequirePermission("examinations.view")
   @Get("reports/overview")
   reportsOverview(
     @CurrentUser() me: AuthUser,
@@ -57,6 +60,7 @@ export class ExaminationsController {
   }
 
   @Roles(UserRole.ADMINISTRATOR, UserRole.EXAM_MANAGER, UserRole.TEACHER)
+  @RequirePermission("examinations.view")
   @Get("groups")
   listGroups(
     @CurrentUser() me: AuthUser,
@@ -66,6 +70,7 @@ export class ExaminationsController {
   }
 
   @Roles(UserRole.ADMINISTRATOR, UserRole.EXAM_MANAGER)
+  @RequirePermission("examinations.create")
   @Post("groups")
   createGroup(@CurrentUser() me: AuthUser, @Body() body: unknown) {
     const parsed = createExamGroupSchema.safeParse(body);
@@ -74,6 +79,7 @@ export class ExaminationsController {
   }
 
   @Roles(UserRole.ADMINISTRATOR, UserRole.EXAM_MANAGER)
+  @RequirePermission("examinations.approve")
   @Patch("groups/:groupId/publish")
   publishGroup(
     @CurrentUser() me: AuthUser,
@@ -83,6 +89,7 @@ export class ExaminationsController {
   }
 
   @Roles(UserRole.ADMINISTRATOR, UserRole.EXAM_MANAGER)
+  @RequirePermission("examinations.approve")
   @Patch("groups/:groupId/unpublish")
   unpublishGroup(
     @CurrentUser() me: AuthUser,
@@ -92,6 +99,7 @@ export class ExaminationsController {
   }
 
   @Roles(UserRole.ADMINISTRATOR, UserRole.EXAM_MANAGER)
+  @RequirePermission("examinations.view")
   @Get("monitoring")
   monitoring(
     @CurrentUser() me: AuthUser,
@@ -101,6 +109,7 @@ export class ExaminationsController {
   }
 
   @Roles(UserRole.ADMINISTRATOR, UserRole.EXAM_MANAGER)
+  @RequirePermission("examinations.view")
   @Get("monitoring/classes")
   monitoringClasses(
     @CurrentUser() me: AuthUser,
@@ -115,6 +124,7 @@ export class ExaminationsController {
   }
 
   @Roles(UserRole.ADMINISTRATOR, UserRole.EXAM_MANAGER)
+  @RequirePermission("examinations.view")
   @Get("monitoring/classes/:classId")
   monitoringClassDetail(
     @CurrentUser() me: AuthUser,
@@ -131,6 +141,7 @@ export class ExaminationsController {
   }
 
   @Roles(UserRole.ADMINISTRATOR, UserRole.EXAM_MANAGER)
+  @RequirePermission("examinations.update")
   @Post("monitoring/remind")
   sendReminder(@CurrentUser() me: AuthUser, @Body() body: unknown) {
     const parsed = examSubmissionReminderSchema.safeParse(body);
@@ -145,6 +156,7 @@ export class ExaminationsController {
   }
 
   @Roles(UserRole.ADMINISTRATOR, UserRole.EXAM_MANAGER)
+  @RequirePermission("examinations.print")
   @Get("results/matrix/export/pdf")
   @Header("Content-Type", "application/pdf")
   async exportResultsPdf(
@@ -170,6 +182,7 @@ export class ExaminationsController {
   }
 
   @Roles(UserRole.ADMINISTRATOR, UserRole.EXAM_MANAGER)
+  @RequirePermission("examinations.export")
   @Get("results/matrix/export/xlsx")
   @Header(
     "Content-Type",
@@ -198,6 +211,7 @@ export class ExaminationsController {
   }
 
   @Roles(UserRole.ADMINISTRATOR, UserRole.EXAM_MANAGER)
+  @RequirePermission("examinations.export")
   @Get("groups/:groupId/export/xlsx")
   @Header(
     "Content-Type",
@@ -219,6 +233,7 @@ export class ExaminationsController {
   }
 
   @Roles(UserRole.ADMINISTRATOR, UserRole.EXAM_MANAGER)
+  @RequirePermission("examinations.print")
   @Get("groups/:groupId/export/pdf")
   @Header("Content-Type", "application/pdf")
   async exportGroupResultsPdf(
@@ -241,6 +256,7 @@ export class ExaminationsController {
   }
 
   @Roles(UserRole.ADMINISTRATOR, UserRole.EXAM_MANAGER)
+  @RequirePermission("examinations.view")
   @Get("results/classes")
   resultsClasses(
     @CurrentUser() me: AuthUser,
@@ -250,6 +266,7 @@ export class ExaminationsController {
   }
 
   @Roles(UserRole.ADMINISTRATOR, UserRole.EXAM_MANAGER)
+  @RequirePermission("examinations.view")
   @Get("results/matrix")
   classResultsMatrix(
     @CurrentUser() me: AuthUser,
@@ -275,6 +292,7 @@ export class ExaminationsController {
 
   /** The "All Terms (Combined)" view of a report's term selector. */
   @Roles(UserRole.ADMINISTRATOR, UserRole.EXAM_MANAGER)
+  @RequirePermission("examinations.view")
   @Get("results/matrix/combined")
   classResultsMatrixCombined(
     @CurrentUser() me: AuthUser,
@@ -299,6 +317,7 @@ export class ExaminationsController {
   }
 
   @Roles(UserRole.ADMINISTRATOR, UserRole.EXAM_MANAGER)
+  @RequirePermission("examinations.print")
   @Get("results/matrix/combined/export/pdf")
   @Header("Content-Type", "application/pdf")
   async exportResultsCombinedPdf(
@@ -321,6 +340,7 @@ export class ExaminationsController {
   }
 
   @Roles(UserRole.ADMINISTRATOR, UserRole.EXAM_MANAGER)
+  @RequirePermission("examinations.export")
   @Get("results/matrix/combined/export/xlsx")
   @Header(
     "Content-Type",
@@ -346,12 +366,14 @@ export class ExaminationsController {
   }
 
   @Roles(UserRole.ADMINISTRATOR, UserRole.EXAM_MANAGER)
+  @RequirePermission("examinations.view")
   @Get("blocked")
   listBlocked(@CurrentUser() me: AuthUser) {
     return this.exams.listBlocked(me.schoolId);
   }
 
   @Roles(UserRole.ADMINISTRATOR, UserRole.EXAM_MANAGER)
+  @RequirePermission("examinations.create")
   @Post("blocked")
   blockStudent(@CurrentUser() me: AuthUser, @Body() body: unknown) {
     const parsed = blockStudentSchema.safeParse(body);
@@ -360,12 +382,14 @@ export class ExaminationsController {
   }
 
   @Roles(UserRole.ADMINISTRATOR, UserRole.EXAM_MANAGER)
+  @RequirePermission("examinations.delete")
   @Delete("blocked/:id")
   unblockStudent(@CurrentUser() me: AuthUser, @Param("id") id: string) {
     return this.exams.unblockStudent(me.schoolId, id);
   }
 
   @Roles(UserRole.ADMINISTRATOR, UserRole.EXAM_MANAGER, UserRole.TEACHER)
+  @RequirePermission("examinations.update")
   @Post("marks")
   upsertMarks(@CurrentUser() me: AuthUser, @Body() body: unknown) {
     const parsed = upsertExamMarksSchema.safeParse(body);
@@ -374,6 +398,7 @@ export class ExaminationsController {
   }
 
   @Roles(UserRole.ADMINISTRATOR, UserRole.EXAM_MANAGER, UserRole.TEACHER)
+  @RequirePermission("examinations.view")
   @Get("results/:studentId")
   studentResults(
     @CurrentUser() me: AuthUser,
@@ -384,6 +409,7 @@ export class ExaminationsController {
   }
 
   @Roles(UserRole.ADMINISTRATOR, UserRole.EXAM_MANAGER, UserRole.TEACHER)
+  @RequirePermission("examinations.view")
   @Get("results/:studentId/transcript/pdf")
   @Header("Content-Type", "application/pdf")
   async transcriptPdf(
@@ -424,6 +450,7 @@ export class ExaminationsController {
   }
 
   @Roles(UserRole.ADMINISTRATOR, UserRole.EXAM_MANAGER, UserRole.TEACHER)
+  @RequirePermission("examinations.view")
   @Get()
   async listExams(
     @CurrentUser() me: AuthUser,
@@ -460,6 +487,7 @@ export class ExaminationsController {
   }
 
   @Roles(UserRole.ADMINISTRATOR, UserRole.EXAM_MANAGER)
+  @RequirePermission("examinations.view")
   @Post("preview")
   previewBulk(@CurrentUser() me: AuthUser, @Body() body: unknown) {
     const parsed = examCreationBulkSchema.safeParse(body);
@@ -468,6 +496,7 @@ export class ExaminationsController {
   }
 
   @Roles(UserRole.ADMINISTRATOR, UserRole.EXAM_MANAGER)
+  @RequirePermission("examinations.create")
   @Post("bulk")
   createBulk(@CurrentUser() me: AuthUser, @Body() body: unknown) {
     const parsed = examCreationBulkSchema.safeParse(body);
@@ -481,6 +510,7 @@ export class ExaminationsController {
   }
 
   @Roles(UserRole.ADMINISTRATOR, UserRole.EXAM_MANAGER)
+  @RequirePermission("examinations.create")
   @Post()
   createExam(@CurrentUser() me: AuthUser, @Body() body: unknown) {
     const parsed = createExamSchema.safeParse(body);
@@ -494,12 +524,14 @@ export class ExaminationsController {
   }
 
   @Roles(UserRole.ADMINISTRATOR, UserRole.EXAM_MANAGER, UserRole.TEACHER)
+  @RequirePermission("examinations.view")
   @Get(":id")
   getExam(@CurrentUser() me: AuthUser, @Param("id") id: string) {
     return this.exams.getExam(me.schoolId, id);
   }
 
   @Roles(UserRole.ADMINISTRATOR, UserRole.EXAM_MANAGER, UserRole.TEACHER)
+  @RequirePermission("examinations.view")
   @Get(":id/marks")
   getMarks(@CurrentUser() me: AuthUser, @Param("id") id: string) {
     return this.exams.getMarks(me.schoolId, id);
@@ -507,6 +539,7 @@ export class ExaminationsController {
 
   /** Students in the exam class/section for mark entry (no View Students permission). */
   @Roles(UserRole.ADMINISTRATOR, UserRole.EXAM_MANAGER, UserRole.TEACHER)
+  @RequirePermission("examinations.view")
   @Get(":id/roster")
   examRoster(@CurrentUser() me: AuthUser, @Param("id") id: string) {
     return this.exams.examRoster(me.schoolId, id, me.userId, me.role);
@@ -514,6 +547,7 @@ export class ExaminationsController {
 
   /** Download an .xlsx mark-entry template for one exam + subject. */
   @Roles(UserRole.ADMINISTRATOR, UserRole.EXAM_MANAGER, UserRole.TEACHER)
+  @RequirePermission("examinations.update", "examinations.export")
   @Get(":id/marks/template")
   @Header(
     "Content-Type",
@@ -539,6 +573,7 @@ export class ExaminationsController {
 
   /** Import a completed .xlsx marks template (base64 in body, like student import). */
   @Roles(UserRole.ADMINISTRATOR, UserRole.EXAM_MANAGER, UserRole.TEACHER)
+  @RequirePermission("examinations.update", "examinations.import")
   @Post(":id/marks/import")
   async importMarks(
     @CurrentUser() me: AuthUser,
@@ -561,6 +596,7 @@ export class ExaminationsController {
   }
 
   @Roles(UserRole.ADMINISTRATOR, UserRole.EXAM_MANAGER, UserRole.TEACHER)
+  @RequirePermission("examinations.update")
   @Post(":id/subjects/:subjectId/submit")
   submitSubject(
     @CurrentUser() me: AuthUser,
@@ -577,6 +613,7 @@ export class ExaminationsController {
   }
 
   @Roles(UserRole.ADMINISTRATOR, UserRole.EXAM_MANAGER)
+  @RequirePermission("examinations.update")
   @Patch(":id/teacher-lock")
   teacherLock(
     @CurrentUser() me: AuthUser,
@@ -589,6 +626,7 @@ export class ExaminationsController {
   }
 
   @Roles(UserRole.ADMINISTRATOR, UserRole.EXAM_MANAGER)
+  @RequirePermission("examinations.update")
   @Patch(":id/student-portal")
   studentPortal(
     @CurrentUser() me: AuthUser,
@@ -606,6 +644,7 @@ export class ExaminationsController {
   }
 
   @Roles(UserRole.ADMINISTRATOR, UserRole.EXAM_MANAGER)
+  @RequirePermission("examinations.update")
   @Patch(":id/group")
   assignGroup(
     @CurrentUser() me: AuthUser,
@@ -618,6 +657,7 @@ export class ExaminationsController {
   }
 
   @Roles(UserRole.ADMINISTRATOR, UserRole.EXAM_MANAGER)
+  @RequirePermission("examinations.update")
   @Patch(":id/status")
   updateStatus(
     @CurrentUser() me: AuthUser,
@@ -630,6 +670,7 @@ export class ExaminationsController {
   }
 
   @Roles(UserRole.ADMINISTRATOR, UserRole.EXAM_MANAGER)
+  @RequirePermission("examinations.delete")
   @Delete(":id")
   deleteExam(
     @CurrentUser() me: AuthUser,
@@ -640,6 +681,7 @@ export class ExaminationsController {
   }
 
   @Roles(UserRole.ADMINISTRATOR, UserRole.EXAM_MANAGER)
+  @RequirePermission("examinations.approve")
   @Post(":id/publish")
   publishExam(@CurrentUser() me: AuthUser, @Param("id") id: string) {
     return this.exams.updateExamStatus(me.schoolId, id, "PUBLISHED");

@@ -35,6 +35,20 @@ adm.update({'users': ["view","create","update","export","print"],
 table['ADMINISTRATOR'] = adm
 table['RECEPTION'] = table.get('RECEPTION_OFFICER', {})
 
+# Narrowings that are the point of the change, not an accident.
+#
+# Each is an API door that stood open while no page these roles can reach ever
+# used it. Listing them here keeps the check meaningful — anything NOT on this
+# list that would lose access is a mistake — and records why each was closed.
+INTENTIONAL = {
+    ('attendance/student-attendance.controller.ts', r, 'attendance.view'):
+        "the register itself: who was absent today is not a finance, library, "
+        "reception, exam or academic desk's business, and no page they can "
+        "open has ever called it"
+    for r in ('FINANCE_OFFICER', 'LIBRARIAN', 'RECEPTION', 'RECEPTION_OFFICER',
+              'EXAM_MANAGER', 'ACADEMIC_MANAGER')
+}
+
 problems = []
 for path in sorted(glob.glob('apps/api/src/**/*.controller.ts', recursive=True)):
     s = io.open(path, encoding='utf-8').read()
@@ -66,11 +80,14 @@ for path in sorted(glob.glob('apps/api/src/**/*.controller.ts', recursive=True))
                 continue
             g = table.get(r, {})
             if not any(p.split('.')[1] in g.get(p.split('.')[0], []) for p in perms):
-                problems.append((path, r, ','.join(perms)))
+                key = (path.replace(chr(92), '/').replace('apps/api/src/', ''), r, ','.join(perms))
+                if key not in INTENTIONAL:
+                    problems.append(key)
 
 if problems:
-    print(f"{len(problems)} role/route pairs would lose access:")
+    print(f"{len(problems)} role/route pairs would lose access UNINTENTIONALLY:")
     for p in sorted(set(problems)):
         print('  ', p[0], p[1], p[2])
     sys.exit(1)
-print("OK — every role keeps every route it reaches today.")
+print(f"OK — every role keeps every route it reaches today "
+      f"({len(INTENTIONAL)} deliberate narrowings recorded).")

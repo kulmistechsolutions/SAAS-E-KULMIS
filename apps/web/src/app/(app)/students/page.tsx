@@ -26,6 +26,7 @@ import { SummaryCards } from "@/components/students/summary-cards";
 import { StudentFormDialog } from "@/components/students/student-form-dialog";
 import { StudentAvatar } from "@/components/students/student-avatar";
 import { ImportDialog } from "@/components/students/import-dialog";
+import { Can } from "@/components/auth/can";
 import { ConfirmDialog } from "@/components/students/confirm-dialog";
 import {
   bulkDeleteStudents,
@@ -329,23 +330,32 @@ export default function StudentsPage() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Button variant="outline" onClick={() => setFieldDialogMode("print")}>
-            <Printer className="me-2 h-4 w-4" /> {t("students.print")}
-          </Button>
-          <Button variant="outline" onClick={() => setFieldDialogMode("export")}>
-            <FileDown className="me-2 h-4 w-4" /> {t("students.export")}
-          </Button>
-          <Button variant="outline" onClick={() => setImportOpen(true)}>
-            <Upload className="me-2 h-4 w-4" /> {t("students.import")}
-          </Button>
-          <Button
-            onClick={() => {
-              setEditing(null);
-              setFormOpen(true);
-            }}
-          >
-            <Plus className="me-2 h-4 w-4" /> {t("students.addStudent")}
-          </Button>
+          {/* Each control asks for the permission the server will ask for. */}
+          <Can perform="students.print">
+            <Button variant="outline" onClick={() => setFieldDialogMode("print")}>
+              <Printer className="me-2 h-4 w-4" /> {t("students.print")}
+            </Button>
+          </Can>
+          <Can perform="students.export">
+            <Button variant="outline" onClick={() => setFieldDialogMode("export")}>
+              <FileDown className="me-2 h-4 w-4" /> {t("students.export")}
+            </Button>
+          </Can>
+          <Can perform="students.import">
+            <Button variant="outline" onClick={() => setImportOpen(true)}>
+              <Upload className="me-2 h-4 w-4" /> {t("students.import")}
+            </Button>
+          </Can>
+          <Can perform="students.create">
+            <Button
+              onClick={() => {
+                setEditing(null);
+                setFormOpen(true);
+              }}
+            >
+              <Plus className="me-2 h-4 w-4" /> {t("students.addStudent")}
+            </Button>
+          </Can>
         </div>
       </div>
 

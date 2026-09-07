@@ -19,6 +19,7 @@ import { TeachersService } from "./teachers.service";
 import { Roles } from "../auth/roles.decorator";
 import { CurrentUser } from "../auth/current-user.decorator";
 import type { AuthUser } from "../auth/auth.types";
+import { RequirePermission } from "../auth/require-permission.decorator";
 
 // Class-subject-teacher scheduling data is only relevant to whoever manages
 // the teacher directory (admin/academic manager) or the teacher themself
@@ -33,6 +34,7 @@ export class TeacherAssignmentsController {
   ) {}
 
   @Roles(UserRole.ADMINISTRATOR)
+  @RequirePermission("teachers.update", "academics.update")
   @Post()
   create(@CurrentUser() me: AuthUser, @Body() body: unknown) {
     const parsed = createAssignmentSchema.safeParse(body);
@@ -41,6 +43,7 @@ export class TeacherAssignmentsController {
   }
 
   @Roles(UserRole.ADMINISTRATOR)
+  @RequirePermission("teachers.update", "academics.update")
   @Post("bulk")
   createBulk(@CurrentUser() me: AuthUser, @Body() body: unknown) {
     const parsed = bulkCreateAssignmentsSchema.safeParse(body);
@@ -48,6 +51,7 @@ export class TeacherAssignmentsController {
     return this.assignments.createBulk(me.schoolId, parsed.data);
   }
 
+  @RequirePermission("teachers.view", "academics.view")
   @Get()
   async findAll(
     @CurrentUser() me: AuthUser,
@@ -75,6 +79,7 @@ export class TeacherAssignmentsController {
     });
   }
 
+  @RequirePermission("teachers.view", "academics.view")
   @Get(":id")
   async findOne(@CurrentUser() me: AuthUser, @Param("id") id: string) {
     const row = await this.assignments.findOne(me.schoolId, id);
@@ -90,6 +95,7 @@ export class TeacherAssignmentsController {
   }
 
   @Roles(UserRole.ADMINISTRATOR)
+  @RequirePermission("teachers.delete", "academics.update")
   @Delete(":id")
   remove(@CurrentUser() me: AuthUser, @Param("id") id: string) {
     return this.assignments.remove(me.schoolId, id);

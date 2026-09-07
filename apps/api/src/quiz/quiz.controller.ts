@@ -27,11 +27,13 @@ import type { AuthUser } from "../auth/auth.types";
 import { Public } from "../auth/public.decorator";
 import { CurrentTenant } from "../tenant/current-tenant.decorator";
 import type { TenantContext } from "@ekulmis/shared";
+import { RequirePermission } from "../auth/require-permission.decorator";
 
 @Controller("quiz")
 export class QuizController {
   constructor(private readonly quiz: QuizService) {}
 
+  @RequirePermission("quiz.view")
   @Get()
   async list(
     @CurrentUser() me: AuthUser,
@@ -45,6 +47,7 @@ export class QuizController {
     return this.quiz.list(me.schoolId, { academicYearId, classId, teacherId });
   }
 
+  @RequirePermission("quiz.view")
   @Get("dashboard")
   async dashboard(@CurrentUser() me: AuthUser) {
     let teacherId: string | undefined;
@@ -55,12 +58,14 @@ export class QuizController {
   }
 
   @Roles(UserRole.ADMINISTRATOR, UserRole.EXAM_MANAGER, UserRole.ACADEMIC_MANAGER)
+  @RequirePermission("quiz.view")
   @Get("monitoring")
   monitoring(@CurrentUser() me: AuthUser) {
     return this.quiz.monitoring(me.schoolId);
   }
 
   @Roles(UserRole.ADMINISTRATOR, UserRole.TEACHER, UserRole.EXAM_MANAGER)
+  @RequirePermission("quiz.create")
   @Post()
   create(@CurrentUser() me: AuthUser, @Body() body: unknown) {
     const parsed = createQuizSchema.safeParse(body);
@@ -71,6 +76,7 @@ export class QuizController {
     });
   }
 
+  @RequirePermission("quiz.view")
   @Get("student/:studentId/attempts")
   studentAttempts(
     @CurrentUser() me: AuthUser,
@@ -79,6 +85,7 @@ export class QuizController {
     return this.quiz.studentAttempts(me.schoolId, studentId);
   }
 
+  @RequirePermission("quiz.view")
   @Get("student/:studentId/quizzes")
   quizzesForStudent(
     @CurrentUser() me: AuthUser,
@@ -157,6 +164,7 @@ export class QuizController {
   }
 
   @Roles(UserRole.ADMINISTRATOR, UserRole.TEACHER, UserRole.EXAM_MANAGER)
+  @RequirePermission("quiz.update")
   @Patch(":id/builder")
   updateBuilder(
     @CurrentUser() me: AuthUser,
@@ -172,6 +180,7 @@ export class QuizController {
   }
 
   @Roles(UserRole.ADMINISTRATOR, UserRole.TEACHER, UserRole.EXAM_MANAGER)
+  @RequirePermission("quiz.update")
   @Patch(":id/publish")
   async publish(@CurrentUser() me: AuthUser, @Param("id") id: string) {
     if (me.role === "TEACHER") {
@@ -181,6 +190,7 @@ export class QuizController {
   }
 
   @Roles(UserRole.ADMINISTRATOR, UserRole.TEACHER, UserRole.EXAM_MANAGER)
+  @RequirePermission("quiz.update")
   @Patch(":id/close")
   async close(@CurrentUser() me: AuthUser, @Param("id") id: string) {
     if (me.role === "TEACHER") {
@@ -190,12 +200,14 @@ export class QuizController {
   }
 
   @Roles(UserRole.ADMINISTRATOR, UserRole.EXAM_MANAGER, UserRole.ACADEMIC_MANAGER)
+  @RequirePermission("quiz.update")
   @Patch(":id/archive")
   archive(@CurrentUser() me: AuthUser, @Param("id") id: string) {
     return this.quiz.archive(me.schoolId, id);
   }
 
   @Roles(UserRole.ADMINISTRATOR, UserRole.TEACHER, UserRole.EXAM_MANAGER)
+  @RequirePermission("quiz.view")
   @Get(":id/live")
   async liveMonitoring(@CurrentUser() me: AuthUser, @Param("id") id: string) {
     if (me.role === "TEACHER") {
@@ -205,6 +217,7 @@ export class QuizController {
   }
 
   @Roles(UserRole.ADMINISTRATOR, UserRole.TEACHER, UserRole.EXAM_MANAGER)
+  @RequirePermission("quiz.view")
   @Get(":id/students/:studentId/timeline")
   async timeline(
     @CurrentUser() me: AuthUser,
@@ -218,6 +231,7 @@ export class QuizController {
   }
 
   @Roles(UserRole.ADMINISTRATOR, UserRole.TEACHER, UserRole.EXAM_MANAGER)
+  @RequirePermission("quiz.view")
   @Get(":id/attempts")
   async attempts(@CurrentUser() me: AuthUser, @Param("id") id: string) {
     if (me.role === "TEACHER") {
@@ -227,6 +241,7 @@ export class QuizController {
   }
 
   @Roles(UserRole.ADMINISTRATOR, UserRole.TEACHER, UserRole.EXAM_MANAGER)
+  @RequirePermission("quiz.view")
   @Get("attempts/:attemptId/result")
   async attemptResult(
     @CurrentUser() me: AuthUser,
@@ -236,6 +251,7 @@ export class QuizController {
   }
 
   @Roles(UserRole.ADMINISTRATOR, UserRole.TEACHER, UserRole.EXAM_MANAGER)
+  @RequirePermission("quiz.view")
   @Get(":id")
   async getOne(@CurrentUser() me: AuthUser, @Param("id") id: string) {
     if (me.role === "TEACHER") {
@@ -245,6 +261,7 @@ export class QuizController {
   }
 
   @Roles(UserRole.ADMINISTRATOR, UserRole.TEACHER, UserRole.EXAM_MANAGER)
+  @RequirePermission("quiz.update")
   @Patch("attempts/:attemptId/answers/:answerId/grade")
   gradeAnswer(
     @CurrentUser() me: AuthUser,

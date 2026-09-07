@@ -11,12 +11,14 @@ import { TeacherAttendanceService } from "./teacher-attendance.service";
 import { Roles } from "../auth/roles.decorator";
 import { CurrentUser } from "../auth/current-user.decorator";
 import type { AuthUser } from "../auth/auth.types";
+import { RequirePermission } from "../auth/require-permission.decorator";
 
 @Controller("teacher-attendance")
 export class TeacherAttendanceController {
   constructor(private readonly attendance: TeacherAttendanceService) {}
 
   @Roles(UserRole.ADMINISTRATOR, UserRole.ATTENDANCE_OFFICER)
+  @RequirePermission("attendance.create")
   @Post("mark")
   mark(@CurrentUser() me: AuthUser, @Body() body: unknown) {
     const parsed = markTeacherAttendanceSchema.safeParse(body);
@@ -25,6 +27,7 @@ export class TeacherAttendanceController {
   }
 
   @Roles(UserRole.ADMINISTRATOR, UserRole.ATTENDANCE_OFFICER)
+  @RequirePermission("attendance.view")
   @Get()
   list(
     @CurrentUser() me: AuthUser,
@@ -38,6 +41,7 @@ export class TeacherAttendanceController {
   }
 
   @Roles(UserRole.ADMINISTRATOR, UserRole.ATTENDANCE_OFFICER)
+  @RequirePermission("attendance.view")
   @Get("dashboard")
   dashboard(
     @CurrentUser() me: AuthUser,

@@ -13,6 +13,7 @@ import { AuditService } from "../audit/audit.service";
 import { Roles } from "../auth/roles.decorator";
 import { CurrentUser } from "../auth/current-user.decorator";
 import type { AuthUser } from "../auth/auth.types";
+import { RequirePermission } from "../auth/require-permission.decorator";
 
 /**
  * The administrator's side of attendance officers: who they are and where
@@ -31,6 +32,7 @@ export class AttendanceOfficersController {
   ) {}
 
   /** Every attendance officer with the classes, sections and shifts they hold. */
+  @RequirePermission("attendance.approve")
   @Get()
   list(@CurrentUser() me: AuthUser) {
     return this.scope.listOfficers(me.schoolId);
@@ -42,6 +44,7 @@ export class AttendanceOfficersController {
    * in the marks; only this tells them apart, and only while the day can
    * still be fixed.
    */
+  @RequirePermission("attendance.approve")
   @Get("monitoring")
   monitoring(@CurrentUser() me: AuthUser, @Query("date") date: string) {
     if (!date) throw new BadRequestException("date is required");
@@ -49,6 +52,7 @@ export class AttendanceOfficersController {
   }
 
   /** How each officer has kept up, measured against their own assignments. */
+  @RequirePermission("attendance.approve")
   @Get("performance")
   performance(
     @CurrentUser() me: AuthUser,
@@ -61,6 +65,7 @@ export class AttendanceOfficersController {
     return this.scope.performance(me.schoolId, from, to);
   }
 
+  @RequirePermission("attendance.approve")
   @Get(":userId/assignments")
   assignments(@CurrentUser() me: AuthUser, @Param("userId") userId: string) {
     return this.scope.assignmentsFor(me.schoolId, userId);
@@ -72,6 +77,7 @@ export class AttendanceOfficersController {
    * Replace rather than add: an administrator editing this screen is stating
    * what the officer should have, and a class they unticked must actually go.
    */
+  @RequirePermission("attendance.approve")
   @Post("assignments")
   async setAssignments(@CurrentUser() me: AuthUser, @Body() body: unknown) {
     const parsed = attendanceAssignmentsSchema.safeParse(body);

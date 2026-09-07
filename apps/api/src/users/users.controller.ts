@@ -19,6 +19,7 @@ import { UsersService } from "./users.service";
 import { Roles } from "../auth/roles.decorator";
 import { CurrentUser } from "../auth/current-user.decorator";
 import type { AuthUser } from "../auth/auth.types";
+import { RequirePermission } from "../auth/require-permission.decorator";
 
 /** User Management (Module 15). Administrator-only, tenant-scoped. */
 @Roles(UserRole.ADMINISTRATOR)
@@ -26,6 +27,7 @@ import type { AuthUser } from "../auth/auth.types";
 export class UsersController {
   constructor(private readonly users: UsersService) {}
 
+  @RequirePermission("users.create")
   @Post()
   create(@CurrentUser() me: AuthUser, @Body() body: unknown) {
     const parsed = createUserSchema.safeParse(body);
@@ -40,16 +42,19 @@ export class UsersController {
     return this.users.create(me.schoolId, parsed.data);
   }
 
+  @RequirePermission("users.view")
   @Get()
   findAll(@CurrentUser() me: AuthUser) {
     return this.users.findAll(me.schoolId);
   }
 
+  @RequirePermission("users.view")
   @Get(":id")
   findOne(@CurrentUser() me: AuthUser, @Param("id") id: string) {
     return this.users.findOne(me.schoolId, id);
   }
 
+  @RequirePermission("users.update")
   @Patch(":id")
   update(
     @CurrentUser() me: AuthUser,
@@ -71,6 +76,7 @@ export class UsersController {
     return this.users.update(me.schoolId, id, parsed.data);
   }
 
+  @RequirePermission("users.update")
   @Post(":id/reset-password")
   resetPassword(
     @CurrentUser() me: AuthUser,
@@ -84,6 +90,7 @@ export class UsersController {
     return this.users.resetPassword(me.schoolId, id, parsed.data.newPassword);
   }
 
+  @RequirePermission("users.delete", "users.update")
   @Delete(":id")
   remove(@CurrentUser() me: AuthUser, @Param("id") id: string) {
     if (id === me.userId) {
