@@ -183,7 +183,12 @@ function genericAction(method: string, path: string): string {
   return `${noun.toUpperCase().replace(/-/g, "_")}_${verb}`;
 }
 
-function friendlyAction(method: string, path: string): string {
+/**
+ * Exported so the naming can be tested. It is a pure function of a method and
+ * a path, and the alternative way to check it is to take a real payment on a
+ * live school — which is not a test, it is a transaction.
+ */
+export function friendlyAction(method: string, path: string): string {
   for (const r of ACTION_RULES) {
     if ((!r.method || r.method === method) && r.test.test(path)) return r.action;
   }
@@ -191,7 +196,7 @@ function friendlyAction(method: string, path: string): string {
 }
 
 /** Pull the class/section/subject/exam context from a request body, if present. */
-function extractMetadata(
+export function extractMetadata(
   body: Record<string, unknown> | undefined,
 ): Record<string, unknown> {
   if (!body || typeof body !== "object") return {};
