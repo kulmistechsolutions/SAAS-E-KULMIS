@@ -1545,6 +1545,9 @@ export const arGenerated: PartialDictionary = {
     nothingBilledYet: "لم تتم المطالبة بأي شهر بعد.",
   },
   feesMetricBreakdown: {
+    print: "طباعة",
+    exportCsv: "تصدير CSV",
+    total: "الإجمالي",
     loading: "جارٍ التحميل…",
     couldNotLoad: "تعذر تحميل البيانات. تحقق من الاتصال ثم أعد المحاولة.",
     expected: "المتوقع",

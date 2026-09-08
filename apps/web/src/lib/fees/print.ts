@@ -261,3 +261,130 @@ export function printClassCollectionList(
   </body></html>`);
   w.document.close();
 }
+
+/** One row of a dashboard drill-down, already shaped by the dialog. */
+export interface BreakdownRow {
+  /** Left column: a student's name, or a receipt number. */
+  primary: string;
+  /** Second column: their class, or the student a payment was for. */
+  secondary: string;
+  /** Money columns, in the order the dialog shows them. */
+  amounts: number[];
+}
+
+export interface BreakdownMeta {
+  /** What was clicked — "Still owed for", "Collected in". */
+  title: string;
+  /** Every filter that was active, already worded: year, month, class, status. */
+  context: string;
+  /** Column headings for `amounts`. */
+  amountHeadings: string[];
+  /** Heading for `secondary`. */
+  secondaryHeading: string;
+  primaryHeading: string;
+  /** The figure the card showed, so paper and screen can be compared. */
+  total?: number;
+}
+
+/**
+ * Print exactly the rows on screen, headed by exactly the filters that chose
+ * them.
+ *
+ * A printed financial list with no statement of what it was filtered to is
+ * worse than no list: it will be read months later as the whole school's
+ * position for the whole year. So the filter line is not decoration here — it
+ * is the part that makes the paper true, and it is built from the same state
+ * the rows were.
+ */
+export function printFeeBreakdown(rows: BreakdownRow[], meta: BreakdownMeta) {
+  const w = window.open("", "_blank", "width=900,height=700");
+  if (!w) return;
+  const lang = getStoredLang();
+  const tr = (key: Parameters<typeof translateIn>[1]) => translateIn(lang, key);
+
+  const body = rows
+    .map(
+      (r, i) => `<tr>
+        <td>${i + 1}</td>
+        <td>${escapeHtml(r.primary)}</td>
+        <td>${escapeHtml(r.secondary)}</td>
+        ${r.amounts.map((a) => `<td class="num">${money(a)}</td>`).join("")}
+      </tr>`,
+    )
+    .join("");
+
+  const cols = 3 + meta.amountHeadings.length;
+  w.document.write(`<!DOCTYPE html><html><head><title>${escapeHtml(meta.title)}</title>
+  <style>
+    *{font-family:Arial,Helvetica,sans-serif;box-sizing:border-box}
+    body{padding:32px;color:#0f172a}
+    ${PRINT_HEADER_CSS}
+    table{width:100%;border-collapse:collapse;margin-top:8px;font-size:13px}
+    th,td{border:1px solid #cbd5e1;padding:7px 10px;text-align:left}
+    th{background:#f1f5f9}
+    .num{text-align:right;font-variant-numeric:tabular-nums}
+    tfoot td{font-weight:bold;background:#f8fafc}
+    .foot{margin-top:24px;font-size:11px;color:#94a3b8}
+    @media print{body{padding:0}}
+  </style></head><body>
+  ${printHeaderHtml(`${escapeHtml(meta.title)} · ${escapeHtml(meta.context)}`)}
+  <table>
+    <thead><tr>
+      <th>#</th>
+      <th>${escapeHtml(meta.primaryHeading)}</th>
+      <th>${escapeHtml(meta.secondaryHeading)}</th>
+      ${meta.amountHeadings.map((h) => `<th class="num">${escapeHtml(h)}</th>`).join("")}
+    </tr></thead>
+    <tbody>${
+      body ||
+      `<tr><td colspan="${cols}">${tr("feesMetricBreakdown.nothingToShow")}</td></tr>`
+    }</tbody>
+    ${
+      meta.total === undefined
+        ? ""
+        : `<tfoot><tr><td colspan="${cols - 1}">${tr(
+            "feesMetricBreakdown.total",
+          )}</td><td class="num">${money(meta.total)}</td></tr></tfoot>`
+    }
+  </table>
+  <div class="foot">${rows.length} · ${new Date().toLocaleString()}</div>
+  <script>window.onload=function(){window.print()}</script>
+  </body></html>`);
+  w.document.close();
+}
+
+/** The same rows and the same filter line, as a spreadsheet. */
+export function exportFeeBreakdownCsv(rows: BreakdownRow[], meta: BreakdownMeta) {
+  // A cell beginning =, +, - or @ is a formula to Excel, and these cells hold
+  // names a school typed. Prefixed with a quote so a spreadsheet shows the
+  // text rather than running it.
+  const q = (v: string) =>
+    `"${(/^[=+\-@]/.test(v) ? `'${v}` : v).replace(/"/g, '""')}"`;
+  // The filter line rides in the file, not only in its name: a downloaded CSV
+  // gets renamed, mailed on, and opened by someone who never saw this screen.
+  const lines = [
+    q(`${meta.title} — ${meta.context}`),
+    "",
+    ["#", meta.primaryHeading, meta.secondaryHeading, ...meta.amountHeadings]
+      .map(q)
+      .join(","),
+    ...rows.map((r, i) =>
+      [q(String(i + 1)), q(r.primary), q(r.secondary), ...r.amounts].join(","),
+    ),
+  ];
+  if (meta.total !== undefined) {
+    lines.push("", [q("Total"), "", "", meta.total].join(","));
+  }
+
+  const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${meta.title} ${meta.context}`
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 80) + ".csv";
+  a.click();
+  URL.revokeObjectURL(url);
+}

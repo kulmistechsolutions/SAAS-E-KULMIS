@@ -4,6 +4,13 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useT } from "@/lib/i18n/provider";
 import { Dialog } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Download, Printer } from "lucide-react";
+import {
+  exportFeeBreakdownCsv,
+  printFeeBreakdown,
+  type BreakdownRow,
+} from "@/lib/fees/print";
 import { money, monthLabel } from "@/lib/fees/format";
 import { apiAllPositions, type StudentPosition } from "@/lib/fees/api";
 import { listStudentFees, useFeesState } from "@/lib/fees/store";
@@ -75,6 +82,7 @@ export function FeeMetricBreakdownDialog({
   academicYear,
   classId,
   sectionId,
+  filterNote,
   onClose,
 }: {
   metric: FeeMetric | null;
@@ -83,6 +91,12 @@ export function FeeMetricBreakdownDialog({
   /** The dashboard's own narrowing, so the list matches the card. */
   classId?: string;
   sectionId?: string;
+  /**
+   * Every active filter, already worded. Printed at the head of the paper: a
+   * financial list that does not say what it was filtered to will be read
+   * later as the whole school's position for the whole year.
+   */
+  filterNote?: string;
   onClose: () => void;
 }) {
   const t = useT();
@@ -198,6 +212,42 @@ export function FeeMetricBreakdownDialog({
       (r) => r.studentId === studentId,
     )?.fullName ?? studentId;
 
+  // What paper and spreadsheet both get: the rows on screen, and the filters
+  // that chose them. Built from the same arrays the table renders, so an
+  // export can never be a different question from the one that was asked.
+  const exportRows: BreakdownRow[] = isPayments
+    ? payments.map((p) => ({
+        primary: p.receiptNo,
+        secondary: nameOf(p.studentId),
+        amounts: [p.amount],
+      }))
+    : rows.map((r) => ({
+        primary: r.name,
+        secondary: r.className,
+        amounts: [r.expected, r.paid, r.outstanding],
+      }));
+
+  const exportMeta = {
+    title: TITLE[metric],
+    context: [monthLabel(month), academicYear, filterNote]
+      .filter(Boolean)
+      .join(" · "),
+    primaryHeading: isPayments
+      ? t("feesMetricBreakdown.receipt")
+      : t("feesMetricBreakdown.student"),
+    secondaryHeading: isPayments
+      ? t("feesMetricBreakdown.student")
+      : t("feesMetricBreakdown.classLabel"),
+    amountHeadings: isPayments
+      ? [t("feesMetricBreakdown.amount")]
+      : [
+          t("feesMetricBreakdown.expected"),
+          t("feesMetricBreakdown.paid"),
+          t("feesMetricBreakdown.balance"),
+        ],
+    total: showsMoney ? total : undefined,
+  };
+
   return (
     <Dialog
       open
@@ -206,6 +256,26 @@ export function FeeMetricBreakdownDialog({
       className="max-w-3xl"
     >
       <div className="space-y-4">
+        {count > 0 && (
+          <div className="flex flex-wrap justify-end gap-2">
+            <Button
+              variant="outline"
+              className="h-9"
+              onClick={() => printFeeBreakdown(exportRows, exportMeta)}
+            >
+              <Printer className="me-2 h-4 w-4" />
+              {t("feesMetricBreakdown.print")}
+            </Button>
+            <Button
+              variant="outline"
+              className="h-9"
+              onClick={() => exportFeeBreakdownCsv(exportRows, exportMeta)}
+            >
+              <Download className="me-2 h-4 w-4" />
+              {t("feesMetricBreakdown.exportCsv")}
+            </Button>
+          </div>
+        )}
         <p className="text-sm text-muted-foreground">
           {loading
             ? t("feesMetricBreakdown.loading")

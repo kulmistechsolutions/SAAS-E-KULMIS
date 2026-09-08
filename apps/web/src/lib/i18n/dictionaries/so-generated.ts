@@ -1546,6 +1546,9 @@ export const soGenerated: PartialDictionary = {
     nothingBilledYet: "Weli bil lama qorin, sidaas darteed jaantus lama sameyn karo.",
   },
   feesMetricBreakdown: {
+    print: "Daabac",
+    exportCsv: "Soo saar CSV",
+    total: "Wadarta",
     loading: "Soo dejinaya…",
     couldNotLoad: "Safafkan lama soo dejin karin. Hubi xiriirka oo mar kale isku day.",
     expected: "La filayo",

@@ -1577,6 +1577,9 @@ export const generated = {
     nothingBilledYet: "No month has been billed yet, so there is nothing to chart.",
   },
   feesMetricBreakdown: {
+    print: "Print",
+    exportCsv: "Export CSV",
+    total: "Total",
     loading: "Loading…",
     couldNotLoad: "Could not load these rows. Check the connection and try again.",
     expected: "Expected",

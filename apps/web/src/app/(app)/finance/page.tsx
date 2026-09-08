@@ -107,6 +107,16 @@ export default function FeeManagementPage() {
   const months = useMemo(() => (mounted ? availableMonths() : []), [mounted, fees]);
   const receipt = receiptNo ? getPayment(receiptNo) ?? null : null;
 
+  // Worded once, here, where the names behind the chosen ids are known — a
+  // printed list has to say what it was filtered to or it will be read later
+  // as the whole school's.
+  const filterNote = useMemo(() => {
+    const cls = classes.find((c) => c.id === filterClass)?.name;
+    const sec = sections.find((x) => x.id === filterSection)?.name;
+    if (!cls) return t("finance.allClasses");
+    return sec ? `${cls} - ${sec}` : cls;
+  }, [classes, sections, filterClass, filterSection, t]);
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -233,6 +243,7 @@ export default function FeeManagementPage() {
         academicYear={year}
         classId={filterClass || undefined}
         sectionId={filterSection || undefined}
+        filterNote={filterNote}
         onClose={() => setDetailMetric(null)}
       />
 
