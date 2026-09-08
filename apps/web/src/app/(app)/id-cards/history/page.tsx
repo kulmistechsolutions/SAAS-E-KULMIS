@@ -30,6 +30,7 @@ import { presetDesign } from "@/lib/id-cards/presets";
 import { resolveGrid } from "@/lib/id-cards/layout";
 import { buildCardContexts } from "@/lib/id-cards/data";
 import { printCards } from "@/lib/id-cards/print";
+import { useHydrated } from "@/lib/use-hydrated";
 
 const STATUS_TONE: Record<string, string> = {
   GENERATED: "bg-sky-500/15 text-sky-600 dark:text-sky-400",
@@ -43,8 +44,7 @@ const CARD_TYPE_LABEL = new Map(CARD_TYPES.map((c) => [c.id as string, c.label])
 export default function CardHistoryPage() {
   const t = useT();
   const studentsState = useStudentsState();
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  const mounted = useHydrated();
 
   const [rows, setRows] = useState<CardIssueRow[]>([]);
   const [summary, setSummary] = useState<Record<string, number>>({});

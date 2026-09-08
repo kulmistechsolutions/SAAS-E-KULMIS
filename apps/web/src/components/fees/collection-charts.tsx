@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useMemo } from "react";
 import {
   Bar,
   BarChart,
@@ -11,7 +11,7 @@ import {
   YAxis,
 } from "recharts";
 import { useT } from "@/lib/i18n/provider";
-import { api } from "@/lib/api";
+import { useCachedResource } from "@/lib/cached-resource";
 import { money, monthLabel } from "@/lib/fees/format";
 import { formatMoneyCompact } from "@/lib/settings/currency";
 
@@ -65,28 +65,22 @@ export function FeeCollectionCharts({
   sectionId?: string;
 }) {
   const t = useT();
-  const [data, setData] = useState<{
-    trend: MonthPoint[];
-    byClass: ClassPoint[];
-  } | null>(null);
-  const [failed, setFailed] = useState(false);
 
-  useEffect(() => {
-    let alive = true;
-    setFailed(false);
+  const url = useMemo(() => {
     const q = new URLSearchParams();
     if (classId) q.set("classId", classId);
     if (sectionId) q.set("sectionId", sectionId);
     const s = q.toString();
-    api<{ trend: MonthPoint[]; byClass: ClassPoint[] }>(
-      `/fees/analytics${s ? `?${s}` : ""}`,
-    )
-      .then((d) => alive && setData(d))
-      .catch(() => alive && setFailed(true));
-    return () => {
-      alive = false;
-    };
+    return `/fees/analytics${s ? `?${s}` : ""}`;
   }, [classId, sectionId]);
+
+  // Coming back to this page redraws last visit's charts on the first frame
+  // and refreshes behind them. The skeleton below is for a school that has
+  // genuinely never loaded this view, which is once.
+  const { data, failed } = useCachedResource<{
+    trend: MonthPoint[];
+    byClass: ClassPoint[];
+  }>(url);
 
   if (failed) return null;
 

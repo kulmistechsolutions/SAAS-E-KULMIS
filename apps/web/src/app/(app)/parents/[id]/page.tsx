@@ -53,6 +53,7 @@ import { printParentProfile, exportParentsCsv } from "@/lib/parents/print";
 import { ConfirmDialog } from "@/components/students/confirm-dialog";
 import type { ParentStatus, Student } from "@/lib/students/types";
 import { toast } from "@/lib/toast";
+import { useHydrated } from "@/lib/use-hydrated";
 
 const STATUS_TONE: Record<ParentStatus, "success" | "muted"> = {
   ACTIVE: "success",
@@ -89,8 +90,7 @@ export default function ParentProfilePage({
   const t = useT();
   const router = useRouter();
   const { id } = use(params);
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  const mounted = useHydrated();
 
   const state = useStudentsState();
   const parent = useMemo(() => getParentWithChildren(id), [state, id]);

@@ -16,6 +16,7 @@ import {
 } from "@/lib/attendance/store";
 import type { ApiShift } from "@/lib/attendance/api";
 import { toast } from "@/lib/toast";
+import { useHydrated } from "@/lib/use-hydrated";
 
 interface ShiftFormState {
   name: string;
@@ -27,7 +28,7 @@ const EMPTY_FORM: ShiftFormState = { name: "", startTime: "", endTime: "" };
 
 export default function AttendanceShiftsPage() {
   const t = useT();
-  const [mounted, setMounted] = useState(false);
+  const mounted = useHydrated();
   const [shifts, setShifts] = useState<ApiShift[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -46,7 +47,6 @@ export default function AttendanceShiftsPage() {
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => setMounted(true), []);
   useEffect(() => {
     if (mounted) void refresh();
   }, [mounted]);

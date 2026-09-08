@@ -2,19 +2,19 @@
 
 
 import { useT } from "@/lib/i18n/provider";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { InstallAppCard } from "@/components/pwa/install-app-card";
 import { SettingsSummaryCards } from "@/components/settings/summary-cards";
 import { getSettings, settingsDashboard, useSettingsState } from "@/lib/settings/store";
 import { dateTime } from "@/lib/users/format";
+import { useHydrated } from "@/lib/use-hydrated";
 
 export default function SettingsDashboardPage() {
   const t = useT();
-  const [mounted, setMounted] = useState(false);
+  const mounted = useHydrated();
   const settings = useSettingsState();
 
-  useEffect(() => setMounted(true), []);
 
   const summary = useMemo(() => (mounted ? settingsDashboard() : null), [mounted, settings]);
   const audit = useMemo(() => (mounted ? getSettings().audit.slice(0, 8) : []), [mounted, settings]);

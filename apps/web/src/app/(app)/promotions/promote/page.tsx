@@ -36,6 +36,7 @@ import { nextAcademicYear } from "@ekulmis/shared";
 import { cn } from "@/lib/utils";
 import { toast } from "@/lib/toast";
 import type { PromotionType } from "@/lib/promotions/types";
+import { useHydrated } from "@/lib/use-hydrated";
 
 const TYPES: { id: PromotionType; label: TranslationKey; desc: string; icon: typeof User }[] = [
   { id: "INDIVIDUAL", label: "promotionsPromote.individual", desc: "Promote a single student", icon: User },
@@ -46,8 +47,7 @@ const TYPES: { id: PromotionType; label: TranslationKey; desc: string; icon: typ
 export default function PromotePage() {
   const tr = useT();
   const router = useRouter();
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  const mounted = useHydrated();
   const studentsState = useStudentsState();
 
   const [step, setStep] = useState(1);

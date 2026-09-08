@@ -25,13 +25,14 @@ import { AcademicYearSelect } from "@/components/academics/academic-year-select"
 import { useAcademicYearSelect } from "@/lib/academics/year-select";
 import { useAuth } from "@/lib/auth";
 import { toast } from "@/lib/toast";
+import { useHydrated } from "@/lib/use-hydrated";
 
 export default function CreateQuizPage() {
   const tr = useT();
   const router = useRouter();
   const { user } = useAuth();
   const isTeacher = user?.role === "TEACHER";
-  const [mounted, setMounted] = useState(false);
+  const mounted = useHydrated();
   const [teacherId, setTeacherId] = useState("");
   const [title, setTitle] = useState("");
   const { year: academicYear, setYear: setAcademicYear } =
@@ -55,7 +56,6 @@ export default function CreateQuizPage() {
     () => String(getSettings().quiz.maxAttempts),
   );
 
-  useEffect(() => setMounted(true), []);
   useEffect(() => {
     if (!mounted) return;
     if (isTeacher) {

@@ -2,7 +2,7 @@
 
 
 import { useT } from "@/lib/i18n/provider";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Calendar, ChevronRight, ClipboardList, FileText, GraduationCap, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import { QuizSummaryCards } from "@/components/quiz/summary-cards";
 import { QuizStatusBadge } from "@/components/quiz/status-badge";
 import { dashboardSummary, listQuizzes, useQuizState } from "@/lib/quiz/store";
 import { shortDate } from "@/lib/quiz/format";
+import { useHydrated } from "@/lib/use-hydrated";
 
 const QUICK = [
   { href: "/quiz/list", label: "All Quizzes", desc: "Search and manage quizzes", icon: ClipboardList },
@@ -21,11 +22,10 @@ const QUICK = [
 
 export default function QuizDashboardPage() {
   const t = useT();
-  const [mounted, setMounted] = useState(false);
+  const mounted = useHydrated();
   const state = useQuizState();
   const [teacherId, setTeacherId] = useState("");
 
-  useEffect(() => setMounted(true), []);
 
   const summary = useMemo(
     () => (mounted ? dashboardSummary(teacherId || undefined) : null),

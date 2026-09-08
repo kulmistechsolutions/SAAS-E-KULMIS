@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { loginTeacher, useTeacherPortalState } from "@/lib/teacher-portal/store";
 import { toast } from "@/lib/toast";
+import { useHydrated } from "@/lib/use-hydrated";
 
 const schema = z.object({
   identifier: z.string().min(1, "Teacher ID is required"),
@@ -28,7 +29,7 @@ export default function TeacherPortalLoginPage() {
   const router = useRouter();
   const portal = useTeacherPortalState();
   const branding = useSchoolBranding();
-  const [mounted, setMounted] = useState(false);
+  const mounted = useHydrated();
 
   const {
     register,
@@ -36,7 +37,6 @@ export default function TeacherPortalLoginPage() {
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({ resolver: zodResolver(schema) });
 
-  useEffect(() => setMounted(true), []);
 
   useEffect(() => {
     if (portal.session) router.replace("/teacher-portal");

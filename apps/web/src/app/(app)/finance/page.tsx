@@ -34,10 +34,11 @@ import { classesForYear, sectionsForClass } from "@/lib/academics/store";
 import type { FeePayment, StudentFeeRow } from "@/lib/fees/types";
 import { AcademicYearSelect } from "@/components/academics/academic-year-select";
 import { useStudentsState } from "@/lib/students/store";
+import { useHydrated } from "@/lib/use-hydrated";
 
 export default function FeeManagementPage() {
   const t = useT();
-  const [mounted, setMounted] = useState(false);
+  const mounted = useHydrated();
   const fees = useFeesState();
   // Every figure on this page that counts students — expected income, total
   // outstanding, the fully-paid/partial/advance/free tallies — is derived from
@@ -60,7 +61,6 @@ export default function FeeManagementPage() {
   const [bannerKey, setBannerKey] = useState(0);
   const [detailMetric, setDetailMetric] = useState<FeeMetric | null>(null);
 
-  useEffect(() => setMounted(true), []);
   useEffect(() => {
     if (!mounted) return;
     setFilterMonth(fees.activeMonthKey);

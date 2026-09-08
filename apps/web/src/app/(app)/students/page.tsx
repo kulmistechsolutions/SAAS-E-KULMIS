@@ -64,6 +64,7 @@ import {
 } from "@/lib/students/types";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
+import { useHydrated } from "@/lib/use-hydrated";
 
 type SortKey = "fullName" | "code" | "registrationDate" | "className";
 type SortDir = "asc" | "desc";
@@ -78,8 +79,7 @@ const STATUS_TONE: Record<StudentStatus, "success" | "muted" | "info"> = {
 
 export default function StudentsPage() {
   const t = useT();
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  const mounted = useHydrated();
   useEffect(() => {
     void ensureAcademicsLoaded();
     void refreshStudents();

@@ -46,6 +46,7 @@ import {
   type PlatformSubscriptionHistoryRow,
   type PlatformSubscriptionPlan,
 } from "@/lib/platform/api";
+import { useHydrated } from "@/lib/use-hydrated";
 
 /** Keys, not finished text — the `Tabs` component just renders `label` as-is, so the render site below wraps each one in t(). */
 const TAB_KEYS: { id: string; label: TranslationKey }[] = [
@@ -150,7 +151,7 @@ export default function PlatformSubscriptionsPage() {
   const t = useT();
   const { admin } = usePlatformAuth();
   const canMutate = admin?.role !== "OPERATOR";
-  const [mounted, setMounted] = useState(false);
+  const mounted = useHydrated();
   const [tab, setTab] = useState("overview");
   const [plans, setPlans] = useState<PlatformSubscriptionPlan[]>([]);
   const [rows, setRows] = useState<PlatformSchoolSubscriptionRow[]>([]);
@@ -219,7 +220,6 @@ export default function PlatformSubscriptionsPage() {
     }
   }, [historySearch, historyStatus, historyPage]);
 
-  useEffect(() => setMounted(true), []);
   useEffect(() => {
     if (mounted) void reload();
   }, [mounted, reload]);

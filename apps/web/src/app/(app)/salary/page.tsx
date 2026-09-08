@@ -20,6 +20,7 @@ import {
 import { AcademicYearSelect } from "@/components/academics/academic-year-select";
 import { toast } from "@/lib/toast";
 import { Button } from "@/components/ui/button";
+import { useHydrated } from "@/lib/use-hydrated";
 
 const QUICK = [
   { href: "/salary/payroll", label: "Monthly Payroll", desc: "Generate & pay salaries", icon: Wallet },
@@ -30,12 +31,11 @@ const QUICK = [
 
 export default function SalaryDashboardPage() {
   const t = useT();
-  const [mounted, setMounted] = useState(false);
+  const mounted = useHydrated();
   const state = useSalaryState();
   const [filterMonth, setFilterMonth] = useState("");
   const [filterYear, setFilterYear] = useState("");
 
-  useEffect(() => setMounted(true), []);
   useEffect(() => {
     if (!mounted) return;
     setFilterMonth(state.activePayrollMonth);

@@ -20,11 +20,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/lib/toast";
 import type { CreateSchoolInput } from "@ekulmis/shared";
+import { useHydrated } from "@/lib/use-hydrated";
 
 export default function PlatformSchoolsPage() {
   const t = useT();
   const previewState = usePlatformSchoolsState();
-  const [mounted, setMounted] = useState(false);
+  const mounted = useHydrated();
   const [schools, setSchools] = useState<PlatformSchool[]>([]);
   const [search, setSearch] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
@@ -37,7 +38,6 @@ export default function PlatformSchoolsPage() {
     trialEndsAt: string | null;
   } | null>(null);
 
-  useEffect(() => setMounted(true), []);
 
   useEffect(() => {
     if (!mounted) return;

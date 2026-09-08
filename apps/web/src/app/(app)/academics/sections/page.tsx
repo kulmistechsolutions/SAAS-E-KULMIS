@@ -23,13 +23,13 @@ import {
 import { printTable } from "@/lib/academics/print";
 import type { Section, SectionRow } from "@/lib/academics/types";
 import { toast } from "@/lib/toast";
+import { useHydrated } from "@/lib/use-hydrated";
 
 const PAGE_SIZE = 12;
 
 export default function SectionsPage() {
   const t = useT();
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  const mounted = useHydrated();
   const state = useAcademicsState();
 
   const [search, setSearch] = useState("");

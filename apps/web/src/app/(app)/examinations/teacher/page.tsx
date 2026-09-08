@@ -22,6 +22,7 @@ import type { TeacherMe } from "@/lib/teachers/api";
 import { useAuth } from "@/lib/auth";
 import { toast } from "@/lib/toast";
 import { sectionsForClass, useAcademicsState } from "@/lib/academics/store";
+import { useHydrated } from "@/lib/use-hydrated";
 
 /**
  * PRD exam workflow for teachers:
@@ -43,9 +44,8 @@ export default function TeacherExamPortalPage() {
   const [subjectName, setSubjectName] = useState("");
   const [subjectId, setSubjectId] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [mounted, setMounted] = useState(false);
+  const mounted = useHydrated();
 
-  useEffect(() => setMounted(true), []);
 
   useEffect(() => {
     if (!mounted) return;

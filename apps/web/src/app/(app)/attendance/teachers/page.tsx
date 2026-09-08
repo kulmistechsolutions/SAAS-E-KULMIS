@@ -44,6 +44,7 @@ import { useShifts } from "@/lib/teachers/shifts";
 import type { TeacherAttendanceStatus, TeacherMarkRow } from "@/lib/attendance/types";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
+import { useHydrated } from "@/lib/use-hydrated";
 
 const TABS = [
   { id: "mark", label: "Mark Attendance" },
@@ -53,8 +54,7 @@ const TABS = [
 
 export default function TeacherAttendancePage() {
   const t = useT();
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  const mounted = useHydrated();
 
   useAttendanceState();
   const academics = useAcademicsState();

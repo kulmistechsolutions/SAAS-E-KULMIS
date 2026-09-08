@@ -2,7 +2,7 @@
 
 
 import { useT } from "@/lib/i18n/provider";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Download, Eye, History, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,12 +26,13 @@ import {
   useSalaryState,
 } from "@/lib/salary/store";
 import type { PayrollStatus } from "@/lib/salary/types";
+import { useHydrated } from "@/lib/use-hydrated";
 
 const PAGE_SIZE = 20;
 
 export default function SalaryHistoryPage() {
   const t = useT();
-  const [mounted, setMounted] = useState(false);
+  const mounted = useHydrated();
   const state = useSalaryState();
   const [search, setSearch] = useState("");
   const [month, setMonth] = useState("");
@@ -41,7 +42,6 @@ export default function SalaryHistoryPage() {
   const [payslipId, setPayslipId] = useState<string | null>(null);
   const [historyId, setHistoryId] = useState<string | null>(null);
 
-  useEffect(() => setMounted(true), []);
 
   const months = useMemo(() => (mounted ? availableMonths() : []), [mounted, state]);
 

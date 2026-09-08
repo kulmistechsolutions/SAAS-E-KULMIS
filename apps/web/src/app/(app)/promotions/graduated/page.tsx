@@ -18,13 +18,13 @@ import { shortDate } from "@/lib/promotions/format";
 import { printTranscript, printTable } from "@/lib/promotions/print";
 import { useStudentsState } from "@/lib/students/store";
 import { toast } from "@/lib/toast";
+import { useHydrated } from "@/lib/use-hydrated";
 
 const PAGE_SIZE = 12;
 
 export default function GraduatedStudentsPage() {
   const t = useT();
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  const mounted = useHydrated();
   const promotions = usePromotionsState();
   const studentsState = useStudentsState();
 

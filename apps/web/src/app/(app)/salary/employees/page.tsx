@@ -2,7 +2,7 @@
 
 
 import { useT } from "@/lib/i18n/provider";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Eye, Pencil, Plus, Receipt, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,7 @@ import { useTeachersState } from "@/lib/teachers/store";
 import { deleteEmployee, useEmployeesState } from "@/lib/employees/store";
 import type { StaffEmployee } from "@/lib/employees/types";
 import { toast } from "@/lib/toast";
+import { useHydrated } from "@/lib/use-hydrated";
 
 const PAGE_SIZE = 15;
 
@@ -34,7 +35,7 @@ interface Row {
 
 export default function SalaryEmployeesPage() {
   const t = useT();
-  const [mounted, setMounted] = useState(false);
+  const mounted = useHydrated();
   const teachersState = useTeachersState();
   const employeesState = useEmployeesState();
   const [search, setSearch] = useState("");
@@ -44,7 +45,6 @@ export default function SalaryEmployeesPage() {
   const [editing, setEditing] = useState<StaffEmployee | null>(null);
   const [deleting, setDeleting] = useState<StaffEmployee | null>(null);
 
-  useEffect(() => setMounted(true), []);
 
   const rows: Row[] = useMemo(() => {
     if (!mounted) return [];

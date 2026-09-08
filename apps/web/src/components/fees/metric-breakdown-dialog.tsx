@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import Link from "next/link";
 import { useT } from "@/lib/i18n/provider";
 import { Dialog } from "@/components/ui/dialog";
@@ -12,8 +12,9 @@ import {
   type BreakdownRow,
 } from "@/lib/fees/print";
 import { money, monthLabel } from "@/lib/fees/format";
-import { apiAllPositions, type StudentPosition } from "@/lib/fees/api";
+import type { StudentPosition } from "@/lib/fees/api";
 import { listStudentFees, useFeesState } from "@/lib/fees/store";
+import { useCachedResource } from "@/lib/cached-resource";
 import type { FeeDashboardSummary } from "@/lib/fees/types";
 
 /**
@@ -101,24 +102,23 @@ export function FeeMetricBreakdownDialog({
 }) {
   const t = useT();
   const fees = useFeesState();
-  const [positions, setPositions] = useState<StudentPosition[] | null>(null);
-  const [failed, setFailed] = useState(false);
-
   // Fetched when a card is opened rather than held on the page: it is every
   // charge of every student, which is far more than a summary screen should
-  // load before anyone has asked for it.
-  useEffect(() => {
-    if (!metric || PAYMENT_METRICS.includes(metric)) return;
-    let alive = true;
-    setPositions(null);
-    setFailed(false);
-    apiAllPositions({ classId, sectionId })
-      .then((rows) => alive && setPositions(rows))
-      .catch(() => alive && setFailed(true));
-    return () => {
-      alive = false;
-    };
+  // load before anyone has asked for it. But every card on the dashboard opens
+  // the same list, so the second card a school clicks — and the same card
+  // clicked twice — has it already, and waits for nothing.
+  const positionsUrl = useMemo(() => {
+    if (!metric || PAYMENT_METRICS.includes(metric)) return null;
+    const q = new URLSearchParams();
+    if (classId) q.set("classId", classId);
+    if (sectionId) q.set("sectionId", sectionId);
+    const s = q.toString();
+    return `/fees/positions${s ? `?${s}` : ""}`;
   }, [metric, classId, sectionId]);
+
+  const { data: positions, failed } = useCachedResource<StudentPosition[]>(
+    positionsUrl,
+  );
 
   const rows = useMemo<Row[]>(() => {
     if (!metric || !positions || PAYMENT_METRICS.includes(metric)) return [];

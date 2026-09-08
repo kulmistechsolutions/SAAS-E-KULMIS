@@ -53,6 +53,7 @@ import { FieldSelectDialog } from "@/components/shared/field-select-dialog";
 import type { EmploymentStatus, Shift, Teacher } from "@/lib/teachers/types";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
+import { useHydrated } from "@/lib/use-hydrated";
 
 type SortKey = "fullName" | "code" | "registrationDate" | "shift";
 type SortDir = "asc" | "desc";
@@ -76,8 +77,7 @@ const STATUS_KEY: Record<string, TranslationKey> = {
 
 export default function TeachersPage() {
   const tr = useT();
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  const mounted = useHydrated();
 
   const state = useTeachersState();
   const shifts = useShifts();

@@ -73,6 +73,7 @@ import {
   printCards,
   renderCard,
 } from "@/lib/id-cards/print";
+import { useHydrated } from "@/lib/use-hydrated";
 
 /** Millimetres → CSS pixels at the 96dpi the browser lays out with. */
 const MM = 96 / 25.4;
@@ -125,8 +126,7 @@ export default function IdCardsPage() {
   const academics = useAcademicsState();
   const studentsState = useStudentsState();
   const examinations = useExaminationsState();
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  const mounted = useHydrated();
 
   const year = activeAcademicYear();
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   ArrowUpRight,
   ChevronRight,
@@ -24,6 +24,7 @@ import { useStudentsState } from "@/lib/students/store";
 import { useAcademicsState } from "@/lib/academics/store";
 import { cn } from "@/lib/utils";
 import type { ClassFeeSummary } from "@/lib/fees/types";
+import { useHydrated } from "@/lib/use-hydrated";
 
 interface Props {
   academicYear: string;
@@ -40,13 +41,12 @@ type ViewMode = "grid" | "list";
  */
 export function ClassFeeGrid({ academicYear, monthKey, onSelectClass }: Props) {
   const t = useT();
-  const [mounted, setMounted] = useState(false);
+  const mounted = useHydrated();
   const [view, setView] = useState<ViewMode>("grid");
   const [search, setSearch] = useState("");
   // Subscribe so the grid recomputes once students/fees hydrate.
   const studentsState = useStudentsState();
   const academics = useAcademicsState();
-  useEffect(() => setMounted(true), []);
 
   const summaries = useMemo(
     () => (mounted ? classFeeSummaries(academicYear, monthKey) : []),

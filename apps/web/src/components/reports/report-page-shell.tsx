@@ -27,6 +27,7 @@ import { ReportBarChart } from "./report-chart";
 import type { ReportDef, ReportFilterKey, ReportFilters } from "@/lib/reports/types";
 import { cn } from "@/lib/utils";
 import { toast } from "@/lib/toast";
+import { useHydrated } from "@/lib/use-hydrated";
 
 const PAGE_SIZE = 15;
 
@@ -99,7 +100,7 @@ interface Props {
 export function ReportPageShell({ categoryId, categoryLabel, report }: Props) {
   const t = useT();
   const shiftOptions = useShifts();
-  const [mounted, setMounted] = useState(false);
+  const mounted = useHydrated();
   const [search, setSearch] = useState("");
   const [filters, setFilters] = useState<ReportFilters>({});
   const [showFilters, setShowFilters] = useState(true);
@@ -127,7 +128,6 @@ export function ReportPageShell({ categoryId, categoryLabel, report }: Props) {
     [filters.className, reportYear, academics.sections],
   );
 
-  useEffect(() => setMounted(true), []);
 
   useEffect(() => {
     if (!mounted) return;

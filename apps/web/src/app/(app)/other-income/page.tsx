@@ -24,6 +24,7 @@ import {
   type ApiOtherIncome,
   type OtherIncomeSummary,
 } from "@/lib/other-income/api";
+import { useHydrated } from "@/lib/use-hydrated";
 
 const money = (n: number) =>
   `$${n.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
@@ -64,7 +65,7 @@ const EMPTY_FORM = {
 
 export default function OtherIncomePage() {
   const t = useT();
-  const [mounted, setMounted] = useState(false);
+  const mounted = useHydrated();
   const [month, setMonth] = useState(thisMonth());
   const [categories, setCategories] = useState<ApiIncomeCategory[]>([]);
   const [rows, setRows] = useState<ApiOtherIncome[]>([]);
@@ -78,7 +79,6 @@ export default function OtherIncomePage() {
   const [deleting, setDeleting] = useState<ApiOtherIncome | null>(null);
   const [newCategory, setNewCategory] = useState("");
 
-  useEffect(() => setMounted(true), []);
 
   const load = useCallback(async () => {
     try {

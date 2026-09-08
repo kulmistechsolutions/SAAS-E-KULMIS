@@ -2,7 +2,7 @@
 
 
 import { useT } from "@/lib/i18n/provider";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import {
   ArrowUpRight,
@@ -23,6 +23,7 @@ import {
 } from "@/lib/promotions/store";
 import { dateTime } from "@/lib/promotions/format";
 import { toast } from "@/lib/toast";
+import { useHydrated } from "@/lib/use-hydrated";
 
 const QUICK = [
   { href: "/promotions/promote", label: "Promote Students", desc: "Individual, class or school-wide", icon: Sparkles },
@@ -33,8 +34,7 @@ const QUICK = [
 
 export default function PromotionsDashboardPage() {
   const t = useT();
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  const mounted = useHydrated();
   const state = usePromotionsState();
 
   const summary = useMemo(() => dashboardSummary(), [state]);

@@ -6,15 +6,15 @@ import { useEffect, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { SettingsNav } from "@/components/settings/settings-nav";
 import { usePermission } from "@/lib/users/use-permission";
+import { useHydrated } from "@/lib/use-hydrated";
 
 export default function SettingsLayout({ children }: { children: ReactNode }) {
   const t = useT();
   const router = useRouter();
   const canView = usePermission("settings", "view");
   const canUpdate = usePermission("settings", "update");
-  const [mounted, setMounted] = useState(false);
+  const mounted = useHydrated();
 
-  useEffect(() => setMounted(true), []);
 
   useEffect(() => {
     if (mounted && !canView) router.replace("/dashboard");

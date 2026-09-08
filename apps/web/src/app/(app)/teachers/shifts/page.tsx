@@ -17,6 +17,7 @@ import {
 import type { ApiShift } from "@/lib/attendance/api";
 import { refreshShifts } from "@/lib/teachers/shifts";
 import { toast } from "@/lib/toast";
+import { useHydrated } from "@/lib/use-hydrated";
 
 interface ShiftFormState {
   name: string;
@@ -35,7 +36,7 @@ const EMPTY_FORM: ShiftFormState = { name: "", startTime: "", endTime: "" };
  */
 export default function TeacherShiftsPage() {
   const t = useT();
-  const [mounted, setMounted] = useState(false);
+  const mounted = useHydrated();
   const [shifts, setShifts] = useState<ApiShift[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -54,7 +55,6 @@ export default function TeacherShiftsPage() {
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => setMounted(true), []);
   useEffect(() => {
     if (mounted) void refresh();
   }, [mounted]);

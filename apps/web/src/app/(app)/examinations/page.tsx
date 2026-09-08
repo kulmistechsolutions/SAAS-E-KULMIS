@@ -2,7 +2,7 @@
 
 
 import { useT } from "@/lib/i18n/provider";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Plus } from "lucide-react";
 import { ExamSummaryCards } from "@/components/examinations/summary-cards";
@@ -24,16 +24,16 @@ import {
 } from "@/lib/examinations/store";
 import type { ExamStatus } from "@/lib/examinations/types";
 import { toast } from "@/lib/toast";
+import { useHydrated } from "@/lib/use-hydrated";
 
 export default function ExaminationsDashboardPage() {
   const t = useT();
-  const [mounted, setMounted] = useState(false);
+  const mounted = useHydrated();
   const exams = useExaminationsState();
   const [search, setSearch] = useState("");
   const [classFilter, setClassFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState<ExamStatus | "">("");
 
-  useEffect(() => setMounted(true), []);
 
   const summary = useMemo(
     () => (mounted ? dashboardSummary() : null),

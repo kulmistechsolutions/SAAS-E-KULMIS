@@ -25,13 +25,13 @@ import { assignmentShiftLabel, sectionLabel, statusLabel } from "@/lib/teachers/
 import { useShifts } from "@/lib/teachers/shifts";
 import type { TeacherAssignment } from "@/lib/teachers/types";
 import { toast } from "@/lib/toast";
+import { useHydrated } from "@/lib/use-hydrated";
 
 const PAGE_SIZE = 12;
 
 export default function TeacherAssignmentsPage() {
   const tr = useT();
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  const mounted = useHydrated();
 
   const { teachers, assignments } = useTeachersState();
   const academics = useAcademicsState();

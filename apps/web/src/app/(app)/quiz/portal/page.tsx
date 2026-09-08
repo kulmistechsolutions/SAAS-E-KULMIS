@@ -11,15 +11,15 @@ import { QuizStatusBadge } from "@/components/quiz/status-badge";
 import { quizzesForStudent } from "@/lib/quiz/store";
 import { getState as getStudentsState } from "@/lib/students/store";
 import type { QuizForStudentRow } from "@/lib/quiz/api";
+import { useHydrated } from "@/lib/use-hydrated";
 
 export default function StudentQuizPortalPage() {
   const t = useT();
-  const [mounted, setMounted] = useState(false);
+  const mounted = useHydrated();
   const [studentId, setStudentId] = useState("");
   const [rows, setRows] = useState<QuizForStudentRow[]>([]);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => setMounted(true), []);
   useEffect(() => {
     if (!mounted) return;
     const active = getStudentsState().students.filter((s) => s.status === "ACTIVE");

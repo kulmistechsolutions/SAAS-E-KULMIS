@@ -2,7 +2,7 @@
 
 
 import { useT, type TranslationKey } from "@/lib/i18n/provider";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, ShieldCheck } from "lucide-react";
 import {
@@ -13,6 +13,7 @@ import {
 import type { PromotionSettings } from "@/lib/promotions/types";
 import { cn } from "@/lib/utils";
 import { toast } from "@/lib/toast";
+import { useHydrated } from "@/lib/use-hydrated";
 
 const RULES: { key: keyof PromotionSettings; label: TranslationKey; desc: string }[] = [
   { key: "requirePublishedResults", label: "promotionsSettings.requirePublishedFinalResults", desc: "Students must have published final results before promotion." },
@@ -23,8 +24,7 @@ const RULES: { key: keyof PromotionSettings; label: TranslationKey; desc: string
 
 export default function PromotionSettingsPage() {
   const t = useT();
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  const mounted = useHydrated();
   usePromotionsState();
 
   if (!mounted) {

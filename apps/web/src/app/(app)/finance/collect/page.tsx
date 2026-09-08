@@ -2,7 +2,7 @@
 
 
 import { useT } from "@/lib/i18n/provider";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Users, UserSquare2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ClassFeeGrid } from "@/components/fees/class-fee-grid";
@@ -15,6 +15,7 @@ import { ReceiptDialog } from "@/components/fees/receipt-dialog";
 import { getPayment, useFeesState } from "@/lib/fees/store";
 import type { FamilyFeeRow, FeePayment, StudentFeeRow } from "@/lib/fees/types";
 import { toast } from "@/lib/toast";
+import { useHydrated } from "@/lib/use-hydrated";
 
 type Tab = "class" | "family";
 
@@ -22,14 +23,13 @@ export default function CollectFeesPage() {
   const t = useT();
   const [tab, setTab] = useState<Tab>("class");
   const [selectedClass, setSelectedClass] = useState<string | null>(null);
-  const [mounted, setMounted] = useState(false);
+  const mounted = useHydrated();
   const fees = useFeesState();
   const [payStudent, setPayStudent] = useState<StudentFeeRow | null>(null);
   const [payFamily, setPayFamily] = useState<FamilyFeeRow | null>(null);
   const [receiptNo, setReceiptNo] = useState<string | null>(null);
   const [promiseStudent, setPromiseStudent] = useState<StudentFeeRow | null>(null);
   const [promisesRefreshToken, setPromisesRefreshToken] = useState(0);
-  useEffect(() => setMounted(true), []);
   const receipt = receiptNo ? getPayment(receiptNo) ?? null : null;
 
   return (

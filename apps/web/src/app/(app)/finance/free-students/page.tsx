@@ -17,11 +17,11 @@ import {
   useAcademicsState,
 } from "@/lib/academics/store";
 import type { StudentWithParent } from "@/lib/students/types";
+import { useHydrated } from "@/lib/use-hydrated";
 
 export default function FreeStudentsPage() {
   const t = useT();
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  const mounted = useHydrated();
   useEffect(() => {
     void refreshStudents();
   }, []);

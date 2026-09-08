@@ -2,7 +2,7 @@
 
 
 import { useT } from "@/lib/i18n/provider";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { CalendarCheck, Pencil, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/academics/status-badge";
@@ -11,11 +11,11 @@ import { setActiveAcademicYear, useAcademicsState } from "@/lib/academics/store"
 import type { AcademicYear } from "@/lib/academics/types";
 import { shortDate } from "@/lib/academics/format";
 import { toast } from "@/lib/toast";
+import { useHydrated } from "@/lib/use-hydrated";
 
 export default function AcademicYearsPage() {
   const t = useT();
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  const mounted = useHydrated();
   const state = useAcademicsState();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<AcademicYear | null>(null);

@@ -2,7 +2,7 @@
 
 
 import { useT } from "@/lib/i18n/provider";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Eye, Printer } from "lucide-react";
 import { Pagination } from "@/components/ui/pagination";
 import { PaymentTypeBadge } from "@/components/fees/fee-status-badge";
@@ -11,16 +11,16 @@ import { money, shortDate } from "@/lib/fees/format";
 import { printReceipt } from "@/lib/fees/print";
 import { getPayment, useFeesState } from "@/lib/fees/store";
 import { getState as getStudentsState } from "@/lib/students/store";
+import { useHydrated } from "@/lib/use-hydrated";
 
 const PAGE_SIZE = 15;
 
 export default function ReceiptsPage() {
   const t = useT();
-  const [mounted, setMounted] = useState(false);
+  const mounted = useHydrated();
   const fees = useFeesState();
   const [page, setPage] = useState(1);
   const [receiptNo, setReceiptNo] = useState<string | null>(null);
-  useEffect(() => setMounted(true), []);
 
   const students = getStudentsState().students;
   const payments = fees.payments;

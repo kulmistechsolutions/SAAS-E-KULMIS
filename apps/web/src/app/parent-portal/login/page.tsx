@@ -15,6 +15,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { loginParent, usePortalState } from "@/lib/parent-portal/store";
 import { getState as getStudentsState } from "@/lib/students/store";
 import { toast } from "@/lib/toast";
+import { useHydrated } from "@/lib/use-hydrated";
 
 const schema = z.object({
   identifier: z.string().min(1, "Parent ID is required"),
@@ -28,7 +29,7 @@ export default function ParentPortalLoginPage() {
   const router = useRouter();
   const portal = usePortalState();
   const branding = useSchoolBranding();
-  const [mounted, setMounted] = useState(false);
+  const mounted = useHydrated();
   const [demo, setDemo] = useState<{ code: string; password: string } | null>(null);
 
   const {
@@ -37,7 +38,6 @@ export default function ParentPortalLoginPage() {
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({ resolver: zodResolver(schema) });
 
-  useEffect(() => setMounted(true), []);
 
   useEffect(() => {
     if (portal.session) router.replace("/parent-portal");

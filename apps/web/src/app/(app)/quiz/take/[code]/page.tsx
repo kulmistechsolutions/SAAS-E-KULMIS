@@ -37,6 +37,7 @@ import { printAttemptReviewPdf } from "@/lib/quiz/print";
 import { resolveLogoUrl } from "@/lib/settings/api";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
+import { useHydrated } from "@/lib/use-hydrated";
 
 type PublicQuestion = {
   id: string;
@@ -103,7 +104,7 @@ function SchoolHeader({
 
 function TakeQuizContent({ code }: { code: string }) {
   const tr = useT();
-  const [mounted, setMounted] = useState(false);
+  const mounted = useHydrated();
   const [step, setStep] = useState<Step>("landing");
   const [landing, setLanding] = useState<QuizLandingResponse | null>(null);
   const [landingError, setLandingError] = useState<string | null>(null);
@@ -126,7 +127,6 @@ function TakeQuizContent({ code }: { code: string }) {
   const [saving, setSaving] = useState(false);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  useEffect(() => setMounted(true), []);
 
   useEffect(() => {
     let cancelled = false;

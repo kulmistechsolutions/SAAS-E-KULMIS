@@ -26,6 +26,7 @@ import type {
   StudentCaseRecord,
 } from "@/lib/student-cases/types";
 import { toast } from "@/lib/toast";
+import { useHydrated } from "@/lib/use-hydrated";
 
 const TABS = [
   { id: "add", label: "Add Case" },
@@ -39,8 +40,7 @@ function todayISO(): string {
 
 export default function StudentCasesPage() {
   const t = useT();
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  const mounted = useHydrated();
   useEffect(() => {
     void refreshStudents();
   }, []);

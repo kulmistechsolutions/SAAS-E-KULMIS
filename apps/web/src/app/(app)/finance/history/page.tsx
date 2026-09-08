@@ -18,12 +18,13 @@ import { getPayment, recordReceiptPrint, useFeesState } from "@/lib/fees/store";
 import { getState as getStudentsState } from "@/lib/students/store";
 import type { PaymentType } from "@/lib/fees/types";
 import { classNamesForYear, groupClassNames, useAcademicsState } from "@/lib/academics/store";
+import { useHydrated } from "@/lib/use-hydrated";
 
 const PAGE_SIZE = 15;
 
 export default function FeeHistoryPage() {
   const t = useT();
-  const [mounted, setMounted] = useState(false);
+  const mounted = useHydrated();
   const fees = useFeesState();
   const academics = useAcademicsState();
   const [search, setSearch] = useState("");
@@ -34,7 +35,6 @@ export default function FeeHistoryPage() {
   const [page, setPage] = useState(1);
   const [receiptNo, setReceiptNo] = useState<string | null>(null);
   const [reversingId, setReversingId] = useState<string | null>(null);
-  useEffect(() => setMounted(true), []);
 
   const students = getStudentsState().students;
   const classOptions = useMemo(

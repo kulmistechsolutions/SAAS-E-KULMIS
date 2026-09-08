@@ -16,16 +16,16 @@ import {
   type PlatformSubscriptionAlert,
 } from "@/lib/platform/api";
 import { Button } from "@/components/ui/button";
+import { useHydrated } from "@/lib/use-hydrated";
 
 export default function PlatformDashboardPage() {
   const t = useT();
   const previewSchools = usePlatformSchoolsState();
-  const [mounted, setMounted] = useState(false);
+  const mounted = useHydrated();
   const [summary, setSummary] = useState<PlatformDashboard | null>(null);
   const [schools, setSchools] = useState<PlatformSchool[]>([]);
   const [alerts, setAlerts] = useState<PlatformSubscriptionAlert[]>([]);
 
-  useEffect(() => setMounted(true), []);
 
   useEffect(() => {
     if (!mounted) return;

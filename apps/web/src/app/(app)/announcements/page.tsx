@@ -24,6 +24,7 @@ import { apiSendAudienceSms } from "@/lib/sms/api";
 import { useAuth } from "@/lib/auth";
 import { useSettingsState } from "@/lib/settings/store";
 import { toast } from "@/lib/toast";
+import { useHydrated } from "@/lib/use-hydrated";
 
 const CATEGORIES: PortalAnnouncement["category"][] = [
   "GENERAL",
@@ -42,7 +43,7 @@ export default function AnnouncementsPage() {
   const { user } = useAuth();
   const isTeacher = user?.role === "TEACHER";
   const studentPortalEnabled = useSettingsState().students.portalLoginEnabled;
-  const [mounted, setMounted] = useState(false);
+  const mounted = useHydrated();
   const [items, setItems] = useState<PortalAnnouncement[]>([]);
   const [composeOpen, setComposeOpen] = useState(false);
   const [title, setTitle] = useState("");
@@ -62,7 +63,6 @@ export default function AnnouncementsPage() {
   const [deleting, setDeleting] = useState<PortalAnnouncement | null>(null);
   const [removing, setRemoving] = useState(false);
 
-  useEffect(() => setMounted(true), []);
 
   useEffect(() => {
     if (!mounted) return;

@@ -2,7 +2,7 @@
 
 
 import { useT } from "@/lib/i18n/provider";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import {
   Download,
@@ -38,12 +38,13 @@ import {
 } from "@/lib/users/store";
 import type { AccountStatus } from "@/lib/users/types";
 import { toast } from "@/lib/toast";
+import { useHydrated } from "@/lib/use-hydrated";
 
 const PAGE_SIZE = 15;
 
 export default function UsersListPage() {
   const t = useT();
-  const [mounted, setMounted] = useState(false);
+  const mounted = useHydrated();
   const state = useUsersState();
   const [search, setSearch] = useState("");
   const [role, setRole] = useState("");
@@ -54,7 +55,6 @@ export default function UsersListPage() {
   const [resetId, setResetId] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
-  useEffect(() => setMounted(true), []);
 
   const rows = useMemo(
     () =>

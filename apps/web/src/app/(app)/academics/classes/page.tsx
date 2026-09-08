@@ -40,6 +40,7 @@ import { FieldSelectDialog } from "@/components/shared/field-select-dialog";
 import type { ClassRow, SchoolClass } from "@/lib/academics/types";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
+import { useHydrated } from "@/lib/use-hydrated";
 
 type SortKey = "name" | "studentCount" | "subjectCount";
 type SortDir = "asc" | "desc";
@@ -47,8 +48,7 @@ const PAGE_SIZE = 10;
 
 export default function ClassesPage() {
   const t = useT();
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  const mounted = useHydrated();
   const state = useAcademicsState();
 
   const [search, setSearch] = useState("");

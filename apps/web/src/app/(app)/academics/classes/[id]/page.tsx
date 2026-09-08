@@ -2,7 +2,7 @@
 
 
 import { useT, type TranslationKey } from "@/lib/i18n/provider";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import {
@@ -50,6 +50,7 @@ import { getTeachersState } from "@/lib/teachers/store";
 import { getExaminationsState } from "@/lib/examinations/store";
 import type { Section, Subject } from "@/lib/academics/types";
 import { toast } from "@/lib/toast";
+import { useHydrated } from "@/lib/use-hydrated";
 
 /** Keys, not finished text — the shared `Tabs` component renders `label` as-is, so the render site wraps each one in tr(). */
 const TAB_KEYS: { id: string; label: TranslationKey; icon: React.ReactNode }[] = [
@@ -67,8 +68,7 @@ export default function ClassProfilePage() {
   const tr = useT();
   const params = useParams();
   const id = params.id as string;
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  const mounted = useHydrated();
   const state = useAcademicsState();
 
   const [tab, setTab] = useState("general");

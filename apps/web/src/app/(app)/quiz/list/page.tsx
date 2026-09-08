@@ -2,7 +2,7 @@
 
 
 import { useT } from "@/lib/i18n/provider";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Eye, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -14,18 +14,18 @@ import { QUIZ_STATUSES } from "@/lib/quiz/format";
 import { deleteQuiz, listQuizzes, useQuizState } from "@/lib/quiz/store";
 import type { QuizStatus } from "@/lib/quiz/types";
 import { toast } from "@/lib/toast";
+import { useHydrated } from "@/lib/use-hydrated";
 
 const PAGE_SIZE = 15;
 
 export default function QuizListPage() {
   const t = useT();
-  const [mounted, setMounted] = useState(false);
+  const mounted = useHydrated();
   const state = useQuizState();
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<QuizStatus | "">("");
   const [page, setPage] = useState(1);
 
-  useEffect(() => setMounted(true), []);
 
   const rows = useMemo(
     () => (mounted ? listQuizzes({ search, status: status || undefined }) : []),

@@ -56,6 +56,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth";
 import { loadTeacherMe } from "@/lib/teachers/session";
 import type { TeacherMe } from "@/lib/teachers/api";
+import { useHydrated } from "@/lib/use-hydrated";
 
 const TABS = [
   { id: "mark", label: "Mark Attendance" },
@@ -67,9 +68,8 @@ function StudentAttendanceScreen() {
   const t = useT();
   const { user } = useAuth();
   const isTeacher = user?.role === "TEACHER";
-  const [mounted, setMounted] = useState(false);
+  const mounted = useHydrated();
   const [teacherMe, setTeacherMe] = useState<TeacherMe | null>(null);
-  useEffect(() => setMounted(true), []);
 
   useEffect(() => {
     if (!isTeacher) return;

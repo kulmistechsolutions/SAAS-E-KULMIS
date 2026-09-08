@@ -28,6 +28,7 @@ import {
 import { FeeStatusBadge, FreeStudentBadge } from "./fee-status-badge";
 import { ParentContactActions } from "./parent-contact-actions";
 import { PromiseToPayDialog } from "./promise-to-pay-dialog";
+import { useHydrated } from "@/lib/use-hydrated";
 
 const PAGE_SIZE = 8;
 
@@ -68,13 +69,12 @@ export function CollectFeesSection({
     status: "" as StudentFeeState | "",
   });
   const [page, setPage] = useState(1);
-  const [mounted, setMounted] = useState(false);
+  const mounted = useHydrated();
   const academics = useAcademicsState();
   // Subscribe to the students + fees stores so the table recomputes once their
   // data finishes loading (both hydrate asynchronously after first render).
   const studentsState = useStudentsState();
   const feesState = useFeesState();
-  useEffect(() => setMounted(true), []);
 
   // Badges a row when its student already has an open payment promise —
   // keyed by studentId, latest promise wins if there's more than one.

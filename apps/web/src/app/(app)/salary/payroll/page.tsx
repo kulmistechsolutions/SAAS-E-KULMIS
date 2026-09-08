@@ -28,13 +28,14 @@ import {
 import type { PayrollRow, PayrollStatus } from "@/lib/salary/types";
 import { toast } from "@/lib/toast";
 import { printPayslip } from "@/lib/salary/print";
+import { useHydrated } from "@/lib/use-hydrated";
 
 const PAGE_SIZE = 15;
 const STATUSES: (PayrollStatus | "")[] = ["", "PENDING", "PARTIAL", "PAID"];
 
 export default function PayrollPage() {
   const t = useT();
-  const [mounted, setMounted] = useState(false);
+  const mounted = useHydrated();
   const state = useSalaryState();
   const [month, setMonth] = useState("");
   const [search, setSearch] = useState("");
@@ -44,7 +45,6 @@ export default function PayrollPage() {
   const [payRow, setPayRow] = useState<PayrollRow | null>(null);
   const [payslipId, setPayslipId] = useState<string | null>(null);
 
-  useEffect(() => setMounted(true), []);
   useEffect(() => {
     if (mounted) setMonth(state.activePayrollMonth);
   }, [mounted, state.activePayrollMonth]);

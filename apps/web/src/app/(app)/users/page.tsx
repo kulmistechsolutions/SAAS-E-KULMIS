@@ -2,7 +2,7 @@
 
 
 import { useT } from "@/lib/i18n/provider";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Bell, ChevronRight, List, Plus, Shield, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import { AccountStatusBadge } from "@/components/users/status-badge";
 import { UserFormDialog } from "@/components/users/user-form-dialog";
 import { dateTime } from "@/lib/users/format";
 import { dashboardSummary, listUsers, useUsersState } from "@/lib/users/store";
+import { useHydrated } from "@/lib/use-hydrated";
 
 const QUICK = [
   { href: "/users/list", label: "All Users", desc: "Search, filter & manage accounts", icon: List },
@@ -20,11 +21,10 @@ const QUICK = [
 
 export default function UsersDashboardPage() {
   const t = useT();
-  const [mounted, setMounted] = useState(false);
+  const mounted = useHydrated();
   const state = useUsersState();
   const [showCreate, setShowCreate] = useState(false);
 
-  useEffect(() => setMounted(true), []);
 
   const summary = useMemo(() => (mounted ? dashboardSummary() : null), [mounted, state]);
   const recent = useMemo(() => (mounted ? listUsers().slice(0, 8) : []), [mounted, state]);

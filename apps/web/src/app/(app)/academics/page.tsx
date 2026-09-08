@@ -2,7 +2,7 @@
 
 
 import { useT } from "@/lib/i18n/provider";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import {
   BookOpen,
@@ -24,6 +24,7 @@ import {
 } from "@/lib/academics/store";
 import { shortDate } from "@/lib/academics/format";
 import { toast } from "@/lib/toast";
+import { useHydrated } from "@/lib/use-hydrated";
 
 const QUICK = [
   { href: "/academics/classes", label: "Classes", desc: "Manage class list", icon: Library },
@@ -34,8 +35,7 @@ const QUICK = [
 
 export default function AcademicsDashboardPage() {
   const t = useT();
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  const mounted = useHydrated();
   const state = useAcademicsState();
   const [yearOpen, setYearOpen] = useState(false);
 

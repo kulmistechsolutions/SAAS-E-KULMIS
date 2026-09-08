@@ -9,17 +9,17 @@ import { MarkEntryTable } from "@/components/examinations/mark-entry-table";
 import { getExam, useExaminationsState } from "@/lib/examinations/store";
 import { AcademicYearSelect } from "@/components/academics/academic-year-select";
 import { activeAcademicYear } from "@/lib/academics/store";
+import { useHydrated } from "@/lib/use-hydrated";
 
 function MarksEntryContent() {
   const t = useT();
-  const [mounted, setMounted] = useState(false);
+  const mounted = useHydrated();
   const params = useSearchParams();
   const state = useExaminationsState();
   const [year, setYear] = useState("");
   const [examId, setExamId] = useState("");
   const [subject, setSubject] = useState("");
 
-  useEffect(() => setMounted(true), []);
   useEffect(() => {
     if (!mounted) return;
     const qExam = params.get("exam");

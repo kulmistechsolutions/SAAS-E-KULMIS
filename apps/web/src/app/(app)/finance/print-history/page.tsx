@@ -12,6 +12,7 @@ import { money, paymentTypeLabel } from "@/lib/fees/format";
 import { loadPrintHistory } from "@/lib/fees/store";
 import type { ApiPrintLogRow } from "@/lib/fees/api";
 import type { PaymentType } from "@/lib/fees/types";
+import { useHydrated } from "@/lib/use-hydrated";
 
 const PAGE_SIZE = 20;
 
@@ -27,7 +28,7 @@ function fmtDateTime(iso: string): string {
 
 export default function PrintHistoryPage() {
   const t = useT();
-  const [mounted, setMounted] = useState(false);
+  const mounted = useHydrated();
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [type, setType] = useState<PaymentType | "">("");
@@ -36,7 +37,6 @@ export default function PrintHistoryPage() {
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
 
-  useEffect(() => setMounted(true), []);
 
   useEffect(() => {
     if (!mounted) return;

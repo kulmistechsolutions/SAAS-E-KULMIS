@@ -2,7 +2,7 @@
 
 
 import { useT } from "@/lib/i18n/provider";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -24,11 +24,11 @@ import { buildPreview, orderedClassNames } from "@/lib/promotions/store";
 import { activeAcademicYear } from "@/lib/academics/store";
 import { printTable } from "@/lib/promotions/print";
 import { toast } from "@/lib/toast";
+import { useHydrated } from "@/lib/use-hydrated";
 
 export default function PromotionReportsPage() {
   const t = useT();
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  const mounted = useHydrated();
   if (!mounted) {
     return (
       <div className="flex h-64 items-center justify-center text-muted-foreground">

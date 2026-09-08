@@ -23,6 +23,7 @@ import {
 import { getCachedAuthUser } from "@/lib/auth";
 import type { TeacherMe } from "@/lib/teachers/api";
 import type { TeacherPortalPermissions } from "@/lib/teacher-portal/types";
+import { useHydrated } from "@/lib/use-hydrated";
 
 interface TeacherPortalContextValue {
   mounted: boolean;
@@ -37,10 +38,9 @@ export function TeacherPortalProvider({ children }: { children: ReactNode }) {
   const t = useT();
   const router = useRouter();
   const portal = useTeacherPortalState();
-  const [mounted, setMounted] = useState(false);
+  const mounted = useHydrated();
   const [teacher, setTeacher] = useState<TeacherMe | null>(null);
 
-  useEffect(() => setMounted(true), []);
 
   useEffect(() => {
     if (!mounted) return;

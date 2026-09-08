@@ -2,7 +2,7 @@
 
 
 import { useT } from "@/lib/i18n/provider";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Search, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,7 @@ import { useStudentsState } from "@/lib/students/store";
 import type { FamilyFeeRow } from "@/lib/fees/types";
 import { FeeStatusBadge } from "./fee-status-badge";
 import { ParentContactActions } from "./parent-contact-actions";
+import { useHydrated } from "@/lib/use-hydrated";
 
 interface FamilyCollectSectionProps {
   academicYear: string;
@@ -34,10 +35,9 @@ export function FamilyCollectSection({
   const [search, setSearch] = useState("");
   const [applied, setApplied] = useState("");
   const [expanded, setExpanded] = useState<string | null>(null);
-  const [mounted, setMounted] = useState(false);
+  const mounted = useHydrated();
   const studentsState = useStudentsState();
   const feesState = useFeesState();
-  useEffect(() => setMounted(true), []);
 
   const families = useMemo(
     () =>

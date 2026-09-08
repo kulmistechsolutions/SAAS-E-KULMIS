@@ -24,6 +24,7 @@ import {
 } from "@/lib/expenses/store";
 import { AcademicYearSelect } from "@/components/academics/academic-year-select";
 import { toast } from "@/lib/toast";
+import { useHydrated } from "@/lib/use-hydrated";
 
 const QUICK = [
   { href: "/expenses/list", label: "Expense List", desc: "Search, filter & manage", icon: List },
@@ -33,13 +34,12 @@ const QUICK = [
 
 export default function ExpensesDashboardPage() {
   const t = useT();
-  const [mounted, setMounted] = useState(false);
+  const mounted = useHydrated();
   const state = useExpensesState();
   const [filterYear, setFilterYear] = useState("");
   const [filterMonth, setFilterMonth] = useState("");
   const [showForm, setShowForm] = useState(false);
 
-  useEffect(() => setMounted(true), []);
   useEffect(() => {
     if (!mounted) return;
     setFilterYear(state.academicYear);

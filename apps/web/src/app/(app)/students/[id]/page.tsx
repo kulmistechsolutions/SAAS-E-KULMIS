@@ -87,6 +87,7 @@ import type { FeePayment } from "@/lib/fees/types";
 import { toast } from "@/lib/toast";
 import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
+import { useHydrated } from "@/lib/use-hydrated";
 
 const STATUS_TONE: Record<StudentStatus, "success" | "muted" | "info"> = {
   ACTIVE: "success",
@@ -119,9 +120,8 @@ export default function StudentProfilePage({
   const isTeacher = user?.role === "TEACHER";
   const { all: allTabs, teacher: teacherTabs } = buildTabs(tr);
   const TABS = isTeacher ? teacherTabs : allTabs;
-  const [mounted, setMounted] = useState(false);
+  const mounted = useHydrated();
   const [loading, setLoading] = useState(true);
-  useEffect(() => setMounted(true), []);
   useEffect(() => {
     if (!mounted) return;
     void ensureStudentLoaded(id).finally(() => setLoading(false));

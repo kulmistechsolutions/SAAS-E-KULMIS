@@ -70,6 +70,7 @@ import { toast } from "@/lib/toast";
 import { DEFAULT_TEACHER_PASSWORD } from "@/lib/teachers/constants";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useHydrated } from "@/lib/use-hydrated";
 
 const STATUS_TONE: Record<EmploymentStatus, "success" | "muted"> = {
   ACTIVE: "success",
@@ -109,8 +110,7 @@ export default function TeacherProfilePage({
 function TeacherProfileContent({ id }: { id: string }) {
   const t = useT();
   const search = useSearchParams();
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  const mounted = useHydrated();
 
   const state = useTeachersState();
   useShifts();

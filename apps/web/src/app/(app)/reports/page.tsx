@@ -2,7 +2,7 @@
 
 
 import { useT } from "@/lib/i18n/provider";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import {
   BarChart3,
@@ -27,6 +27,7 @@ import { activeAcademicYear } from "@/lib/academics/store";
 import { useAuth } from "@/lib/auth";
 import { isRouteAllowedForRole } from "@/lib/rbac/routes";
 import type { LucideIcon } from "lucide-react";
+import { useHydrated } from "@/lib/use-hydrated";
 
 const ICONS: Record<string, LucideIcon> = {
   students: Users,
@@ -45,9 +46,8 @@ export default function ReportsDashboardPage() {
   const t = useT();
   const { user } = useAuth();
   const isTeacher = user?.role === "TEACHER";
-  const [mounted, setMounted] = useState(false);
+  const mounted = useHydrated();
   const [query, setQuery] = useState("");
-  useEffect(() => setMounted(true), []);
 
   // A category is only listed when the role may actually open it. Fee,
   // salary and financial reporting is not part of holding a register or an

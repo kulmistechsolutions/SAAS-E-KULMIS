@@ -24,12 +24,13 @@ import {
 import type { Expense, ExpenseSortDir, ExpenseSortKey } from "@/lib/expenses/types";
 import { AcademicYearSelect } from "@/components/academics/academic-year-select";
 import { toast } from "@/lib/toast";
+import { useHydrated } from "@/lib/use-hydrated";
 
 const PAGE_SIZE = 15;
 
 export default function ExpenseListPage() {
   const t = useT();
-  const [mounted, setMounted] = useState(false);
+  const mounted = useHydrated();
   const state = useExpensesState();
   const [search, setSearch] = useState("");
   const [academicYear, setAcademicYear] = useState("");
@@ -44,7 +45,6 @@ export default function ExpenseListPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
-  useEffect(() => setMounted(true), []);
   useEffect(() => {
     if (mounted) setAcademicYear(state.academicYear);
   }, [mounted, state.academicYear]);

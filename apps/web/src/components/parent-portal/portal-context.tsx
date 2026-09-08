@@ -23,6 +23,7 @@ import {
   usePortalState,
 } from "@/lib/parent-portal/store";
 import type { Parent, Student } from "@/lib/students/types";
+import { useHydrated } from "@/lib/use-hydrated";
 
 interface PortalContextValue {
   mounted: boolean;
@@ -39,9 +40,8 @@ export function PortalProvider({ children: node }: { children: ReactNode }) {
   const t = useT();
   const router = useRouter();
   const portal = usePortalState();
-  const [mounted, setMounted] = useState(false);
+  const mounted = useHydrated();
 
-  useEffect(() => setMounted(true), []);
 
   const parent = useMemo(
     () => currentParent(),

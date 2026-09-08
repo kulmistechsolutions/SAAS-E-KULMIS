@@ -44,6 +44,7 @@ import type { ParentStatus } from "@/lib/students/types";
 import type { ParentListRow } from "@/lib/students/store";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
+import { useHydrated } from "@/lib/use-hydrated";
 
 type SortKey = "name" | "code" | "registrationDate" | "childCount";
 type SortDir = "asc" | "desc";
@@ -56,8 +57,7 @@ const STATUS_TONE: Record<ParentStatus, "success" | "muted"> = {
 
 export default function ParentsPage() {
   const t = useT();
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  const mounted = useHydrated();
 
   const state = useStudentsState();
   const [search, setSearch] = useState("");

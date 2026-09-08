@@ -22,13 +22,13 @@ import { dateTime } from "@/lib/promotions/format";
 import { printTable } from "@/lib/promotions/print";
 import type { PromotionRecord, PromotionType } from "@/lib/promotions/types";
 import { toast } from "@/lib/toast";
+import { useHydrated } from "@/lib/use-hydrated";
 
 const PAGE_SIZE = 12;
 
 export default function PromotionHistoryPage() {
   const t = useT();
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  const mounted = useHydrated();
   const state = usePromotionsState();
 
   const [search, setSearch] = useState("");
