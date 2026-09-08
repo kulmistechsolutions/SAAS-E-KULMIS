@@ -76,6 +76,33 @@ where c.\\\"paidAmount\\\" > c.amount $SCOPE
 group by 1 order by 3 desc;
 " "Overpaid rows. Legitimate after a fee is lowered — the excess must show as credit."
 
+# The opposite fault to the first rule, and the quieter one: a month a school
+# did set up that never reached a student who should have been billed. It costs
+# the school money rather than the family, so nobody complains and it is only
+# ever found by asking. Registration raises a student's fees in a try/catch
+# that logged a warning and moved on, which is one way to arrive here.
+#
+# Months before the student existed are excluded, as are students whose billing
+# was deliberately set to start later.
+report "a billed month reached every student it should" "
+select sc.name, count(*), min(a.year * 100 + a.month), max(a.year * 100 + a.month)
+from students st
+join schools sc on sc.id = st.\\\"schoolId\\\"
+join monthly_fee_activations a
+  on a.\\\"schoolId\\\" = st.\\\"schoolId\\\" and a.\\\"classId\\\" = st.\\\"classId\\\"
+where st.status = 'ACTIVE' and st.\\\"monthlyFee\\\" > 0
+  and st.\\\"feeWaived\\\" = false $SCOPE
+  and (st.\\\"feeBillingStartYear\\\" is null
+       or (a.year * 100 + a.month) >=
+          (st.\\\"feeBillingStartYear\\\" * 100 + st.\\\"feeBillingStartMonth\\\"))
+  and (a.year * 100 + a.month) >=
+      (extract(year from st.\\\"createdAt\\\") * 100 + extract(month from st.\\\"createdAt\\\"))
+  and not exists (select 1 from fee_charges c
+    where c.\\\"studentId\\\" = st.id and c.kind = 'MONTHLY'
+      and c.year = a.year and c.month = a.month)
+group by 1 order by 2 desc;
+" "These students were never billed for a month their class was set up for."
+
 report "every charge belongs to a student of its own school" "
 select sc.name, count(*)
 from fee_charges c

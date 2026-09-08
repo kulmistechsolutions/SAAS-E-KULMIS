@@ -328,9 +328,29 @@ export class StudentsService {
         chargeRegistrationFee: dto.chargeRegistrationFee,
       });
     } catch (err) {
-      this.logger.warn(
-        `Fee initialization skipped for ${student.code}: ${err instanceof Error ? err.message : err}`,
+      // Registration itself stands — a family is enrolled and turning that
+      // back over a fee record would be worse. But this used to be a warning
+      // in a log nobody reads, which left a student carrying a monthly fee and
+      // no obligation behind it: money the school never asks for and never
+      // knows it is missing. Six such students were sitting in production when
+      // this was found, all from one month.
+      //
+      // So it is said out loud, to the school, in the language of the desk.
+      const detail = err instanceof Error ? err.message : String(err);
+      this.logger.error(
+        `Fee initialization FAILED for ${student.code} (${schoolId}): ${detail}`,
       );
+      await this.notifications
+        .create(schoolId, {
+          title: "Fees not set up for a new student",
+          body:
+            `${student.fullName} (${student.code}) was registered, but their ` +
+            `fees could not be raised. Open the student and set the monthly ` +
+            `fee again, or run the month's setup, so the family is billed.`,
+          type: "FEE_SETUP_FAILED",
+        })
+        // The notice must never be the thing that fails a registration.
+        .catch(() => undefined);
     }
 
     await this.notifications.notifyEvent(schoolId, "newStudent", {
