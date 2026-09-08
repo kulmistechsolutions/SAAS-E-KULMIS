@@ -6,6 +6,7 @@ import type { ClassFeeSummary, FeePayment, StudentFeeRow } from "./types";
 import { outstandingBalance } from "./store";
 import { dirOf } from "@/lib/i18n/config";
 import { getStoredLang, translateIn } from "@/lib/i18n/provider";
+import { csvCell, csvRow } from "@ekulmis/shared";
 import { getStoredPaper, paperCss, type PaperSize } from "@/lib/print/paper";
 
 function escapeHtml(s: string): string {
@@ -355,11 +356,7 @@ export function printFeeBreakdown(rows: BreakdownRow[], meta: BreakdownMeta) {
 
 /** The same rows and the same filter line, as a spreadsheet. */
 export function exportFeeBreakdownCsv(rows: BreakdownRow[], meta: BreakdownMeta) {
-  // A cell beginning =, +, - or @ is a formula to Excel, and these cells hold
-  // names a school typed. Prefixed with a quote so a spreadsheet shows the
-  // text rather than running it.
-  const q = (v: string) =>
-    `"${(/^[=+\-@]/.test(v) ? `'${v}` : v).replace(/"/g, '""')}"`;
+  const q = (v: string) => csvCell(v);
   // The filter line rides in the file, not only in its name: a downloaded CSV
   // gets renamed, mailed on, and opened by someone who never saw this screen.
   const lines = [
@@ -368,12 +365,10 @@ export function exportFeeBreakdownCsv(rows: BreakdownRow[], meta: BreakdownMeta)
     ["#", meta.primaryHeading, meta.secondaryHeading, ...meta.amountHeadings]
       .map(q)
       .join(","),
-    ...rows.map((r, i) =>
-      [q(String(i + 1)), q(r.primary), q(r.secondary), ...r.amounts].join(","),
-    ),
+    ...rows.map((r, i) => csvRow([i + 1, r.primary, r.secondary, ...r.amounts])),
   ];
   if (meta.total !== undefined) {
-    lines.push("", [q("Total"), "", "", meta.total].join(","));
+    lines.push("", csvRow(["Total", "", "", meta.total]));
   }
 
   const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8" });

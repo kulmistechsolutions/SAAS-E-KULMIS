@@ -32,6 +32,7 @@ export * from "./schemas/ai";
 export * from "./schemas/subscriptions";
 export * from "./schemas/timetable";
 export * from "./currency";
+export * from "./csv";
 
 /** Multi-tenant primitives (MASTER_PRD scope decision: multi-tenant SaaS). */
 export interface TenantContext {
