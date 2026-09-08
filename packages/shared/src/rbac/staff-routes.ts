@@ -209,6 +209,11 @@ export const ROUTE_PERMISSIONS: RoutePermissionRule[] = [
   { prefix: "/other-income", anyOf: ["expenses.view"] },
   { prefix: "/salary", anyOf: ["salaries.view"] },
 
+  // Who changed what. Its own permission, not the administrator's by virtue of
+  // being administrator: the log is how a school supervises the people holding
+  // the other permissions, so reaching it is a decision in itself.
+  { prefix: "/audit", anyOf: ["audit.view"] },
+
   // Reading the results is not running the exam.
   { prefix: "/examinations/reports", anyOf: ["examinations.view"] },
   { prefix: "/examinations", anyOf: ["examinations.update"] },

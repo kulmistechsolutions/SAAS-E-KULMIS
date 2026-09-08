@@ -18,10 +18,27 @@ export class AuditController {
     @CurrentUser() me: AuthUser,
     @Query("skip") skip?: string,
     @Query("take") take?: string,
+    @Query("module") module?: string,
+    @Query("action") action?: string,
+    @Query("q") q?: string,
+    @Query("from") from?: string,
+    @Query("to") to?: string,
   ) {
     return this.audit.list(me.schoolId, {
       skip: skip ? Number(skip) : undefined,
       take: take ? Number(take) : undefined,
+      module,
+      action,
+      q,
+      from,
+      to,
     });
+  }
+
+  /** What this school's log actually contains, so the filters offer only that. */
+  @RequirePermission("audit.view")
+  @Get("facets")
+  facets(@CurrentUser() me: AuthUser) {
+    return this.audit.facets(me.schoolId);
   }
 }

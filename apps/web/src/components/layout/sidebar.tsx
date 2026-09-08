@@ -178,7 +178,9 @@ const ADMIN_NAV: NavItem[] = [
   { label: "nav.copilot", icon: Sparkles, href: "/copilot" },
   { label: "nav.usersRoles", icon: ShieldCheck, children: USERS_CHILDREN },
   { label: "nav.settings", icon: Settings, href: "/settings" },
-  { label: "nav.systemLogs", icon: ScrollText },
+  // Had no href at all: a menu entry that went nowhere, next to a log the
+  // server has kept since the audit module was built and no screen ever showed.
+  { label: "nav.systemLogs", icon: ScrollText, href: "/audit" },
 ];
 
 const TEACHER_NAV: NavItem[] = [

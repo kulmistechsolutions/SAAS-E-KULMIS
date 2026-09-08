@@ -126,6 +126,32 @@ const ACTION_RULES: { method?: string; test: RegExp; action: string }[] = [
   { method: "POST", test: /\/reset-password$/, action: "PASSWORD_RESET" },
   { method: "POST", test: /\/examinations$/, action: "EXAM_CREATED" },
   { method: "POST", test: /\/teacher-assignments(\/bulk)?$/, action: "ASSIGNMENT_CREATED" },
+  // Money. The generic fallback named these PAY_CREATED and
+  // SETUP_MONTH_CREATED — technically an audit trail, but not one a finance
+  // officer could read, and the whole point of the log is that somebody can
+  // answer "who did this" months later without knowing the URL scheme.
+  { method: "POST", test: /\/fees\/pay$/, action: "FEE_COLLECTED" },
+  { method: "POST", test: /\/fees\/pay-family$/, action: "FAMILY_FEE_COLLECTED" },
+  { method: "POST", test: /\/fees\/setup-month$/, action: "MONTH_BILLING_SET_UP" },
+  {
+    method: "POST",
+    test: /\/fees\/setup-academic-year$/,
+    action: "YEAR_BILLING_SET_UP",
+  },
+  { method: "POST", test: /\/fees\/charge$/, action: "FEE_CHARGED" },
+  { method: "POST", test: /\/fees\/extra\/[^/]+\/apply$/, action: "EXTRA_FEE_APPLIED" },
+  { method: "POST", test: /\/fees\/extra$/, action: "EXTRA_FEE_CREATED" },
+  { method: "POST", test: /\/fees\/adjustments$/, action: "FEE_ADJUSTED" },
+  { method: "POST", test: /\/fees\/fee-change$/, action: "MONTHLY_FEE_CHANGED" },
+  {
+    method: "POST",
+    test: /\/fees\/payments\/[^/]+\/reverse$/,
+    action: "PAYMENT_REVERSED",
+  },
+  { method: "POST", test: /\/fees\/payments\/[^/]+\/print$/, action: "RECEIPT_PRINTED" },
+  { method: "POST", test: /\/fees\/payment-promises$/, action: "PAYMENT_PROMISED" },
+  { method: "POST", test: /\/expenses$/, action: "EXPENSE_RECORDED" },
+  { method: "POST", test: /\/other-income$/, action: "INCOME_RECORDED" },
 ];
 
 const METHOD_VERB: Record<string, string> = {
@@ -181,10 +207,25 @@ function extractMetadata(
     "published",
     "sms",
     "email",
+    // Money. A financial entry that does not say how much, for whom, or for
+    // which month is a record that something happened — which is not what
+    // anyone opens an audit log to find out.
+    "studentId",
+    "parentId",
+    "reason",
+    "note",
+    "method",
+    "title",
   ]) {
     const v = body[key];
     if (typeof v === "string" && v) out[key] = v;
     if (typeof v === "boolean") out[key] = v;
+  }
+  // Numbers are kept as numbers so an amount can be read, summed and compared
+  // rather than only displayed.
+  for (const key of ["amount", "year", "month", "monthlyFee", "newFee"]) {
+    const v = body[key];
+    if (typeof v === "number" && Number.isFinite(v)) out[key] = v;
   }
   return out;
 }
