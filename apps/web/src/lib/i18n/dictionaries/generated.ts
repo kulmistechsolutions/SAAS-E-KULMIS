@@ -258,6 +258,13 @@ export const generated = {
     recordAndMonitorDailyAttendanceFor: "Record and monitor daily attendance for students and teachers.",
     openModule: "Open module →",
   },
+  printTemplate: {
+    label: "Design",
+    classic: "Classic",
+    classicNote: "Plain and compact.",
+    premium: "Premium",
+    premiumNote: "Full letterhead, watermark, stamp and signatures.",
+  },
   printPaper: {
     label: "Paper size",
     a4: "A4",
@@ -1508,6 +1515,14 @@ export const generated = {
     outstanding: "Outstanding",
   },
   feesReceiptPrint: {
+    receiptSubtitle: "/ BOONAD LACAG-BIXINEED /",
+    academicYear: "Academic Year",
+    studentInformation: "Student Information",
+    paymentDetails: "Payment Details",
+    principal: "Principal",
+    stampLine1: "SCHOOL STAMP",
+    stampLine2: "SHAABADDA DUGSIGA",
+    reversed: "REVERSED",
     amountCol: "Amount",
     totalPaid: "Total paid",
     paidFor: "Paid for",

@@ -537,6 +537,17 @@ export function schoolBranding() {
     loginBackgroundUrl: s.branding.loginBackgroundDataUrl,
     /** "LEFT" (logo beside name) or "CENTERED" (logo above name) — every printed document. */
     headerLayout: s.school.documentHeaderLayout,
+    // The rest of the letterhead. Already collected in School Settings and
+    // already sent by the API; nothing but the printed page had ever asked
+    // for it, so a school that filled in its address and phone number saw
+    // them nowhere on its own documents.
+    address: s.school.address,
+    city: s.school.city,
+    country: s.school.country,
+    phone: s.school.phone,
+    email: s.school.email,
+    website: s.school.website,
+    principalName: s.school.principalName,
   };
 }
 

@@ -258,6 +258,13 @@ export const soGenerated: PartialDictionary = {
     recordAndMonitorDailyAttendanceFor: "Diiwaan geli oo kormeer xaadiriska maalinlaha ah ee ardayda iyo macallimiinta.",
     openModule: "Fur qaybta →",
   },
+  printTemplate: {
+    label: "Naqshadda",
+    classic: "Caadi",
+    classicNote: "Fudud oo kooban.",
+    premium: "Heer sare",
+    premiumNote: "Madax buuxa, calaamad, shaabad iyo saxiixyo.",
+  },
   printPaper: {
     label: "Cabbirka warqadda",
     a4: "A4",
@@ -1477,6 +1484,14 @@ export const soGenerated: PartialDictionary = {
     outstanding: "La sugayo",
   },
   feesReceiptPrint: {
+    receiptSubtitle: "/ BOONAD LACAG-BIXINEED /",
+    academicYear: "Sanad Dugsiyeed",
+    studentInformation: "Xogta Ardayga",
+    paymentDetails: "Faahfaahinta Lacagta",
+    principal: "Maamulaha",
+    stampLine1: "SHAABADDA",
+    stampLine2: "DUGSIGA",
+    reversed: "WAA LA CELIYAY",
     amountCol: "Qiimaha",
     totalPaid: "Wadarta la bixiyay",
     paidFor: "Waxa la bixiyay",

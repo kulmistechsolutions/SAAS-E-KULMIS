@@ -13,6 +13,8 @@ import { outstandingBalance, recordReceiptPrint } from "@/lib/fees/store";
 import type { FeePayment } from "@/lib/fees/types";
 import { PaperPicker } from "@/components/print/paper-picker";
 import type { PaperSize } from "@/lib/print/paper";
+import { TemplatePicker } from "@/components/print/template-picker";
+import type { DocTemplate } from "@/lib/print/template";
 
 interface ReceiptDialogProps {
   payment: FeePayment | null;
@@ -23,6 +25,7 @@ export function ReceiptDialog({ payment, onClose }: ReceiptDialogProps) {
   const t = useT();
   const branding = useSchoolBranding();
   const [paper, setPaper] = useState<PaperSize>();
+  const [template, setTemplate] = useState<DocTemplate>();
   if (!payment) return null;
   const student = getStudentsState().students.find((s) => s.id === payment.studentId);
 
@@ -37,6 +40,7 @@ export function ReceiptDialog({ payment, onClose }: ReceiptDialogProps) {
           {/* The size sits with the button that uses it, not in Settings —
               a desk switches between A5 slips and the roll printer during
               the same morning. */}
+          <TemplatePicker value={template} onChange={setTemplate} />
           <PaperPicker value={paper} onChange={setPaper} className="me-auto" />
           <Button variant="outline" onClick={onClose}>
             {t("feesReceiptDialog.close")}
@@ -44,7 +48,7 @@ export function ReceiptDialog({ payment, onClose }: ReceiptDialogProps) {
           <Button
             onClick={() => {
               recordReceiptPrint(payment.id);
-              printReceipt(payment, paper);
+              printReceipt(payment, paper, template);
             }}
           >
             {t("feesReceiptDialog.printReceipt")}

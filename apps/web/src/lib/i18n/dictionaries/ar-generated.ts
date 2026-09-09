@@ -257,6 +257,13 @@ export const arGenerated: PartialDictionary = {
     recordAndMonitorDailyAttendanceFor: "سجّل وتابع الحضور اليومي للطلاب والمعلمين.",
     openModule: "فتح الوحدة ←",
   },
+  printTemplate: {
+    label: "التصميم",
+    classic: "كلاسيكي",
+    classicNote: "بسيط ومختصر.",
+    premium: "مميز",
+    premiumNote: "ترويسة كاملة وعلامة مائية وختم وتواقيع.",
+  },
   printPaper: {
     label: "حجم الورق",
     a4: "A4",
@@ -1476,6 +1483,14 @@ export const arGenerated: PartialDictionary = {
     outstanding: "المستحق",
   },
   feesReceiptPrint: {
+    receiptSubtitle: "/ إيصال دفع /",
+    academicYear: "العام الدراسي",
+    studentInformation: "بيانات الطالب",
+    paymentDetails: "تفاصيل الدفع",
+    principal: "المدير",
+    stampLine1: "ختم",
+    stampLine2: "المدرسة",
+    reversed: "ملغى",
     amountCol: "المبلغ",
     totalPaid: "إجمالي المدفوع",
     paidFor: "المدفوع مقابل",
