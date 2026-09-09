@@ -753,13 +753,10 @@ export class StudentsService {
       // student, and a month the school has already closed was correctly
       // billed at the rate in force then.
       if (wasFree && !isFreeNow && updated.monthlyFee > 0) {
-        const latestSetup = await tx.monthlyFeeActivation.findFirst({
-          orderBy: [{ year: "desc" }, { month: "desc" }],
-          select: { year: true, month: true },
-        });
-        const now = new Date();
-        const fy = latestSetup?.year ?? now.getUTCFullYear();
-        const fm = latestSetup?.month ?? now.getUTCMonth() + 1;
+        const { year: fy, month: fm } = await liveMonthForClass(
+          tx,
+          updated.classId,
+        );
         await tx.feeCharge.updateMany({
           where: {
             studentId: id,
@@ -790,13 +787,10 @@ export class StudentsService {
         // KTS was live on August with the calendar reading September, and
         // raising a fee to $95 left their live August charge at $60 because
         // the calendar had already moved past it.
-        const latest = await tx.monthlyFeeActivation.findFirst({
-          orderBy: [{ year: "desc" }, { month: "desc" }],
-          select: { year: true, month: true },
-        });
-        const now = new Date();
-        const y = latest?.year ?? now.getUTCFullYear();
-        const m = latest?.month ?? now.getUTCMonth() + 1;
+        const { year: y, month: m } = await liveMonthForClass(
+          tx,
+          updated.classId,
+        );
         const open = await tx.feeCharge.findMany({
           where: {
             studentId: id,
@@ -1151,3 +1145,39 @@ export class StudentsService {
     return { password };
   }
 }
+
+/**
+ * The month a class is actually being billed for.
+ *
+ * "The latest month this school set up" is the wrong boundary, and it cost
+ * Haldoor a term's fee on a Grade 6 student: the school had set October up for
+ * its nine senior classes, so every calculation that keyed off the school-wide
+ * latest treated October as the line — and Grade 6, which is still collecting
+ * September, fell behind it. Her fee was raised from free to $7 and the
+ * September charge she was actually carrying was skipped, leaving the desk
+ * looking at "$7.00 monthly fee, $0.00 outstanding, Unpaid".
+ *
+ * A school setting up its senior classes has not thereby closed the month its
+ * junior classes are still working through. So the question is asked per
+ * class, which is the level month setup is recorded at in the first place.
+ *
+ * With no activation at all the calendar month stands in — a class nobody has
+ * ever billed has no live month of its own, and the calendar is the only other
+ * answer available.
+ */
+export async function liveMonthForClass(
+  tx: Pick<Prisma.TransactionClient, "monthlyFeeActivation">,
+  classId: string | null,
+): Promise<{ year: number; month: number }> {
+  const latest = classId
+    ? await tx.monthlyFeeActivation.findFirst({
+        where: { classId },
+        orderBy: [{ year: "desc" }, { month: "desc" }],
+        select: { year: true, month: true },
+      })
+    : null;
+  if (latest) return latest;
+  const now = new Date();
+  return { year: now.getUTCFullYear(), month: now.getUTCMonth() + 1 };
+}
+
