@@ -4,6 +4,7 @@ import { useT, type TranslationKey } from "@/lib/i18n/provider";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  Printer,
   Bell,
   BookOpen,
   GraduationCap,
@@ -51,6 +52,11 @@ const NAV: {
     icon: ClipboardList,
   },
   { href: "/settings/fees", label: "settingsSettingsNav.fees", icon: Wallet },
+  {
+    href: "/settings/documents",
+    label: "settingsSettingsNav.documents",
+    icon: Printer,
+  },
   { href: "/settings/salary", label: "settingsSettingsNav.salary", icon: Receipt },
   { href: "/settings/expenses", label: "settingsSettingsNav.expenses", icon: Receipt },
   { href: "/settings/attendance", label: "settingsSettingsNav.attendance", icon: CalendarCheck },
