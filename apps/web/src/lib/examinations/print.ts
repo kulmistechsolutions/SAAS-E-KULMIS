@@ -4,6 +4,18 @@ import { schoolBranding } from "@/lib/settings/store";
 import type { Exam, ExamMark } from "./types";
 import { gradeFromAverage } from "./format";
 import type { ExamResultCardData } from "@/components/examinations/exam-result-card";
+import { getGradeBands } from "@/lib/settings/store";
+import { getStoredPaper, paperCss, type PaperSize } from "@/lib/print/paper";
+import { getStoredTemplate, type DocTemplate } from "@/lib/print/template";
+import {
+  accentColour,
+  documentFooterHtml,
+  letterheadHtml,
+  LETTERHEAD_CSS,
+  signatureHtml,
+  stampHtml,
+  watermarkHtml,
+} from "@/lib/print/letterhead";
 
 function escapeHtml(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -25,6 +37,17 @@ export function printExamResultCard(
   const school = schoolBranding();
   const w = window.open("", "_blank", "width=900,height=1000");
   if (!w) return;
+
+  // The school's chosen design, when it has chosen the branded one. Everything
+  // below is the original card and stays exactly as it was.
+  const premium = resultCardDocumentHtml(data, qrDataUrl);
+  if (premium) {
+    w.document.write(premium);
+    w.document.close();
+    w.focus();
+    w.print();
+    return;
+  }
 
   const logo = school.logoUrl
     ? `<img src="${school.logoUrl}" alt="" class="logo-img"/>`
@@ -303,4 +326,211 @@ export function calcStudentAverage(
     grade: gradeFromAverage(pct),
     passed: pct >= 50,
   };
+}
+
+/**
+ * The result card on official school paper.
+ *
+ * Same marks, same totals, same grade as the card on screen — this reads the
+ * data it is handed and lays it out. What it adds is the letterhead a family
+ * recognises, the school's own grading scale printed where a parent can check
+ * the letter against the number, and the signature and stamp areas that make a
+ * result sheet something a school can issue rather than merely display.
+ *
+ * The subject table is kept whole. A result card that breaks across a page
+ * boundary mid-table is the one document nobody accepts, because half a list
+ * of marks looks like a tampered one.
+ */
+export function premiumResultCardHtml(
+  data: ExamResultCardData,
+  qrDataUrl: string | null,
+  paper: PaperSize = getStoredPaper(),
+): string {
+  const school = schoolBranding();
+  const bands = getGradeBands();
+
+  const logoWatermark = watermarkHtml();
+
+  const photo = data.studentPhotoUrl
+    ? `<img src="${data.studentPhotoUrl}" alt="" class="rc-photo"/>`
+    : "";
+
+  // One column per exam when the card covers a whole group, otherwise the
+  // single-exam table. Both end in the same totals, so the summary beside them
+  // is true either way.
+  let table: string;
+  if (data.group) {
+    const cols = data.group.examColumns;
+    table = `<table class="rc-marks">
+      <thead><tr>
+        <th class="s">${escapeHtml("Subject")}</th>
+        ${cols
+          .map(
+            (c) =>
+              `<th class="num">${escapeHtml(c.label)}<span class="dim">/${c.maxMarks}</span></th>`,
+          )
+          .join("")}
+        <th class="num">${escapeHtml("Combined %")}</th>
+        <th class="g">${escapeHtml("Grade")}</th>
+      </tr></thead>
+      <tbody>${data.group.subjectRows
+        .map(
+          (row) => `<tr>
+            <td class="s">${escapeHtml(row.subject)}</td>
+            ${cols
+              .map((c) => `<td class="num">${row.perExam[c.examId] ?? "—"}</td>`)
+              .join("")}
+            <td class="num b">${row.combinedPercent.toFixed(1)}%</td>
+            <td class="g">${escapeHtml(row.grade)}</td>
+          </tr>`,
+        )
+        .join("")}</tbody>
+    </table>`;
+  } else {
+    table = `<table class="rc-marks">
+      <thead><tr>
+        <th class="n">#</th>
+        <th class="s">${escapeHtml("Subject")}</th>
+        <th class="num">${escapeHtml("Max Marks")}</th>
+        <th class="num">${escapeHtml("Marks Obtained")}</th>
+        <th class="g">${escapeHtml("Grade")}</th>
+      </tr></thead>
+      <tbody>${data.subjects
+        .map(
+          (s, i) => `<tr>
+            <td class="n">${i + 1}</td>
+            <td class="s">${escapeHtml(s.subject)}</td>
+            <td class="num">${s.maxMarks}</td>
+            <td class="num b">${s.marksObtained ?? "—"}</td>
+            <td class="g">${escapeHtml(s.grade)}</td>
+          </tr>`,
+        )
+        .join("")}</tbody>
+      <tfoot><tr>
+        <td class="n"></td>
+        <td class="s">${escapeHtml("Total")}</td>
+        <td class="num">${data.totalMax}</td>
+        <td class="num">${data.totalObtained}</td>
+        <td class="g">${escapeHtml(data.grade)}</td>
+      </tr></tfoot>
+    </table>`;
+  }
+
+  // The school's own bands, printed so a parent can check the letter against
+  // the number rather than take it on trust.
+  const scale = bands
+    .map(
+      (b) =>
+        `<div><b>${escapeHtml(b.grade)}</b><span>${b.min} – ${b.max}</span></div>`,
+    )
+    .join("");
+
+  const summary = [
+    ["Total Marks", `${data.totalObtained} / ${data.totalMax}`],
+    ["Percentage", `${data.average.toFixed(2)}%`],
+    ["Grade", data.grade],
+    ["Result", data.passed ? "PASS" : "FAIL"],
+    ...(data.term ? [["Term", data.term]] : []),
+  ]
+    .map(
+      ([k, v]) =>
+        `<tr><td class="k">${escapeHtml(k!)}</td><td class="v">${escapeHtml(v!)}</td></tr>`,
+    )
+    .join("");
+
+  return `<!doctype html><html><head><meta charset="utf-8"/>
+<title>${escapeHtml(data.studentName)} — ${escapeHtml(data.examName)}</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;color:#0f172a}
+  ${paperCss(paper)}
+  ${LETTERHEAD_CSS}
+  .rc-photo{width:74px;height:88px;object-fit:cover;border:1px solid #cbd5e1;
+    border-radius:6px;background:#fff}
+  .rc-top{display:flex;gap:14px;align-items:flex-start}
+  .rc-top > .sec{flex:1;margin-top:0}
+  .rc-photo-wrap{margin-top:14px}
+  table.rc-marks{width:100%;border-collapse:collapse}
+  table.rc-marks th{background:#eff6ff;color:#1e3a8a;font-size:10px;font-weight:700;
+    text-transform:uppercase;letter-spacing:.05em;padding:8px 10px;text-align:start;
+    border-bottom:1px solid #dbeafe}
+  table.rc-marks td{padding:7px 10px;font-size:12px;border-bottom:1px solid #f1f5f9}
+  table.rc-marks .n{width:30px;color:#94a3b8}
+  table.rc-marks .num{text-align:end;font-variant-numeric:tabular-nums;white-space:nowrap}
+  table.rc-marks .num.b{font-weight:700}
+  table.rc-marks .g{text-align:center;width:78px;font-weight:700}
+  table.rc-marks .dim{display:block;font-weight:400;opacity:.7;font-size:9px}
+  table.rc-marks tfoot td{background:#f8fafc;font-weight:800;font-size:13px;border-bottom:none}
+  /* A result sheet split across a page break reads as a tampered one. */
+  table.rc-marks, .sec{page-break-inside:avoid}
+  .scale{display:flex;flex-wrap:wrap;gap:6px;padding:10px 14px}
+  .scale div{border:1px solid #e2e8f0;border-radius:6px;padding:4px 10px;font-size:10.5px}
+  .scale b{color:var(--ek-accent,#1e40af);margin-inline-end:6px}
+  .scale span{color:#64748b;font-variant-numeric:tabular-nums}
+  .rc-qr{width:78px;height:78px}
+  .issued{margin-top:10px;font-size:10px;color:#64748b;text-align:end}
+  @media print{ .doc-watermark{position:absolute} }
+</style></head><body>
+<div class="doc" style="--ek-accent:${accentColour()}">
+  ${logoWatermark}
+  ${letterheadHtml({
+    title: "Student Result Card",
+    subtitle: "/ KAARKA NATIIJADA ARDAYGA /",
+    refLabel: "Exam",
+    refValue: data.examName,
+  })}
+
+  <div class="rc-top">
+    <div class="sec" style="margin-top:14px">
+      <div class="sec-head">Student Information</div>
+      <table class="kv">
+        <tr><td class="k">Student Name</td><td class="v">${escapeHtml(data.studentName)}</td></tr>
+        <tr><td class="k">Student ID</td><td class="v">${escapeHtml(data.studentCode)}</td></tr>
+        <tr><td class="k">Class / Section</td><td class="v">${escapeHtml(data.className)}${data.section ? " - " + escapeHtml(data.section) : ""}</td></tr>
+        ${data.academicYear ? `<tr><td class="k">Academic Year</td><td class="v">${escapeHtml(data.academicYear)}</td></tr>` : ""}
+      </table>
+    </div>
+    <div class="sec" style="margin-top:14px">
+      <div class="sec-head">Performance Summary</div>
+      <table class="kv">${summary}</table>
+    </div>
+    ${photo ? `<div class="rc-photo-wrap">${photo}</div>` : ""}
+  </div>
+
+  <div class="sec">
+    <div class="sec-head">Subjects &amp; Marks</div>
+    ${table}
+  </div>
+
+  <div class="sec">
+    <div class="sec-head">Grading Scale</div>
+    <div class="scale">${scale}</div>
+  </div>
+
+  <div class="signs">
+    <div class="sign"><div class="rule"></div><div class="role">Class Teacher</div></div>
+    ${
+      qrDataUrl
+        ? `<img src="${qrDataUrl}" alt="" class="rc-qr"/>`
+        : stampHtml("SCHOOL STAMP", "SHAABADDA DUGSIGA")
+    }
+    ${signatureHtml("Principal", school.principalName)}
+  </div>
+
+  <div class="issued">Date of issue: ${new Date().toISOString().slice(0, 10)}</div>
+  ${documentFooterHtml()}
+</div></body></html>`;
+}
+
+/** The result card in whichever design this school has chosen. */
+export function resultCardDocumentHtml(
+  data: ExamResultCardData,
+  qrDataUrl: string | null,
+  paper: PaperSize = getStoredPaper(),
+  template: DocTemplate = getStoredTemplate(),
+): string | null {
+  // CLASSIC keeps its own window-writing path; only PREMIUM returns markup.
+  return template === "PREMIUM"
+    ? premiumResultCardHtml(data, qrDataUrl, paper)
+    : null;
 }
