@@ -103,6 +103,55 @@ where st.status = 'ACTIVE' and st.\\\"monthlyFee\\\" > 0
 group by 1 order by 2 desc;
 " "These students were never billed for a month their class was set up for."
 
+# The live month must be billed at what the student is actually set to pay.
+#
+# This is the fault that showed as "$7.00 monthly fee, $0.00 outstanding,
+# Unpaid" on Haldoor's collect screen: a student moved off free kept the $0
+# charge raised while she was free, because the recalculation measured against
+# the latest month the *school* had set up rather than her own class's. Her
+# class was still on September; the school had already opened October for its
+# senior classes.
+#
+# Only the class's own live month is checked. An older month was correctly
+# billed at the rate in force then, and repricing history would invent debt.
+report "the live month is billed at the student's own fee" "
+select sc.name, count(*), sum(st.\\\"monthlyFee\\\" - c.amount)
+from students st
+join schools sc on sc.id = st.\\\"schoolId\\\"
+join lateral (
+  select a.year, a.month from monthly_fee_activations a
+  where a.\\\"classId\\\" = st.\\\"classId\\\"
+  order by a.year desc, a.month desc limit 1
+) live on true
+join fee_charges c
+  on c.\\\"studentId\\\" = st.id and c.kind = 'MONTHLY'
+ and c.year = live.year and c.month = live.month
+where st.status = 'ACTIVE' and st.\\\"feeWaived\\\" = false
+  and st.\\\"monthlyFee\\\" > 0 and c.status <> 'INACTIVE'
+  and c.amount <> st.\\\"monthlyFee\\\"
+  and c.\\\"paidAmount\\\" = 0 $SCOPE
+group by 1 order by 3 desc;
+" "These students are billed something other than the fee on their record."
+
+# A charge nobody can pay and nobody is owed. Distinct from the rule above
+# because it also catches a student whose own fee is right but whose row is
+# empty — the shape a desk reads as "nothing to collect".
+report "no paying student carries an empty bill" "
+select sc.name, count(*)
+from students st
+join schools sc on sc.id = st.\\\"schoolId\\\"
+join fee_charges c on c.\\\"studentId\\\" = st.id and c.kind = 'MONTHLY'
+join lateral (
+  select a.year, a.month from monthly_fee_activations a
+  where a.\\\"classId\\\" = st.\\\"classId\\\"
+  order by a.year desc, a.month desc limit 1
+) live on true
+where st.status = 'ACTIVE' and st.\\\"feeWaived\\\" = false and st.\\\"monthlyFee\\\" > 0
+  and c.year = live.year and c.month = live.month
+  and c.amount = 0 and c.status <> 'INACTIVE' $SCOPE
+group by 1 order by 2 desc;
+" "A fee-paying student whose live month asks for nothing."
+
 report "every charge belongs to a student of its own school" "
 select sc.name, count(*)
 from fee_charges c
