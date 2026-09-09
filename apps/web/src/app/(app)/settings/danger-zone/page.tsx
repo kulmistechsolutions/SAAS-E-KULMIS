@@ -2,6 +2,19 @@
 
 
 import { useT } from "@/lib/i18n/provider";
+
+/**
+ * Does the typed name match the school's?
+ *
+ * Both sides trimmed. Eight schools store a trailing space in their name, which
+ * HTML collapses on screen — so the prompt showed a name the administrator
+ * copied exactly and the button stayed grey forever, with nothing to explain
+ * why. A character nobody can see is no part of proving you know which school
+ * you are erasing; case and spelling, which are visible, still are.
+ */
+function nameMatches(typed: string, actual: string): boolean {
+  return typed.trim() === actual.trim();
+}
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AlertTriangle, Banknote, CalendarX, Loader2, RotateCcw, Users } from "lucide-react";
@@ -90,7 +103,7 @@ function TeacherResetCard() {
     }
   }
 
-  const confirmed = !!preview && typed.trim() === preview.name;
+  const confirmed = !!preview && nameMatches(typed, preview.name);
 
   async function handleReset() {
     if (!confirmed) return;
@@ -211,7 +224,7 @@ function MonthDeleteCard() {
   }, []);
 
   const selected = months?.find((m) => `${m.year}-${m.month}` === picked) ?? null;
-  const confirmed = !!selected && typed.trim() === schoolName;
+  const confirmed = !!selected && nameMatches(typed, schoolName);
 
   async function handleDelete() {
     if (!selected || !confirmed) return;
@@ -370,7 +383,7 @@ function SalaryMonthDeleteCard() {
   const confirmed =
     !!preview &&
     preview.totalRows > 0 &&
-    typed.trim() === schoolName &&
+    nameMatches(typed, schoolName) &&
     (!hasPaid || alsoPaid);
 
   async function handleDelete() {
@@ -549,7 +562,7 @@ function FeeResetCard() {
     }
   }
 
-  const confirmed = !!preview && typed.trim() === preview.name;
+  const confirmed = !!preview && nameMatches(typed, preview.name);
 
   async function handleReset() {
     if (!confirmed) return;
@@ -701,7 +714,7 @@ function ClassResetCard() {
     };
   }, [classId]);
 
-  const confirmed = !!preview && typed.trim() === preview.name;
+  const confirmed = !!preview && nameMatches(typed, preview.name);
 
   async function handleReset() {
     if (!classId || !confirmed) return;
@@ -815,7 +828,7 @@ function SchoolResetCard() {
     }
   }
 
-  const confirmed = !!preview && typed.trim() === preview.name;
+  const confirmed = !!preview && nameMatches(typed, preview.name);
 
   async function handleReset() {
     if (!confirmed) return;

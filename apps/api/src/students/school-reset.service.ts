@@ -105,7 +105,7 @@ export class SchoolResetService {
           select: { name: true },
         });
         if (!school) throw new NotFoundException("School not found");
-        if (confirmName.trim() !== school.name) {
+        if (!nameMatches(confirmName, school.name)) {
           throw new BadRequestException(
             `Type the school name exactly ("${school.name}") to confirm`,
           );
@@ -190,7 +190,7 @@ export class SchoolResetService {
           select: { name: true },
         });
         if (!school) throw new NotFoundException("School not found");
-        if (confirmName.trim() !== school.name) {
+        if (!nameMatches(confirmName, school.name)) {
           throw new BadRequestException(
             `Type the school name exactly ("${school.name}") to confirm`,
           );
@@ -329,7 +329,7 @@ export class SchoolResetService {
           select: { name: true },
         });
         if (!school) throw new NotFoundException("School not found");
-        if (confirmName.trim() !== school.name) {
+        if (!nameMatches(confirmName, school.name)) {
           throw new BadRequestException(
             `Type the school name exactly ("${school.name}") to confirm`,
           );
@@ -417,7 +417,7 @@ export class SchoolResetService {
           select: { name: true },
         });
         if (!school) throw new NotFoundException("School not found");
-        if (confirmName.trim() !== school.name) {
+        if (!nameMatches(confirmName, school.name)) {
           throw new BadRequestException(
             `Type the school name exactly ("${school.name}") to confirm`,
           );
@@ -454,3 +454,22 @@ export class SchoolResetService {
     return { success: true, year, month, ...result };
   }
 }
+
+/**
+ * Does the typed name match the school's?
+ *
+ * Both sides are trimmed, not just the typed one. Eight schools carry a
+ * trailing space in their stored name — "DUGSIGA HANTI-WADAAG " — which HTML
+ * collapses to nothing on screen, so the confirmation showed a name the
+ * administrator copied exactly and could never match. Every Danger Zone action
+ * was unreachable for those schools, with no error to explain it: the button
+ * simply stayed grey.
+ *
+ * The confirmation exists to prove someone knows which school they are about
+ * to erase. A character nobody can see is no part of that proof, and case and
+ * spelling — which are visible — still are.
+ */
+export function nameMatches(typed: string, actual: string): boolean {
+  return typed.trim() === actual.trim();
+}
+
