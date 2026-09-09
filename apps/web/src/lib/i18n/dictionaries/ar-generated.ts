@@ -1383,6 +1383,8 @@ export const arGenerated: PartialDictionary = {
     openMonthlySetup: "فتح الإعداد الشهري",
   },
   feesInvoice: {
+    dueBy: "تاريخ الاستحقاق",
+    financeOffice: "المكتب المالي",
     printAction: "طباعة الفاتورة",
     title: "فاتورة الرسوم",
     invoiceNo: "فاتورة",

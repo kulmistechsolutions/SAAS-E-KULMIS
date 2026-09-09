@@ -67,7 +67,10 @@ export const LETTERHEAD_CSS = `
   .doc-title { display:flex; align-items:stretch; margin-top:14px; gap:10px; }
   .doc-title .dt-main { flex:1; background:var(--ek-accent,#1e40af); color:#fff;
     padding:11px 18px; border-radius:8px; }
-  .doc-title .dt-main h2 { margin:0; font-size:20px; font-weight:800; letter-spacing:.03em; }
+  /* Uppercased here rather than in the label, so a document title reads the
+     same on every template whatever case the translation was written in. */
+  .doc-title .dt-main h2 { margin:0; font-size:20px; font-weight:800;
+    letter-spacing:.03em; text-transform:uppercase; }
   .doc-title .dt-main .dt-sub { font-size:10.5px; opacity:.85; margin-top:2px; letter-spacing:.02em; }
   .doc-title .dt-ref { min-width:150px; border:1px solid #cbd5e1; border-radius:8px;
     padding:8px 14px; text-align:center; display:flex; flex-direction:column;

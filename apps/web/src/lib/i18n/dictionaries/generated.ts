@@ -1389,6 +1389,8 @@ export const generated = {
     openMonthlySetup: "Open Monthly Setup",
   },
   feesInvoice: {
+    dueBy: "Due by",
+    financeOffice: "Finance Office",
     printAction: "Print invoice",
     title: "Fee Invoice",
     invoiceNo: "Invoice",

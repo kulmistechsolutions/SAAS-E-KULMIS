@@ -1384,6 +1384,8 @@ export const soGenerated: PartialDictionary = {
     openMonthlySetup: "Fur Dejinta Bishii",
   },
   feesInvoice: {
+    dueBy: "Waa in la bixiyo",
+    financeOffice: "Xafiiska Maaliyadda",
     printAction: "Daabac qaansheegta",
     title: "Qaansheegta Lacagta",
     invoiceNo: "Qaansheeg",
