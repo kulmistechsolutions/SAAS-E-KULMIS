@@ -2,7 +2,7 @@
 
 
 import { useT, type TranslationKey } from "@/lib/i18n/provider";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
   MessageSquare,
@@ -12,6 +12,7 @@ import {
   Users,
   Clock,
   PlugZap,
+  Check,
   } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -1276,6 +1277,10 @@ export default function SchoolSmsPage() {
  * The steps were numbered inside the panels and nowhere else, so a half-filled
  * form looked the same as an empty one and the desk could not tell what was
  * still missing before the button would work.
+ *
+ * Three states, not two: a finished step carries a tick, the step being worked
+ * on is ringed, and the ones still ahead stay grey. Marking everything filled-in
+ * as "done" told a school it had already sent a message it had not sent.
  */
 function SendSteps({
   hasAudience,
@@ -1287,37 +1292,65 @@ function SendSteps({
   sending: boolean;
 }) {
   const tr = useT();
-  const steps: { n: number; label: TranslationKey; done: boolean }[] = [
-    { n: 1, label: "smsSend.stepRecipients", done: hasAudience },
-    { n: 2, label: "smsSend.stepCompose", done: hasMessage },
-    { n: 3, label: "smsSend.stepPreview", done: hasAudience && hasMessage },
-    { n: 4, label: "smsSend.stepSend", done: sending },
+
+  // Where the desk actually is. Sending is step 4; with both halves filled the
+  // only thing left is to confirm, which is step 3.
+  const current = sending ? 4 : hasAudience && hasMessage ? 3 : hasAudience ? 2 : 1;
+
+  const steps: { n: number; label: TranslationKey }[] = [
+    { n: 1, label: "smsSend.stepRecipients" },
+    { n: 2, label: "smsSend.stepCompose" },
+    { n: 3, label: "smsSend.stepPreview" },
+    { n: 4, label: "smsSend.stepSend" },
   ];
+
   return (
-    <ol className="flex flex-wrap items-center gap-x-2 gap-y-3 rounded-2xl border bg-card px-5 py-4 shadow-sm">
-      {steps.map((s, i) => (
-        <li key={s.n} className="flex flex-1 items-center gap-2">
-          <span
-            className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
-              s.done
-                ? "bg-primary text-primary-foreground"
-                : "bg-secondary text-muted-foreground"
-            }`}
-          >
-            {s.n}
-          </span>
-          <span
-            className={`text-xs font-medium ${
-              s.done ? "text-foreground" : "text-muted-foreground"
-            }`}
-          >
-            {tr(s.label)}
-          </span>
-          {i < steps.length - 1 && (
-            <span aria-hidden className="hidden h-px flex-1 bg-border sm:block" />
-          )}
-        </li>
-      ))}
+    <ol className="flex flex-wrap items-center gap-x-3 gap-y-3 rounded-2xl border bg-card px-5 py-4 shadow-sm sm:flex-nowrap">
+      {steps.map((s, i) => {
+        const done = s.n < current;
+        const active = s.n === current;
+        return (
+          <Fragment key={s.n}>
+            {/* The step keeps its natural width. Equal-width columns pushed the
+                last step to the far right of the strip with a long empty gap
+                before it, which read as a broken line rather than a stepper. */}
+            <li className="flex shrink-0 items-center gap-2">
+              <span
+                className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold transition-colors ${
+                  done
+                    ? "bg-primary text-primary-foreground"
+                    : active
+                      ? "bg-primary text-primary-foreground ring-4 ring-primary/20"
+                      : "bg-secondary text-muted-foreground"
+                }`}
+              >
+                {done ? <Check className="h-4 w-4" /> : s.n}
+              </span>
+              <span
+                className={`whitespace-nowrap text-xs ${
+                  active
+                    ? "font-semibold text-foreground"
+                    : done
+                      ? "font-medium text-foreground"
+                      : "font-medium text-muted-foreground"
+                }`}
+              >
+                {tr(s.label)}
+              </span>
+            </li>
+            {i < steps.length - 1 && (
+              // The line fills whatever is left between two steps, so the four
+              // of them stay evenly spread however long the labels translate to.
+              <li
+                aria-hidden
+                className={`hidden h-0.5 min-w-4 flex-1 rounded-full sm:block ${
+                  s.n < current ? "bg-primary" : "bg-border"
+                }`}
+              />
+            )}
+          </Fragment>
+        );
+      })}
     </ol>
   );
 }
