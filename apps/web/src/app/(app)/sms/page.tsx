@@ -1086,42 +1086,6 @@ export default function SchoolSmsPage() {
             )}
           </div>
 
-          {/* Quick templates. The picker in step 2 is a dropdown of names; a
-              school choosing between "Fee Reminder" and "Exam Reminder" is
-              choosing between two sentences, and the names alone do not say
-              which is which. */}
-          {templates.length > 0 && (
-            <div className="rounded-2xl border bg-card p-5 shadow-sm">
-              <div className="flex items-center justify-between gap-2">
-                <h2 className="font-semibold">{tr("smsSend.quickTemplates")}</h2>
-                <Link
-                  href="/sms/templates"
-                  className="text-xs font-medium text-primary hover:underline"
-                >
-                  {tr("smsSend.viewAll")}
-                </Link>
-              </div>
-              <ul className="mt-3 space-y-2">
-                {templates.slice(0, 4).map((tpl) => (
-                  <li key={tpl.id}>
-                    <button
-                      type="button"
-                      onClick={() => setTemplateId(tpl.id)}
-                      className={`w-full rounded-lg border p-3 text-start transition-colors hover:bg-secondary/50 ${
-                        templateId === tpl.id ? "border-primary bg-primary/5" : ""
-                      }`}
-                    >
-                      <p className="text-sm font-medium">{tpl.name}</p>
-                      <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">
-                        {tpl.body}
-                      </p>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
           {/* Recent sends, so the desk can see whether the message it is about
               to write has just gone out already. */}
           <div className="rounded-2xl border bg-card p-5 shadow-sm">
