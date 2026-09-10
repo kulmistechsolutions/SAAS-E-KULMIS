@@ -435,7 +435,7 @@ export const arGenerated: PartialDictionary = {
     a4: "A4",
     a5: "A5",
     letter: "Letter",
-    roll80: "لفة 80 مم (طابعة الإيصالات)",
+    roll80: "لفة 80 مم",
   },
   schoolDebts: {
     title: "ديون المدرسة",

@@ -46,25 +46,46 @@ export function ReceiptDialog({ payment, onClose }: ReceiptDialogProps) {
       open={!!payment}
       onClose={onClose}
       title={`${t("feesReceiptDialog.feeReceipt")} ${payment.receiptNo}`}
-      className="max-w-lg"
+      className="max-w-xl"
       footer={
         <>
           {/* The size sits with the button that uses it, not in Settings —
               a desk switches between A5 slips and the roll printer during
-              the same morning. */}
-          <TemplatePicker value={template} onChange={setTemplate} />
-          <PaperPicker value={paper} onChange={setPaper} className="me-auto" />
-          <Button variant="outline" onClick={onClose}>
-            {t("feesReceiptDialog.close")}
-          </Button>
-          <Button
-            onClick={() => {
-              recordReceiptPrint(payment.id);
-              printReceipt(payment, paper, template);
-            }}
-          >
-            {t("feesReceiptDialog.printReceipt")}
-          </Button>
+              the same morning. Both pickers are one group so they keep their
+              width instead of being squeezed by the buttons until the labels
+              read "Premiu" and "80mm roll (till print". */}
+          <div className="flex w-full min-w-0 items-end gap-3 sm:me-auto sm:w-auto">
+            <TemplatePicker
+              value={template}
+              onChange={setTemplate}
+              className="min-w-0 flex-1 sm:w-32 sm:flex-none"
+            />
+            <PaperPicker
+              value={paper}
+              onChange={setPaper}
+              className="min-w-0 flex-1 sm:w-36 sm:flex-none"
+            />
+          </div>
+          {/* Bottom-aligned with the selects, not centred against the taller
+              picker group, and never wrapped onto two lines. */}
+          <div className="flex w-full gap-2 sm:w-auto sm:self-end">
+            <Button
+              variant="outline"
+              onClick={onClose}
+              className="whitespace-nowrap"
+            >
+              {t("feesReceiptDialog.close")}
+            </Button>
+            <Button
+              onClick={() => {
+                recordReceiptPrint(payment.id);
+                printReceipt(payment, paper, template);
+              }}
+              className="whitespace-nowrap"
+            >
+              {t("feesReceiptDialog.printReceipt")}
+            </Button>
+          </div>
         </>
       }
     >

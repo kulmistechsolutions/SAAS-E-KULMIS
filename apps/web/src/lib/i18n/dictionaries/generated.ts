@@ -436,7 +436,7 @@ export const generated = {
     a4: "A4",
     a5: "A5",
     letter: "Letter",
-    roll80: "80mm roll (till printer)",
+    roll80: "80mm roll",
   },
   schoolDebts: {
     title: "School Debts",

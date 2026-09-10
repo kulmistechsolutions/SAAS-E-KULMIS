@@ -110,7 +110,7 @@ export function Dialog({
         </div>
 
         {footer && (
-          <div className="flex shrink-0 flex-col-reverse gap-2 border-t bg-card px-4 py-3 sm:flex-row sm:items-center sm:justify-end sm:gap-3 sm:px-5 [&_button]:w-full sm:[&_button]:w-auto">
+          <div className="flex shrink-0 flex-col-reverse gap-2 border-t bg-card px-4 py-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end sm:gap-3 sm:px-5 [&_button]:w-full sm:[&_button]:w-auto">
             {footer}
           </div>
         )}

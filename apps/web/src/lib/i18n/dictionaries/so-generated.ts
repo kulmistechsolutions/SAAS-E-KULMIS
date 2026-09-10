@@ -436,7 +436,7 @@ export const soGenerated: PartialDictionary = {
     a4: "A4",
     a5: "A5",
     letter: "Letter",
-    roll80: "Rool 80mm (daabacaha rasiidka)",
+    roll80: "Rool 80mm",
   },
   schoolDebts: {
     title: "Deynta Dugsiga",
