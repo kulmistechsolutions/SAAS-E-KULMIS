@@ -787,13 +787,113 @@ export default function SchoolSmsPage() {
                     </span>
                   </p>
                   <p className="mt-0.5 text-[11px] text-muted-foreground">
-                    {cost.segments} \u00d7 {selected.size}
+                    {cost.segments} × {selected.size}
                   </p>
                 </div>
               </div>
             </div>
             </div>
 
+            {/* Step 3 - preview and confirm */}
+            <div className="rounded-2xl border bg-card p-5 shadow-sm">
+              <div className="flex items-center gap-2">
+                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
+                  3
+                </span>
+                <div>
+                  <h2 className="font-semibold leading-tight">
+                    {tr("smsSend.previewConfirm")}
+                  </h2>
+                  <p className="text-xs text-muted-foreground">
+                    {tr("smsSend.step3Note")}
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-4 grid items-start gap-6 lg:grid-cols-[minmax(0,1fr),280px]">
+                <dl className="space-y-2 text-sm">
+                  <SendFact label={tr("smsSend.recipients")}>
+                    {selected.size}
+                  </SendFact>
+                  <SendFact label={tr("smsSend.message")}>
+                    <span className="block max-w-prose whitespace-pre-wrap text-muted-foreground">
+                      {body.trim() || tr("smsSend.nothingWritten")}
+                    </span>
+                  </SendFact>
+                  <SendFact label={tr("smsSend.characters")}>
+                    {cost.chars}
+                  </SendFact>
+                  <SendFact label={tr("smsSend.segments")}>
+                    {cost.segments}
+                  </SendFact>
+                  <SendFact label={tr("smsSend.estimatedUsage")}>
+                    {estimatedCredits} {tr("smsSend.credits")}
+                  </SendFact>
+                  {!balance?.gateway?.active && (
+                    <SendFact label={tr("smsSend.balanceAfter")}>
+                      {/* Red when the send would not fit: the one number that
+                          decides whether pressing the button achieves
+                          anything at all. */}
+                      <span
+                        className={
+                          balanceAfter < 0
+                            ? "font-semibold text-rose-600"
+                            : "font-semibold text-emerald-600"
+                        }
+                      >
+                        {balanceAfter.toLocaleString()}
+                      </span>
+                    </SendFact>
+                  )}
+                </dl>
+
+                {/* A message reads differently on a phone than in a textarea,
+                    and a phone is where every one of these is actually read. */}
+                <div className="mx-auto w-full max-w-[240px] rounded-2xl border bg-secondary/30 p-3">
+                  <p className="text-center text-[11px] font-medium text-muted-foreground">
+                    {tr("smsSend.newMessage")}
+                  </p>
+                  <div className="mt-2 rounded-xl bg-card p-3 text-sm shadow-sm">
+                    <p className="whitespace-pre-wrap break-words">
+                      {body.trim() || tr("smsSend.nothingWritten")}
+                    </p>
+                  </div>
+                  <p className="mt-1 text-end text-[10px] text-muted-foreground">
+                    {cost.chars}/{cost.ucs2 ? 70 : 160}
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-5 flex flex-wrap items-center gap-2 border-t pt-4">
+                <Button
+                  onClick={() => void handleSend()}
+                  disabled={
+                    sending || !body.trim() || !canSend || selected.size === 0
+                  }
+                >
+                  <Send className="me-2 h-4 w-4" />
+                  {sending
+                    ? tr("smsSend.sending")
+                    : scheduledAt
+                      ? `${tr("smsSend.schedule")} (${selected.size})`
+                      : `${tr("smsSend.send")} (${selected.size})`}
+                </Button>
+                {audience === "OUTSTANDING" && (
+                  <Button
+                    variant="outline"
+                    onClick={() => void handleFeeReminders()}
+                    disabled={sending}
+                  >
+                    {tr("sms.sendDefaultFeeReminder")}
+                  </Button>
+                )}
+                {balanceAfter < 0 && !balance?.gateway?.active && (
+                  <span className="text-xs font-medium text-rose-600">
+                    {tr("smsSend.notEnoughCredit")}
+                  </span>
+                )}
+              </div>
+            </div>
           </div>
 
           <div className="space-y-4">
@@ -1014,106 +1114,6 @@ export default function SchoolSmsPage() {
           </div>
         </div>
 
-        {/* Step 3 - preview and confirm */}
-        <div className="rounded-2xl border bg-card p-5 shadow-sm">
-          <div className="flex items-center gap-2">
-            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
-              3
-            </span>
-            <div>
-              <h2 className="font-semibold leading-tight">
-                {tr("smsSend.previewConfirm")}
-              </h2>
-              <p className="text-xs text-muted-foreground">
-                {tr("smsSend.step3Note")}
-              </p>
-            </div>
-          </div>
-
-          <div className="mt-4 grid items-start gap-6 lg:grid-cols-[minmax(0,1fr),280px]">
-            <dl className="space-y-2 text-sm">
-              <SendFact label={tr("smsSend.recipients")}>
-                {selected.size}
-              </SendFact>
-              <SendFact label={tr("smsSend.message")}>
-                <span className="block max-w-prose whitespace-pre-wrap text-muted-foreground">
-                  {body.trim() || tr("smsSend.nothingWritten")}
-                </span>
-              </SendFact>
-              <SendFact label={tr("smsSend.characters")}>
-                {cost.chars}
-              </SendFact>
-              <SendFact label={tr("smsSend.segments")}>
-                {cost.segments}
-              </SendFact>
-              <SendFact label={tr("smsSend.estimatedUsage")}>
-                {estimatedCredits} {tr("smsSend.credits")}
-              </SendFact>
-              {!balance?.gateway?.active && (
-                <SendFact label={tr("smsSend.balanceAfter")}>
-                  {/* Red when the send would not fit: the one number that
-                      decides whether pressing the button achieves
-                      anything at all. */}
-                  <span
-                    className={
-                      balanceAfter < 0
-                        ? "font-semibold text-rose-600"
-                        : "font-semibold text-emerald-600"
-                    }
-                  >
-                    {balanceAfter.toLocaleString()}
-                  </span>
-                </SendFact>
-              )}
-            </dl>
-
-            {/* A message reads differently on a phone than in a textarea,
-                and a phone is where every one of these is actually read. */}
-            <div className="mx-auto w-full max-w-[240px] rounded-2xl border bg-secondary/30 p-3">
-              <p className="text-center text-[11px] font-medium text-muted-foreground">
-                {tr("smsSend.newMessage")}
-              </p>
-              <div className="mt-2 rounded-xl bg-card p-3 text-sm shadow-sm">
-                <p className="whitespace-pre-wrap break-words">
-                  {body.trim() || tr("smsSend.nothingWritten")}
-                </p>
-              </div>
-              <p className="mt-1 text-end text-[10px] text-muted-foreground">
-                {cost.chars}/{cost.ucs2 ? 70 : 160}
-              </p>
-            </div>
-          </div>
-
-          <div className="mt-5 flex flex-wrap items-center gap-2 border-t pt-4">
-            <Button
-              onClick={() => void handleSend()}
-              disabled={
-                sending || !body.trim() || !canSend || selected.size === 0
-              }
-            >
-              <Send className="me-2 h-4 w-4" />
-              {sending
-                ? tr("smsSend.sending")
-                : scheduledAt
-                  ? `${tr("smsSend.schedule")} (${selected.size})`
-                  : `${tr("smsSend.send")} (${selected.size})`}
-            </Button>
-            {audience === "OUTSTANDING" && (
-              <Button
-                variant="outline"
-                onClick={() => void handleFeeReminders()}
-                disabled={sending}
-              >
-                {tr("sms.sendDefaultFeeReminder")}
-              </Button>
-            )}
-            {balanceAfter < 0 && !balance?.gateway?.active && (
-              <span className="text-xs font-medium text-rose-600">
-                {tr("smsSend.notEnoughCredit")}
-              </span>
-            )}
-          </div>
-        </div>
         </>
       )}
 
