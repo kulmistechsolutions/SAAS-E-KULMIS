@@ -153,6 +153,7 @@ const core = {
     noneYet: "Not enough recorded yet.",
   },
   nav: {
+    sendSms: "Send SMS",
     copilot: "School Copilot",
     dashboard: "Dashboard",
     students: "Students",

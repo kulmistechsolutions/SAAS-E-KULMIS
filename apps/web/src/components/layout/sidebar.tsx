@@ -126,6 +126,15 @@ const USERS_CHILDREN: NavChild[] = [
   { label: "nav.reports", href: "/users/reports" },
 ];
 
+// SMS became a module rather than a page: a dashboard, the send workflow, and
+// the credit packages. Grouping them stops "SMS" and "SMS Packages" sitting as
+// two unrelated top-level entries when one is plainly part of the other.
+const SMS_CHILDREN: NavChild[] = [
+  { label: "nav.dashboard", href: "/sms/dashboard" },
+  { label: "nav.sendSms", href: "/sms" },
+  { label: "nav.smsPackages", href: "/sms/packages" },
+];
+
 const EXPENSE_CHILDREN: NavChild[] = [
   { label: "nav.dashboard", href: "/expenses" },
   { label: "nav.expenseList", href: "/expenses/list" },
@@ -170,8 +179,7 @@ const ADMIN_NAV: NavItem[] = [
   { label: "nav.onlineQuiz", icon: ClipboardList, children: QUIZ_CHILDREN },
   { label: "nav.finance", icon: DollarSign, href: "/reports/financial" },
   { label: "nav.announcements", icon: Megaphone, href: "/announcements" },
-  { label: "nav.sms", icon: MessageSquare, href: "/sms" },
-  { label: "nav.smsPackages", icon: Package, href: "/sms/packages" },
+  { label: "nav.sms", icon: MessageSquare, children: SMS_CHILDREN },
   { label: "nav.library", icon: BookOpen, href: "/library" },
   { label: "nav.idGenerator", icon: CreditCard, href: "/id-cards" },
   { label: "nav.reports", icon: BarChart3, href: "/reports" },

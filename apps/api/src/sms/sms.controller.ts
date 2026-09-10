@@ -51,6 +51,13 @@ export class SmsController {
     return this.sms.schoolBalance(me.schoolId);
   }
 
+  /** Credits used today, this month and per day — the dashboard's figures. */
+  @RequirePermission("sms.view")
+  @Get("usage")
+  usage(@CurrentUser() me: AuthUser, @Query("days") days?: string) {
+    return this.sms.usage(me.schoolId, days ? Number(days) : undefined);
+  }
+
   @RequirePermission("sms.update")
   @Patch("settings")
   @Roles(UserRole.ADMINISTRATOR, UserRole.SUPER_ADMINISTRATOR)

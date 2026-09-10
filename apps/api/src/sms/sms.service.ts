@@ -1020,6 +1020,77 @@ export class SmsService {
   }
 
   /**
+   * How much SMS this school has actually used, and when.
+   *
+   * The balance call already answers "how many credits are left" and "how did
+   * the messages end up", but not "how many today" or "how has this moved" —
+   * so a dashboard wanting those had only two choices: invent them, or not
+   * show them. Counted here from the message rows themselves, which are the
+   * only record of a send that exists.
+   *
+   * Credits, not messages, is the figure that matters: a long message costs
+   * several per recipient, and a school budgeting by message count would run
+   * out halfway through a term it thought it had paid for.
+   */
+  async usage(schoolId: string, days = 30) {
+    const now = new Date();
+    const dayStart = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
+    );
+    const monthStart = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1),
+    );
+    const from = new Date(dayStart);
+    from.setUTCDate(from.getUTCDate() - (Math.max(1, Math.min(days, 90)) - 1));
+
+    return this.prisma.forTenant(schoolId, async (tx) => {
+      const credits = async (where: object) =>
+        (await tx.smsMessage.aggregate({ _sum: { creditsUsed: true }, where }))
+          ._sum.creditsUsed ?? 0;
+
+      // A message that failed cost nothing and must not be counted as spent.
+      const spent = { status: { not: "FAILED" as const } };
+
+      const [today, thisMonth, allTime, failed, pending, rows] =
+        await Promise.all([
+          credits({ ...spent, createdAt: { gte: dayStart } }),
+          credits({ ...spent, createdAt: { gte: monthStart } }),
+          credits(spent),
+          tx.smsMessage.count({ where: { status: "FAILED" } }),
+          tx.smsMessage.count({ where: { status: "PENDING" } }),
+          tx.smsMessage.findMany({
+            where: { ...spent, createdAt: { gte: from } },
+            select: { createdAt: true, creditsUsed: true },
+          }),
+        ]);
+
+      // Bucketed here rather than in SQL so the series has a row for every
+      // day, including the quiet ones. A chart that simply omits a day it has
+      // no rows for draws a smooth line through a gap and shows a school a
+      // trend that did not happen.
+      const byDay = new Map<string, number>();
+      for (let i = 0; i < Math.max(1, Math.min(days, 90)); i += 1) {
+        const d = new Date(from);
+        d.setUTCDate(d.getUTCDate() + i);
+        byDay.set(d.toISOString().slice(0, 10), 0);
+      }
+      for (const r of rows) {
+        const key = r.createdAt.toISOString().slice(0, 10);
+        if (byDay.has(key)) byDay.set(key, (byDay.get(key) ?? 0) + r.creditsUsed);
+      }
+
+      return {
+        today,
+        thisMonth,
+        allTime,
+        failed,
+        pending,
+        daily: [...byDay.entries()].map(([date, credits]) => ({ date, credits })),
+      };
+    });
+  }
+
+  /**
    * What a school may change about its own SMS. `smsSenderName` is absent on
    * purpose — the sending name is registered with the operator against a
    * licensed organisation, so it is granted through a sender ID application
