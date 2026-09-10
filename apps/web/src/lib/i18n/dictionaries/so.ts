@@ -153,6 +153,7 @@ const curated: PartialDictionary = {
     noneYet: "Weli si filan wax lama duubin.",
   },
   nav: {
+    smsHistory: "Taariikhda SMS",
     sendSms: "Dir SMS",
     copilot: "Kaaliyaha Dugsiga",
     dashboard: "Shaxda Guud",

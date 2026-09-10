@@ -237,17 +237,50 @@ export async function apiDeleteSmsTemplate(id: string) {
   return api(`/sms/templates/${id}`, { method: "DELETE" });
 }
 
-export async function apiSmsMessages(params?: {
+export interface SmsMessagePage {
+  items: SmsMessage[];
+  total: number;
+  take: number;
+  skip: number;
+  /** Credits this filtered view actually cost — failed sends charge nothing. */
+  credits: number;
+}
+
+export async function apiSmsMessagePage(params?: {
   status?: string;
   category?: string;
   q?: string;
+  from?: string;
+  to?: string;
+  take?: number;
+  skip?: number;
 }) {
   const qs = new URLSearchParams();
   if (params?.status) qs.set("status", params.status);
   if (params?.category) qs.set("category", params.category);
   if (params?.q) qs.set("q", params.q);
+  if (params?.from) qs.set("from", params.from);
+  if (params?.to) qs.set("to", params.to);
+  if (params?.take) qs.set("take", String(params.take));
+  if (params?.skip) qs.set("skip", String(params.skip));
   const q = qs.toString();
-  return api<SmsMessage[]>(`/sms/messages${q ? `?${q}` : ""}`);
+  return api<SmsMessagePage>(`/sms/messages${q ? `?${q}` : ""}`);
+}
+
+/**
+ * The rows alone, for callers that only ever wanted the newest page.
+ *
+ * The endpoint now returns a total beside the rows, because a history screen
+ * cannot otherwise tell "the newest hundred" from "all of them". This keeps
+ * the old shape for the places that never asked that question.
+ */
+export async function apiSmsMessages(params?: {
+  status?: string;
+  category?: string;
+  q?: string;
+}) {
+  const page = await apiSmsMessagePage(params);
+  return page.items;
 }
 
 /** Clears the send-history log — optionally just one status (e.g. only

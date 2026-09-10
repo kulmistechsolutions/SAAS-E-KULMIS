@@ -1315,33 +1315,67 @@ export class SmsService {
 
   // ── Logs / transactions ──────────────────────────────────────────────────
 
-  listMessages(
+  /**
+   * The send log, filtered and counted.
+   *
+   * A history page needs three things this did not return: a date range, a
+   * total, and a page beyond the first hundred. Without the total a school
+   * cannot tell "the newest hundred" from "all of them", which is the
+   * difference between a log and a sample of one.
+   */
+  async listMessages(
     schoolId: string,
     opts: {
       status?: string;
       category?: string;
       q?: string;
+      from?: string;
+      to?: string;
       take?: number;
+      skip?: number;
     } = {},
   ) {
-    return this.prisma.forTenant(schoolId, (tx) =>
-      tx.smsMessage.findMany({
-        where: {
-          schoolId,
-          status: opts.status as never,
-          category: opts.category as never,
-          OR: opts.q
-            ? [
-                { recipientPhone: { contains: opts.q } },
-                { recipientName: { contains: opts.q, mode: "insensitive" } },
-                { body: { contains: opts.q, mode: "insensitive" } },
-              ]
-            : undefined,
-        },
-        orderBy: { createdAt: "desc" },
-        take: opts.take ?? 100,
-      }),
-    );
+    const take = Math.min(Math.max(opts.take ?? 100, 1), 500);
+    const skip = Math.max(opts.skip ?? 0, 0);
+
+    const createdAt: { gte?: Date; lte?: Date } = {};
+    const from = opts.from ? new Date(opts.from) : null;
+    const to = opts.to ? new Date(opts.to) : null;
+    if (from && !Number.isNaN(from.getTime())) createdAt.gte = from;
+    if (to && !Number.isNaN(to.getTime())) {
+      // A date with no time means the whole of that day, which is what a
+      // person picking "to: 30 September" means by it.
+      if (opts.to && opts.to.length <= 10) to.setUTCHours(23, 59, 59, 999);
+      createdAt.lte = to;
+    }
+
+    const where = {
+      schoolId,
+      status: opts.status as never,
+      category: opts.category as never,
+      ...(createdAt.gte || createdAt.lte ? { createdAt } : {}),
+      OR: opts.q
+        ? [
+            { recipientPhone: { contains: opts.q } },
+            { recipientName: { contains: opts.q, mode: "insensitive" as const } },
+            { body: { contains: opts.q, mode: "insensitive" as const } },
+          ]
+        : undefined,
+    };
+
+    return this.prisma.forTenant(schoolId, async (tx) => {
+      const [items, total, spent] = await Promise.all([
+        tx.smsMessage.findMany({ where, orderBy: { createdAt: "desc" }, take, skip }),
+        tx.smsMessage.count({ where }),
+        // What this filtered view actually cost, so the number under the
+        // table answers the question the filter was asked to answer.
+        tx.smsMessage.aggregate({
+          _sum: { creditsUsed: true },
+          where: { ...where, status: { not: "FAILED" as never } },
+        }),
+      ]);
+      return { items, total, take, skip, credits: spent._sum.creditsUsed ?? 0 };
+    });
   }
 
   /** Clears the send-history log (optionally just one status), leaving the

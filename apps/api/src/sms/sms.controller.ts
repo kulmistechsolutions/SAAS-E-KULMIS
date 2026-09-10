@@ -172,8 +172,20 @@ export class SmsController {
     @Query("status") status?: string,
     @Query("category") category?: string,
     @Query("q") q?: string,
+    @Query("from") from?: string,
+    @Query("to") to?: string,
+    @Query("take") take?: string,
+    @Query("skip") skip?: string,
   ) {
-    return this.sms.listMessages(me.schoolId, { status, category, q });
+    return this.sms.listMessages(me.schoolId, {
+      status,
+      category,
+      q,
+      from,
+      to,
+      take: take ? Number(take) : undefined,
+      skip: skip ? Number(skip) : undefined,
+    });
   }
 
   @Roles(UserRole.ADMINISTRATOR, UserRole.SUPER_ADMINISTRATOR)
