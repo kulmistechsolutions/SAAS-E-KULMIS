@@ -20,6 +20,7 @@ import {
 import { toast } from "@/lib/toast";
 import { CATEGORIES } from "./categories";
 import { VariablePicker, VariableWarning } from "./variables";
+import { smsCost } from "@/lib/sms/cost";
 
 interface Props {
   templates: SmsTemplate[];
@@ -27,22 +28,6 @@ interface Props {
 }
 
 const EMPTY = { name: "", category: "CUSTOM" as SmsCategory, body: "" };
-
-// Somali text is plain Latin, so templates normally fit the GSM-7 alphabet
-// (160 chars/segment single, 153/segment concatenated). Any character
-// outside it (emoji, curly quotes, etc.) forces UCS-2 billing instead
-// (70/67 chars/segment) — worth flagging since it silently multiplies cost.
-const GSM7_RE =
-  /^[A-Za-z0-9@£$¥èéùìòÇØøÅåΔ_ΦΓΛΩΠΨΣΘΞÆæßÉ !"#¤%&'()*+,\-./:;<=>?¡ÄÖÑÜ§¿äöñüà\n\r\t^{}\\[~\]|€]*$/;
-
-function smsCost(body: string): { chars: number; segments: number; ucs2: boolean } {
-  const chars = body.length;
-  const ucs2 = !GSM7_RE.test(body);
-  const single = ucs2 ? 70 : 160;
-  const multi = ucs2 ? 67 : 153;
-  const segments = chars === 0 ? 0 : chars <= single ? 1 : Math.ceil(chars / multi);
-  return { chars, segments, ucs2 };
-}
 
 function TemplateCostHint({ body, compact }: { body: string; compact?: boolean }) {
   const tr = useT();

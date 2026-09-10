@@ -29,6 +29,7 @@ import { GatewaySettings } from "@/components/sms/gateway-settings";
 import { SenderIdCard } from "@/components/sms/sender-id-card";
 import { CATEGORIES } from "@/components/sms/categories";
 import { VariablePicker, VariableWarning } from "@/components/sms/variables";
+import { smsCost } from "@/lib/sms/cost";
 import {
   apiFeeReminders,
   apiPreviewAudience,
@@ -306,6 +307,7 @@ export default function SchoolSmsPage() {
         ? new Date(scheduledAt).toISOString()
         : null;
       const excludedCount = recipients.length - selected.size;
+
       const payload: Parameters<typeof apiSendAudienceSms>[0] = {
         category,
         body,
@@ -448,6 +450,12 @@ export default function SchoolSmsPage() {
     !!balance?.provider.canSend &&
     (balance?.gateway?.active || (balance?.creditsRemaining ?? 0) > 0);
   const excludedCount = recipients.length - selected.size;
+  // What the send will cost, from the same function the template editor
+  // quotes with — two copies of this arithmetic is how a school is shown one
+  // price and charged another.
+  const cost = smsCost(body);
+  const estimatedCredits = cost.segments * selected.size;
+  const balanceAfter = (balance?.creditsRemaining ?? 0) - estimatedCredits;
 
   return (
     <div className="space-y-6">
@@ -565,15 +573,28 @@ export default function SchoolSmsPage() {
       </div>
 
       {tab === "send" && (
-        <div className="grid gap-4 lg:grid-cols-2">
+        <>
+        <SendSteps
+          hasAudience={selected.size > 0}
+          hasMessage={body.trim().length > 0}
+          sending={sending}
+        />
+        <div className="grid items-start gap-4 xl:grid-cols-3">
+          <div className="space-y-4 xl:col-span-2">
+            <div className="grid items-start gap-4 lg:grid-cols-2">
           <div className="space-y-5 rounded-2xl border bg-card p-5 shadow-sm">
             {/* Step 1 — audience */}
             <div className="space-y-3">
               <div className="flex items-center gap-2">
-                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
                   1
                 </span>
-                <h2 className="font-semibold">{tr("sms.chooseAudience")}</h2>
+                <div>
+                  <h2 className="font-semibold leading-tight">{tr("sms.chooseAudience")}</h2>
+                  <p className="text-xs text-muted-foreground">
+                    {tr("smsSend.step1Note")}
+                  </p>
+                </div>
               </div>
               <div>
                 <Label>{tr("sms.sendTo")}</Label>
@@ -693,13 +714,21 @@ export default function SchoolSmsPage() {
               </div>
             </div>
 
-            {/* Step 2 — compose */}
-            <div className="space-y-3 border-t pt-4">
+          </div>
+
+          {/* Step 2 — compose. Its own card rather than a section under the
+              audience, so the two halves of the decision sit side by side. */}
+          <div className="space-y-3 rounded-2xl border bg-card p-5 shadow-sm">
               <div className="flex items-center gap-2">
-                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
                   2
                 </span>
-                <h2 className="font-semibold">{tr("sms.writeYourMessage")}</h2>
+                <div>
+                  <h2 className="font-semibold leading-tight">{tr("sms.writeYourMessage")}</h2>
+                  <p className="text-xs text-muted-foreground">
+                    {tr("smsSend.step2Note")}
+                  </p>
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -776,7 +805,114 @@ export default function SchoolSmsPage() {
                     : "Leave empty to send right now."}
                 </p>
               </div>
-              <div className="flex flex-wrap gap-2 pt-1">
+              {/* What this send costs, before it is sent. The button used to
+                  say how many people and never how much, so a school could
+                  clear a month of credit in one click and find out after. */}
+              <div className="grid grid-cols-2 gap-3 pt-1">
+                <div className="rounded-xl border bg-secondary/30 p-3">
+                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                    {tr("smsSend.messageLength")}
+                  </p>
+                  <p className="mt-1 text-xl font-bold tabular-nums">
+                    {cost.chars}
+                    <span className="ms-1 text-xs font-normal text-muted-foreground">
+                      {tr("smsSend.characters")}
+                    </span>
+                  </p>
+                  <p className="mt-0.5 text-[11px] text-muted-foreground">
+                    {cost.segments} {tr("smsSend.segments")}
+                    {cost.ucs2 ? ` \u00b7 ${tr("smsSend.specialChars")}` : ""}
+                  </p>
+                </div>
+                <div className="rounded-xl border bg-secondary/30 p-3">
+                  <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                    {tr("smsSend.estimatedUsage")}
+                  </p>
+                  <p className="mt-1 text-xl font-bold tabular-nums text-primary">
+                    {estimatedCredits}
+                    <span className="ms-1 text-xs font-normal text-muted-foreground">
+                      {tr("smsSend.credits")}
+                    </span>
+                  </p>
+                  <p className="mt-0.5 text-[11px] text-muted-foreground">
+                    {cost.segments} \u00d7 {selected.size}
+                  </p>
+                </div>
+              </div>
+            </div>
+            </div>
+
+            {/* Step 3 - preview and confirm */}
+            <div className="rounded-2xl border bg-card p-5 shadow-sm">
+              <div className="flex items-center gap-2">
+                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
+                  3
+                </span>
+                <div>
+                  <h2 className="font-semibold leading-tight">
+                    {tr("smsSend.previewConfirm")}
+                  </h2>
+                  <p className="text-xs text-muted-foreground">
+                    {tr("smsSend.step3Note")}
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-4 grid items-start gap-5 lg:grid-cols-[1fr,240px]">
+                <dl className="space-y-2 text-sm">
+                  <SendFact label={tr("smsSend.recipients")}>
+                    {selected.size}
+                  </SendFact>
+                  <SendFact label={tr("smsSend.message")}>
+                    <span className="block max-w-prose whitespace-pre-wrap text-muted-foreground">
+                      {body.trim() || tr("smsSend.nothingWritten")}
+                    </span>
+                  </SendFact>
+                  <SendFact label={tr("smsSend.characters")}>
+                    {cost.chars}
+                  </SendFact>
+                  <SendFact label={tr("smsSend.segments")}>
+                    {cost.segments}
+                  </SendFact>
+                  <SendFact label={tr("smsSend.estimatedUsage")}>
+                    {estimatedCredits} {tr("smsSend.credits")}
+                  </SendFact>
+                  {!balance?.gateway?.active && (
+                    <SendFact label={tr("smsSend.balanceAfter")}>
+                      {/* Red when the send would not fit: the one number that
+                          decides whether pressing the button achieves
+                          anything at all. */}
+                      <span
+                        className={
+                          balanceAfter < 0
+                            ? "font-semibold text-rose-600"
+                            : "font-semibold text-emerald-600"
+                        }
+                      >
+                        {balanceAfter.toLocaleString()}
+                      </span>
+                    </SendFact>
+                  )}
+                </dl>
+
+                {/* A message reads differently on a phone than in a textarea,
+                    and a phone is where every one of these is actually read. */}
+                <div className="mx-auto w-full max-w-[240px] rounded-2xl border bg-secondary/30 p-3">
+                  <p className="text-center text-[11px] font-medium text-muted-foreground">
+                    {tr("smsSend.newMessage")}
+                  </p>
+                  <div className="mt-2 rounded-xl bg-card p-3 text-sm shadow-sm">
+                    <p className="whitespace-pre-wrap break-words">
+                      {body.trim() || tr("smsSend.nothingWritten")}
+                    </p>
+                  </div>
+                  <p className="mt-1 text-end text-[10px] text-muted-foreground">
+                    {cost.chars}/{cost.ucs2 ? 70 : 160}
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-5 flex flex-wrap items-center gap-2 border-t pt-4">
                 <Button
                   onClick={() => void handleSend()}
                   disabled={
@@ -785,10 +921,10 @@ export default function SchoolSmsPage() {
                 >
                   <Send className="me-2 h-4 w-4" />
                   {sending
-                    ? "Sending…"
+                    ? tr("smsSend.sending")
                     : scheduledAt
-                      ? `Schedule SMS (${selected.size})`
-                      : `Send SMS (${selected.size})`}
+                      ? `${tr("smsSend.schedule")} (${selected.size})`
+                      : `${tr("smsSend.send")} (${selected.size})`}
                 </Button>
                 {audience === "OUTSTANDING" && (
                   <Button
@@ -799,10 +935,16 @@ export default function SchoolSmsPage() {
                     {tr("sms.sendDefaultFeeReminder")}
                   </Button>
                 )}
+                {balanceAfter < 0 && !balance?.gateway?.active && (
+                  <span className="text-xs font-medium text-rose-600">
+                    {tr("smsSend.notEnoughCredit")}
+                  </span>
+                )}
               </div>
             </div>
           </div>
 
+          <div className="space-y-4">
           <div className="rounded-2xl border bg-card p-5 shadow-sm">
             <h2 className="font-semibold">{tr("sms.activePackages")}</h2>
             {balance?.gateway?.active ? (
@@ -854,7 +996,76 @@ export default function SchoolSmsPage() {
               </p>
             )}
           </div>
+
+          {/* Quick templates. The picker in step 2 is a dropdown of names; a
+              school choosing between "Fee Reminder" and "Exam Reminder" is
+              choosing between two sentences, and the names alone do not say
+              which is which. */}
+          {templates.length > 0 && (
+            <div className="rounded-2xl border bg-card p-5 shadow-sm">
+              <div className="flex items-center justify-between gap-2">
+                <h2 className="font-semibold">{tr("smsSend.quickTemplates")}</h2>
+                <Link
+                  href="/sms/templates"
+                  className="text-xs font-medium text-primary hover:underline"
+                >
+                  {tr("smsSend.viewAll")}
+                </Link>
+              </div>
+              <ul className="mt-3 space-y-2">
+                {templates.slice(0, 4).map((tpl) => (
+                  <li key={tpl.id}>
+                    <button
+                      type="button"
+                      onClick={() => setTemplateId(tpl.id)}
+                      className={`w-full rounded-lg border p-3 text-start transition-colors hover:bg-secondary/50 ${
+                        templateId === tpl.id ? "border-primary bg-primary/5" : ""
+                      }`}
+                    >
+                      <p className="text-sm font-medium">{tpl.name}</p>
+                      <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">
+                        {tpl.body}
+                      </p>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Recent sends, so the desk can see whether the message it is about
+              to write has just gone out already. */}
+          <div className="rounded-2xl border bg-card p-5 shadow-sm">
+            <div className="flex items-center justify-between gap-2">
+              <h2 className="font-semibold">{tr("smsSend.recentSms")}</h2>
+              <Link
+                href="/sms/history"
+                className="text-xs font-medium text-primary hover:underline"
+              >
+                {tr("smsSend.viewAll")}
+              </Link>
+            </div>
+            {messages.length === 0 ? (
+              <p className="mt-3 text-sm text-muted-foreground">
+                {tr("smsSend.nothingSentYet")}
+              </p>
+            ) : (
+              <ul className="mt-3 space-y-2">
+                {messages.slice(0, 4).map((m) => (
+                  <li key={m.id} className="rounded-lg border p-3">
+                    <p className="line-clamp-2 text-xs">{m.body}</p>
+                    <p className="mt-1 flex items-center justify-between gap-2 text-[11px] text-muted-foreground">
+                      <span>{m.recipientName || m.recipientPhone}</span>
+                      <span>{new Date(m.createdAt).toLocaleDateString()}</span>
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+          </div>
         </div>
+        </>
       )}
 
       {tab === "custom" && (
@@ -1096,3 +1307,72 @@ export default function SchoolSmsPage() {
     </div>
   );
 }
+
+/**
+ * Where the composer has got to.
+ *
+ * The steps were numbered inside the panels and nowhere else, so a half-filled
+ * form looked the same as an empty one and the desk could not tell what was
+ * still missing before the button would work.
+ */
+function SendSteps({
+  hasAudience,
+  hasMessage,
+  sending,
+}: {
+  hasAudience: boolean;
+  hasMessage: boolean;
+  sending: boolean;
+}) {
+  const tr = useT();
+  const steps: { n: number; label: TranslationKey; done: boolean }[] = [
+    { n: 1, label: "smsSend.stepRecipients", done: hasAudience },
+    { n: 2, label: "smsSend.stepCompose", done: hasMessage },
+    { n: 3, label: "smsSend.stepPreview", done: hasAudience && hasMessage },
+    { n: 4, label: "smsSend.stepSend", done: sending },
+  ];
+  return (
+    <ol className="flex flex-wrap items-center gap-x-2 gap-y-3 rounded-2xl border bg-card px-5 py-4 shadow-sm">
+      {steps.map((s, i) => (
+        <li key={s.n} className="flex flex-1 items-center gap-2">
+          <span
+            className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
+              s.done
+                ? "bg-primary text-primary-foreground"
+                : "bg-secondary text-muted-foreground"
+            }`}
+          >
+            {s.n}
+          </span>
+          <span
+            className={`text-xs font-medium ${
+              s.done ? "text-foreground" : "text-muted-foreground"
+            }`}
+          >
+            {tr(s.label)}
+          </span>
+          {i < steps.length - 1 && (
+            <span aria-hidden className="hidden h-px flex-1 bg-border sm:block" />
+          )}
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+/** One labelled fact in the confirmation panel. */
+function SendFact({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex gap-3">
+      <dt className="w-32 shrink-0 text-muted-foreground">{label}</dt>
+      <dd className="min-w-0 font-medium">{children}</dd>
+    </div>
+  );
+}
+
