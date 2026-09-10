@@ -29,6 +29,18 @@ export function ReceiptDialog({ payment, onClose }: ReceiptDialogProps) {
   if (!payment) return null;
   const student = getStudentsState().students.find((s) => s.id === payment.studentId);
 
+  const paidLines =
+    payment.lines && payment.lines.length > 0
+      ? payment.lines
+      : [
+          {
+            label:
+              payment.monthKeys.map(monthLabel).join(", ") ||
+              paymentTypeLabel(payment.paymentType, payment.advanceMonths),
+            amount: payment.amount,
+          },
+        ];
+
   return (
     <Dialog
       open={!!payment}
@@ -79,10 +91,6 @@ export function ReceiptDialog({ payment, onClose }: ReceiptDialogProps) {
           <Row label={t("feesReceiptDialog.student")} value={student?.fullName ?? "—"} />
           <Row label={t("feesReceiptDialog.studentId")} value={student?.code ?? "—"} />
           <Row
-            label={t("feesReceiptDialog.classSection")}
-            value={`${student?.className ?? "—"} — ${student?.section ?? "—"}`}
-          />
-          <Row
             label={t("feesReceiptDialog.paymentType")}
             value={paymentTypeLabel(payment.paymentType, payment.advanceMonths)}
           />
@@ -104,7 +112,7 @@ export function ReceiptDialog({ payment, onClose }: ReceiptDialogProps) {
             each charge for a while; the copy the desk actually looks at said
             only "Partial Payment" and a dash, which is the one moment it
             matters — the family is standing there. */}
-        {payment.lines && payment.lines.length > 0 && (
+        {paidLines.length > 0 && (
           <div className="overflow-hidden rounded-lg border">
             <table className="w-full text-sm">
               <thead>
@@ -118,7 +126,7 @@ export function ReceiptDialog({ payment, onClose }: ReceiptDialogProps) {
                 </tr>
               </thead>
               <tbody>
-                {payment.lines.map((l, i) => (
+                {paidLines.map((l, i) => (
                   <tr key={i} className="border-b last:border-0">
                     <td className="px-3 py-2">{l.label}</td>
                     <td className="px-3 py-2 text-end tabular-nums">{money(l.amount)}</td>

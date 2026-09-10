@@ -49,14 +49,19 @@ export function receiptHtml(
   // Name every charge this money settled. "Month(s): August 2026" beside a
   // type of "Partial" could not tell a family whether they had paid August's
   // tuition or the one-off admission fee — the two read identically.
-  const paidFor =
+  const paidLines =
     payment.lines && payment.lines.length > 0
+      ? payment.lines
+      : [{ label: months || tr("feesReceiptPrint.feeReceiptDefault"), amount: payment.amount }];
+
+  const paidFor =
+    paidLines.length > 0
       ? `<table class="lines">
           <thead><tr>
             <th>${tr("feesReceiptPrint.paidFor")}</th>
             <th class="num">${tr("feesReceiptPrint.amountCol")}</th>
           </tr></thead>
-          <tbody>${payment.lines
+          <tbody>${paidLines
             .map(
               (l) =>
                 `<tr><td>${escapeHtml(l.label)}</td><td class="num">${money(l.amount)}</td></tr>`,
@@ -99,7 +104,6 @@ export function receiptHtml(
   <table>
     <tr><th>${tr("feesReceiptPrint.studentName")}</th><td>${student?.fullName ?? "—"}</td></tr>
     <tr><th>${tr("feesReceiptPrint.studentId")}</th><td>${student?.code ?? "—"}</td></tr>
-    <tr><th>${tr("feesReceiptPrint.classSection")}</th><td>${student?.className ?? "—"} — ${student?.section ?? "—"}</td></tr>
     <tr><th>${tr("feesReceiptPrint.paymentType")}</th><td>${paymentTypeLabel(payment.paymentType, payment.advanceMonths)}</td></tr>
     <tr><th>${tr("feesReceiptPrint.monthS")}</th><td>${months || "—"}</td></tr>
     <tr><th>${tr("feesReceiptPrint.collectedBy")}</th><td>${payment.collectedBy}</td></tr>
@@ -502,7 +506,6 @@ export function premiumReceiptHtml(
       <table class="kv">
         <tr><td class="k">${tr("feesReceiptPrint.studentName")}</td><td class="v">${escapeHtml(student?.fullName ?? "—")}</td></tr>
         <tr><td class="k">${tr("feesReceiptPrint.studentId")}</td><td class="v">${escapeHtml(student?.code ?? "—")}</td></tr>
-        <tr><td class="k">${tr("feesReceiptPrint.classSection")}</td><td class="v">${escapeHtml(student?.className ?? "—")}${student?.section && student.section !== "—" ? " - " + escapeHtml(student.section) : ""}</td></tr>
       </table>
       <table class="kv">
         <tr><td class="k">${tr("feesReceiptPrint.collectionDate")}</td><td class="v">${escapeHtml(receiptDate(payment.collectedAt))}</td></tr>
