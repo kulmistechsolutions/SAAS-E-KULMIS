@@ -394,6 +394,12 @@ export const arGenerated: PartialDictionary = {
     couldNotLoad: "تعذر تحميل القوالب.",
   },
   smsSend: {
+    smsBalance: "رصيد الرسائل",
+    available: "الرصيد المتاح",
+    connected: "متصل",
+    totalPurchased: "إجمالي المشترى",
+    used: "المستخدم",
+    remaining: "المتبقي",
     step1Note: "من يستلم هذه الرسالة.",
     step2Note: "اكتبها أو ابدأ من قالب.",
     step3Note: "تحقق قبل الإرسال.",

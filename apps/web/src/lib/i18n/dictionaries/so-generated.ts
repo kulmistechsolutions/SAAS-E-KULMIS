@@ -395,6 +395,12 @@ export const soGenerated: PartialDictionary = {
     couldNotLoad: "Qaababka lama soo qaadi karin. Hubi xiriirka oo isku day mar kale.",
   },
   smsSend: {
+    smsBalance: "Haraaga SMS",
+    available: "Haraaga la heli karo",
+    connected: "Ku xidhan",
+    totalPurchased: "Wadarta la iibsaday",
+    used: "La isticmaalay",
+    remaining: "Hadhay",
     step1Note: "Cidda fariintan heli doonta.",
     step2Note: "Qor, ama qaab ka bilow.",
     step3Note: "Hubi ka hor inta aan la dirin.",

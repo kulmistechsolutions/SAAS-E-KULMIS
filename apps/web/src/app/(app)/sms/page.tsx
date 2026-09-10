@@ -9,13 +9,10 @@ import {
   RefreshCw,
   Send,
   Wallet,
-  FileText,
-  Bell,
   Users,
   Clock,
   PlugZap,
-  Contact,
-} from "lucide-react";
+  } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,8 +20,6 @@ import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { RecipientPickerDialog } from "@/components/sms/recipient-picker";
 import { ConfirmDialog } from "@/components/students/confirm-dialog";
-import { TemplateManager } from "@/components/sms/template-manager";
-import { ContactManager } from "@/components/sms/contact-manager";
 import { GatewaySettings } from "@/components/sms/gateway-settings";
 import { SenderIdCard } from "@/components/sms/sender-id-card";
 import { CATEGORIES } from "@/components/sms/categories";
@@ -432,12 +427,13 @@ export default function SchoolSmsPage() {
     }
   }
 
+  // Templates, contacts and logs each have a page of their own now, reached
+  // from the sidebar. Leaving them here as well gave a school two doors into
+  // the same room and made this screen look like the whole module rather than
+  // the one job it does.
   const tabs: { id: Tab; label: TranslationKey; icon: typeof Send }[] = [
     { id: "send", label: "sms.send", icon: Send },
     { id: "custom", label: "sms.customSMS", icon: Users },
-    { id: "templates", label: "sms.templates", icon: FileText },
-    { id: "contacts", label: "sms.customContacts", icon: Contact },
-    { id: "logs", label: "sms.logs", icon: Bell },
     { id: "settings", label: "sms.settings", icon: Wallet },
     { id: "gateway", label: "sms.mySMSAccount", icon: PlugZap },
   ];
@@ -456,6 +452,14 @@ export default function SchoolSmsPage() {
   const cost = smsCost(body);
   const estimatedCredits = cost.segments * selected.size;
   const balanceAfter = (balance?.creditsRemaining ?? 0) - estimatedCredits;
+
+  // Purchased vs left, so the bar means something. Summed over active
+  // packages only: an expired package's credits are not spendable and
+  // counting them would make the bar say a school has more than it has.
+  const creditsRemaining = balance?.creditsRemaining ?? 0;
+  const creditsTotal = (balance?.purchases ?? [])
+    .filter((x) => x.status === "ACTIVE")
+    .reduce((n, x) => n + x.creditsTotal, 0);
 
   return (
     <div className="space-y-6">
@@ -479,59 +483,6 @@ export default function SchoolSmsPage() {
           <Button variant="outline" onClick={() => void load()}>
             <RefreshCw className="me-2 h-4 w-4" /> {tr("sms.refresh")}
           </Button>
-        </div>
-      </div>
-
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-2xl border bg-card p-4 shadow-sm">
-          <p className="text-xs text-muted-foreground">
-            {balance?.gateway?.active ? "Billing" : "Credits remaining"}
-          </p>
-          {balance?.gateway?.active ? (
-            <>
-              <p className="mt-1 text-lg font-semibold text-emerald-600">
-                {tr("sms.ownAccount")}
-              </p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                {tr("sms.platformCreditsAreNotUsed")}
-              </p>
-            </>
-          ) : (
-            <p className="mt-1 text-3xl font-bold">
-              {loading ? "…" : (balance?.creditsRemaining ?? 0)}
-            </p>
-          )}
-        </div>
-        <div className="rounded-2xl border bg-card p-4 shadow-sm">
-          <p className="text-xs text-muted-foreground">{tr("sms.hormuudSms")}</p>
-          <p
-            className={`mt-1 text-lg font-semibold ${
-              balance?.provider?.connected
-                ? "text-emerald-600"
-                : "text-amber-600"
-            }`}
-          >
-            {loading
-              ? "…"
-              : balance?.provider?.connected
-                ? "Connected"
-                : (balance?.provider?.status ?? "Not ready")}
-          </p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            {balance?.provider?.message ?? "Loading provider status…"}
-          </p>
-        </div>
-        <div className="rounded-2xl border bg-card p-4 shadow-sm">
-          <p className="text-xs text-muted-foreground">{tr("sms.senderName")}</p>
-          <p className="mt-1 truncate text-lg font-semibold">
-            {balance?.school.sendingName || balance?.school.name || "—"}
-          </p>
-        </div>
-        <div className="rounded-2xl border bg-card p-4 shadow-sm">
-          <p className="text-xs text-muted-foreground">{tr("sms.schoolSms")}</p>
-          <p className="mt-1 text-lg font-semibold">
-            {balance?.school.smsEnabled ? "Enabled" : "Disabled"}
-          </p>
         </div>
       </div>
 
@@ -945,6 +896,102 @@ export default function SchoolSmsPage() {
           </div>
 
           <div className="space-y-4">
+          {/* The balance sits beside the button that spends it. It used to be
+              a card at the top of the page, four screens away from the send
+              button by the time a long audience list had rendered. */}
+          <div className="rounded-2xl border bg-card p-5 shadow-sm">
+            <div className="flex items-start justify-between gap-2">
+              <div>
+                <p className="text-xs text-muted-foreground">
+                  {tr("smsSend.smsBalance")}
+                </p>
+                {balance?.gateway?.active ? (
+                  <>
+                    <p className="mt-1 text-lg font-bold text-emerald-600">
+                      {tr("sms.ownAccount")}
+                    </p>
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      {tr("sms.platformCreditsAreNotUsed")}
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <p className="mt-1 text-3xl font-bold tabular-nums text-emerald-600">
+                      {loading ? "\u2026" : creditsRemaining.toLocaleString()}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {tr("smsSend.available")}
+                    </p>
+                  </>
+                )}
+              </div>
+              <span
+                className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                  balance?.provider?.connected
+                    ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300"
+                    : "bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300"
+                }`}
+              >
+                {balance?.provider?.connected
+                  ? tr("smsSend.connected")
+                  : (balance?.provider?.status ?? "\u2014")}
+              </span>
+            </div>
+
+            {!balance?.gateway?.active && creditsTotal > 0 && (
+              <>
+                <div className="mt-3 h-2 overflow-hidden rounded-full bg-secondary">
+                  <div
+                    className="h-full rounded-full bg-emerald-500"
+                    style={{
+                      width: `${Math.min(100, Math.round((creditsRemaining / creditsTotal) * 100))}%`,
+                    }}
+                  />
+                </div>
+                <dl className="mt-3 space-y-1.5 text-xs">
+                  <div className="flex justify-between">
+                    <dt className="text-muted-foreground">
+                      {tr("smsSend.totalPurchased")}
+                    </dt>
+                    <dd className="font-medium tabular-nums">
+                      {creditsTotal.toLocaleString()}
+                    </dd>
+                  </div>
+                  <div className="flex justify-between">
+                    <dt className="text-muted-foreground">{tr("smsSend.used")}</dt>
+                    <dd className="font-medium tabular-nums">
+                      {(creditsTotal - creditsRemaining).toLocaleString()}
+                    </dd>
+                  </div>
+                  <div className="flex justify-between">
+                    <dt className="text-muted-foreground">
+                      {tr("smsSend.remaining")}
+                    </dt>
+                    <dd className="font-medium tabular-nums">
+                      {creditsRemaining.toLocaleString()}
+                    </dd>
+                  </div>
+                </dl>
+              </>
+            )}
+
+            <p className="mt-3 border-t pt-3 text-xs text-muted-foreground">
+              {tr("sms.senderName")}:{" "}
+              <span className="font-medium text-foreground">
+                {balance?.school.sendingName || balance?.school.name || "\u2014"}
+              </span>
+            </p>
+
+            {!balance?.gateway?.active && (
+              <Link
+                href="/sms/packages"
+                className="mt-3 inline-flex h-9 w-full items-center justify-center rounded-lg bg-primary text-sm font-medium text-primary-foreground hover:opacity-90"
+              >
+                {tr("sms.buyCredits")}
+              </Link>
+            )}
+          </div>
+
           <div className="rounded-2xl border bg-card p-5 shadow-sm">
             <h2 className="font-semibold">{tr("sms.activePackages")}</h2>
             {balance?.gateway?.active ? (
@@ -1179,93 +1226,8 @@ export default function SchoolSmsPage() {
         </div>
       )}
 
-      {tab === "contacts" && (
-        <div className="rounded-2xl border bg-card p-5 shadow-sm">
-          <ContactManager onGroupsChanged={() => void loadContactGroups()} />
-        </div>
-      )}
 
-      {tab === "templates" && (
-        <div className="rounded-2xl border bg-card p-5 shadow-sm">
-          <TemplateManager templates={templates} onChanged={load} />
-        </div>
-      )}
 
-      {tab === "logs" && (
-        <div className="space-y-3">
-          <div className="flex justify-end">
-            <Button
-              variant="outline"
-              className="text-rose-600 hover:bg-rose-500/10"
-              onClick={() => setClearLogsOpen(true)}
-              disabled={messages.length === 0}
-            >
-              Clear Logs
-            </Button>
-          </div>
-        <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
-          <table className="w-full text-sm">
-            <thead className="bg-secondary text-start text-xs uppercase text-muted-foreground">
-              <tr>
-                <th className="px-4 py-3">{tr("sms.recipient")}</th>
-                <th className="px-4 py-3">{tr("sms.category")}</th>
-                <th className="px-4 py-3">{tr("sms.status")}</th>
-                <th className="px-4 py-3">{tr("sms.credits")}</th>
-                <th className="px-4 py-3">{tr("sms.when")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {messages.map((m) => (
-                <tr key={m.id} className="border-t">
-                  <td className="px-4 py-2">
-                    <p>{m.recipientName ?? "—"}</p>
-                    <p className="font-mono text-xs text-muted-foreground">
-                      {m.recipientPhone}
-                    </p>
-                    <p className="mt-0.5 max-w-xs truncate text-xs text-muted-foreground">
-                      {m.body}
-                    </p>
-                  </td>
-                  <td className="px-4 py-2 text-xs">{m.category}</td>
-                  <td className="px-4 py-2">
-                    <span
-                      className={
-                        m.status === "SENT" || m.status === "DELIVERED"
-                          ? "text-emerald-600"
-                          : m.status === "FAILED"
-                            ? "text-rose-600"
-                            : "text-amber-600"
-                      }
-                    >
-                      {m.status}
-                    </span>
-                    {m.error && (
-                      <p className="max-w-[180px] truncate text-xs text-rose-500">
-                        {m.error}
-                      </p>
-                    )}
-                  </td>
-                  <td className="px-4 py-2 font-mono">{m.creditsUsed}</td>
-                  <td className="px-4 py-2 text-xs text-muted-foreground">
-                    {new Date(m.createdAt).toLocaleString()}
-                  </td>
-                </tr>
-              ))}
-              {messages.length === 0 && (
-                <tr>
-                  <td
-                    colSpan={5}
-                    className="px-4 py-8 text-center text-muted-foreground"
-                  >
-                    {tr("sms.noSmsLogsYet")}
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-        </div>
-      )}
 
       {tab === "settings" && (
         <div className="space-y-4">

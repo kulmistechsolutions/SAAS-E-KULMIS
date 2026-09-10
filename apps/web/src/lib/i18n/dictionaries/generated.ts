@@ -395,6 +395,12 @@ export const generated = {
     couldNotLoad: "The templates could not be loaded. Check the connection and try again.",
   },
   smsSend: {
+    smsBalance: "SMS Balance",
+    available: "Available balance",
+    connected: "Connected",
+    totalPurchased: "Total purchased",
+    used: "Used",
+    remaining: "Remaining",
     step1Note: "Who receives this message.",
     step2Note: "Write it, or start from a template.",
     step3Note: "Check it before it goes.",
