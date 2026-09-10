@@ -58,7 +58,6 @@ export function RecentPaymentsPanel({
               <tr>
                 <th className="px-4 py-2.5 font-medium">{tr("feesRecentPaymentsPanel.receiptNo")}</th>
                 <th className="px-4 py-2.5 font-medium">{tr("feesRecentPaymentsPanel.studentName")}</th>
-                <th className="px-4 py-2.5 font-medium">{tr("feesRecentPaymentsPanel.classSection")}</th>
                 <th className="px-4 py-2.5 font-medium">{tr("feesRecentPaymentsPanel.amount")}</th>
                 <th className="px-4 py-2.5 font-medium">{tr("feesRecentPaymentsPanel.paymentType")}</th>
                 <th className="px-4 py-2.5 font-medium">{tr("feesRecentPaymentsPanel.collectedBy")}</th>
@@ -73,9 +72,6 @@ export function RecentPaymentsPanel({
                     {r.payment.receiptNo}
                   </td>
                   <td className="px-4 py-2.5">{r.studentName}</td>
-                  <td className="px-4 py-2.5 text-muted-foreground">
-                    {r.className} - {r.section}
-                  </td>
                   <td className="px-4 py-2.5 tabular-nums font-medium">
                     {money(r.payment.amount)}
                   </td>
@@ -111,7 +107,6 @@ export function RecentPaymentsPanel({
               <tr>
                 <th className="px-4 py-2.5 font-medium">{tr("feesRecentPaymentsPanel.studentId")}</th>
                 <th className="px-4 py-2.5 font-medium">{tr("feesRecentPaymentsPanel.studentName")}</th>
-                <th className="px-4 py-2.5 font-medium">{tr("feesRecentPaymentsPanel.classSection")}</th>
                 <th className="px-4 py-2.5 font-medium">{tr("feesRecentPaymentsPanel.outstanding")}</th>
                 <th className="px-4 py-2.5 font-medium">{tr("feesRecentPaymentsPanel.status")}</th>
               </tr>
@@ -127,9 +122,6 @@ export function RecentPaymentsPanel({
                     >
                       {r.fullName}
                     </Link>
-                  </td>
-                  <td className="px-4 py-2.5 text-muted-foreground">
-                    {r.className} - {r.section}
                   </td>
                   <td className="px-4 py-2.5 tabular-nums font-medium text-rose-600">
                     {money(r.outstandingBalance)}
