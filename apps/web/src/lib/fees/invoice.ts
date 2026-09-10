@@ -136,8 +136,6 @@ export function invoiceHtml(
       <dt>${tr("feesInvoice.studentId")}</dt><dd>${escapeHtml(position.code)}</dd>
     </div>
     <div>
-      <dt>${tr("feesInvoice.classSection")}</dt>
-      <dd>${escapeHtml(position.className ?? "—")}${position.section ? ` · ${escapeHtml(position.section)}` : ""}</dd>
       <dt>${tr("feesInvoice.monthlyFee")}</dt><dd>${money(position.monthlyFee)}</dd>
     </div>
   </dl>
@@ -312,7 +310,6 @@ export function premiumInvoiceHtml(
       <table class="kv">
         <tr><td class="k">${tr("feesInvoice.student")}</td><td class="v">${escapeHtml(position.fullName)}</td></tr>
         <tr><td class="k">${tr("feesInvoice.studentId")}</td><td class="v">${escapeHtml(position.code)}</td></tr>
-        <tr><td class="k">${tr("feesInvoice.classSection")}</td><td class="v">${escapeHtml(position.className ?? "—")}${position.section ? " - " + escapeHtml(position.section) : ""}</td></tr>
       </table>
       <table class="kv">
         <tr><td class="k">${tr("feesInvoice.issued")}</td><td class="v">${today}</td></tr>
