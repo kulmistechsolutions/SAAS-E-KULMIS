@@ -1658,6 +1658,35 @@ export class FeesService {
         });
       }
 
+      // A charge that only existed to hold this money must go with it.
+      //
+      // Paying ahead raises a charge for a future month so the advance has
+      // somewhere to sit. Reversing the payment took the money back and left
+      // that charge standing at nothing paid — so the family was shown a debt
+      // for a month their school has never billed, created by an act that was
+      // supposed to undo one. NUURUL-YAQIIN and HANUUNIYE each acquired one on
+      // the same day this was found.
+      //
+      // Only a month the school has not set up at all is voided: a month it
+      // does bill is its own obligation and survives any payment being undone.
+      // And voided, never deleted — the row stays as the record that it was
+      // raised and taken back.
+      for (const u of toUndo) {
+        const charge = await tx.feeCharge.findUnique({
+          where: { id: u.feeChargeId },
+        });
+        if (!charge) continue;
+        const billed = await tx.monthlyFeeActivation.findFirst({
+          where: { year: charge.year, month: charge.month },
+          select: { id: true },
+        });
+        if (!strandedByReversal(charge, !!billed)) continue;
+        await tx.feeCharge.update({
+          where: { id: charge.id },
+          data: { status: "INACTIVE" },
+        });
+      }
+
       // Deterministic and guaranteed unique per school: the original number
       // is already unique, and no real receipt ends this way.
       const reversalReceiptNumber = `${original.receiptNumber}-REV`;
@@ -2457,3 +2486,33 @@ export class FeesService {
     );
   }
 }
+
+/**
+ * Is this charge left over from a payment that has just been taken back?
+ *
+ * Paying ahead raises a charge for a future month so the advance has somewhere
+ * to sit. Reversing that payment returns the money and leaves the charge — and
+ * the family is then shown a debt for a month their school has never billed,
+ * created by an act meant to undo one.
+ *
+ * Four conditions, and each one has to hold:
+ *
+ *  - MONTHLY. An exam or admission fee was billed deliberately and stands on
+ *    its own, whoever paid it or unpaid it.
+ *  - Nothing left paid against it. Any money still on the charge means it is
+ *    still settling something.
+ *  - Not already voided, so a second reversal changes nothing.
+ *  - The school has never set that month up. A month it does bill is its own
+ *    obligation and survives any payment being undone — which is why this asks
+ *    about the month rather than about the charge's own origin.
+ */
+export function strandedByReversal(
+  charge: { kind: string; paidAmount: number; status: string },
+  monthIsBilled: boolean,
+): boolean {
+  if (charge.kind !== "MONTHLY") return false;
+  if (charge.paidAmount > 0) return false;
+  if (charge.status === "INACTIVE") return false;
+  return !monthIsBilled;
+}
+
