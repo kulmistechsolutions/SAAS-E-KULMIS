@@ -1266,7 +1266,7 @@ export class FeesService {
           remaining -= applied;
         }
 
-        if (remaining > 0) {
+        if (remaining > 0 && mayBillAhead(dto.type)) {
           const last = await tx.feeCharge.findFirst({
             where: {
               studentId: student.id,
@@ -1324,6 +1324,20 @@ export class FeesService {
             remaining -= applied;
           }
         }
+      }
+
+      // Every cent has to sit on a charge. Reaching here with money in hand
+      // means the desk was handed more than the student owes — the payment is
+      // refused whole rather than recorded against a month nobody has billed,
+      // which is how a family ended up holding a receipt for October while the
+      // school had only ever opened September.
+      if (remaining > 0) {
+        const settled = dto.amount - remaining;
+        throw new BadRequestException(
+          settled > 0
+            ? `This student owes ${settled}, not ${dto.amount}. Collect ${settled}, or choose Advance payment to take money for later months.`
+            : "This student has nothing outstanding. Choose Advance payment to take money for later months.",
+        );
       }
 
       const seq = await tx.counter.upsert({
@@ -2516,3 +2530,16 @@ export function strandedByReversal(
   return !monthIsBilled;
 }
 
+/**
+ * Whether a payment may open months the school has not billed yet.
+ *
+ * Only an advance payment may, because that is a desk deliberately taking next
+ * term's money and expecting to see it billed. A "this month" or "partial"
+ * payment still holding money has simply been given more than the student
+ * owes, and rolling the excess into the next calendar month billed a family
+ * for a month the school had not opened — the receipt printed "October - 2026"
+ * in September, and the rest of that class was never billed for it at all.
+ */
+export function mayBillAhead(type: string): boolean {
+  return type === "ADVANCE";
+}
