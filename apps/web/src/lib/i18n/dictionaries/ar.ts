@@ -148,6 +148,8 @@ const curated: PartialDictionary = {
     noneYet: "لم يُسجّل ما يكفي بعد.",
   },
   nav: {
+    smsGroups: "المجموعات",
+    smsTemplates: "القوالب",
     smsHistory: "سجل الرسائل",
     sendSms: "إرسال رسالة",
     copilot: "مساعد المدرسة",

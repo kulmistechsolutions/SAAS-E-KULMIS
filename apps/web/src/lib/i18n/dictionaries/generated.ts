@@ -385,6 +385,15 @@ export const generated = {
     noPurchases: "No packages purchased yet.",
     nothingYet: "Nothing has been sent yet.",
   },
+  smsGroups: {
+    title: "Recipient Groups",
+    intro: "Numbers that belong to no student, teacher or parent — a committee, a supplier, a landlord — organised into named groups so a whole group can be chosen as one audience when composing.",
+  },
+  smsTemplates: {
+    title: "Message Templates",
+    intro: "Messages the school sends often, written once. Variables like {student_name} are filled in from the record when the message goes out.",
+    couldNotLoad: "The templates could not be loaded. Check the connection and try again.",
+  },
   printPaper: {
     label: "Paper size",
     a4: "A4",

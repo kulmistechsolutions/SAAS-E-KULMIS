@@ -132,6 +132,8 @@ const USERS_CHILDREN: NavChild[] = [
 const SMS_CHILDREN: NavChild[] = [
   { label: "nav.dashboard", href: "/sms/dashboard" },
   { label: "nav.sendSms", href: "/sms" },
+  { label: "nav.smsGroups", href: "/sms/groups" },
+  { label: "nav.smsTemplates", href: "/sms/templates" },
   { label: "nav.smsHistory", href: "/sms/history" },
   { label: "nav.reports", href: "/sms/reports" },
   { label: "nav.smsPackages", href: "/sms/packages" },

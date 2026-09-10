@@ -153,6 +153,8 @@ const core = {
     noneYet: "Not enough recorded yet.",
   },
   nav: {
+    smsGroups: "Groups",
+    smsTemplates: "Templates",
     smsHistory: "SMS History",
     sendSms: "Send SMS",
     copilot: "School Copilot",

@@ -385,6 +385,15 @@ export const soGenerated: PartialDictionary = {
     noPurchases: "Weli xirmo lama iibsan.",
     nothingYet: "Weli waxba lama dirin.",
   },
+  smsGroups: {
+    title: "Kooxaha Loo Diro",
+    intro: "Lambarro aan arday, macallin ama waalid ahayn — guddi, alaab-qeybiye, milkiile — oo koox magac leh loo habeeyay si koox dhan loo dooran karo mar keliya marka fariin la qorayo.",
+  },
+  smsTemplates: {
+    title: "Qaabab Fariimeed",
+    intro: "Fariimaha dugsigu marar badan diro, oo hal mar la qoro. Doorsoomayaasha sida {student_name} waxaa laga buuxiyaa diiwaanka marka fariinta la dirayo.",
+    couldNotLoad: "Qaababka lama soo qaadi karin. Hubi xiriirka oo isku day mar kale.",
+  },
   printPaper: {
     label: "Cabbirka warqadda",
     a4: "A4",

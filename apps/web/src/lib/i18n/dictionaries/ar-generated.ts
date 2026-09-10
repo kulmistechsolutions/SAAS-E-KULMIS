@@ -384,6 +384,15 @@ export const arGenerated: PartialDictionary = {
     noPurchases: "لم يتم شراء باقات.",
     nothingYet: "لم يتم إرسال شيء بعد.",
   },
+  smsGroups: {
+    title: "مجموعات المستلمين",
+    intro: "أرقام لا تعود لطالب أو معلم أو ولي أمر، منظمة في مجموعات.",
+  },
+  smsTemplates: {
+    title: "قوالب الرسائل",
+    intro: "رسائل تُكتب مرة واحدة وتُستخدم مراراً.",
+    couldNotLoad: "تعذر تحميل القوالب.",
+  },
   printPaper: {
     label: "حجم الورق",
     a4: "A4",
