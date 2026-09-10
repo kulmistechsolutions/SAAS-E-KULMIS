@@ -408,6 +408,8 @@ export const soGenerated: PartialDictionary = {
     stepCompose: "Qor Fariinta",
     stepPreview: "Hordhac & Xaqiiji",
     stepSend: "Dir",
+    back: "Dib u noqo",
+    next: "Xiga",
     messageLength: "Dhererka fariinta",
     characters: "xaraf",
     segments: "qeyb SMS",

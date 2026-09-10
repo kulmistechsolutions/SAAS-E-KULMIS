@@ -13,6 +13,8 @@ import {
   Clock,
   PlugZap,
   Check,
+  ChevronLeft,
+  ChevronRight,
   } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -122,6 +124,10 @@ export default function SchoolSmsPage() {
   const [messages, setMessages] = useState<SmsMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  // Which step is on screen. The three panels used to be shown at once,
+  // which asked a school to read the whole form before it could tell what
+  // it was meant to do first.
+  const [step, setStep] = useState<1 | 2 | 3>(1);
   const [clearLogsOpen, setClearLogsOpen] = useState(false);
   const [clearingLogs, setClearingLogs] = useState(false);
 
@@ -342,6 +348,7 @@ export default function SchoolSmsPage() {
       }
       await load();
       await loadPreview();
+      setStep(1);
     } catch (e) {
       toast(e instanceof Error ? e.message : "Something went wrong", "error");
     } finally {
@@ -527,14 +534,16 @@ export default function SchoolSmsPage() {
       {tab === "send" && (
         <>
         <SendSteps
+          step={step}
           hasAudience={selected.size > 0}
           hasMessage={body.trim().length > 0}
           sending={sending}
+          onGo={setStep}
         />
         <div className="grid items-start gap-4 xl:grid-cols-3">
-          <div className="space-y-4 xl:col-span-2">
-            <div className="grid gap-4 lg:grid-cols-2">
-          <div className="space-y-5 rounded-2xl border bg-card p-5 shadow-sm">
+          <div className="flex min-h-[560px] flex-col gap-4 xl:col-span-2">
+          {step === 1 && (
+          <div className="flex-1 space-y-5 rounded-2xl border bg-card p-5 shadow-sm">
             {/* Step 1 — audience */}
             <div className="space-y-3">
               <div className="flex items-center gap-2">
@@ -667,10 +676,11 @@ export default function SchoolSmsPage() {
             </div>
 
           </div>
+          )}
 
-          {/* Step 2 — compose. Its own card rather than a section under the
-              audience, so the two halves of the decision sit side by side. */}
-          <div className="space-y-3 rounded-2xl border bg-card p-5 shadow-sm">
+          {/* Step 2 — compose */}
+          {step === 2 && (
+          <div className="flex-1 space-y-3 rounded-2xl border bg-card p-5 shadow-sm">
               <div className="flex items-center gap-2">
                 <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
                   2
@@ -792,10 +802,11 @@ export default function SchoolSmsPage() {
                 </div>
               </div>
             </div>
-            </div>
+          )}
 
             {/* Step 3 - preview and confirm */}
-            <div className="rounded-2xl border bg-card p-5 shadow-sm">
+            {step === 3 && (
+            <div className="flex-1 rounded-2xl border bg-card p-5 shadow-sm">
               <div className="flex items-center gap-2">
                 <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
                   3
@@ -864,21 +875,30 @@ export default function SchoolSmsPage() {
                 </div>
               </div>
 
-              <div className="mt-5 flex flex-wrap items-center gap-2 border-t pt-4">
-                <Button
-                  onClick={() => void handleSend()}
-                  disabled={
-                    sending || !body.trim() || !canSend || selected.size === 0
-                  }
-                >
-                  <Send className="me-2 h-4 w-4" />
-                  {sending
-                    ? tr("smsSend.sending")
-                    : scheduledAt
-                      ? `${tr("smsSend.schedule")} (${selected.size})`
-                      : `${tr("smsSend.send")} (${selected.size})`}
-                </Button>
-                {audience === "OUTSTANDING" && (
+            </div>
+            )}
+
+            {/* Back and Next, in one bar that stays put whichever panel is on
+                screen — and on the last step Next is the send itself, so the
+                button that spends credits is never one a school reaches by
+                accident. */}
+            <div className="mt-auto flex flex-wrap items-center justify-between gap-3 rounded-2xl border bg-card px-5 py-4 shadow-sm">
+              <Button
+                variant="outline"
+                onClick={() => setStep((n) => (n > 1 ? ((n - 1) as 1 | 2 | 3) : n))}
+                disabled={step === 1 || sending}
+              >
+                <ChevronLeft className="me-1.5 h-4 w-4" />
+                {tr("smsSend.back")}
+              </Button>
+
+              <div className="flex flex-wrap items-center gap-2">
+                {step === 3 && balanceAfter < 0 && !balance?.gateway?.active && (
+                  <span className="text-xs font-medium text-rose-600">
+                    {tr("smsSend.notEnoughCredit")}
+                  </span>
+                )}
+                {step === 3 && audience === "OUTSTANDING" && (
                   <Button
                     variant="outline"
                     onClick={() => void handleFeeReminders()}
@@ -887,10 +907,31 @@ export default function SchoolSmsPage() {
                     {tr("sms.sendDefaultFeeReminder")}
                   </Button>
                 )}
-                {balanceAfter < 0 && !balance?.gateway?.active && (
-                  <span className="text-xs font-medium text-rose-600">
-                    {tr("smsSend.notEnoughCredit")}
-                  </span>
+                {step < 3 ? (
+                  <Button
+                    onClick={() => setStep((n) => ((n + 1) as 1 | 2 | 3))}
+                    disabled={
+                      (step === 1 && selected.size === 0) ||
+                      (step === 2 && !body.trim())
+                    }
+                  >
+                    {tr("smsSend.next")}
+                    <ChevronRight className="ms-1.5 h-4 w-4" />
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={() => void handleSend()}
+                    disabled={
+                      sending || !body.trim() || !canSend || selected.size === 0
+                    }
+                  >
+                    <Send className="me-2 h-4 w-4" />
+                    {sending
+                      ? tr("smsSend.sending")
+                      : scheduledAt
+                        ? `${tr("smsSend.schedule")} (${selected.size})`
+                        : `${tr("smsSend.send")} (${selected.size})`}
+                  </Button>
                 )}
               </div>
             </div>
@@ -1273,36 +1314,37 @@ export default function SchoolSmsPage() {
 }
 
 /**
- * Where the composer has got to.
+ * The wizard's spine: where the desk is, what it has finished, and a way back.
  *
  * The steps were numbered inside the panels and nowhere else, so a half-filled
- * form looked the same as an empty one and the desk could not tell what was
- * still missing before the button would work.
- *
- * Three states, not two: a finished step carries a tick, the step being worked
- * on is ringed, and the ones still ahead stay grey. Marking everything filled-in
- * as "done" told a school it had already sent a message it had not sent.
+ * form looked the same as an empty one. They are now the navigation as well —
+ * a finished step is a button back to its own panel, which is what a school
+ * reaches for when it wants to change the audience after writing the message.
  */
 function SendSteps({
+  step,
   hasAudience,
   hasMessage,
   sending,
+  onGo,
 }: {
+  step: 1 | 2 | 3;
   hasAudience: boolean;
   hasMessage: boolean;
   sending: boolean;
+  onGo: (n: 1 | 2 | 3) => void;
 }) {
   const tr = useT();
 
-  // Where the desk actually is. Sending is step 4; with both halves filled the
-  // only thing left is to confirm, which is step 3.
-  const current = sending ? 4 : hasAudience && hasMessage ? 3 : hasAudience ? 2 : 1;
+  // Sending is the fourth marker; it belongs to no panel, so it is shown but
+  // never navigable.
+  const current = sending ? 4 : step;
 
-  const steps: { n: number; label: TranslationKey }[] = [
-    { n: 1, label: "smsSend.stepRecipients" },
-    { n: 2, label: "smsSend.stepCompose" },
-    { n: 3, label: "smsSend.stepPreview" },
-    { n: 4, label: "smsSend.stepSend" },
+  const steps: { n: 1 | 2 | 3 | 4; label: TranslationKey; open: boolean }[] = [
+    { n: 1, label: "smsSend.stepRecipients", open: true },
+    { n: 2, label: "smsSend.stepCompose", open: hasAudience },
+    { n: 3, label: "smsSend.stepPreview", open: hasAudience && hasMessage },
+    { n: 4, label: "smsSend.stepSend", open: false },
   ];
 
   return (
@@ -1310,34 +1352,44 @@ function SendSteps({
       {steps.map((s, i) => {
         const done = s.n < current;
         const active = s.n === current;
+        // Only a step whose prerequisites are met can be jumped to; the fourth
+        // is the send, which the button on the last panel owns.
+        const go = s.open && s.n !== 4 && !sending;
         return (
           <Fragment key={s.n}>
-            {/* The step keeps its natural width. Equal-width columns pushed the
-                last step to the far right of the strip with a long empty gap
-                before it, which read as a broken line rather than a stepper. */}
-            <li className="flex shrink-0 items-center gap-2">
-              <span
-                className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold transition-colors ${
-                  done
-                    ? "bg-primary text-primary-foreground"
-                    : active
-                      ? "bg-primary text-primary-foreground ring-4 ring-primary/20"
-                      : "bg-secondary text-muted-foreground"
+            <li className="shrink-0">
+              <button
+                type="button"
+                onClick={go ? () => onGo(s.n as 1 | 2 | 3) : undefined}
+                disabled={!go}
+                aria-current={active ? "step" : undefined}
+                className={`flex items-center gap-2 rounded-full py-1 pe-3 ps-1 transition-colors ${
+                  go ? "hover:bg-secondary" : "cursor-default"
                 }`}
               >
-                {done ? <Check className="h-4 w-4" /> : s.n}
-              </span>
-              <span
-                className={`whitespace-nowrap text-xs ${
-                  active
-                    ? "font-semibold text-foreground"
-                    : done
-                      ? "font-medium text-foreground"
-                      : "font-medium text-muted-foreground"
-                }`}
-              >
-                {tr(s.label)}
-              </span>
+                <span
+                  className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold transition-colors ${
+                    done
+                      ? "bg-primary text-primary-foreground"
+                      : active
+                        ? "bg-primary text-primary-foreground ring-4 ring-primary/20"
+                        : "bg-secondary text-muted-foreground"
+                  }`}
+                >
+                  {done ? <Check className="h-4 w-4" /> : s.n}
+                </span>
+                <span
+                  className={`whitespace-nowrap text-xs ${
+                    active
+                      ? "font-semibold text-foreground"
+                      : done
+                        ? "font-medium text-foreground"
+                        : "font-medium text-muted-foreground"
+                  }`}
+                >
+                  {tr(s.label)}
+                </span>
+              </button>
             </li>
             {i < steps.length - 1 && (
               // The line fills whatever is left between two steps, so the four

@@ -408,6 +408,8 @@ export const generated = {
     stepCompose: "Compose Message",
     stepPreview: "Preview & Confirm",
     stepSend: "Send",
+    back: "Back",
+    next: "Next",
     messageLength: "Message length",
     characters: "characters",
     segments: "SMS segment(s)",

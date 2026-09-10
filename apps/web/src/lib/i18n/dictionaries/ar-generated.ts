@@ -407,6 +407,8 @@ export const arGenerated: PartialDictionary = {
     stepCompose: "كتابة الرسالة",
     stepPreview: "معاينة وتأكيد",
     stepSend: "إرسال",
+    back: "رجوع",
+    next: "التالي",
     messageLength: "طول الرسالة",
     characters: "حرف",
     segments: "مقطع",
