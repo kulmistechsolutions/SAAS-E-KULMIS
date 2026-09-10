@@ -5,6 +5,8 @@ import type { Exam, ExamMark } from "./types";
 import { gradeFromAverage } from "./format";
 import type { ExamResultCardData } from "@/components/examinations/exam-result-card";
 import { getGradeBands } from "@/lib/settings/store";
+import { getStoredLang, translateIn } from "@/lib/i18n/provider";
+import { dirOf } from "@/lib/i18n/config";
 import { getStoredPaper, paperCss, type PaperSize } from "@/lib/print/paper";
 import { getStoredTemplate, type DocTemplate } from "@/lib/print/template";
 import {
@@ -348,6 +350,11 @@ export function premiumResultCardHtml(
 ): string {
   const school = schoolBranding();
   const bands = getGradeBands();
+  // A print window has no React tree to pull useT() from, so the language is
+  // read the same way every other printed document reads it.
+  const lang = getStoredLang();
+  const dir = dirOf(lang);
+  const tr = (k: Parameters<typeof translateIn>[1]) => translateIn(lang, k);
 
   const logoWatermark = watermarkHtml();
 
@@ -363,15 +370,15 @@ export function premiumResultCardHtml(
     const cols = data.group.examColumns;
     table = `<table class="rc-marks">
       <thead><tr>
-        <th class="s">${escapeHtml("Subject")}</th>
+        <th class="s">${tr("resultCardPrint.subject")}</th>
         ${cols
           .map(
             (c) =>
               `<th class="num">${escapeHtml(c.label)}<span class="dim">/${c.maxMarks}</span></th>`,
           )
           .join("")}
-        <th class="num">${escapeHtml("Combined %")}</th>
-        <th class="g">${escapeHtml("Grade")}</th>
+        <th class="num">${tr("resultCardPrint.combinedPercent")}</th>
+        <th class="g">${tr("resultCardPrint.grade")}</th>
       </tr></thead>
       <tbody>${data.group.subjectRows
         .map(
@@ -390,10 +397,10 @@ export function premiumResultCardHtml(
     table = `<table class="rc-marks">
       <thead><tr>
         <th class="n">#</th>
-        <th class="s">${escapeHtml("Subject")}</th>
-        <th class="num">${escapeHtml("Max Marks")}</th>
-        <th class="num">${escapeHtml("Marks Obtained")}</th>
-        <th class="g">${escapeHtml("Grade")}</th>
+        <th class="s">${tr("resultCardPrint.subject")}</th>
+        <th class="num">${tr("resultCardPrint.maxMarks")}</th>
+        <th class="num">${tr("resultCardPrint.marksObtained")}</th>
+        <th class="g">${tr("resultCardPrint.grade")}</th>
       </tr></thead>
       <tbody>${data.subjects
         .map(
@@ -408,7 +415,7 @@ export function premiumResultCardHtml(
         .join("")}</tbody>
       <tfoot><tr>
         <td class="n"></td>
-        <td class="s">${escapeHtml("Total")}</td>
+        <td class="s">${tr("resultCardPrint.total")}</td>
         <td class="num">${data.totalMax}</td>
         <td class="num">${data.totalObtained}</td>
         <td class="g">${escapeHtml(data.grade)}</td>
@@ -426,11 +433,14 @@ export function premiumResultCardHtml(
     .join("");
 
   const summary = [
-    ["Total Marks", `${data.totalObtained} / ${data.totalMax}`],
-    ["Percentage", `${data.average.toFixed(2)}%`],
-    ["Grade", data.grade],
-    ["Result", data.passed ? "PASS" : "FAIL"],
-    ...(data.term ? [["Term", data.term]] : []),
+    [tr("resultCardPrint.totalMarks"), `${data.totalObtained} / ${data.totalMax}`],
+    [tr("resultCardPrint.percentage"), `${data.average.toFixed(2)}%`],
+    [tr("resultCardPrint.grade"), data.grade],
+    [
+      tr("resultCardPrint.result"),
+      data.passed ? tr("resultCardPrint.pass") : tr("resultCardPrint.fail"),
+    ],
+    ...(data.term ? [[tr("resultCardPrint.term"), data.term]] : []),
   ]
     .map(
       ([k, v]) =>
@@ -438,7 +448,7 @@ export function premiumResultCardHtml(
     )
     .join("");
 
-  return `<!doctype html><html><head><meta charset="utf-8"/>
+  return `<!doctype html><html lang="${lang}" dir="${dir}"><head><meta charset="utf-8"/>
 <title>${escapeHtml(data.studentName)} — ${escapeHtml(data.examName)}</title>
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
@@ -474,50 +484,50 @@ export function premiumResultCardHtml(
 <div class="doc" style="--ek-accent:${accentColour()}">
   ${logoWatermark}
   ${letterheadHtml({
-    title: "Student Result Card",
-    subtitle: "/ KAARKA NATIIJADA ARDAYGA /",
-    refLabel: "Exam",
+    title: tr("resultCardPrint.title"),
+    subtitle: tr("resultCardPrint.subtitle"),
+    refLabel: tr("resultCardPrint.exam"),
     refValue: data.examName,
   })}
 
   <div class="rc-top">
     <div class="sec" style="margin-top:14px">
-      <div class="sec-head">Student Information</div>
+      <div class="sec-head">${tr("resultCardPrint.studentInformation")}</div>
       <table class="kv">
-        <tr><td class="k">Student Name</td><td class="v">${escapeHtml(data.studentName)}</td></tr>
-        <tr><td class="k">Student ID</td><td class="v">${escapeHtml(data.studentCode)}</td></tr>
-        <tr><td class="k">Class / Section</td><td class="v">${escapeHtml(data.className)}${data.section ? " - " + escapeHtml(data.section) : ""}</td></tr>
-        ${data.academicYear ? `<tr><td class="k">Academic Year</td><td class="v">${escapeHtml(data.academicYear)}</td></tr>` : ""}
+        <tr><td class="k">${tr("resultCardPrint.studentName")}</td><td class="v">${escapeHtml(data.studentName)}</td></tr>
+        <tr><td class="k">${tr("resultCardPrint.studentId")}</td><td class="v">${escapeHtml(data.studentCode)}</td></tr>
+        <tr><td class="k">${tr("resultCardPrint.classSection")}</td><td class="v">${escapeHtml(data.className)}${data.section ? " - " + escapeHtml(data.section) : ""}</td></tr>
+        ${data.academicYear ? `<tr><td class="k">${tr("resultCardPrint.academicYear")}</td><td class="v">${escapeHtml(data.academicYear)}</td></tr>` : ""}
       </table>
     </div>
     <div class="sec" style="margin-top:14px">
-      <div class="sec-head">Performance Summary</div>
+      <div class="sec-head">${tr("resultCardPrint.performanceSummary")}</div>
       <table class="kv">${summary}</table>
     </div>
     ${photo ? `<div class="rc-photo-wrap">${photo}</div>` : ""}
   </div>
 
   <div class="sec">
-    <div class="sec-head">Subjects &amp; Marks</div>
+    <div class="sec-head">${tr("resultCardPrint.subjectsAndMarks")}</div>
     ${table}
   </div>
 
   <div class="sec">
-    <div class="sec-head">Grading Scale</div>
+    <div class="sec-head">${tr("resultCardPrint.gradingScale")}</div>
     <div class="scale">${scale}</div>
   </div>
 
   <div class="signs">
-    <div class="sign"><div class="rule"></div><div class="role">Class Teacher</div></div>
+    <div class="sign"><div class="rule"></div><div class="role">${tr("resultCardPrint.classTeacher")}</div></div>
     ${
       qrDataUrl
         ? `<img src="${qrDataUrl}" alt="" class="rc-qr"/>`
-        : stampHtml("SCHOOL STAMP", "SHAABADDA DUGSIGA")
+        : stampHtml(tr("feesReceiptPrint.stampLine1"), tr("feesReceiptPrint.stampLine2"))
     }
-    ${signatureHtml("Principal", school.principalName)}
+    ${signatureHtml(tr("feesReceiptPrint.principal"), school.principalName)}
   </div>
 
-  <div class="issued">Date of issue: ${new Date().toISOString().slice(0, 10)}</div>
+  <div class="issued">${tr("resultCardPrint.dateOfIssue")}: ${new Date().toISOString().slice(0, 10)}</div>
   ${documentFooterHtml()}
 </div></body></html>`;
 }
