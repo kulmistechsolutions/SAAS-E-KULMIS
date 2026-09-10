@@ -374,6 +374,15 @@ export class TeachersService {
         where: { teacherId: id, amountPaid: 0 },
       });
 
+      // What is kept loses its link, not its name: `employeeName` and
+      // `position` were denormalised onto the row for exactly this, so it
+      // reads as a former member of staff rather than as an id pointing at
+      // nobody. A dangling id is indistinguishable from a fault.
+      await tx.salary.updateMany({
+        where: { teacherId: id },
+        data: { teacherId: null },
+      });
+
       // Assignments cascade from the teacher; then remove the login account.
       await tx.teacher.delete({ where: { id } });
       await tx.user.delete({ where: { id: teacher.userId } });

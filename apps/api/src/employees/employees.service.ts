@@ -61,13 +61,35 @@ export class EmployeesService {
   }
 
   async remove(schoolId: string, id: string) {
-    const existing = await this.prisma.forTenant(schoolId, (tx) =>
-      tx.employee.findFirst({ where: { id }, select: { id: true } }),
-    );
-    if (!existing) throw new NotFoundException("Employee not found");
-    await this.prisma.forTenant(schoolId, (tx) =>
-      tx.employee.delete({ where: { id } }),
-    );
-    return { success: true };
+    return this.prisma.forTenant(schoolId, async (tx) => {
+      const existing = await tx.employee.findFirst({
+        where: { id },
+        select: { id: true },
+      });
+      if (!existing) throw new NotFoundException("Employee not found");
+
+      // The same two rules the teacher side has had, which this side never
+      // got. Money already paid to someone who has since left stays in the
+      // ledger, or the finance reports stop telling the truth about what was
+      // spent. A row with nothing paid against it is not history — it is an
+      // unpaid obligation to a person who no longer works here, and leaving it
+      // is how a deleted duplicate goes on appearing in payroll beside the
+      // real one. NUURUL-YAQIIN's administrator was showing three times.
+      const { count: payrollRemoved } = await tx.salary.deleteMany({
+        where: { employeeId: id, amountPaid: 0 },
+      });
+
+      // What is kept loses its link, not its name: `employeeName` and
+      // `position` were denormalised onto the row for exactly this, so it
+      // reads as a former member of staff rather than as an id pointing at
+      // nobody. A dangling id is indistinguishable from a fault.
+      await tx.salary.updateMany({
+        where: { employeeId: id },
+        data: { employeeId: null },
+      });
+
+      await tx.employee.delete({ where: { id } });
+      return { success: true, payrollRemoved };
+    });
   }
 }

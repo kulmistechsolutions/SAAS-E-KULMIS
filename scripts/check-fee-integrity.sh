@@ -152,6 +152,28 @@ where st.status = 'ACTIVE' and st.\\\"feeWaived\\\" = false and st.\\\"monthlyFe
 group by 1 order by 2 desc;
 " "A fee-paying student whose live month asks for nothing."
 
+# Payroll must not point at somebody who is not there.
+#
+# Salary rows deliberately have no foreign key, so money paid to a person who
+# has since left stays in the ledger — that part is right. What is wrong is a
+# row still carrying their id: nothing can then tell a historical payment from
+# a fault, and a re-hired person gets a second row beside the first. NUURUL
+# -YAQIIN's administrator was in payroll three times for one month.
+#
+# Rows with the link cleared are invisible to this by design; they are the
+# correct end state.
+report "no payroll row points at a person who is gone" "
+select sc.name, count(*), coalesce(sum(s.\\\"amountPaid\\\"), 0)
+from salaries s join schools sc on sc.id = s.\\\"schoolId\\\"
+where (
+    (s.\\\"teacherId\\\" is not null
+      and not exists (select 1 from teachers t where t.id = s.\\\"teacherId\\\"))
+    or (s.\\\"employeeId\\\" is not null
+      and not exists (select 1 from employees e where e.id = s.\\\"employeeId\\\"))
+  ) $SCOPE
+group by 1 order by 3 desc;
+" "Payroll rows linked to a teacher or employee record that no longer exists."
+
 report "every charge belongs to a student of its own school" "
 select sc.name, count(*)
 from fee_charges c
