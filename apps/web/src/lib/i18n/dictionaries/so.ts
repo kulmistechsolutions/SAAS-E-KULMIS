@@ -160,8 +160,6 @@ const curated: PartialDictionary = {
     copilot: "Kaaliyaha Dugsiga",
     dashboard: "Shaxda Guud",
     students: "Ardayda",
-    studentDocuments: "Dukumiintiga Ardayga",
-    staffDocuments: "Dukumiintiga Shaqaalaha",
     teachers: "Macallimiinta",
     parents: "Waalidiinta",
     parentPortal: "Bogga Waalidka",

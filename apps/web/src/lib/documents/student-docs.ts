@@ -271,49 +271,6 @@ export function studentDocumentHtml(
   );
 }
 
-/**
- * A whole class in one document, one student per sheet.
- *
- * The alternative — a window per student — is forty print dialogs and a desk
- * that gives up halfway. This is one dialog and one stack of paper, in the
- * order the list was in.
- *
- * QR codes come in already rendered, keyed by student id, because building
- * them is asynchronous and this function must stay a pure string builder that
- * the preview and the print can both call.
- */
-export function studentDocumentsHtml(
-  students: StudentWithParent[],
-  opts: StudentDocOptions,
-  qrByStudent?: Record<string, string | null>,
-): string {
-  const pages = students
-    .map((st) => studentDocPage(st, opts, qrByStudent?.[st.id] ?? null))
-    .join("\n");
-  return docShell(
-    `${DOC_TITLES[opts.kind]} \u2014 ${students.length} students`,
-    opts,
-    pages,
-  );
-}
-
-/** Open the print dialog on a whole batch at once. */
-export function printStudentDocuments(
-  students: StudentWithParent[],
-  opts: StudentDocOptions,
-  qrByStudent?: Record<string, string | null>,
-): void {
-  if (students.length === 0) return;
-  const w = window.open("", "_blank", "width=900,height=1200");
-  if (!w) return;
-  w.document.write(studentDocumentsHtml(students, opts, qrByStudent));
-  w.document.close();
-  w.focus();
-  w.onload = () => {
-    w.print();
-  };
-}
-
 /** Open the print dialog on exactly what the preview showed. */
 export function printStudentDocument(
   student: StudentWithParent,
@@ -329,14 +286,4 @@ export function printStudentDocument(
   w.onload = () => {
     w.print();
   };
-}
-
-/** The file name a downloaded copy should carry. */
-export function documentFileName(
-  student: StudentWithParent,
-  kind: StudentDocKind,
-): string {
-  const slug = (v: string) =>
-    v.trim().replace(/\s+/g, "-").replace(/[^A-Za-z0-9-]/g, "");
-  return `${slug(DOC_TITLES[kind])}-${slug(student.fullName)}-${slug(student.code)}.pdf`;
 }

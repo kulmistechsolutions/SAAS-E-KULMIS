@@ -1,6 +1,9 @@
 "use client";
 
 import { getSettings, schoolBranding } from "@/lib/settings/store";
+import { printPersonDocument } from "@/lib/documents/people-docs";
+import type { DocDesign } from "@/lib/documents/doc-shell";
+import { designFor } from "@/lib/print/design-store";
 import { shortDate, statusLabel } from "@/lib/students/format";
 import { PRINT_HEADER_CSS, escapeHtml, printHeaderHtml } from "@/lib/print/header";
 import type { Parent, Student } from "@/lib/students/types";
@@ -71,52 +74,33 @@ export function exportParentsCsv(
   URL.revokeObjectURL(url);
 }
 
+/**
+ * One guardian's record, printed in whatever design the school has chosen.
+ *
+ * Drew its own layout until the document engine took it over, which made it
+ * one of the pages that ignored the school's own design settings.
+ */
 export function printParentProfile(parent: Parent, children: Student[]) {
-  const school = schoolBranding();
-  const { parentHeader, parentFooter } = getSettings().parents;
-  const w = window.open("", "_blank", "width=800,height=700");
-  if (!w) return;
-  const row = (k: string, v: string) =>
-    `<tr><td class="k">${k}</td><td>${escapeHtml(v)}</td></tr>`;
-  const childRows = children
-    .map(
-      (c) =>
-        `<tr><td>${c.code}</td><td>${escapeHtml(c.fullName)}</td><td>${escapeHtml(c.className)}${c.section ? " - " + c.section : ""}</td><td>${statusLabel(c.status)}</td></tr>`,
-    )
-    .join("");
-  w.document.write(`<!DOCTYPE html><html><head><title>${escapeHtml(parent.name)}</title>
-  <style>
-    *{font-family:Arial,sans-serif;box-sizing:border-box}body{padding:32px;color:#0f172a}
-    ${PRINT_HEADER_CSS}
-    h2{font-size:14px;margin:16px 0 6px;color:${school.primaryColor || "#4f46e5"}}
-    table{width:100%;border-collapse:collapse;font-size:13px}
-    td,th{border:1px solid #e2e8f0;padding:7px 10px}
-    td.k{background:#f8fafc;font-weight:600;width:200px}
-    th{background:#f8fafc;text-align:left}
-    .foot{margin-top:24px;font-size:11px;color:#94a3b8;text-align:center}
-  </style></head><body>
-  ${printHeaderHtml(parentHeader || "Parent Profile")}
-  <h2>Parent Information</h2>
-  <table>
-    ${row("Parent ID", parent.code)}
-    ${row("Full Name", parent.name)}
-    ${row("Phone", parent.phone)}
-    ${row("Alternative Phone", parent.altPhone ?? "—")}
-    ${row("Email", parent.email ?? "—")}
-    ${row("Address", parent.address ?? "—")}
-    ${row("Occupation", parent.occupation ?? "—")}
-    ${row("Registration Date", shortDate(parent.registrationDate))}
-    ${row("Status", statusLabel(parent.status))}
-  </table>
-  <h2>Linked Students</h2>
-  <table>
-    <thead><tr><th>Student ID</th><th>Name</th><th>Class</th><th>Status</th></tr></thead>
-    <tbody>${childRows || '<tr><td colspan="4">No students linked</td></tr>'}</tbody>
-  </table>
-  ${parentFooter ? `<div class="foot">${escapeHtml(parentFooter)}</div>` : ""}
-  <script>window.onload=function(){window.print()}</script>
-  </body></html>`);
-  w.document.close();
+  const design = designFor("PARENT_PROFILE");
+  printPersonDocument(
+    {
+      type: "PARENT",
+      parent,
+      // The engine wants the joined shape; a guardian's own record is the
+      // parent on each of their children, so it is the one we already hold.
+      children: children.map((c) => ({ ...c, parent })),
+    },
+    {
+      kind: "PARENT_INFO",
+      design: design.template as DocDesign,
+      paper: design.paper ?? "A4",
+      landscape: design.landscape ?? false,
+      showLogo: true,
+      showStamp: true,
+      showContact: true,
+      showSalary: false,
+    },
+  );
 }
 
 export function printParentsList(
