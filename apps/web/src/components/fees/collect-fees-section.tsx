@@ -30,7 +30,6 @@ import { ParentContactActions } from "./parent-contact-actions";
 import { PromiseToPayDialog } from "./promise-to-pay-dialog";
 import { useHydrated } from "@/lib/use-hydrated";
 
-const PAGE_SIZE = 8;
 
 interface CollectFeesSectionProps {
   academicYear: string;
@@ -69,6 +68,9 @@ export function CollectFeesSection({
     status: "" as StudentFeeState | "",
   });
   const [page, setPage] = useState(1);
+  // How many rows at once. A list of thirteen pages is thirteen clicks
+  // to read, and reading all of it is usually why it was opened.
+  const [pageSize, setPageSize] = useState(8);
   const mounted = useHydrated();
   const academics = useAcademicsState();
   // Subscribe to the students + fees stores so the table recomputes once their
@@ -133,8 +135,8 @@ export function CollectFeesSection({
     [mounted, academicYear, monthKey, applied, studentsState, feesState],
   );
 
-  const pageCount = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
-  const pageRows = rows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const pageCount = Math.max(1, Math.ceil(rows.length / pageSize));
+  const pageRows = rows.slice((page - 1) * pageSize, page * pageSize);
 
   function applyFilters() {
     setApplied({ klass, section, search, status });
@@ -306,7 +308,7 @@ export function CollectFeesSection({
               return (
                 <tr key={r.studentId} className="border-t">
                   <td className="px-4 py-2.5 text-muted-foreground">
-                    {(page - 1) * PAGE_SIZE + i + 1}
+                    {(page - 1) * pageSize + i + 1}
                   </td>
                   <td className="px-4 py-2.5 font-mono text-xs">{r.code}</td>
                   <td className="px-4 py-2.5">
@@ -394,13 +396,17 @@ export function CollectFeesSection({
         </table>
       </div>
 
-      {rows.length > PAGE_SIZE && (
+      {rows.length > pageSize && (
         <div className="border-t px-4 py-3">
           <Pagination
             page={page}
             pageCount={pageCount}
             total={rows.length}
-            pageSize={PAGE_SIZE}
+            pageSize={pageSize}
+            onPageSizeChange={(n) => {
+              setPageSize(n);
+              setPage(1);
+            }}
             onPageChange={setPage}
           />
         </div>

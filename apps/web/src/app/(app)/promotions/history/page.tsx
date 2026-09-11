@@ -24,7 +24,6 @@ import type { PromotionRecord, PromotionType } from "@/lib/promotions/types";
 import { toast } from "@/lib/toast";
 import { useHydrated } from "@/lib/use-hydrated";
 
-const PAGE_SIZE = 12;
 
 export default function PromotionHistoryPage() {
   const t = useT();
@@ -36,6 +35,9 @@ export default function PromotionHistoryPage() {
   const [type, setType] = useState("");
   const [includeRolledBack, setIncludeRolledBack] = useState(false);
   const [page, setPage] = useState(1);
+  // How many rows at once. A list of thirteen pages is thirteen clicks
+  // to read, and reading all of it is usually why it was opened.
+  const [pageSize, setPageSize] = useState(12);
   const [rolling, setRolling] = useState<PromotionRecord | null>(null);
 
   const years = getAcademicsState().academicYears;
@@ -51,9 +53,9 @@ export default function PromotionHistoryPage() {
     [state, search, year, type, includeRolledBack],
   );
 
-  const pageCount = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
+  const pageCount = Math.max(1, Math.ceil(rows.length / pageSize));
   const currentPage = Math.min(page, pageCount);
-  const pageRows = rows.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+  const pageRows = rows.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   useEffect(() => setPage(1), [search, year, type, includeRolledBack]);
 
@@ -212,7 +214,7 @@ export default function PromotionHistoryPage() {
           </table>
         </div>
         <div className="border-t px-3">
-          <Pagination page={currentPage} pageCount={pageCount} total={rows.length} pageSize={PAGE_SIZE} onPageChange={setPage} />
+          <Pagination page={currentPage} pageCount={pageCount} total={rows.length} pageSize={pageSize} onPageSizeChange={(n) => { setPageSize(n); setPage(1); }} onPageChange={setPage} />
         </div>
       </div>
 

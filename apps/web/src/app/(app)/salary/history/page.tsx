@@ -28,7 +28,6 @@ import {
 import type { PayrollStatus } from "@/lib/salary/types";
 import { useHydrated } from "@/lib/use-hydrated";
 
-const PAGE_SIZE = 20;
 
 export default function SalaryHistoryPage() {
   const t = useT();
@@ -39,6 +38,9 @@ export default function SalaryHistoryPage() {
   const [position, setPosition] = useState("");
   const [status, setStatus] = useState<PayrollStatus | "">("");
   const [page, setPage] = useState(1);
+  // How many rows at once. A list of thirteen pages is thirteen clicks
+  // to read, and reading all of it is usually why it was opened.
+  const [pageSize, setPageSize] = useState(20);
   const [payslipId, setPayslipId] = useState<string | null>(null);
   const [historyId, setHistoryId] = useState<string | null>(null);
 
@@ -67,8 +69,8 @@ export default function SalaryHistoryPage() {
       });
   }, [mounted, state.payroll, month, status, position, search]);
 
-  const pageCount = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
-  const pageRows = rows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const pageCount = Math.max(1, Math.ceil(rows.length / pageSize));
+  const pageRows = rows.slice((page - 1) * pageSize, page * pageSize);
   const payslip = payslipId ? getPayroll(payslipId) ?? null : null;
   const historyPayroll = historyId ? getPayroll(historyId) ?? null : null;
   const historyEmployee = historyPayroll ? getEmployee(historyPayroll.employeeId) : null;
@@ -237,13 +239,17 @@ export default function SalaryHistoryPage() {
             </tbody>
           </table>
         </div>
-        {rows.length > PAGE_SIZE && (
+        {rows.length > pageSize && (
           <div className="border-t px-4 py-3">
             <Pagination
               page={page}
               pageCount={pageCount}
               total={rows.length}
-              pageSize={PAGE_SIZE}
+              pageSize={pageSize}
+              onPageSizeChange={(n) => {
+                setPageSize(n);
+                setPage(1);
+              }}
               onPageChange={setPage}
             />
           </div>

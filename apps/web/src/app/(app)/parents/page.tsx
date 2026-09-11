@@ -50,7 +50,6 @@ import { useHydrated } from "@/lib/use-hydrated";
 
 type SortKey = "name" | "code" | "registrationDate" | "childCount";
 type SortDir = "asc" | "desc";
-const PAGE_SIZE = 10;
 
 const STATUS_TONE: Record<ParentStatus, "success" | "muted"> = {
   ACTIVE: "success",
@@ -68,6 +67,9 @@ export default function ParentsPage() {
   const [sortKey, setSortKey] = useState<SortKey>("registrationDate");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [page, setPage] = useState(1);
+  // How many rows at once. A list of thirteen pages is thirteen clicks
+  // to read, and reading all of it is usually why it was opened.
+  const [pageSize, setPageSize] = useState(10);
 
   const [editId, setEditId] = useState<string | null>(null);
   const [disableId, setDisableId] = useState<ParentListRow | null>(null);
@@ -111,9 +113,9 @@ export default function ParentsPage() {
     return rows;
   }, [all, state.students, search, status, childrenFilter, sortKey, sortDir]);
 
-  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
   const currentPage = Math.min(page, pageCount);
-  const pageRows = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+  const pageRows = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
   const editParent = editId ? getParentWithChildren(editId) : null;
 
   useEffect(() => setPage(1), [search, status, childrenFilter, sortKey, sortDir]);
@@ -230,7 +232,7 @@ export default function ParentsPage() {
               ) : (
                 pageRows.map((p, i) => (
                   <tr key={p.id} className="border-t hover:bg-secondary/40">
-                    <td className="px-4 py-3 text-muted-foreground">{(currentPage - 1) * PAGE_SIZE + i + 1}</td>
+                    <td className="px-4 py-3 text-muted-foreground">{(currentPage - 1) * pageSize + i + 1}</td>
                     <td className="px-4 py-3 font-mono text-xs font-medium">{p.code}</td>
                     <td className="px-4 py-3">
                       <Link href={`/parents/${p.id}`} className="font-medium hover:text-primary hover:underline">{p.name}</Link>
@@ -275,7 +277,7 @@ export default function ParentsPage() {
           </table>
         </div>
         <div className="border-t px-3">
-          <Pagination page={currentPage} pageCount={pageCount} total={filtered.length} pageSize={PAGE_SIZE} onPageChange={setPage} />
+          <Pagination page={currentPage} pageCount={pageCount} total={filtered.length} pageSize={pageSize} onPageSizeChange={(n) => { setPageSize(n); setPage(1); }} onPageChange={setPage} />
         </div>
       </div>
 

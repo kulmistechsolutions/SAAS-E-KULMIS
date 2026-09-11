@@ -30,7 +30,6 @@ import { toast } from "@/lib/toast";
 import { printPayslip } from "@/lib/salary/print";
 import { useHydrated } from "@/lib/use-hydrated";
 
-const PAGE_SIZE = 15;
 const STATUSES: (PayrollStatus | "")[] = ["", "PENDING", "PARTIAL", "PAID"];
 
 export default function PayrollPage() {
@@ -42,6 +41,9 @@ export default function PayrollPage() {
   const [position, setPosition] = useState("");
   const [status, setStatus] = useState<PayrollStatus | "">("");
   const [page, setPage] = useState(1);
+  // How many rows at once. A list of thirteen pages is thirteen clicks
+  // to read, and reading all of it is usually why it was opened.
+  const [pageSize, setPageSize] = useState(15);
   const [payRow, setPayRow] = useState<PayrollRow | null>(null);
   const [payslipId, setPayslipId] = useState<string | null>(null);
 
@@ -63,8 +65,8 @@ export default function PayrollPage() {
     [mounted, month, search, position, status, state],
   );
 
-  const pageCount = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
-  const pageRows = rows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const pageCount = Math.max(1, Math.ceil(rows.length / pageSize));
+  const pageRows = rows.slice((page - 1) * pageSize, page * pageSize);
   const payslip = payslipId ? getPayroll(payslipId) ?? null : null;
 
   async function handleGenerate() {
@@ -240,13 +242,17 @@ export default function PayrollPage() {
             </tbody>
           </table>
         </div>
-        {rows.length > PAGE_SIZE && (
+        {rows.length > pageSize && (
           <div className="border-t px-4 py-3">
             <Pagination
               page={page}
               pageCount={pageCount}
               total={rows.length}
-              pageSize={PAGE_SIZE}
+              pageSize={pageSize}
+              onPageSizeChange={(n) => {
+                setPageSize(n);
+                setPage(1);
+              }}
               onPageChange={setPage}
             />
           </div>

@@ -5233,6 +5233,7 @@ export const generated = {
   },
   uiPagination: {
     showing: "Showing",
+    rowsPerPage: "Rows:",
     of: "of",
   },
   uiThemeToggle: {

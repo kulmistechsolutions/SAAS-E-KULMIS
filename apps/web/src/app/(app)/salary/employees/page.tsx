@@ -19,7 +19,6 @@ import type { StaffEmployee } from "@/lib/employees/types";
 import { toast } from "@/lib/toast";
 import { useHydrated } from "@/lib/use-hydrated";
 
-const PAGE_SIZE = 15;
 
 interface Row {
   id: string;
@@ -41,6 +40,9 @@ export default function SalaryEmployeesPage() {
   const [search, setSearch] = useState("");
   const [type, setType] = useState<"TEACHER" | "STAFF" | "">("");
   const [page, setPage] = useState(1);
+  // How many rows at once. A list of thirteen pages is thirteen clicks
+  // to read, and reading all of it is usually why it was opened.
+  const [pageSize, setPageSize] = useState(15);
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<StaffEmployee | null>(null);
   const [deleting, setDeleting] = useState<StaffEmployee | null>(null);
@@ -84,8 +86,8 @@ export default function SalaryEmployeesPage() {
     });
   }, [rows, search, type]);
 
-  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const pageRows = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const pageRows = filtered.slice((page - 1) * pageSize, page * pageSize);
 
   async function handleDelete() {
     if (!deleting) return;
@@ -242,13 +244,17 @@ export default function SalaryEmployeesPage() {
             </tbody>
           </table>
         </div>
-        {filtered.length > PAGE_SIZE && (
+        {filtered.length > pageSize && (
           <div className="border-t px-4 py-3">
             <Pagination
               page={page}
               pageCount={pageCount}
               total={filtered.length}
-              pageSize={PAGE_SIZE}
+              pageSize={pageSize}
+              onPageSizeChange={(n) => {
+                setPageSize(n);
+                setPage(1);
+              }}
               onPageChange={setPage}
             />
           </div>

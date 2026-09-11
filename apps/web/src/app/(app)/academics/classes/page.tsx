@@ -44,7 +44,6 @@ import { useHydrated } from "@/lib/use-hydrated";
 
 type SortKey = "name" | "studentCount" | "subjectCount";
 type SortDir = "asc" | "desc";
-const PAGE_SIZE = 10;
 
 export default function ClassesPage() {
   const t = useT();
@@ -57,6 +56,9 @@ export default function ClassesPage() {
   const [sortKey, setSortKey] = useState<SortKey>("name");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [page, setPage] = useState(1);
+  // How many rows at once. A list of thirteen pages is thirteen clicks
+  // to read, and reading all of it is usually why it was opened.
+  const [pageSize, setPageSize] = useState(10);
 
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<SchoolClass | null>(null);
@@ -81,11 +83,11 @@ export default function ClassesPage() {
     return list;
   }, [state, search, year, status, sortKey, sortDir]);
 
-  const pageCount = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
+  const pageCount = Math.max(1, Math.ceil(rows.length / pageSize));
   const currentPage = Math.min(page, pageCount);
   const pageRows = rows.slice(
-    (currentPage - 1) * PAGE_SIZE,
-    currentPage * PAGE_SIZE,
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize,
   );
 
   useEffect(() => setPage(1), [search, year, status, sortKey, sortDir]);
@@ -271,7 +273,7 @@ export default function ClassesPage() {
                 pageRows.map((r, i) => (
                   <tr key={r.id} className="border-t hover:bg-secondary/40">
                     <td className="px-4 py-3 text-muted-foreground">
-                      {(currentPage - 1) * PAGE_SIZE + i + 1}
+                      {(currentPage - 1) * pageSize + i + 1}
                     </td>
                     <td className="px-4 py-3">
                       <Link
@@ -344,7 +346,11 @@ export default function ClassesPage() {
             page={currentPage}
             pageCount={pageCount}
             total={rows.length}
-            pageSize={PAGE_SIZE}
+            pageSize={pageSize}
+            onPageSizeChange={(n) => {
+              setPageSize(n);
+              setPage(1);
+            }}
             onPageChange={setPage}
           />
         </div>

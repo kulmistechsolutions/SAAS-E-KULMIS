@@ -25,7 +25,6 @@ import type { Section, SectionRow } from "@/lib/academics/types";
 import { toast } from "@/lib/toast";
 import { useHydrated } from "@/lib/use-hydrated";
 
-const PAGE_SIZE = 12;
 
 export default function SectionsPage() {
   const t = useT();
@@ -37,6 +36,9 @@ export default function SectionsPage() {
   const [classId, setClassId] = useState("");
   const [status, setStatus] = useState("");
   const [page, setPage] = useState(1);
+  // How many rows at once. A list of thirteen pages is thirteen clicks
+  // to read, and reading all of it is usually why it was opened.
+  const [pageSize, setPageSize] = useState(12);
 
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Section | null>(null);
@@ -69,9 +71,9 @@ export default function SectionsPage() {
     );
   }, [state, search, year, classId, status, filterYear]);
 
-  const pageCount = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
+  const pageCount = Math.max(1, Math.ceil(rows.length / pageSize));
   const currentPage = Math.min(page, pageCount);
-  const pageRows = rows.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+  const pageRows = rows.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   useEffect(() => setPage(1), [search, year, classId, status]);
 
@@ -196,7 +198,7 @@ export default function SectionsPage() {
               ) : (
                 pageRows.map((r, i) => (
                   <tr key={r.id} className="border-t hover:bg-secondary/40">
-                    <td className="px-4 py-3 text-muted-foreground">{(currentPage - 1) * PAGE_SIZE + i + 1}</td>
+                    <td className="px-4 py-3 text-muted-foreground">{(currentPage - 1) * pageSize + i + 1}</td>
                     <td className="px-4 py-3 font-medium">{t("academicsSections.section")} {r.name}</td>
                     <td className="px-4 py-3">{r.className}</td>
                     <td className="px-4 py-3 text-muted-foreground">{r.academicYear}</td>
@@ -231,7 +233,7 @@ export default function SectionsPage() {
           </table>
         </div>
         <div className="border-t px-3">
-          <Pagination page={currentPage} pageCount={pageCount} total={rows.length} pageSize={PAGE_SIZE} onPageChange={setPage} />
+          <Pagination page={currentPage} pageCount={pageCount} total={rows.length} pageSize={pageSize} onPageSizeChange={(n) => { setPageSize(n); setPage(1); }} onPageChange={setPage} />
         </div>
       </div>
 

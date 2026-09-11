@@ -166,6 +166,9 @@ export default function PlatformSubscriptionsPage() {
   const [historyTotal, setHistoryTotal] = useState(0);
   const [historyPage, setHistoryPage] = useState(1);
   const [historyPageCount, setHistoryPageCount] = useState(1);
+  // This list is paged by the server, so the chosen size is a query
+  // parameter rather than a slice — the same control, one layer deeper.
+  const [historyPageSize, setHistoryPageSize] = useState(20);
   const [historySearch, setHistorySearch] = useState("");
   const [historyStatus, setHistoryStatus] = useState("");
   const [historyLoading, setHistoryLoading] = useState(false);
@@ -208,7 +211,7 @@ export default function PlatformSubscriptionsPage() {
         search: historySearch || undefined,
         status: historyStatus || undefined,
         page: historyPage,
-        pageSize: 20,
+        pageSize: historyPageSize,
       });
       setHistoryRows(res.rows);
       setHistoryTotal(res.total);
@@ -218,7 +221,7 @@ export default function PlatformSubscriptionsPage() {
     } finally {
       setHistoryLoading(false);
     }
-  }, [historySearch, historyStatus, historyPage]);
+  }, [historySearch, historyStatus, historyPage, historyPageSize]);
 
   useEffect(() => {
     if (mounted) void reload();
@@ -731,7 +734,11 @@ export default function PlatformSubscriptionsPage() {
             page={historyPage}
             pageCount={historyPageCount}
             total={historyTotal}
-            pageSize={20}
+            pageSize={historyPageSize}
+            onPageSizeChange={(n) => {
+              setHistoryPageSize(n);
+              setHistoryPage(1);
+            }}
             onPageChange={setHistoryPage}
           />
         </div>

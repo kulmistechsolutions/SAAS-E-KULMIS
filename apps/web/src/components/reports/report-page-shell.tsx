@@ -29,7 +29,6 @@ import { cn } from "@/lib/utils";
 import { toast } from "@/lib/toast";
 import { useHydrated } from "@/lib/use-hydrated";
 
-const PAGE_SIZE = 15;
 
 /**
  * The "status" filter means a different enum per report — Student.status
@@ -105,6 +104,9 @@ export function ReportPageShell({ categoryId, categoryLabel, report }: Props) {
   const [filters, setFilters] = useState<ReportFilters>({});
   const [showFilters, setShowFilters] = useState(true);
   const [page, setPage] = useState(1);
+  // How many rows at once. A list of thirteen pages is thirteen clicks
+  // to read, and reading all of it is usually why it was opened.
+  const [pageSize, setPageSize] = useState(15);
   const [sortKey, setSortKey] = useState<string | null>(null);
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [refreshKey, setRefreshKey] = useState(0);
@@ -240,9 +242,9 @@ export function ReportPageShell({ categoryId, categoryLabel, report }: Props) {
     });
   }, [data.rows, sortKey, sortDir]);
 
-  const pageCount = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
+  const pageCount = Math.max(1, Math.ceil(sorted.length / pageSize));
   const currentPage = Math.min(page, pageCount);
-  const pageRows = sorted.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+  const pageRows = sorted.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   useEffect(() => setPage(1), [search, filters, sortKey, sortDir]);
 
@@ -561,7 +563,7 @@ export function ReportPageShell({ categoryId, categoryLabel, report }: Props) {
               ) : (
                 pageRows.map((row, i) => (
                   <tr key={i} className="border-t hover:bg-secondary/40">
-                    <td className="px-4 py-3 text-muted-foreground">{(currentPage - 1) * PAGE_SIZE + i + 1}</td>
+                    <td className="px-4 py-3 text-muted-foreground">{(currentPage - 1) * pageSize + i + 1}</td>
                     {data.columns.map((c) => (
                       <td
                         key={c.key}
@@ -585,7 +587,11 @@ export function ReportPageShell({ categoryId, categoryLabel, report }: Props) {
             page={currentPage}
             pageCount={pageCount}
             total={sorted.length}
-            pageSize={PAGE_SIZE}
+            pageSize={pageSize}
+            onPageSizeChange={(n) => {
+              setPageSize(n);
+              setPage(1);
+            }}
             onPageChange={setPage}
           />
         </div>

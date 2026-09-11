@@ -20,7 +20,6 @@ import { useStudentsState } from "@/lib/students/store";
 import { toast } from "@/lib/toast";
 import { useHydrated } from "@/lib/use-hydrated";
 
-const PAGE_SIZE = 12;
 
 export default function GraduatedStudentsPage() {
   const t = useT();
@@ -31,6 +30,9 @@ export default function GraduatedStudentsPage() {
   const [search, setSearch] = useState("");
   const [year, setYear] = useState("");
   const [page, setPage] = useState(1);
+  // How many rows at once. A list of thirteen pages is thirteen clicks
+  // to read, and reading all of it is usually why it was opened.
+  const [pageSize, setPageSize] = useState(12);
 
   const years = getAcademicsState().academicYears;
 
@@ -39,9 +41,9 @@ export default function GraduatedStudentsPage() {
     [promotions, studentsState, search, year],
   );
 
-  const pageCount = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
+  const pageCount = Math.max(1, Math.ceil(rows.length / pageSize));
   const currentPage = Math.min(page, pageCount);
-  const pageRows = rows.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+  const pageRows = rows.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   useEffect(() => setPage(1), [search, year]);
 
@@ -142,7 +144,7 @@ export default function GraduatedStudentsPage() {
               <tbody>
                 {pageRows.map((r, i) => (
                   <tr key={r.studentId} className="border-t hover:bg-secondary/40">
-                    <td className="px-4 py-3 text-muted-foreground">{(currentPage - 1) * PAGE_SIZE + i + 1}</td>
+                    <td className="px-4 py-3 text-muted-foreground">{(currentPage - 1) * pageSize + i + 1}</td>
                     <td className="px-4 py-3 font-mono text-xs">{r.studentCode}</td>
                     <td className="px-4 py-3">
                       <Link href={`/students/${r.studentId}`} className="font-medium hover:text-primary hover:underline">
@@ -177,7 +179,7 @@ export default function GraduatedStudentsPage() {
             </table>
           </div>
           <div className="border-t px-3">
-            <Pagination page={currentPage} pageCount={pageCount} total={rows.length} pageSize={PAGE_SIZE} onPageChange={setPage} />
+            <Pagination page={currentPage} pageCount={pageCount} total={rows.length} pageSize={pageSize} onPageSizeChange={(n) => { setPageSize(n); setPage(1); }} onPageChange={setPage} />
           </div>
         </div>
       )}

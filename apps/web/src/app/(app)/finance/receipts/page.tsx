@@ -13,19 +13,21 @@ import { getPayment, useFeesState } from "@/lib/fees/store";
 import { getState as getStudentsState } from "@/lib/students/store";
 import { useHydrated } from "@/lib/use-hydrated";
 
-const PAGE_SIZE = 15;
 
 export default function ReceiptsPage() {
   const t = useT();
   const mounted = useHydrated();
   const fees = useFeesState();
   const [page, setPage] = useState(1);
+  // How many rows at once. A list of thirteen pages is thirteen clicks
+  // to read, and reading all of it is usually why it was opened.
+  const [pageSize, setPageSize] = useState(15);
   const [receiptNo, setReceiptNo] = useState<string | null>(null);
 
   const students = getStudentsState().students;
   const payments = fees.payments;
-  const pageCount = Math.max(1, Math.ceil(payments.length / PAGE_SIZE));
-  const rows = payments.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const pageCount = Math.max(1, Math.ceil(payments.length / pageSize));
+  const rows = payments.slice((page - 1) * pageSize, page * pageSize);
   const receipt = receiptNo ? getPayment(receiptNo) ?? null : null;
 
   return (
@@ -92,7 +94,11 @@ export default function ReceiptsPage() {
               page={page}
               pageCount={pageCount}
               total={payments.length}
-              pageSize={PAGE_SIZE}
+              pageSize={pageSize}
+              onPageSizeChange={(n) => {
+                setPageSize(n);
+                setPage(1);
+              }}
               onPageChange={setPage}
             />
           </div>

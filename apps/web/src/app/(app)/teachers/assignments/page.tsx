@@ -27,7 +27,6 @@ import type { TeacherAssignment } from "@/lib/teachers/types";
 import { toast } from "@/lib/toast";
 import { useHydrated } from "@/lib/use-hydrated";
 
-const PAGE_SIZE = 12;
 
 export default function TeacherAssignmentsPage() {
   const tr = useT();
@@ -42,6 +41,9 @@ export default function TeacherAssignmentsPage() {
   const [year, setYear] = useState("");
   const [klass, setKlass] = useState("");
   const [page, setPage] = useState(1);
+  // How many rows at once. A list of thirteen pages is thirteen clicks
+  // to read, and reading all of it is usually why it was opened.
+  const [pageSize, setPageSize] = useState(12);
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<TeacherAssignment | null>(null);
   const [deleting, setDeleting] = useState<TeacherAssignment | null>(null);
@@ -69,9 +71,9 @@ export default function TeacherAssignmentsPage() {
     });
   }, [assignments, search, year, klass, teacherMap]);
 
-  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
   const currentPage = Math.min(page, pageCount);
-  const pageRows = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+  const pageRows = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   useEffect(() => setPage(1), [search, year, klass]);
 
@@ -166,7 +168,7 @@ export default function TeacherAssignmentsPage() {
                   const t = teacherMap.get(a.teacherId);
                   return (
                     <tr key={a.id} className="border-t hover:bg-secondary/40">
-                      <td className="px-4 py-3 text-muted-foreground">{(currentPage - 1) * PAGE_SIZE + i + 1}</td>
+                      <td className="px-4 py-3 text-muted-foreground">{(currentPage - 1) * pageSize + i + 1}</td>
                       <td className="px-4 py-3">
                         <Link href={`/teachers/${a.teacherId}`} className="font-medium hover:text-primary hover:underline">
                           {t?.fullName ?? "—"}
@@ -203,7 +205,7 @@ export default function TeacherAssignmentsPage() {
           </table>
         </div>
         <div className="border-t px-3">
-          <Pagination page={currentPage} pageCount={pageCount} total={filtered.length} pageSize={PAGE_SIZE} onPageChange={setPage} />
+          <Pagination page={currentPage} pageCount={pageCount} total={filtered.length} pageSize={pageSize} onPageSizeChange={(n) => { setPageSize(n); setPage(1); }} onPageChange={setPage} />
         </div>
       </div>
 

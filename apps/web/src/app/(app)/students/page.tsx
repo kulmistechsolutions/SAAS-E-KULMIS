@@ -69,7 +69,6 @@ import { useHydrated } from "@/lib/use-hydrated";
 type SortKey = "fullName" | "code" | "registrationDate" | "className";
 type SortDir = "asc" | "desc";
 
-const PAGE_SIZE = 10;
 
 const STATUS_TONE: Record<StudentStatus, "success" | "muted" | "info"> = {
   ACTIVE: "success",
@@ -99,6 +98,9 @@ export default function StudentsPage() {
   const [sortKey, setSortKey] = useState<SortKey>("registrationDate");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [page, setPage] = useState(1);
+  // How many rows at once. A list of thirteen pages is thirteen clicks
+  // to read, and reading all of it is usually why it was opened.
+  const [pageSize, setPageSize] = useState(10);
 
   useEffect(() => {
     if (!mounted) return;
@@ -185,11 +187,11 @@ export default function StudentsPage() {
     return rows;
   }, [all, search, year, klass, section, gender, status, sortKey, sortDir]);
 
-  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
   const currentPage = Math.min(page, pageCount);
   const pageRows = filtered.slice(
-    (currentPage - 1) * PAGE_SIZE,
-    currentPage * PAGE_SIZE,
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize,
   );
 
   useEffect(() => {
@@ -563,7 +565,7 @@ export default function StudentsPage() {
                       />
                     </td>
                     <td className="px-4 py-3 text-muted-foreground">
-                      {(currentPage - 1) * PAGE_SIZE + i + 1}
+                      {(currentPage - 1) * pageSize + i + 1}
                     </td>
                     <td className="px-4 py-3 font-mono text-xs font-medium">
                       {s.code}
@@ -654,7 +656,11 @@ export default function StudentsPage() {
             page={currentPage}
             pageCount={pageCount}
             total={filtered.length}
-            pageSize={PAGE_SIZE}
+            pageSize={pageSize}
+            onPageSizeChange={(n) => {
+              setPageSize(n);
+              setPage(1);
+            }}
             onPageChange={setPage}
           />
         </div>

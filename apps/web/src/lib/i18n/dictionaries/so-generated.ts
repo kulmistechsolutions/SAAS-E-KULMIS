@@ -5156,6 +5156,7 @@ export const soGenerated: PartialDictionary = {
   },
   uiPagination: {
     showing: "Waxaa la tusayaa",
+    rowsPerPage: "Safaf:",
     of: "ka mid ah",
   },
   uiThemeToggle: {

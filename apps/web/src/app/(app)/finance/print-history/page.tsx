@@ -14,7 +14,6 @@ import type { ApiPrintLogRow } from "@/lib/fees/api";
 import type { PaymentType } from "@/lib/fees/types";
 import { useHydrated } from "@/lib/use-hydrated";
 
-const PAGE_SIZE = 20;
 
 function fmtDateTime(iso: string): string {
   return new Date(iso).toLocaleString(undefined, {
@@ -36,6 +35,9 @@ export default function PrintHistoryPage() {
   const [logs, setLogs] = useState<ApiPrintLogRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
+  // How many rows at once. A list of thirteen pages is thirteen clicks
+  // to read, and reading all of it is usually why it was opened.
+  const [pageSize, setPageSize] = useState(20);
 
 
   useEffect(() => {
@@ -55,9 +57,9 @@ export default function PrintHistoryPage() {
 
   useEffect(() => setPage(1), [dateFrom, dateTo, type]);
 
-  const pageCount = Math.max(1, Math.ceil(logs.length / PAGE_SIZE));
+  const pageCount = Math.max(1, Math.ceil(logs.length / pageSize));
   const rows = useMemo(
-    () => logs.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
+    () => logs.slice((page - 1) * pageSize, page * pageSize),
     [logs, page],
   );
 
@@ -184,7 +186,11 @@ export default function PrintHistoryPage() {
             page={page}
             pageCount={pageCount}
             total={logs.length}
-            pageSize={PAGE_SIZE}
+            pageSize={pageSize}
+            onPageSizeChange={(n) => {
+              setPageSize(n);
+              setPage(1);
+            }}
             onPageChange={setPage}
           />
         </div>

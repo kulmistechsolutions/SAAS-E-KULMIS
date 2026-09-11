@@ -20,7 +20,6 @@ import type { PaymentType } from "@/lib/fees/types";
 import { classNamesForYear, groupClassNames, useAcademicsState } from "@/lib/academics/store";
 import { useHydrated } from "@/lib/use-hydrated";
 
-const PAGE_SIZE = 15;
 
 export default function FeeHistoryPage() {
   const t = useT();
@@ -33,6 +32,9 @@ export default function FeeHistoryPage() {
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [page, setPage] = useState(1);
+  // How many rows at once. A list of thirteen pages is thirteen clicks
+  // to read, and reading all of it is usually why it was opened.
+  const [pageSize, setPageSize] = useState(15);
   const [receiptNo, setReceiptNo] = useState<string | null>(null);
   const [reversingId, setReversingId] = useState<string | null>(null);
 
@@ -72,8 +74,8 @@ export default function FeeHistoryPage() {
   // Any filter change can shrink the result set below the current page.
   useEffect(() => setPage(1), [search, klass, paymentType, dateFrom, dateTo]);
 
-  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const rows = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const rows = filtered.slice((page - 1) * pageSize, page * pageSize);
   const receipt = receiptNo ? getPayment(receiptNo) ?? null : null;
   const reversingPayment = reversingId
     ? fees.payments.find((p) => p.id === reversingId) ?? null
@@ -261,7 +263,11 @@ export default function FeeHistoryPage() {
             page={page}
             pageCount={pageCount}
             total={filtered.length}
-            pageSize={PAGE_SIZE}
+            pageSize={pageSize}
+            onPageSizeChange={(n) => {
+              setPageSize(n);
+              setPage(1);
+            }}
             onPageChange={setPage}
           />
         </div>

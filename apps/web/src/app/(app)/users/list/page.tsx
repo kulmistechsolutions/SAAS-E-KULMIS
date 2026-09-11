@@ -40,7 +40,6 @@ import type { AccountStatus } from "@/lib/users/types";
 import { toast } from "@/lib/toast";
 import { useHydrated } from "@/lib/use-hydrated";
 
-const PAGE_SIZE = 15;
 
 export default function UsersListPage() {
   const t = useT();
@@ -50,6 +49,9 @@ export default function UsersListPage() {
   const [role, setRole] = useState("");
   const [status, setStatus] = useState<AccountStatus | "">("");
   const [page, setPage] = useState(1);
+  // How many rows at once. A list of thirteen pages is thirteen clicks
+  // to read, and reading all of it is usually why it was opened.
+  const [pageSize, setPageSize] = useState(15);
   const [showCreate, setShowCreate] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [resetId, setResetId] = useState<string | null>(null);
@@ -68,8 +70,8 @@ export default function UsersListPage() {
     [mounted, search, role, status, state],
   );
 
-  const pageCount = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
-  const pageRows = rows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const pageCount = Math.max(1, Math.ceil(rows.length / pageSize));
+  const pageRows = rows.slice((page - 1) * pageSize, page * pageSize);
   const editUser = editId ? getUser(editId) ?? null : null;
   const resetUser = resetId ? getUser(resetId) : null;
 
@@ -257,13 +259,17 @@ export default function UsersListPage() {
             </tbody>
           </table>
         </div>
-        {rows.length > PAGE_SIZE && (
+        {rows.length > pageSize && (
           <div className="border-t px-4 py-3">
             <Pagination
               page={page}
               pageCount={pageCount}
               total={rows.length}
-              pageSize={PAGE_SIZE}
+              pageSize={pageSize}
+              onPageSizeChange={(n) => {
+                setPageSize(n);
+                setPage(1);
+              }}
               onPageChange={setPage}
             />
           </div>

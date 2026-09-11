@@ -16,7 +16,6 @@ import type { QuizStatus } from "@/lib/quiz/types";
 import { toast } from "@/lib/toast";
 import { useHydrated } from "@/lib/use-hydrated";
 
-const PAGE_SIZE = 15;
 
 export default function QuizListPage() {
   const t = useT();
@@ -25,13 +24,16 @@ export default function QuizListPage() {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<QuizStatus | "">("");
   const [page, setPage] = useState(1);
+  // How many rows at once. A list of thirteen pages is thirteen clicks
+  // to read, and reading all of it is usually why it was opened.
+  const [pageSize, setPageSize] = useState(15);
 
 
   const rows = useMemo(
     () => (mounted ? listQuizzes({ search, status: status || undefined }) : []),
     [mounted, search, status, state],
   );
-  const pageRows = rows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const pageRows = rows.slice((page - 1) * pageSize, page * pageSize);
 
   if (!mounted) return null;
 
@@ -87,9 +89,9 @@ export default function QuizListPage() {
             ))}
           </tbody>
         </table>
-        {rows.length > PAGE_SIZE && (
+        {rows.length > pageSize && (
           <div className="border-t px-4 py-3">
-            <Pagination page={page} pageCount={Math.ceil(rows.length / PAGE_SIZE)} total={rows.length} pageSize={PAGE_SIZE} onPageChange={setPage} />
+            <Pagination page={page} pageCount={Math.ceil(rows.length / pageSize)} total={rows.length} pageSize={pageSize} onPageSizeChange={(n) => { setPageSize(n); setPage(1); }} onPageChange={setPage} />
           </div>
         )}
       </div>

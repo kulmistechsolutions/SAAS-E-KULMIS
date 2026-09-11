@@ -5133,6 +5133,7 @@ export const arGenerated: PartialDictionary = {
   },
   uiPagination: {
     showing: "عرض",
+    rowsPerPage: "الصفوف:",
     of: "من",
   },
   uiThemeToggle: {
