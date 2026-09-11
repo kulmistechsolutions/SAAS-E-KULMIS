@@ -382,6 +382,24 @@ export interface PlatformSmsOverview {
     package: { name: string };
   }[];
   deliveryStats: { status: string; count: number; credits: number }[];
+  /**
+   * What schools still hold against what the provider can actually cover.
+   * Neither number alarms on its own; the pair is the point — selling 50,000
+   * credits against a provider account holding 8,000 SMS fails on no single
+   * send, and then for every school at once.
+   */
+  balanceHealth?: {
+    /** Provider balance minus what schools hold. Negative means oversold. */
+    drift: number | null;
+    oversold: boolean;
+    /** The provider balance has never been read. */
+    unknown: boolean;
+    /** Read, but too long ago to act on. */
+    stale: boolean;
+    creditsOutstanding: number;
+    providerBalance: number | null;
+    checkedAt: string | null;
+  };
   schools: {
     id: string;
     name: string;

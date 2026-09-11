@@ -260,6 +260,101 @@ export default function PlatformSmsPackagesPage() {
         </div>
       )}
 
+      {/* Reconciliation. The two figures either side of this line are what the
+          platform has promised and what it can actually pay out of; they are
+          allowed to drift apart quietly for weeks, and then everything stops at
+          once. Read six-hourly, not at Test Connection, so it is about today. */}
+      {data?.balanceHealth && (
+        <div
+          className={`rounded-2xl border p-5 ${
+            data.balanceHealth.oversold
+              ? "border-rose-500/40 bg-rose-500/10"
+              : data.balanceHealth.unknown || data.balanceHealth.stale
+                ? "border-amber-500/30 bg-amber-500/10"
+                : "border-white/10 bg-[#0f172a]"
+          }`}
+        >
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2 className="font-semibold text-white">Credit cover</h2>
+              <p className="mt-0.5 text-xs text-slate-400">
+                What schools still hold, against what the provider account can
+                cover.
+              </p>
+            </div>
+            <span
+              className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+                data.balanceHealth.oversold
+                  ? "bg-rose-500/20 text-rose-200"
+                  : data.balanceHealth.unknown
+                    ? "bg-amber-500/20 text-amber-200"
+                    : data.balanceHealth.stale
+                      ? "bg-amber-500/20 text-amber-200"
+                      : "bg-emerald-500/15 text-emerald-300"
+              }`}
+            >
+              {data.balanceHealth.oversold
+                ? "Oversold"
+                : data.balanceHealth.unknown
+                  ? "Never checked"
+                  : data.balanceHealth.stale
+                    ? "Out of date"
+                    : "Covered"}
+            </span>
+          </div>
+
+          <div className="mt-4 grid gap-4 sm:grid-cols-3">
+            <div>
+              <p className="text-xs text-slate-500">Provider balance</p>
+              <p className="mt-0.5 text-xl font-bold tabular-nums text-white">
+                {data.balanceHealth.providerBalance === null
+                  ? "—"
+                  : data.balanceHealth.providerBalance.toLocaleString()}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-slate-500">Credits schools hold</p>
+              <p className="mt-0.5 text-xl font-bold tabular-nums text-white">
+                {data.balanceHealth.creditsOutstanding.toLocaleString()}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-slate-500">Cover</p>
+              <p
+                className={`mt-0.5 text-xl font-bold tabular-nums ${
+                  data.balanceHealth.drift === null
+                    ? "text-slate-500"
+                    : data.balanceHealth.drift < 0
+                      ? "text-rose-300"
+                      : "text-emerald-300"
+                }`}
+              >
+                {data.balanceHealth.drift === null
+                  ? "—"
+                  : data.balanceHealth.drift.toLocaleString()}
+              </p>
+            </div>
+          </div>
+
+          <p className="mt-3 border-t border-white/10 pt-3 text-xs text-slate-400">
+            {data.balanceHealth.oversold
+              ? "Schools hold more credits than the provider account can deliver. Top up the provider account, or stop assigning packages until it is topped up."
+              : data.balanceHealth.unknown
+                ? "The provider balance has not been read yet. It syncs every six hours once the connection is enabled."
+                : data.balanceHealth.stale
+                  ? "This reading is more than a day old, so treat it as an indication rather than a fact."
+                  : "Every credit sold is covered by the provider account."}
+            {data.balanceHealth.checkedAt && (
+              <>
+                {" "}
+                Last read{" "}
+                {new Date(data.balanceHealth.checkedAt).toLocaleString()}.
+              </>
+            )}
+          </p>
+        </div>
+      )}
+
       {unlocked && data && (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <div className="rounded-xl border border-white/10 bg-[#0f172a] p-3">

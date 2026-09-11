@@ -2242,6 +2242,9 @@ model SmsGlobalConfig {
   lastTestedAt       DateTime?
   lastSuccessAt      DateTime?
   providerBalance    String?
+  /// When that balance was read. A figure with no time beside it reads as
+  /// current however stale it is, which is no use for a reconciliation.
+  providerBalanceAt  DateTime?
   /// Must be true (successful Test Connection) before packages can be managed.
   connectionVerified Boolean   @default(false)
   updatedAt          DateTime  @updatedAt

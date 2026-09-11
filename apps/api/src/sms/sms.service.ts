@@ -29,6 +29,8 @@ import { resolveSendingName } from "./sender-id-feature";
 import {
   clearHormuudTokenCache,
   estimateSmsCredits,
+  hormuudCheckBalance,
+  hormuudFetchToken,
   hormuudSendSms,
   hormuudTestConnection,
   normalizeSomaliPhone,
@@ -38,6 +40,10 @@ import { dhambaalSendSms, dhambaalTestConnection } from "./dhambaal.client";
 import { DEFAULT_TEMPLATES, renderSmsTemplate } from "./sms-template.util";
 
 import { smsAccountNo, smsSendBlock } from "./sms-send-gate";
+import {
+  parseProviderBalance,
+  smsBalanceHealth,
+} from "./sms-balance-health";
 type Recipient = {
   phone: string;
   name?: string | null;
@@ -834,9 +840,28 @@ export class SmsService {
       bySchool.map((b) => [b.schoolId, b._sum.creditsRemaining ?? 0]),
     );
 
+    // What schools still hold against what the provider can actually cover.
+    // Neither number alarms on its own; the pair is the whole point.
+    const creditsOutstanding = bySchool.reduce(
+      (n, b) => n + (b._sum.creditsRemaining ?? 0),
+      0,
+    );
+    const checkedAt = (await this.ensureGlobalConfig()).providerBalanceAt;
+    const health = smsBalanceHealth({
+      providerBalance: parseProviderBalance(config.providerBalance),
+      creditsOutstanding,
+      checkedAt,
+    });
+
     return {
       config,
       packages,
+      balanceHealth: {
+        ...health,
+        creditsOutstanding,
+        providerBalance: parseProviderBalance(config.providerBalance),
+        checkedAt,
+      },
       recentPurchases: purchases,
       deliveryStats: messages.map((m) => ({
         status: m.status,
@@ -1695,6 +1720,61 @@ export class SmsService {
     } finally {
       this.scheduledRunning = false;
     }
+  }
+
+  /**
+   * Read the provider's own balance and write it down with the time.
+   *
+   * Six-hourly rather than by the minute: this is a reconciliation figure, not
+   * a gate on sending, and every reading costs a round trip to the provider.
+   * It is deliberately independent of Test Connection — a platform whose last
+   * balance came from a connection test someone ran in July has no idea what
+   * it is holding today.
+   */
+  @Cron(CronExpression.EVERY_6_HOURS)
+  async syncProviderBalanceJob(): Promise<void> {
+    try {
+      const updated = await this.syncProviderBalance();
+      if (updated !== null) {
+        this.logger.log(`Provider SMS balance synced: ${updated}`);
+      }
+    } catch (e) {
+      // A provider that will not answer is not an outage of this system.
+      this.logger.warn(
+        `Provider SMS balance sync skipped: ${e instanceof Error ? e.message : e}`,
+      );
+    }
+  }
+
+  /**
+   * Fetch and store the provider balance. Returns what was read, or null when
+   * there was nothing to read — no configuration, or a reply with no number in
+   * it. Null is never written over a figure that was readable before: a failed
+   * reading should leave yesterday's number and its timestamp standing, so the
+   * staleness is visible rather than the value silently becoming unknown.
+   */
+  async syncProviderBalance(): Promise<string | null> {
+    // The raw row, not the redacted one the platform page reads: this needs
+    // the password to authenticate with.
+    const config = await this.ensureGlobalConfig();
+    if (!config.enabled || !config.username || !config.password) return null;
+
+    const creds = {
+      baseUrl: config.baseUrl,
+      username: config.username,
+      password: config.password,
+    };
+    const token = await hormuudFetchToken(creds);
+    if (!token.accessToken) return null;
+
+    const res = await hormuudCheckBalance(creds, token.accessToken);
+    if (!res.ok || !res.balance) return null;
+
+    await this.prisma.smsGlobalConfig.update({
+      where: { id: config.id },
+      data: { providerBalance: res.balance, providerBalanceAt: new Date() },
+    });
+    return res.balance;
   }
 
   /** Process due scheduled messages (called from the cron above). */
