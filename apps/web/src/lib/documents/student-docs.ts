@@ -10,6 +10,8 @@ import {
 import { paperCss, type PaperSize } from "@/lib/print/paper";
 import { schoolBranding } from "@/lib/settings/store";
 import type { StudentWithParent } from "@/lib/students/types";
+import { DESIGN_CSS, DOC_SHELL_CSS, type DocDesign } from "./doc-shell";
+export type { DocDesign } from "./doc-shell";
 
 /**
  * The school's official student documents.
@@ -30,9 +32,6 @@ export type StudentDocKind =
   | "ADMISSION"
   | "TRANSFER"
   | "BONAFIDE";
-
-/** The four designs, which change the look and never the facts. */
-export type DocDesign = "MODERN" | "SIMPLE" | "ELEGANT" | "MINIMAL";
 
 export interface StudentDocOptions {
   kind: StudentDocKind;
@@ -56,28 +55,6 @@ export const DOC_TITLES: Record<StudentDocKind, string> = {
   ADMISSION: "Admission Letter",
   TRANSFER: "Transfer Certificate",
   BONAFIDE: "Bonafide Certificate",
-};
-
-/** Per-design tuning. Only spacing, weight and rule colour differ. */
-const DESIGN_CSS: Record<DocDesign, string> = {
-  MODERN: `
-    .sec-head{background:var(--ek-accent);color:#fff}
-    .kv td.k{width:38%}
-    .card{border:1px solid #e2e8f0;border-radius:10px;overflow:hidden}`,
-  SIMPLE: `
-    .sec-head{background:#f1f5f9;color:#0f172a;border-bottom:1px solid #e2e8f0}
-    .card{border:1px solid #e2e8f0;border-radius:6px;overflow:hidden}`,
-  ELEGANT: `
-    .sec-head{background:transparent;color:var(--ek-accent);
-      border-bottom:2px solid var(--ek-accent);letter-spacing:.12em}
-    .card{border:none;border-top:1px solid #e2e8f0}
-    .kv td{border-bottom:1px dotted #e2e8f0}`,
-  MINIMAL: `
-    .sec-head{background:transparent;color:#475569;border-bottom:1px solid #e2e8f0;
-      font-size:10px;letter-spacing:.14em}
-    .card{border:none}
-    .kv td{border-bottom:none;padding:4px 0}
-    .photo{border-radius:4px}`,
 };
 
 function escapeHtml(v: unknown): string {
@@ -234,9 +211,7 @@ export function studentDocumentHtml(
   return `<!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8"/><title>${escapeHtml(title)} \u2014 ${escapeHtml(student.fullName)}</title>
 <style>
-  *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;color:#0f172a;
-    -webkit-print-color-adjust:exact;print-color-adjust:exact}
+  ${DOC_SHELL_CSS}
   ${paperCss(opts.paper)}
   ${
     // paperCss fixes the page to the sheet's own orientation, so landscape has
@@ -247,35 +222,6 @@ export function studentDocumentHtml(
   }
   ${LETTERHEAD_CSS}
   ${DESIGN_CSS[opts.design]}
-
-  /* The page is sized so one student fits one sheet. Everything below is
-     spacing chosen to leave room for the signature band at the foot rather
-     than pushing it onto a second page. */
-  .card{margin-top:12px;page-break-inside:avoid}
-  .sec-head{padding:6px 12px;font-size:11px;font-weight:800;
-    text-transform:uppercase;letter-spacing:.06em}
-  table.kv{width:100%;border-collapse:collapse}
-  table.kv td{padding:6px 12px;font-size:12px;border-bottom:1px solid #f1f5f9;
-    vertical-align:top}
-  table.kv td.k{color:#64748b;width:34%}
-  table.kv td.v{font-weight:600}
-  table.kv tr:last-child td{border-bottom:none}
-
-  .with-photo{display:flex;gap:14px;align-items:flex-start;margin-top:12px}
-  .with-photo .beside{flex:1;min-width:0}
-  .with-photo .beside .card{margin-top:0}
-  .photo{width:104px;height:128px;object-fit:cover;border:1px solid #e2e8f0;
-    border-radius:8px;background:#f8fafc}
-
-  .lead{margin-top:16px;font-size:13px;line-height:1.9;text-align:justify}
-
-  .foot-band{margin-top:auto;padding-top:18px;display:flex;align-items:flex-end;
-    justify-content:space-between;gap:16px}
-  .qr{text-align:center}
-  .qr img{width:64px;height:64px;display:block}
-  .qr-cap{margin-top:3px;font-size:8.5px;color:#64748b;font-family:ui-monospace,monospace}
-
-  @media print{ .doc-watermark{position:absolute} }
 </style></head>
 <body>
 <div class="doc" style="--ek-accent:${accentColour()}">

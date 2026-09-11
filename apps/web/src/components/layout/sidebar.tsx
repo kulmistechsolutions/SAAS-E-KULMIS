@@ -169,6 +169,7 @@ const ADMIN_NAV: NavItem[] = [
   { label: "nav.dashboard", icon: LayoutDashboard, href: "/dashboard" },
   { label: "nav.students", icon: UsersRound, href: "/students" },
   { label: "nav.studentDocuments", icon: Printer, href: "/students/documents" },
+  { label: "nav.staffDocuments", icon: Printer, href: "/staff-documents" },
   { label: "nav.teachers", icon: GraduationCap, href: "/teachers" },
   { label: "nav.parents", icon: UsersRound, href: "/parents" },
   { label: "nav.parentPortal", icon: HeartHandshake, href: "/parent-portal/login" },

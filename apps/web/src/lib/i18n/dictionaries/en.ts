@@ -161,6 +161,7 @@ const core = {
     dashboard: "Dashboard",
     students: "Students",
     studentDocuments: "Student Documents",
+    staffDocuments: "Staff & Parent Documents",
     teachers: "Teachers",
     parents: "Parents",
     parentPortal: "Parent Portal",
