@@ -122,7 +122,7 @@ export default function PlatformSchoolSmsPage() {
       </div>
 
       <LicenceCard school={school} gateway={gateway} onSaved={load} />
-      {gateway?.licensed && (
+      {gateway && (
         <GatewayCard schoolId={schoolId} gateway={gateway} onSaved={load} />
       )}
     </div>
@@ -487,13 +487,23 @@ function GatewayCard({
   }
 
   const isDhambaal = provider === "DHAMBAAL";
+  // Credentials cannot be saved until the school is licensed for its own
+  // account, so the fields are shown and locked rather than hidden: a page
+  // that mentions credentials nowhere does not tell you they are step two.
+  const locked = !gateway.licensed;
 
   return (
     <Card
       title="Provider connection"
       icon={PlugZap}
-      note="Entered here and nowhere else. The school can see that it is connected, never the credentials."
+      note="This school's own API account. Entered here and nowhere else — the school can see that it is connected, never the credentials."
     >
+      {locked && (
+        <p className="mb-4 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+          Grant the licence above first. Until then this school sends on
+          platform credits, and these fields cannot be saved.
+        </p>
+      )}
       <div className="mb-4 flex flex-wrap items-center gap-3">
         <span
           className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
@@ -518,12 +528,13 @@ function GatewayCard({
           variant="outline"
           className="ms-auto border-white/20 text-slate-200"
           onClick={() => void toggle(!gateway.enabled)}
-          disabled={busy || !gateway.connectionVerified}
+          disabled={busy || locked || !gateway.connectionVerified}
         >
           {gateway.enabled ? "Switch off" : "Switch on"}
         </Button>
       </div>
 
+      <fieldset disabled={locked} className={locked ? "opacity-50" : ""}>
       <div className="grid gap-3 sm:grid-cols-2">
         <div>
           <Label className="text-slate-400">Provider</Label>
@@ -587,9 +598,10 @@ function GatewayCard({
           />
         </div>
       </div>
+      </fieldset>
 
       <div className="mt-4 flex flex-wrap items-center gap-2">
-        <Button onClick={() => void testAndSave()} disabled={busy}>
+        <Button onClick={() => void testAndSave()} disabled={busy || locked}>
           {busy ? "Testing..." : "Test and save"}
         </Button>
         <p className="text-xs text-slate-500">
