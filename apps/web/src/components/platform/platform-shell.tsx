@@ -62,7 +62,7 @@ const NAV: {
       { href: "/platform/sms", label: "Packages", icon: MessageSquare, exact: true },
       { href: "/platform/sms/schools", label: "School accounts", icon: ShieldCheck },
       { href: "/platform/sms/usage", label: "Usage", icon: BarChart3 },
-      { href: "/platform/sms/logs", label: "Delivery logs", icon: ScrollText },
+      { href: "/platform/sms/delivery", label: "Delivery logs", icon: ScrollText },
       { href: "/platform/sms/payments", label: "Waafi payments", icon: CreditCard },
       { href: "/platform/sms/settings", label: "Provider settings", icon: Settings2 },
     ],
