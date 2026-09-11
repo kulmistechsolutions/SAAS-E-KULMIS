@@ -11,7 +11,6 @@ import {
   Wallet,
   Users,
   Clock,
-  PlugZap,
   Check,
   ChevronLeft,
   ChevronRight,
@@ -23,7 +22,6 @@ import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { RecipientPickerDialog } from "@/components/sms/recipient-picker";
 import { ConfirmDialog } from "@/components/students/confirm-dialog";
-import { GatewaySettings } from "@/components/sms/gateway-settings";
 import { SenderIdCard } from "@/components/sms/sender-id-card";
 import { CATEGORIES } from "@/components/sms/categories";
 import { VariablePicker, VariableWarning } from "@/components/sms/variables";
@@ -58,7 +56,9 @@ import {
 import { activeAcademicYear } from "@/lib/academics/store";
 import { toast } from "@/lib/toast";
 
-type Tab = "send" | "custom" | "templates" | "contacts" | "logs" | "settings" | "gateway";
+// Templates, contacts and logs are pages of their own; the gateway view is
+// gone entirely — how the SMS is wired is the platform owner's business.
+type Tab = "send" | "custom" | "settings";
 
 const AUDIENCES: { value: SmsAudience; label: TranslationKey; hint: string }[] = [
   {
@@ -443,7 +443,6 @@ export default function SchoolSmsPage() {
     { id: "send", label: "sms.send", icon: Send },
     { id: "custom", label: "sms.customSMS", icon: Users },
     { id: "settings", label: "sms.settings", icon: Wallet },
-    { id: "gateway", label: "sms.mySMSAccount", icon: PlugZap },
   ];
 
   // A school on its own gateway (Hormuud/Dhambaal) never carries platform
@@ -1252,8 +1251,6 @@ export default function SchoolSmsPage() {
           </div>
         </div>
       )}
-
-      {tab === "gateway" && <GatewaySettings />}
 
       <RecipientPickerDialog
         open={pickerOpen}

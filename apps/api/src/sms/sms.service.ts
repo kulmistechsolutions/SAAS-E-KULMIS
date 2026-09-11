@@ -37,6 +37,7 @@ import {
 import { dhambaalSendSms, dhambaalTestConnection } from "./dhambaal.client";
 import { DEFAULT_TEMPLATES, renderSmsTemplate } from "./sms-template.util";
 
+import { smsAccountNo, smsSendBlock } from "./sms-send-gate";
 type Recipient = {
   phone: string;
   name?: string | null;
@@ -821,6 +822,10 @@ export class SmsService {
         smsEnabled: true,
         smsSenderName: true,
         status: true,
+        smsSuspended: true,
+        smsSuspendedReason: true,
+        smsDailyLimit: true,
+        smsMonthlyLimit: true,
       },
       orderBy: { name: "asc" },
     });
@@ -840,9 +845,66 @@ export class SmsService {
       })),
       schools: schools.map((s) => ({
         ...s,
+        accountNo: smsAccountNo(s.id),
         creditsRemaining: balanceMap.get(s.id) ?? 0,
       })),
     };
+  }
+
+  /**
+   * The platform owner's controls over one school's SMS service.
+   *
+   * Suspension, and the daily and monthly ceilings. No school-facing route
+   * writes any of these — that is the whole point of them living here — so a
+   * school cannot undo a suspension, and cannot raise a limit set for it.
+   */
+  async setSchoolSmsGovernance(
+    schoolId: string,
+    input: {
+      smsSuspended?: boolean;
+      smsSuspendedReason?: string | null;
+      smsDailyLimit?: number;
+      smsMonthlyLimit?: number;
+    },
+  ) {
+    const school = await this.prisma.school.findUnique({
+      where: { id: schoolId },
+      select: { id: true },
+    });
+    if (!school) throw new NotFoundException("School not found.");
+
+    // Lifting a suspension clears the reason with it; a school left showing
+    // "suspended: no" beside last month's reason reads as still suspended.
+    const clearing = input.smsSuspended === false;
+
+    return this.prisma.school.update({
+      where: { id: schoolId },
+      data: {
+        ...(input.smsSuspended !== undefined && {
+          smsSuspended: input.smsSuspended,
+        }),
+        ...(clearing
+          ? { smsSuspendedReason: null }
+          : input.smsSuspendedReason !== undefined && {
+              smsSuspendedReason: input.smsSuspendedReason,
+            }),
+        ...(input.smsDailyLimit !== undefined && {
+          smsDailyLimit: input.smsDailyLimit,
+        }),
+        ...(input.smsMonthlyLimit !== undefined && {
+          smsMonthlyLimit: input.smsMonthlyLimit,
+        }),
+      },
+      select: {
+        id: true,
+        name: true,
+        smsEnabled: true,
+        smsSuspended: true,
+        smsSuspendedReason: true,
+        smsDailyLimit: true,
+        smsMonthlyLimit: true,
+      },
+    });
   }
 
   async platformMessages(opts: {
@@ -940,6 +1002,10 @@ export class SmsService {
         name: true,
         smsSenderName: true,
         smsEnabled: true,
+        smsSuspended: true,
+        smsSuspendedReason: true,
+        smsDailyLimit: true,
+        smsMonthlyLimit: true,
       },
     });
     if (!school) throw new NotFoundException("School not found.");
@@ -955,7 +1021,7 @@ export class SmsService {
           connected: true,
           status: "CONNECTED",
           message: `Sending through your own ${gateway.provider === "DHAMBAAL" ? "Dhambaal" : "Hormuud"} account.`,
-          canSend: school.smsEnabled,
+          canSend: school.smsEnabled && !school.smsSuspended,
         }
       : {
           enabled: providerCfg.enabled,
@@ -973,7 +1039,8 @@ export class SmsService {
             providerCfg.enabled &&
             providerCfg.connectionVerified &&
             providerCfg.connectionStatus === "CONNECTED" &&
-            school.smsEnabled,
+            school.smsEnabled &&
+            !school.smsSuspended,
         };
 
     return this.prisma.forTenant(schoolId, async (tx) => {
@@ -1000,6 +1067,28 @@ export class SmsService {
           sendingName: resolveSendingName(school, gateway.senderId),
         },
         provider,
+        // What the school is allowed to know about its own SMS service: who
+        // it is to the platform, what name it sends under, whether it may
+        // send, and any ceiling set for it. No endpoint, no key, no secret —
+        // a school uses SMS, it does not configure it.
+        account: {
+          accountNo: smsAccountNo(school.id),
+          senderId: resolveSendingName(school, gateway.senderId),
+          status: school.smsSuspended
+            ? "SUSPENDED"
+            : school.smsEnabled
+              ? "ACTIVE"
+              : "INACTIVE",
+          suspendedReason: school.smsSuspended
+            ? school.smsSuspendedReason
+            : null,
+          // Named, never described by endpoint or credential.
+          provider: gateway.active
+            ? "Your school's own account"
+            : "Managed by the school system",
+          dailyLimit: school.smsDailyLimit,
+          monthlyLimit: school.smsMonthlyLimit,
+        },
         creditsRemaining: remaining,
         purchases,
         gateway: {
@@ -1910,9 +1999,20 @@ export class SmsService {
       where: { id: schoolId },
     });
     if (!school) throw new NotFoundException("School not found.");
-    if (!school.smsEnabled) {
-      throw new ForbiddenException("SMS is disabled for this school.");
-    }
+    // Suspension and the school's own switch are known before any work is
+    // done; the ceilings need the credit count, so they are checked once the
+    // messages have been prepared, below.
+    const closed = smsSendBlock({
+      suspended: school.smsSuspended,
+      suspendedReason: school.smsSuspendedReason,
+      enabled: school.smsEnabled,
+      dailyLimit: 0,
+      monthlyLimit: 0,
+      sentToday: 0,
+      sentThisMonth: 0,
+      wanted: 0,
+    });
+    if (closed) throw new ForbiddenException(closed);
 
     const senderId = resolveSendingName(school, gateway.senderId);
 
@@ -1942,6 +2042,25 @@ export class SmsService {
       estimatedCredits += credits;
       return { ...r, body, credits };
     });
+
+    // Ceilings the platform owner set. Measured in credits, the same unit the
+    // school is billed in, so a long message counts for what it costs rather
+    // than as one message. Checked even on a school's own gateway: a limit is
+    // the owner's cap on volume, not on the platform's wallet.
+    if (school.smsDailyLimit > 0 || school.smsMonthlyLimit > 0) {
+      const used = await this.usage(schoolId, 1);
+      const overLimit = smsSendBlock({
+        suspended: false,
+        suspendedReason: null,
+        enabled: true,
+        dailyLimit: school.smsDailyLimit,
+        monthlyLimit: school.smsMonthlyLimit,
+        sentToday: used.today,
+        sentThisMonth: used.thisMonth,
+        wanted: estimatedCredits,
+      });
+      if (overLimit) throw new ForbiddenException(overLimit);
+    }
 
     // On its own gateway the school pays Hormuud directly, so the platform
     // credit wallet is bypassed entirely — no balance check, no reservation.

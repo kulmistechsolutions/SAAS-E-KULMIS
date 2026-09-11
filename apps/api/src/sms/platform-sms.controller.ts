@@ -23,6 +23,7 @@ import {
   testSmsConnectionSchema,
   testWaafiConnectionSchema,
   updateSmsGlobalConfigSchema,
+  updateSchoolSmsGovernanceSchema,
   updateSmsPackageSchema,
   updateWaafiConfigSchema,
 } from "@ekulmis/shared";
@@ -171,6 +172,23 @@ export class PlatformSmsController {
   }
 
   // ── Own-gateway licences (paid add-on sold to schools) ──
+  /**
+   * Suspend a school's SMS, or set the ceilings it may send within.
+   *
+   * Platform-only by construction: the school's own settings route accepts
+   * nothing but its `smsEnabled` switch, so a suspended school has no way back
+   * to sending except through the owner.
+   */
+  @Patch("schools/:schoolId/governance")
+  setSchoolGovernance(
+    @Param("schoolId") schoolId: string,
+    @Body() body: unknown,
+  ) {
+    const parsed = updateSchoolSmsGovernanceSchema.safeParse(body);
+    if (!parsed.success) throw new BadRequestException(parsed.error.flatten());
+    return this.sms.setSchoolSmsGovernance(schoolId, parsed.data);
+  }
+
   @Get("gateway-licenses")
   listGatewayLicenses() {
     return this.sms.listGatewayLicenses();

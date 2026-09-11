@@ -128,6 +128,16 @@ model School {
   smsSenderName String?
   smsEnabled    Boolean @default(true)
 
+  /// Platform-only. Suspension the school cannot lift: no school-facing route
+  /// writes these four, so a school cannot restore its own sending by
+  /// toggling `smsEnabled`, which is the one switch it does own.
+  smsSuspended       Boolean @default(false)
+  smsSuspendedReason String?
+  /// Ceilings the platform owner sets per school. 0 means no limit, which is
+  /// what every school has until Super Admin says otherwise.
+  smsDailyLimit   Int @default(0)
+  smsMonthlyLimit Int @default(0)
+
   // ── Fee billing (Module 7 dual mode) ──
   billingMode          BillingMode @default(MONTHLY)
   feeAcademicMonths    Int         @default(10)

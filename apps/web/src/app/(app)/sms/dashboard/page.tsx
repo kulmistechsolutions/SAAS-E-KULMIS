@@ -46,6 +46,21 @@ interface Usage {
 interface Balance {
   creditsRemaining: number;
   school: { sendingName?: string | null; smsEnabled: boolean };
+  /**
+   * The school's own SMS account, as much of it as a school may see: who it is
+   * to the platform, the name it sends under, whether it may send, and any
+   * ceiling set for it. No endpoint, no key, no secret — the school uses the
+   * service, the platform owner configures it.
+   */
+  account?: {
+    accountNo: string;
+    senderId: string;
+    status: "ACTIVE" | "INACTIVE" | "SUSPENDED";
+    suspendedReason: string | null;
+    provider: string;
+    dailyLimit: number;
+    monthlyLimit: number;
+  };
   provider: { canSend: boolean; message: string; status: string };
   purchases: {
     id: string;
@@ -190,6 +205,74 @@ export default function SmsDashboardPage() {
         <p className="rounded-lg border border-amber-300/60 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-200">
           {balance.provider.message}
         </p>
+      )}
+
+      {/* The account itself. A school asking "can we send, and under what
+          name?" had to read three different screens for the answer. */}
+      {balance?.account && (
+        <div className="rounded-xl border bg-card p-5 shadow-sm">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2 className="font-semibold">{t("smsAccount.title")}</h2>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                {t("smsAccount.managedNote")}
+              </p>
+            </div>
+            <span
+              className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+                balance.account.status === "ACTIVE"
+                  ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300"
+                  : balance.account.status === "SUSPENDED"
+                    ? "bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300"
+                    : "bg-secondary text-muted-foreground"
+              }`}
+            >
+              {t(
+                balance.account.status === "ACTIVE"
+                  ? "smsAccount.active"
+                  : balance.account.status === "SUSPENDED"
+                    ? "smsAccount.suspended"
+                    : "smsAccount.inactive",
+              )}
+            </span>
+          </div>
+
+          {balance.account.status === "SUSPENDED" && (
+            <p className="mt-3 rounded-lg border border-rose-300/60 bg-rose-50 p-3 text-sm text-rose-900 dark:border-rose-900/50 dark:bg-rose-950/30 dark:text-rose-200">
+              {balance.account.suspendedReason || t("smsAccount.suspendedNote")}
+            </p>
+          )}
+
+          <dl className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <AccountFact label={t("smsAccount.accountNo")}>
+              <span className="font-mono text-xs">
+                {balance.account.accountNo}
+              </span>
+            </AccountFact>
+            <AccountFact label={t("smsAccount.senderId")}>
+              {balance.account.senderId || "—"}
+            </AccountFact>
+            <AccountFact label={t("smsAccount.provider")}>
+              {balance.account.provider}
+            </AccountFact>
+            <AccountFact label={t("smsAccount.limits")}>
+              {/* Zero is the absence of a ceiling, not a ceiling of zero. */}
+              {balance.account.dailyLimit === 0 &&
+              balance.account.monthlyLimit === 0
+                ? t("smsAccount.noLimit")
+                : [
+                    balance.account.dailyLimit > 0
+                      ? `${balance.account.dailyLimit.toLocaleString()}/${t("smsAccount.day")}`
+                      : null,
+                    balance.account.monthlyLimit > 0
+                      ? `${balance.account.monthlyLimit.toLocaleString()}/${t("smsAccount.month")}`
+                      : null,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")}
+            </AccountFact>
+          </dl>
+        </div>
       )}
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
@@ -344,6 +427,22 @@ export default function SmsDashboardPage() {
           </div>
         )}
       </section>
+    </div>
+  );
+}
+
+/** One labelled fact on the account card. */
+function AccountFact({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <dt className="text-xs text-muted-foreground">{label}</dt>
+      <dd className="mt-0.5 text-sm font-medium">{children}</dd>
     </div>
   );
 }

@@ -11,6 +11,7 @@ import {
   Plus,
   RefreshCw,
   Settings2,
+  ShieldCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -212,7 +213,16 @@ export default function PlatformSmsPackagesPage() {
             {t("platformSms.createPackagesAndAssignCreditsTo")}
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          {/* Suspension and per-school ceilings. Kept off the school entirely:
+              a school uses SMS, it does not govern it. */}
+          <Link
+            href="/platform/sms/schools"
+            className="inline-flex h-10 items-center gap-2 rounded-lg border border-white/20 px-4 text-sm text-slate-200 hover:bg-white/5"
+          >
+            <ShieldCheck className="h-4 w-4" />
+            School accounts
+          </Link>
           <Link
             href="/platform/sms/settings"
             className="inline-flex h-10 items-center gap-2 rounded-lg border border-white/20 px-4 text-sm text-slate-200 hover:bg-white/5"

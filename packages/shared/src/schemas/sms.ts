@@ -205,6 +205,23 @@ export const updateSchoolSmsSettingsSchema = z.object({
   smsEnabled: z.boolean().optional(),
 });
 
+/**
+ * What the platform owner may set on a school's SMS service.
+ *
+ * Deliberately separate from the school's own settings above: nothing here is
+ * reachable from a school-facing route, so a suspended school cannot lift its
+ * own suspension with the one switch it does own. A limit of 0 means no limit.
+ */
+export const updateSchoolSmsGovernanceSchema = z.object({
+  smsSuspended: z.boolean().optional(),
+  smsSuspendedReason: z.string().trim().max(200).nullable().optional(),
+  smsDailyLimit: z.number().int().min(0).max(1_000_000).optional(),
+  smsMonthlyLimit: z.number().int().min(0).max(10_000_000).optional(),
+});
+export type UpdateSchoolSmsGovernanceInput = z.infer<
+  typeof updateSchoolSmsGovernanceSchema
+>;
+
 /** A sender ID as the operator accepts it: A–Z, digits, space, dot, dash, underscore, max 11. */
 const senderIdName = z
   .string()

@@ -28,6 +28,22 @@ export interface SmsBalance {
     message: string;
     canSend: boolean;
   };
+  /**
+   * What the school is allowed to know about its own SMS service. No endpoint,
+   * no key, no secret — a school uses SMS, it does not configure it.
+   */
+  account?: {
+    accountNo: string;
+    senderId: string;
+    status: "ACTIVE" | "INACTIVE" | "SUSPENDED";
+    /** Set by the platform owner when it suspended the school. */
+    suspendedReason: string | null;
+    /** Named, never described by endpoint or credential. */
+    provider: string;
+    /** 0 means no limit. */
+    dailyLimit: number;
+    monthlyLimit: number;
+  };
   creditsRemaining: number;
   purchases: {
     id: string;

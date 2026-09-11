@@ -390,7 +390,37 @@ export interface PlatformSmsOverview {
     smsSenderName: string | null;
     status: string;
     creditsRemaining: number;
+    /** Derived from the school id, stable for the life of the school. */
+    accountNo: string;
+    /** Platform-only. The school has no route that writes any of these four. */
+    smsSuspended: boolean;
+    smsSuspendedReason: string | null;
+    /** 0 means no limit. */
+    smsDailyLimit: number;
+    smsMonthlyLimit: number;
   }[];
+}
+
+/**
+ * Suspend a school's SMS, or set the ceilings it may send within.
+ *
+ * The school-facing settings route accepts nothing but its own `smsEnabled`
+ * switch, so nothing a school does reaches these — a suspension it cannot lift
+ * is the point of them.
+ */
+export async function updateSchoolSmsGovernance(
+  schoolId: string,
+  body: {
+    smsSuspended?: boolean;
+    smsSuspendedReason?: string | null;
+    smsDailyLimit?: number;
+    smsMonthlyLimit?: number;
+  },
+) {
+  return platformFetch(`/platform/sms/schools/${schoolId}/governance`, {
+    method: "PATCH",
+    body,
+  });
 }
 
 export async function fetchPlatformSmsOverview() {
