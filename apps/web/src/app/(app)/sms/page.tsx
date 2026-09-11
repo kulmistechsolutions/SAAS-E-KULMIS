@@ -170,6 +170,14 @@ export default function SchoolSmsPage() {
   );
 
   const [smsEnabled, setSmsEnabled] = useState(true);
+  // Automatic messages. Held as one object so the save sends all four
+  // together — sending one alone would be read as a deliberate change.
+  const [auto, setAuto] = useState({
+    smsAutoFee: false,
+    smsAutoRegistration: false,
+    smsAutoAttendance: false,
+    smsAutoResult: false,
+  });
 
   const sections = useMemo(
     () => (className ? sectionNamesForClass(className, year) : []),
@@ -203,6 +211,12 @@ export default function SchoolSmsPage() {
       setTemplates(t);
       setMessages(m);
       setSmsEnabled(b.school.smsEnabled);
+      setAuto({
+        smsAutoFee: b.school.smsAutoFee ?? false,
+        smsAutoRegistration: b.school.smsAutoRegistration ?? false,
+        smsAutoAttendance: b.school.smsAutoAttendance ?? false,
+        smsAutoResult: b.school.smsAutoResult ?? false,
+      });
       if (t.length === 0) {
         const seeded = await apiSeedSmsTemplates();
         setTemplates(seeded);
@@ -427,7 +441,7 @@ export default function SchoolSmsPage() {
     try {
       // The sending name is granted through a sender ID application, not typed
       // here — see SenderIdCard.
-      await apiSmsSettings({ smsEnabled });
+      await apiSmsSettings({ smsEnabled, ...auto });
       toast("SMS settings saved", "success");
       await load();
     } catch (e) {
@@ -1238,7 +1252,7 @@ export default function SchoolSmsPage() {
       {tab === "settings" && (
         <div className="space-y-4">
           <SenderIdCard />
-          <div className="max-w-md space-y-4 rounded-2xl border bg-card p-5 shadow-sm">
+          <div className="max-w-2xl space-y-5 rounded-2xl border bg-card p-5 shadow-sm">
             <label className="flex items-center gap-2 text-sm">
               <input
                 type="checkbox"
@@ -1247,6 +1261,47 @@ export default function SchoolSmsPage() {
               />
               {tr("sms.enableSmsForThisSchool")}
             </label>
+
+            {/* Messages nobody has to remember to send. Each one spends
+                credits on its own, so they start off and the school decides
+                which are worth paying for. */}
+            <div className="border-t pt-4">
+              <h3 className="font-semibold">{tr("smsAuto.title")}</h3>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                {tr("smsAuto.note")}
+              </p>
+              <div className="mt-3 space-y-3">
+                <AutoToggle
+                  label={tr("smsAuto.fee")}
+                  hint={tr("smsAuto.feeHint")}
+                  checked={auto.smsAutoFee}
+                  onChange={(v) => setAuto((a) => ({ ...a, smsAutoFee: v }))}
+                />
+                <AutoToggle
+                  label={tr("smsAuto.registration")}
+                  hint={tr("smsAuto.registrationHint")}
+                  checked={auto.smsAutoRegistration}
+                  onChange={(v) =>
+                    setAuto((a) => ({ ...a, smsAutoRegistration: v }))
+                  }
+                />
+                <AutoToggle
+                  label={tr("smsAuto.attendance")}
+                  hint={tr("smsAuto.attendanceHint")}
+                  checked={auto.smsAutoAttendance}
+                  onChange={(v) =>
+                    setAuto((a) => ({ ...a, smsAutoAttendance: v }))
+                  }
+                />
+                <AutoToggle
+                  label={tr("smsAuto.result")}
+                  hint={tr("smsAuto.resultHint")}
+                  checked={auto.smsAutoResult}
+                  onChange={(v) => setAuto((a) => ({ ...a, smsAutoResult: v }))}
+                />
+              </div>
+            </div>
+
             <Button onClick={() => void saveSettings()}>{tr("sms.saveSettings")}</Button>
           </div>
         </div>
@@ -1385,3 +1440,32 @@ function SendFact({
   );
 }
 
+/** One automatic-message switch, with the plain sentence of what it does. */
+function AutoToggle({
+  label,
+  hint,
+  checked,
+  onChange,
+}: {
+  label: string;
+  hint: string;
+  checked: boolean;
+  onChange: (v: boolean) => void;
+}) {
+  return (
+    <label className="flex items-start gap-3 rounded-xl border p-3">
+      <input
+        type="checkbox"
+        className="mt-0.5"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+      />
+      <span>
+        <span className="block text-sm font-medium">{label}</span>
+        <span className="mt-0.5 block text-xs text-muted-foreground">
+          {hint}
+        </span>
+      </span>
+    </label>
+  );
+}

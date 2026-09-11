@@ -8,10 +8,11 @@ import { TeacherAttendanceService } from "./teacher-attendance.service";
 import { AttendanceShiftsController } from "./attendance-shifts.controller";
 import { AttendanceShiftsService } from "./attendance-shifts.service";
 import { TeachersModule } from "../teachers/teachers.module";
+import { SmsModule } from "../sms/sms.module";
 
 /** Phase 3 — Student Attendance (Module 5) + Teacher Attendance (Module 6). */
 @Module({
-  imports: [TeachersModule],
+  imports: [TeachersModule, SmsModule],
   controllers: [
     StudentAttendanceController,
     TeacherAttendanceController,

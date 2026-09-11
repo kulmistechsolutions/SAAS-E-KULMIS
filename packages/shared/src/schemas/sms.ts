@@ -203,6 +203,15 @@ export const createSmsCampaignSchema = z.object({
  */
 export const updateSchoolSmsSettingsSchema = z.object({
   smsEnabled: z.boolean().optional(),
+  /**
+   * Automatic messages, one switch per event. These are the school's to set —
+   * they decide what is worth spending credits on — which is exactly why the
+   * infrastructure below them is not.
+   */
+  smsAutoFee: z.boolean().optional(),
+  smsAutoRegistration: z.boolean().optional(),
+  smsAutoAttendance: z.boolean().optional(),
+  smsAutoResult: z.boolean().optional(),
 });
 
 /**

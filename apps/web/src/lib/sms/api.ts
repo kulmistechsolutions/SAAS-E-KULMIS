@@ -20,6 +20,10 @@ export interface SmsBalance {
     /** The name messages actually go out under — show this, not the above. */
     sendingName?: string;
     smsEnabled: boolean;
+    smsAutoFee?: boolean;
+    smsAutoRegistration?: boolean;
+    smsAutoAttendance?: boolean;
+    smsAutoResult?: boolean;
   };
   provider: {
     enabled: boolean;
@@ -161,7 +165,16 @@ export async function apiSmsBalance() {
  * registered with the operator against a licensed organisation, so the school
  * applies for it and the platform owner grants it (see apiSmsSenderId below).
  */
-export async function apiSmsSettings(body: { smsEnabled?: boolean }) {
+export interface SchoolSmsSettings {
+  smsEnabled?: boolean;
+  /** Automatic messages, one switch per event. All off until a school opts in. */
+  smsAutoFee?: boolean;
+  smsAutoRegistration?: boolean;
+  smsAutoAttendance?: boolean;
+  smsAutoResult?: boolean;
+}
+
+export async function apiSmsSettings(body: SchoolSmsSettings) {
   return api("/sms/settings", { method: "PATCH", body });
 }
 

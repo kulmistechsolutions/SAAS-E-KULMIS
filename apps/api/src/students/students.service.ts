@@ -20,6 +20,7 @@ import { SubscriptionsService } from "../subscriptions/subscriptions.service";
 import { hashPassword } from "../auth/password.util";
 import { PasswordPolicyService } from "../settings/password-policy.service";
 import { NotificationsService } from "../notifications/notifications.service";
+import { SmsAutoService } from "../sms/sms-auto.service";
 import { normalizeName } from "../common/person-identity.util";
 import {
   assertStudentPhotoMime,
@@ -123,6 +124,7 @@ export class StudentsService {
     private readonly subscriptions: SubscriptionsService,
     private readonly passwordPolicy: PasswordPolicyService,
     private readonly notifications: NotificationsService,
+    private readonly autoSms: SmsAutoService,
   ) {
     this.bucket =
       this.config.get<string>("SUPABASE_STORAGE_BUCKET") ??
@@ -358,6 +360,8 @@ export class StudentsService {
       body: `${student.fullName} (${student.code}) has been registered.`,
       type: "NEW_STUDENT",
     });
+    // The family's own copy of that news, if the school has asked for it.
+    this.autoSms.registered(schoolId, student.id);
     this.logger.log(
       `Registered student ${student.code} (${student.id}) in school ${schoolId}`,
     );

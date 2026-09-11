@@ -311,6 +311,18 @@ export const soGenerated: PartialDictionary = {
     classTeacher: "Macallinka Fasalka",
     dateOfIssue: "Taariikhda la bixiyay",
   },
+  smsAuto: {
+    title: "Fariimo toos ah",
+    note: "Iskood ayay u baxaan marka wax dhacaan. Mid kastaa credits wuu isticmaalaa, sidaas darteed way damsan yihiin ilaa aad shidto.",
+    fee: "Lacag la bixiyay",
+    feeHint: "Waalidka waxaa loo sheegayaa waxa la bixiyay, lambarka rasiidka iyo waxa hadhay.",
+    registration: "Arday la diiwaangeliyay",
+    registrationHint: "Waalidka waxaa loo sheegayaa in ilmaha la diiwaangeliyay, iyo lambarkiisa ardayga.",
+    attendance: "Maqnaansho la calaamadeeyay",
+    attendanceHint: "Waalidka isla maalintaas ayaa loo sheegayaa in ilmihiisa maqnaa.",
+    result: "Natiijo la daabacay",
+    resultHint: "Waalidka waxaa loo sheegayaa in natiijadu diyaar tahay oo la qaadan karo.",
+  },
   smsAccount: {
     title: "Akoonka SMS",
     managedNote: "Adeegga SMS ee dugsigaaga. Xiriirka laftiisa waa laguu maamulaa.",

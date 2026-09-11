@@ -311,6 +311,18 @@ export const generated = {
     classTeacher: "Class Teacher",
     dateOfIssue: "Date of issue",
   },
+  smsAuto: {
+    title: "Automatic messages",
+    note: "Sent on their own when something happens. Each one spends credits, so they are off until you turn them on.",
+    fee: "Fee payment received",
+    feeHint: "The parent is told what was paid, the receipt number and what is left.",
+    registration: "Student registered",
+    registrationHint: "The parent is told the child is registered, with their Student ID.",
+    attendance: "Marked absent",
+    attendanceHint: "The parent is told the same day their child was marked absent.",
+    result: "Results published",
+    resultHint: "The parent is told results are ready to collect.",
+  },
   smsAccount: {
     title: "SMS Account",
     managedNote: "Your school's SMS service. The connection itself is managed for you.",

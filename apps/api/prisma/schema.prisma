@@ -138,6 +138,14 @@ model School {
   smsDailyLimit   Int @default(0)
   smsMonthlyLimit Int @default(0)
 
+  /// Automatic SMS, one switch per event. The school owns these: they choose
+  /// what is worth spending credits on. All off until a school says otherwise,
+  /// because a message that sends itself spends money nobody authorised.
+  smsAutoFee          Boolean @default(false)
+  smsAutoRegistration Boolean @default(false)
+  smsAutoAttendance   Boolean @default(false)
+  smsAutoResult       Boolean @default(false)
+
   // ── Fee billing (Module 7 dual mode) ──
   billingMode          BillingMode @default(MONTHLY)
   feeAcademicMonths    Int         @default(10)

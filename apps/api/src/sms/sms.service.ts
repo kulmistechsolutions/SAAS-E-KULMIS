@@ -1002,6 +1002,10 @@ export class SmsService {
         name: true,
         smsSenderName: true,
         smsEnabled: true,
+        smsAutoFee: true,
+        smsAutoRegistration: true,
+        smsAutoAttendance: true,
+        smsAutoResult: true,
         smsSuspended: true,
         smsSuspendedReason: true,
         smsDailyLimit: true,
@@ -1187,18 +1191,40 @@ export class SmsService {
    */
   async updateSchoolSettings(
     schoolId: string,
-    input: { smsEnabled?: boolean },
+    input: {
+      smsEnabled?: boolean;
+      smsAutoFee?: boolean;
+      smsAutoRegistration?: boolean;
+      smsAutoAttendance?: boolean;
+      smsAutoResult?: boolean;
+    },
   ) {
+    // Spread deliberately absent: only the fields the school actually sent are
+    // written, so saving one toggle cannot silently clear the other four.
     return this.prisma.school.update({
       where: { id: schoolId },
       data: {
-        smsEnabled: input.smsEnabled,
+        ...(input.smsEnabled !== undefined && { smsEnabled: input.smsEnabled }),
+        ...(input.smsAutoFee !== undefined && { smsAutoFee: input.smsAutoFee }),
+        ...(input.smsAutoRegistration !== undefined && {
+          smsAutoRegistration: input.smsAutoRegistration,
+        }),
+        ...(input.smsAutoAttendance !== undefined && {
+          smsAutoAttendance: input.smsAutoAttendance,
+        }),
+        ...(input.smsAutoResult !== undefined && {
+          smsAutoResult: input.smsAutoResult,
+        }),
       },
       select: {
         id: true,
         name: true,
         smsSenderName: true,
         smsEnabled: true,
+        smsAutoFee: true,
+        smsAutoRegistration: true,
+        smsAutoAttendance: true,
+        smsAutoResult: true,
       },
     });
   }

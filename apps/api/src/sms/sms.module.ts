@@ -1,7 +1,8 @@
-import { Module } from "@nestjs/common";
+import { forwardRef, Module } from "@nestjs/common";
 import { JwtModule } from "@nestjs/jwt";
 import { ConfigService } from "@nestjs/config";
 import { SmsService } from "./sms.service";
+import { SmsAutoService } from "./sms-auto.service";
 import { SmsController } from "./sms.controller";
 import { PlatformSmsController } from "./platform-sms.controller";
 import { SmsPaymentService } from "./sms-payment.service";
@@ -15,8 +16,10 @@ import { FinanceModule } from "../finance/finance.module";
   imports: [
     // Sender ID applications carry a licence document.
     StorageModule,
-    // Outstanding-fee reminders read the balance engine, not raw charges.
-    FinanceModule,
+    // Outstanding-fee reminders read the balance engine, not raw charges —
+    // and finance calls back here when a payment is taken, so the two
+    // modules genuinely point at each other.
+    forwardRef(() => FinanceModule),
     JwtModule.registerAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
@@ -25,7 +28,13 @@ import { FinanceModule } from "../finance/finance.module";
     }),
   ],
   controllers: [SmsController, PlatformSmsController, SmsPaymentController],
-  providers: [SmsService, SmsPaymentService, SmsSenderIdService, PlatformGuard],
-  exports: [SmsService, SmsPaymentService],
+  providers: [
+    SmsService,
+    SmsAutoService,
+    SmsPaymentService,
+    SmsSenderIdService,
+    PlatformGuard,
+  ],
+  exports: [SmsService, SmsAutoService, SmsPaymentService],
 })
 export class SmsModule {}

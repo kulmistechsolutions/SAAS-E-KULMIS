@@ -1,4 +1,6 @@
 import {
+  forwardRef,
+  Inject,
   BadRequestException,
   ConflictException,
   Injectable,
@@ -22,6 +24,7 @@ import { PrismaService } from "../prisma/prisma.service";
 import { parseDateFrom, parseDateTo } from "../common/date-range.util";
 import { AuditService } from "../audit/audit.service";
 import { BalanceEngineService } from "./balance-engine.service";
+import { SmsAutoService } from "../sms/sms-auto.service";
 import { FeeAdjustmentsService } from "./fee-adjustments.service";
 import {
   buildMonthSlots,
@@ -84,6 +87,8 @@ export class FeesService {
     private readonly audit: AuditService,
     private readonly balances: BalanceEngineService,
     private readonly adjustments: FeeAdjustmentsService,
+    @Inject(forwardRef(() => SmsAutoService))
+    private readonly autoSms: SmsAutoService,
   ) {}
 
   private async schoolConfig(schoolId: string): Promise<SchoolFeeConfig> {
@@ -1131,7 +1136,7 @@ export class FeesService {
       }
     }
 
-    return this.prisma.forTenant(schoolId, async (tx) => {
+    const result = await this.prisma.forTenant(schoolId, async (tx) => {
       // No money can be collected until the school has actually set up billing.
       // A school with no setup is told to do it first, even if old charges
       // happen to exist.
@@ -1419,6 +1424,16 @@ export class FeesService {
         lines,
       };
     });
+
+    // After the money is committed, never as part of committing it: a parent's
+    // phone being wrong must not undo a payment the desk has taken.
+    this.autoSms.feePaid(schoolId, {
+      studentId: dto.studentId,
+      receiptNo: result.receiptNumber,
+      amount: dto.amount,
+    });
+
+    return result;
   }
 
   /**

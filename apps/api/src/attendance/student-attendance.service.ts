@@ -2,6 +2,7 @@ import { BadRequestException, Injectable } from "@nestjs/common";
 import type { Prisma, PrismaClient } from "@prisma/client";
 import type { MarkStudentAttendanceInput } from "@ekulmis/shared";
 import { PrismaService } from "../prisma/prisma.service";
+import { SmsAutoService } from "../sms/sms-auto.service";
 import { studentInClassWhere } from "../students/student-class.util";
 
 function parseDate(s: string): Date {
@@ -51,7 +52,10 @@ function schoolNow(timezone: string): { date: string; minutes: number } {
 
 @Injectable()
 export class StudentAttendanceService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly autoSms: SmsAutoService,
+  ) {}
 
   /**
    * A school's attendance rules, or null when it has never saved that page.
@@ -162,7 +166,7 @@ export class StudentAttendanceService {
     const sectionId = dto.sectionId ?? null;
     const shiftId = dto.shiftId ?? null;
 
-    return this.prisma.forTenant(schoolId, async (tx) => {
+    const result = await this.prisma.forTenant(schoolId, async (tx) => {
       const cls = await tx.class.findFirst({
         where: { id: dto.classId },
         select: { id: true, academicYearId: true },
@@ -278,6 +282,17 @@ export class StudentAttendanceService {
         ),
       };
     });
+
+    // Parents of the children marked absent, if the school has asked for it.
+    // After the register is saved, never as part of saving it: an officer's
+    // marking must not fail because a phone number is wrong.
+    this.autoSms.absent(
+      schoolId,
+      dto.records.filter((r) => r.status === "ABSENT").map((r) => r.studentId),
+      dto.date,
+    );
+
+    return result;
   }
 
   /** Roster for a section (+ shift) on a date: every active student + their status. */

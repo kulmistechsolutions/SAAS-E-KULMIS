@@ -9,12 +9,19 @@ import { AcademicYearTransferController } from "./academic-year-transfer.control
 import { AcademicYearTransferService } from "./academic-year-transfer.service";
 import { TeachersModule } from "../teachers/teachers.module";
 import { AttendanceModule } from "../attendance/attendance.module";
+import { SmsModule } from "../sms/sms.module";
 import { FinanceModule } from "../finance/finance.module";
 import { SubscriptionsModule } from "../subscriptions/subscriptions.module";
 
 /** Student Management (Module 1) + Parent Management (Module 2). */
 @Module({
-  imports: [TeachersModule, FinanceModule, SubscriptionsModule, AttendanceModule],
+  imports: [
+    TeachersModule,
+    FinanceModule,
+    SubscriptionsModule,
+    AttendanceModule,
+    SmsModule,
+  ],
   controllers: [
     StudentsController,
     ParentsController,

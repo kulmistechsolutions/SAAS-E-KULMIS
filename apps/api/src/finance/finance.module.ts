@@ -1,4 +1,4 @@
-import { Module } from "@nestjs/common";
+import { forwardRef, Module } from "@nestjs/common";
 import { FeesController } from "./fees.controller";
 import { FeesService } from "./fees.service";
 import { BalanceEngineService } from "./balance-engine.service";
@@ -13,10 +13,15 @@ import { SchoolDebtsController } from "./school-debts.controller";
 import { SchoolDebtsService } from "./school-debts.service";
 import { FinanceController } from "./finance.controller";
 import { FinanceService } from "./finance.service";
+import { SmsModule } from "../sms/sms.module";
 
 /** Phase 4 — Fees(7), Salary(8), Expense(9), Additional Income(9b),
  *  Finance Dashboard(10), School Debts. */
 @Module({
+  // Automatic fee SMS lives in the SMS module; finance triggers it, and the
+  // SMS module reads the balance engine for fee reminders, so the pair is
+  // circular by design.
+  imports: [forwardRef(() => SmsModule)],
   controllers: [
     FeesController,
     SalariesController,

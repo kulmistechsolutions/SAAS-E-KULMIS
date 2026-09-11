@@ -28,6 +28,7 @@ import { NotificationsService } from "../notifications/notifications.service";
 import { onRecordNotFound } from "../academics/prisma-errors";
 import { AuditService } from "../audit/audit.service";
 import { SmsService } from "../sms/sms.service";
+import { SmsAutoService } from "../sms/sms-auto.service";
 import { StorageService } from "../storage/storage.service";
 import { studentInClassWhere } from "../students/student-class.util";
 import type { AuthUser } from "../auth/auth.types";
@@ -90,6 +91,7 @@ export class ExaminationsService {
     private readonly notifications: NotificationsService,
     private readonly audit: AuditService,
     private readonly sms: SmsService,
+    private readonly autoSms: SmsAutoService,
     private readonly storage: StorageService,
     private readonly config: ConfigService,
   ) {}
@@ -416,6 +418,22 @@ export class ExaminationsService {
         body: `Results for ${group.name} are now visible to students and parents.`,
         type: "RESULT_PUBLISHED",
       });
+
+      // The families' own copy, if the school has asked for it. Only the
+      // students this group actually holds marks for — publishing a group
+      // nobody sat should not text the whole school.
+      const sat = await this.prisma.forTenant(schoolId, (tx) =>
+        tx.examMark.findMany({
+          where: { exam: { examGroupId } },
+          select: { studentId: true },
+          distinct: ["studentId"],
+        }),
+      );
+      this.autoSms.resultsPublished(
+        schoolId,
+        sat.map((m) => m.studentId),
+        group.name,
+      );
     }
 
     return { total: exams.length, published, skipped, failed };
