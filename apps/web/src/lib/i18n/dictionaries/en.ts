@@ -160,6 +160,7 @@ const core = {
     copilot: "School Copilot",
     dashboard: "Dashboard",
     students: "Students",
+    studentDocuments: "Student Documents",
     teachers: "Teachers",
     parents: "Parents",
     parentPortal: "Parent Portal",

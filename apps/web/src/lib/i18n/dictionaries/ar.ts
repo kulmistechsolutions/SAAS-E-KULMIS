@@ -155,6 +155,7 @@ const curated: PartialDictionary = {
     copilot: "مساعد المدرسة",
     dashboard: "لوحة التحكم",
     students: "الطلاب",
+    studentDocuments: "مستندات الطالب",
     teachers: "المعلمون",
     parents: "أولياء الأمور",
     parentPortal: "بوابة ولي الأمر",
