@@ -25,7 +25,7 @@ export default function SystemInfoPage() {
     ["Installation Date", dateTime(s.system.installationDate)],
     ["Database Type", s.system.databaseType],
     ["Server Time", dateTime(s.system.serverTime)],
-    ["Storage Usage", `${storage} MB (localStorage demo)`],
+    ["Storage Usage", `${storage} MB (browser cache)`],
   ];
 
   return (

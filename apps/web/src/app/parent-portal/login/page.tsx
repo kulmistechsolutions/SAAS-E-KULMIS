@@ -13,7 +13,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { loginParent, usePortalState } from "@/lib/parent-portal/store";
-import { getState as getStudentsState } from "@/lib/students/store";
 import { toast } from "@/lib/toast";
 import { useHydrated } from "@/lib/use-hydrated";
 
@@ -30,7 +29,6 @@ export default function ParentPortalLoginPage() {
   const portal = usePortalState();
   const branding = useSchoolBranding();
   const mounted = useHydrated();
-  const [demo, setDemo] = useState<{ code: string; password: string } | null>(null);
 
   const {
     register,
@@ -43,14 +41,6 @@ export default function ParentPortalLoginPage() {
     if (portal.session) router.replace("/parent-portal");
   }, [portal.session, router]);
 
-  useEffect(() => {
-    if (!mounted) return;
-    const st = getStudentsState();
-    const parent = st.parents.find(
-      (p) => p.status === "ACTIVE" && st.students.some((s) => s.parentId === p.id),
-    );
-    if (parent) setDemo({ code: parent.code, password: parent.password });
-  }, [mounted]);
 
   async function onSubmit(values: FormValues) {
     const result = await loginParent(values.identifier, values.password);
@@ -117,14 +107,6 @@ export default function ParentPortalLoginPage() {
               {isSubmitting ? "Signing in…" : "Sign in to Parent Portal"}
             </Button>
           </form>
-
-          {demo && (
-            <p className="mt-4 rounded-lg border bg-secondary/50 p-3 text-center text-xs text-muted-foreground">
-              {t("parentPortalLogin.demo")} <span className="font-mono font-medium text-foreground">{demo.code}</span>
-              {" · "}
-              {t("parentPortalLogin.passwordShownInAdminParentsProfile")}
-            </p>
-          )}
         </CardContent>
       </Card>
     </main>

@@ -320,7 +320,6 @@ const core = {
     printProfile: "Print Profile",
     downloadProfile: "Download Profile",
     delete: "Delete",
-    resetDemoData: "Reset demo data",
     deleteStudent: "Delete Student",
     deleteSelectedStudents: "Delete selected students",
   },

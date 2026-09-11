@@ -183,7 +183,7 @@ export default function PlatformWaafiPaymentsPage() {
   async function toggleEnabled() {
     if (!config?.connectionVerified && !config?.simulationMode && !enabled) {
       toast(
-        "Test connection successfully, or enable Simulation mode for demo.",
+        "Test connection successfully, or enable Simulation mode to try it without credentials.",
         "error",
       );
       return;

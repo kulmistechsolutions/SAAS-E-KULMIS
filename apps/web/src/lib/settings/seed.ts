@@ -195,7 +195,7 @@ export function buildSettingsSeed(): SettingsState {
       version: "1.0.0",
       buildNumber: "2025.07.001",
       installationDate: installed,
-      databaseType: "PostgreSQL (Demo: localStorage)",
+      databaseType: "PostgreSQL",
       serverTime: new Date().toISOString(),
     },
     audit: [],

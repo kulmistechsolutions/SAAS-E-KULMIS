@@ -339,8 +339,8 @@ export default function TeachersPage() {
       </div>
 
       <div className="flex justify-end">
-        <button onClick={() => { resetTeachers(); toast("Demo teacher data reset.", "info"); }} className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground">
-          <RotateCcw className="h-3.5 w-3.5" /> {tr("teachers.resetDemoData")}
+        <button onClick={() => { resetTeachers(); toast(tr("teachers.listReloaded"), "info"); }} className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground">
+          <RotateCcw className="h-3.5 w-3.5" /> {tr("teachers.reloadList")}
         </button>
       </div>
 

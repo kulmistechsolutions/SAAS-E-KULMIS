@@ -167,10 +167,10 @@ export default function AcademicsDashboardPage() {
 
       <div className="flex justify-end">
         <button
-          onClick={() => { resetAcademics(); toast("Demo academic data reset.", "info"); }}
+          onClick={() => { resetAcademics(); toast(t("academics.listReloaded"), "info"); }}
           className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
         >
-          <RotateCcw className="h-3.5 w-3.5" /> {t("academics.resetDemoData")}
+          <RotateCcw className="h-3.5 w-3.5" /> {t("academics.reloadList")}
         </button>
       </div>
 

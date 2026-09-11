@@ -670,11 +670,11 @@ export default function StudentsPage() {
         <button
           onClick={() => {
             resetStudents();
-            toast("Demo student data reset.", "info");
+            toast(t("students.listReloaded"), "info");
           }}
           className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
         >
-          <RotateCcw className="h-3.5 w-3.5" /> {t("students.resetDemoData")}
+          <RotateCcw className="h-3.5 w-3.5" /> {t("students.reloadList")}
         </button>
       </div>
 

@@ -506,7 +506,7 @@ export function sendTestEmail(): { ok: boolean; message: string } {
   );
   return {
     ok: true,
-    message: `Test email queued to ${s.email.senderEmail} (demo mode).`,
+    message: `Test email queued to ${s.email.senderEmail}.`,
   };
 }
 

@@ -319,7 +319,6 @@ const curated: PartialDictionary = {
     printProfile: "Daabac Xogta",
     downloadProfile: "Soo dejiso Xogta",
     delete: "Tirtir",
-    resetDemoData: "Dib u deji xogta tijaabada",
     deleteStudent: "Tirtir Ardayga",
     deleteSelectedStudents: "Tirtir ardayda la doortay",
   },

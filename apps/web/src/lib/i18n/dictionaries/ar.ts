@@ -314,7 +314,6 @@ const curated: PartialDictionary = {
     printProfile: "طباعة الملف",
     downloadProfile: "تنزيل الملف",
     delete: "حذف",
-    resetDemoData: "إعادة تعيين بيانات العرض",
     deleteStudent: "حذف الطالب",
     deleteSelectedStudents: "حذف الطلاب المحددين",
   },
