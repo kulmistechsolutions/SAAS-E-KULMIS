@@ -4,6 +4,7 @@ import {
   Injectable,
 } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
+import { safeTimeZone } from "../common/time-zone.util";
 
 /**
  * What an attendance officer is allowed to reach.
@@ -308,7 +309,9 @@ export class AttendanceScopeService {
     });
     const settings = (school?.attendanceSettings ?? {}) as { lockTime?: string };
     const lock = lockMinutes(settings.lockTime ?? "23:59");
-    const timezone = school?.timezone || "UTC";
+    // A school that typed a district name into the time-zone box must not
+    // take its own monitoring page down with it.
+    const timezone = safeTimeZone(school?.timezone);
 
     return this.prisma.forTenant(schoolId, async (tx) => {
       const year = await tx.academicYear.findFirst({

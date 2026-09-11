@@ -3,6 +3,7 @@ import type { Prisma, PrismaClient } from "@prisma/client";
 import type { MarkStudentAttendanceInput } from "@ekulmis/shared";
 import { PrismaService } from "../prisma/prisma.service";
 import { SmsAutoService } from "../sms/sms-auto.service";
+import { safeTimeZone } from "../common/time-zone.util";
 import { studentInClassWhere } from "../students/student-class.util";
 
 function parseDate(s: string): Date {
@@ -82,7 +83,9 @@ export class StudentAttendanceService {
         // on is a decision rather than something that happens to them.
         officerEdits: stored.officerEdits ?? "ALWAYS",
       },
-      timezone: school?.timezone || "UTC",
+      // Falls back rather than throwing: a bad settings value used to stop
+      // a teacher marking the register at all.
+      timezone: safeTimeZone(school?.timezone),
     };
   }
 

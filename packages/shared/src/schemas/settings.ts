@@ -16,6 +16,35 @@ const clockTime = z
 // because the UI always sends the whole page back; it is the SECTION that is
 // optional on the patch, not the fields inside it.
 
+/**
+ * A real IANA time zone, checked against the same implementation that will use
+ * it.
+ *
+ * This field took free text for a long time, and five live schools ended up
+ * holding "hodon", "24", "SOMALIA -KGS", "7:30AM-12:10PM" and "UTC+3" — each of
+ * which made `Intl.DateTimeFormat` throw, which turned that school's attendance
+ * into a 500. The reading side now falls back instead of crashing; this stops
+ * the next one being saved at all.
+ */
+const ianaTimeZone = z
+  .string()
+  .trim()
+  .min(1)
+  .refine(
+    (v) => {
+      try {
+        new Intl.DateTimeFormat("en-US", { timeZone: v }).format();
+        return true;
+      } catch {
+        return false;
+      }
+    },
+    {
+      message:
+        'Use a time zone name such as "Africa/Mogadishu" or "UTC", not a time or a place.',
+    },
+  );
+
 export const attendanceSettingsSchema = z.object({
   startTime: clockTime,
   endTime: clockTime,
@@ -123,7 +152,7 @@ export const updateSettingsSchema = z
     website: z.string().url().nullable().optional(),
     principalName: z.string().nullable().optional(),
     currency: z.string().min(1).optional(),
-    timezone: z.string().min(1).optional(),
+    timezone: ianaTimeZone.optional(),
     language: z.string().min(1).optional(),
     documentHeaderLayout: z.enum(["LEFT", "CENTERED"]).optional(),
     /// Minutes an access token stays valid before forcing a re-login. Null
