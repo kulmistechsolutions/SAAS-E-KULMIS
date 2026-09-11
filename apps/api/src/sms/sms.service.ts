@@ -160,6 +160,10 @@ export class SmsService {
       lastTestedAt: new Date(test.testedAt),
       lastSuccessAt: new Date(test.testedAt),
       providerBalance: test.providerBalance ?? null,
+      // Stamped with the balance it came from. Without this, a figure read
+      // during a connection test months ago sat on the platform page reading
+      // as current, which is the one thing a reconciliation cannot tolerate.
+      providerBalanceAt: test.providerBalance ? new Date(test.testedAt) : null,
       connectionVerified: true,
     };
 
