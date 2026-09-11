@@ -2,6 +2,7 @@
 
 
 import { useT, type TranslationKey } from "@/lib/i18n/provider";
+import { TeachersTabs } from "@/components/teachers/teachers-tabs";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
@@ -230,6 +231,8 @@ export default function TeachersPage() {
           </Button>
         </div>
       </div>
+
+      <TeachersTabs />
 
       <SummaryCards summary={summary} />
 

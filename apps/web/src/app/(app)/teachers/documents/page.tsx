@@ -25,6 +25,7 @@ import {
 import { refreshTeachers, useTeachersState } from "@/lib/teachers/store";
 import { refreshEmployees, useEmployeesState } from "@/lib/employees/store";
 import { PaperPicker } from "@/components/print/paper-picker";
+import { TeachersTabs } from "@/components/teachers/teachers-tabs";
 import type { PaperSize } from "@/lib/print/paper";
 import { DESIGNS, type DocDesign } from "@/lib/documents/doc-shell";
 import {
@@ -237,6 +238,8 @@ export default function StaffDocumentsPage() {
           <RefreshCw className="me-2 h-4 w-4" /> Refresh
         </Button>
       </div>
+
+      <TeachersTabs />
 
       <div className="grid items-start gap-4 xl:grid-cols-[320px,minmax(0,1fr),260px]">
         <div className="space-y-4">
