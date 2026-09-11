@@ -234,6 +234,11 @@ const CHECKS: CheckSpec[] = [
     meaning:
       "One person on staff twice, by name or phone. Payroll, assignments and attendance then split between the two records.",
     severity: "warning",
+    // Active staff only. Retiring one of a pair is how a school resolves a
+    // double entry without losing the record, and the fault this names —
+    // payroll, assignments and attendance splitting between two records —
+    // is gone the moment one of them stops being on staff.
+    //
     // The empty-key guard saved this one from the false positive the salary
     // check had, but at the cost of the opposite fault: every Arabic-named
     // teacher keyed to '' and was excluded, so two genuinely duplicated
@@ -242,7 +247,8 @@ const CHECKS: CheckSpec[] = [
       WITH d AS (
         SELECT "schoolId", lower(regexp_replace("fullName", '[^[:alnum:]]', '', 'g')) AS k
         FROM teachers
-        WHERE regexp_replace("fullName", '[^[:alnum:]]', '', 'g') <> ''
+        WHERE status = 'ACTIVE'
+          AND regexp_replace("fullName", '[^[:alnum:]]', '', 'g') <> ''
         GROUP BY 1, 2 HAVING count(*) > 1
       )
       SELECT s.name AS school, count(*)::int AS count, NULL::text AS detail
@@ -250,6 +256,7 @@ const CHECKS: CheckSpec[] = [
       JOIN d ON d."schoolId" = t."schoolId"
         AND d.k = lower(regexp_replace(t."fullName", '[^[:alnum:]]', '', 'g'))
       JOIN schools s ON s.id = t."schoolId"
+      WHERE t.status = 'ACTIVE'
       GROUP BY s.name`,
   },
   {
