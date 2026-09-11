@@ -2,6 +2,7 @@
 
 
 import { useT } from "@/lib/i18n/provider";
+import { copyPortalLink } from "@/lib/portal-link";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
@@ -15,6 +16,7 @@ import {
   Search,
   ShieldOff,
   X,
+  Link2 as LinkIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -245,6 +247,7 @@ export default function ParentsPage() {
                       <div className="flex justify-end gap-1">
                         <Action href={`/parents/${p.id}`} title={t("parents.viewProfile")} icon={Eye} />
                         <Action title={t("parents.edit")} icon={Pencil} onClick={() => setEditId(p.id)} />
+                        <Action title={t("parents.copyPortalLink")} icon={LinkIcon} onClick={() => void copyPortalLink("parent", p.code)} />
                         <Action title={t("parents.resetPassword")} icon={KeyRound} onClick={() => {
                           void resetParentPassword(p.id).then((res) => {
                             if (res.ok && res.password)
