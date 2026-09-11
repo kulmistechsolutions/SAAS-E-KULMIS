@@ -242,6 +242,23 @@ const senderIdName = z
     "Letters, digits, spaces, dots, dashes and underscores only",
   );
 
+/**
+ * The platform owner giving a school its sending name outright.
+ *
+ * Separate from the application flow because most schools never apply — the
+ * owner registers the name with the operator on their behalf and then has to
+ * put it on the account. The test phone is not optional here for the same
+ * reason it is not optional on an approval: our saying a name is registered
+ * has no bearing on whether the operator agrees, and a name the operator has
+ * not registered fails every message the school sends afterwards with code 203.
+ */
+export const assignSmsSenderIdSchema = z.object({
+  approvedName: senderIdName,
+  testPhone: z.string().trim().min(6).max(20),
+  note: z.string().trim().max(500).optional().nullable(),
+});
+export type AssignSmsSenderIdInput = z.infer<typeof assignSmsSenderIdSchema>;
+
 /** A school applying for the name recipients will see on its messages. */
 export const requestSmsSenderIdSchema = z.object({
   requestedName: senderIdName,

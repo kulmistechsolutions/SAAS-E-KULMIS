@@ -9,6 +9,7 @@ import { ConfigService } from "@nestjs/config";
 import type {
   RequestSmsSenderIdInput,
   ReviewSmsSenderIdInput,
+  AssignSmsSenderIdInput,
 } from "@ekulmis/shared";
 import { PrismaService } from "../prisma/prisma.service";
 import { StorageService } from "../storage/storage.service";
@@ -281,6 +282,74 @@ export class SmsSenderIdService {
       `Sender ID "${approvedName}" approved for school ${row.schoolId} by ${reviewer} (Hormuud-verified)`,
     );
     return updated;
+  }
+
+  /**
+   * Give a school its sending name directly, without it having applied.
+   *
+   * Most schools never apply: the platform owner registers the name with the
+   * operator on the school's behalf and then needs to put it on the account.
+   * This is that, and it goes through the same live check an approval does —
+   * one real message, sent under the proposed name, before anything is saved.
+   * Our own records saying a name is registered has no bearing on whether the
+   * operator agrees, and a name the operator does not hold fails every message
+   * the school sends afterwards with Hormuud's 203.
+   *
+   * A request row is written alongside, already approved, so the school's own
+   * sender-ID view shows where its name came from and the trail is the same
+   * shape however the name was granted.
+   */
+  async assignDirectly(
+    schoolId: string,
+    dto: AssignSmsSenderIdInput,
+    reviewer: string,
+  ) {
+    const school = await this.prisma.school.findUnique({
+      where: { id: schoolId },
+      select: { id: true, name: true },
+    });
+    if (!school) throw new NotFoundException("School not found");
+
+    const approvedName = dto.approvedName.trim();
+
+    const test = await this.sms.testSenderIdWithRealSend(
+      schoolId,
+      approvedName,
+      dto.testPhone,
+    );
+    if (!test.ok) {
+      throw new BadRequestException(
+        `Hormuud rejected "${approvedName}": ${test.message}. Register this ` +
+          "name with Hormuud for this school's sending account before assigning it.",
+      );
+    }
+
+    const [row] = await this.prisma.$transaction([
+      this.prisma.smsSenderIdRequest.create({
+        data: {
+          schoolId,
+          // There was no application, so the requested name is the granted one.
+          requestedName: approvedName,
+          approvedName,
+          status: "APPROVED",
+          note: dto.note ?? null,
+          reviewNote: "Assigned by the platform owner.",
+          reviewedByUsername: reviewer,
+          reviewedAt: new Date(),
+        },
+        select: { id: true, approvedName: true, status: true },
+      }),
+      // The one place School.smsSenderName is ever written, still.
+      this.prisma.school.update({
+        where: { id: schoolId },
+        data: { smsSenderName: approvedName },
+      }),
+    ]);
+
+    this.logger.warn(
+      `Sender ID "${approvedName}" assigned to school ${schoolId} by ${reviewer} (Hormuud-verified)`,
+    );
+    return row;
   }
 
   /** Turn it down, with a reason the school can act on. */

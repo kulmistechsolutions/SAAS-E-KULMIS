@@ -637,6 +637,24 @@ export const togglePlatformSchoolGateway = (schoolId: string, enabled: boolean) 
     { method: "PATCH", body: { enabled } },
   );
 
+/**
+ * Give a school its sending name outright.
+ *
+ * The application flow is for schools that apply; most do not, and the owner
+ * registers a name with the operator on their behalf. One real message is sent
+ * under the proposed name before anything is saved — our records saying a name
+ * is registered has no bearing on whether the operator agrees, and a name it
+ * does not hold fails every message afterwards with code 203.
+ */
+export const assignPlatformSenderId = (
+  schoolId: string,
+  body: { approvedName: string; testPhone: string; note?: string | null },
+) =>
+  platformFetch<{ id: string; approvedName: string | null; status: string }>(
+    `/platform/sms/schools/${schoolId}/sender-id`,
+    { method: "POST", body },
+  );
+
 export interface PlatformSmsMessage {
   id: string;
   recipientPhone: string;

@@ -16,6 +16,7 @@ import type { Response } from "express";
 import {
   adjustSmsCreditsSchema,
   assignSmsPackageSchema,
+  assignSmsSenderIdSchema,
   createSmsPackageSchema,
   grantSmsGatewayLicenseSchema,
   reviewSmsSenderIdSchema,
@@ -187,6 +188,27 @@ export class PlatformSmsController {
     const parsed = updateSchoolSmsGovernanceSchema.safeParse(body);
     if (!parsed.success) throw new BadRequestException(parsed.error.flatten());
     return this.sms.setSchoolSmsGovernance(schoolId, parsed.data);
+  }
+
+  /**
+   * Give a school its sending name outright.
+   *
+   * The application flow stays as it is for schools that apply; this is for the
+   * ones the owner registers a name for directly, which is most of them.
+   */
+  @Post("schools/:schoolId/sender-id")
+  assignSenderId(
+    @Param("schoolId") schoolId: string,
+    @Body() body: unknown,
+    @Req() req: { platformAdmin?: PlatformAdminCtx },
+  ) {
+    const parsed = assignSmsSenderIdSchema.safeParse(body);
+    if (!parsed.success) throw new BadRequestException(parsed.error.flatten());
+    return this.senderIds.assignDirectly(
+      schoolId,
+      parsed.data,
+      req.platformAdmin?.username ?? "platform",
+    );
   }
 
   @Get("gateway-licenses")

@@ -5,11 +5,9 @@ import Link from "next/link";
 import { ArrowLeft, Ban, RefreshCw, Search, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { toast } from "@/lib/toast";
 import {
   fetchPlatformSmsOverview,
-  updateSchoolSmsGovernance,
   type PlatformSmsOverview,
 } from "@/lib/platform/api";
 
@@ -28,7 +26,6 @@ export default function PlatformSmsSchoolsPage() {
   const [data, setData] = useState<PlatformSmsOverview | null>(null);
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
-  const [editing, setEditing] = useState<School | null>(null);
 
   async function load() {
     setLoading(true);
@@ -187,13 +184,12 @@ export default function PlatformSmsSchoolsPage() {
                   )}
                 </td>
                 <td className="px-4 py-3 text-end">
-                  <button
-                    type="button"
-                    onClick={() => setEditing(s)}
+                  <Link
+                    href={`/platform/sms/schools/${s.id}`}
                     className="text-xs font-medium text-violet-300 hover:underline"
                   >
                     Manage
-                  </button>
+                  </Link>
                 </td>
               </tr>
             ))}
@@ -201,16 +197,6 @@ export default function PlatformSmsSchoolsPage() {
         </table>
       </div>
 
-      {editing && (
-        <GovernanceDialog
-          school={editing}
-          onClose={() => setEditing(null)}
-          onSaved={() => {
-            setEditing(null);
-            void load();
-          }}
-        />
-      )}
     </div>
   );
 }
@@ -238,127 +224,6 @@ function Stat({
       >
         {value.toLocaleString()}
       </p>
-    </div>
-  );
-}
-
-/**
- * The two decisions, on one school.
- *
- * Suspension asks for a reason because the school is shown it: "SMS is
- * suspended: account configuration issue" is something a desk can act on,
- * where a bare refusal only sends them to the phone.
- */
-function GovernanceDialog({
-  school,
-  onClose,
-  onSaved,
-}: {
-  school: School;
-  onClose: () => void;
-  onSaved: () => void;
-}) {
-  const [suspended, setSuspended] = useState(school.smsSuspended);
-  const [reason, setReason] = useState(school.smsSuspendedReason ?? "");
-  const [daily, setDaily] = useState(String(school.smsDailyLimit));
-  const [monthly, setMonthly] = useState(String(school.smsMonthlyLimit));
-  const [saving, setSaving] = useState(false);
-
-  async function save() {
-    setSaving(true);
-    try {
-      await updateSchoolSmsGovernance(school.id, {
-        smsSuspended: suspended,
-        smsSuspendedReason: suspended ? reason.trim() || null : null,
-        smsDailyLimit: Math.max(0, Number(daily) || 0),
-        smsMonthlyLimit: Math.max(0, Number(monthly) || 0),
-      });
-      toast(`${school.name} updated`, "success");
-      onSaved();
-    } catch (e) {
-      toast(e instanceof Error ? e.message : "Could not save", "error");
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-      <div className="w-full max-w-md rounded-2xl border border-white/10 bg-[#0f172a] p-5 shadow-xl">
-        <h2 className="font-semibold text-white">{school.name}</h2>
-        <p className="mt-0.5 font-mono text-xs text-slate-500">
-          {school.accountNo}
-        </p>
-
-        <label className="mt-5 flex items-start gap-3 rounded-xl border border-white/10 p-3">
-          <input
-            type="checkbox"
-            className="mt-0.5"
-            checked={suspended}
-            onChange={(e) => setSuspended(e.target.checked)}
-          />
-          <span>
-            <span className="block text-sm font-medium text-white">
-              Suspend SMS sending
-            </span>
-            <span className="mt-0.5 block text-xs text-slate-400">
-              History and reports stay readable. The school cannot lift this.
-            </span>
-          </span>
-        </label>
-
-        {suspended && (
-          <div className="mt-3">
-            <Label className="text-slate-400">Reason shown to the school</Label>
-            <Input
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              placeholder="Account configuration issue"
-              className="mt-1 border-white/10 bg-[#0b1120] text-white"
-            />
-          </div>
-        )}
-
-        <div className="mt-4 grid gap-3 sm:grid-cols-2">
-          <div>
-            <Label className="text-slate-400">Daily limit</Label>
-            <Input
-              type="number"
-              min={0}
-              value={daily}
-              onChange={(e) => setDaily(e.target.value)}
-              className="mt-1 border-white/10 bg-[#0b1120] text-white"
-            />
-          </div>
-          <div>
-            <Label className="text-slate-400">Monthly limit</Label>
-            <Input
-              type="number"
-              min={0}
-              value={monthly}
-              onChange={(e) => setMonthly(e.target.value)}
-              className="mt-1 border-white/10 bg-[#0b1120] text-white"
-            />
-          </div>
-        </div>
-        <p className="mt-2 text-xs text-slate-500">
-          Counted in credits, the same unit the school is billed in. 0 means no
-          limit.
-        </p>
-
-        <div className="mt-5 flex justify-end gap-2">
-          <Button
-            variant="outline"
-            onClick={onClose}
-            className="border-white/20 text-slate-200"
-          >
-            Cancel
-          </Button>
-          <Button onClick={() => void save()} disabled={saving}>
-            {saving ? "Saving..." : "Save"}
-          </Button>
-        </div>
-      </div>
     </div>
   );
 }
