@@ -91,6 +91,26 @@ export const salarySettingsSchema = z.object({
   currency: z.string().min(1),
 });
 
+/**
+ * Which design each printed document uses, keyed by document type.
+ *
+ * Deliberately open-ended rather than a field per document: a new printable
+ * feature registers its own type in the front-end catalogue and needs no
+ * migration, no schema edit and no release here. The values are plain strings
+ * and nothing in them is ever executed — a template id selects a layout the
+ * code already contains, it does not describe one.
+ */
+export const printSettingsSchema = z.record(
+  z.string().min(1).max(64),
+  z.object({
+    /** Template id from the document-type catalogue. */
+    template: z.string().min(1).max(64),
+    paper: z.enum(["A4", "A5", "LETTER", "ROLL80"]).optional(),
+    landscape: z.boolean().optional(),
+  }),
+);
+export type PrintSettingsInput = z.infer<typeof printSettingsSchema>;
+
 export const expenseSettingsSchema = z.object({
   defaultCategories: z.array(z.string().min(1)),
 });
@@ -188,6 +208,7 @@ export const updateSettingsSchema = z
     expenseSettings: expenseSettingsSchema.nullable().optional(),
     notificationSettings: notificationSettingsSchema.nullable().optional(),
     securitySettings: securitySettingsSchema.nullable().optional(),
+    printSettings: printSettingsSchema.nullable().optional(),
     studentPrefix: z.string().min(1).max(10).optional(),
     /// Digits the numeric part of a student/parent code is padded to
     /// (STD0007 is 4). Only new codes take a changed value.

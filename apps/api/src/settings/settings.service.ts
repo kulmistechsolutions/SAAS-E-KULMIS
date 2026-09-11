@@ -158,6 +158,7 @@ export class SettingsService {
     "expenseSettings",
     "notificationSettings",
     "securitySettings",
+    "printSettings",
   ] as const;
 
   async update(schoolId: string, dto: UpdateSettingsInput) {

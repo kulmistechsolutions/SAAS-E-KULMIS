@@ -28,6 +28,7 @@ import { PaperPicker } from "@/components/print/paper-picker";
 import { StudentsTabs } from "@/components/students/students-tabs";
 import type { PaperSize } from "@/lib/print/paper";
 import { accentColour } from "@/lib/print/letterhead";
+import { designFor, loadPrintSettings } from "@/lib/print/design-store";
 import {
   DOC_TITLES,
   printStudentDocument,
@@ -90,13 +91,21 @@ const DESIGNS: { id: DocDesign; label: string; note: string }[] = [
   { id: "MINIMAL", label: "Minimal Letter", note: "No boxes, no photo" },
 ];
 
+/** What Settings calls each of these, so one list governs both. */
+const DOC_TYPE_OF: Record<StudentDocKind, string> = {
+  INFORMATION: "STUDENT_PROFILE",
+  ADMISSION: "STUDENT_ADMISSION",
+  TRANSFER: "STUDENT_TRANSFER",
+  BONAFIDE: "STUDENT_BONAFIDE",
+};
+
 export default function StudentDocumentsPage() {
   const hydrated = useHydrated();
   const state = useStudentsState();
   const students = useMemo(() => withParents(state), [state]);
 
   const [kind, setKind] = useState<StudentDocKind>("INFORMATION");
-  const [design, setDesign] = useState<DocDesign>("MODERN");
+  const [design, setDesign] = useState<DocDesign | null>(null);
   const [studentId, setStudentId] = useState("");
   const [q, setQ] = useState("");
   const [paper, setPaper] = useState<PaperSize>();
@@ -118,6 +127,7 @@ export default function StudentDocumentsPage() {
 
   useEffect(() => {
     void refreshStudents();
+    void loadPrintSettings();
   }, []);
 
   const matches = useMemo(() => {
@@ -215,9 +225,15 @@ export default function StudentDocumentsPage() {
     };
   }, [showQr, previewOf]);
 
+  // The school's choice for this document type, until the desk overrides it
+  // here for one print. Settings decides what a document normally looks like;
+  // this page can still differ for one sheet without changing that.
+  const activeDesign =
+    design ?? (designFor(DOC_TYPE_OF[kind]).template as DocDesign);
+
   const options: StudentDocOptions = {
     kind,
-    design,
+    design: activeDesign,
     paper: paper ?? "A4",
     landscape,
     showLogo,
@@ -234,7 +250,7 @@ export default function StudentDocumentsPage() {
     // The document is rebuilt whenever anything it draws from changes, which
     // is what makes the preview trustworthy.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [previewOf, kind, design, paper, landscape, showLogo, showStamp, showQr,
+    [previewOf, kind, activeDesign, paper, landscape, showLogo, showStamp, showQr,
      showGuardian, showAcademic, qrDataUrl, reference],
   );
 
@@ -421,7 +437,7 @@ export default function StudentDocumentsPage() {
                 <Label>Design</Label>
                 <Select
                   className="mt-1"
-                  value={design}
+                  value={activeDesign}
                   onChange={(e) => setDesign(e.target.value as DocDesign)}
                 >
                   {DESIGNS.map((d) => (
@@ -533,7 +549,7 @@ export default function StudentDocumentsPage() {
                   type="button"
                   onClick={() => setDesign(d.id)}
                   className={`w-full rounded-xl border p-3 text-start transition-colors ${
-                    design === d.id
+                    activeDesign === d.id
                       ? "border-primary bg-primary/5"
                       : "hover:bg-secondary/50"
                   }`}

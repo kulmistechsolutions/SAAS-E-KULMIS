@@ -4023,7 +4023,7 @@ export const soGenerated: PartialDictionary = {
     changePasswordFailed: "Furaha sirta ah looma bedeli karin — hubi furahaaga hadda jira",
   },
   settingsSettingsNav: {
-    documents: "Dukumeentiyada",
+    documents: "Naqshadaha Daabacaadda",
     dashboard: "Shaxda Guud",
     schoolInformation: "Macluumaadka Dugsiga",
     branding: "Astaanta",

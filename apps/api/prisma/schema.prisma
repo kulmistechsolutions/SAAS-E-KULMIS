@@ -83,6 +83,9 @@ model School {
   expenseSettings      Json?
   notificationSettings Json?
   securitySettings     Json?
+  /// Which design each kind of printed document uses. Presentation only —
+  /// nothing here changes what a document says, only how it looks.
+  printSettings        Json?
 
   // ── Branding (Settings → Branding). Colours are hex like "#3b82f6".
   // Null means "not chosen yet" and the app falls back to its defaults; the

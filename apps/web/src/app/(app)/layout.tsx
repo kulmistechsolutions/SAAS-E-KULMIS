@@ -9,6 +9,7 @@ import { refreshAcademics } from "@/lib/academics/store";
 import { refreshPermissions, usePermissions } from "@/lib/permissions/store";
 import { refreshStudents } from "@/lib/students/store";
 import { refreshSettings } from "@/lib/settings/store";
+import { loadPrintSettings } from "@/lib/print/design-store";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
 import { cn } from "@/lib/utils";
@@ -77,6 +78,10 @@ export default function AppLayout({ children }: { children: ReactNode }) {
       // branding. Re-fetch now that we have a token so the full school
       // settings (used by every receipt/PDF) load, not just the seed cache.
       void refreshSettings();
+      // Which design each document prints in. Loaded here because a print
+      // handler runs from a click and cannot await — a browser handed a
+      // promise instead of a window blocks the popup.
+      void loadPrintSettings();
     }
   }, [user]);
 

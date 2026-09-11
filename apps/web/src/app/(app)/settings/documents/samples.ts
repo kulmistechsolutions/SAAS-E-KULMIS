@@ -3,6 +3,7 @@
 import type { StudentPosition } from "@/lib/fees/api";
 import type { FeePayment } from "@/lib/fees/types";
 import type { ExamResultCardData } from "@/components/examinations/exam-result-card";
+import type { StudentWithParent } from "@/lib/students/types";
 
 /**
  * Stand-in data for the template previews.
@@ -123,5 +124,47 @@ export function sampleResultCard(): ExamResultCardData {
     average: (totalObtained / totalMax) * 100,
     grade: "A",
     passed: true,
+  };
+}
+
+/** A stand-in student for the letter and information-sheet previews. */
+export function sampleStudent(): StudentWithParent {
+  const now = new Date().toISOString();
+  return {
+    id: "sample-student",
+    code: "SAMPLE-0001",
+    fullName: "Sample Student",
+    gender: "MALE",
+    dob: "2014-03-12T00:00:00.000Z",
+    phone: null,
+    parentId: "sample-parent",
+    className: "Grade 5",
+    section: "A",
+    village: null,
+    monthlyFee: 10,
+    academicYear: "2026-2027",
+    registrationDate: now,
+    status: "ACTIVE",
+    placeOfBirth: "Sample City",
+    district: "Sample District",
+    motherName: "Sample Mother",
+    // No photo: a stand-in face would be somebody's, and the layout has to
+    // read correctly without one anyway.
+    hasPhoto: false,
+    photoUrl: null,
+    parent: {
+      id: "sample-parent",
+      code: "SAMPLE-P001",
+      name: "Sample Guardian",
+      phone: "+252 61 000 0000",
+      altPhone: null,
+      email: "guardian@example.com",
+      address: "Sample Address",
+      occupation: "Sample Occupation",
+      registrationDate: now,
+      status: "ACTIVE",
+      username: "sample",
+      password: "",
+    },
   };
 }

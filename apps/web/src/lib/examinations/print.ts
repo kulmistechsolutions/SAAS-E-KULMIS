@@ -8,7 +8,8 @@ import { getGradeBands } from "@/lib/settings/store";
 import { getStoredLang, translateIn } from "@/lib/i18n/provider";
 import { dirOf } from "@/lib/i18n/config";
 import { getStoredPaper, paperCss, type PaperSize } from "@/lib/print/paper";
-import { getStoredTemplate, type DocTemplate } from "@/lib/print/template";
+import type { DocTemplate } from "@/lib/print/template";
+import { designFor } from "@/lib/print/design-store";
 import {
   accentColour,
   documentFooterHtml,
@@ -536,8 +537,8 @@ export function premiumResultCardHtml(
 export function resultCardDocumentHtml(
   data: ExamResultCardData,
   qrDataUrl: string | null,
-  paper: PaperSize = getStoredPaper(),
-  template: DocTemplate = getStoredTemplate(),
+  paper: PaperSize = (designFor("EXAM_RESULT_CARD").paper ?? getStoredPaper()),
+  template: DocTemplate = designFor("EXAM_RESULT_CARD").template as DocTemplate,
 ): string | null {
   // CLASSIC keeps its own window-writing path; only PREMIUM returns markup.
   return template === "PREMIUM"

@@ -28,6 +28,7 @@ import { PaperPicker } from "@/components/print/paper-picker";
 import { TeachersTabs } from "@/components/teachers/teachers-tabs";
 import type { PaperSize } from "@/lib/print/paper";
 import { DESIGNS, type DocDesign } from "@/lib/documents/doc-shell";
+import { designFor, loadPrintSettings } from "@/lib/print/design-store";
 import {
   PERSON_DOC_TITLES,
   personDocumentHtml,
@@ -103,6 +104,16 @@ const KINDS: {
 /** Roles that may see what a person is paid. */
 const MAY_SEE_PAY = ["SUPER_ADMINISTRATOR", "ADMINISTRATOR", "FINANCE_OFFICER"];
 
+/** What Settings calls each of these, so one list governs both. */
+const DOC_TYPE_OF: Record<PersonDocKind, string> = {
+  TEACHER_INFO: "TEACHER_PROFILE",
+  APPOINTMENT: "TEACHER_APPOINTMENT",
+  TEACHER_SERVICE: "TEACHER_SERVICE",
+  PARENT_INFO: "PARENT_PROFILE",
+  STAFF_INFO: "STAFF_PROFILE",
+  EMPLOYMENT: "STAFF_EMPLOYMENT",
+};
+
 export default function StaffDocumentsPage() {
   const hydrated = useHydrated();
   const { user } = useAuth();
@@ -111,7 +122,7 @@ export default function StaffDocumentsPage() {
   const studentsState = useStudentsState();
 
   const [kind, setKind] = useState<PersonDocKind>("TEACHER_INFO");
-  const [design, setDesign] = useState<DocDesign>("MODERN");
+  const [design, setDesign] = useState<DocDesign | null>(null);
   const [personId, setPersonId] = useState("");
   const [q, setQ] = useState("");
   const [paper, setPaper] = useState<PaperSize>();
@@ -127,6 +138,7 @@ export default function StaffDocumentsPage() {
     void refreshTeachers();
     void refreshEmployees();
     void refreshStudents();
+    void loadPrintSettings();
   }, []);
 
   // Hidden outright, not merely defaulted off: a control a clerk can tick is
@@ -191,9 +203,14 @@ export default function StaffDocumentsPage() {
     return { type: "PARENT", parent: p, children };
   }, [group, personId, teachersState, employeesState, studentsState]);
 
+  // The school's choice for this document type, until the desk overrides it
+  // here for one print.
+  const activeDesign =
+    design ?? (designFor(DOC_TYPE_OF[kind]).template as DocDesign);
+
   const options: PersonDocOptions = {
     kind,
-    design,
+    design: activeDesign,
     paper: paper ?? "A4",
     landscape,
     showLogo,
@@ -206,7 +223,7 @@ export default function StaffDocumentsPage() {
   const html = useMemo(
     () => (subject ? personDocumentHtml(subject, options) : ""),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [subject, kind, design, paper, landscape, showLogo, showStamp, showContact,
+    [subject, kind, activeDesign, paper, landscape, showLogo, showStamp, showContact,
      showSalary, maySeePay, reference],
   );
 
@@ -294,7 +311,7 @@ export default function StaffDocumentsPage() {
                 <Label>Design</Label>
                 <Select
                   className="mt-1"
-                  value={design}
+                  value={activeDesign}
                   onChange={(e) => setDesign(e.target.value as DocDesign)}
                 >
                   {DESIGNS.map((d) => (
@@ -398,7 +415,7 @@ export default function StaffDocumentsPage() {
                 type="button"
                 onClick={() => setDesign(d.id)}
                 className={`w-full rounded-xl border p-3 text-start transition-colors ${
-                  design === d.id ? "border-primary bg-primary/5" : "hover:bg-secondary/50"
+                  activeDesign === d.id ? "border-primary bg-primary/5" : "hover:bg-secondary/50"
                 }`}
               >
                 <p className="text-sm font-medium">{d.label}</p>

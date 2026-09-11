@@ -4082,7 +4082,7 @@ export const generated = {
     changePasswordFailed: "Could not change password — check your current password",
   },
   settingsSettingsNav: {
-    documents: "Documents",
+    documents: "Print & Document Designs",
     dashboard: "Dashboard",
     schoolInformation: "School Information",
     branding: "Branding",

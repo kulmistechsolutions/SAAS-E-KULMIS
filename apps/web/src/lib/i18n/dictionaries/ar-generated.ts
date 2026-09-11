@@ -4000,7 +4000,7 @@ export const arGenerated: PartialDictionary = {
     changePasswordFailed: "تعذر تغيير كلمة المرور — تحقق من كلمة المرور الحالية",
   },
   settingsSettingsNav: {
-    documents: "المستندات",
+    documents: "تصاميم الطباعة والمستندات",
     dashboard: "لوحة التحكم",
     schoolInformation: "معلومات المدرسة",
     branding: "الهوية البصرية",

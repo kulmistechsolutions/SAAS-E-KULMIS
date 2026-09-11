@@ -8,7 +8,8 @@ import { dirOf } from "@/lib/i18n/config";
 import { getStoredLang, translateIn } from "@/lib/i18n/provider";
 import { csvCell, csvRow } from "@ekulmis/shared";
 import { getStoredPaper, paperCss, type PaperSize } from "@/lib/print/paper";
-import { getStoredTemplate, type DocTemplate } from "@/lib/print/template";
+import type { DocTemplate } from "@/lib/print/template";
+import { designFor } from "@/lib/print/design-store";
 import { schoolBranding } from "@/lib/settings/store";
 import {
   accentColour,
@@ -125,8 +126,8 @@ export function receiptHtml(
  */
 export function receiptDocumentHtml(
   payment: FeePayment,
-  paper: PaperSize = getStoredPaper(),
-  template: DocTemplate = getStoredTemplate(),
+  paper: PaperSize = (designFor("FEE_RECEIPT").paper ?? getStoredPaper()),
+  template: DocTemplate = designFor("FEE_RECEIPT").template as DocTemplate,
 ): string {
   return template === "PREMIUM"
     ? premiumReceiptHtml(payment, paper)
@@ -135,8 +136,8 @@ export function receiptDocumentHtml(
 
 export function printReceipt(
   payment: FeePayment,
-  paper: PaperSize = getStoredPaper(),
-  template: DocTemplate = getStoredTemplate(),
+  paper: PaperSize = (designFor("FEE_RECEIPT").paper ?? getStoredPaper()),
+  template: DocTemplate = designFor("FEE_RECEIPT").template as DocTemplate,
 ) {
   const w = window.open("", "_blank", "width=800,height=900");
   if (!w) return;

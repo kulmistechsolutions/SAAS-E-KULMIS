@@ -14,7 +14,8 @@ import {
   stampHtml,
   watermarkHtml,
 } from "@/lib/print/letterhead";
-import { getStoredTemplate, type DocTemplate } from "@/lib/print/template";
+import type { DocTemplate } from "@/lib/print/template";
+import { designFor } from "@/lib/print/design-store";
 
 /**
  * A school invoice, rendered from the ledger.
@@ -367,8 +368,8 @@ export function premiumInvoiceHtml(
 export function invoiceDocumentHtml(
   position: StudentPosition,
   periodKey: string,
-  paper: PaperSize = getStoredPaper(),
-  template: DocTemplate = getStoredTemplate(),
+  paper: PaperSize = (designFor("FEE_INVOICE").paper ?? getStoredPaper()),
+  template: DocTemplate = designFor("FEE_INVOICE").template as DocTemplate,
 ): string {
   return template === "PREMIUM"
     ? premiumInvoiceHtml(position, periodKey, paper)
