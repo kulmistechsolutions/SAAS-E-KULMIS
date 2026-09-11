@@ -205,19 +205,25 @@ const CHECKS: CheckSpec[] = [
     meaning:
       "Two payroll rows for one name in one month — usually a duplicate staff record, and the salary total counts both.",
     severity: "critical",
+    // [^a-zA-Z] deleted every Arabic letter, so three differently named
+    // teachers at معهد الرضا all keyed to the empty string and were reported,
+    // critically, as one person paid three times. [:alnum:] keeps both
+    // scripts; the empty-key guard means a name with no letters at all never
+    // groups with another.
     sql: Prisma.sql`
       WITH d AS (
         SELECT "schoolId",
-               lower(regexp_replace("employeeName", '[^a-zA-Z]', '', 'g')) AS k,
+               lower(regexp_replace("employeeName", '[^[:alnum:]]', '', 'g')) AS k,
                year, month
         FROM salaries
+        WHERE regexp_replace("employeeName", '[^[:alnum:]]', '', 'g') <> ''
         GROUP BY 1, 2, 3, 4
         HAVING count(*) > 1
       )
       SELECT s.name AS school, count(*)::int AS count, NULL::text AS detail
       FROM salaries sal
       JOIN d ON d."schoolId" = sal."schoolId"
-        AND d.k = lower(regexp_replace(sal."employeeName", '[^a-zA-Z]', '', 'g'))
+        AND d.k = lower(regexp_replace(sal."employeeName", '[^[:alnum:]]', '', 'g'))
         AND d.year = sal.year AND d.month = sal.month
       JOIN schools s ON s.id = sal."schoolId"
       GROUP BY s.name`,
@@ -228,17 +234,21 @@ const CHECKS: CheckSpec[] = [
     meaning:
       "One person on staff twice, by name or phone. Payroll, assignments and attendance then split between the two records.",
     severity: "warning",
+    // The empty-key guard saved this one from the false positive the salary
+    // check had, but at the cost of the opposite fault: every Arabic-named
+    // teacher keyed to '' and was excluded, so two genuinely duplicated
+    // Arabic names could never be found. [:alnum:] sees both scripts.
     sql: Prisma.sql`
       WITH d AS (
-        SELECT "schoolId", lower(regexp_replace("fullName", '[^a-zA-Z]', '', 'g')) AS k
+        SELECT "schoolId", lower(regexp_replace("fullName", '[^[:alnum:]]', '', 'g')) AS k
         FROM teachers
-        WHERE regexp_replace("fullName", '[^a-zA-Z]', '', 'g') <> ''
+        WHERE regexp_replace("fullName", '[^[:alnum:]]', '', 'g') <> ''
         GROUP BY 1, 2 HAVING count(*) > 1
       )
       SELECT s.name AS school, count(*)::int AS count, NULL::text AS detail
       FROM teachers t
       JOIN d ON d."schoolId" = t."schoolId"
-        AND d.k = lower(regexp_replace(t."fullName", '[^a-zA-Z]', '', 'g'))
+        AND d.k = lower(regexp_replace(t."fullName", '[^[:alnum:]]', '', 'g'))
       JOIN schools s ON s.id = t."schoolId"
       GROUP BY s.name`,
   },
