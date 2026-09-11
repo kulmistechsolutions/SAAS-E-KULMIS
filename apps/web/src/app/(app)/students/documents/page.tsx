@@ -30,6 +30,7 @@ import { accentColour } from "@/lib/print/letterhead";
 import {
   DOC_TITLES,
   printStudentDocument,
+  printStudentDocuments,
   studentDocumentHtml,
   type DocDesign,
   type StudentDocKind,
@@ -102,6 +103,12 @@ export default function StudentDocumentsPage() {
   const [reference, setReference] = useState("");
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
 
+  // One student, or a whole class in one stack of paper.
+  const [batch, setBatch] = useState(false);
+  const [batchClass, setBatchClass] = useState("");
+  const [batchSection, setBatchSection] = useState("");
+  const [printing, setPrinting] = useState(false);
+
   const [showLogo, setShowLogo] = useState(true);
   const [showStamp, setShowStamp] = useState(true);
   const [showQr, setShowQr] = useState(false);
@@ -131,21 +138,66 @@ export default function StudentDocumentsPage() {
     [students, studentId],
   );
 
+  /** Classes with at least one active student, in the order a school reads them. */
+  const classes = useMemo(() => {
+    const names = new Set(
+      students.filter((s) => s.status === "ACTIVE").map((s) => s.className),
+    );
+    return [...names].sort((a, b) =>
+      a.localeCompare(b, undefined, { numeric: true }),
+    );
+  }, [students]);
+
+  const sections = useMemo(() => {
+    const names = new Set(
+      students
+        .filter((s) => s.status === "ACTIVE" && s.className === batchClass && s.section)
+        .map((s) => s.section as string),
+    );
+    return [...names].sort();
+  }, [students, batchClass]);
+
+  // Who the batch would actually print, in list order.
+  const batchStudents = useMemo(() => {
+    if (!batchClass) return [];
+    return students
+      .filter(
+        (s) =>
+          s.status === "ACTIVE" &&
+          s.className === batchClass &&
+          (!batchSection || s.section === batchSection),
+      )
+      .sort((a, b) => a.fullName.localeCompare(b.fullName));
+  }, [students, batchClass, batchSection]);
+
+  // The class list changes under a chosen section when the class changes.
+  useEffect(() => {
+    if (batchSection && !sections.includes(batchSection)) setBatchSection("");
+  }, [sections, batchSection]);
+
+  useEffect(() => {
+    if (!batchClass && classes.length > 0) setBatchClass(classes[0]);
+  }, [classes, batchClass]);
+
   // Pick the first match rather than leaving the page empty on arrival.
   useEffect(() => {
     if (!studentId && matches.length > 0) setStudentId(matches[0].id);
   }, [matches, studentId]);
 
+  // In batch mode the preview is the first sheet of the batch: rendering all
+  // forty into a frame nobody scrolls costs a second for no one's benefit.
+  const previewOf = batch ? (batchStudents[0] ?? null) : student;
+
   // The QR carries the Student ID and nothing else — the same rule the ID
   // card follows. A scanner reveals nothing a person holding the sheet cannot
   // already read off it.
   useEffect(() => {
-    if (!showQr || !student) {
+    if (!showQr || !previewOf) {
       setQrDataUrl(null);
       return;
     }
     let live = true;
-    void QRCode.toDataURL(student.code, {
+    void QRCode.toDataURL(previewOf.code, {
       errorCorrectionLevel: "M",
       margin: 0,
       width: 240,
@@ -160,7 +212,7 @@ export default function StudentDocumentsPage() {
     return () => {
       live = false;
     };
-  }, [showQr, student]);
+  }, [showQr, previewOf]);
 
   const options: StudentDocOptions = {
     kind,
@@ -177,18 +229,52 @@ export default function StudentDocumentsPage() {
   };
 
   const html = useMemo(
-    () => (student ? studentDocumentHtml(student, options) : ""),
+    () => (previewOf ? studentDocumentHtml(previewOf, options) : ""),
     // The document is rebuilt whenever anything it draws from changes, which
     // is what makes the preview trustworthy.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [student, kind, design, paper, landscape, showLogo, showStamp, showQr,
+    [previewOf, kind, design, paper, landscape, showLogo, showStamp, showQr,
      showGuardian, showAcademic, qrDataUrl, reference],
   );
 
-  const print = useCallback(() => {
-    if (student) printStudentDocument(student, options);
+  const print = useCallback(async () => {
+    if (!batch) {
+      if (student) printStudentDocument(student, options);
+      return;
+    }
+    if (batchStudents.length === 0) return;
+    setPrinting(true);
+    try {
+      // Each sheet carries its own student's code, so the codes are rendered
+      // up front rather than inside the string builder — which stays pure so
+      // the preview and the print can both call it.
+      let qrByStudent: Record<string, string | null> | undefined;
+      if (showQr) {
+        const pairs = await Promise.all(
+          batchStudents.map(async (st) => {
+            try {
+              return [
+                st.id,
+                await QRCode.toDataURL(st.code, {
+                  errorCorrectionLevel: "M",
+                  margin: 0,
+                  width: 240,
+                  color: { dark: "#0f172a", light: "#ffffff" },
+                }),
+              ] as const;
+            } catch {
+              return [st.id, null] as const;
+            }
+          }),
+        );
+        qrByStudent = Object.fromEntries(pairs);
+      }
+      printStudentDocuments(batchStudents, options, qrByStudent);
+    } finally {
+      setPrinting(false);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [student, html]);
+  }, [batch, student, batchStudents, showQr, html]);
 
   if (!hydrated) return null;
 
@@ -241,6 +327,58 @@ export default function StudentDocumentsPage() {
           </Panel>
 
           <Panel n={2} title="Select Student">
+            <div className="mb-3 grid grid-cols-2 gap-2 rounded-xl bg-secondary/50 p-1">
+              <ModeTab active={!batch} onClick={() => setBatch(false)}>
+                One student
+              </ModeTab>
+              <ModeTab active={batch} onClick={() => setBatch(true)}>
+                Whole class
+              </ModeTab>
+            </div>
+
+            {batch ? (
+              <div className="space-y-2">
+                <div>
+                  <Label>Class</Label>
+                  <Select
+                    className="mt-1"
+                    value={batchClass}
+                    onChange={(e) => setBatchClass(e.target.value)}
+                  >
+                    {classes.length === 0 && <option value="">No classes</option>}
+                    {classes.map((c) => (
+                      <option key={c} value={c}>
+                        {c}
+                      </option>
+                    ))}
+                  </Select>
+                </div>
+                {sections.length > 0 && (
+                  <div>
+                    <Label>Section</Label>
+                    <Select
+                      className="mt-1"
+                      value={batchSection}
+                      onChange={(e) => setBatchSection(e.target.value)}
+                    >
+                      <option value="">All sections</option>
+                      {sections.map((sec) => (
+                        <option key={sec} value={sec}>
+                          {sec}
+                        </option>
+                      ))}
+                    </Select>
+                  </div>
+                )}
+                <p className="rounded-lg bg-secondary/60 px-3 py-2 text-xs">
+                  <strong>{batchStudents.length}</strong>{" "}
+                  {batchStudents.length === 1 ? "student" : "students"} ·{" "}
+                  {batchStudents.length}{" "}
+                  {batchStudents.length === 1 ? "page" : "pages"}, one each.
+                </p>
+              </div>
+            ) : (
+            <>
             <div className="relative">
               <Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
@@ -269,6 +407,8 @@ export default function StudentDocumentsPage() {
                 {student.section ? ` · ${student.section}` : ""} ·{" "}
                 {student.academicYear}
               </p>
+            )}
+            </>
             )}
           </Panel>
 
@@ -333,9 +473,17 @@ export default function StudentDocumentsPage() {
           </Panel>
 
           <Panel n={4} title="Actions">
-            <Button className="w-full" onClick={print} disabled={!student}>
+            <Button
+              className="w-full"
+              onClick={() => void print()}
+              disabled={printing || (batch ? batchStudents.length === 0 : !student)}
+            >
               <Printer className="me-2 h-4 w-4" />
-              Print {DOC_TITLES[kind]}
+              {printing
+                ? "Preparing..."
+                : batch
+                  ? `Print ${batchStudents.length} \u00d7 ${DOC_TITLES[kind]}`
+                  : `Print ${DOC_TITLES[kind]}`}
             </Button>
             <p className="mt-2 text-xs text-muted-foreground">
               {/* Browsers save to PDF from the same dialog, so a separate
@@ -351,9 +499,12 @@ export default function StudentDocumentsPage() {
             <h2 className="font-semibold">Document Preview</h2>
             <span className="text-xs text-muted-foreground">
               {options.paper} · {landscape ? "Landscape" : "Portrait"}
+              {batch && batchStudents.length > 0
+                ? ` · showing 1 of ${batchStudents.length}`
+                : ""}
             </span>
           </div>
-          {student ? (
+          {previewOf ? (
             <iframe
               title="Document preview"
               srcDoc={html}
@@ -361,7 +512,9 @@ export default function StudentDocumentsPage() {
             />
           ) : (
             <p className="py-20 text-center text-sm text-muted-foreground">
-              Choose a student to see the document.
+              {batch
+                ? "That class has no active students."
+                : "Choose a student to see the document."}
             </p>
           )}
         </div>
@@ -476,5 +629,30 @@ function QuickLink({
       <Icon className="h-4 w-4 text-muted-foreground" />
       {label}
     </Link>
+  );
+}
+
+/** One half of the one-student / whole-class switch. */
+function ModeTab({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
+        active
+          ? "bg-card text-foreground shadow-sm"
+          : "text-muted-foreground hover:text-foreground"
+      }`}
+    >
+      {children}
+    </button>
   );
 }

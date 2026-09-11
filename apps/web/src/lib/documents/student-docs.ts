@@ -184,14 +184,14 @@ function letterBody(s: StudentWithParent, o: StudentDocOptions): string {
 /**
  * One student document, ready to print.
  *
- * Returns a complete HTML document rather than a fragment so the same string
- * can be dropped into a preview frame and handed to a print window without
- * being assembled twice — a preview that is built differently from the print
- * is a preview that lies.
+ * One sheet, as a fragment. The document wrapper below turns one or many of
+ * these into a printable page — which is the whole trick to bulk printing: a
+ * class of forty is forty of these in one window, not forty windows.
  */
-export function studentDocumentHtml(
+function studentDocPage(
   student: StudentWithParent,
   opts: StudentDocOptions,
+  qrDataUrl?: string | null,
 ): string {
   const s = schoolBranding();
   const title = DOC_TITLES[opts.kind];
@@ -201,30 +201,14 @@ export function studentDocumentHtml(
       : letterBody(student, opts);
 
   const qr =
-    opts.showQr && opts.qrDataUrl
+    opts.showQr && qrDataUrl
       ? `<div class="qr">
-           <img src="${escapeHtml(opts.qrDataUrl)}" alt="" />
+           <img src="${escapeHtml(qrDataUrl)}" alt="" />
            <div class="qr-cap">${escapeHtml(student.code)}</div>
          </div>`
       : "";
 
-  return `<!DOCTYPE html>
-<html lang="en"><head><meta charset="utf-8"/><title>${escapeHtml(title)} \u2014 ${escapeHtml(student.fullName)}</title>
-<style>
-  ${DOC_SHELL_CSS}
-  ${paperCss(opts.paper)}
-  ${
-    // paperCss fixes the page to the sheet's own orientation, so landscape has
-    // to override the @page rule it just wrote rather than sit beside it.
-    opts.landscape
-      ? "@page{size:" + (opts.paper === "A5" ? "A5" : opts.paper === "LETTER" ? "letter" : "A4") + " landscape}body{max-width:none}"
-      : ""
-  }
-  ${LETTERHEAD_CSS}
-  ${DESIGN_CSS[opts.design]}
-</style></head>
-<body>
-<div class="doc" style="--ek-accent:${accentColour()}">
+  return `<div class="doc" style="--ek-accent:${accentColour()}">
   ${watermarkHtml()}
   ${opts.showLogo ? letterheadHtml({ title, refLabel: opts.reference ? "Ref. No." : undefined, refValue: opts.reference }) : `<div class="doc-title"><div class="dt-main"><h2>${escapeHtml(title)}</h2></div></div>`}
 
@@ -238,8 +222,96 @@ export function studentDocumentHtml(
   </div>
 
   ${documentFooterHtml()}
-</div>
+</div>`;
+}
+
+/** The page furniture every document of this kind shares. */
+function docShell(title: string, opts: StudentDocOptions, pages: string): string {
+  return `<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"/><title>${escapeHtml(title)}</title>
+<style>
+  ${DOC_SHELL_CSS}
+  ${paperCss(opts.paper)}
+  ${
+    // paperCss fixes the page to the sheet's own orientation, so landscape has
+    // to override the @page rule it just wrote rather than sit beside it.
+    opts.landscape
+      ? "@page{size:" + (opts.paper === "A5" ? "A5" : opts.paper === "LETTER" ? "letter" : "A4") + " landscape}body{max-width:none}"
+      : ""
+  }
+  ${LETTERHEAD_CSS}
+  ${DESIGN_CSS[opts.design]}
+
+  /* Each student starts a fresh sheet. The last one must not, or every batch
+     ends with a blank page coming out of the printer. */
+  .doc + .doc{page-break-before:always;break-before:page}
+  @media screen{ .doc + .doc{margin-top:24px;border-top:2px dashed #cbd5e1;padding-top:24px} }
+</style></head>
+<body>
+${pages}
 </body></html>`;
+}
+
+/**
+ * One student document, ready to print.
+ *
+ * Returns a complete HTML document rather than a fragment so the same string
+ * can be dropped into a preview frame and handed to a print window without
+ * being assembled twice — a preview that is built differently from the print
+ * is a preview that lies.
+ */
+export function studentDocumentHtml(
+  student: StudentWithParent,
+  opts: StudentDocOptions,
+): string {
+  return docShell(
+    `${DOC_TITLES[opts.kind]} \u2014 ${student.fullName}`,
+    opts,
+    studentDocPage(student, opts, opts.qrDataUrl),
+  );
+}
+
+/**
+ * A whole class in one document, one student per sheet.
+ *
+ * The alternative — a window per student — is forty print dialogs and a desk
+ * that gives up halfway. This is one dialog and one stack of paper, in the
+ * order the list was in.
+ *
+ * QR codes come in already rendered, keyed by student id, because building
+ * them is asynchronous and this function must stay a pure string builder that
+ * the preview and the print can both call.
+ */
+export function studentDocumentsHtml(
+  students: StudentWithParent[],
+  opts: StudentDocOptions,
+  qrByStudent?: Record<string, string | null>,
+): string {
+  const pages = students
+    .map((st) => studentDocPage(st, opts, qrByStudent?.[st.id] ?? null))
+    .join("\n");
+  return docShell(
+    `${DOC_TITLES[opts.kind]} \u2014 ${students.length} students`,
+    opts,
+    pages,
+  );
+}
+
+/** Open the print dialog on a whole batch at once. */
+export function printStudentDocuments(
+  students: StudentWithParent[],
+  opts: StudentDocOptions,
+  qrByStudent?: Record<string, string | null>,
+): void {
+  if (students.length === 0) return;
+  const w = window.open("", "_blank", "width=900,height=1200");
+  if (!w) return;
+  w.document.write(studentDocumentsHtml(students, opts, qrByStudent));
+  w.document.close();
+  w.focus();
+  w.onload = () => {
+    w.print();
+  };
 }
 
 /** Open the print dialog on exactly what the preview showed. */
