@@ -25,6 +25,7 @@ import {
   withParents,
 } from "@/lib/students/store";
 import { PaperPicker } from "@/components/print/paper-picker";
+import { StudentsTabs } from "@/components/students/students-tabs";
 import type { PaperSize } from "@/lib/print/paper";
 import { accentColour } from "@/lib/print/letterhead";
 import {
@@ -295,6 +296,8 @@ export default function StudentDocumentsPage() {
           <RefreshCw className="me-2 h-4 w-4" /> Refresh
         </Button>
       </div>
+
+      <StudentsTabs />
 
       <div className="grid items-start gap-4 xl:grid-cols-[320px,minmax(0,1fr),260px]">
         {/* ── Left: what, for whom, how ─────────────────────────────── */}

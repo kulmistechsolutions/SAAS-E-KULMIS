@@ -26,6 +26,7 @@ import { SummaryCards } from "@/components/students/summary-cards";
 import { StudentFormDialog } from "@/components/students/student-form-dialog";
 import { StudentAvatar } from "@/components/students/student-avatar";
 import { ImportDialog } from "@/components/students/import-dialog";
+import { StudentsTabs } from "@/components/students/students-tabs";
 import { Can } from "@/components/auth/can";
 import { ConfirmDialog } from "@/components/students/confirm-dialog";
 import {
@@ -358,6 +359,8 @@ export default function StudentsPage() {
           </Can>
         </div>
       </div>
+
+      <StudentsTabs />
 
       <SummaryCards summary={summary} />
 
