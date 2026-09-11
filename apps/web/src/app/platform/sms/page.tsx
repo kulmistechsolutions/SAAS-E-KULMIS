@@ -25,6 +25,7 @@ import {
   createPlatformSmsPackage,
   fetchPlatformSmsGatewayLicenses,
   fetchPlatformSmsMessages,
+  type PlatformSmsMessage,
   fetchPlatformSmsOverview,
   grantPlatformSmsGatewayLicense,
   revokePlatformSmsGatewayLicense,
@@ -37,9 +38,7 @@ import { toast } from "@/lib/toast";
 export default function PlatformSmsPackagesPage() {
   const t = useT();
   const [data, setData] = useState<PlatformSmsOverview | null>(null);
-  const [messages, setMessages] = useState<
-    Awaited<ReturnType<typeof fetchPlatformSmsMessages>>
-  >([]);
+  const [messages, setMessages] = useState<PlatformSmsMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<
     "packages" | "assign" | "gateways" | "sender-ids" | "logs"
@@ -80,7 +79,7 @@ export default function PlatformSmsPackagesPage() {
         ),
       ]);
       setData(ov);
-      setMessages(msgs);
+      setMessages(msgs.items);
       setGwLicenses(licenses);
       setAssignSchool((prev) => prev || ov.schools[0]?.id || "");
       setAssignPkg(

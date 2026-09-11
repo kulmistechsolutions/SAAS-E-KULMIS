@@ -637,30 +637,78 @@ export const togglePlatformSchoolGateway = (schoolId: string, enabled: boolean) 
     { method: "PATCH", body: { enabled } },
   );
 
+export interface PlatformSmsMessage {
+  id: string;
+  recipientPhone: string;
+  recipientName: string | null;
+  senderId: string;
+  body: string;
+  status: string;
+  creditsUsed: number;
+  error: string | null;
+  /** What the provider itself said, when it said anything. */
+  providerCode: string | null;
+  providerMessage: string | null;
+  providerMessageId: string | null;
+  createdAt: string;
+  sentAt: string | null;
+  deliveredAt: string | null;
+  school: { id: string; name: string; subdomain: string };
+}
+
+export interface PlatformSmsMessagePage {
+  items: PlatformSmsMessage[];
+  total: number;
+  take: number;
+  skip: number;
+}
+
 export async function fetchPlatformSmsMessages(params?: {
   schoolId?: string;
   status?: string;
   q?: string;
+  from?: string;
+  to?: string;
+  take?: number;
+  skip?: number;
 }) {
   const qs = new URLSearchParams();
   if (params?.schoolId) qs.set("schoolId", params.schoolId);
   if (params?.status) qs.set("status", params.status);
   if (params?.q) qs.set("q", params.q);
+  if (params?.from) qs.set("from", params.from);
+  if (params?.to) qs.set("to", params.to);
+  if (params?.take) qs.set("take", String(params.take));
+  if (params?.skip) qs.set("skip", String(params.skip));
   const q = qs.toString();
-  return platformFetch<
-    {
-      id: string;
-      recipientPhone: string;
-      recipientName: string | null;
-      senderId: string;
-      body: string;
-      status: string;
-      creditsUsed: number;
-      error: string | null;
-      createdAt: string;
-      school: { name: string; subdomain: string };
-    }[]
-  >(`/platform/sms/messages${q ? `?${q}` : ""}`);
+  return platformFetch<PlatformSmsMessagePage>(
+    `/platform/sms/messages${q ? `?${q}` : ""}`,
+  );
+}
+
+export interface PlatformSmsUsage {
+  days: number;
+  from: string;
+  rows: {
+    schoolId: string;
+    name: string;
+    subdomain: string;
+    /** What a school is billed in. Failed messages are not counted here. */
+    credits: number;
+    messages: number;
+    failed: number;
+  }[];
+  totals: {
+    credits: number;
+    messages: number;
+    failed: number;
+    schoolsSending: number;
+  };
+  byStatus: { status: string; count: number; credits: number }[];
+}
+
+export async function fetchPlatformSmsUsage(days = 30) {
+  return platformFetch<PlatformSmsUsage>(`/platform/sms/usage?days=${days}`);
 }
 
 // ── WaafiPay gateway ───────────────────────────────────────────────────────

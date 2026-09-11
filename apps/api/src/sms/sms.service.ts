@@ -940,26 +940,130 @@ export class SmsService {
     schoolId?: string;
     status?: string;
     q?: string;
+    from?: string;
+    to?: string;
     take?: number;
+    skip?: number;
   }) {
-    return this.prisma.smsMessage.findMany({
-      where: {
-        schoolId: opts.schoolId,
-        status: opts.status as never,
-        OR: opts.q
-          ? [
-              { recipientPhone: { contains: opts.q } },
-              { recipientName: { contains: opts.q, mode: "insensitive" } },
-              { body: { contains: opts.q, mode: "insensitive" } },
-            ]
-          : undefined,
+    // `to` is a date the operator picked, meaning the whole of that day. Used
+    // as given it would be midnight, and a search ending "today" would return
+    // nothing sent today — the single most likely thing to be looking for.
+    const to = opts.to ? new Date(opts.to) : undefined;
+    if (to) to.setUTCHours(23, 59, 59, 999);
+
+    const where = {
+      schoolId: opts.schoolId,
+      status: opts.status as never,
+      ...((opts.from || to) && {
+        createdAt: {
+          ...(opts.from && { gte: new Date(opts.from) }),
+          ...(to && { lte: to }),
+        },
+      }),
+      OR: opts.q
+        ? [
+            { recipientPhone: { contains: opts.q } },
+            { recipientName: { contains: opts.q, mode: "insensitive" as const } },
+            { body: { contains: opts.q, mode: "insensitive" as const } },
+          ]
+        : undefined,
+    };
+
+    const take = Math.min(Math.max(opts.take ?? 100, 1), 500);
+    const skip = Math.max(opts.skip ?? 0, 0);
+
+    const [items, total] = await Promise.all([
+      this.prisma.smsMessage.findMany({
+        where,
+        include: {
+          school: { select: { id: true, name: true, subdomain: true } },
+        },
+        orderBy: { createdAt: "desc" },
+        take,
+        skip,
+      }),
+      this.prisma.smsMessage.count({ where }),
+    ]);
+
+    return { items, total, take, skip };
+  }
+
+  /**
+   * Who is actually sending, across the platform.
+   *
+   * Credits rather than message counts, because that is what a school is
+   * billed in and what the provider account is drawn down by — a hundred long
+   * messages and a hundred short ones are the same row otherwise, and they are
+   * not the same cost.
+   *
+   * Failed messages are counted separately and never as spend: the provider
+   * does not charge for what it did not send, so folding them into the totals
+   * would make every reconciliation on this page disagree with the invoice.
+   */
+  async platformUsage(days = 30) {
+    const window = Math.min(Math.max(days, 1), 365);
+    const from = new Date();
+    from.setUTCHours(0, 0, 0, 0);
+    from.setUTCDate(from.getUTCDate() - (window - 1));
+
+    const spent = { status: { not: "FAILED" as const } };
+
+    const [bySchool, failedBySchool, schools, byStatus] = await Promise.all([
+      this.prisma.smsMessage.groupBy({
+        by: ["schoolId"],
+        where: { ...spent, createdAt: { gte: from } },
+        _sum: { creditsUsed: true },
+        _count: { _all: true },
+      }),
+      this.prisma.smsMessage.groupBy({
+        by: ["schoolId"],
+        where: { status: "FAILED", createdAt: { gte: from } },
+        _count: { _all: true },
+      }),
+      this.prisma.school.findMany({
+        select: { id: true, name: true, subdomain: true },
+      }),
+      this.prisma.smsMessage.groupBy({
+        by: ["status"],
+        where: { createdAt: { gte: from } },
+        _count: { _all: true },
+        _sum: { creditsUsed: true },
+      }),
+    ]);
+
+    const failedMap = new Map(
+      failedBySchool.map((f) => [f.schoolId, f._count._all]),
+    );
+    const nameMap = new Map(schools.map((s) => [s.id, s]));
+
+    const rows = bySchool
+      .map((b) => ({
+        schoolId: b.schoolId,
+        name: nameMap.get(b.schoolId)?.name ?? "—",
+        subdomain: nameMap.get(b.schoolId)?.subdomain ?? "",
+        credits: b._sum.creditsUsed ?? 0,
+        messages: b._count._all,
+        failed: failedMap.get(b.schoolId) ?? 0,
+      }))
+      // Busiest first: the question this page answers is "who is spending".
+      .sort((a, b) => b.credits - a.credits);
+
+    return {
+      days: window,
+      from: from.toISOString(),
+      rows,
+      totals: {
+        credits: rows.reduce((n, r) => n + r.credits, 0),
+        messages: rows.reduce((n, r) => n + r.messages, 0),
+        failed: [...failedMap.values()].reduce((n, f) => n + f, 0),
+        schoolsSending: rows.length,
       },
-      include: {
-        school: { select: { id: true, name: true, subdomain: true } },
-      },
-      orderBy: { createdAt: "desc" },
-      take: opts.take ?? 100,
-    });
+      byStatus: byStatus.map((s) => ({
+        status: s.status,
+        count: s._count._all,
+        credits: s._sum.creditsUsed ?? 0,
+      })),
+    };
   }
 
   async adjustCredits(

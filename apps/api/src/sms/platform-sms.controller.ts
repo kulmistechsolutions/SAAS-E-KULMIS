@@ -315,8 +315,26 @@ export class PlatformSmsController {
     @Query("schoolId") schoolId?: string,
     @Query("status") status?: string,
     @Query("q") q?: string,
+    @Query("from") from?: string,
+    @Query("to") to?: string,
+    @Query("take") take?: string,
+    @Query("skip") skip?: string,
   ) {
-    return this.sms.platformMessages({ schoolId, status, q, take: 200 });
+    return this.sms.platformMessages({
+      schoolId,
+      status,
+      q,
+      from,
+      to,
+      take: take ? Number(take) : 100,
+      skip: skip ? Number(skip) : 0,
+    });
+  }
+
+  /** Who is actually sending, in credits, across every school. */
+  @Get("usage")
+  usage(@Query("days") days?: string) {
+    return this.sms.platformUsage(days ? Number(days) : undefined);
   }
 
   @Post("process-scheduled")

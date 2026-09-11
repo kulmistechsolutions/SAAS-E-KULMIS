@@ -20,23 +20,60 @@ import {
   Sparkles,
   Layers,
   ExternalLink,
+  BarChart3,
+  ScrollText,
+  ShieldCheck,
 } from "lucide-react";
 import { usePlatformAuth } from "@/lib/platform/auth";
 import { countUnread, fetchPlatformEvents, getLastSeenAt } from "@/lib/platform/notifications";
 import { cn } from "@/lib/utils";
 
-const NAV = [
-  { href: "/platform", label: "Dashboard", icon: LayoutDashboard, exact: true },
-  { href: "/platform/notifications", label: "Notifications", icon: Bell },
-  { href: "/platform/schools", label: "Schools", icon: Building2 },
-  { href: "/platform/school-activity", label: "School Activity", icon: Activity },
-  { href: "/platform/data-health", label: "Data Health", icon: HeartPulse },
-  { href: "/platform/subscriptions", label: "Subscriptions", icon: Layers },
-  { href: "/platform/sms/settings", label: "SMS Settings", icon: Settings2 },
-  { href: "/platform/sms/payments", label: "Waafi Payments", icon: CreditCard },
-  { href: "/platform/sms", label: "SMS Packages", icon: MessageSquare, exact: true },
-  { href: "/platform/ai", label: "AI Grading", icon: Sparkles },
-  { href: "/platform/error-logs", label: "Error Logs", icon: AlertTriangle },
+/**
+ * The platform's own navigation, in sections.
+ *
+ * SMS earned one: eight of its pages sat in a flat list of eleven, so finding
+ * the one about school accounts meant reading every entry. The sections are
+ * headings, not menus — nothing collapses, because a sidebar that hides where
+ * you are is worse than a long one.
+ */
+const NAV: {
+  section: string | null;
+  items: {
+    href: string;
+    label: string;
+    icon: typeof LayoutDashboard;
+    exact?: boolean;
+  }[];
+}[] = [
+  {
+    section: null,
+    items: [
+      { href: "/platform", label: "Dashboard", icon: LayoutDashboard, exact: true },
+      { href: "/platform/notifications", label: "Notifications", icon: Bell },
+      { href: "/platform/schools", label: "Schools", icon: Building2 },
+      { href: "/platform/school-activity", label: "School Activity", icon: Activity },
+      { href: "/platform/data-health", label: "Data Health", icon: HeartPulse },
+      { href: "/platform/subscriptions", label: "Subscriptions", icon: Layers },
+    ],
+  },
+  {
+    section: "SMS Management",
+    items: [
+      { href: "/platform/sms", label: "Packages", icon: MessageSquare, exact: true },
+      { href: "/platform/sms/schools", label: "School accounts", icon: ShieldCheck },
+      { href: "/platform/sms/usage", label: "Usage", icon: BarChart3 },
+      { href: "/platform/sms/logs", label: "Delivery logs", icon: ScrollText },
+      { href: "/platform/sms/payments", label: "Waafi payments", icon: CreditCard },
+      { href: "/platform/sms/settings", label: "Provider settings", icon: Settings2 },
+    ],
+  },
+  {
+    section: "Platform",
+    items: [
+      { href: "/platform/ai", label: "AI Grading", icon: Sparkles },
+      { href: "/platform/error-logs", label: "Error Logs", icon: AlertTriangle },
+    ],
+  },
 ];
 
 const UNREAD_POLL_MS = 60_000;
@@ -88,31 +125,42 @@ export function PlatformShell({ children }: { children: React.ReactNode }) {
           </div>
         </div>
         <nav className="flex-1 space-y-1 p-3">
-          {NAV.map((item) => {
-            const active = item.exact
-              ? pathname === item.href
-              : pathname.startsWith(item.href);
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  "flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm transition-colors",
-                  active
-                    ? "bg-violet-600/90 font-medium text-white"
-                    : "text-slate-400 hover:bg-white/5 hover:text-white",
-                )}
-              >
-                <item.icon className="h-4 w-4" />
-                {item.label}
-                {item.href === "/platform/notifications" && unread > 0 && (
-                  <span className="ms-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-500 px-1.5 text-[11px] font-semibold text-white">
-                    {unread > 99 ? "99+" : unread}
-                  </span>
-                )}
-              </Link>
-            );
-          })}
+          {NAV.map((group) => (
+            <div key={group.section ?? "top"} className={group.section ? "pt-4" : ""}>
+              {group.section && (
+                <p className="px-3 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-600">
+                  {group.section}
+                </p>
+              )}
+              <div className="space-y-1">
+                {group.items.map((item) => {
+                  const active = item.exact
+                    ? pathname === item.href
+                    : pathname.startsWith(item.href);
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className={cn(
+                        "flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm transition-colors",
+                        active
+                          ? "bg-violet-600/90 font-medium text-white"
+                          : "text-slate-400 hover:bg-white/5 hover:text-white",
+                      )}
+                    >
+                      <item.icon className="h-4 w-4" />
+                      {item.label}
+                      {item.href === "/platform/notifications" && unread > 0 && (
+                        <span className="ms-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-500 px-1.5 text-[11px] font-semibold text-white">
+                          {unread > 99 ? "99+" : unread}
+                        </span>
+                      )}
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </nav>
         <div className="space-y-1 border-t border-white/10 p-3">
           <Link
