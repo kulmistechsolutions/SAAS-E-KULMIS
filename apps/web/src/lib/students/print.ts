@@ -1,10 +1,12 @@
 "use client";
 
-import { getSettings, schoolBranding } from "@/lib/settings/store";
 import { PRINT_HEADER_CSS, printHeaderHtml } from "@/lib/print/header";
 import { genderLabel, money, shortDate, statusLabel } from "./format";
 import type { StudentWithParent } from "./types";
 import { studentClassLabel, studentSectionNames } from "./types";
+import { printStudentDocument } from "@/lib/documents/student-docs";
+import type { DocDesign } from "@/lib/documents/doc-shell";
+import { designFor } from "@/lib/print/design-store";
 
 export interface StudentFieldDef {
   key: string;
@@ -144,61 +146,28 @@ function escapeHtml(s: string): string {
     .replace(/"/g, "&quot;");
 }
 
+/**
+ * One student's record, printed in whatever design the school has chosen.
+ *
+ * This used to draw its own layout — its own header, its own tables, its own
+ * idea of a margin — which is exactly the duplicated print logic the document
+ * engine exists to replace. A school that picks a design in Settings expects
+ * this button to honour it, and before this it was the one printed page that
+ * did not.
+ */
 export function printStudentProfile(r: StudentWithParent) {
-  const school = schoolBranding();
-  const { studentHeader, studentFooter } = getSettings().students;
-  const w = window.open("", "_blank", "width=800,height=700");
-  if (!w) return;
-  const row = (k: string, v: string) =>
-    `<tr><td class="k">${k}</td><td>${escapeHtml(v)}</td></tr>`;
-  // Every field the registration form can collect, so the printed copy never
-  // silently drops something that was actually saved — place of birth,
-  // district and mother's name only ever have a value on the detailed form,
-  // and village/notes are optional on both, so each is skipped when empty
-  // rather than printed as a blank row.
-  const optionalRows = [
-    r.placeOfBirth ? row("Place of Birth", r.placeOfBirth) : "",
-    r.district ? row("District", r.district) : "",
-    r.village ? row("Village", r.village) : "",
-    r.motherName ? row("Mother's Name", r.motherName) : "",
-    r.notes ? row("Notes", r.notes) : "",
-  ]
-    .filter(Boolean)
-    .join("");
-  w.document.write(`<!DOCTYPE html><html><head><title>${escapeHtml(r.fullName)} — Profile</title>
-  <style>
-    *{font-family:Arial,Helvetica,sans-serif;box-sizing:border-box}
-    body{padding:32px;color:#0f172a}
-    ${PRINT_HEADER_CSS}
-    h2{font-size:14px;margin:18px 0 6px;color:${school.primaryColor || "#4f46e5"}}
-    table{width:100%;border-collapse:collapse;font-size:13px}
-    td{border:1px solid #e2e8f0;padding:7px 10px}
-    td.k{background:#f8fafc;font-weight:600;width:220px}
-    .foot{margin-top:24px;font-size:11px;color:#94a3b8;text-align:center}
-    @media print{body{padding:0}}
-  </style></head><body>
-  ${printHeaderHtml(studentHeader || "Student Profile")}
-  <h2>Personal Information</h2>
-  <table>
-    ${row("Student ID", r.code)}
-    ${row("Full Name", r.fullName)}
-    ${row("Gender", genderLabel(r.gender))}
-    ${row("Date of Birth", shortDate(r.dob))}
-    ${row("Phone", r.phone ?? "—")}
-    ${optionalRows}
-    ${row("Class", r.className + (r.section ? " - " + r.section : ""))}
-    ${row("Monthly Fee", money(r.monthlyFee))}
-    ${row("Registration Date", shortDate(r.registrationDate))}
-    ${row("Status", statusLabel(r.status))}
-  </table>
-  <h2>Parent / Guardian</h2>
-  <table>
-    ${row("Parent ID", r.parent.code)}
-    ${row("Parent Name", r.parent.name)}
-    ${row("Parent Phone", r.parent.phone)}
-  </table>
-  ${studentFooter ? `<div class="foot">${escapeHtml(studentFooter)}</div>` : ""}
-  <script>window.onload=function(){window.print()}</script>
-  </body></html>`);
-  w.document.close();
+  const design = designFor("STUDENT_PROFILE");
+  printStudentDocument(r, {
+    kind: "INFORMATION",
+    design: design.template as DocDesign,
+    paper: design.paper ?? "A4",
+    landscape: design.landscape ?? false,
+    // The sheet a desk hands over: everything the record holds, on school
+    // paper, without a QR nobody asked for.
+    showLogo: true,
+    showStamp: true,
+    showQr: false,
+    showGuardian: true,
+    showAcademic: true,
+  });
 }

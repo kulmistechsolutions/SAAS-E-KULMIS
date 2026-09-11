@@ -1,6 +1,8 @@
 "use client";
 
-import { getSettings, schoolBranding } from "@/lib/settings/store";
+import { printPersonDocument } from "@/lib/documents/people-docs";
+import type { DocDesign } from "@/lib/documents/doc-shell";
+import { designFor } from "@/lib/print/design-store";
 import { PRINT_HEADER_CSS, printHeaderHtml } from "@/lib/print/header";
 import {
   assignmentShiftLabel,
@@ -158,56 +160,37 @@ export function printTeachersList(
   w.document.close();
 }
 
+/**
+ * One teacher's record, printed in whatever design the school has chosen.
+ *
+ * Like the student profile, this drew its own layout until the document engine
+ * took it over. Pay is deliberately absent: this button is reachable by
+ * everyone who can see the teacher list, and a salary on a sheet handed across
+ * a desk is not a decision a print icon should make.
+ */
 export function printTeacherProfile(
   teacher: Teacher,
   assignments: TeacherAssignment[],
 ) {
-  const school = schoolBranding();
-  const { teacherHeader, teacherFooter } = getSettings().teachers;
-  const w = window.open("", "_blank", "width=800,height=700");
-  if (!w) return;
-  const row = (k: string, v: string) =>
-    `<tr><td class="k">${k}</td><td>${escapeHtml(v)}</td></tr>`;
-  const assignRows = assignments
-    .map(
-      (a) =>
-        `<tr><td>${a.academicYear}</td><td>${escapeHtml(a.className)}</td><td>${sectionLabel(a.section)}</td><td>${escapeHtml(assignmentShiftLabel(a.shift, teacher.shifts))}</td><td>${escapeHtml(a.subject)}</td></tr>`,
-    )
-    .join("");
-  w.document.write(`<!DOCTYPE html><html><head><title>${escapeHtml(teacher.fullName)}</title>
-  <style>
-    *{font-family:Arial,Helvetica,sans-serif;box-sizing:border-box}
-    body{padding:32px;color:#0f172a}
-    ${PRINT_HEADER_CSS}
-    h2{font-size:14px;margin:18px 0 6px;color:${school.primaryColor || "#4f46e5"}}
-    table{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:12px}
-    td{border:1px solid #e2e8f0;padding:7px 10px}
-    td.k{background:#f8fafc;font-weight:600;width:200px}
-    th{border:1px solid #e2e8f0;padding:7px 10px;background:#f8fafc;text-align:left}
-    .foot{margin-top:24px;font-size:11px;color:#94a3b8;text-align:center}
-    @media print{body{padding:0}}
-  </style></head><body>
-  ${printHeaderHtml(teacherHeader || "Teacher Profile")}
-  <h2>Teacher Information</h2>
-  <table>
-    ${row("Teacher ID", teacher.code)}
-    ${row("Full Name", teacher.fullName)}
-    ${row("Gender", genderLabel(teacher.gender))}
-    ${row("Phone", teacher.phone)}
-    ${row("Email", teacher.email ?? "—")}
-    ${row("Qualification", teacher.qualification ?? "—")}
-    ${row("Salary", money(teacher.salary))}
-    ${row("Shift", shiftsLabel(teacher.shifts))}
-    ${row("Status", statusLabel(teacher.status))}
-    ${row("Registration Date", shortDate(teacher.registrationDate))}
-  </table>
-  <h2>Assignments</h2>
-  <table>
-    <thead><tr><th>Academic Year</th><th>Class</th><th>Section</th><th>Shift</th><th>Subject</th></tr></thead>
-    <tbody>${assignRows || '<tr><td colspan="5">No assignments</td></tr>'}</tbody>
-  </table>
-  ${teacherFooter ? `<div class="foot">${escapeHtml(teacherFooter)}</div>` : ""}
-  <script>window.onload=function(){window.print()}</script>
-  </body></html>`);
-  w.document.close();
+  const design = designFor("TEACHER_PROFILE");
+  const classes = [
+    ...new Set(
+      assignments
+        .filter((a) => a.status === "ACTIVE")
+        .map((a) => [a.className, a.section].filter(Boolean).join(" - ")),
+    ),
+  ];
+  printPersonDocument(
+    { type: "TEACHER", teacher, classes },
+    {
+      kind: "TEACHER_INFO",
+      design: design.template as DocDesign,
+      paper: design.paper ?? "A4",
+      landscape: design.landscape ?? false,
+      showLogo: true,
+      showStamp: true,
+      showContact: true,
+      showSalary: false,
+    },
+  );
 }
