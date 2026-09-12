@@ -8,47 +8,6 @@ function escapeHtml(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
-export function printStudentAttendanceSheet(opts: {
-  academicYear: string;
-  date: string;
-  className: string;
-  section: string;
-  rows: { serial: number; code: string; name: string; status: StudentAttendanceStatus }[];
-  summary: { total: number; present: number; absent: number; late: number; excused: number; percentage: number };
-}) {
-  const w = window.open("", "_blank", "width=900,height=700");
-  if (!w) return;
-  const body = opts.rows
-    .map(
-      (r) =>
-        `<tr><td>${r.serial}</td><td>${r.code}</td><td>${escapeHtml(r.name)}</td><td>${studentStatusLabel(r.status)}</td><td></td></tr>`,
-    )
-    .join("");
-  w.document.write(`<!DOCTYPE html><html><head><title>Attendance Sheet</title>
-  <style>
-    *{font-family:Arial,sans-serif;box-sizing:border-box}body{padding:32px;color:#0f172a}
-    ${PRINT_HEADER_CSS}
-  table{width:100%;border-collapse:collapse;font-size:13px;margin-top:12px}
-  th,td{border:1px solid #cbd5e1;padding:8px 10px;text-align:left}
-  th{background:#f1f5f9}
-  .summary{margin-top:16px;font-size:13px}
-  .sign{margin-top:40px;display:flex;justify-content:space-between}
-  .sign div{width:40%;border-top:1px solid #94a3b8;padding-top:8px;font-size:12px;color:#64748b}
-  </style></head><body>
-  ${printHeaderHtml(`Student Attendance · ${escapeHtml(opts.academicYear)} · ${formatDisplayDate(opts.date)} · ${escapeHtml(opts.className)} · Section ${escapeHtml(opts.section)}`)}
-  <table>
-    <thead><tr><th>#</th><th>Student ID</th><th>Student Name</th><th>Status</th><th>Remarks</th></tr></thead>
-    <tbody>${body}</tbody>
-  </table>
-  <div class="summary">
-    Total: ${opts.summary.total} · Present: ${opts.summary.present} · Absent: ${opts.summary.absent} · Late: ${opts.summary.late} · Excused: ${opts.summary.excused} · ${opts.summary.percentage}%
-  </div>
-  <div class="sign"><div>Teacher Signature</div><div>Administrator Signature</div></div>
-  <script>window.onload=function(){window.print()}</script>
-  </body></html>`);
-  w.document.close();
-}
-
 export function exportStudentAttendanceCsv(
   rows: { code: string; name: string; className: string; section: string | null; date: string; status: StudentAttendanceStatus }[],
   fileName = "student-attendance.csv",

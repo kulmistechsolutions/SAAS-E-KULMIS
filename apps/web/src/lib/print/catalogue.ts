@@ -20,7 +20,8 @@ export type DocCategory =
   | "TEACHERS"
   | "PARENTS"
   | "FINANCE"
-  | "EXAMS";
+  | "EXAMS"
+  | "ATTENDANCE";
 
 export const CATEGORY_LABEL: Record<DocCategory, string> = {
   STUDENTS: "Students",
@@ -28,6 +29,7 @@ export const CATEGORY_LABEL: Record<DocCategory, string> = {
   PARENTS: "Parents",
   FINANCE: "Finance",
   EXAMS: "Exams",
+  ATTENDANCE: "Attendance",
 };
 
 export interface DocTemplateOption {
@@ -127,6 +129,20 @@ export const DOC_TYPES: DocTypeDef[] = [
     defaultTemplate: "PREMIUM",
     defaultPaper: "A4",
   },
+  {
+    id: "ATTENDANCE_REPORT",
+    category: "ATTENDANCE",
+    label: "Attendance Report",
+    note: "A register or a month's attendance, on school paper.",
+    printedFrom: "Attendance → Student Attendance → Reports → Print",
+    // The letterhead is the design; what changes here is the sheet it goes on,
+    // because a long register is the one report a school prints landscape.
+    templates: [
+      { id: "PREMIUM", label: "Premium", note: "Full letterhead, watermark, stamp" },
+    ],
+    defaultTemplate: "PREMIUM",
+    defaultPaper: "A4",
+  },
 ];
 
 export function docType(id: string): DocTypeDef | undefined {
@@ -140,4 +156,5 @@ export const CATEGORIES: DocCategory[] = [
   "PARENTS",
   "FINANCE",
   "EXAMS",
+  "ATTENDANCE",
 ];

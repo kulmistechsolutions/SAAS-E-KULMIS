@@ -40,8 +40,8 @@ import {
 } from "@/lib/attendance/format";
 import {
   exportStudentAttendanceCsv,
-  printStudentAttendanceSheet,
 } from "@/lib/attendance/print";
+import { printAttendanceReport } from "@/lib/attendance/report-print";
 import {
   activeAcademicYear,
   classByName,
@@ -455,6 +455,47 @@ function StudentAttendanceScreen() {
                         <CheckCheck className="me-2 h-4 w-4" /> {t("attendanceStudents.markAllPresent")}
                       </Button>
                       <Button variant="outline" onClick={() => markAll("ABSENT")}>{t("attendanceStudents.markAllAbsent")}</Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          // The register as it stands, on school paper. A
+                          // teacher who marks on paper first needs the same
+                          // sheet the screen shows, not a different one.
+                          printAttendanceReport({
+                            kind: "DAILY",
+                            scope: [
+                              { label: "Academic Year", value: year },
+                              { label: "Date", value: formatDisplayDate(date) },
+                              { label: "Class", value: klass },
+                              { label: "Section", value: section },
+                              {
+                                label: "Shift",
+                                value:
+                                  shifts.find((x) => x.id === shiftId)?.name ?? "",
+                              },
+                            ],
+                            summary: [
+                              { label: "On roll", value: String(rows.length) },
+                            ],
+                            columns: [
+                              { key: "code", label: "Student ID", mono: true },
+                              { key: "name", label: "Student Name" },
+                              { key: "status", label: "Status" },
+                              { key: "remarks", label: "Remarks" },
+                            ],
+                            rows: rows.map((r) => ({
+                              code: r.code,
+                              name: r.fullName,
+                              status: studentStatusLabel(r.status),
+                              // Left blank on purpose: this column is for the
+                              // person holding the pen.
+                              remarks: "",
+                            })),
+                          });
+                        }}
+                      >
+                        <Printer className="me-2 h-4 w-4" /> {t("attendanceStudents.print")}
+                      </Button>
                       <Button onClick={() => void handleSave()} disabled={saving}>
                         {saving ? <Loader2 className="me-2 h-4 w-4 animate-spin" /> : <Save className="me-2 h-4 w-4" />}
                         {t("attendanceStudents.saveAttendance")}
@@ -587,26 +628,38 @@ function StudentAttendanceScreen() {
                 }}><FileDown className="me-2 h-4 w-4" /> {t("attendanceStudents.csv")}</Button>
                 <Button variant="outline" onClick={() => {
                   if (reportRows.length === 0) return toast("No records to print.", "error");
-                  const first = reportRows[0];
-                  printStudentAttendanceSheet({
-                    academicYear: year,
-                    date: first.date,
-                    className: first.className,
-                    section: first.section === "—" ? "" : first.section,
-                    rows: reportRows.map((r, i) => ({
-                      serial: i + 1, code: r.code, name: r.student, status: r.status as StudentAttendanceStatus,
+                  // Whatever the screen is showing, on school paper. The
+                  // figures are the ones already computed above, not a second
+                  // count that could disagree with the table under it.
+                  printAttendanceReport({
+                    kind: "DAILY",
+                    scope: [
+                      { label: "Academic Year", value: year },
+                      { label: "Date", value: rDate || "All dates" },
+                      { label: "Class", value: rClass || "All classes" },
+                      { label: "Section", value: rSection || "All sections" },
+                      { label: "Status", value: rStatus || "All statuses" },
+                    ],
+                    summary: reportSummary.map((x) => ({
+                      label: x.label,
+                      value: String(x.value),
                     })),
-                    summary: {
-                      total: reportRows.length,
-                      present: Number(reportSummary.find((s) => s.label === "Present")?.value ?? 0),
-                      absent: Number(reportSummary.find((s) => s.label === "Absent")?.value ?? 0),
-                      late: 0,
-                      excused: 0,
-                      percentage:
-                        Number(
-                          (reportSummary.find((s) => s.label === "Rate")?.value ?? "").replace("%", ""),
-                        ) || 0,
-                    },
+                    columns: [
+                      { key: "code", label: "Student ID", mono: true },
+                      { key: "student", label: "Student Name" },
+                      { key: "className", label: "Class" },
+                      { key: "section", label: "Section" },
+                      { key: "date", label: "Date" },
+                      { key: "status", label: "Status" },
+                    ],
+                    rows: reportRows.map((r) => ({
+                      code: r.code,
+                      student: r.student,
+                      className: r.className,
+                      section: r.section,
+                      date: r.date,
+                      status: r.status,
+                    })),
                   });
                 }}><Printer className="me-2 h-4 w-4" /> {t("attendanceStudents.print")}</Button>
               </div>
