@@ -4,18 +4,28 @@ import type { SettingsState } from "./types";
 export function buildSettingsSeed(): SettingsState {
   const installed = new Date().toISOString();
   return {
+    // Nothing invented about the school itself.
+    //
+    // These are the defaults a school starts from, and saving any part of the
+    // Settings page writes the whole of this back — so an invented address
+    // becomes that school's address in the database, and then prints on every
+    // receipt it hands a family. Fifty-two schools ended up telling parents
+    // they were at "123 Education Avenue".
+    //
+    // Blank is honest, and the letterhead already leaves out what a school has
+    // not filled in, so an empty field prints as nothing rather than as a lie.
     school: {
       name: BRAND.name,
-      motto: "Excellence in Education",
+      motto: "",
       logoDataUrl: null,
-      address: "123 Education Avenue",
-      city: "Mogadishu",
-      country: "Somalia",
-      phone: "+252 61 000 0000",
-      email: "info@ekulmis.edu",
-      website: "https://ekulmis.edu",
-      principalName: "Dr. Ahmed Hassan",
-      academicYear: "2024-2025",
+      address: "",
+      city: "",
+      country: "",
+      phone: "",
+      email: "",
+      website: "",
+      principalName: "",
+      academicYear: "",
       currency: "USD",
       timezone: "Africa/Mogadishu",
       language: "en",
