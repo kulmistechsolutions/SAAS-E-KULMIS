@@ -41,8 +41,17 @@ import {
  * number an administrator cannot act on is a number they learn to ignore.
  */
 
+/**
+ * Where this module goes.
+ *
+ * These were six full-width panels below the figures, so the dashboard read as
+ * a menu with some numbers on top of it and the pages themselves were a scroll
+ * away. As a strip under the heading they are one row, always in reach, and
+ * the figures get the page.
+ */
 interface HubCard {
   title: string;
+  /** Shown as the button's tooltip — the strip has no room for a sentence. */
   description: string;
   href: string;
   icon: LucideIcon;
@@ -191,6 +200,25 @@ export default function AttendanceHubPage() {
             <RefreshCw className="me-2 h-4 w-4" /> Refresh
           </Button>
         </div>
+      </div>
+
+      {/* ── Where this module goes ─────────────────────────────────── */}
+      <div className="flex flex-wrap gap-2">
+        {sections.map((s) => (
+          <Link
+            key={s.href}
+            href={s.href}
+            title={s.description}
+            className="group inline-flex items-center gap-2 rounded-xl border bg-card px-3 py-2 text-sm font-medium shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md"
+          >
+            <span
+              className={`flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br ${s.color} text-white`}
+            >
+              <s.icon className="h-4 w-4" />
+            </span>
+            {s.title}
+          </Link>
+        ))}
       </div>
 
       {/* ── The day itself ─────────────────────────────────────────── */}
@@ -364,26 +392,6 @@ export default function AttendanceHubPage() {
         </div>
       )}
 
-      {/* ── Where to go next ────────────────────────────────────────── */}
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {sections.map((s) => (
-          <Link
-            key={s.href}
-            href={s.href}
-            className="group flex flex-col rounded-2xl border bg-card p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
-          >
-            <span
-              className={`mb-3 flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br ${s.color} text-white shadow-sm transition-transform group-hover:scale-105`}
-            >
-              <s.icon className="h-5 w-5" />
-            </span>
-            <h2 className="font-semibold">{s.title}</h2>
-            <p className="mt-1 flex-1 text-xs text-muted-foreground">
-              {s.description}
-            </p>
-          </Link>
-        ))}
-      </div>
     </div>
   );
 }
