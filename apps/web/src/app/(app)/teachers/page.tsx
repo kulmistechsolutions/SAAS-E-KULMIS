@@ -320,7 +320,7 @@ export default function TeachersPage() {
                         <Action title={tr("teachers.edit")} icon={Pencil} onClick={() => { setEditing(t); setFormOpen(true); }} />
                         <Action title={tr("teachers.assignSubjects")} icon={BookOpen} onClick={() => setAssignTeacher(t)} />
                         <Action href={`/teachers/${t.id}?tab=assignments`} title={tr("teachers.viewAssignments")} icon={BookOpen} />
-                        <Action title={tr("teachers.copyPortalLink")} icon={LinkIcon} onClick={() => void copyPortalLink("teacher", t.code)} />
+                        <Action title={tr("teachers.copyPortalLink")} icon={LinkIcon} onClick={() => void copyPortalLink("teacher")} />
                         <Action title={tr("teachers.resetPassword")} icon={KeyRound} onClick={() => handleResetPassword(t)} />
                         <Action title={tr("teachers.printProfile")} icon={Printer} onClick={() => printTeacherProfile(t, state.assignments.filter((a) => a.teacherId === t.id))} />
                         <Action title={tr("teachers.download")} icon={Download} onClick={() => exportTeachersCsv([t], state.assignments, lastFields, `${t.code}.csv`)} />
