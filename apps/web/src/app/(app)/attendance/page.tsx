@@ -38,6 +38,7 @@ import { isFullAccessRole } from "@/lib/rbac/routes";
 import { useHydrated } from "@/lib/use-hydrated";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { toast } from "@/lib/toast";
 import {
   apiAttendanceOverview,
@@ -97,6 +98,7 @@ export default function AttendanceDashboardPage() {
   const [days, setDays] = useState(7);
   const [data, setData] = useState<AttendanceOverview | null>(null);
   const [loading, setLoading] = useState(true);
+  const [reportOpen, setReportOpen] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -146,34 +148,108 @@ export default function AttendanceDashboardPage() {
     ];
   }, [data]);
 
-  function printToday() {
-    if (!data || data.registers.length === 0) {
-      toast("Nothing has been marked for this date.", "error");
+  /**
+   * The report a school asked for, on school paper.
+   *
+   * Four scopes, because "generate report" on its own is four different
+   * documents and picking one for the user gets it wrong three times out of
+   * four. Every one of them is built from the figures already on screen, so
+   * the paper and the page can never disagree.
+   */
+  function generate(scope: ReportScope) {
+    if (!data) return;
+
+    if (scope.kind === "WINDOW") {
+      if (data.byClass.length === 0) {
+        toast("Nothing was marked in this window.", "error");
+        return;
+      }
+      printAttendanceReport({
+        kind: "RANGE",
+        scope: [
+          { label: "Period", value: `Last ${days} days, to ${date}` },
+          { label: "Coverage", value: "Every class with attendance" },
+        ],
+        summary: [
+          { label: "Classes", value: String(data.byClass.length) },
+          {
+            label: "Average rate",
+            value: `${Math.round(
+              data.byClass.reduce((n, c) => n + c.rate, 0) / data.byClass.length,
+            )}%`,
+          },
+        ],
+        columns: [
+          { key: "className", label: "Class" },
+          { key: "marked", label: "Records", align: "end" },
+          { key: "rate", label: "Attendance %", align: "end" },
+        ],
+        rows: data.byClass.map((c) => ({
+          className: c.className,
+          marked: c.marked,
+          rate: `${c.rate}%`,
+        })),
+      });
+      setReportOpen(false);
       return;
     }
+
+    const rows = data.registers.filter((r) =>
+      scope.kind === "CLASS"
+        ? r.classId === scope.value
+        : scope.kind === "SHIFT"
+          ? (r.shift || "—") === scope.value
+          : true,
+    );
+
+    if (rows.length === 0) {
+      toast("Nothing has been marked for that selection.", "error");
+      return;
+    }
+
+    // Totalled from the rows being printed, not from the whole day — a
+    // one-class report whose summary counts the school is a wrong document.
+    const sum = (k: "total" | "present" | "absent" | "late" | "excused") =>
+      rows.reduce((n, r) => n + r[k], 0);
+    const markedRows = sum("present") + sum("absent") + sum("late") + sum("excused");
+
     printAttendanceReport({
       kind: "DAILY",
       scope: [
         { label: "Date", value: date },
-        { label: "Registers", value: `${data.completion.taken} of ${data.completion.expected}` },
+        {
+          label: "Coverage",
+          value:
+            scope.kind === "CLASS"
+              ? (data.registers.find((r) => r.classId === scope.value)?.className ?? "One class")
+              : scope.kind === "SHIFT"
+                ? `${scope.value} shift`
+                : "Every class",
+        },
+        { label: "Registers", value: String(rows.length) },
       ],
       summary: [
-        { label: "Present", value: String(tod?.PRESENT ?? 0) },
-        { label: "Absent", value: String(tod?.ABSENT ?? 0) },
-        { label: "Late", value: String(tod?.LATE ?? 0) },
-        { label: "Rate", value: `${tod?.rate ?? 0}%` },
+        { label: "On roll", value: String(sum("total")) },
+        { label: "Present", value: String(sum("present")) },
+        { label: "Absent", value: String(sum("absent")) },
+        { label: "Late", value: String(sum("late")) },
+        {
+          label: "Rate",
+          value: `${markedRows ? Math.round(((sum("present") + sum("late")) / markedRows) * 100) : 0}%`,
+        },
       ],
       columns: [
         { key: "className", label: "Class" },
         { key: "section", label: "Section" },
         { key: "shift", label: "Shift" },
-        { key: "total", label: "Total", align: "end" },
+        { key: "total", label: "On roll", align: "end" },
         { key: "present", label: "Present", align: "end" },
         { key: "absent", label: "Absent", align: "end" },
         { key: "late", label: "Late", align: "end" },
+        { key: "excused", label: "Excused", align: "end" },
         { key: "state", label: "Status" },
       ],
-      rows: data.registers.map((r) => ({
+      rows: rows.map((r) => ({
         className: r.className,
         section: r.section || "—",
         shift: r.shift || "—",
@@ -181,9 +257,11 @@ export default function AttendanceDashboardPage() {
         present: r.present,
         absent: r.absent,
         late: r.late,
-        state: r.state === "COMPLETED" ? "Completed" : "Partial",
+        excused: r.excused,
+        state: r.state === "COMPLETED" ? "Completed" : `${r.marked}/${r.total}`,
       })),
     });
+    setReportOpen(false);
   }
 
   if (!hydrated) return null;
@@ -216,7 +294,7 @@ export default function AttendanceDashboardPage() {
           <Button variant="outline" className="h-9" onClick={() => void load()}>
             <RefreshCw className="me-2 h-4 w-4" /> Refresh
           </Button>
-          <Button className="h-9" onClick={printToday}>
+          <Button className="h-9" onClick={() => setReportOpen(true)}>
             <Printer className="me-2 h-4 w-4" /> Generate Report
           </Button>
         </div>
@@ -570,6 +648,184 @@ export default function AttendanceDashboardPage() {
             </div>
           )}
         </Panel>
+      </div>
+
+      {reportOpen && data && (
+        <ReportDialog
+          date={date}
+          days={days}
+          registers={data.registers}
+          classCount={data.byClass.length}
+          onClose={() => setReportOpen(false)}
+          onGenerate={generate}
+        />
+      )}
+    </div>
+  );
+}
+
+/** What a report is to cover. */
+type ReportScope =
+  | { kind: "TODAY" }
+  | { kind: "CLASS"; value: string }
+  | { kind: "SHIFT"; value: string }
+  | { kind: "WINDOW" };
+
+/**
+ * Which report, before it is made.
+ *
+ * "Generate report" on its own is four different documents — the whole day,
+ * one class, one shift, or the period — and choosing for the user gets it
+ * wrong three times out of four.
+ *
+ * The class and shift lists come from what was actually marked on the day, so
+ * the dialog cannot offer a report that would come out empty.
+ */
+function ReportDialog({
+  date,
+  days,
+  registers,
+  classCount,
+  onClose,
+  onGenerate,
+}: {
+  date: string;
+  days: number;
+  registers: AttendanceOverview["registers"];
+  classCount: number;
+  onClose: () => void;
+  onGenerate: (scope: ReportScope) => void;
+}) {
+  const classes = useMemo(() => {
+    const seen = new Map<string, string>();
+    for (const r of registers) if (!seen.has(r.classId)) seen.set(r.classId, r.className);
+    return [...seen.entries()].map(([id, name]) => ({ id, name }));
+  }, [registers]);
+
+  const shifts = useMemo(
+    () => [...new Set(registers.map((r) => r.shift).filter(Boolean))],
+    [registers],
+  );
+
+  const [kind, setKind] = useState<ReportScope["kind"]>("TODAY");
+  const [classId, setClassId] = useState(classes[0]?.id ?? "");
+  const [shift, setShift] = useState(shifts[0] ?? "");
+
+  const choices: { id: ReportScope["kind"]; title: string; note: string; disabled?: boolean }[] = [
+    {
+      id: "TODAY",
+      title: "This day — every class",
+      note: `${registers.length} register${registers.length === 1 ? "" : "s"} taken on ${date}`,
+      disabled: registers.length === 0,
+    },
+    {
+      id: "CLASS",
+      title: "One class",
+      note: classes.length ? "Choose the class below" : "No class was marked on this day",
+      disabled: classes.length === 0,
+    },
+    {
+      id: "SHIFT",
+      title: "One shift",
+      note: shifts.length ? "Choose the shift below" : "This school does not use shifts",
+      disabled: shifts.length === 0,
+    },
+    {
+      id: "WINDOW",
+      title: `The period — last ${days} days`,
+      note: classCount ? `${classCount} classes with attendance` : "Nothing marked in this window",
+      disabled: classCount === 0,
+    },
+  ];
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div className="w-full max-w-lg rounded-2xl border bg-card p-5 shadow-xl">
+        <h2 className="font-semibold">Generate Attendance Report</h2>
+        <p className="mt-0.5 text-sm text-muted-foreground">
+          What should the report cover?
+        </p>
+
+        <div className="mt-4 space-y-2">
+          {choices.map((c) => (
+            <label
+              key={c.id}
+              className={`flex items-start gap-3 rounded-xl border p-3 transition-colors ${
+                c.disabled
+                  ? "cursor-not-allowed opacity-50"
+                  : kind === c.id
+                    ? "cursor-pointer border-primary bg-primary/5"
+                    : "cursor-pointer hover:bg-secondary/50"
+              }`}
+            >
+              <input
+                type="radio"
+                className="mt-0.5"
+                checked={kind === c.id}
+                disabled={c.disabled}
+                onChange={() => setKind(c.id)}
+              />
+              <span className="min-w-0">
+                <span className="block text-sm font-medium">{c.title}</span>
+                <span className="mt-0.5 block text-xs text-muted-foreground">{c.note}</span>
+              </span>
+            </label>
+          ))}
+        </div>
+
+        {kind === "CLASS" && classes.length > 0 && (
+          <div className="mt-3">
+            <Label>Class</Label>
+            <select
+              value={classId}
+              onChange={(e) => setClassId(e.target.value)}
+              className="mt-1 h-10 w-full rounded-lg border bg-background px-3 text-sm outline-none focus:border-primary"
+            >
+              {classes.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {kind === "SHIFT" && shifts.length > 0 && (
+          <div className="mt-3">
+            <Label>Shift</Label>
+            <select
+              value={shift}
+              onChange={(e) => setShift(e.target.value)}
+              className="mt-1 h-10 w-full rounded-lg border bg-background px-3 text-sm outline-none focus:border-primary"
+            >
+              {shifts.map((sh) => (
+                <option key={sh} value={sh}>
+                  {sh}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        <div className="mt-5 flex justify-end gap-2">
+          <Button variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button
+            onClick={() =>
+              onGenerate(
+                kind === "CLASS"
+                  ? { kind: "CLASS", value: classId }
+                  : kind === "SHIFT"
+                    ? { kind: "SHIFT", value: shift }
+                    : { kind },
+              )
+            }
+            disabled={choices.find((c) => c.id === kind)?.disabled}
+          >
+            <Printer className="me-2 h-4 w-4" /> Generate
+          </Button>
+        </div>
       </div>
     </div>
   );
