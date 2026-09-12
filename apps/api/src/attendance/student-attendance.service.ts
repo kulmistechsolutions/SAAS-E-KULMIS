@@ -342,6 +342,212 @@ export class StudentAttendanceService {
     });
   }
 
+  /**
+   * Everything the attendance dashboard draws, in one request.
+   *
+   * Four questions a school asks every morning, answered from the attendance
+   * rows themselves: how did today go, which registers are still outstanding,
+   * is the school drifting over the last fortnight, and which classes and which
+   * children are the problem.
+   *
+   * Aggregated in the database rather than by reading every row: a school with
+   * a thousand students and a term of history would otherwise ship a hundred
+   * thousand records to draw six numbers.
+   */
+  async overview(
+    schoolId: string,
+    dateStr: string,
+    opts: { days?: number; classIds?: string[] } = {},
+  ) {
+    const date = parseDate(dateStr);
+    const days = Math.min(Math.max(opts.days ?? 14, 1), 90);
+
+    // The window ends on the day being viewed, not on today: looking back at
+    // last Tuesday should show the fortnight up to last Tuesday.
+    const from = new Date(date);
+    from.setUTCDate(from.getUTCDate() - (days - 1));
+
+    const scope =
+      opts.classIds && opts.classIds.length > 0
+        ? { classId: { in: opts.classIds } }
+        : {};
+
+    return this.prisma.forTenant(schoolId, async (tx) => {
+      const year = await tx.academicYear.findFirst({
+        where: { isActive: true },
+        select: { id: true },
+      });
+
+      const classes = await tx.class.findMany({
+        where: {
+          status: "ACTIVE",
+          ...(year ? { academicYearId: year.id } : {}),
+          ...(opts.classIds && opts.classIds.length > 0
+            ? { id: { in: opts.classIds } }
+            : {}),
+        },
+        select: { id: true, name: true, orderIndex: true },
+        orderBy: { orderIndex: "asc" },
+      });
+      const classIds = classes.map((c) => c.id);
+      const nameOf = new Map(classes.map((c) => [c.id, c.name]));
+
+      if (classIds.length === 0) {
+        return {
+          date: dateStr,
+          days,
+          today: { PRESENT: 0, ABSENT: 0, LATE: 0, EXCUSED: 0, total: 0, expected: 0, rate: 0 },
+          completion: { expected: 0, taken: 0, pending: 0, percent: 0 },
+          trend: [] as { date: string; rate: number; marked: number }[],
+          byClass: [] as { classId: string; className: string; rate: number; marked: number }[],
+          mostAbsent: [] as {
+            studentId: string;
+            code: string;
+            fullName: string;
+            className: string;
+            absences: number;
+          }[],
+        };
+      }
+
+      const [todayGroups, roll, takenToday, windowRows, absentRows] =
+        await Promise.all([
+          tx.studentAttendance.groupBy({
+            by: ["status"],
+            where: { date, classId: { in: classIds } },
+            _count: { _all: true },
+          }),
+          tx.student.count({
+            where: { status: "ACTIVE", classId: { in: classIds } },
+          }),
+          // One register is one class on one day, so the distinct classes with
+          // any row today is how many have actually been taken.
+          tx.studentAttendance.findMany({
+            where: { date, classId: { in: classIds } },
+            select: { classId: true },
+            distinct: ["classId"],
+          }),
+          tx.studentAttendance.groupBy({
+            by: ["date", "status"],
+            where: { date: { gte: from, lte: date }, classId: { in: classIds } },
+            _count: { _all: true },
+          }),
+          tx.studentAttendance.groupBy({
+            by: ["studentId"],
+            where: {
+              date: { gte: from, lte: date },
+              classId: { in: classIds },
+              status: "ABSENT",
+            },
+            _count: { _all: true },
+            orderBy: { _count: { studentId: "desc" } },
+            take: 10,
+          }),
+        ]);
+
+      const counts = { PRESENT: 0, ABSENT: 0, LATE: 0, EXCUSED: 0 };
+      for (const g of todayGroups) counts[g.status] = g._count._all;
+      const marked =
+        counts.PRESENT + counts.ABSENT + counts.LATE + counts.EXCUSED;
+      // Late is still attendance: a child who arrived is not absent.
+      const rate = marked
+        ? Math.round(((counts.PRESENT + counts.LATE) / marked) * 100)
+        : 0;
+
+      // One point per day in the window, including the days nobody marked —
+      // a chart that simply skips them draws a smooth line through a gap and
+      // shows a school a trend that did not happen.
+      const byDay = new Map<string, { present: number; marked: number }>();
+      for (let i = 0; i < days; i += 1) {
+        const d = new Date(from);
+        d.setUTCDate(d.getUTCDate() + i);
+        byDay.set(d.toISOString().slice(0, 10), { present: 0, marked: 0 });
+      }
+      for (const g of windowRows) {
+        const key = g.date.toISOString().slice(0, 10);
+        const slot = byDay.get(key);
+        if (!slot) continue;
+        slot.marked += g._count._all;
+        if (g.status === "PRESENT" || g.status === "LATE") {
+          slot.present += g._count._all;
+        }
+      }
+
+      const classGroups = await tx.studentAttendance.groupBy({
+        by: ["classId", "status"],
+        where: { date: { gte: from, lte: date }, classId: { in: classIds } },
+        _count: { _all: true },
+      });
+      const perClass = new Map<string, { present: number; marked: number }>();
+      for (const g of classGroups) {
+        const slot = perClass.get(g.classId) ?? { present: 0, marked: 0 };
+        slot.marked += g._count._all;
+        if (g.status === "PRESENT" || g.status === "LATE") {
+          slot.present += g._count._all;
+        }
+        perClass.set(g.classId, slot);
+      }
+
+      const students = absentRows.length
+        ? await tx.student.findMany({
+            where: { id: { in: absentRows.map((a) => a.studentId) } },
+            select: { id: true, code: true, fullName: true, classId: true },
+          })
+        : [];
+      const studentOf = new Map(students.map((st) => [st.id, st]));
+
+      return {
+        date: dateStr,
+        days,
+        today: {
+          ...counts,
+          total: marked,
+          /** Active children in scope — what a complete day would have marked. */
+          expected: roll,
+          rate,
+        },
+        completion: {
+          expected: classIds.length,
+          taken: takenToday.length,
+          pending: Math.max(0, classIds.length - takenToday.length),
+          percent: classIds.length
+            ? Math.round((takenToday.length / classIds.length) * 100)
+            : 0,
+        },
+        trend: [...byDay.entries()].map(([d, v]) => ({
+          date: d,
+          rate: v.marked ? Math.round((v.present / v.marked) * 100) : 0,
+          marked: v.marked,
+        })),
+        byClass: classes
+          .map((c) => {
+            const v = perClass.get(c.id) ?? { present: 0, marked: 0 };
+            return {
+              classId: c.id,
+              className: c.name,
+              rate: v.marked ? Math.round((v.present / v.marked) * 100) : 0,
+              marked: v.marked,
+            };
+          })
+          // A class nobody has marked has no rate to report, and showing it as
+          // 0% reads as a catastrophe rather than as no data.
+          .filter((c) => c.marked > 0),
+        mostAbsent: absentRows
+          .map((a) => {
+            const st = studentOf.get(a.studentId);
+            return {
+              studentId: a.studentId,
+              code: st?.code ?? "",
+              fullName: st?.fullName ?? "",
+              className: st ? (nameOf.get(st.classId) ?? "") : "",
+              absences: a._count._all,
+            };
+          })
+          .filter((r) => r.fullName),
+      };
+    });
+  }
+
   /** Daily dashboard counts (optionally scoped to a class/section/shift). */
   async dashboard(
     schoolId: string,

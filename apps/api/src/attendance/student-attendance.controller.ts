@@ -117,6 +117,34 @@ export class StudentAttendanceController {
     return this.scope.myDay(me.schoolId, me.userId, date);
   }
 
+  /**
+   * Everything the attendance dashboard draws, in one request.
+   *
+   * Scoped roles get their own classes and nobody else's — the same grant list
+   * the marking screens use, so an officer's dashboard and their register can
+   * never disagree about what they are responsible for.
+   */
+  @RequirePermission("attendance.view")
+  @Get("overview")
+  async overview(
+    @CurrentUser() me: AuthUser,
+    @Query("date") date: string,
+    @Query("days") days?: string,
+  ) {
+    if (!date) throw new BadRequestException("date is required");
+    const visible = await this.scope.visibleClassIds(
+      me.schoolId,
+      me.userId,
+      me.role,
+    );
+    return this.attendance.overview(me.schoolId, date, {
+      days: days ? Number(days) : undefined,
+      // Null means unrestricted; an empty list means assigned to nothing, and
+      // that has to stay empty rather than falling through to the whole school.
+      classIds: visible ?? undefined,
+    });
+  }
+
   @RequirePermission("attendance.view")
   @Get("dashboard")
   async dashboard(

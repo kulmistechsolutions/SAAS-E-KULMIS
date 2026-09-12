@@ -103,6 +103,51 @@ export async function apiMarkStudentAttendance(body: {
   return api("/student-attendance/mark", { method: "POST", body });
 }
 
+/**
+ * Everything the attendance dashboard draws, in one request.
+ *
+ * One call rather than five, because a dashboard that fires a request per card
+ * shows a school five different moments as though they were one.
+ */
+export interface AttendanceOverview {
+  date: string;
+  days: number;
+  today: {
+    PRESENT: number;
+    ABSENT: number;
+    LATE: number;
+    EXCUSED: number;
+    total: number;
+    /** Active children in scope — what a complete day would have marked. */
+    expected: number;
+    rate: number;
+  };
+  completion: {
+    expected: number;
+    taken: number;
+    pending: number;
+    percent: number;
+  };
+  trend: { date: string; rate: number; marked: number }[];
+  byClass: { classId: string; className: string; rate: number; marked: number }[];
+  mostAbsent: {
+    studentId: string;
+    code: string;
+    fullName: string;
+    className: string;
+    absences: number;
+  }[];
+}
+
+export async function apiAttendanceOverview(
+  date: string,
+  days = 14,
+): Promise<AttendanceOverview> {
+  return api<AttendanceOverview>(
+    `/student-attendance/overview?date=${date}&days=${days}`,
+  );
+}
+
 export async function apiStudentDashboard(
   date: string,
   classId?: string,
