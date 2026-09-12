@@ -128,6 +128,26 @@ export interface AttendanceOverview {
     pending: number;
     percent: number;
   };
+  /** Yesterday's rate, or null when yesterday was not marked. */
+  previousRate: number | null;
+  gender: {
+    male: { present: number; marked: number; rate: number };
+    female: { present: number; marked: number; rate: number };
+  };
+  /** One row per class/section/shift — the unit somebody sits down and takes. */
+  registers: {
+    classId: string;
+    className: string;
+    section: string;
+    shift: string;
+    total: number;
+    marked: number;
+    present: number;
+    absent: number;
+    late: number;
+    excused: number;
+    state: string;
+  }[];
   trend: { date: string; rate: number; marked: number }[];
   byClass: { classId: string; className: string; rate: number; marked: number }[];
   mostAbsent: {

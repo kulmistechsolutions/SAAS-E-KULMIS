@@ -398,6 +398,16 @@ export class StudentAttendanceService {
           days,
           today: { PRESENT: 0, ABSENT: 0, LATE: 0, EXCUSED: 0, total: 0, expected: 0, rate: 0 },
           completion: { expected: 0, taken: 0, pending: 0, percent: 0 },
+          previousRate: null as number | null,
+          gender: {
+            male: { present: 0, marked: 0, rate: 0 },
+            female: { present: 0, marked: 0, rate: 0 },
+          },
+          registers: [] as {
+            classId: string; className: string; section: string; shift: string;
+            total: number; marked: number; present: number; absent: number;
+            late: number; excused: number; state: string;
+          }[],
           trend: [] as { date: string; rate: number; marked: number }[],
           byClass: [] as { classId: string; className: string; rate: number; marked: number }[],
           mostAbsent: [] as {
@@ -410,8 +420,21 @@ export class StudentAttendanceService {
         };
       }
 
-      const [todayGroups, roll, takenToday, windowRows, absentRows] =
-        await Promise.all([
+      // Yesterday is the comparison every attendance figure is read
+      // against — "86% today" means nothing without it.
+      const prev = new Date(date);
+      prev.setUTCDate(prev.getUTCDate() - 1);
+
+      const [
+        todayGroups,
+        roll,
+        takenToday,
+        windowRows,
+        absentRows,
+        genderRows,
+        prevGroups,
+        registerRows,
+      ] = await Promise.all([
           tx.studentAttendance.groupBy({
             by: ["status"],
             where: { date, classId: { in: classIds } },
@@ -442,6 +465,24 @@ export class StudentAttendanceService {
             _count: { _all: true },
             orderBy: { _count: { studentId: "desc" } },
             take: 10,
+          }),
+          // Attendance joined to the child, because the register does not
+          // carry a gender and the split is asked for by class inspectors.
+          tx.studentAttendance.findMany({
+            where: { date, classId: { in: classIds } },
+            select: { status: true, student: { select: { gender: true } } },
+          }),
+          tx.studentAttendance.groupBy({
+            by: ["status"],
+            where: { date: prev, classId: { in: classIds } },
+            _count: { _all: true },
+          }),
+          // One row per class and shift — the unit somebody actually sits
+          // down and takes. A class with two shifts is two jobs.
+          tx.studentAttendance.groupBy({
+            by: ["classId", "sectionId", "shiftId", "status"],
+            where: { date, classId: { in: classIds } },
+            _count: { _all: true },
           }),
         ]);
 
@@ -488,6 +529,105 @@ export class StudentAttendanceService {
         perClass.set(g.classId, slot);
       }
 
+      // Male and female, present against marked. A school with nobody marked
+      // gets zeroes rather than a division by nothing.
+      const gender = { male: { present: 0, marked: 0 }, female: { present: 0, marked: 0 } };
+      for (const r of genderRows) {
+        const slot = r.student.gender === "FEMALE" ? gender.female : gender.male;
+        slot.marked += 1;
+        if (r.status === "PRESENT" || r.status === "LATE") slot.present += 1;
+      }
+
+      const prevCounts = { PRESENT: 0, ABSENT: 0, LATE: 0, EXCUSED: 0 };
+      for (const g of prevGroups) prevCounts[g.status] = g._count._all;
+      const prevMarked =
+        prevCounts.PRESENT + prevCounts.ABSENT + prevCounts.LATE + prevCounts.EXCUSED;
+      const prevRate = prevMarked
+        ? Math.round(((prevCounts.PRESENT + prevCounts.LATE) / prevMarked) * 100)
+        : null;
+
+      // Roll per class, so a register can say how many it is missing.
+      const rollRows = await tx.student.groupBy({
+        by: ["classId"],
+        where: { status: "ACTIVE", classId: { in: classIds } },
+        _count: { _all: true },
+      });
+      const rollOf = new Map(rollRows.map((r) => [r.classId, r._count._all]));
+
+      const sectionIds = [
+        ...new Set(
+          registerRows
+            .map((r) => r.sectionId)
+            .filter((x): x is string => Boolean(x)),
+        ),
+      ];
+      const shiftIds = [
+        ...new Set(
+          registerRows.map((r) => r.shiftId).filter((x): x is string => Boolean(x)),
+        ),
+      ];
+      const [sections, shifts] = await Promise.all([
+        sectionIds.length
+          ? tx.section.findMany({
+              where: { id: { in: sectionIds } },
+              select: { id: true, name: true },
+            })
+          : Promise.resolve([]),
+        shiftIds.length
+          ? tx.attendanceShift.findMany({
+              where: { id: { in: shiftIds } },
+              select: { id: true, name: true },
+            })
+          : Promise.resolve([]),
+      ]);
+      const sectionName = new Map(sections.map((x) => [x.id, x.name]));
+      const shiftLabel = new Map(shifts.map((x) => [x.id, x.name]));
+
+      const regMap = new Map<
+        string,
+        { classId: string; sectionId: string | null; shiftId: string | null;
+          present: number; absent: number; late: number; excused: number }
+      >();
+      for (const r of registerRows) {
+        const key = `${r.classId}|${r.sectionId ?? ""}|${r.shiftId ?? ""}`;
+        const cur =
+          regMap.get(key) ??
+          {
+            classId: r.classId,
+            sectionId: r.sectionId,
+            shiftId: r.shiftId,
+            present: 0,
+            absent: 0,
+            late: 0,
+            excused: 0,
+          };
+        if (r.status === "PRESENT") cur.present += r._count._all;
+        else if (r.status === "ABSENT") cur.absent += r._count._all;
+        else if (r.status === "LATE") cur.late += r._count._all;
+        else cur.excused += r._count._all;
+        regMap.set(key, cur);
+      }
+
+      const registers = [...regMap.values()].map((r) => {
+        const marked = r.present + r.absent + r.late + r.excused;
+        const total = rollOf.get(r.classId) ?? marked;
+        return {
+          classId: r.classId,
+          className: nameOf.get(r.classId) ?? "",
+          section: r.sectionId ? (sectionName.get(r.sectionId) ?? "") : "",
+          shift: r.shiftId ? (shiftLabel.get(r.shiftId) ?? "") : "",
+          total,
+          marked,
+          present: r.present,
+          absent: r.absent,
+          late: r.late,
+          excused: r.excused,
+          // Partial is its own answer: a half-taken register is not done, and
+          // calling it done is how an absent child goes unnoticed.
+          state: marked >= total ? "COMPLETED" : "PARTIAL",
+        };
+      });
+
       const students = absentRows.length
         ? await tx.student.findMany({
             where: { id: { in: absentRows.map((a) => a.studentId) } },
@@ -514,6 +654,27 @@ export class StudentAttendanceService {
             ? Math.round((takenToday.length / classIds.length) * 100)
             : 0,
         },
+        /** Yesterday's rate, or null when yesterday was not marked. */
+        previousRate: prevRate,
+        gender: {
+          male: {
+            ...gender.male,
+            rate: gender.male.marked
+              ? Math.round((gender.male.present / gender.male.marked) * 100)
+              : 0,
+          },
+          female: {
+            ...gender.female,
+            rate: gender.female.marked
+              ? Math.round((gender.female.present / gender.female.marked) * 100)
+              : 0,
+          },
+        },
+        registers: registers.sort(
+          (a, b) =>
+            a.className.localeCompare(b.className, undefined, { numeric: true }) ||
+            a.section.localeCompare(b.section),
+        ),
         trend: [...byDay.entries()].map(([d, v]) => ({
           date: d,
           rate: v.marked ? Math.round((v.present / v.marked) * 100) : 0,
