@@ -204,7 +204,7 @@ export function dashboardSummary(month?: string): SalaryDashboardSummary {
   const pendingSalaries = monthPayroll.filter((p) => p.status === "PENDING").length;
   const partialPayments = monthPayroll.filter((p) => p.status === "PARTIAL").length;
 
-  const annualPayroll = s.payroll.reduce((sum, p) => sum + p.netSalary, 0);
+  const payrollAllTime = s.payroll.reduce((sum, p) => sum + p.netSalary, 0);
 
   return {
     totalEmployees: active.length,
@@ -212,10 +212,12 @@ export function dashboardSummary(month?: string): SalaryDashboardSummary {
     totalStaff: active.filter((e) => e.type === "STAFF").length,
     monthlyPayroll,
     salariesPaid,
+    // Never below zero: an overpaid month is a thing to investigate, not a
+    // negative amount owed to a teacher.
+    outstanding: Math.max(0, monthlyPayroll - salariesPaid),
     pendingSalaries,
     partialPayments,
-    payrollThisMonth: monthlyPayroll,
-    annualPayroll,
+    payrollAllTime,
   };
 }
 

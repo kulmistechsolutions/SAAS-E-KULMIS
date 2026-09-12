@@ -80,16 +80,32 @@ export interface SalaryState {
   academicYear: string;
 }
 
+/**
+ * What the salary dashboard shows.
+ *
+ * Every figure here answers a different question. The page used to carry
+ * `payrollThisMonth` as well, which was assigned the same value as
+ * `monthlyPayroll` — two cards, one number, and an administrator counting the
+ * month twice. And `annualPayroll` summed every payroll row on record
+ * regardless of year, so a school in its first term read its August total as
+ * its annual wage bill.
+ */
 export interface SalaryDashboardSummary {
+  /** Active people on payroll, and the split. */
   totalEmployees: number;
   totalTeachers: number;
   totalStaff: number;
+  /** What the selected month costs in full. */
   monthlyPayroll: number;
+  /** Of that, what has been handed over. */
   salariesPaid: number;
+  /** And what has not — the number a school acts on. */
+  outstanding: number;
+  /** How many people are waiting, and how many are part paid. */
   pendingSalaries: number;
   partialPayments: number;
-  payrollThisMonth: number;
-  annualPayroll: number;
+  /** Every payroll row on record, whatever the year. Named for what it is. */
+  payrollAllTime: number;
 }
 
 export interface PayrollRow {

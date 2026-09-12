@@ -1,7 +1,7 @@
 "use client";
 
 
-import { useT } from "@/lib/i18n/provider";
+import { useT, type TranslationKey } from "@/lib/i18n/provider";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Calendar, ChevronRight, FileText, History, Users, Wallet } from "lucide-react";
@@ -22,11 +22,37 @@ import { toast } from "@/lib/toast";
 import { Button } from "@/components/ui/button";
 import { useHydrated } from "@/lib/use-hydrated";
 
-const QUICK = [
-  { href: "/salary/payroll", label: "Monthly Payroll", desc: "Generate & pay salaries", icon: Wallet },
-  { href: "/salary/employees", label: "Employees", desc: "Salary profiles & setup", icon: Users },
-  { href: "/salary/history", label: "Salary History", desc: "All payroll records", icon: History },
-  { href: "/salary/reports", label: "Reports", desc: "Payroll analytics", icon: FileText },
+/** The four places this page leads to. Translated like the rest of it. */
+const QUICK: {
+  href: string;
+  label: TranslationKey;
+  desc: TranslationKey;
+  icon: typeof Wallet;
+}[] = [
+  {
+    href: "/salary/payroll",
+    label: "salary.quickMonthlyPayroll",
+    desc: "salary.quickMonthlyPayrollDesc",
+    icon: Wallet,
+  },
+  {
+    href: "/salary/employees",
+    label: "salary.quickEmployees",
+    desc: "salary.quickEmployeesDesc",
+    icon: Users,
+  },
+  {
+    href: "/salary/history",
+    label: "salary.quickHistory",
+    desc: "salary.quickHistoryDesc",
+    icon: History,
+  },
+  {
+    href: "/salary/reports",
+    label: "salary.quickReports",
+    desc: "salary.quickReportsDesc",
+    icon: FileText,
+  },
 ];
 
 export default function SalaryDashboardPage() {
@@ -116,7 +142,7 @@ export default function SalaryDashboardPage() {
         </div>
       </div>
 
-      {summary && <SalarySummaryCards summary={summary} />}
+      {summary && <SalarySummaryCards summary={summary} month={month} />}
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {QUICK.map((q) => (
@@ -131,8 +157,8 @@ export default function SalaryDashboardPage() {
               </span>
               <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 transition group-hover:opacity-100" />
             </div>
-            <p className="mt-3 font-semibold">{q.label}</p>
-            <p className="mt-1 text-xs text-muted-foreground">{q.desc}</p>
+            <p className="mt-3 font-semibold">{t(q.label)}</p>
+            <p className="mt-1 text-xs text-muted-foreground">{t(q.desc)}</p>
           </Link>
         ))}
       </div>
