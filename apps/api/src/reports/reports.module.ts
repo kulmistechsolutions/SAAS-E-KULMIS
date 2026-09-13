@@ -13,6 +13,7 @@ import { ExpenseReportsService } from "./expense-reports.service";
 import { FinancialReportsService } from "./financial-reports.service";
 import { QuizReportsService } from "./quiz-reports.service";
 import { AttendanceReportsService } from "./attendance-reports.service";
+import { SchoolPeriodService } from "./school-period.service";
 import { CardDesignsController } from "./card-designs.controller";
 import { CardDesignsService } from "./card-designs.service";
 import { CardIssuesController } from "./card-issues.controller";
@@ -33,6 +34,7 @@ import { CardIssuesService } from "./card-issues.service";
     FinancialReportsService,
     QuizReportsService,
     AttendanceReportsService,
+    SchoolPeriodService,
     CardDesignsService,
     CardIssuesService,
   ],

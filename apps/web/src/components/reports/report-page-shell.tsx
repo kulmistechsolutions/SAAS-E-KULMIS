@@ -96,6 +96,13 @@ interface Props {
   report: ReportDef;
 }
 
+interface ReportPeriod {
+  firstMonth: string | null;
+  lastMonth: string;
+  firstDate: string | null;
+  lastDate: string;
+}
+
 export function ReportPageShell({ categoryId, categoryLabel, report }: Props) {
   const t = useT();
   const shiftOptions = useShifts();
@@ -168,6 +175,34 @@ export function ReportPageShell({ categoryId, categoryLabel, report }: Props) {
   // only ever held whatever the exams pages had loaded — so the dropdown could
   // be empty even when exams existed. It now comes from the same API the report
   // itself queries.
+  /**
+   * The months this school has actually been running.
+   *
+   * The month and date boxes were unbounded, so a school that opened in
+   * August could be asked for a January statement — and would get one: a
+   * stamped document on school letterhead asserting a month the school did
+   * not exist for, with zeroes under it. A zero meaning "nothing happened"
+   * and a zero meaning "we were not open" are not the same fact, and the
+   * printed page cannot tell them apart.
+   *
+   * Nothing is hidden by the bound: the school's whole history is inside it.
+   */
+  const [period, setPeriod] = useState<ReportPeriod | null>(null);
+  useEffect(() => {
+    if (!mounted) return;
+    let live = true;
+    void api<ReportPeriod>("/reports/period")
+      .then((p) => {
+        if (live) setPeriod(p);
+      })
+      // A window that cannot be read must not stop a report being run; the
+      // boxes simply stay as open as they were before.
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, [mounted]);
+
   const [exams, setExams] = useState<{ id: string; name: string }[]>([]);
   useEffect(() => {
     if (!mounted || categoryId !== "examinations") return;
@@ -452,9 +487,16 @@ export function ReportPageShell({ categoryId, categoryLabel, report }: Props) {
                 <input
                   type="month"
                   value={filters.month ?? ""}
+                  min={period?.firstMonth ?? undefined}
+                  max={period?.lastMonth}
                   onChange={(e) => setFilter("month", e.target.value)}
                   className="h-10 w-full rounded-lg border bg-background px-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                 />
+                {period?.firstMonth && (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Records run from {period.firstMonth} to {period.lastMonth}.
+                  </p>
+                )}
               </div>
             )}
             {report.filters.includes("date") && (
@@ -463,6 +505,8 @@ export function ReportPageShell({ categoryId, categoryLabel, report }: Props) {
                 <input
                   type="date"
                   value={filters.date ?? ""}
+                  min={period?.firstDate ?? undefined}
+                  max={period?.lastDate}
                   onChange={(e) => setFilter("date", e.target.value)}
                   className="h-10 w-full rounded-lg border bg-background px-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                 />
@@ -474,6 +518,8 @@ export function ReportPageShell({ categoryId, categoryLabel, report }: Props) {
                 <input
                   type="date"
                   value={filters.dateFrom ?? ""}
+                  min={period?.firstDate ?? undefined}
+                  max={period?.lastDate}
                   onChange={(e) => setFilter("dateFrom", e.target.value)}
                   className="h-10 w-full rounded-lg border bg-background px-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                 />
@@ -485,6 +531,8 @@ export function ReportPageShell({ categoryId, categoryLabel, report }: Props) {
                 <input
                   type="date"
                   value={filters.dateTo ?? ""}
+                  min={period?.firstDate ?? undefined}
+                  max={period?.lastDate}
                   onChange={(e) => setFilter("dateTo", e.target.value)}
                   className="h-10 w-full rounded-lg border bg-background px-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                 />

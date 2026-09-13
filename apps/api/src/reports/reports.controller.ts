@@ -19,7 +19,9 @@ import { ExpenseReportsService } from "./expense-reports.service";
 import { FinancialReportsService } from "./financial-reports.service";
 import { QuizReportsService } from "./quiz-reports.service";
 import { AttendanceReportsService } from "./attendance-reports.service";
+import { SchoolPeriodService } from "./school-period.service";
 import { Roles } from "../auth/roles.decorator";
+import { STAFF_ROLES } from "../auth/role-groups";
 import { CurrentUser } from "../auth/current-user.decorator";
 import type { AuthUser } from "../auth/auth.types";
 import { RequirePermission } from "../auth/require-permission.decorator";
@@ -38,7 +40,21 @@ export class ReportsController {
     private readonly financialReports: FinancialReportsService,
     private readonly quizReports: QuizReportsService,
     private readonly attendanceReports: AttendanceReportsService,
+    private readonly period: SchoolPeriodService,
   ) {}
+
+  /**
+   * The months this school has been running.
+   *
+   * Every report filter is bounded by this, so nobody can produce a
+   * statement for a month the school did not exist for. Any signed-in
+   * member of staff who can open a report can read it.
+   */
+  @Roles(...STAFF_ROLES)
+  @Get("period")
+  reportPeriod(@CurrentUser() me: AuthUser) {
+    return this.period.get(me.schoolId);
+  }
 
   /** Promotion and graduation reports, computed from the database. */
   @Roles(UserRole.ADMINISTRATOR, UserRole.FINANCE_OFFICER, UserRole.EXAM_MANAGER, UserRole.ACADEMIC_MANAGER)
