@@ -172,6 +172,21 @@ export const DOC_TYPES: DocTypeDef[] = [
     defaultPaper: "A4",
   },
   {
+    id: "REPORT_DOCUMENT",
+    category: "STUDENTS",
+    label: "Reports Centre Document",
+    note: "Every report in the Reports Centre, on school paper.",
+    printedFrom: "Reports → any report → Preview, Print or PDF",
+    // A report is a wide table more often than not, so landscape is this
+    // document's default; a school can still choose portrait here.
+    templates: [
+      { id: "PREMIUM", label: "Premium", note: "Full letterhead, watermark, stamp" },
+    ],
+    defaultTemplate: "PREMIUM",
+    defaultPaper: "A4",
+    defaultLandscape: true,
+  },
+  {
     id: "ATTENDANCE_REPORT",
     category: "ATTENDANCE",
     label: "Attendance Report",

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
+import { reportDocumentHtml } from "@/lib/reports/print";
 import { payrollReportHtml, payslipHtml } from "@/lib/salary/print";
 import { studentCaseFileHtml } from "@/lib/student-cases/print";
 import { toast } from "@/lib/toast";
@@ -118,6 +119,24 @@ export default function PrintDesignsPage() {
           return template === "PREMIUM"
             ? premiumResultCardHtml(sampleResultCard(), null, paper)
             : null;
+        case "REPORT_DOCUMENT":
+          return reportDocumentHtml({
+            title: "Student List",
+            academicYear: new Date().getFullYear().toString(),
+            scope: [{ label: "Class", value: "Grade 4" }],
+            data: {
+              columns: [
+                { key: "code", label: "Student ID", mono: true },
+                { key: "name", label: "Student" },
+                { key: "className", label: "Class" },
+              ],
+              rows: [
+                { code: "STD0001", name: "Sample Student", className: "Grade 4" },
+              ],
+              summary: [{ label: "Records", value: "1" }],
+            },
+            paper,
+          });
         case "SALARY_PAYSLIP":
           return payslipHtml(
             {

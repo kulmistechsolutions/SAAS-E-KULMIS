@@ -7,6 +7,8 @@ import Link from "next/link";
 import {
   ArrowDownUp,
   ArrowLeft,
+  Columns3,
+  Eye,
   FileDown,
   Printer,
   RefreshCw,
@@ -21,7 +23,13 @@ import { activeAcademicYear, classNamesForYear, getAcademicsState, groupClassNam
 import { api } from "@/lib/api";
 import { logReportAction } from "@/lib/reports/audit";
 import { fetchReport, fetchReportAsync } from "@/lib/reports/data";
-import { downloadReportPdf, exportReportCsv, printReport } from "@/lib/reports/print";
+import {
+  downloadReportPdf,
+  exportReportCsv,
+  printReport,
+  reportDocumentHtml,
+} from "@/lib/reports/print";
+import { Dialog } from "@/components/ui/dialog";
 import { useShifts } from "@/lib/teachers/shifts";
 import { ReportBarChart } from "./report-chart";
 import type { ReportDef, ReportFilterKey, ReportFilters } from "@/lib/reports/types";
@@ -267,6 +275,43 @@ export function ReportPageShell({ categoryId, categoryLabel, report }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mounted, categoryId, report.slug, filters, search, refreshKey, needsAsync, requiresManualLoad, hasLoaded]);
 
+  /**
+   * Which columns this report should carry.
+   *
+   * A report is read for a reason, and the reason is rarely every column the
+   * query can return: a bursar printing outstanding balances for a class
+   * meeting does not want the admission date, and a wide table folded onto
+   * A4 is the fastest way to make a report unreadable. Empty means "all of
+   * them", so a report nobody has narrowed behaves exactly as it did.
+   *
+   * The choice reaches the table, the preview, the printed sheet, the PDF and
+   * the CSV alike — an export that quietly carried different columns from the
+   * screen would be a second, disagreeing report.
+   */
+  const [hiddenColumns, setHiddenColumns] = useState<Set<string>>(new Set());
+  const [columnsOpen, setColumnsOpen] = useState(false);
+
+  // A report's columns change with its filters; a key hidden under the old
+  // shape must not go on hiding a column that now means something else.
+  useEffect(() => {
+    setHiddenColumns(new Set());
+  }, [categoryId, report.slug]);
+
+  const visibleColumns = useMemo(
+    () => data.columns.filter((c) => !hiddenColumns.has(c.key)),
+    [data.columns, hiddenColumns],
+  );
+
+  function toggleColumn(key: string) {
+    setHiddenColumns((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      // A report with no columns is a blank page; the last one stays.
+      else if (data.columns.length - next.size > 1) next.add(key);
+      return next;
+    });
+  }
+
   const sorted = useMemo(() => {
     if (!sortKey) return data.rows;
     return [...data.rows].sort((a, b) => {
@@ -296,20 +341,63 @@ export function ReportPageShell({ categoryId, categoryLabel, report }: Props) {
     }
   }
 
+  /**
+   * One description of the document, used by preview, print, PDF alike.
+   *
+   * The three used to build their own argument lists, which is how a preview
+   * and a printout drift apart. The scope lines are the filters as chosen, so
+   * a sheet passed around a meeting says what it covers rather than leaving
+   * everyone to assume.
+   */
+  const documentOptions = useMemo(
+    () => ({
+      title: report.title,
+      academicYear: filters.academicYear ?? year,
+      scope: (Object.keys(FILTER_LABELS) as (keyof typeof FILTER_LABELS)[])
+        .filter((k) => k !== "academicYear" && filters[k as ReportFilterKey])
+        .map((k) => ({
+          label: FILTER_LABELS[k],
+          value: String(filters[k as ReportFilterKey]),
+        }))
+        .concat(search.trim() ? [{ label: "Search", value: search.trim() }] : []),
+      data: { ...data, columns: visibleColumns, rows: sorted },
+    }),
+    [report.title, filters, year, data, visibleColumns, sorted, search],
+  );
+
+  /**
+   * A report with no columns has not run; it is waiting on something.
+   *
+   * The exam reports answer "pick an exam to run this report" by returning no
+   * columns at all, and the table rendered that as "No records match your
+   * filters" — which says the school has no results when it says nothing of
+   * the kind. When a report comes back shaped like a prompt, the prompt is
+   * what gets shown.
+   */
+  const awaitingInput = !dataLoading && data.columns.length === 0;
+  const prompt = awaitingInput ? data.summary[0] : undefined;
+  const hasDocument = data.columns.length > 0 && sorted.length > 0;
+
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const previewHtml = useMemo(
+    () => (previewOpen ? reportDocumentHtml(documentOptions) : ""),
+    [previewOpen, documentOptions],
+  );
+
   function handlePrint() {
-    printReport({ title: report.title, academicYear: filters.academicYear ?? year, data: { ...data, rows: sorted } });
+    printReport(documentOptions);
     logReportAction(categoryLabel, report.title, "PRINTED");
     toast("Opening print preview…", "info");
   }
 
   function handlePdf() {
-    downloadReportPdf({ title: report.title, academicYear: filters.academicYear ?? year, data: { ...data, rows: sorted } });
+    downloadReportPdf(documentOptions);
     logReportAction(categoryLabel, report.title, "PDF_DOWNLOADED");
     toast("Use Save as PDF in the print dialog.", "info");
   }
 
   function handleCsv() {
-    exportReportCsv(report.title, data.columns, sorted);
+    exportReportCsv(report.title, visibleColumns, sorted);
     logReportAction(categoryLabel, report.title, "CSV_EXPORTED");
     toast(`Exported ${sorted.length} rows.`, "success");
   }
@@ -342,13 +430,16 @@ export function ReportPageShell({ categoryId, categoryLabel, report }: Props) {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" onClick={handlePrint}>
+          <Button onClick={() => setPreviewOpen(true)} disabled={!hasDocument}>
+            <Eye className="me-2 h-4 w-4" /> Preview
+          </Button>
+          <Button variant="outline" onClick={handlePrint} disabled={!hasDocument}>
             <Printer className="me-2 h-4 w-4" /> {t("reportsReportPageShell.print")}
           </Button>
-          <Button variant="outline" onClick={handlePdf}>
+          <Button variant="outline" onClick={handlePdf} disabled={!hasDocument}>
             <FileDown className="me-2 h-4 w-4" /> {t("reportsReportPageShell.pdf")}
           </Button>
-          <Button variant="outline" onClick={handleCsv}>
+          <Button variant="outline" onClick={handleCsv} disabled={!hasDocument}>
             <FileDown className="me-2 h-4 w-4" /> {t("reportsReportPageShell.csv")}
           </Button>
         </div>
@@ -368,6 +459,60 @@ export function ReportPageShell({ categoryId, categoryLabel, report }: Props) {
           <Button variant="outline" onClick={() => setShowFilters((v) => !v)}>
             {showFilters ? "Hide Filters" : "Show Filters"}
           </Button>
+          <div className="relative">
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={() => setColumnsOpen((v) => !v)}
+              disabled={data.columns.length === 0}
+            >
+              <Columns3 className="me-2 h-4 w-4" />
+              Columns
+              {hiddenColumns.size > 0 && (
+                <span className="ms-2 rounded-full bg-primary/10 px-1.5 text-xs text-primary">
+                  {visibleColumns.length}/{data.columns.length}
+                </span>
+              )}
+            </Button>
+            {columnsOpen && (
+              <>
+                <button
+                  type="button"
+                  aria-label="Close"
+                  className="fixed inset-0 z-40 cursor-default"
+                  onClick={() => setColumnsOpen(false)}
+                />
+                <div className="absolute end-0 z-50 mt-1 w-60 rounded-xl border bg-card p-2 shadow-lg">
+                  <p className="px-2 py-1 text-xs text-muted-foreground">
+                    Fields on this report
+                  </p>
+                  <ul className="max-h-64 space-y-0.5 overflow-auto scrollbar-slim">
+                    {data.columns.map((c) => (
+                      <li key={c.key}>
+                        <label className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm hover:bg-secondary">
+                          <input
+                            type="checkbox"
+                            checked={!hiddenColumns.has(c.key)}
+                            onChange={() => toggleColumn(c.key)}
+                          />
+                          <span className="truncate">{c.label}</span>
+                        </label>
+                      </li>
+                    ))}
+                  </ul>
+                  {hiddenColumns.size > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setHiddenColumns(new Set())}
+                      className="mt-1 w-full rounded-lg px-2 py-1.5 text-start text-xs font-medium text-primary hover:bg-secondary"
+                    >
+                      Show all fields
+                    </button>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
           {requiresManualLoad ? (
             <Button
               onClick={() => {
@@ -575,7 +720,7 @@ export function ReportPageShell({ categoryId, categoryLabel, report }: Props) {
             <thead className="sticky top-0 z-10 bg-secondary/95 backdrop-blur text-start text-xs uppercase tracking-wide text-muted-foreground">
               <tr>
                 <th className="px-4 py-3 font-medium">#</th>
-                {data.columns.map((c) => (
+                {visibleColumns.map((c) => (
                   <th key={c.key} className={cn("px-4 py-3 font-medium", c.align === "right" && "text-end")}>
                     <button
                       type="button"
@@ -592,19 +737,31 @@ export function ReportPageShell({ categoryId, categoryLabel, report }: Props) {
             <tbody>
               {requiresManualLoad && !hasLoaded ? (
                 <tr>
-                  <td colSpan={data.columns.length + 1} className="px-4 py-16 text-center text-muted-foreground">
+                  <td colSpan={visibleColumns.length + 1} className="px-4 py-16 text-center text-muted-foreground">
                     Set your filters, then press Load Report.
                   </td>
                 </tr>
               ) : dataLoading ? (
                 <tr>
-                  <td colSpan={data.columns.length + 1} className="px-4 py-16 text-center text-muted-foreground">
+                  <td colSpan={visibleColumns.length + 1} className="px-4 py-16 text-center text-muted-foreground">
                     {t("reportsReportPageShell.loadingReportData")}
+                  </td>
+                </tr>
+              ) : awaitingInput ? (
+                <tr>
+                  <td colSpan={visibleColumns.length + 1} className="px-4 py-16 text-center">
+                    <p className="font-medium">
+                      {prompt ? `${prompt.label} ${prompt.value}` : "Set the filters above to run this report."}
+                    </p>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      Nothing is missing from the school&apos;s records — this
+                      report needs a selection before it can run.
+                    </p>
                   </td>
                 </tr>
               ) : pageRows.length === 0 ? (
                 <tr>
-                  <td colSpan={data.columns.length + 1} className="px-4 py-16 text-center text-muted-foreground">
+                  <td colSpan={visibleColumns.length + 1} className="px-4 py-16 text-center text-muted-foreground">
                     {t("reportsReportPageShell.noRecordsMatchYourFilters")}
                   </td>
                 </tr>
@@ -612,7 +769,7 @@ export function ReportPageShell({ categoryId, categoryLabel, report }: Props) {
                 pageRows.map((row, i) => (
                   <tr key={i} className="border-t hover:bg-secondary/40">
                     <td className="px-4 py-3 text-muted-foreground">{(currentPage - 1) * pageSize + i + 1}</td>
-                    {data.columns.map((c) => (
+                    {visibleColumns.map((c) => (
                       <td
                         key={c.key}
                         className={cn(
@@ -648,6 +805,37 @@ export function ReportPageShell({ categoryId, categoryLabel, report }: Props) {
       <p className="text-center text-xs text-muted-foreground">
         {t("reportsReportPageShell.readOnlyReport")} {sorted.length} {t("reportsReportPageShell.totalRecordSGenerated")} {new Date().toLocaleString()}
       </p>
+
+      {/* ── The document itself, before it is printed ───────────────── */}
+      <Dialog
+        open={previewOpen}
+        onClose={() => setPreviewOpen(false)}
+        title={`${report.title} \u2014 preview`}
+        description={`${sorted.length} record(s) \u00b7 ${visibleColumns.length} of ${data.columns.length} fields \u00b7 exactly what will print`}
+        className="max-w-5xl"
+        footer={
+          <div className="flex flex-wrap justify-end gap-2">
+            <Button variant="outline" onClick={handleCsv}>
+              <FileDown className="me-2 h-4 w-4" /> {t("reportsReportPageShell.csv")}
+            </Button>
+            <Button variant="outline" onClick={handlePdf}>
+              <FileDown className="me-2 h-4 w-4" /> {t("reportsReportPageShell.pdf")}
+            </Button>
+            <Button onClick={handlePrint}>
+              <Printer className="me-2 h-4 w-4" /> {t("reportsReportPageShell.print")}
+            </Button>
+          </div>
+        }
+      >
+        {/* An iframe, because the sheet carries its own page styles and must
+            not inherit the app's — a preview that renders differently from
+            the printout is worse than no preview. */}
+        <iframe
+          title="Report preview"
+          srcDoc={previewHtml}
+          className="h-[65vh] w-full rounded-lg border bg-white"
+        />
+      </Dialog>
     </div>
   );
 }
