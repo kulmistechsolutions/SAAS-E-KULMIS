@@ -1164,6 +1164,15 @@ export interface SchoolActivityRow {
   region: string | null;
   status: string;
   createdAt: string;
+  /** Children on the roll — "busy" and "big" are different questions. */
+  students: number;
+  /** Null when the school has never been on a plan at all. */
+  subscription: {
+    plan: string;
+    status: string;
+    endDate: string;
+    daysLeft: number;
+  } | null;
   lastActiveAt: string | null;
   activity: SchoolActivityLevel;
   logins: number;
@@ -1178,6 +1187,12 @@ export interface SchoolActivity {
   since: string;
   totals: {
     schools: number;
+    students: number;
+    /** On a plan and still inside it. */
+    subscribed: number;
+    expiring: number;
+    expired: number;
+    noSubscription: number;
     activeToday: number;
     activeThisWeek: number;
     dormant: number;

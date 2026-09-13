@@ -386,6 +386,17 @@ export default function SchoolActivityPage() {
   const [data, setData] = useState<SchoolActivity | null>(null);
   const [failed, setFailed] = useState(false);
   const [days, setDays] = useState(7);
+  /**
+   * How the list is ranked.
+   *
+   * Recency answered "who was here last", which is not the question the owner
+   * asks. "Which schools are working hardest" and "which have gone quiet" are
+   * two ends of one ordering, and both are read against the same window.
+   */
+  const [order, setOrder] = useState<
+    "last_active" | "most_active" | "least_active" | "most_students"
+  >("last_active");
+  const [sub, setSub] = useState<"all" | "ACTIVE" | "EXPIRED" | "none">("all");
   const [q, setQ] = useState("");
   const [level, setLevel] = useState<"all" | SchoolActivityLevel>("all");
   const [openId, setOpenId] = useState<string | null>(null);
@@ -410,8 +421,17 @@ export default function SchoolActivityPage() {
   const rows = useMemo(() => {
     if (!data) return [];
     const needle = q.trim().toLowerCase();
+    const stamp = (r: SchoolActivityRow) =>
+      r.lastActiveAt ? new Date(r.lastActiveAt).getTime() : 0;
     return data.rows
       .filter((r) => (level === "all" ? true : r.activity === level))
+      .filter((r) =>
+        sub === "all"
+          ? true
+          : sub === "none"
+            ? !r.subscription
+            : r.subscription?.status === sub,
+      )
       .filter((r) =>
         !needle
           ? true
@@ -421,11 +441,22 @@ export default function SchoolActivityPage() {
               .includes(needle),
       )
       .sort((a, b) => {
-        const at = a.lastActiveAt ? new Date(a.lastActiveAt).getTime() : 0;
-        const bt = b.lastActiveAt ? new Date(b.lastActiveAt).getTime() : 0;
-        return bt - at;
+        switch (order) {
+          // "Busiest" counts work done, not logins: a school that signs in
+          // every morning and does nothing is not a school using the system.
+          case "most_active":
+            return b.actions - a.actions || b.logins - a.logins;
+          // The list worth ringing. Quietest first, oldest silence first
+          // within it — a school that has never signed in at all leads.
+          case "least_active":
+            return a.logins - b.logins || stamp(a) - stamp(b);
+          case "most_students":
+            return b.students - a.students;
+          default:
+            return stamp(b) - stamp(a);
+        }
       });
-  }, [data, q, level]);
+  }, [data, q, level, sub, order]);
 
   const selectCls =
     "rounded-lg border border-white/10 bg-[#0f172a] px-3 py-2 text-sm text-slate-200 focus:border-violet-500/50 focus:outline-none";
@@ -452,10 +483,10 @@ export default function SchoolActivityPage() {
             onChange={(e) => setDays(Number(e.target.value))}
             className={selectCls}
           >
-            <option value="7">Last 7 days</option>
+            <option value="7">Last week</option>
             <option value="14">Last 14 days</option>
-            <option value="30">Last 30 days</option>
-            <option value="90">Last 90 days</option>
+            <option value="30">Last month</option>
+            <option value="90">Last 3 months</option>
           </select>
           <button
             type="button"
@@ -478,17 +509,41 @@ export default function SchoolActivityPage() {
       {data && (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {[
-            { label: "Active today", value: data.totals.activeToday, tone: "text-emerald-400" },
-            { label: "Active this week", value: data.totals.activeThisWeek, tone: "text-sky-400" },
-            { label: "Dormant", value: data.totals.dormant, tone: "text-rose-400" },
-            { label: "With errors", value: data.totals.withErrors, tone: "text-amber-400" },
+            {
+              label: "On a subscription",
+              value: data.totals.subscribed,
+              tone: "text-emerald-400",
+              note:
+                data.totals.expiring > 0
+                  ? `${data.totals.expiring} expiring within 14 days`
+                  : `of ${data.totals.schools} schools`,
+            },
+            {
+              label: "Expired or never on a plan",
+              value: data.totals.expired + data.totals.noSubscription,
+              tone: "text-rose-400",
+              // Two different conversations, so they are named apart.
+              note: `${data.totals.expired} expired \u00b7 ${data.totals.noSubscription} never`,
+            },
+            {
+              label: "Students registered",
+              value: data.totals.students,
+              tone: "text-sky-400",
+              note: "Across every school",
+            },
+            {
+              label: "Active this window",
+              value: data.totals.activeThisWeek,
+              tone: "text-amber-400",
+              note: `${data.totals.dormant} dormant \u00b7 ${data.totals.withErrors} with errors`,
+            },
           ].map((c) => (
             <div key={c.label} className={CARD}>
               <p className="text-sm text-slate-400">{c.label}</p>
-              <p className={cn("mt-1 text-3xl font-bold", c.tone)}>{c.value}</p>
-              <p className="mt-0.5 text-xs text-slate-500">
-                of {data.totals.schools} schools
+              <p className={cn("mt-1 text-3xl font-bold tabular-nums", c.tone)}>
+                {c.value.toLocaleString()}
               </p>
+              <p className="mt-0.5 text-xs text-slate-500">{c.note}</p>
             </div>
           ))}
         </div>
@@ -518,6 +573,26 @@ export default function SchoolActivityPage() {
           <option value="dormant">Dormant</option>
           <option value="never">Never used</option>
         </select>
+        <select
+          value={sub}
+          onChange={(e) => setSub(e.target.value as typeof sub)}
+          className={cn(selectCls, "w-48")}
+        >
+          <option value="all">Any subscription</option>
+          <option value="ACTIVE">On a plan</option>
+          <option value="EXPIRED">Expired</option>
+          <option value="none">Never on a plan</option>
+        </select>
+        <select
+          value={order}
+          onChange={(e) => setOrder(e.target.value as typeof order)}
+          className={cn(selectCls, "w-52")}
+        >
+          <option value="last_active">Most recently active</option>
+          <option value="most_active">Busiest first</option>
+          <option value="least_active">Quietest first</option>
+          <option value="most_students">Most students</option>
+        </select>
       </div>
 
       <div className="overflow-x-auto rounded-xl border border-white/10 bg-white/[0.03]">
@@ -528,6 +603,8 @@ export default function SchoolActivityPage() {
               <th className="px-4 py-3 text-start font-semibold">Province</th>
               <th className="px-4 py-3 text-start font-semibold">Last active</th>
               <th className="px-4 py-3 text-start font-semibold">Status</th>
+              <th className="px-4 py-3 text-start font-semibold">Subscription</th>
+              <th className="px-4 py-3 text-end font-semibold">Students</th>
               <th className="px-4 py-3 text-end font-semibold">Logins</th>
               <th className="px-4 py-3 text-end font-semibold">Actions</th>
               <th className="px-4 py-3 text-end font-semibold">Errors</th>
@@ -566,6 +643,30 @@ export default function SchoolActivityPage() {
                     {LEVEL[r.activity].label}
                   </span>
                 </td>
+                <td className="px-4 py-3">
+                  {!r.subscription ? (
+                    <span className="text-xs text-slate-600">Never on a plan</span>
+                  ) : (
+                    <span
+                      className={cn(
+                        "inline-block whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold",
+                        r.subscription.status === "ACTIVE"
+                          ? r.subscription.daysLeft <= 14
+                            ? "bg-amber-500/15 text-amber-300"
+                            : "bg-emerald-500/15 text-emerald-300"
+                          : "bg-rose-500/15 text-rose-300",
+                      )}
+                      title={r.subscription.plan}
+                    >
+                      {r.subscription.status === "ACTIVE"
+                        ? `${r.subscription.daysLeft}d left`
+                        : "Expired"}
+                    </span>
+                  )}
+                </td>
+                <td className="px-4 py-3 text-end tabular-nums text-slate-200">
+                  {r.students.toLocaleString()}
+                </td>
                 <td className="px-4 py-3 text-end tabular-nums text-slate-200">
                   {r.logins}
                   {r.failedLogins > 0 && (
@@ -603,7 +704,7 @@ export default function SchoolActivityPage() {
             ))}
             {rows.length === 0 && (
               <tr>
-                <td colSpan={9} className="px-4 py-10 text-center text-sm text-slate-500">
+                <td colSpan={11} className="px-4 py-10 text-center text-sm text-slate-500">
                   No schools match this filter.
                 </td>
               </tr>

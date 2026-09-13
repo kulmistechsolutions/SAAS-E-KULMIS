@@ -40,7 +40,14 @@ export class PlatformService {
     const since = new Date();
     since.setDate(since.getDate() - days);
 
-    const [schools, byStatus, lastPerSchool, errorsPerSchool] = await Promise.all([
+    const [
+      schools,
+      byStatus,
+      lastPerSchool,
+      errorsPerSchool,
+      studentsPerSchool,
+      subscriptions,
+    ] = await Promise.all([
       this.prisma.school.findMany({
         select: {
           id: true,
@@ -69,11 +76,33 @@ export class PlatformService {
         where: { createdAt: { gte: since } },
         _count: { _all: true },
       }),
+      // How many children each school actually has on its roll. "Busy" and
+      // "big" are different questions, and the owner asks both: a school of
+      // forty logging in daily is healthy, a school of nine hundred that has
+      // not logged in for a fortnight is the one to ring.
+      this.prisma.student.groupBy({
+        by: ["schoolId"],
+        where: { status: "ACTIVE" },
+        _count: { _all: true },
+      }),
+      // Who is actually on a plan, and until when.
+      this.prisma.schoolSubscription.findMany({
+        select: {
+          schoolId: true,
+          status: true,
+          endDate: true,
+          plan: { select: { name: true } },
+        },
+      }),
     ]);
 
     const lastById = new Map(
       lastPerSchool.map((r) => [r.schoolId, r._max.createdAt]),
     );
+    const studentsById = new Map(
+      studentsPerSchool.map((r) => [r.schoolId, r._count._all]),
+    );
+    const subById = new Map(subscriptions.map((r) => [r.schoolId, r]));
     const errorsById = new Map(
       errorsPerSchool
         .filter((r) => r.schoolId)
@@ -106,6 +135,22 @@ export class PlatformService {
       const hoursSince = lastActiveAt
         ? (now - lastActiveAt.getTime()) / 3_600_000
         : null;
+      const sub = subById.get(s.id);
+      // Expired is its own answer, not "no subscription": a school whose plan
+      // ran out yesterday is a renewal conversation, and one that never had a
+      // plan is a sales conversation. Calling both "none" loses that.
+      const subscription = sub
+        ? {
+            plan: sub.plan.name,
+            status:
+              sub.status === "ACTIVE" && sub.endDate.getTime() < now
+                ? ("EXPIRED" as const)
+                : sub.status,
+            endDate: sub.endDate,
+            daysLeft: Math.ceil((sub.endDate.getTime() - now) / 86_400_000),
+          }
+        : null;
+
       return {
         id: s.id,
         name: s.name,
@@ -114,6 +159,8 @@ export class PlatformService {
         region: s.region,
         status: s.status,
         createdAt: s.createdAt,
+        students: studentsById.get(s.id) ?? 0,
+        subscription,
         lastActiveAt,
         // A school nobody has touched in a fortnight is the one worth calling.
         activity:
@@ -142,6 +189,17 @@ export class PlatformService {
       since,
       totals: {
         schools: rows.length,
+        students: rows.reduce((n, r) => n + r.students, 0),
+        // On a plan and still inside it — the number the owner is asked for.
+        subscribed: rows.filter((r) => r.subscription?.status === "ACTIVE")
+          .length,
+        expiring: rows.filter(
+          (r) =>
+            r.subscription?.status === "ACTIVE" &&
+            r.subscription.daysLeft <= 14,
+        ).length,
+        expired: rows.filter((r) => r.subscription?.status === "EXPIRED").length,
+        noSubscription: rows.filter((r) => !r.subscription).length,
         activeToday: rows.filter((r) => r.activity === "today").length,
         activeThisWeek: rows.filter((r) =>
           ["today", "this_week"].includes(r.activity),
