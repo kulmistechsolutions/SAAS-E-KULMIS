@@ -4,7 +4,18 @@
 import { useT } from "@/lib/i18n/provider";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Calendar, ChevronRight, FileText, List, Plus, Tags } from "lucide-react";
+import { Calendar, FileText, List, Plus, Tags } from "lucide-react";
+import {
+  Area,
+  AreaChart,
+  Cell,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import {
@@ -17,6 +28,7 @@ import { money, monthKey, monthLabel } from "@/lib/expenses/format";
 import {
   dashboardSummary,
   expensesByCategory,
+  expensesByMonth,
   generateRecurringDue,
   recentExpenses,
   refreshFinanceForMonth,
@@ -25,6 +37,18 @@ import {
 import { AcademicYearSelect } from "@/components/academics/academic-year-select";
 import { toast } from "@/lib/toast";
 import { useHydrated } from "@/lib/use-hydrated";
+
+/** Distinct at a glance, and readable in both themes. */
+const SLICE = [
+  "#6366f1",
+  "#f43f5e",
+  "#f59e0b",
+  "#10b981",
+  "#0ea5e9",
+  "#a855f7",
+  "#14b8a6",
+  "#ef4444",
+];
 
 const QUICK = [
   { href: "/expenses/list", label: "Expense List", desc: "Search, filter & manage", icon: List },
@@ -62,6 +86,45 @@ export default function ExpensesDashboardPage() {
     () => (mounted ? expensesByCategory(filterMonth, filterYear) : []),
     [mounted, filterMonth, filterYear, state],
   );
+  const trend = useMemo(
+    () => (mounted ? expensesByMonth(filterYear) : []),
+    [mounted, filterYear, state],
+  );
+
+  /**
+   * Is this month normal?
+   *
+   * A figure for the month says nothing without the month before it, which is
+   * the comparison anyone reading an expense total is making in their head
+   * anyway. Null when there is no earlier month to compare against — an
+   * invented "+100%" against nothing would be worse than silence.
+   */
+  const versusLast = useMemo(() => {
+    const i = trend.findIndex((x) => x.month === filterMonth.slice(0, 7));
+    if (i <= 0) return null;
+    const prev = trend[i - 1]!.amount;
+    const now = trend[i]!.amount;
+    if (prev === 0) return null;
+    return Math.round(((now - prev) / prev) * 100);
+  }, [trend, filterMonth]);
+
+  const breakdownTotal = breakdown.reduce((n, b) => n + b.amount, 0);
+
+  /**
+   * Every month the school actually spent in, newest first.
+   *
+   * The picker offered two entries — this month, and this month — so the month
+   * label beside it read as a filter that could not be moved. These come from
+   * the expenses themselves, so a month in the list always has something in
+   * it, and the current month is kept even when it is still empty because
+   * that is the month somebody is about to record into.
+   */
+  const monthOptions = useMemo(() => {
+    const set = new Set<string>(trend.map((x) => x.month));
+    set.add(monthKey());
+    if (filterMonth) set.add(filterMonth.slice(0, 7));
+    return [...set].sort((a, b) => b.localeCompare(a));
+  }, [trend, filterMonth]);
 
   function handleRecurring() {
     const n = generateRecurringDue();
@@ -101,7 +164,7 @@ export default function ExpensesDashboardPage() {
               onChange={(e) => setFilterMonth(e.target.value)}
               className="h-8 min-w-[140px] border-0 bg-transparent py-0 shadow-none"
             >
-              {[filterMonth, monthKey()].filter((v, i, a) => a.indexOf(v) === i).map((m) => (
+              {monthOptions.map((m) => (
                 <option key={m} value={m}>
                   {monthLabel(m)}
                 </option>
@@ -115,30 +178,195 @@ export default function ExpensesDashboardPage() {
         </div>
       </div>
 
-      {summary && <ExpenseSummaryCards summary={summary} />}
-
-      <div className="grid gap-4 sm:grid-cols-3">
+      {/* Where this module goes. Three panels of their own put the pages a
+          scroll away and repeated the sidebar in larger type. */}
+      <div className="flex flex-wrap gap-2">
         {QUICK.map((q) => (
           <Link
             key={q.href}
             href={q.href}
-            className="group rounded-xl border bg-card p-4 shadow-sm transition hover:border-primary/30 hover:shadow-md"
+            title={q.desc}
+            className="group inline-flex items-center gap-2 rounded-xl border bg-card px-3 py-2 text-sm font-medium shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md"
           >
-            <div className="flex items-start justify-between">
-              <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                <q.icon className="h-5 w-5" />
-              </span>
-              <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 transition group-hover:opacity-100" />
-            </div>
-            <p className="mt-3 font-semibold">{q.label}</p>
-            <p className="mt-1 text-xs text-muted-foreground">{q.desc}</p>
+            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <q.icon className="h-4 w-4" />
+            </span>
+            {q.label}
           </Link>
         ))}
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
+      {summary && <ExpenseSummaryCards summary={summary} />}
+
+      {/* ── The shape of the year, and of the month ─────────────────── */}
+      <div className="grid items-start gap-6 lg:grid-cols-3">
+        <div className="rounded-2xl border bg-card p-5 shadow-sm lg:col-span-2">
+          <div className="flex flex-wrap items-start justify-between gap-2">
+            <div>
+              <h2 className="font-semibold">Monthly spending</h2>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                {filterYear || "This academic year"}
+              </p>
+            </div>
+            {versusLast !== null && (
+              <span
+                className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+                  versusLast > 0
+                    ? "bg-rose-500/10 text-rose-600 dark:text-rose-400"
+                    : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                }`}
+              >
+                {versusLast > 0 ? "+" : ""}
+                {versusLast}% vs last month
+              </span>
+            )}
+          </div>
+
+          {trend.length === 0 ? (
+            <p className="py-16 text-center text-sm text-muted-foreground">
+              {t("expenses.noExpensesThisMonth")}
+            </p>
+          ) : (
+            <div className="mt-4 h-[260px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart
+                  data={trend.map((x) => ({
+                    label: monthLabel(x.month),
+                    amount: x.amount,
+                    count: x.count,
+                  }))}
+                  margin={{ top: 8, right: 8, left: 0, bottom: 0 }}
+                >
+                  <defs>
+                    <linearGradient id="expenseFill" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#f43f5e" stopOpacity={0.35} />
+                      <stop offset="100%" stopColor="#f43f5e" stopOpacity={0.02} />
+                    </linearGradient>
+                  </defs>
+                  <XAxis
+                    dataKey="label"
+                    tick={{ fontSize: 11 }}
+                    tickLine={false}
+                    axisLine={false}
+                  />
+                  <YAxis
+                    tick={{ fontSize: 11 }}
+                    tickLine={false}
+                    axisLine={false}
+                    width={56}
+                    tickFormatter={(v: number) => money(v)}
+                  />
+                  <Tooltip
+                    formatter={(v: number) => money(v)}
+                    contentStyle={{
+                      borderRadius: 12,
+                      border: "1px solid hsl(var(--border))",
+                      background: "hsl(var(--card))",
+                      color: "hsl(var(--card-foreground))",
+                      fontSize: 12,
+                    }}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="amount"
+                    stroke="#f43f5e"
+                    strokeWidth={2}
+                    fill="url(#expenseFill)"
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </div>
+
+        <div className="rounded-2xl border bg-card p-5 shadow-sm">
+          <h2 className="font-semibold">
+            {t("expenses.expenseBreakdownByCategory")}
+          </h2>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            {monthLabel(filterMonth)}
+          </p>
+
+          {breakdown.length === 0 ? (
+            <p className="py-16 text-center text-sm text-muted-foreground">
+              {t("expenses.noExpensesThisMonth")}
+            </p>
+          ) : (
+            <>
+              <div className="relative mt-2 h-[190px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={breakdown}
+                      dataKey="amount"
+                      nameKey="category"
+                      innerRadius={58}
+                      outerRadius={84}
+                      paddingAngle={2}
+                      stroke="none"
+                    >
+                      {breakdown.map((b, i) => (
+                        <Cell key={b.category} fill={SLICE[i % SLICE.length]!} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      formatter={(v: number) => money(v)}
+                      contentStyle={{
+                        borderRadius: 12,
+                        border: "1px solid hsl(var(--border))",
+                        background: "hsl(var(--card))",
+                        color: "hsl(var(--card-foreground))",
+                        fontSize: 12,
+                      }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+                {/* The total belongs in the hole of a donut; without it the
+                    slices are proportions of an unstated whole. */}
+                <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+                  <span className="text-lg font-bold tabular-nums">
+                    {money(breakdownTotal)}
+                  </span>
+                  <span className="text-[11px] text-muted-foreground">
+                    this month
+                  </span>
+                </div>
+              </div>
+
+              <ul className="mt-4 space-y-2">
+                {breakdown.slice(0, 6).map((b, i) => (
+                  <li
+                    key={b.category}
+                    className="flex items-center justify-between gap-2 text-sm"
+                  >
+                    <span className="flex min-w-0 items-center gap-2">
+                      <span
+                        className="h-2.5 w-2.5 shrink-0 rounded-full"
+                        style={{ background: SLICE[i % SLICE.length] }}
+                      />
+                      <span className="truncate">{b.category}</span>
+                    </span>
+                    <span className="whitespace-nowrap tabular-nums text-muted-foreground">
+                      {money(b.amount)}
+                      <span className="ms-1 text-xs">
+                        (
+                        {breakdownTotal
+                          ? Math.round((b.amount / breakdownTotal) * 100)
+                          : 0}
+                        %)
+                      </span>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+        </div>
+      </div>
+
+      <div className="grid items-start gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
-          <div className="rounded-xl border bg-card shadow-sm">
+          <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
             <div className="flex items-center justify-between border-b px-4 py-3">
               <h2 className="font-semibold">{t("expenses.recentExpenses")}</h2>
               <Link href="/expenses/list" className="text-xs font-medium text-primary hover:underline">
@@ -147,52 +375,48 @@ export default function ExpensesDashboardPage() {
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="bg-secondary text-start text-xs text-muted-foreground">
+                <thead className="bg-secondary/60 text-xs uppercase tracking-wide text-muted-foreground">
                   <tr>
-                    <th className="px-4 py-2 font-medium">{t("expenses.reference")}</th>
-                    <th className="px-4 py-2 font-medium">{t("expenses.title")}</th>
-                    <th className="px-4 py-2 font-medium">{t("expenses.category")}</th>
-                    <th className="px-4 py-2 font-medium">{t("expenses.amount")}</th>
+                    <th className="px-4 py-2.5 text-start font-medium">{t("expenses.reference")}</th>
+                    <th className="px-4 py-2.5 text-start font-medium">{t("expenses.title")}</th>
+                    <th className="px-4 py-2.5 text-start font-medium">{t("expenses.category")}</th>
+                    <th className="px-4 py-2.5 text-end font-medium">{t("expenses.amount")}</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {recent.map((r) => (
-                    <tr key={r.id} className="border-t">
-                      <td className="px-4 py-2.5 font-mono text-xs text-primary">
-                        <Link href={`/expenses/${r.id}`}>{r.referenceNo}</Link>
-                      </td>
-                      <td className="px-4 py-2.5">{r.title}</td>
-                      <td className="px-4 py-2.5">
-                        <CategoryBadge name={r.categoryName} />
-                      </td>
-                      <td className="px-4 py-2.5 tabular-nums font-medium text-rose-600">
-                        {money(r.amount)}
+                  {recent.length === 0 ? (
+                    <tr>
+                      <td
+                        colSpan={4}
+                        className="px-4 py-12 text-center text-muted-foreground"
+                      >
+                        {t("expenses.noExpensesThisMonth")}
                       </td>
                     </tr>
-                  ))}
+                  ) : (
+                    recent.map((r) => (
+                      <tr
+                        key={r.id}
+                        className="border-t transition-colors hover:bg-secondary/40"
+                      >
+                        <td className="whitespace-nowrap px-4 py-2.5 font-mono text-xs text-primary">
+                          <Link href={`/expenses/${r.id}`}>{r.referenceNo}</Link>
+                        </td>
+                        <td className="px-4 py-2.5 font-medium">{r.title}</td>
+                        <td className="px-4 py-2.5">
+                          <CategoryBadge name={r.categoryName} />
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-2.5 text-end font-semibold tabular-nums text-rose-600">
+                          {money(r.amount)}
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
           </div>
 
-          <div className="rounded-xl border bg-card p-5 shadow-sm">
-            <h2 className="font-semibold">{t("expenses.expenseBreakdownByCategory")}</h2>
-            <p className="mt-1 text-xs text-muted-foreground">{monthLabel(filterMonth)}</p>
-            <div className="mt-4 space-y-3">
-              {breakdown.length === 0 ? (
-                <p className="text-sm text-muted-foreground">{t("expenses.noExpensesThisMonth")}</p>
-              ) : (
-                breakdown.slice(0, 8).map((b) => (
-                  <div key={b.category} className="flex items-center justify-between text-sm">
-                    <CategoryBadge name={b.category} />
-                    <span className="font-semibold tabular-nums text-rose-600">
-                      {money(b.amount)}
-                    </span>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
         </div>
 
         <div className="space-y-4">

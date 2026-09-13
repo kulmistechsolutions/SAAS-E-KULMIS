@@ -255,6 +255,32 @@ export function dashboardSummary(opts?: {
   };
 }
 
+/**
+ * Every month of the academic year that has spending, oldest first.
+ *
+ * The dashboard could say what this month cost and what the year cost, but
+ * not whether the month was normal — which is the question anyone looking at
+ * an expense figure is actually asking. The whole year's expenses are already
+ * loaded here, so the shape of the year costs nothing extra to draw.
+ */
+export function expensesByMonth(year?: string): {
+  month: string;
+  amount: number;
+  count: number;
+}[] {
+  const map = new Map<string, { amount: number; count: number }>();
+  for (const e of activeExpenses(year)) {
+    const m = e.expenseDate.slice(0, 7);
+    const cur = map.get(m) ?? { amount: 0, count: 0 };
+    cur.amount += e.amount;
+    cur.count += 1;
+    map.set(m, cur);
+  }
+  return [...map.entries()]
+    .map(([month, v]) => ({ month, ...v }))
+    .sort((a, b) => a.month.localeCompare(b.month));
+}
+
 export function expensesByCategory(month?: string, year?: string) {
   const y = year ?? ensure().academicYear;
   const m = month ?? monthKey();
