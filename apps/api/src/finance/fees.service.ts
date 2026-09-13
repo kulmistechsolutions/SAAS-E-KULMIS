@@ -172,7 +172,12 @@ export class FeesService {
       const students = await tx.student.findMany({
         where: {
           classId: dto.classId,
-          sectionId,
+          // Only when a section was actually picked. `sectionId: null` is an
+          // equality test, not "any section", so setting up a whole class at
+          // a school that uses sections charged only the students who had no
+          // section at all — which at most schools is nobody, and the desk saw
+          // a month set up with no fees raised against it.
+          ...(sectionId ? { sectionId } : {}),
           status: "ACTIVE",
           feeWaived: false,
         },

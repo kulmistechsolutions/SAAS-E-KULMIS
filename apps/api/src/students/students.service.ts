@@ -792,6 +792,20 @@ export class StudentsService {
           },
           data: { amount: updated.monthlyFee, status: "UNPAID" },
         });
+
+        // Repricing only moves rows that exist. Month setup skips a waived
+        // student entirely — it does not leave a zero row behind — so a
+        // student who was free when the month was set up and is made a paying
+        // student afterwards has nothing to reprice, and stayed at "$16.00
+        // monthly fee, $0.00 outstanding" with the school collecting nothing.
+        // Three students at HANUUNIYE were sitting like that.
+        await ensureLiveMonthCharge(tx, schoolId, {
+          id,
+          classId: updated.classId,
+          monthlyFee: updated.monthlyFee,
+          feeBillingStartYear: updated.feeBillingStartYear,
+          feeBillingStartMonth: updated.feeBillingStartMonth,
+        });
       }
 
       // Changing the monthly fee must reprice what is still owed, not only
@@ -831,6 +845,19 @@ export class StudentsService {
           },
           select: { id: true, paidAmount: true },
         });
+        // A student with no row for the live month at all — enrolled after
+        // the month was set up, or set up while their fee was still zero —
+        // gains one, at the fee just entered.
+        if (newFee > 0) {
+          await ensureLiveMonthCharge(tx, schoolId, {
+            id,
+            classId: updated.classId,
+            monthlyFee: newFee,
+            feeBillingStartYear: updated.feeBillingStartYear,
+            feeBillingStartMonth: updated.feeBillingStartMonth,
+          });
+        }
+
         for (const c of open) {
           // Raising the fee past what a family already paid reopens the month;
           // lowering it below that settles it rather than owing them money back.
@@ -1192,6 +1219,69 @@ export class StudentsService {
  * ever billed has no live month of its own, and the calendar is the only other
  * answer available.
  */
+/**
+ * Raise the live month's tuition charge for one student, if it is missing.
+ *
+ * Month setup charges whoever is billable in the class at the moment it runs.
+ * Anyone who becomes billable afterwards — enrolled later, taken off Free, or
+ * given a fee they did not have — has no row for that month and nothing to
+ * reprice, so the desk reads "$16.00 monthly fee, $0.00 outstanding" and the
+ * family is never asked for the money.
+ *
+ * Only a month the class has actually been set up for is raised: billing never
+ * starts on its own, and inventing a charge for a month the school did not run
+ * would be worse than missing one. A student whose billing starts later is
+ * left alone, and an existing row of any status is never touched.
+ */
+export async function ensureLiveMonthCharge(
+  tx: Pick<Prisma.TransactionClient, "monthlyFeeActivation" | "feeCharge">,
+  schoolId: string,
+  student: {
+    id: string;
+    classId: string | null;
+    monthlyFee: number;
+    feeBillingStartYear: number | null;
+    feeBillingStartMonth: number | null;
+  },
+): Promise<boolean> {
+  if (!student.classId || student.monthlyFee <= 0) return false;
+
+  const activation = await tx.monthlyFeeActivation.findFirst({
+    where: { classId: student.classId },
+    orderBy: [{ year: "desc" }, { month: "desc" }],
+    select: { year: true, month: true },
+  });
+  if (!activation) return false;
+
+  const { year, month } = activation;
+  if (
+    student.feeBillingStartYear &&
+    student.feeBillingStartMonth &&
+    year * 100 + month <
+      student.feeBillingStartYear * 100 + student.feeBillingStartMonth
+  ) {
+    return false;
+  }
+
+  const existing = await tx.feeCharge.findFirst({
+    where: { studentId: student.id, year, month, kind: "MONTHLY" },
+    select: { id: true },
+  });
+  if (existing) return false;
+
+  await tx.feeCharge.create({
+    data: {
+      schoolId,
+      studentId: student.id,
+      year,
+      month,
+      amount: student.monthlyFee,
+      status: "UNPAID",
+    },
+  });
+  return true;
+}
+
 export async function liveMonthForClass(
   tx: Pick<Prisma.TransactionClient, "monthlyFeeActivation">,
   classId: string | null,
