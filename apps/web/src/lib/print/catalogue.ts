@@ -135,6 +135,33 @@ export const DOC_TYPES: DocTypeDef[] = [
     defaultPaper: "A4",
   },
   {
+    id: "SALARY_PAYSLIP",
+    category: "FINANCE",
+    label: "Salary Payslip",
+    note: "One person's pay for one month \u2014 what a bank asks to see.",
+    printedFrom: "Salary \u2192 Monthly Payroll \u2192 the print icon on a row",
+    templates: [
+      { id: "PREMIUM", label: "Premium", note: "Full letterhead, watermark, stamp" },
+    ],
+    defaultTemplate: "PREMIUM",
+    defaultPaper: "A4",
+  },
+  {
+    id: "PAYROLL_REPORT",
+    category: "FINANCE",
+    label: "Payroll Report",
+    note: "A month's payroll as filtered, with its own totals.",
+    printedFrom: "Salary \u2192 Monthly Payroll \u2192 Print All",
+    // Seven columns of figures is the one finance sheet a school wants
+    // landscape, so that is this document's default rather than portrait.
+    templates: [
+      { id: "PREMIUM", label: "Premium", note: "Full letterhead, watermark, stamp" },
+    ],
+    defaultTemplate: "PREMIUM",
+    defaultPaper: "A4",
+    defaultLandscape: true,
+  },
+  {
     id: "EXAM_RESULT_CARD",
     category: "EXAMS",
     label: "Exam Result Card",

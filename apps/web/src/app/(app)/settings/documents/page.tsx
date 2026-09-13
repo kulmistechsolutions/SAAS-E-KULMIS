@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
+import { payrollReportHtml, payslipHtml } from "@/lib/salary/print";
 import { studentCaseFileHtml } from "@/lib/student-cases/print";
 import { toast } from "@/lib/toast";
 import { useHydrated } from "@/lib/use-hydrated";
@@ -117,6 +118,50 @@ export default function PrintDesignsPage() {
           return template === "PREMIUM"
             ? premiumResultCardHtml(sampleResultCard(), null, paper)
             : null;
+        case "SALARY_PAYSLIP":
+          return payslipHtml(
+            {
+              id: "sample",
+              employeeId: "sample",
+              payrollMonth: new Date().toISOString().slice(0, 7),
+              academicYear: "",
+              basicSalary: 400,
+              allowances: 50,
+              bonus: 0,
+              deductions: 20,
+              netSalary: 430,
+              amountPaid: 430,
+              remainingBalance: 0,
+              status: "PAID",
+              generatedAt: new Date().toISOString(),
+            },
+            null,
+            { fullName: "Sample Employee", position: "Teacher", code: "EMP0001" },
+            paper,
+          );
+        case "PAYROLL_REPORT":
+          return payrollReportHtml({
+            scope: [
+              { label: "Payroll Month", value: "Sample month" },
+              { label: "Position", value: "All positions" },
+            ],
+            rows: [
+              {
+                payrollId: "s1",
+                employeeId: "s1",
+                employeeCode: "EMP0001",
+                employeeName: "Sample Employee",
+                position: "Teacher",
+                type: "STAFF",
+                payrollMonth: new Date().toISOString().slice(0, 7),
+                netSalary: 430,
+                amountPaid: 430,
+                remainingBalance: 0,
+                status: "PAID",
+              },
+            ],
+            paper,
+          });
         case "STUDENT_CASE_FILE":
           return studentCaseFileHtml({
             student: {

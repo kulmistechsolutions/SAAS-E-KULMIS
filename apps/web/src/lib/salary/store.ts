@@ -221,6 +221,31 @@ export function dashboardSummary(month?: string): SalaryDashboardSummary {
   };
 }
 
+/**
+ * The staff number a person is actually known by.
+ *
+ * A salary row carries only the teacher or employee id it belongs to, so the
+ * payroll list was showing a database key — "cmst15kmq00syqq01fa1t5pfp" — under
+ * every name, on screen and on the printed payslip. The real number is on the
+ * teacher or employee record, so it is looked up there; when neither is loaded
+ * or neither has one, this returns nothing at all, because a blank is honest
+ * and a key pretending to be a staff number is not.
+ */
+export function staffCode(employeeId: string, teacherId?: string | null): string {
+  if (teacherId) {
+    const t = getTeachersState().teachers.find((x) => x.id === teacherId);
+    if (t?.code) return t.code;
+  }
+  const e = getEmployeesState().employees.find((x) => x.id === employeeId);
+  if (e?.code) return e.code;
+  return "";
+}
+
+/** A cuid is a key, not a code — never show one as an identifier. */
+function looksLikeKey(code: string): boolean {
+  return /^c[a-z0-9]{20,}$/i.test(code);
+}
+
 export function payrollRows(opts?: {
   month?: string;
   position?: string;
@@ -251,10 +276,11 @@ export function payrollRows(opts?: {
         const hay = `${emp.code} ${emp.fullName} ${emp.position}`.toLowerCase();
         if (!hay.includes(q)) return null;
       }
+      const code = staffCode(emp.id, emp.teacherId);
       return {
         payrollId: p.id,
         employeeId: emp.id,
-        employeeCode: emp.code,
+        employeeCode: code || (looksLikeKey(emp.code) ? "" : emp.code),
         employeeName: emp.fullName,
         position: emp.position,
         type: emp.type,

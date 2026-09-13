@@ -3,7 +3,15 @@
 
 import { useT } from "@/lib/i18n/provider";
 import { useEffect, useMemo, useState } from "react";
-import { Download, Eye, Printer, Wallet } from "lucide-react";
+import {
+  Banknote,
+  CheckCircle2,
+  Download,
+  Eye,
+  Printer,
+  Users,
+  Wallet,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Pagination } from "@/components/ui/pagination";
@@ -17,7 +25,10 @@ import {
   POSITIONS,
   payrollStatusLabel,
 } from "@/lib/salary/format";
-import { exportPayrollReportCsv } from "@/lib/salary/print";
+import {
+  exportPayrollReportCsv,
+  printPayrollReport,
+} from "@/lib/salary/print";
 import {
   availableMonths,
   generatePayroll,
@@ -26,6 +37,8 @@ import {
   useSalaryState,
 } from "@/lib/salary/store";
 import type { PayrollRow, PayrollStatus } from "@/lib/salary/types";
+import { ensureEmployeesLoaded } from "@/lib/employees/store";
+import { refreshTeachers } from "@/lib/teachers/store";
 import { toast } from "@/lib/toast";
 import { printPayslip } from "@/lib/salary/print";
 import { useHydrated } from "@/lib/use-hydrated";
@@ -51,6 +64,14 @@ export default function PayrollPage() {
     if (mounted) setMonth(state.activePayrollMonth);
   }, [mounted, state.activePayrollMonth]);
 
+  // A salary row knows only which teacher or employee it belongs to. Their
+  // staff number lives on those records, so without this the list falls back
+  // to showing a database key under every name.
+  useEffect(() => {
+    void refreshTeachers();
+    void ensureEmployeesLoaded();
+  }, []);
+
   const months = useMemo(() => (mounted ? availableMonths() : []), [mounted, state]);
   const rows = useMemo(
     () =>
@@ -64,6 +85,35 @@ export default function PayrollPage() {
         : [],
     [mounted, month, search, position, status, state],
   );
+
+  /**
+   * Totalled from the rows on screen, never from the whole month.
+   *
+   * The figures and the printed report are the same arithmetic over the same
+   * list, so filtering to one position and printing it gives a document whose
+   * total is that position's — not the school's, which would be a wrong
+   * document with a stamp on it.
+   */
+  const totals = useMemo(
+    () => ({
+      count: rows.length,
+      net: rows.reduce((n, r) => n + r.netSalary, 0),
+      paid: rows.reduce((n, r) => n + r.amountPaid, 0),
+      due: rows.reduce((n, r) => n + r.remainingBalance, 0),
+      settled: rows.filter((r) => r.status === "PAID").length,
+    }),
+    [rows],
+  );
+
+  const reportScope = [
+    { label: "Payroll Month", value: month ? monthLabel(month) : "" },
+    { label: "Position", value: position || "All positions" },
+    {
+      label: "Status",
+      value: status ? payrollStatusLabel(status as PayrollStatus) : "All statuses",
+    },
+    { label: "Search", value: search.trim() },
+  ];
 
   const pageCount = Math.max(1, Math.ceil(rows.length / pageSize));
   const pageRows = rows.slice((page - 1) * pageSize, page * pageSize);
@@ -99,6 +149,17 @@ export default function PayrollPage() {
           <Button variant="outline" className="h-9" onClick={handleGenerate}>
             {t("salaryPayroll.generatePayroll")}
           </Button>
+          {/* Print All prints exactly what the filters left on screen. */}
+          <Button
+            className="h-9"
+            onClick={() => {
+              if (rows.length === 0)
+                return toast("No payroll records to print.", "error");
+              printPayrollReport({ scope: reportScope, rows });
+            }}
+          >
+            <Printer className="me-2 h-4 w-4" /> Print All
+          </Button>
           <Button
             variant="outline"
             className="h-9"
@@ -110,7 +171,39 @@ export default function PayrollPage() {
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-3">
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <Kpi
+          label="Employees"
+          value={String(totals.count)}
+          note={`${totals.settled} fully paid`}
+          icon={Users}
+          chip="bg-indigo-500/15 text-indigo-600 dark:text-indigo-400"
+        />
+        <Kpi
+          label="Total Payroll"
+          value={money(totals.net)}
+          note={month ? monthLabel(month) : ""}
+          icon={Banknote}
+          chip="bg-sky-500/15 text-sky-600 dark:text-sky-400"
+        />
+        <Kpi
+          label="Paid"
+          value={money(totals.paid)}
+          note="Already settled"
+          icon={CheckCircle2}
+          chip="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
+        />
+        <Kpi
+          label="Outstanding"
+          value={money(totals.due)}
+          note="Still owed to staff"
+          icon={Wallet}
+          chip="bg-rose-500/15 text-rose-600 dark:text-rose-400"
+          danger={totals.due > 0}
+        />
+      </div>
+
+      <div className="flex flex-wrap gap-3 rounded-2xl border bg-card p-4 shadow-sm">
         <Select
           value={month}
           onChange={(e) => {
@@ -169,15 +262,15 @@ export default function PayrollPage() {
       <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[960px] text-sm">
-            <thead className="sticky top-0 bg-secondary text-start text-xs text-muted-foreground">
+            <thead className="sticky top-0 bg-secondary/80 text-xs uppercase tracking-wide text-muted-foreground backdrop-blur">
               <tr>
-                <th className="px-4 py-2.5 font-medium">{t("salaryPayroll.employee")}</th>
-                <th className="px-4 py-2.5 font-medium">{t("salaryPayroll.position")}</th>
-                <th className="px-4 py-2.5 font-medium">{t("salaryPayroll.netSalary")}</th>
-                <th className="px-4 py-2.5 font-medium">{t("salaryPayroll.paid")}</th>
-                <th className="px-4 py-2.5 font-medium">{t("salaryPayroll.balance")}</th>
-                <th className="px-4 py-2.5 font-medium">{t("salaryPayroll.status")}</th>
-                <th className="px-4 py-2.5 font-medium">{t("salaryPayroll.actions")}</th>
+                <th className="px-4 py-2.5 text-start font-medium">{t("salaryPayroll.employee")}</th>
+                <th className="px-4 py-2.5 text-start font-medium">{t("salaryPayroll.position")}</th>
+                <th className="px-4 py-2.5 text-end font-medium">{t("salaryPayroll.netSalary")}</th>
+                <th className="px-4 py-2.5 text-end font-medium">{t("salaryPayroll.paid")}</th>
+                <th className="px-4 py-2.5 text-end font-medium">{t("salaryPayroll.balance")}</th>
+                <th className="px-4 py-2.5 text-start font-medium">{t("salaryPayroll.status")}</th>
+                <th className="px-4 py-2.5 text-end font-medium">{t("salaryPayroll.actions")}</th>
               </tr>
             </thead>
             <tbody>
@@ -189,24 +282,30 @@ export default function PayrollPage() {
                 </tr>
               ) : (
                 pageRows.map((r) => (
-                  <tr key={r.payrollId} className="border-t">
+                  <tr key={r.payrollId} className="border-t transition-colors hover:bg-secondary/40">
                     <td className="px-4 py-2.5">
                       <p className="font-medium">{r.employeeName}</p>
-                      <p className="text-xs text-muted-foreground">{r.employeeCode}</p>
+                      {r.employeeCode && (
+                        <p className="font-mono text-xs text-muted-foreground">
+                          {r.employeeCode}
+                        </p>
+                      )}
                     </td>
                     <td className="px-4 py-2.5 text-muted-foreground">{r.position}</td>
-                    <td className="px-4 py-2.5 tabular-nums">{money(r.netSalary)}</td>
-                    <td className="px-4 py-2.5 tabular-nums text-emerald-600">
+                    <td className="px-4 py-2.5 text-end font-medium tabular-nums">
+                      {money(r.netSalary)}
+                    </td>
+                    <td className="px-4 py-2.5 text-end tabular-nums text-emerald-600">
                       {money(r.amountPaid)}
                     </td>
-                    <td className="px-4 py-2.5 tabular-nums text-rose-600">
-                      {money(r.remainingBalance)}
+                    <td className="px-4 py-2.5 text-end tabular-nums text-rose-600">
+                      {r.remainingBalance > 0 ? money(r.remainingBalance) : "\u2014"}
                     </td>
                     <td className="px-4 py-2.5">
                       <PayrollStatusBadge status={r.status} />
                     </td>
                     <td className="px-4 py-2.5">
-                      <div className="flex gap-1">
+                      <div className="flex justify-end gap-1">
                         {r.status !== "PAID" && (
                           <Button
                             variant="outline"
@@ -220,6 +319,7 @@ export default function PayrollPage() {
                         <Button
                           variant="ghost"
                           className="h-8 w-8 p-0"
+                          title="View payslip"
                           onClick={() => setPayslipId(r.payrollId)}
                         >
                           <Eye className="h-4 w-4" />
@@ -227,6 +327,7 @@ export default function PayrollPage() {
                         <Button
                           variant="ghost"
                           className="h-8 w-8 p-0"
+                          title="Print this payslip"
                           onClick={() => {
                             const p = getPayroll(r.payrollId);
                             if (p) printPayslip(p);
@@ -240,6 +341,26 @@ export default function PayrollPage() {
                 ))
               )}
             </tbody>
+            {pageRows.length > 0 && (
+              <tfoot className="border-t-2 bg-secondary/40 text-sm font-semibold">
+                <tr>
+                  <td className="px-4 py-3" colSpan={2}>
+                    Total &middot; {totals.count}{" "}
+                    {totals.count === 1 ? "employee" : "employees"}
+                  </td>
+                  <td className="px-4 py-3 text-end tabular-nums">
+                    {money(totals.net)}
+                  </td>
+                  <td className="px-4 py-3 text-end tabular-nums text-emerald-600">
+                    {money(totals.paid)}
+                  </td>
+                  <td className="px-4 py-3 text-end tabular-nums text-rose-600">
+                    {money(totals.due)}
+                  </td>
+                  <td colSpan={2} />
+                </tr>
+              </tfoot>
+            )}
           </table>
         </div>
         {rows.length > pageSize && (
@@ -265,6 +386,44 @@ export default function PayrollPage() {
         onClose={() => setPayRow(null)}
       />
       <PayslipDialog payroll={payslip} onClose={() => setPayslipId(null)} />
+    </div>
+  );
+}
+
+/** One figure, said plainly. */
+function Kpi({
+  label,
+  value,
+  note,
+  icon: Icon,
+  chip,
+  danger,
+}: {
+  label: string;
+  value: string;
+  note: string;
+  icon: typeof Wallet;
+  chip: string;
+  danger?: boolean;
+}) {
+  return (
+    <div className="rounded-2xl border bg-card p-5 shadow-sm">
+      <span
+        className={`flex h-10 w-10 items-center justify-center rounded-xl ${chip}`}
+      >
+        <Icon className="h-5 w-5" />
+      </span>
+      <p
+        className={`mt-4 text-2xl font-bold leading-none tabular-nums ${
+          danger ? "text-rose-600 dark:text-rose-400" : ""
+        }`}
+      >
+        {value}
+      </p>
+      <p className="mt-1.5 truncate text-sm font-medium">{label}</p>
+      {note && (
+        <p className="mt-0.5 truncate text-xs text-muted-foreground">{note}</p>
+      )}
     </div>
   );
 }
