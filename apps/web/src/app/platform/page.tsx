@@ -4,7 +4,13 @@
 import { useT } from "@/lib/i18n/provider";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { AlertTriangle, Building2, Plus } from "lucide-react";
+import {
+  Activity,
+  AlertTriangle,
+  Building2,
+  MoonStar,
+  Plus,
+} from "lucide-react";
 import { PlatformSummaryCards } from "@/components/platform/summary-cards";
 import { SchoolStatusBadge } from "@/components/platform/school-status-badge";
 import { loadDashboard, loadSchools } from "@/lib/platform/data";
@@ -13,7 +19,9 @@ import { usePlatformSchoolsState } from "@/lib/platform/store";
 import type { PlatformDashboard, PlatformSchool } from "@/lib/platform/types";
 import {
   fetchPlatformSubscriptionAlerts,
+  fetchSchoolActivity,
   type PlatformSubscriptionAlert,
+  type SchoolActivity,
 } from "@/lib/platform/api";
 import { Button } from "@/components/ui/button";
 import { useHydrated } from "@/lib/use-hydrated";
@@ -25,6 +33,15 @@ export default function PlatformDashboardPage() {
   const [summary, setSummary] = useState<PlatformDashboard | null>(null);
   const [schools, setSchools] = useState<PlatformSchool[]>([]);
   const [alerts, setAlerts] = useState<PlatformSubscriptionAlert[]>([]);
+  /**
+   * Who is working hardest, and who has gone quiet.
+   *
+   * Read from the same endpoint School Activity uses rather than counted
+   * again here — two places computing "busiest" from the same audit trail is
+   * two places to disagree. A week is the window the console opens on;
+   * changing it lives on that page.
+   */
+  const [activity, setActivity] = useState<SchoolActivity | null>(null);
 
 
   useEffect(() => {
@@ -34,6 +51,9 @@ export default function PlatformDashboardPage() {
     fetchPlatformSubscriptionAlerts()
       .then(setAlerts)
       .catch(() => setAlerts([]));
+    fetchSchoolActivity(7)
+      .then(setActivity)
+      .catch(() => setActivity(null));
   }, [mounted, previewSchools]);
 
   if (!mounted || !summary) {
@@ -41,6 +61,21 @@ export default function PlatformDashboardPage() {
   }
 
   const recent = schools.slice(0, 5);
+
+  // Busiest counts work done, not logins: a school that signs in every
+  // morning and does nothing is not a school using the system. Quietest is
+  // the list worth ringing, and a school nobody has ever opened leads it.
+  const busiest = [...(activity?.rows ?? [])]
+    .sort((a, b) => b.actions - a.actions || b.logins - a.logins)
+    .filter((r) => r.actions > 0)
+    .slice(0, 5);
+  const quietest = [...(activity?.rows ?? [])]
+    .sort((a, b) => {
+      const at = a.lastActiveAt ? new Date(a.lastActiveAt).getTime() : 0;
+      const bt = b.lastActiveAt ? new Date(b.lastActiveAt).getTime() : 0;
+      return a.logins - b.logins || at - bt;
+    })
+    .slice(0, 5);
 
   return (
     <div className="space-y-6">
@@ -110,6 +145,88 @@ export default function PlatformDashboardPage() {
               </li>
             ))}
           </ul>
+        </div>
+      )}
+
+      {activity && (
+        <div className="grid gap-4 lg:grid-cols-2">
+          {[
+            {
+              title: "Busiest schools",
+              note: `Most work done in the last ${activity.days} days`,
+              icon: Activity,
+              tone: "text-emerald-300",
+              rows: busiest,
+              empty: "Nobody has done anything this week.",
+              figure: (r: SchoolActivity["rows"][number]) =>
+                `${r.actions.toLocaleString()} actions`,
+            },
+            {
+              title: "Quietest schools",
+              note: "Fewest sign-ins — the list worth ringing",
+              icon: MoonStar,
+              tone: "text-amber-300",
+              rows: quietest,
+              empty: "Every school has signed in.",
+              figure: (r: SchoolActivity["rows"][number]) =>
+                r.logins === 0 ? "No sign-ins" : `${r.logins} sign-ins`,
+            },
+          ].map((panel) => (
+            <div
+              key={panel.title}
+              className="rounded-xl border border-white/10 bg-white/5 p-5"
+            >
+              <div className="mb-3 flex items-start justify-between gap-2">
+                <div>
+                  <h2 className="flex items-center gap-2 font-semibold text-white">
+                    <panel.icon className={`h-4 w-4 ${panel.tone}`} />
+                    {panel.title}
+                  </h2>
+                  <p className="mt-0.5 text-xs text-slate-400">{panel.note}</p>
+                </div>
+                <Link
+                  href="/platform/school-activity"
+                  className="whitespace-nowrap text-xs text-violet-300 hover:underline"
+                >
+                  Open activity
+                </Link>
+              </div>
+              {panel.rows.length === 0 ? (
+                <p className="py-6 text-center text-sm text-slate-500">
+                  {panel.empty}
+                </p>
+              ) : (
+                <ul className="space-y-1.5 text-sm">
+                  {panel.rows.map((r) => (
+                    <li
+                      key={r.id}
+                      className="flex items-center justify-between gap-3 rounded-lg bg-black/20 px-3 py-2"
+                    >
+                      <div className="min-w-0">
+                        <Link
+                          href={`/platform/schools/${r.id}`}
+                          className="block truncate font-medium text-white hover:underline"
+                        >
+                          {r.name}
+                        </Link>
+                        <span className="text-[11px] text-slate-500">
+                          {r.students.toLocaleString()} students
+                          {r.subscription
+                            ? r.subscription.status === "ACTIVE"
+                              ? ` \u00b7 ${r.subscription.daysLeft}d left`
+                              : " \u00b7 expired"
+                            : " \u00b7 no plan"}
+                        </span>
+                      </div>
+                      <span className="whitespace-nowrap text-xs tabular-nums text-slate-300">
+                        {panel.figure(r)}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          ))}
         </div>
       )}
 

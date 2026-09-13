@@ -14,6 +14,14 @@ export interface PlatformDashboard {
   totalStudents: number;
   totalTeachers: number;
   totalParents: number;
+  /** On a plan and still inside it. */
+  subscribedSchools: number;
+  /** Of those, with a fortnight or less left. */
+  expiringSchools: number;
+  /** Had a plan; it has run out. A renewal conversation. */
+  expiredSchools: number;
+  /** Never had one at all. A sales conversation. */
+  unsubscribedSchools: number;
 }
 
 export interface PlatformSchool {

@@ -43,5 +43,11 @@ export function previewDashboard(schools: PlatformSchool[]): PlatformDashboard {
     totalStudents: schools.length * 420,
     totalTeachers: schools.length * 28,
     totalParents: schools.length * 380,
+    // Preview only ever runs when the API is unreachable, and a stand-in
+    // must never assert that schools are paying.
+    subscribedSchools: 0,
+    expiringSchools: 0,
+    expiredSchools: 0,
+    unsubscribedSchools: schools.length,
   };
 }

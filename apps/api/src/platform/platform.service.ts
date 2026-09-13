@@ -7,26 +7,52 @@ export class PlatformService {
   constructor(private readonly prisma: PrismaService) {}
 
   async dashboard() {
-    const [schoolsByStatus, totalStudents, totalTeachers, totalParents] =
-      await Promise.all([
-        this.prisma.school.groupBy({ by: ["status"], _count: { _all: true } }),
-        this.prisma.student.count(),
-        this.prisma.teacher.count(),
-        this.prisma.parent.count(),
-      ]);
+    const now = Date.now();
+    const [
+      schoolsByStatus,
+      totalStudents,
+      totalTeachers,
+      totalParents,
+      subscriptions,
+    ] = await Promise.all([
+      this.prisma.school.groupBy({ by: ["status"], _count: { _all: true } }),
+      this.prisma.student.count(),
+      this.prisma.teacher.count(),
+      this.prisma.parent.count(),
+      // Who is on a plan, and until when. The console's first question about
+      // a school it has just been asked about is whether it is paying.
+      this.prisma.schoolSubscription.findMany({
+        select: { schoolId: true, status: true, endDate: true },
+      }),
+    ]);
 
     const active =
       schoolsByStatus.find((s) => s.status === "ACTIVE")?._count._all ?? 0;
     const suspended =
       schoolsByStatus.find((s) => s.status === "SUSPENDED")?._count._all ?? 0;
+    const totalSchools = active + suspended;
+
+    // A plan that ran out yesterday is not "no plan": one is a renewal
+    // conversation, the other a sales one, so they are counted apart.
+    const live = subscriptions.filter(
+      (x) => x.status === "ACTIVE" && x.endDate.getTime() > now,
+    );
+    const expired = subscriptions.length - live.length;
 
     return {
-      totalSchools: active + suspended,
+      totalSchools,
       activeSchools: active,
       suspendedSchools: suspended,
       totalStudents,
       totalTeachers,
       totalParents,
+      subscribedSchools: live.length,
+      /** On a plan with a fortnight or less left on it. */
+      expiringSchools: live.filter(
+        (x) => (x.endDate.getTime() - now) / 86_400_000 <= 14,
+      ).length,
+      expiredSchools: expired,
+      unsubscribedSchools: Math.max(0, totalSchools - subscriptions.length),
     };
   }
 
