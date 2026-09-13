@@ -8,6 +8,8 @@ import { Calendar, FileText, List, Plus, Tags } from "lucide-react";
 import {
   Area,
   AreaChart,
+  Bar,
+  BarChart,
   Cell,
   Pie,
   PieChart,
@@ -37,6 +39,17 @@ import {
 import { AcademicYearSelect } from "@/components/academics/academic-year-select";
 import { toast } from "@/lib/toast";
 import { useHydrated } from "@/lib/use-hydrated";
+
+const CHART_MARGIN = { top: 8, right: 8, left: 0, bottom: 0 };
+
+/** The tooltip sits on the themed card, so it takes the card's colours. */
+const TOOLTIP_STYLE = {
+  borderRadius: 12,
+  border: "1px solid hsl(var(--border))",
+  background: "hsl(var(--card))",
+  color: "hsl(var(--card-foreground))",
+  fontSize: 12,
+} as const;
 
 /** Distinct at a glance, and readable in both themes. */
 const SLICE = [
@@ -109,6 +122,16 @@ export default function ExpensesDashboardPage() {
   }, [trend, filterMonth]);
 
   const breakdownTotal = breakdown.reduce((n, b) => n + b.amount, 0);
+
+  const chartData = useMemo(
+    () =>
+      trend.map((x) => ({
+        label: monthLabel(x.month),
+        amount: x.amount,
+        count: x.count,
+      })),
+    [trend],
+  );
 
   /**
    * Every month the school actually spent in, newest first.
@@ -199,8 +222,8 @@ export default function ExpensesDashboardPage() {
       {summary && <ExpenseSummaryCards summary={summary} />}
 
       {/* ── The shape of the year, and of the month ─────────────────── */}
-      <div className="grid items-start gap-6 lg:grid-cols-3">
-        <div className="rounded-2xl border bg-card p-5 shadow-sm lg:col-span-2">
+      <div className="grid gap-6 lg:grid-cols-3">
+        <div className="flex h-full flex-col rounded-2xl border bg-card p-5 shadow-sm lg:col-span-2">
           <div className="flex flex-wrap items-start justify-between gap-2">
             <div>
               <h2 className="font-semibold">Monthly spending</h2>
@@ -223,63 +246,78 @@ export default function ExpensesDashboardPage() {
           </div>
 
           {trend.length === 0 ? (
-            <p className="py-16 text-center text-sm text-muted-foreground">
-              {t("expenses.noExpensesThisMonth")}
-            </p>
+            <div className="flex flex-1 items-center justify-center py-10">
+              <p className="text-sm text-muted-foreground">
+                Nothing has been recorded in {filterYear || "this year"} yet.
+              </p>
+            </div>
           ) : (
-            <div className="mt-4 h-[260px]">
+            <div className="mt-4 h-[240px]">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart
-                  data={trend.map((x) => ({
-                    label: monthLabel(x.month),
-                    amount: x.amount,
-                    count: x.count,
-                  }))}
-                  margin={{ top: 8, right: 8, left: 0, bottom: 0 }}
-                >
-                  <defs>
-                    <linearGradient id="expenseFill" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#f43f5e" stopOpacity={0.35} />
-                      <stop offset="100%" stopColor="#f43f5e" stopOpacity={0.02} />
-                    </linearGradient>
-                  </defs>
-                  <XAxis
-                    dataKey="label"
-                    tick={{ fontSize: 11 }}
-                    tickLine={false}
-                    axisLine={false}
-                  />
-                  <YAxis
-                    tick={{ fontSize: 11 }}
-                    tickLine={false}
-                    axisLine={false}
-                    width={56}
-                    tickFormatter={(v: number) => money(v)}
-                  />
-                  <Tooltip
-                    formatter={(v: number) => money(v)}
-                    contentStyle={{
-                      borderRadius: 12,
-                      border: "1px solid hsl(var(--border))",
-                      background: "hsl(var(--card))",
-                      color: "hsl(var(--card-foreground))",
-                      fontSize: 12,
-                    }}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="amount"
-                    stroke="#f43f5e"
-                    strokeWidth={2}
-                    fill="url(#expenseFill)"
-                  />
-                </AreaChart>
+                {trend.length < 3 ? (
+                  // One or two months is not a curve. Drawn as an area it is a
+                  // lone dot in an empty field, which reads as a broken chart.
+                  <BarChart data={chartData} margin={CHART_MARGIN} barSize={54}>
+                    <XAxis
+                      dataKey="label"
+                      tick={{ fontSize: 11 }}
+                      tickLine={false}
+                      axisLine={false}
+                    />
+                    <YAxis
+                      tick={{ fontSize: 11 }}
+                      tickLine={false}
+                      axisLine={false}
+                      width={56}
+                      tickFormatter={(v: number) => money(v)}
+                    />
+                    <Tooltip
+                      cursor={{ fill: "hsl(var(--secondary))", opacity: 0.5 }}
+                      formatter={(v: number) => money(v)}
+                      contentStyle={TOOLTIP_STYLE}
+                    />
+                    <Bar dataKey="amount" fill="#f43f5e" radius={[6, 6, 0, 0]} />
+                  </BarChart>
+                ) : (
+                  <AreaChart data={chartData} margin={CHART_MARGIN}>
+                    <defs>
+                      <linearGradient id="expenseFill" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#f43f5e" stopOpacity={0.35} />
+                        <stop offset="100%" stopColor="#f43f5e" stopOpacity={0.02} />
+                      </linearGradient>
+                    </defs>
+                    <XAxis
+                      dataKey="label"
+                      tick={{ fontSize: 11 }}
+                      tickLine={false}
+                      axisLine={false}
+                    />
+                    <YAxis
+                      tick={{ fontSize: 11 }}
+                      tickLine={false}
+                      axisLine={false}
+                      width={56}
+                      tickFormatter={(v: number) => money(v)}
+                    />
+                    <Tooltip
+                      formatter={(v: number) => money(v)}
+                      contentStyle={TOOLTIP_STYLE}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="amount"
+                      stroke="#f43f5e"
+                      strokeWidth={2}
+                      fill="url(#expenseFill)"
+                    />
+                  </AreaChart>
+                )}
               </ResponsiveContainer>
             </div>
           )}
         </div>
 
-        <div className="rounded-2xl border bg-card p-5 shadow-sm">
+        <div className="flex h-full flex-col rounded-2xl border bg-card p-5 shadow-sm">
           <h2 className="font-semibold">
             {t("expenses.expenseBreakdownByCategory")}
           </h2>
@@ -288,9 +326,21 @@ export default function ExpensesDashboardPage() {
           </p>
 
           {breakdown.length === 0 ? (
-            <p className="py-16 text-center text-sm text-muted-foreground">
-              {t("expenses.noExpensesThisMonth")}
-            </p>
+            <div className="flex flex-1 flex-col items-center justify-center gap-1 py-10 text-center">
+              <span className="flex h-12 w-12 items-center justify-center rounded-full bg-secondary text-muted-foreground">
+                <Tags className="h-5 w-5" />
+              </span>
+              <p className="mt-2 text-sm text-muted-foreground">
+                {t("expenses.noExpensesThisMonth")}
+              </p>
+              <button
+                type="button"
+                onClick={() => setShowForm(true)}
+                className="text-xs font-medium text-primary hover:underline"
+              >
+                {t("expenses.recordExpense")}
+              </button>
+            </div>
           ) : (
             <>
               <div className="relative mt-2 h-[190px]">

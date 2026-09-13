@@ -61,7 +61,12 @@ export async function refreshFinanceForMonth(month: string): Promise<void> {
     // though they were this one's; the card renders "—" until it loads.
     financeCache = null;
   }
-  emit();
+  // A new state identity, not just a notification. The cache lives outside
+  // the state object, so emitting on its own left useSyncExternalStore
+  // comparing the same snapshot to itself and bailing out of the render —
+  // which is why Net Income and the financial summary stayed on "—" long
+  // after the server had answered.
+  setState({ ...ensure() });
 }
 
 function subscribe(cb: () => void) {

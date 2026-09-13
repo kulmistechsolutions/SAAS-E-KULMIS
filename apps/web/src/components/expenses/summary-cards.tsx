@@ -110,7 +110,11 @@ export function ExpenseSummaryCards({
             <p
               className={cn(
                 "mt-4 text-2xl font-bold leading-none tabular-nums",
-                negative ? "text-rose-600 dark:text-rose-400" : c.value,
+                pending
+                  ? "text-muted-foreground/40"
+                  : negative
+                    ? "text-rose-600 dark:text-rose-400"
+                    : c.value,
               )}
             >
               {pending
@@ -121,7 +125,7 @@ export function ExpenseSummaryCards({
             </p>
             <p className="mt-1.5 truncate text-sm font-medium">{t(c.label)}</p>
             <p className="mt-0.5 truncate text-xs text-muted-foreground">
-              {c.note}
+              {pending ? "Loading…" : c.note}
             </p>
           </Link>
         );
@@ -204,21 +208,24 @@ export function FinancialSummaryPanel({
                   {t(item.label)}
                 </dt>
                 <dd
-                  className={cn("font-semibold tabular-nums", item.tone)}
+                  className={cn(
+                    "font-semibold tabular-nums",
+                    unknown ? "text-muted-foreground/40" : item.tone,
+                  )}
                   data-loaded={summary.financeLoaded}
                 >
                   {unknown ? "—" : money(item.value)}
                 </dd>
               </div>
               <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-secondary">
-                <div
-                  className={cn("h-full rounded-full transition-all", item.bar)}
-                  style={{
-                    width: unknown
-                      ? "0%"
-                      : `${Math.round((Math.abs(item.value) / scale) * 100)}%`,
-                  }}
-                />
+                {!unknown && (
+                  <div
+                    className={cn("h-full rounded-full transition-all", item.bar)}
+                    style={{
+                      width: `${Math.round((Math.abs(item.value) / scale) * 100)}%`,
+                    }}
+                  />
+                )}
               </div>
             </div>
           );
