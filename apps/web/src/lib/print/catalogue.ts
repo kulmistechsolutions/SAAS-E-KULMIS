@@ -100,6 +100,21 @@ export const DOC_TYPES: DocTypeDef[] = [
     defaultPaper: "A4",
   },
   {
+    id: "STUDENT_CASE_FILE",
+    category: "STUDENTS",
+    label: "Student Case File",
+    note: "A student's behaviour record, and the case list behind it.",
+    printedFrom: "Student Cases \u2192 the print icon on a student, or Reports \u2192 Print",
+    // The letterhead is the design; what a school changes here is the sheet,
+    // because a file with long descriptions is the one a school prints on A4
+    // and a class list is sometimes wanted landscape.
+    templates: [
+      { id: "PREMIUM", label: "Premium", note: "Full letterhead, watermark, stamp" },
+    ],
+    defaultTemplate: "PREMIUM",
+    defaultPaper: "A4",
+  },
+  {
     id: "FEE_RECEIPT",
     category: "FINANCE",
     label: "Fee Receipt",

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
+import { studentCaseFileHtml } from "@/lib/student-cases/print";
 import { toast } from "@/lib/toast";
 import { useHydrated } from "@/lib/use-hydrated";
 import {
@@ -116,6 +117,25 @@ export default function PrintDesignsPage() {
           return template === "PREMIUM"
             ? premiumResultCardHtml(sampleResultCard(), null, paper)
             : null;
+        case "STUDENT_CASE_FILE":
+          return studentCaseFileHtml({
+            student: {
+              code: "STD-0001",
+              name: "Sample Student",
+              className: "Grade 4",
+              section: "A",
+              academicYear: new Date().getFullYear().toString(),
+            },
+            rows: [
+              {
+                title: "Late to morning assembly",
+                note: "Arrived twenty minutes after the bell. Spoke with the class teacher; the family was called the same morning.",
+                date: new Date().toISOString().slice(0, 10),
+                recordedByUsername: "office",
+              },
+            ],
+            paper,
+          });
         case "STUDENT_PROFILE":
         case "STUDENT_ADMISSION":
         case "STUDENT_TRANSFER":

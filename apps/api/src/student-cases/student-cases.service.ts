@@ -84,30 +84,120 @@ export class StudentCasesService {
     });
   }
 
-  /** Dashboard: total case count + top students by case count. */
+  /**
+   * What the discipline office needs on opening the page.
+   *
+   * A single running total says nothing on its own: thirty cases is calm in a
+   * school of nine hundred and an emergency in a school of forty. So the
+   * figures here are all bounded — this month, these seven days, how many
+   * different children — and the lists say which class and who, because a
+   * name is what somebody acts on.
+   */
   async dashboard(schoolId: string) {
+    const now = new Date();
+    const monthStart = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1),
+    );
+    const weekStart = new Date(now);
+    weekStart.setUTCDate(weekStart.getUTCDate() - 6);
+    weekStart.setUTCHours(0, 0, 0, 0);
+
     return this.prisma.forTenant(schoolId, async (tx) => {
-      const [total, grouped] = await Promise.all([
-        tx.studentCase.count(),
-        tx.studentCase.groupBy({
-          by: ["studentId"],
-          _count: { studentId: true },
-          orderBy: { _count: { studentId: "desc" } },
-          take: 10,
+      const [total, thisMonth, thisWeek, grouped, byClassRows, recentRows] =
+        await Promise.all([
+          tx.studentCase.count(),
+          tx.studentCase.count({ where: { date: { gte: monthStart } } }),
+          tx.studentCase.count({ where: { date: { gte: weekStart } } }),
+          tx.studentCase.groupBy({
+            by: ["studentId"],
+            _count: { studentId: true },
+            orderBy: { _count: { studentId: "desc" } },
+            take: 10,
+          }),
+          tx.studentCase.groupBy({
+            by: ["classId"],
+            _count: { classId: true },
+            orderBy: { _count: { classId: "desc" } },
+            take: 12,
+          }),
+          tx.studentCase.findMany({
+            orderBy: [{ date: "desc" }, { createdAt: "desc" }],
+            take: 8,
+            include: { student: { select: { code: true, fullName: true } } },
+          }),
+        ]);
+
+      // Distinct children, not distinct cases — one child with nine notes is
+      // one child to sit down with, not nine.
+      const distinct = await tx.studentCase.groupBy({ by: ["studentId"] });
+
+      const classIds = [
+        ...new Set([
+          ...byClassRows.map((r) => r.classId),
+          ...recentRows.map((r) => r.classId),
+        ]),
+      ];
+      const [students, classes] = await Promise.all([
+        tx.student.findMany({
+          where: { id: { in: grouped.map((g) => g.studentId) } },
+          select: { id: true, code: true, fullName: true, classId: true },
         }),
+        classIds.length
+          ? tx.class.findMany({
+              where: { id: { in: classIds } },
+              select: { id: true, name: true },
+            })
+          : Promise.resolve([]),
       ]);
-      const students = await tx.student.findMany({
-        where: { id: { in: grouped.map((g) => g.studentId) } },
-        select: { id: true, code: true, fullName: true },
-      });
       const byId = new Map(students.map((s) => [s.id, s]));
+      const className = new Map(classes.map((c) => [c.id, c.name]));
+
+      // The top students' own classes may not appear in either list above.
+      const missing = [
+        ...new Set(
+          students
+            .map((s) => s.classId)
+            .filter((id): id is string => Boolean(id) && !className.has(id)),
+        ),
+      ];
+      if (missing.length) {
+        const more = await tx.class.findMany({
+          where: { id: { in: missing } },
+          select: { id: true, name: true },
+        });
+        for (const c of more) className.set(c.id, c.name);
+      }
+
       return {
         total,
-        topStudents: grouped.map((g) => ({
-          studentId: g.studentId,
-          studentCode: byId.get(g.studentId)?.code ?? "",
-          studentName: byId.get(g.studentId)?.fullName ?? "",
-          count: g._count.studentId,
+        thisMonth,
+        thisWeek,
+        studentsInvolved: distinct.length,
+        topStudents: grouped.map((g) => {
+          const st = byId.get(g.studentId);
+          return {
+            studentId: g.studentId,
+            studentCode: st?.code ?? "",
+            studentName: st?.fullName ?? "",
+            className: st?.classId ? (className.get(st.classId) ?? "") : "",
+            count: g._count.studentId,
+          };
+        }),
+        byClass: byClassRows.map((r) => ({
+          classId: r.classId,
+          className: className.get(r.classId) ?? "",
+          count: r._count.classId,
+        })),
+        recent: recentRows.map((c) => ({
+          id: c.id,
+          studentId: c.studentId,
+          studentCode: c.student.code,
+          studentName: c.student.fullName,
+          className: className.get(c.classId) ?? "",
+          title: c.title,
+          note: c.note,
+          date: c.date.toISOString().slice(0, 10),
+          recordedByUsername: c.recordedByUsername,
         })),
       };
     });
