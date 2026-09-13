@@ -1,60 +1,72 @@
 "use client";
 
-
 import { useT } from "@/lib/i18n/provider";
-import { useEffect } from "react";
-import { getSettings, refreshServerTime, systemStorageUsageMb, useSettingsState } from "@/lib/settings/store";
+import { History } from "lucide-react";
+import { getSettings, useSettingsState } from "@/lib/settings/store";
 import { dateTime } from "@/lib/users/format";
-import { Button } from "@/components/ui/button";
 
-export default function SystemInfoPage() {
+/**
+ * Settings Activity — who changed what in this school's settings.
+ *
+ * This page used to print the platform's own metadata to every school: the
+ * software version, the build number, the database engine, the installation
+ * date and the server clock. None of it is the school's, none of it is
+ * actionable by a head teacher, and naming the database engine and version to
+ * every tenant hands an attacker the first two facts they would otherwise
+ * have to guess. That belongs to the platform owner's console, not here.
+ *
+ * What stays is the part that was always the school's own: the record of its
+ * own settings changes.
+ */
+export default function SettingsActivityPage() {
   const t = useT();
-  const settings = useSettingsState();
-
-  useEffect(() => {
-    refreshServerTime();
-  }, []);
-
+  useSettingsState();
   const s = getSettings();
-  const storage = systemStorageUsageMb();
-
-  const rows = [
-    ["System Name", s.system.systemName],
-    ["Version", s.system.version],
-    ["Build Number", s.system.buildNumber],
-    ["Installation Date", dateTime(s.system.installationDate)],
-    ["Database Type", s.system.databaseType],
-    ["Server Time", dateTime(s.system.serverTime)],
-    ["Storage Usage", `${storage} MB (browser cache)`],
-  ];
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold">{t("settingsSystem.systemInformation")}</h1>
-          <p className="mt-1 text-sm text-muted-foreground">{t("settingsSystem.readOnlySystemMetadata")}</p>
-        </div>
-        <Button variant="outline" className="h-9" onClick={() => refreshServerTime()}>{t("settingsSystem.refresh")}</Button>
+      <div>
+        <h1 className="flex items-center gap-2 text-2xl font-bold">
+          <History className="h-6 w-6 text-primary" />
+          Settings Activity
+        </h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Every change made to this school&apos;s settings, newest first.
+        </p>
       </div>
-      <dl className="grid gap-3 sm:grid-cols-2">
-        {rows.map(([k, v]) => (
-          <div key={k} className="rounded-xl border bg-card p-4">
-            <dt className="text-xs text-muted-foreground">{k}</dt>
-            <dd className="mt-1 font-medium">{v}</dd>
-          </div>
-        ))}
-      </dl>
-      <div className="rounded-xl border bg-card p-5">
-        <h2 className="font-semibold">{t("settingsSystem.settingsAuditLog")}</h2>
-        <ul className="mt-3 max-h-64 space-y-2 overflow-y-auto text-sm">
-          {s.audit.slice(0, 20).map((a) => (
-            <li key={a.id} className="flex justify-between border-b pb-2">
-              <span>{a.action.replace(/_/g, " ")} · {a.user}</span>
-              <span className="text-muted-foreground">{dateTime(a.at)}</span>
-            </li>
-          ))}
-        </ul>
+
+      <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
+        <div className="flex items-center justify-between border-b px-5 py-3">
+          <h2 className="font-semibold">{t("settingsSystem.settingsAuditLog")}</h2>
+          <span className="text-xs text-muted-foreground">
+            {s.audit.length} {s.audit.length === 1 ? "entry" : "entries"}
+          </span>
+        </div>
+
+        {s.audit.length === 0 ? (
+          <p className="px-5 py-12 text-center text-sm text-muted-foreground">
+            No settings have been changed yet.
+          </p>
+        ) : (
+          <ul className="divide-y">
+            {s.audit.slice(0, 100).map((a) => (
+              <li
+                key={a.id}
+                className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 px-5 py-3"
+              >
+                <div className="min-w-0">
+                  <p className="text-sm font-medium">
+                    {a.action.replace(/_/g, " ")}
+                  </p>
+                  <p className="text-xs text-muted-foreground">{a.user}</p>
+                </div>
+                <span className="whitespace-nowrap text-xs text-muted-foreground">
+                  {dateTime(a.at)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
     </div>
   );

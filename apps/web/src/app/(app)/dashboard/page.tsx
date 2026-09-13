@@ -436,8 +436,10 @@ function AdminDashboard() {
       ...(v.fees
         ? [{ label: "Fee Collection (Month)", labelKey: "dashboard.feeCollectionMonth" as TranslationKey, value: money(data.fees.collectedThisMonth), tone: "default" as const }]
         : []),
-      { label: "Database Status", labelKey: "dashboard.databaseStatus" as TranslationKey, value: t("dashboard.connected"), tone: "success" as const },
-      { label: "Server Status", labelKey: "dashboard.serverStatus" as TranslationKey, value: t("dashboard.online"), tone: "success" as const },
+      // "Database: Connected" and "Server: Online" were hard-coded strings
+      // rendered by the very page that could only appear if both were true.
+      // A status that cannot read "down" is decoration, not a status, and it
+      // told every school which engine sits behind the system.
     ];
   }, [data, t]);
 
@@ -786,7 +788,7 @@ function AdminDashboard() {
         </Panel>
         )}
 
-        <Panel title={t("dashboard.systemInformation")}>
+        <Panel title="This year at a glance">
           <ul className="divide-y">
             {systemInfo.map((s) => (
               <li
@@ -794,14 +796,7 @@ function AdminDashboard() {
                 className="flex items-center justify-between py-2.5 text-sm"
               >
                 <span className="text-muted-foreground">{t(s.labelKey)}</span>
-                {s.tone === "success" ? (
-                  <span className="inline-flex items-center gap-1.5 font-medium text-emerald-600 dark:text-emerald-400">
-                    <span className="h-2 w-2 rounded-full bg-emerald-500" />
-                    {s.value}
-                  </span>
-                ) : (
-                  <span className="font-medium text-foreground">{s.value}</span>
-                )}
+                <span className="font-medium text-foreground">{s.value}</span>
               </li>
             ))}
           </ul>

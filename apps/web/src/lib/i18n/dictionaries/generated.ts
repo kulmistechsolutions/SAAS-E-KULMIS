@@ -4116,6 +4116,7 @@ export const generated = {
     security: "Security",
     backup: "Backup",
     systemInfo: "System Info",
+    settingsActivity: "Settings Activity",
     importExport: "Import / Export",
     subscription: "Subscription",
     license: "License",
@@ -4265,6 +4266,7 @@ export const generated = {
     backupSettings: "Backup Settings",
     branding: "Branding",
     systemInformation: "System Information",
+    settingsActivity: "Settings Activity",
   },
   settingsSystem: {
     systemInformation: "System Information",

@@ -17,6 +17,7 @@ import {
   ClipboardList,
   CalendarCheck,
   FileUp,
+  History,
   Info,
   Layers,
   MapPin,
@@ -63,7 +64,7 @@ const NAV: {
   { href: "/settings/quiz", label: "settingsSettingsNav.onlineQuiz", icon: ClipboardList },
   { href: "/settings/notifications", label: "settingsSettingsNav.notifications", icon: Bell },
   { href: "/settings/security", label: "settingsSettingsNav.security", icon: Shield },
-  { href: "/settings/system", label: "settingsSettingsNav.systemInfo", icon: Info },
+  { href: "/settings/system", label: "settingsSettingsNav.settingsActivity", icon: History },
   { href: "/settings/import-export", label: "settingsSettingsNav.importExport", icon: FileUp },
   { href: "/settings/subscription", label: "settingsSettingsNav.subscription", icon: Layers },
   {

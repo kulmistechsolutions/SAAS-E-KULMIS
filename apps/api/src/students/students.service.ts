@@ -106,10 +106,30 @@ export { studentSitsIn } from "./student-class.util";
 
 type StudentRow = Prisma.StudentGetPayload<{ include: typeof studentInclude }>;
 
-export type StudentWithPhoto = StudentRow & {
+/**
+ * A student as the API is allowed to describe them.
+ *
+ * `include` returns every scalar column on the model, which meant the student
+ * list and the student page were both handing out `portalPasswordHash` — the
+ * scrypt hash of the child's own portal password — to every member of staff
+ * who could open a class list, and into every browser cache and network log
+ * along the way. A password hash has exactly one job, on the server, inside
+ * the login check; nothing outside it has any use for one.
+ *
+ * The type omits it and `strip` removes it, so a future column added to the
+ * model cannot re-open the hole by accident: adding a secret means adding it
+ * to this one list.
+ */
+export type StudentWithPhoto = Omit<StudentRow, "portalPasswordHash"> & {
   hasPhoto: boolean;
   photoUrl: string | null;
 };
+
+function withoutSecrets(student: StudentRow): Omit<StudentRow, "portalPasswordHash"> {
+  const { portalPasswordHash: _secret, ...rest } = student;
+  void _secret;
+  return rest;
+}
 
 @Injectable()
 export class StudentsService {
@@ -135,9 +155,10 @@ export class StudentsService {
   private async attachPhotoMeta(
     student: StudentRow,
   ): Promise<StudentWithPhoto> {
+    const safe = withoutSecrets(student);
     const hasPhoto = !!student.photoKey;
     if (!hasPhoto || !student.photoKey) {
-      return { ...student, hasPhoto: false, photoUrl: null };
+      return { ...safe, hasPhoto: false, photoUrl: null };
     }
     try {
       const photoUrl = await this.storage.getSignedUrl(
@@ -148,13 +169,13 @@ export class StudentsService {
       this.logger.debug(
         `Photo URL for student ${student.id}: key=${student.photoKey} url=${photoUrl.slice(0, 80)}…`,
       );
-      return { ...student, hasPhoto: true, photoUrl };
+      return { ...safe, hasPhoto: true, photoUrl };
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       this.logger.warn(
         `Failed to resolve photo URL for student ${student.id} (key=${student.photoKey}): ${message}`,
       );
-      return { ...student, hasPhoto: true, photoUrl: null };
+      return { ...safe, hasPhoto: true, photoUrl: null };
     }
   }
 
@@ -405,7 +426,7 @@ export class StudentsService {
     );
     if (opts.includePhotoUrls === false) {
       return rows.map((s) => ({
-        ...s,
+        ...withoutSecrets(s),
         hasPhoto: !!s.photoKey,
         photoUrl: null,
       }));
@@ -933,7 +954,9 @@ export class StudentsService {
   private async resolveParentChange(
     tx: PrismaClient,
     schoolId: string,
-    current: StudentRow,
+    // The caller passes what the API returns, which no longer carries the
+    // portal hash; nothing in here ever wanted it.
+    current: Omit<StudentRow, "portalPasswordHash">,
     dto: UpdateStudentInput,
   ): Promise<{
     parentId: string;

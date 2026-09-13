@@ -4057,6 +4057,7 @@ export const soGenerated: PartialDictionary = {
     security: "Ammaan",
     backup: "Kayd",
     systemInfo: "Xogta Nidaamka",
+    settingsActivity: "Dhaqdhaqaaqa Settings-ka",
     importExport: "Soo gelin / Soo saarid",
     subscription: "Rukunka",
     license: "Shatiga",
@@ -4199,6 +4200,7 @@ export const soGenerated: PartialDictionary = {
     backupSettings: "Dejinta Kaydka",
     branding: "Astaanta",
     systemInformation: "Macluumaadka Nidaamka",
+    settingsActivity: "Dhaqdhaqaaqa Settings-ka",
   },
   settingsSystem: {
     systemInformation: "Macluumaadka Nidaamka",

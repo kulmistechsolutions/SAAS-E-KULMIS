@@ -67,7 +67,7 @@ export default function SettingsDashboardPage() {
             )}
           </ul>
           <Link href="/settings/system" className="mt-3 inline-block text-sm text-primary hover:underline">
-            {t("settings.viewSystemInfo")}
+            View all settings activity
           </Link>
         </div>
       </div>

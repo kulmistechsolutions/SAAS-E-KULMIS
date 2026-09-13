@@ -32,7 +32,7 @@ const CARDS: {
   { key: "notifications", label: "settingsSummaryCards.notificationSettings", icon: Bell, chip: "bg-rose-500/15 text-rose-600", href: "/settings/notifications" },
   { key: "security", label: "settingsSummaryCards.securitySettings", icon: Shield, chip: "bg-slate-500/15 text-slate-600", href: "/settings/security" },
   { key: "branding", label: "settingsSummaryCards.branding", icon: Palette, chip: "bg-fuchsia-500/15 text-fuchsia-600", href: "/settings/branding" },
-  { key: "system", label: "settingsSummaryCards.systemInformation", icon: Database, chip: "bg-cyan-500/15 text-cyan-600", href: "/settings/system" },
+  { key: "system", label: "settingsSummaryCards.settingsActivity", icon: Database, chip: "bg-cyan-500/15 text-cyan-600", href: "/settings/system" },
 ];
 
 export function SettingsSummaryCards({
