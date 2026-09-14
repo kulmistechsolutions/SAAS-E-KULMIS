@@ -62,8 +62,20 @@ export function useShifts(): ApiShift[] {
   return useSyncExternalStore(subscribe, () => shifts, () => []);
 }
 
-/** Shift id -> display name, falling back to the raw id while still loading. */
+/**
+ * Shift id -> display name.
+ *
+ * The fallback used to be the id itself, which put
+ * "62a995f3-52c5-4d82-994e-fc354826dc93" on a printed Teacher Information
+ * Sheet where "Morning" belongs. A key is not a name, and a document carrying
+ * one is worse than a document carrying nothing: the reader cannot tell it is
+ * a fault rather than what the school actually recorded.
+ *
+ * Asking for a name also starts the fetch, so a caller that renders before the
+ * list has loaded shows a dash once and the real name on the next paint.
+ */
 export function shiftName(id: string | null | undefined): string {
   if (!id) return "—";
-  return shifts.find((s) => s.id === id)?.name ?? id;
+  ensureShiftsLoaded();
+  return shifts.find((s) => s.id === id)?.name ?? "—";
 }

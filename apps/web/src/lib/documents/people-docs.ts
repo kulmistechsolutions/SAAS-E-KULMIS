@@ -10,6 +10,7 @@ import {
 import { paperCss, type PaperSize } from "@/lib/print/paper";
 import { schoolBranding } from "@/lib/settings/store";
 import type { Teacher } from "@/lib/teachers/types";
+import { shiftName } from "@/lib/teachers/shifts";
 import type { StaffEmployee } from "@/lib/employees/types";
 import type { Parent, StudentWithParent } from "@/lib/students/types";
 import { DESIGN_CSS, DOC_SHELL_CSS, type DocDesign } from "./doc-shell";
@@ -133,7 +134,15 @@ function teacherBody(t: Teacher, classes: string[], o: PersonDocOptions): string
   const employment = section(
     "Employment",
     row("Employment Date", dateLong(t.registrationDate)) +
-      row("Shifts", t.shifts.length ? t.shifts.join(", ") : null) +
+      // A teacher carries shift *ids*; every screen turns them into names
+      // through shiftName, and this sheet was the one place that did not —
+      // so an official document went out with a UUID where "Morning" belongs.
+      row(
+        "Shifts",
+        t.shifts.length
+          ? t.shifts.map(shiftName).filter((x) => x !== "—").join(", ") || null
+          : null,
+      ) +
       row("Classes", classes.length ? classes.join(", ") : null) +
       (o.showSalary ? row("Monthly Salary", money(t.salary)) : ""),
   );
