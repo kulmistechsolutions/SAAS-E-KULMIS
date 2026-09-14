@@ -162,58 +162,60 @@ export default function QuizResultsPage({ params }: { params: Promise<{ id: stri
       </div>
 
       <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
-        <table className="w-full text-sm">
-          <thead className="bg-secondary text-start text-xs text-muted-foreground">
-            <tr>
-              <th className="px-4 py-2.5">{t("quizResults.no")}</th>
-              <th className="px-4 py-2.5">{t("quizResults.student")}</th>
-              <th className="px-4 py-2.5">{t("quizResults.submitted")}</th>
-              <th className="px-4 py-2.5">{t("quizResults.score")}</th>
-              <th className="px-4 py-2.5">%</th>
-              <th className="px-4 py-2.5">{t("quizResults.result")}</th>
-              <th className="px-4 py-2.5">{t("quizResults.status")}</th>
-              <th className="px-4 py-2.5">{t("quizResults.sheet")}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {attempts.map((a, i) => (
-              <tr key={a.id} className="border-t">
-                <td className="px-4 py-2.5">{i + 1}</td>
-                <td className="px-4 py-2.5">
-                  <div className="font-medium">{a.student.fullName}</div>
-                  <div className="font-mono text-xs text-muted-foreground">{a.student.code}</div>
-                </td>
-                <td className="px-4 py-2.5 text-muted-foreground">
-                  {a.submittedAt ? dateTime(a.submittedAt) : "—"}
-                </td>
-                <td className="px-4 py-2.5 tabular-nums">{a.score ?? "—"}</td>
-                <td className="px-4 py-2.5 tabular-nums">
-                  {a.percentage != null ? `${a.percentage}%` : "—"}
-                </td>
-                <td className="px-4 py-2.5">{resultLabel(a.result)}</td>
-                <td className="px-4 py-2.5">{a.status}</td>
-                <td className="px-4 py-2.5">
-                  {a.status !== "IN_PROGRESS" && (
-                    <Button
-                      variant="ghost"
-                      className="h-8 px-2 text-xs"
-                      onClick={() => void printOne(a.id)}
-                    >
-                      {t("quizResults.viewPdf")}
-                    </Button>
-                  )}
-                </td>
-              </tr>
-            ))}
-            {attempts.length === 0 && (
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-secondary text-start text-xs text-muted-foreground">
               <tr>
-                <td colSpan={8} className="px-4 py-8 text-center text-muted-foreground">
-                  {t("quizResults.noSubmissionsYet")}
-                </td>
+                <th className="px-4 py-2.5">{t("quizResults.no")}</th>
+                <th className="px-4 py-2.5">{t("quizResults.student")}</th>
+                <th className="px-4 py-2.5">{t("quizResults.submitted")}</th>
+                <th className="px-4 py-2.5">{t("quizResults.score")}</th>
+                <th className="px-4 py-2.5">%</th>
+                <th className="px-4 py-2.5">{t("quizResults.result")}</th>
+                <th className="px-4 py-2.5">{t("quizResults.status")}</th>
+                <th className="px-4 py-2.5">{t("quizResults.sheet")}</th>
               </tr>
-            )}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {attempts.map((a, i) => (
+                <tr key={a.id} className="border-t">
+                  <td className="px-4 py-2.5">{i + 1}</td>
+                  <td className="px-4 py-2.5">
+                    <div className="font-medium">{a.student.fullName}</div>
+                    <div className="font-mono text-xs text-muted-foreground">{a.student.code}</div>
+                  </td>
+                  <td className="px-4 py-2.5 text-muted-foreground">
+                    {a.submittedAt ? dateTime(a.submittedAt) : "—"}
+                  </td>
+                  <td className="px-4 py-2.5 tabular-nums">{a.score ?? "—"}</td>
+                  <td className="px-4 py-2.5 tabular-nums">
+                    {a.percentage != null ? `${a.percentage}%` : "—"}
+                  </td>
+                  <td className="px-4 py-2.5">{resultLabel(a.result)}</td>
+                  <td className="px-4 py-2.5">{a.status}</td>
+                  <td className="px-4 py-2.5">
+                    {a.status !== "IN_PROGRESS" && (
+                      <Button
+                        variant="ghost"
+                        className="h-8 px-2 text-xs"
+                        onClick={() => void printOne(a.id)}
+                      >
+                        {t("quizResults.viewPdf")}
+                      </Button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+              {attempts.length === 0 && (
+                <tr>
+                  <td colSpan={8} className="px-4 py-8 text-center text-muted-foreground">
+                    {t("quizResults.noSubmissionsYet")}
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

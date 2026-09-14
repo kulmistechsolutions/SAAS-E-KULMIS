@@ -266,34 +266,36 @@ export default function ClassProfilePage() {
                 </Button>
               </div>
               <div className="overflow-hidden rounded-xl border">
-                <table className="w-full text-sm">
-                  <thead className="bg-secondary/60 text-start text-xs uppercase tracking-wide text-muted-foreground">
-                    <tr>
-                      <th className="px-4 py-2.5 font-medium">#</th>
-                      <th className="px-4 py-2.5 font-medium">{tr("academicsClasses.studentId")}</th>
-                      <th className="px-4 py-2.5 font-medium">{tr("academicsClasses.name")}</th>
-                      <th className="px-4 py-2.5 font-medium">{tr("academicsClasses.gender")}</th>
-                      <th className="px-4 py-2.5 font-medium">{tr("academicsClasses.section")}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {students.length === 0 ? (
-                      <tr><td colSpan={5} className="px-4 py-10 text-center text-muted-foreground">{tr("academicsClasses.noStudentsEnrolled")}</td></tr>
-                    ) : (
-                      students.map((s, i) => (
-                        <tr key={s.id} className="border-t">
-                          <td className="px-4 py-2.5 text-muted-foreground">{i + 1}</td>
-                          <td className="px-4 py-2.5 font-mono text-xs">{s.code}</td>
-                          <td className="px-4 py-2.5">
-                            <Link href={`/students/${s.id}`} className="font-medium hover:text-primary hover:underline">{s.fullName}</Link>
-                          </td>
-                          <td className="px-4 py-2.5">{s.gender.charAt(0) + s.gender.slice(1).toLowerCase()}</td>
-                          <td className="px-4 py-2.5">{s.section ? `Section ${s.section}` : "—"}</td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-secondary/60 text-start text-xs uppercase tracking-wide text-muted-foreground">
+                      <tr>
+                        <th className="px-4 py-2.5 font-medium">#</th>
+                        <th className="px-4 py-2.5 font-medium">{tr("academicsClasses.studentId")}</th>
+                        <th className="px-4 py-2.5 font-medium">{tr("academicsClasses.name")}</th>
+                        <th className="px-4 py-2.5 font-medium">{tr("academicsClasses.gender")}</th>
+                        <th className="px-4 py-2.5 font-medium">{tr("academicsClasses.section")}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {students.length === 0 ? (
+                        <tr><td colSpan={5} className="px-4 py-10 text-center text-muted-foreground">{tr("academicsClasses.noStudentsEnrolled")}</td></tr>
+                      ) : (
+                        students.map((s, i) => (
+                          <tr key={s.id} className="border-t">
+                            <td className="px-4 py-2.5 text-muted-foreground">{i + 1}</td>
+                            <td className="px-4 py-2.5 font-mono text-xs">{s.code}</td>
+                            <td className="px-4 py-2.5">
+                              <Link href={`/students/${s.id}`} className="font-medium hover:text-primary hover:underline">{s.fullName}</Link>
+                            </td>
+                            <td className="px-4 py-2.5">{s.gender.charAt(0) + s.gender.slice(1).toLowerCase()}</td>
+                            <td className="px-4 py-2.5">{s.section ? `Section ${s.section}` : "—"}</td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
           )}
@@ -326,30 +328,32 @@ export default function ClassProfilePage() {
 
           {tab === "teachers" && (
             <div className="overflow-hidden rounded-xl border">
-              <table className="w-full text-sm">
-                <thead className="bg-secondary/60 text-start text-xs uppercase tracking-wide text-muted-foreground">
-                  <tr>
-                    <th className="px-4 py-2.5 font-medium">{tr("academicsClasses.teacher")}</th>
-                    <th className="px-4 py-2.5 font-medium">{tr("academicsClasses.subject")}</th>
-                    <th className="px-4 py-2.5 font-medium">{tr("academicsClasses.section")}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {teacherRows.length === 0 ? (
-                    <tr><td colSpan={3} className="px-4 py-10 text-center text-muted-foreground">{tr("academicsClasses.noTeachersAssignedToThisClass")}</td></tr>
-                  ) : (
-                    teacherRows.map((a) => (
-                      <tr key={a.id} className="border-t">
-                        <td className="px-4 py-2.5">
-                          <Link href={`/teachers/${a.teacherId}`} className="font-medium hover:text-primary hover:underline">{a.teacherName}</Link>
-                        </td>
-                        <td className="px-4 py-2.5">{a.subject}</td>
-                        <td className="px-4 py-2.5">{a.section ? `Section ${a.section}` : "All sections"}</td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-secondary/60 text-start text-xs uppercase tracking-wide text-muted-foreground">
+                    <tr>
+                      <th className="px-4 py-2.5 font-medium">{tr("academicsClasses.teacher")}</th>
+                      <th className="px-4 py-2.5 font-medium">{tr("academicsClasses.subject")}</th>
+                      <th className="px-4 py-2.5 font-medium">{tr("academicsClasses.section")}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {teacherRows.length === 0 ? (
+                      <tr><td colSpan={3} className="px-4 py-10 text-center text-muted-foreground">{tr("academicsClasses.noTeachersAssignedToThisClass")}</td></tr>
+                    ) : (
+                      teacherRows.map((a) => (
+                        <tr key={a.id} className="border-t">
+                          <td className="px-4 py-2.5">
+                            <Link href={`/teachers/${a.teacherId}`} className="font-medium hover:text-primary hover:underline">{a.teacherName}</Link>
+                          </td>
+                          <td className="px-4 py-2.5">{a.subject}</td>
+                          <td className="px-4 py-2.5">{a.section ? `Section ${a.section}` : "All sections"}</td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
 
@@ -372,28 +376,30 @@ export default function ClassProfilePage() {
                 <StatBlock label={tr("academicsClasses.examAverage")} value={percent(stats.examAverage)} />
               </div>
               <div className="overflow-hidden rounded-xl border">
-                <table className="w-full text-sm">
-                  <thead className="bg-secondary/60 text-start text-xs uppercase tracking-wide text-muted-foreground">
-                    <tr>
-                      <th className="px-4 py-2.5 font-medium">{tr("academicsClasses.exam")}</th>
-                      <th className="px-4 py-2.5 font-medium">{tr("academicsClasses.section")}</th>
-                      <th className="px-4 py-2.5 font-medium">{tr("academicsClasses.status")}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {exams.length === 0 ? (
-                      <tr><td colSpan={3} className="px-4 py-10 text-center text-muted-foreground">{tr("academicsClasses.noExaminationsForThisClass")}</td></tr>
-                    ) : (
-                      exams.map((e) => (
-                        <tr key={e.id} className="border-t">
-                          <td className="px-4 py-2.5 font-medium">{e.name}</td>
-                          <td className="px-4 py-2.5">{e.section ? `Section ${e.section}` : "—"}</td>
-                          <td className="px-4 py-2.5"><Badge tone="info">{e.status}</Badge></td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-secondary/60 text-start text-xs uppercase tracking-wide text-muted-foreground">
+                      <tr>
+                        <th className="px-4 py-2.5 font-medium">{tr("academicsClasses.exam")}</th>
+                        <th className="px-4 py-2.5 font-medium">{tr("academicsClasses.section")}</th>
+                        <th className="px-4 py-2.5 font-medium">{tr("academicsClasses.status")}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {exams.length === 0 ? (
+                        <tr><td colSpan={3} className="px-4 py-10 text-center text-muted-foreground">{tr("academicsClasses.noExaminationsForThisClass")}</td></tr>
+                      ) : (
+                        exams.map((e) => (
+                          <tr key={e.id} className="border-t">
+                            <td className="px-4 py-2.5 font-medium">{e.name}</td>
+                            <td className="px-4 py-2.5">{e.section ? `Section ${e.section}` : "—"}</td>
+                            <td className="px-4 py-2.5"><Badge tone="info">{e.status}</Badge></td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
           )}

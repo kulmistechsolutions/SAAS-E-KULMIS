@@ -634,33 +634,35 @@ function ParentTab({
       <div>
         <h3 className="mb-3 text-sm font-semibold text-foreground">{tr("students.children")}</h3>
         <div className="overflow-hidden rounded-xl border">
-          <table className="w-full text-sm">
-            <thead className="bg-secondary text-start text-xs text-muted-foreground">
-              <tr>
-                <th className="px-4 py-2.5 font-medium">{tr("students.studentId")}</th>
-                <th className="px-4 py-2.5 font-medium">{tr("students.name")}</th>
-                <th className="px-4 py-2.5 font-medium">{tr("students.class")}</th>
-                <th className="px-4 py-2.5 font-medium">{tr("students.status")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {siblings.map((s) => (
-                <tr key={s.id} className="border-t">
-                  <td className="px-4 py-2.5 font-mono text-xs">{s.code}</td>
-                  <td className="px-4 py-2.5">
-                    <Link href={`/students/${s.id}`} className="hover:text-primary hover:underline">
-                      {s.fullName}
-                    </Link>
-                  </td>
-                  <td className="px-4 py-2.5">
-                    {studentClassLabel(s)}
-                    {s.section ? ` - ${s.section}` : ""}
-                  </td>
-                  <td className="px-4 py-2.5">{statusLabel(s.status)}</td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-secondary text-start text-xs text-muted-foreground">
+                <tr>
+                  <th className="px-4 py-2.5 font-medium">{tr("students.studentId")}</th>
+                  <th className="px-4 py-2.5 font-medium">{tr("students.name")}</th>
+                  <th className="px-4 py-2.5 font-medium">{tr("students.class")}</th>
+                  <th className="px-4 py-2.5 font-medium">{tr("students.status")}</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {siblings.map((s) => (
+                  <tr key={s.id} className="border-t">
+                    <td className="px-4 py-2.5 font-mono text-xs">{s.code}</td>
+                    <td className="px-4 py-2.5">
+                      <Link href={`/students/${s.id}`} className="hover:text-primary hover:underline">
+                        {s.fullName}
+                      </Link>
+                    </td>
+                    <td className="px-4 py-2.5">
+                      {studentClassLabel(s)}
+                      {s.section ? ` - ${s.section}` : ""}
+                    </td>
+                    <td className="px-4 py-2.5">{statusLabel(s.status)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>
@@ -702,45 +704,47 @@ function AttendanceTab({ student }: { student: StudentWithParent }) {
         <StatPill label={tr("students.attendance")} value={`${a.percentage}%`} tone="bg-sky-500/10" />
       </div>
       <div className="overflow-hidden rounded-xl border">
-        <table className="w-full text-sm">
-          <thead className="bg-secondary text-start text-xs text-muted-foreground">
-            <tr>
-              <th className="px-4 py-2.5 font-medium">{tr("students.date")}</th>
-              {hasShifts && (
-                <th className="px-4 py-2.5 font-medium">{tr("students.shift")}</th>
-              )}
-              <th className="px-4 py-2.5 font-medium">{tr("students.status")}</th>
-              <th className="px-4 py-2.5 font-medium" />
-            </tr>
-          </thead>
-          <tbody>
-            {a.rows.map((r, i) => (
-              <tr key={i} className="border-t">
-                <td className="px-4 py-2.5">{shortDate(r.date)}</td>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-secondary text-start text-xs text-muted-foreground">
+              <tr>
+                <th className="px-4 py-2.5 font-medium">{tr("students.date")}</th>
                 {hasShifts && (
-                  <td className="px-4 py-2.5 text-muted-foreground">
-                    {r.shiftName ?? "—"}
-                  </td>
+                  <th className="px-4 py-2.5 font-medium">{tr("students.shift")}</th>
                 )}
-                <td className="px-4 py-2.5">
-                  <Badge
-                    tone={
-                      r.status === "PRESENT"
-                        ? "success"
-                        : r.status === "LATE"
-                          ? "warning"
-                          : r.status === "EXCUSED"
-                            ? "info"
-                            : "danger"
-                    }
-                  >
-                    {statusLabel(r.status)}
-                  </Badge>
-                </td>
+                <th className="px-4 py-2.5 font-medium">{tr("students.status")}</th>
+                <th className="px-4 py-2.5 font-medium" />
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {a.rows.map((r, i) => (
+                <tr key={i} className="border-t">
+                  <td className="px-4 py-2.5">{shortDate(r.date)}</td>
+                  {hasShifts && (
+                    <td className="px-4 py-2.5 text-muted-foreground">
+                      {r.shiftName ?? "—"}
+                    </td>
+                  )}
+                  <td className="px-4 py-2.5">
+                    <Badge
+                      tone={
+                        r.status === "PRESENT"
+                          ? "success"
+                          : r.status === "LATE"
+                            ? "warning"
+                            : r.status === "EXCUSED"
+                              ? "info"
+                              : "danger"
+                      }
+                    >
+                      {statusLabel(r.status)}
+                    </Badge>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
@@ -776,28 +780,30 @@ function CasesTab({ student }: { student: StudentWithParent }) {
         </div>
       ) : (
         <div className="overflow-hidden rounded-xl border">
-          <table className="w-full text-sm">
-            <thead className="bg-secondary text-start text-xs text-muted-foreground">
-              <tr>
-                <th className="px-4 py-2.5 font-medium">{tr("studentCases.date")}</th>
-                <th className="px-4 py-2.5 font-medium">{tr("studentCases.caseTitle")}</th>
-                <th className="px-4 py-2.5 font-medium">{tr("studentCases.note")}</th>
-                <th className="px-4 py-2.5 font-medium">{tr("printHistory.printedBy")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {cases.map((c) => (
-                <tr key={c.id} className="border-t">
-                  <td className="px-4 py-2.5">{shortDate(c.date)}</td>
-                  <td className="px-4 py-2.5 font-medium">{c.title}</td>
-                  <td className="px-4 py-2.5 text-muted-foreground">{c.note ?? "—"}</td>
-                  <td className="px-4 py-2.5 text-muted-foreground">
-                    {c.recordedByUsername ?? "—"}
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-secondary text-start text-xs text-muted-foreground">
+                <tr>
+                  <th className="px-4 py-2.5 font-medium">{tr("studentCases.date")}</th>
+                  <th className="px-4 py-2.5 font-medium">{tr("studentCases.caseTitle")}</th>
+                  <th className="px-4 py-2.5 font-medium">{tr("studentCases.note")}</th>
+                  <th className="px-4 py-2.5 font-medium">{tr("printHistory.printedBy")}</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {cases.map((c) => (
+                  <tr key={c.id} className="border-t">
+                    <td className="px-4 py-2.5">{shortDate(c.date)}</td>
+                    <td className="px-4 py-2.5 font-medium">{c.title}</td>
+                    <td className="px-4 py-2.5 text-muted-foreground">{c.note ?? "—"}</td>
+                    <td className="px-4 py-2.5 text-muted-foreground">
+                      {c.recordedByUsername ?? "—"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </div>
@@ -961,72 +967,74 @@ function FeesTab({ student }: { student: StudentWithParent }) {
       )}
 
       <div className="overflow-hidden rounded-xl border">
-        <table className="w-full text-sm">
-          <thead className="bg-secondary text-start text-xs text-muted-foreground">
-            <tr>
-              <th className="px-4 py-2.5 font-medium">{tr("students.month")}</th>
-              <th className="px-4 py-2.5 font-medium">{tr("students.monthlyCharge")}</th>
-              <th className="px-4 py-2.5 font-medium">{tr("students.amountPaid")}</th>
-              <th className="px-4 py-2.5 font-medium">{tr("students.remainingBalance")}</th>
-              <th className="px-4 py-2.5 font-medium">{tr("students.status")}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading && (
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-secondary text-start text-xs text-muted-foreground">
               <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
-                  {tr("students.loadingFeeRecords")}
-                </td>
+                <th className="px-4 py-2.5 font-medium">{tr("students.month")}</th>
+                <th className="px-4 py-2.5 font-medium">{tr("students.monthlyCharge")}</th>
+                <th className="px-4 py-2.5 font-medium">{tr("students.amountPaid")}</th>
+                <th className="px-4 py-2.5 font-medium">{tr("students.remainingBalance")}</th>
+                <th className="px-4 py-2.5 font-medium">{tr("students.status")}</th>
               </tr>
-            )}
-            {!loading &&
-              rows.map((r) => (
-                <tr key={r.id} className="border-t">
-                  <td className="px-4 py-2.5">
-                    {r.kind && r.kind !== "MONTHLY" && r.label
-                      ? `${r.label} · ${monthLabel(monthKey(r.year, r.month))}`
-                      : monthLabel(monthKey(r.year, r.month))}
-                  </td>
-                  <td className="px-4 py-2.5 tabular-nums">{feeMoney(r.amount)}</td>
-                  <td className="px-4 py-2.5 tabular-nums">{feeMoney(r.paidAmount)}</td>
-                  <td className="px-4 py-2.5 tabular-nums">
-                    {feeMoney(Math.max(0, r.amount - r.paidAmount))}
-                  </td>
-                  <td className="px-4 py-2.5">
-                    <FeeStatusBadge status={r.status} />
-                  </td>
-                  <td className="px-4 py-2.5 text-end">
-                    {r.status !== "PAID" && r.status !== "INACTIVE" && (
-                      <button
-                        type="button"
-                        className="text-xs font-medium text-primary hover:underline"
-                        onClick={() =>
-                          setAdjustTarget({
-                            feeChargeId: r.id,
-                            label:
-                              r.kind && r.kind !== "MONTHLY" && r.label
-                                ? r.label
-                                : monthLabel(monthKey(r.year, r.month)),
-                            amount: r.amount,
-                            outstanding: Math.max(0, r.amount - r.paidAmount),
-                          })
-                        }
-                      >
-                        {tr("feesAdjust.adjustAction")}
-                      </button>
-                    )}
+            </thead>
+            <tbody>
+              {loading && (
+                <tr>
+                  <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
+                    {tr("students.loadingFeeRecords")}
                   </td>
                 </tr>
-              ))}
-            {!loading && rows.length === 0 && (
-              <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
-                  {tr("students.noFeeRecordsYet")}
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+              )}
+              {!loading &&
+                rows.map((r) => (
+                  <tr key={r.id} className="border-t">
+                    <td className="px-4 py-2.5">
+                      {r.kind && r.kind !== "MONTHLY" && r.label
+                        ? `${r.label} · ${monthLabel(monthKey(r.year, r.month))}`
+                        : monthLabel(monthKey(r.year, r.month))}
+                    </td>
+                    <td className="px-4 py-2.5 tabular-nums">{feeMoney(r.amount)}</td>
+                    <td className="px-4 py-2.5 tabular-nums">{feeMoney(r.paidAmount)}</td>
+                    <td className="px-4 py-2.5 tabular-nums">
+                      {feeMoney(Math.max(0, r.amount - r.paidAmount))}
+                    </td>
+                    <td className="px-4 py-2.5">
+                      <FeeStatusBadge status={r.status} />
+                    </td>
+                    <td className="px-4 py-2.5 text-end">
+                      {r.status !== "PAID" && r.status !== "INACTIVE" && (
+                        <button
+                          type="button"
+                          className="text-xs font-medium text-primary hover:underline"
+                          onClick={() =>
+                            setAdjustTarget({
+                              feeChargeId: r.id,
+                              label:
+                                r.kind && r.kind !== "MONTHLY" && r.label
+                                  ? r.label
+                                  : monthLabel(monthKey(r.year, r.month)),
+                              amount: r.amount,
+                              outstanding: Math.max(0, r.amount - r.paidAmount),
+                            })
+                          }
+                        >
+                          {tr("feesAdjust.adjustAction")}
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              {!loading && rows.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
+                    {tr("students.noFeeRecordsYet")}
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {adjustments.length > 0 && (
@@ -1105,45 +1113,47 @@ function FeesTab({ student }: { student: StudentWithParent }) {
           <div className="border-b bg-secondary/40 px-4 py-2.5 text-xs font-medium text-muted-foreground">
             {tr("students.paymentTransactions")}
           </div>
-          <table className="w-full text-sm">
-            <thead className="bg-secondary text-start text-xs text-muted-foreground">
-              <tr>
-                <th className="px-4 py-2.5 font-medium">{tr("financeHistory.receiptNo")}</th>
-                <th className="px-4 py-2.5 font-medium">{tr("financeHistory.amount")}</th>
-                <th className="px-4 py-2.5 font-medium">{tr("financeHistory.type")}</th>
-                <th className="px-4 py-2.5 font-medium">{tr("financeHistory.date")}</th>
-                <th className="px-4 py-2.5 font-medium">{tr("financeHistory.actions")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {payments.map((p) => (
-                <tr key={p.id} className="border-t">
-                  <td className="px-4 py-2.5 font-medium text-primary">{p.receiptNumber}</td>
-                  <td className="px-4 py-2.5 tabular-nums font-medium">{feeMoney(p.amount)}</td>
-                  <td className="px-4 py-2.5">
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      <PaymentStatusBadge isReversal={p.isReversal} status={p.status} />
-                    </div>
-                  </td>
-                  <td className="px-4 py-2.5 text-muted-foreground">{receiptDate(p.paidAt)}</td>
-                  <td className="px-4 py-2.5">
-                    {!p.isReversal && p.status !== "REVERSED" && (
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setReversingPayment(mapApiPayment(p, student.academicYear))
-                        }
-                        title={tr("financeHistory.reversePayment")}
-                        className="flex h-8 w-8 items-center justify-center rounded-lg text-destructive hover:bg-destructive/10"
-                      >
-                        <Undo2 className="h-4 w-4" />
-                      </button>
-                    )}
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-secondary text-start text-xs text-muted-foreground">
+                <tr>
+                  <th className="px-4 py-2.5 font-medium">{tr("financeHistory.receiptNo")}</th>
+                  <th className="px-4 py-2.5 font-medium">{tr("financeHistory.amount")}</th>
+                  <th className="px-4 py-2.5 font-medium">{tr("financeHistory.type")}</th>
+                  <th className="px-4 py-2.5 font-medium">{tr("financeHistory.date")}</th>
+                  <th className="px-4 py-2.5 font-medium">{tr("financeHistory.actions")}</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {payments.map((p) => (
+                  <tr key={p.id} className="border-t">
+                    <td className="px-4 py-2.5 font-medium text-primary">{p.receiptNumber}</td>
+                    <td className="px-4 py-2.5 tabular-nums font-medium">{feeMoney(p.amount)}</td>
+                    <td className="px-4 py-2.5">
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <PaymentStatusBadge isReversal={p.isReversal} status={p.status} />
+                      </div>
+                    </td>
+                    <td className="px-4 py-2.5 text-muted-foreground">{receiptDate(p.paidAt)}</td>
+                    <td className="px-4 py-2.5">
+                      {!p.isReversal && p.status !== "REVERSED" && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setReversingPayment(mapApiPayment(p, student.academicYear))
+                          }
+                          title={tr("financeHistory.reversePayment")}
+                          className="flex h-8 w-8 items-center justify-center rounded-lg text-destructive hover:bg-destructive/10"
+                        >
+                          <Undo2 className="h-4 w-4" />
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
@@ -1332,36 +1342,38 @@ function QuizzesTab({ student }: { student: StudentWithParent }) {
   const rows = useMemo(() => studentQuizHistory(student.id), [student.id]);
   return (
     <div className="overflow-hidden rounded-xl border">
-      <table className="w-full text-sm">
-        <thead className="bg-secondary text-start text-xs text-muted-foreground">
-          <tr>
-            <th className="px-4 py-2.5 font-medium">{tr("students.quiz")}</th>
-            <th className="px-4 py-2.5 font-medium">{tr("students.score")}</th>
-            <th className="px-4 py-2.5 font-medium">{tr("students.percentage")}</th>
-            <th className="px-4 py-2.5 font-medium">{tr("students.status")}</th>
-            <th className="px-4 py-2.5 font-medium">{tr("students.attemptDate")}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((r, i) => (
-            <tr key={i} className="border-t">
-              <td className="px-4 py-2.5">{r.name}</td>
-              <td className="px-4 py-2.5 tabular-nums">
-                {r.score}/{r.total}
-              </td>
-              <td className="px-4 py-2.5 tabular-nums">{r.percentage}%</td>
-              <td className="px-4 py-2.5">
-                <Badge tone={r.status === "PASSED" ? "success" : "danger"}>
-                  {statusLabel(r.status)}
-                </Badge>
-              </td>
-              <td className="px-4 py-2.5 text-muted-foreground">
-                {shortDate(r.date)}
-              </td>
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead className="bg-secondary text-start text-xs text-muted-foreground">
+            <tr>
+              <th className="px-4 py-2.5 font-medium">{tr("students.quiz")}</th>
+              <th className="px-4 py-2.5 font-medium">{tr("students.score")}</th>
+              <th className="px-4 py-2.5 font-medium">{tr("students.percentage")}</th>
+              <th className="px-4 py-2.5 font-medium">{tr("students.status")}</th>
+              <th className="px-4 py-2.5 font-medium">{tr("students.attemptDate")}</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {rows.map((r, i) => (
+              <tr key={i} className="border-t">
+                <td className="px-4 py-2.5">{r.name}</td>
+                <td className="px-4 py-2.5 tabular-nums">
+                  {r.score}/{r.total}
+                </td>
+                <td className="px-4 py-2.5 tabular-nums">{r.percentage}%</td>
+                <td className="px-4 py-2.5">
+                  <Badge tone={r.status === "PASSED" ? "success" : "danger"}>
+                    {statusLabel(r.status)}
+                  </Badge>
+                </td>
+                <td className="px-4 py-2.5 text-muted-foreground">
+                  {shortDate(r.date)}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
@@ -1377,33 +1389,35 @@ function PromotionTab({ student }: { student: StudentWithParent }) {
     );
   return (
     <div className="overflow-hidden rounded-xl border">
-      <table className="w-full text-sm">
-        <thead className="bg-secondary text-start text-xs text-muted-foreground">
-          <tr>
-            <th className="px-4 py-2.5 font-medium">{tr("students.type")}</th>
-            <th className="px-4 py-2.5 font-medium">{tr("students.academicYear")}</th>
-            <th className="px-4 py-2.5 font-medium">{tr("students.previousClass")}</th>
-            <th className="px-4 py-2.5 font-medium">{tr("students.newClass")}</th>
-            <th className="px-4 py-2.5 font-medium">{tr("students.promotionDate")}</th>
-            <th className="px-4 py-2.5 font-medium">{tr("students.by")}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((r) => (
-            <tr key={r.id} className={r.rolledBackAt ? "border-t opacity-50" : "border-t"}>
-              <td className="px-4 py-2.5"><PromotionTypeBadge type={r.type} /></td>
-              <td className="px-4 py-2.5">{r.fromAcademicYear}</td>
-              <td className="px-4 py-2.5">{r.fromClass}{r.fromSection ? ` (${r.fromSection})` : ""}</td>
-              <td className="px-4 py-2.5">
-                {r.graduated ? tr("students.graduated") : `${r.toClass}${r.toSection ? ` (${r.toSection})` : ""}`}
-                {r.rolledBackAt ? " — rolled back" : ""}
-              </td>
-              <td className="px-4 py-2.5 text-muted-foreground">{dateTime(r.promotedAt)}</td>
-              <td className="px-4 py-2.5 text-muted-foreground">{r.promotedBy}</td>
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead className="bg-secondary text-start text-xs text-muted-foreground">
+            <tr>
+              <th className="px-4 py-2.5 font-medium">{tr("students.type")}</th>
+              <th className="px-4 py-2.5 font-medium">{tr("students.academicYear")}</th>
+              <th className="px-4 py-2.5 font-medium">{tr("students.previousClass")}</th>
+              <th className="px-4 py-2.5 font-medium">{tr("students.newClass")}</th>
+              <th className="px-4 py-2.5 font-medium">{tr("students.promotionDate")}</th>
+              <th className="px-4 py-2.5 font-medium">{tr("students.by")}</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {rows.map((r) => (
+              <tr key={r.id} className={r.rolledBackAt ? "border-t opacity-50" : "border-t"}>
+                <td className="px-4 py-2.5"><PromotionTypeBadge type={r.type} /></td>
+                <td className="px-4 py-2.5">{r.fromAcademicYear}</td>
+                <td className="px-4 py-2.5">{r.fromClass}{r.fromSection ? ` (${r.fromSection})` : ""}</td>
+                <td className="px-4 py-2.5">
+                  {r.graduated ? tr("students.graduated") : `${r.toClass}${r.toSection ? ` (${r.toSection})` : ""}`}
+                  {r.rolledBackAt ? " — rolled back" : ""}
+                </td>
+                <td className="px-4 py-2.5 text-muted-foreground">{dateTime(r.promotedAt)}</td>
+                <td className="px-4 py-2.5 text-muted-foreground">{r.promotedBy}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

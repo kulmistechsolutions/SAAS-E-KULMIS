@@ -630,50 +630,52 @@ export default function SubscriptionSettingsPage() {
 
                 {extensions.length > 0 && (
                   <div className="mt-4 overflow-hidden rounded-2xl border bg-card shadow-sm">
-                    <table className="w-full text-start text-sm">
-                      <thead className="border-b bg-muted/40 text-xs uppercase text-muted-foreground">
-                        <tr>
-                          <th className="px-4 py-2">{t("settingsSubscription.extendCapacity")}</th>
-                          <th className="px-4 py-2">{t("settingsSubscription.amount")}</th>
-                          <th className="px-4 py-2">{t("settingsSubscription.status")}</th>
-                          <th className="px-4 py-2">{t("settingsSubscription.date")}</th>
-                          <th className="px-4 py-2" />
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {extensions.slice(0, 5).map((o) => (
-                          <tr key={o.id} className="border-b last:border-0">
-                            <td className="px-4 py-2">
-                              +{o.quantity} {o.resource.toLowerCase()}
-                            </td>
-                            <td className="px-4 py-2">{money(o.amount, o.currency)}</td>
-                            <td className="px-4 py-2">
-                              <span
-                                className={cn(
-                                  "rounded-full px-2 py-0.5 text-xs font-medium",
-                                  STATUS_CLASS[o.status] ?? STATUS_CLASS.PENDING,
-                                )}
-                              >
-                                {o.status}
-                              </span>
-                            </td>
-                            <td className="px-4 py-2 text-xs text-muted-foreground">
-                              {new Date(o.createdAt).toLocaleString()}
-                            </td>
-                            <td className="px-4 py-2 text-end">
-                              {(o.status === "PENDING" || o.status === "PROCESSING") && (
-                                <Button
-                                  className="h-8 px-3 text-xs"
-                                  onClick={() => void verifyExtend(o.id)}
-                                >
-                                  {t("settingsSubscription.verify")}
-                                </Button>
-                              )}
-                            </td>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-start text-sm">
+                        <thead className="border-b bg-muted/40 text-xs uppercase text-muted-foreground">
+                          <tr>
+                            <th className="px-4 py-2">{t("settingsSubscription.extendCapacity")}</th>
+                            <th className="px-4 py-2">{t("settingsSubscription.amount")}</th>
+                            <th className="px-4 py-2">{t("settingsSubscription.status")}</th>
+                            <th className="px-4 py-2">{t("settingsSubscription.date")}</th>
+                            <th className="px-4 py-2" />
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                        </thead>
+                        <tbody>
+                          {extensions.slice(0, 5).map((o) => (
+                            <tr key={o.id} className="border-b last:border-0">
+                              <td className="px-4 py-2">
+                                +{o.quantity} {o.resource.toLowerCase()}
+                              </td>
+                              <td className="px-4 py-2">{money(o.amount, o.currency)}</td>
+                              <td className="px-4 py-2">
+                                <span
+                                  className={cn(
+                                    "rounded-full px-2 py-0.5 text-xs font-medium",
+                                    STATUS_CLASS[o.status] ?? STATUS_CLASS.PENDING,
+                                  )}
+                                >
+                                  {o.status}
+                                </span>
+                              </td>
+                              <td className="px-4 py-2 text-xs text-muted-foreground">
+                                {new Date(o.createdAt).toLocaleString()}
+                              </td>
+                              <td className="px-4 py-2 text-end">
+                                {(o.status === "PENDING" || o.status === "PROCESSING") && (
+                                  <Button
+                                    className="h-8 px-3 text-xs"
+                                    onClick={() => void verifyExtend(o.id)}
+                                  >
+                                    {t("settingsSubscription.verify")}
+                                  </Button>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
                 )}
               </div>
@@ -827,67 +829,69 @@ export default function SubscriptionSettingsPage() {
 
       {tab === "history" && (
         <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
-          <table className="w-full text-start text-sm">
-            <thead className="border-b bg-muted/40 text-xs uppercase text-muted-foreground">
-              <tr>
-                <th className="px-4 py-3">{t("settingsSubscription.plan")}</th>
-                <th className="px-4 py-3">{t("settingsSubscription.amount")}</th>
-                <th className="px-4 py-3">{t("settingsSubscription.status")}</th>
-                <th className="px-4 py-3">{t("settingsSubscription.receipt")}</th>
-                <th className="px-4 py-3">{t("settingsSubscription.date")}</th>
-                <th className="px-4 py-3" />
-              </tr>
-            </thead>
-            <tbody>
-              {orders.length === 0 ? (
+          <div className="overflow-x-auto">
+            <table className="w-full text-start text-sm">
+              <thead className="border-b bg-muted/40 text-xs uppercase text-muted-foreground">
                 <tr>
-                  <td colSpan={6} className="px-4 py-10 text-center text-muted-foreground">
-                    {t("settingsSubscription.noPurchasesYet")}
-                  </td>
+                  <th className="px-4 py-3">{t("settingsSubscription.plan")}</th>
+                  <th className="px-4 py-3">{t("settingsSubscription.amount")}</th>
+                  <th className="px-4 py-3">{t("settingsSubscription.status")}</th>
+                  <th className="px-4 py-3">{t("settingsSubscription.receipt")}</th>
+                  <th className="px-4 py-3">{t("settingsSubscription.date")}</th>
+                  <th className="px-4 py-3" />
                 </tr>
-              ) : (
-                orders.map((o) => (
-                  <tr key={o.id} className="border-b last:border-0">
-                    <td className="px-4 py-3 font-medium">{o.plan.name}</td>
-                    <td className="px-4 py-3">{money(o.amount, o.currency)}</td>
-                    <td className="px-4 py-3">
-                      <span
-                        className={cn(
-                          "rounded-full px-2 py-0.5 text-xs font-medium",
-                          STATUS_CLASS[o.status] ?? STATUS_CLASS.PENDING,
-                        )}
-                      >
-                        {o.status}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 font-mono text-xs">
-                      {o.receiptNumber ?? o.referenceId}
-                    </td>
-                    <td className="px-4 py-3 text-xs text-muted-foreground">
-                      {new Date(o.paidAt ?? o.createdAt).toLocaleString()}
-                    </td>
-                    <td className="px-4 py-3 text-end">
-                      <Button
-                        variant="outline"
-                        className="h-8 px-3 text-xs"
-                        onClick={() => void openReceipt(o.id)}
-                      >
-                        {t("settingsSubscription.view")}
-                      </Button>
-                      {(o.status === "PENDING" || o.status === "PROCESSING") && (
-                        <Button
-                          className="ms-2 h-8 px-3 text-xs"
-                          onClick={() => void verify(o.id)}
-                        >
-                          {t("settingsSubscription.verify")}
-                        </Button>
-                      )}
+              </thead>
+              <tbody>
+                {orders.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="px-4 py-10 text-center text-muted-foreground">
+                      {t("settingsSubscription.noPurchasesYet")}
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ) : (
+                  orders.map((o) => (
+                    <tr key={o.id} className="border-b last:border-0">
+                      <td className="px-4 py-3 font-medium">{o.plan.name}</td>
+                      <td className="px-4 py-3">{money(o.amount, o.currency)}</td>
+                      <td className="px-4 py-3">
+                        <span
+                          className={cn(
+                            "rounded-full px-2 py-0.5 text-xs font-medium",
+                            STATUS_CLASS[o.status] ?? STATUS_CLASS.PENDING,
+                          )}
+                        >
+                          {o.status}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 font-mono text-xs">
+                        {o.receiptNumber ?? o.referenceId}
+                      </td>
+                      <td className="px-4 py-3 text-xs text-muted-foreground">
+                        {new Date(o.paidAt ?? o.createdAt).toLocaleString()}
+                      </td>
+                      <td className="px-4 py-3 text-end">
+                        <Button
+                          variant="outline"
+                          className="h-8 px-3 text-xs"
+                          onClick={() => void openReceipt(o.id)}
+                        >
+                          {t("settingsSubscription.view")}
+                        </Button>
+                        {(o.status === "PENDING" || o.status === "PROCESSING") && (
+                          <Button
+                            className="ms-2 h-8 px-3 text-xs"
+                            onClick={() => void verify(o.id)}
+                          >
+                            {t("settingsSubscription.verify")}
+                          </Button>
+                        )}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 

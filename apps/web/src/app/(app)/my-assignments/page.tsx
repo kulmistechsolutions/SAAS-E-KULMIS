@@ -74,9 +74,11 @@ function printAssignments(
   </style></head><body>
   <h1>${schoolName} — Teaching Assignments</h1>
   <p>${teacher.fullName} (${teacher.code})</p>
-  <table><thead><tr>
-    <th>#</th><th>Year</th><th>Class</th><th>Section</th><th>Shift</th><th>Subject</th>
-  </tr></thead><tbody>${body}</tbody></table>
+  <div className="overflow-x-auto">
+    <table><thead><tr>
+      <th>#</th><th>Year</th><th>Class</th><th>Section</th><th>Shift</th><th>Subject</th>
+    </tr></thead><tbody>${body}</tbody></table>
+  </div>
   <script>window.onload=()=>window.print()</script>
   </body></html>`);
   w.document.close();

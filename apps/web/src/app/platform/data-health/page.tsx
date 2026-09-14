@@ -90,19 +90,21 @@ function CheckRow({ check }: { check: HealthCheck }) {
 
       {open && check.failed && (
         <div className="border-t border-white/10 px-4 py-3">
-          <table className="w-full text-sm">
-            <tbody>
-              {check.schools.map((s) => (
-                <tr key={s.school} className="border-b border-white/5 last:border-0">
-                  <td className="py-1.5 pe-3 text-slate-300">{s.school}</td>
-                  <td className="py-1.5 pe-3 text-xs text-slate-500">{s.detail ?? ""}</td>
-                  <td className="py-1.5 text-end font-semibold tabular-nums text-slate-200">
-                    {s.count}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <tbody>
+                {check.schools.map((s) => (
+                  <tr key={s.school} className="border-b border-white/5 last:border-0">
+                    <td className="py-1.5 pe-3 text-slate-300">{s.school}</td>
+                    <td className="py-1.5 pe-3 text-xs text-slate-500">{s.detail ?? ""}</td>
+                    <td className="py-1.5 text-end font-semibold tabular-nums text-slate-200">
+                      {s.count}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </div>

@@ -102,40 +102,42 @@ export function RecentPaymentsPanel({
             </tbody>
           </table>
         ) : (
-          <table className="w-full min-w-[560px] text-sm">
-            <thead className="sticky top-0 bg-secondary/80 text-start text-xs text-muted-foreground backdrop-blur">
-              <tr>
-                <th className="px-4 py-2.5 font-medium">{tr("feesRecentPaymentsPanel.studentId")}</th>
-                <th className="px-4 py-2.5 font-medium">{tr("feesRecentPaymentsPanel.studentName")}</th>
-                <th className="px-4 py-2.5 font-medium">{tr("feesRecentPaymentsPanel.outstanding")}</th>
-                <th className="px-4 py-2.5 font-medium">{tr("feesRecentPaymentsPanel.status")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {outstanding.map((r) => (
-                <tr key={r.studentId} className="border-t">
-                  <td className="px-4 py-2.5 font-mono text-xs">{r.code}</td>
-                  <td className="px-4 py-2.5">
-                    <Link
-                      href={`/finance/students/${r.studentId}`}
-                      className="text-primary hover:underline"
-                    >
-                      {r.fullName}
-                    </Link>
-                  </td>
-                  <td className="px-4 py-2.5 tabular-nums font-medium text-rose-600">
-                    {money(r.outstandingBalance)}
-                  </td>
-                  <td className="px-4 py-2.5">
-                    <FeeStatusBadge
-                      status={r.status}
-                      advanceMonthsLeft={r.advanceMonthsLeft}
-                    />
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[560px] text-sm">
+              <thead className="sticky top-0 bg-secondary/80 text-start text-xs text-muted-foreground backdrop-blur">
+                <tr>
+                  <th className="px-4 py-2.5 font-medium">{tr("feesRecentPaymentsPanel.studentId")}</th>
+                  <th className="px-4 py-2.5 font-medium">{tr("feesRecentPaymentsPanel.studentName")}</th>
+                  <th className="px-4 py-2.5 font-medium">{tr("feesRecentPaymentsPanel.outstanding")}</th>
+                  <th className="px-4 py-2.5 font-medium">{tr("feesRecentPaymentsPanel.status")}</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {outstanding.map((r) => (
+                  <tr key={r.studentId} className="border-t">
+                    <td className="px-4 py-2.5 font-mono text-xs">{r.code}</td>
+                    <td className="px-4 py-2.5">
+                      <Link
+                        href={`/finance/students/${r.studentId}`}
+                        className="text-primary hover:underline"
+                      >
+                        {r.fullName}
+                      </Link>
+                    </td>
+                    <td className="px-4 py-2.5 tabular-nums font-medium text-rose-600">
+                      {money(r.outstandingBalance)}
+                    </td>
+                    <td className="px-4 py-2.5">
+                      <FeeStatusBadge
+                        status={r.status}
+                        advanceMonthsLeft={r.advanceMonthsLeft}
+                      />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
 

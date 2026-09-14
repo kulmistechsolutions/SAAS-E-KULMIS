@@ -93,61 +93,65 @@ export function FeasibilityView({ report }: { report: FeasibilityReport }) {
           <h3 className="border-b bg-secondary/40 px-4 py-2 text-sm font-semibold">
             {tr("timetableFeasibilityReport.classes")}
           </h3>
-          <table className="w-full text-sm">
-            <tbody>
-              {report.classes.map((c) => {
-                const exact = c.allocated === c.capacity;
-                return (
-                  <tr key={`${c.classId}:${c.sectionId ?? ""}`} className="border-b last:border-0">
-                    <td className="px-4 py-2">{c.label}</td>
-                    <td className="px-4 py-2 text-end tabular-nums">
-                      <span
-                        className={cn(
-                          c.allocated > c.capacity && "text-rose-600 dark:text-rose-400",
-                          c.allocated < c.capacity && "text-amber-600 dark:text-amber-400",
-                          exact && "text-emerald-600 dark:text-emerald-400",
-                        )}
-                      >
-                        {c.allocated} / {c.capacity}
-                      </span>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <tbody>
+                {report.classes.map((c) => {
+                  const exact = c.allocated === c.capacity;
+                  return (
+                    <tr key={`${c.classId}:${c.sectionId ?? ""}`} className="border-b last:border-0">
+                      <td className="px-4 py-2">{c.label}</td>
+                      <td className="px-4 py-2 text-end tabular-nums">
+                        <span
+                          className={cn(
+                            c.allocated > c.capacity && "text-rose-600 dark:text-rose-400",
+                            c.allocated < c.capacity && "text-amber-600 dark:text-amber-400",
+                            exact && "text-emerald-600 dark:text-emerald-400",
+                          )}
+                        >
+                          {c.allocated} / {c.capacity}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </section>
 
         <section className="overflow-hidden rounded-lg border">
           <h3 className="border-b bg-secondary/40 px-4 py-2 text-sm font-semibold">
             {tr("timetableFeasibilityReport.teacherLoad")}
           </h3>
-          <table className="w-full text-sm">
-            <tbody>
-              {report.teachers.map((t) => (
-                <tr key={t.teacherId} className="border-b last:border-0">
-                  <td className="px-4 py-2">{t.name}</td>
-                  <td className="px-4 py-2 text-end tabular-nums">
-                    <span
-                      className={cn(
-                        t.load > t.available && "text-rose-600 dark:text-rose-400",
-                      )}
-                    >
-                      {t.load}
-                    </span>
-                    <span className="text-muted-foreground"> / {t.available}</span>
-                  </td>
-                </tr>
-              ))}
-              {report.teachers.length === 0 && (
-                <tr>
-                  <td className="px-4 py-6 text-center text-muted-foreground">
-                    {tr("timetableFeasibilityReport.noTeacherHasAnyLessonsAllocated")}
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <tbody>
+                {report.teachers.map((t) => (
+                  <tr key={t.teacherId} className="border-b last:border-0">
+                    <td className="px-4 py-2">{t.name}</td>
+                    <td className="px-4 py-2 text-end tabular-nums">
+                      <span
+                        className={cn(
+                          t.load > t.available && "text-rose-600 dark:text-rose-400",
+                        )}
+                      >
+                        {t.load}
+                      </span>
+                      <span className="text-muted-foreground"> / {t.available}</span>
+                    </td>
+                  </tr>
+                ))}
+                {report.teachers.length === 0 && (
+                  <tr>
+                    <td className="px-4 py-6 text-center text-muted-foreground">
+                      {tr("timetableFeasibilityReport.noTeacherHasAnyLessonsAllocated")}
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </section>
       </div>
     </div>

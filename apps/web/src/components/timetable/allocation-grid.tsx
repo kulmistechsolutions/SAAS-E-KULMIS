@@ -102,51 +102,53 @@ export function AllocationGrid({ rooms, shifts, onChange, onSave, dirty }: Props
                 {tr("timetableAllocationGrid.noSubjectsAssignedToThisClass")}
               </p>
             ) : (
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b text-start text-xs text-muted-foreground">
-                    <th className="px-4 py-2 font-medium">{tr("timetableAllocationGrid.subject")}</th>
-                    <th className="px-4 py-2 font-medium">{tr("timetableAllocationGrid.teacher")}</th>
-                    <th className="w-40 px-4 py-2 font-medium">{tr("timetableAllocationGrid.periodsWeek")}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {room.subjects.map((s) => (
-                    <tr key={s.subjectId} className="border-b last:border-0">
-                      <td className="px-4 py-2 font-medium">{s.subjectName}</td>
-                      <td className="px-4 py-2">
-                        {s.teacherName ? (
-                          <span className="text-muted-foreground">
-                            {s.teacherName}
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 text-xs text-rose-600 dark:text-rose-400">
-                            <UserX className="h-3.5 w-3.5" />
-                            {tr("timetableAllocationGrid.noTeacherAssigned")}
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-4 py-2">
-                        <Input
-                          type="number"
-                          min={0}
-                          max={60}
-                          className="h-9 w-24"
-                          value={s.periodsPerWeek}
-                          onChange={(e) =>
-                            onChange(
-                              room.classId,
-                              room.sectionId,
-                              s.subjectId,
-                              Math.max(0, Number(e.target.value) || 0),
-                            )
-                          }
-                        />
-                      </td>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b text-start text-xs text-muted-foreground">
+                      <th className="px-4 py-2 font-medium">{tr("timetableAllocationGrid.subject")}</th>
+                      <th className="px-4 py-2 font-medium">{tr("timetableAllocationGrid.teacher")}</th>
+                      <th className="w-40 px-4 py-2 font-medium">{tr("timetableAllocationGrid.periodsWeek")}</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {room.subjects.map((s) => (
+                      <tr key={s.subjectId} className="border-b last:border-0">
+                        <td className="px-4 py-2 font-medium">{s.subjectName}</td>
+                        <td className="px-4 py-2">
+                          {s.teacherName ? (
+                            <span className="text-muted-foreground">
+                              {s.teacherName}
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-xs text-rose-600 dark:text-rose-400">
+                              <UserX className="h-3.5 w-3.5" />
+                              {tr("timetableAllocationGrid.noTeacherAssigned")}
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-4 py-2">
+                          <Input
+                            type="number"
+                            min={0}
+                            max={60}
+                            className="h-9 w-24"
+                            value={s.periodsPerWeek}
+                            onChange={(e) =>
+                              onChange(
+                                room.classId,
+                                room.sectionId,
+                                s.subjectId,
+                                Math.max(0, Number(e.target.value) || 0),
+                              )
+                            }
+                          />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
           </div>
         );

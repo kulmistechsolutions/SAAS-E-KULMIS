@@ -221,32 +221,34 @@ export function ImportDialog({ open, onClose, onDone }: Props) {
             </div>
           </div>
           <div className="max-h-72 overflow-y-auto rounded-lg border">
-            <table className="w-full text-sm">
-              <thead className="sticky top-0 bg-secondary text-start text-xs text-muted-foreground">
-                <tr>
-                  <th className="px-3 py-2">{t("studentsImportDialog.row")}</th>
-                  <th className="px-3 py-2">{t("studentsImportDialog.name")}</th>
-                  <th className="px-3 py-2">{t("studentsImportDialog.class")}</th>
-                  <th className="px-3 py-2">{t("studentsImportDialog.status")}</th>
-                  <th className="px-3 py-2">{t("studentsImportDialog.note")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {preview.map((p) => (
-                  <tr key={p.row} className="border-t">
-                    <td className="px-3 py-2 font-mono">{p.row}</td>
-                    <td className="px-3 py-2">{p.data.fullName}</td>
-                    <td className="px-3 py-2">{p.data.className}</td>
-                    <td className="px-3 py-2">
-                      <StatusBadge status={p.status} />
-                    </td>
-                    <td className="px-3 py-2 text-muted-foreground">
-                      {p.message ?? "—"}
-                    </td>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="sticky top-0 bg-secondary text-start text-xs text-muted-foreground">
+                  <tr>
+                    <th className="px-3 py-2">{t("studentsImportDialog.row")}</th>
+                    <th className="px-3 py-2">{t("studentsImportDialog.name")}</th>
+                    <th className="px-3 py-2">{t("studentsImportDialog.class")}</th>
+                    <th className="px-3 py-2">{t("studentsImportDialog.status")}</th>
+                    <th className="px-3 py-2">{t("studentsImportDialog.note")}</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {preview.map((p) => (
+                    <tr key={p.row} className="border-t">
+                      <td className="px-3 py-2 font-mono">{p.row}</td>
+                      <td className="px-3 py-2">{p.data.fullName}</td>
+                      <td className="px-3 py-2">{p.data.className}</td>
+                      <td className="px-3 py-2">
+                        <StatusBadge status={p.status} />
+                      </td>
+                      <td className="px-3 py-2 text-muted-foreground">
+                        {p.message ?? "—"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       ) : (
@@ -351,22 +353,24 @@ function ImportSummary({ result }: { result: ImportResult }) {
       </div>
       {result.errors.length > 0 && (
         <div className="max-h-56 overflow-y-auto rounded-lg border">
-          <table className="w-full text-sm">
-            <thead className="sticky top-0 bg-secondary text-start text-xs text-muted-foreground">
-              <tr>
-                <th className="px-3 py-2 font-medium">{t("studentsImportDialog.row")}</th>
-                <th className="px-3 py-2 font-medium">{t("studentsImportDialog.issue")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {result.errors.map((e, i) => (
-                <tr key={i} className="border-t">
-                  <td className="px-3 py-2 font-mono">{e.row || "—"}</td>
-                  <td className="px-3 py-2">{e.message}</td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="sticky top-0 bg-secondary text-start text-xs text-muted-foreground">
+                <tr>
+                  <th className="px-3 py-2 font-medium">{t("studentsImportDialog.row")}</th>
+                  <th className="px-3 py-2 font-medium">{t("studentsImportDialog.issue")}</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {result.errors.map((e, i) => (
+                  <tr key={i} className="border-t">
+                    <td className="px-3 py-2 font-mono">{e.row || "—"}</td>
+                    <td className="px-3 py-2">{e.message}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </div>

@@ -135,32 +135,34 @@ export function ReceiptDialog({ payment, onClose }: ReceiptDialogProps) {
             matters — the family is standing there. */}
         {paidLines.length > 0 && (
           <div className="overflow-hidden rounded-lg border">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b bg-secondary/50 text-xs uppercase text-muted-foreground">
-                  <th className="px-3 py-2 text-start font-medium">
-                    {t("feesReceiptPrint.paidFor")}
-                  </th>
-                  <th className="px-3 py-2 text-end font-medium">
-                    {t("feesReceiptPrint.amountCol")}
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {paidLines.map((l, i) => (
-                  <tr key={i} className="border-b last:border-0">
-                    <td className="px-3 py-2">{l.label}</td>
-                    <td className="px-3 py-2 text-end tabular-nums">{money(l.amount)}</td>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b bg-secondary/50 text-xs uppercase text-muted-foreground">
+                    <th className="px-3 py-2 text-start font-medium">
+                      {t("feesReceiptPrint.paidFor")}
+                    </th>
+                    <th className="px-3 py-2 text-end font-medium">
+                      {t("feesReceiptPrint.amountCol")}
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-              <tfoot>
-                <tr className="bg-secondary/50 font-semibold">
-                  <td className="px-3 py-2">{t("feesReceiptPrint.totalPaid")}</td>
-                  <td className="px-3 py-2 text-end tabular-nums">{money(payment.amount)}</td>
-                </tr>
-              </tfoot>
-            </table>
+                </thead>
+                <tbody>
+                  {paidLines.map((l, i) => (
+                    <tr key={i} className="border-b last:border-0">
+                      <td className="px-3 py-2">{l.label}</td>
+                      <td className="px-3 py-2 text-end tabular-nums">{money(l.amount)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr className="bg-secondary/50 font-semibold">
+                    <td className="px-3 py-2">{t("feesReceiptPrint.totalPaid")}</td>
+                    <td className="px-3 py-2 text-end tabular-nums">{money(payment.amount)}</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
           </div>
         )}
 

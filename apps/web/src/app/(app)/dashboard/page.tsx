@@ -728,7 +728,7 @@ function AdminDashboard() {
         </Panel>
 
         <Panel title={t("dashboard.quickActions")} id="quick-actions">
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             {visibleQuickActions.map((q) => {
               const Icon = ACTION_ICONS[q.icon];
               return (

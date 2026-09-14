@@ -90,29 +90,31 @@ export default function QuizDashboardPage() {
           <h2 className="font-semibold">{t("quiz.recentQuizzes")}</h2>
           <Link href="/quiz/list" className="text-xs font-medium text-primary hover:underline">{t("quiz.viewAll")}</Link>
         </div>
-        <table className="w-full text-sm">
-          <thead className="bg-secondary text-start text-xs text-muted-foreground">
-            <tr>
-              <th className="px-4 py-2 font-medium">{t("quiz.quiz")}</th>
-              <th className="px-4 py-2 font-medium">{t("quiz.class")}</th>
-              <th className="px-4 py-2 font-medium">{t("quiz.status")}</th>
-              <th className="px-4 py-2 font-medium">{t("quiz.attempts")}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {recent.map((r) => (
-              <tr key={r.id} className="border-t">
-                <td className="px-4 py-2.5">
-                  <Link href={`/quiz/${r.id}`} className="font-medium text-primary">{r.title}</Link>
-                  <p className="text-xs text-muted-foreground">{r.code}</p>
-                </td>
-                <td className="px-4 py-2.5">{r.className} — {r.section}</td>
-                <td className="px-4 py-2.5"><QuizStatusBadge status={r.status} /></td>
-                <td className="px-4 py-2.5 tabular-nums">{r.attemptCount}</td>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-secondary text-start text-xs text-muted-foreground">
+              <tr>
+                <th className="px-4 py-2 font-medium">{t("quiz.quiz")}</th>
+                <th className="px-4 py-2 font-medium">{t("quiz.class")}</th>
+                <th className="px-4 py-2 font-medium">{t("quiz.status")}</th>
+                <th className="px-4 py-2 font-medium">{t("quiz.attempts")}</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {recent.map((r) => (
+                <tr key={r.id} className="border-t">
+                  <td className="px-4 py-2.5">
+                    <Link href={`/quiz/${r.id}`} className="font-medium text-primary">{r.title}</Link>
+                    <p className="text-xs text-muted-foreground">{r.code}</p>
+                  </td>
+                  <td className="px-4 py-2.5">{r.className} — {r.section}</td>
+                  <td className="px-4 py-2.5"><QuizStatusBadge status={r.status} /></td>
+                  <td className="px-4 py-2.5 tabular-nums">{r.attemptCount}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

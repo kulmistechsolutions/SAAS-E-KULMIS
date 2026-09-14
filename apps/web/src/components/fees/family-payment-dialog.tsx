@@ -94,31 +94,33 @@ export function FamilyPaymentDialog({
           </div>
 
           <div className="overflow-hidden rounded-lg border">
-            <table className="w-full text-sm">
-              <thead className="bg-secondary/60 text-start text-xs text-muted-foreground">
-                <tr>
-                  <th className="px-3 py-2 font-medium">{t("feesFamilyPaymentDialog.student")}</th>
-                  <th className="px-3 py-2 font-medium">{t("feesFamilyPaymentDialog.class")}</th>
-                  <th className="px-3 py-2 text-end font-medium">
-                    {t("feesFamilyPaymentDialog.outstanding")}
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {family.children.map((c) => (
-                  <tr key={c.studentId} className="border-t">
-                    <td className="px-3 py-2">{c.fullName}</td>
-                    <td className="px-3 py-2 text-muted-foreground">
-                      {c.className}
-                      {c.section !== "—" ? ` — ${c.section}` : ""}
-                    </td>
-                    <td className="px-3 py-2 text-end tabular-nums">
-                      {money(c.outstandingBalance)}
-                    </td>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-secondary/60 text-start text-xs text-muted-foreground">
+                  <tr>
+                    <th className="px-3 py-2 font-medium">{t("feesFamilyPaymentDialog.student")}</th>
+                    <th className="px-3 py-2 font-medium">{t("feesFamilyPaymentDialog.class")}</th>
+                    <th className="px-3 py-2 text-end font-medium">
+                      {t("feesFamilyPaymentDialog.outstanding")}
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {family.children.map((c) => (
+                    <tr key={c.studentId} className="border-t">
+                      <td className="px-3 py-2">{c.fullName}</td>
+                      <td className="px-3 py-2 text-muted-foreground">
+                        {c.className}
+                        {c.section !== "—" ? ` — ${c.section}` : ""}
+                      </td>
+                      <td className="px-3 py-2 text-end tabular-nums">
+                        {money(c.outstandingBalance)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
 
           <div>

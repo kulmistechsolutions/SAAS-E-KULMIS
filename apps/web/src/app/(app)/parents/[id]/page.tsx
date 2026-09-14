@@ -334,39 +334,41 @@ export default function ParentProfilePage({
 
           {tab === "children" && (
             <div className="overflow-hidden rounded-xl border">
-              <table className="w-full text-sm">
-                <thead className="bg-secondary text-start text-xs text-muted-foreground">
-                  <tr>
-                    <th className="px-4 py-2.5 font-medium">{t("parents.studentId")}</th>
-                    <th className="px-4 py-2.5 font-medium">{t("parents.name")}</th>
-                    <th className="px-4 py-2.5 font-medium">{t("parents.class")}</th>
-                    <th className="px-4 py-2.5 font-medium">{t("parents.section")}</th>
-                    <th className="px-4 py-2.5 font-medium">{t("parents.status")}</th>
-                    <th className="px-4 py-2.5 font-medium">{t("parents.action")}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {parent.children.map((c) => (
-                    <tr key={c.id} className="border-t">
-                      <td className="px-4 py-2.5 font-mono text-xs">
-                        {c.code}
-                      </td>
-                      <td className="px-4 py-2.5 font-medium">{c.fullName}</td>
-                      <td className="px-4 py-2.5">{c.className}</td>
-                      <td className="px-4 py-2.5">{c.section ?? "—"}</td>
-                      <td className="px-4 py-2.5">{statusLabel(c.status)}</td>
-                      <td className="px-4 py-2.5">
-                        <Link
-                          href={`/students/${c.id}`}
-                          className="text-primary hover:underline"
-                        >
-                          {t("parents.viewStudentProfile")}
-                        </Link>
-                      </td>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-secondary text-start text-xs text-muted-foreground">
+                    <tr>
+                      <th className="px-4 py-2.5 font-medium">{t("parents.studentId")}</th>
+                      <th className="px-4 py-2.5 font-medium">{t("parents.name")}</th>
+                      <th className="px-4 py-2.5 font-medium">{t("parents.class")}</th>
+                      <th className="px-4 py-2.5 font-medium">{t("parents.section")}</th>
+                      <th className="px-4 py-2.5 font-medium">{t("parents.status")}</th>
+                      <th className="px-4 py-2.5 font-medium">{t("parents.action")}</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {parent.children.map((c) => (
+                      <tr key={c.id} className="border-t">
+                        <td className="px-4 py-2.5 font-mono text-xs">
+                          {c.code}
+                        </td>
+                        <td className="px-4 py-2.5 font-medium">{c.fullName}</td>
+                        <td className="px-4 py-2.5">{c.className}</td>
+                        <td className="px-4 py-2.5">{c.section ?? "—"}</td>
+                        <td className="px-4 py-2.5">{statusLabel(c.status)}</td>
+                        <td className="px-4 py-2.5">
+                          <Link
+                            href={`/students/${c.id}`}
+                            className="text-primary hover:underline"
+                          >
+                            {t("parents.viewStudentProfile")}
+                          </Link>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
 
@@ -696,28 +698,30 @@ function DataTable({
 }) {
   return (
     <div className="overflow-hidden rounded-xl border">
-      <table className="w-full text-sm">
-        <thead className="bg-secondary text-start text-xs text-muted-foreground">
-          <tr>
-            {headers.map((h) => (
-              <th key={h} className="px-4 py-2.5 font-medium">
-                {h}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row, i) => (
-            <tr key={i} className="border-t">
-              {row.map((cell, j) => (
-                <td key={j} className="px-4 py-2.5">
-                  {cell}
-                </td>
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead className="bg-secondary text-start text-xs text-muted-foreground">
+            <tr>
+              {headers.map((h) => (
+                <th key={h} className="px-4 py-2.5 font-medium">
+                  {h}
+                </th>
               ))}
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {rows.map((row, i) => (
+              <tr key={i} className="border-t">
+                {row.map((cell, j) => (
+                  <td key={j} className="px-4 py-2.5">
+                    {cell}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

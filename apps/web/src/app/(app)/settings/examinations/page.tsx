@@ -78,26 +78,28 @@ export default function ExaminationSettingsPage() {
             <Plus className="me-1 h-4 w-4" /> {t("settingsExaminations.addBand")}
           </Button>
         </div>
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b text-start">
-              <th className="px-2 py-2">{t("settingsExaminations.minimum")}</th>
-              <th className="px-2 py-2">{t("settingsExaminations.maximum")}</th>
-              <th className="px-2 py-2">{t("settingsExaminations.grade")}</th>
-              <th className="px-2 py-2" />
-            </tr>
-          </thead>
-          <tbody>
-            {grades.map((g, i) => (
-              <tr key={i} className="border-b">
-                <td className="px-2 py-2"><input type="number" className="w-20 rounded border px-2 py-1" value={g.min} onChange={(e) => updateGrade(i, { min: Number(e.target.value) })} /></td>
-                <td className="px-2 py-2"><input type="number" className="w-20 rounded border px-2 py-1" value={g.max} onChange={(e) => updateGrade(i, { max: Number(e.target.value) })} /></td>
-                <td className="px-2 py-2"><input className="w-16 rounded border px-2 py-1" value={g.grade} onChange={(e) => updateGrade(i, { grade: e.target.value })} /></td>
-                <td className="px-2 py-2"><button type="button" onClick={() => removeGrade(i)} className="text-destructive"><Trash2 className="h-4 w-4" /></button></td>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b text-start">
+                <th className="px-2 py-2">{t("settingsExaminations.minimum")}</th>
+                <th className="px-2 py-2">{t("settingsExaminations.maximum")}</th>
+                <th className="px-2 py-2">{t("settingsExaminations.grade")}</th>
+                <th className="px-2 py-2" />
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {grades.map((g, i) => (
+                <tr key={i} className="border-b">
+                  <td className="px-2 py-2"><input type="number" className="w-20 rounded border px-2 py-1" value={g.min} onChange={(e) => updateGrade(i, { min: Number(e.target.value) })} /></td>
+                  <td className="px-2 py-2"><input type="number" className="w-20 rounded border px-2 py-1" value={g.max} onChange={(e) => updateGrade(i, { max: Number(e.target.value) })} /></td>
+                  <td className="px-2 py-2"><input className="w-16 rounded border px-2 py-1" value={g.grade} onChange={(e) => updateGrade(i, { grade: e.target.value })} /></td>
+                  <td className="px-2 py-2"><button type="button" onClick={() => removeGrade(i)} className="text-destructive"><Trash2 className="h-4 w-4" /></button></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       <SettingsSaveBar dirty={isDirty} saving={saving} onSave={handleSave} onCancel={() => { cancel(); setGrades(getSettings().grades); setGradesDirty(false); }} onResetDefault={resetToDefault} />

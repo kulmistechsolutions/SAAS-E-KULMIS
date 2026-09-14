@@ -197,11 +197,13 @@ td{padding:7px 10px;font-size:11.5px;border-bottom:1px solid #f1f5f9}
 <div class="doc" style="--ek-accent:${accentColour()}">
 ${watermarkHtml()}
 ${letterheadHtml({ title: t("smsHistory.title"), subtitle: filterNote })}
-<table><thead><tr>
-<th class="n">#</th><th>${escapeHtml(t("smsHistory.when"))}</th>
-<th>${escapeHtml(t("smsHistory.recipient"))}</th><th>${escapeHtml(t("smsHistory.message"))}</th>
-<th class="num">${escapeHtml(t("smsHistory.credits"))}</th><th>${escapeHtml(t("smsHistory.status"))}</th>
-</tr></thead><tbody>${body}</tbody></table>
+<div className="overflow-x-auto">
+  <table><thead><tr>
+  <th class="n">#</th><th>${escapeHtml(t("smsHistory.when"))}</th>
+  <th>${escapeHtml(t("smsHistory.recipient"))}</th><th>${escapeHtml(t("smsHistory.message"))}</th>
+  <th class="num">${escapeHtml(t("smsHistory.credits"))}</th><th>${escapeHtml(t("smsHistory.status"))}</th>
+  </tr></thead><tbody>${body}</tbody></table>
+</div>
 <div class="sum">${rows.length} / ${total} · ${credits} ${escapeHtml(t("smsHistory.credits"))}</div>
 ${documentFooterHtml()}
 </div><script>window.onload=function(){window.print()}</script></body></html>`);

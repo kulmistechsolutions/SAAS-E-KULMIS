@@ -56,39 +56,41 @@ export default function QuizListPage() {
       </div>
 
       <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
-        <table className="w-full min-w-[900px] text-sm">
-          <thead className="sticky top-0 bg-secondary text-start text-xs text-muted-foreground">
-            <tr>
-              <th className="px-4 py-2.5">{t("quizList.code")}</th>
-              <th className="px-4 py-2.5">{t("quizList.title")}</th>
-              <th className="px-4 py-2.5">{t("quizList.teacher")}</th>
-              <th className="px-4 py-2.5">{t("quizList.class")}</th>
-              <th className="px-4 py-2.5">{t("quizList.subject")}</th>
-              <th className="px-4 py-2.5">{t("quizList.status")}</th>
-              <th className="px-4 py-2.5">{t("quizList.actions")}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {pageRows.map((r) => (
-              <tr key={r.id} className="border-t">
-                <td className="px-4 py-2.5 font-mono text-xs">{r.code}</td>
-                <td className="px-4 py-2.5 font-medium">{r.title}</td>
-                <td className="px-4 py-2.5">{r.teacherName}</td>
-                <td className="px-4 py-2.5">{r.className} — {r.section}</td>
-                <td className="px-4 py-2.5">{r.subject}</td>
-                <td className="px-4 py-2.5"><QuizStatusBadge status={r.status} /></td>
-                <td className="px-4 py-2.5">
-                  <div className="flex gap-1">
-                    <Link href={`/quiz/${r.id}`} className="inline-flex h-8 w-8 items-center justify-center rounded-md hover:bg-secondary"><Eye className="h-4 w-4" /></Link>
-                    <Button variant="ghost" className="h-8 w-8 p-0 text-rose-600" onClick={() => { deleteQuiz(r.id); toast("Quiz deleted", "success"); }}>
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </td>
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[900px] text-sm">
+            <thead className="sticky top-0 bg-secondary text-start text-xs text-muted-foreground">
+              <tr>
+                <th className="px-4 py-2.5">{t("quizList.code")}</th>
+                <th className="px-4 py-2.5">{t("quizList.title")}</th>
+                <th className="px-4 py-2.5">{t("quizList.teacher")}</th>
+                <th className="px-4 py-2.5">{t("quizList.class")}</th>
+                <th className="px-4 py-2.5">{t("quizList.subject")}</th>
+                <th className="px-4 py-2.5">{t("quizList.status")}</th>
+                <th className="px-4 py-2.5">{t("quizList.actions")}</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {pageRows.map((r) => (
+                <tr key={r.id} className="border-t">
+                  <td className="px-4 py-2.5 font-mono text-xs">{r.code}</td>
+                  <td className="px-4 py-2.5 font-medium">{r.title}</td>
+                  <td className="px-4 py-2.5">{r.teacherName}</td>
+                  <td className="px-4 py-2.5">{r.className} — {r.section}</td>
+                  <td className="px-4 py-2.5">{r.subject}</td>
+                  <td className="px-4 py-2.5"><QuizStatusBadge status={r.status} /></td>
+                  <td className="px-4 py-2.5">
+                    <div className="flex gap-1">
+                      <Link href={`/quiz/${r.id}`} className="inline-flex h-8 w-8 items-center justify-center rounded-md hover:bg-secondary"><Eye className="h-4 w-4" /></Link>
+                      <Button variant="ghost" className="h-8 w-8 p-0 text-rose-600" onClick={() => { deleteQuiz(r.id); toast("Quiz deleted", "success"); }}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
         {rows.length > pageSize && (
           <div className="border-t px-4 py-3">
             <Pagination page={page} pageCount={Math.ceil(rows.length / pageSize)} total={rows.length} pageSize={pageSize} onPageSizeChange={(n) => { setPageSize(n); setPage(1); }} onPageChange={setPage} />

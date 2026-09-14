@@ -287,113 +287,117 @@ function TeacherProfileContent({ id }: { id: string }) {
                 </Button>
               </div>
               <div className="overflow-hidden rounded-xl border">
-                <table className="w-full text-sm">
-                  <thead className="bg-secondary text-start text-xs text-muted-foreground">
-                    <tr>
-                      <th className="px-4 py-2.5 font-medium">{t("teachers.academicYear")}</th>
-                      <th className="px-4 py-2.5 font-medium">{t("teachers.class")}</th>
-                      <th className="px-4 py-2.5 font-medium">{t("teachers.section")}</th>
-                      <th className="px-4 py-2.5 font-medium">{t("teachers.subjects")}</th>
-                      <th className="px-4 py-2.5 text-end font-medium">
-                        {t("teachers.actions")}
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {grouped.length === 0 ? (
-                      <tr>
-                        <td
-                          colSpan={5}
-                          className="px-4 py-8 text-center text-muted-foreground"
-                        >
-                          {t("teachers.noAssignmentsYetUseAssignSubjects")}
-                        </td>
-                      </tr>
-                    ) : (
-                      grouped.map((g) => (
-                        <tr
-                          key={`${g.academicYear}-${g.className}-${g.section ?? "all"}`}
-                          className="border-t"
-                        >
-                          <td className="px-4 py-2.5">{g.academicYear}</td>
-                          <td className="px-4 py-2.5">{g.className}</td>
-                          <td className="px-4 py-2.5">
-                            {sectionLabel(g.section)}
-                          </td>
-                          <td className="px-4 py-2.5">
-                            <div className="flex flex-wrap gap-1">
-                              {g.subjects.map((sub) => (
-                                <Badge key={sub} tone="info">
-                                  {sub}
-                                </Badge>
-                              ))}
-                            </div>
-                          </td>
-                          <td className="px-4 py-2.5 text-end text-xs text-muted-foreground">
-                            {g.subjects.length} {t("teachers.subject")}
-                            {g.subjects.length === 1 ? "" : "s"}
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-              {assignments.length > 0 ? (
-                <div className="overflow-hidden rounded-xl border">
-                  <p className="border-b bg-secondary/40 px-4 py-2 text-xs font-medium text-muted-foreground">
-                    {t("teachers.individualAssignmentRowsEditOrRemove")}
-                  </p>
+                <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead className="bg-secondary text-start text-xs text-muted-foreground">
                       <tr>
-                        <th className="px-4 py-2.5 font-medium">{t("teachers.year")}</th>
+                        <th className="px-4 py-2.5 font-medium">{t("teachers.academicYear")}</th>
                         <th className="px-4 py-2.5 font-medium">{t("teachers.class")}</th>
                         <th className="px-4 py-2.5 font-medium">{t("teachers.section")}</th>
-                        <th className="px-4 py-2.5 font-medium">{t("teachers.shift")}</th>
-                        <th className="px-4 py-2.5 font-medium">{t("teachers.subject")}</th>
+                        <th className="px-4 py-2.5 font-medium">{t("teachers.subjects")}</th>
                         <th className="px-4 py-2.5 text-end font-medium">
                           {t("teachers.actions")}
                         </th>
                       </tr>
                     </thead>
                     <tbody>
-                      {assignments.map((a) => (
-                        <tr key={a.id} className="border-t">
-                          <td className="px-4 py-2.5">{a.academicYear}</td>
-                          <td className="px-4 py-2.5">{a.className}</td>
-                          <td className="px-4 py-2.5">
-                            {sectionLabel(a.section)}
-                          </td>
-                          <td className="px-4 py-2.5">
-                            {assignmentShiftLabel(a.shift, teacher.shifts)}
-                          </td>
-                          <td className="px-4 py-2.5">{a.subject}</td>
-                          <td className="px-4 py-2.5">
-                            <div className="flex justify-end gap-1">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setEditAssign(a);
-                                  setAssignOpen(true);
-                                }}
-                                className="rounded-lg px-2 py-1 text-xs hover:bg-secondary"
-                              >
-                                {t("teachers.edit")}
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => setDeleteAssign(a)}
-                                className="rounded-lg px-2 py-1 text-xs text-rose-600 hover:bg-rose-500/10"
-                              >
-                                {t("teachers.remove")}
-                              </button>
-                            </div>
+                      {grouped.length === 0 ? (
+                        <tr>
+                          <td
+                            colSpan={5}
+                            className="px-4 py-8 text-center text-muted-foreground"
+                          >
+                            {t("teachers.noAssignmentsYetUseAssignSubjects")}
                           </td>
                         </tr>
-                      ))}
+                      ) : (
+                        grouped.map((g) => (
+                          <tr
+                            key={`${g.academicYear}-${g.className}-${g.section ?? "all"}`}
+                            className="border-t"
+                          >
+                            <td className="px-4 py-2.5">{g.academicYear}</td>
+                            <td className="px-4 py-2.5">{g.className}</td>
+                            <td className="px-4 py-2.5">
+                              {sectionLabel(g.section)}
+                            </td>
+                            <td className="px-4 py-2.5">
+                              <div className="flex flex-wrap gap-1">
+                                {g.subjects.map((sub) => (
+                                  <Badge key={sub} tone="info">
+                                    {sub}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </td>
+                            <td className="px-4 py-2.5 text-end text-xs text-muted-foreground">
+                              {g.subjects.length} {t("teachers.subject")}
+                              {g.subjects.length === 1 ? "" : "s"}
+                            </td>
+                          </tr>
+                        ))
+                      )}
                     </tbody>
                   </table>
+                </div>
+              </div>
+              {assignments.length > 0 ? (
+                <div className="overflow-hidden rounded-xl border">
+                  <p className="border-b bg-secondary/40 px-4 py-2 text-xs font-medium text-muted-foreground">
+                    {t("teachers.individualAssignmentRowsEditOrRemove")}
+                  </p>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead className="bg-secondary text-start text-xs text-muted-foreground">
+                        <tr>
+                          <th className="px-4 py-2.5 font-medium">{t("teachers.year")}</th>
+                          <th className="px-4 py-2.5 font-medium">{t("teachers.class")}</th>
+                          <th className="px-4 py-2.5 font-medium">{t("teachers.section")}</th>
+                          <th className="px-4 py-2.5 font-medium">{t("teachers.shift")}</th>
+                          <th className="px-4 py-2.5 font-medium">{t("teachers.subject")}</th>
+                          <th className="px-4 py-2.5 text-end font-medium">
+                            {t("teachers.actions")}
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {assignments.map((a) => (
+                          <tr key={a.id} className="border-t">
+                            <td className="px-4 py-2.5">{a.academicYear}</td>
+                            <td className="px-4 py-2.5">{a.className}</td>
+                            <td className="px-4 py-2.5">
+                              {sectionLabel(a.section)}
+                            </td>
+                            <td className="px-4 py-2.5">
+                              {assignmentShiftLabel(a.shift, teacher.shifts)}
+                            </td>
+                            <td className="px-4 py-2.5">{a.subject}</td>
+                            <td className="px-4 py-2.5">
+                              <div className="flex justify-end gap-1">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setEditAssign(a);
+                                    setAssignOpen(true);
+                                  }}
+                                  className="rounded-lg px-2 py-1 text-xs hover:bg-secondary"
+                                >
+                                  {t("teachers.edit")}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setDeleteAssign(a)}
+                                  className="rounded-lg px-2 py-1 text-xs text-rose-600 hover:bg-rose-500/10"
+                                >
+                                  {t("teachers.remove")}
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               ) : null}
             </div>
@@ -498,7 +502,7 @@ function QuizzesTab({ teacherId }: { teacherId: string }) {
   const rows = useMemo(() => teacherQuizSummary(teacherId), [teacherId]);
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Stat label={t("teachers.created")} value={rows.length} />
         <Stat label={t("teachers.active")} value={rows.filter((r) => r.status === "ACTIVE").length} />
         <Stat label={t("teachers.completed")} value={rows.filter((r) => ["CLOSED", "PUBLISHED"].includes(r.status)).length} />
@@ -532,57 +536,59 @@ function SalaryTab({ teacherId }: { teacherId: string }) {
   return (
     <>
       <div className="overflow-hidden rounded-xl border">
-        <table className="w-full text-sm">
-          <thead className="bg-secondary text-start text-xs text-muted-foreground">
-            <tr>
-              <th className="px-4 py-2.5 font-medium">{t("teachers.month")}</th>
-              <th className="px-4 py-2.5 font-medium">{t("teachers.netSalary")}</th>
-              <th className="px-4 py-2.5 font-medium">{t("teachers.paid")}</th>
-              <th className="px-4 py-2.5 font-medium">{t("teachers.balance")}</th>
-              <th className="px-4 py-2.5 font-medium">{t("teachers.status")}</th>
-              <th className="px-4 py-2.5 font-medium">{t("teachers.actions")}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.length === 0 ? (
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-secondary text-start text-xs text-muted-foreground">
               <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
-                  {t("teachers.noPayrollRecordsYet")}
-                </td>
+                <th className="px-4 py-2.5 font-medium">{t("teachers.month")}</th>
+                <th className="px-4 py-2.5 font-medium">{t("teachers.netSalary")}</th>
+                <th className="px-4 py-2.5 font-medium">{t("teachers.paid")}</th>
+                <th className="px-4 py-2.5 font-medium">{t("teachers.balance")}</th>
+                <th className="px-4 py-2.5 font-medium">{t("teachers.status")}</th>
+                <th className="px-4 py-2.5 font-medium">{t("teachers.actions")}</th>
               </tr>
-            ) : (
-              rows.map((r) => (
-                <tr key={r.id} className="border-t">
-                  <td className="px-4 py-2.5">{monthLabel(r.payrollMonth)}</td>
-                  <td className="px-4 py-2.5 tabular-nums">{money(r.netSalary)}</td>
-                  <td className="px-4 py-2.5 tabular-nums">{money(r.amountPaid)}</td>
-                  <td className="px-4 py-2.5 tabular-nums">{money(r.remainingBalance)}</td>
-                  <td className="px-4 py-2.5">
-                    <PayrollStatusBadge status={r.status} />
-                  </td>
-                  <td className="px-4 py-2.5">
-                    <div className="flex gap-2">
-                      <Button
-                        variant="ghost"
-                        className="h-8 px-2 text-xs"
-                        onClick={() => setPayslip(r)}
-                      >
-                        {t("teachers.view")}
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        className="h-8 px-2 text-xs"
-                        onClick={() => printPayslip(r)}
-                      >
-                        {t("teachers.print")}
-                      </Button>
-                    </div>
+            </thead>
+            <tbody>
+              {rows.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
+                    {t("teachers.noPayrollRecordsYet")}
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+              ) : (
+                rows.map((r) => (
+                  <tr key={r.id} className="border-t">
+                    <td className="px-4 py-2.5">{monthLabel(r.payrollMonth)}</td>
+                    <td className="px-4 py-2.5 tabular-nums">{money(r.netSalary)}</td>
+                    <td className="px-4 py-2.5 tabular-nums">{money(r.amountPaid)}</td>
+                    <td className="px-4 py-2.5 tabular-nums">{money(r.remainingBalance)}</td>
+                    <td className="px-4 py-2.5">
+                      <PayrollStatusBadge status={r.status} />
+                    </td>
+                    <td className="px-4 py-2.5">
+                      <div className="flex gap-2">
+                        <Button
+                          variant="ghost"
+                          className="h-8 px-2 text-xs"
+                          onClick={() => setPayslip(r)}
+                        >
+                          {t("teachers.view")}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          className="h-8 px-2 text-xs"
+                          onClick={() => printPayslip(r)}
+                        >
+                          {t("teachers.print")}
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
       <PayslipDialog payroll={payslip} onClose={() => setPayslip(null)} />
     </>
@@ -601,24 +607,26 @@ function Stat({ label, value }: { label: string; value: string | number }) {
 function DataTable({ headers, rows }: { headers: string[]; rows: (string | number)[][] }) {
   return (
     <div className="overflow-hidden rounded-xl border">
-      <table className="w-full text-sm">
-        <thead className="bg-secondary text-start text-xs text-muted-foreground">
-          <tr>
-            {headers.map((h) => (
-              <th key={h} className="px-4 py-2.5 font-medium">{h}</th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row, i) => (
-            <tr key={i} className="border-t">
-              {row.map((cell, j) => (
-                <td key={j} className="px-4 py-2.5">{cell}</td>
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead className="bg-secondary text-start text-xs text-muted-foreground">
+            <tr>
+              {headers.map((h) => (
+                <th key={h} className="px-4 py-2.5 font-medium">{h}</th>
               ))}
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {rows.map((row, i) => (
+              <tr key={i} className="border-t">
+                {row.map((cell, j) => (
+                  <td key={j} className="px-4 py-2.5">{cell}</td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

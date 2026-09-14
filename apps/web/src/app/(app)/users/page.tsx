@@ -82,31 +82,33 @@ export default function UsersDashboardPage() {
               {t("users.viewAll")}
             </Link>
           </div>
-          <table className="w-full text-sm">
-            <thead className="bg-secondary text-start text-xs text-muted-foreground">
-              <tr>
-                <th className="px-4 py-2 font-medium">{t("users.user")}</th>
-                <th className="px-4 py-2 font-medium">{t("users.role")}</th>
-                <th className="px-4 py-2 font-medium">{t("users.status")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {recent.map((r) => (
-                <tr key={r.id} className="border-t">
-                  <td className="px-4 py-2.5">
-                    <Link href={`/users/${r.id}`} className="font-medium hover:text-primary">
-                      {r.fullName}
-                    </Link>
-                    <p className="text-xs text-muted-foreground">{r.username}</p>
-                  </td>
-                  <td className="px-4 py-2.5 text-muted-foreground">{r.roleLabel}</td>
-                  <td className="px-4 py-2.5">
-                    <AccountStatusBadge status={r.status} />
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-secondary text-start text-xs text-muted-foreground">
+                <tr>
+                  <th className="px-4 py-2 font-medium">{t("users.user")}</th>
+                  <th className="px-4 py-2 font-medium">{t("users.role")}</th>
+                  <th className="px-4 py-2 font-medium">{t("users.status")}</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {recent.map((r) => (
+                  <tr key={r.id} className="border-t">
+                    <td className="px-4 py-2.5">
+                      <Link href={`/users/${r.id}`} className="font-medium hover:text-primary">
+                        {r.fullName}
+                      </Link>
+                      <p className="text-xs text-muted-foreground">{r.username}</p>
+                    </td>
+                    <td className="px-4 py-2.5 text-muted-foreground">{r.roleLabel}</td>
+                    <td className="px-4 py-2.5">
+                      <AccountStatusBadge status={r.status} />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
 
         <div className="rounded-xl border bg-card shadow-sm">

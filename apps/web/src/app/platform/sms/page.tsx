@@ -756,61 +756,63 @@ export default function PlatformSmsPackagesPage() {
 
       {tab === "logs" && (
         <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#0f172a]">
-          <table className="w-full text-sm">
-            <thead className="bg-white/5 text-start text-xs uppercase text-slate-500">
-              <tr>
-                <th className="px-4 py-3">{t("platformSms.school")}</th>
-                <th className="px-4 py-3">{t("platformSms.to")}</th>
-                <th className="px-4 py-3">{t("platformSms.sender")}</th>
-                <th className="px-4 py-3">{t("platformSms.status")}</th>
-                <th className="px-4 py-3">{t("platformSms.credits")}</th>
-                <th className="px-4 py-3">{t("platformSms.when")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {messages.map((m) => (
-                <tr key={m.id} className="border-t border-white/5">
-                  <td className="px-4 py-2 text-slate-300">{m.school.name}</td>
-                  <td className="px-4 py-2">
-                    <p className="text-white">{m.recipientName ?? "—"}</p>
-                    <p className="font-mono text-xs text-slate-500">
-                      {m.recipientPhone}
-                    </p>
-                  </td>
-                  <td className="px-4 py-2 text-slate-400">{m.senderId}</td>
-                  <td className="px-4 py-2">
-                    <span
-                      className={
-                        m.status === "SENT" || m.status === "DELIVERED"
-                          ? "text-emerald-400"
-                          : m.status === "FAILED"
-                            ? "text-rose-400"
-                            : "text-amber-400"
-                      }
-                    >
-                      {m.status}
-                    </span>
-                  </td>
-                  <td className="px-4 py-2 font-mono text-slate-400">
-                    {m.creditsUsed}
-                  </td>
-                  <td className="px-4 py-2 text-xs text-slate-500">
-                    {new Date(m.createdAt).toLocaleString()}
-                  </td>
-                </tr>
-              ))}
-              {messages.length === 0 && (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-white/5 text-start text-xs uppercase text-slate-500">
                 <tr>
-                  <td
-                    colSpan={6}
-                    className="px-4 py-8 text-center text-slate-500"
-                  >
-                    {t("platformSms.noMessagesLoggedYet")}
-                  </td>
+                  <th className="px-4 py-3">{t("platformSms.school")}</th>
+                  <th className="px-4 py-3">{t("platformSms.to")}</th>
+                  <th className="px-4 py-3">{t("platformSms.sender")}</th>
+                  <th className="px-4 py-3">{t("platformSms.status")}</th>
+                  <th className="px-4 py-3">{t("platformSms.credits")}</th>
+                  <th className="px-4 py-3">{t("platformSms.when")}</th>
                 </tr>
-              )}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {messages.map((m) => (
+                  <tr key={m.id} className="border-t border-white/5">
+                    <td className="px-4 py-2 text-slate-300">{m.school.name}</td>
+                    <td className="px-4 py-2">
+                      <p className="text-white">{m.recipientName ?? "—"}</p>
+                      <p className="font-mono text-xs text-slate-500">
+                        {m.recipientPhone}
+                      </p>
+                    </td>
+                    <td className="px-4 py-2 text-slate-400">{m.senderId}</td>
+                    <td className="px-4 py-2">
+                      <span
+                        className={
+                          m.status === "SENT" || m.status === "DELIVERED"
+                            ? "text-emerald-400"
+                            : m.status === "FAILED"
+                              ? "text-rose-400"
+                              : "text-amber-400"
+                        }
+                      >
+                        {m.status}
+                      </span>
+                    </td>
+                    <td className="px-4 py-2 font-mono text-slate-400">
+                      {m.creditsUsed}
+                    </td>
+                    <td className="px-4 py-2 text-xs text-slate-500">
+                      {new Date(m.createdAt).toLocaleString()}
+                    </td>
+                  </tr>
+                ))}
+                {messages.length === 0 && (
+                  <tr>
+                    <td
+                      colSpan={6}
+                      className="px-4 py-8 text-center text-slate-500"
+                    >
+                      {t("platformSms.noMessagesLoggedYet")}
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 

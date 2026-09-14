@@ -168,28 +168,34 @@ ${letterheadHtml({
   subtitle: `${t(RANGES.find((r) => r.id === range)?.labelKey ?? "smsReports.last30")}`,
 })}
 <h3>${escapeHtml(t("smsReports.usage"))}</h3>
-<table><tbody>${rows([
-  [escapeHtml(t("smsReports.today")), String(usage?.today ?? 0)],
-  [escapeHtml(t("smsReports.thisMonth")), String(usage?.thisMonth ?? 0)],
-  [escapeHtml(t("smsReports.allTime")), String(usage?.allTime ?? 0)],
-  [escapeHtml(t("smsReports.failed")), String(usage?.failed ?? 0)],
-])}</tbody></table>
+<div className="overflow-x-auto">
+  <table><tbody>${rows([
+    [escapeHtml(t("smsReports.today")), String(usage?.today ?? 0)],
+    [escapeHtml(t("smsReports.thisMonth")), String(usage?.thisMonth ?? 0)],
+    [escapeHtml(t("smsReports.allTime")), String(usage?.allTime ?? 0)],
+    [escapeHtml(t("smsReports.failed")), String(usage?.failed ?? 0)],
+  ])}</tbody></table>
+</div>
 <h3>${escapeHtml(t("smsReports.byRecipient"))}</h3>
-<table><thead><tr><th>${escapeHtml(t("smsReports.recipientType"))}</th>
-<th>${escapeHtml(t("smsReports.messages"))}</th><th>${escapeHtml(t("smsReports.credits"))}</th></tr></thead>
-<tbody>${rows(
-  byRecipient.map((r) => [escapeHtml(r.type), String(r.count), String(r.credits)]),
-)}</tbody></table>
+<div className="overflow-x-auto">
+  <table><thead><tr><th>${escapeHtml(t("smsReports.recipientType"))}</th>
+  <th>${escapeHtml(t("smsReports.messages"))}</th><th>${escapeHtml(t("smsReports.credits"))}</th></tr></thead>
+  <tbody>${rows(
+    byRecipient.map((r) => [escapeHtml(r.type), String(r.count), String(r.credits)]),
+  )}</tbody></table>
+</div>
 <h3>${escapeHtml(t("smsReports.purchases"))}</h3>
-<table><thead><tr><th>${escapeHtml(t("smsReports.date"))}</th>
-<th>${escapeHtml(t("smsReports.package"))}</th><th>${escapeHtml(t("smsReports.credits"))}</th></tr></thead>
-<tbody>${rows(
-  purchases.map((p) => [
-    new Date(p.createdAt).toISOString().slice(0, 10),
-    escapeHtml(p.purchase?.package?.name ?? p.type),
-    String(p.credits),
-  ]),
-)}</tbody></table>
+<div className="overflow-x-auto">
+  <table><thead><tr><th>${escapeHtml(t("smsReports.date"))}</th>
+  <th>${escapeHtml(t("smsReports.package"))}</th><th>${escapeHtml(t("smsReports.credits"))}</th></tr></thead>
+  <tbody>${rows(
+    purchases.map((p) => [
+      new Date(p.createdAt).toISOString().slice(0, 10),
+      escapeHtml(p.purchase?.package?.name ?? p.type),
+      String(p.credits),
+    ]),
+  )}</tbody></table>
+</div>
 ${documentFooterHtml()}
 </div><script>window.onload=function(){window.print()}</script></body></html>`);
     w.document.close();
@@ -296,26 +302,28 @@ ${documentFooterHtml()}
               {t("smsReports.nothingYet")}
             </p>
           ) : (
-            <table className="w-full text-sm">
-              <thead className="bg-secondary/40 text-xs uppercase text-muted-foreground">
-                <tr>
-                  <th className="p-3 text-start">
-                    {t("smsReports.recipientType")}
-                  </th>
-                  <th className="p-3 text-end">{t("smsReports.messages")}</th>
-                  <th className="p-3 text-end">{t("smsReports.credits")}</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {byRecipient.map((r) => (
-                  <tr key={r.type}>
-                    <td className="p-3 font-medium">{r.type}</td>
-                    <td className="p-3 text-end tabular-nums">{r.count}</td>
-                    <td className="p-3 text-end tabular-nums">{r.credits}</td>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-secondary/40 text-xs uppercase text-muted-foreground">
+                  <tr>
+                    <th className="p-3 text-start">
+                      {t("smsReports.recipientType")}
+                    </th>
+                    <th className="p-3 text-end">{t("smsReports.messages")}</th>
+                    <th className="p-3 text-end">{t("smsReports.credits")}</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y">
+                  {byRecipient.map((r) => (
+                    <tr key={r.type}>
+                      <td className="p-3 font-medium">{r.type}</td>
+                      <td className="p-3 text-end tabular-nums">{r.count}</td>
+                      <td className="p-3 text-end tabular-nums">{r.credits}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </section>
 
@@ -331,22 +339,24 @@ ${documentFooterHtml()}
               {t("smsReports.nothingYet")}
             </p>
           ) : (
-            <table className="w-full text-sm">
-              <thead className="bg-secondary/40 text-xs uppercase text-muted-foreground">
-                <tr>
-                  <th className="p-3 text-start">{t("smsReports.status")}</th>
-                  <th className="p-3 text-end">{t("smsReports.messages")}</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {delivery.map((d) => (
-                  <tr key={d.status}>
-                    <td className="p-3 font-medium">{d.status}</td>
-                    <td className="p-3 text-end tabular-nums">{d.count}</td>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-secondary/40 text-xs uppercase text-muted-foreground">
+                  <tr>
+                    <th className="p-3 text-start">{t("smsReports.status")}</th>
+                    <th className="p-3 text-end">{t("smsReports.messages")}</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y">
+                  {delivery.map((d) => (
+                    <tr key={d.status}>
+                      <td className="p-3 font-medium">{d.status}</td>
+                      <td className="p-3 text-end tabular-nums">{d.count}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </section>
       </div>

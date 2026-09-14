@@ -207,28 +207,30 @@ function PreviewTable({ preview }: { preview: TeacherImportPreviewRow[] }) {
   const t = useT();
   return (
     <div className="max-h-72 overflow-y-auto rounded-lg border">
-      <table className="w-full text-sm">
-        <thead className="sticky top-0 bg-secondary text-start text-xs text-muted-foreground">
-          <tr>
-            <th className="px-3 py-2">{t("teachersImportDialog.row")}</th>
-            <th className="px-3 py-2">{t("teachersImportDialog.name")}</th>
-            <th className="px-3 py-2">{t("teachersImportDialog.phone")}</th>
-            <th className="px-3 py-2">{t("teachersImportDialog.status")}</th>
-            <th className="px-3 py-2">{t("teachersImportDialog.note")}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {preview.map((p) => (
-            <tr key={p.row} className="border-t">
-              <td className="px-3 py-2 font-mono">{p.row}</td>
-              <td className="px-3 py-2">{p.data.fullName}</td>
-              <td className="px-3 py-2">{p.data.phone}</td>
-              <td className="px-3 py-2 capitalize">{p.status}</td>
-              <td className="px-3 py-2 text-muted-foreground">{p.message ?? "—"}</td>
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead className="sticky top-0 bg-secondary text-start text-xs text-muted-foreground">
+            <tr>
+              <th className="px-3 py-2">{t("teachersImportDialog.row")}</th>
+              <th className="px-3 py-2">{t("teachersImportDialog.name")}</th>
+              <th className="px-3 py-2">{t("teachersImportDialog.phone")}</th>
+              <th className="px-3 py-2">{t("teachersImportDialog.status")}</th>
+              <th className="px-3 py-2">{t("teachersImportDialog.note")}</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {preview.map((p) => (
+              <tr key={p.row} className="border-t">
+                <td className="px-3 py-2 font-mono">{p.row}</td>
+                <td className="px-3 py-2">{p.data.fullName}</td>
+                <td className="px-3 py-2">{p.data.phone}</td>
+                <td className="px-3 py-2 capitalize">{p.status}</td>
+                <td className="px-3 py-2 text-muted-foreground">{p.message ?? "—"}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

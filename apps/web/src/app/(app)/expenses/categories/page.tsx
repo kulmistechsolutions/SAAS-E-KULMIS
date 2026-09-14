@@ -54,38 +54,40 @@ export default function ExpenseCategoriesPage() {
       </div>
 
       <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
-        <table className="w-full text-sm">
-          <thead className="bg-secondary text-start text-xs text-muted-foreground">
-            <tr>
-              <th className="px-4 py-2.5 font-medium">{t("expensesCategories.category")}</th>
-              <th className="px-4 py-2.5 font-medium">{t("expensesCategories.status")}</th>
-              <th className="px-4 py-2.5 font-medium">{t("expensesCategories.actions")}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {state.categories.map((c) => (
-              <tr key={c.id} className="border-t">
-                <td className="px-4 py-2.5">
-                  <CategoryBadge name={c.name} />
-                </td>
-                <td className="px-4 py-2.5">
-                  <Badge tone={c.status === "ACTIVE" ? "success" : "muted"}>
-                    {c.status}
-                  </Badge>
-                </td>
-                <td className="px-4 py-2.5">
-                  <Button
-                    variant="outline"
-                    className="h-8"
-                    onClick={() => handleToggle(c.id)}
-                  >
-                    {c.status === "ACTIVE" ? "Deactivate" : "Activate"}
-                  </Button>
-                </td>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-secondary text-start text-xs text-muted-foreground">
+              <tr>
+                <th className="px-4 py-2.5 font-medium">{t("expensesCategories.category")}</th>
+                <th className="px-4 py-2.5 font-medium">{t("expensesCategories.status")}</th>
+                <th className="px-4 py-2.5 font-medium">{t("expensesCategories.actions")}</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {state.categories.map((c) => (
+                <tr key={c.id} className="border-t">
+                  <td className="px-4 py-2.5">
+                    <CategoryBadge name={c.name} />
+                  </td>
+                  <td className="px-4 py-2.5">
+                    <Badge tone={c.status === "ACTIVE" ? "success" : "muted"}>
+                      {c.status}
+                    </Badge>
+                  </td>
+                  <td className="px-4 py-2.5">
+                    <Button
+                      variant="outline"
+                      className="h-8"
+                      onClick={() => handleToggle(c.id)}
+                    >
+                      {c.status === "ACTIVE" ? "Deactivate" : "Activate"}
+                    </Button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

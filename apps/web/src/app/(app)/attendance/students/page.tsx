@@ -676,38 +676,40 @@ function StudentAttendanceScreen() {
               )}
 
               <div className="overflow-hidden rounded-xl border">
-                <table className="w-full text-sm">
-                  <thead className="bg-secondary text-start text-xs text-muted-foreground">
-                    <tr>
-                      <th className="px-4 py-2.5 font-medium">{t("attendanceStudents.date")}</th>
-                      <th className="px-4 py-2.5 font-medium">{t("attendanceStudents.student")}</th>
-                      <th className="px-4 py-2.5 font-medium">{t("attendanceStudents.class")}</th>
-                      <th className="px-4 py-2.5 font-medium">{t("attendanceStudents.section")}</th>
-                      <th className="px-4 py-2.5 font-medium">{t("attendanceStudents.shift")}</th>
-                      <th className="px-4 py-2.5 font-medium">{t("attendanceStudents.status")}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {reportLoading ? (
-                      <tr><td colSpan={6} className="px-4 py-12 text-center text-muted-foreground">
-                        <Loader2 className="me-2 inline h-4 w-4 animate-spin" /> {t("attendanceStudents.loadingRecords")}
-                      </td></tr>
-                    ) : reportRows.length === 0 ? (
-                      <tr><td colSpan={6} className="px-4 py-12 text-center text-muted-foreground">{t("attendanceStudents.noRecordsForThisDate")}</td></tr>
-                    ) : (
-                      reportRows.slice(0, 100).map((r, i) => (
-                        <tr key={`${r.code}-${r.date}-${i}`} className="border-t">
-                          <td className="px-4 py-2.5">{r.date}</td>
-                          <td className="px-4 py-2.5">{r.student}</td>
-                          <td className="px-4 py-2.5">{r.className}</td>
-                          <td className="px-4 py-2.5">{r.section}</td>
-                          <td className="px-4 py-2.5">{r.shift}</td>
-                          <td className="px-4 py-2.5">{studentStatusLabel(r.status as StudentAttendanceStatus)}</td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-secondary text-start text-xs text-muted-foreground">
+                      <tr>
+                        <th className="px-4 py-2.5 font-medium">{t("attendanceStudents.date")}</th>
+                        <th className="px-4 py-2.5 font-medium">{t("attendanceStudents.student")}</th>
+                        <th className="px-4 py-2.5 font-medium">{t("attendanceStudents.class")}</th>
+                        <th className="px-4 py-2.5 font-medium">{t("attendanceStudents.section")}</th>
+                        <th className="px-4 py-2.5 font-medium">{t("attendanceStudents.shift")}</th>
+                        <th className="px-4 py-2.5 font-medium">{t("attendanceStudents.status")}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {reportLoading ? (
+                        <tr><td colSpan={6} className="px-4 py-12 text-center text-muted-foreground">
+                          <Loader2 className="me-2 inline h-4 w-4 animate-spin" /> {t("attendanceStudents.loadingRecords")}
+                        </td></tr>
+                      ) : reportRows.length === 0 ? (
+                        <tr><td colSpan={6} className="px-4 py-12 text-center text-muted-foreground">{t("attendanceStudents.noRecordsForThisDate")}</td></tr>
+                      ) : (
+                        reportRows.slice(0, 100).map((r, i) => (
+                          <tr key={`${r.code}-${r.date}-${i}`} className="border-t">
+                            <td className="px-4 py-2.5">{r.date}</td>
+                            <td className="px-4 py-2.5">{r.student}</td>
+                            <td className="px-4 py-2.5">{r.className}</td>
+                            <td className="px-4 py-2.5">{r.section}</td>
+                            <td className="px-4 py-2.5">{r.shift}</td>
+                            <td className="px-4 py-2.5">{studentStatusLabel(r.status as StudentAttendanceStatus)}</td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
           )}

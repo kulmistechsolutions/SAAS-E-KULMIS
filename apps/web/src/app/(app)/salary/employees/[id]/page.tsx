@@ -147,59 +147,61 @@ function EmployeeProfileContent({ id }: { id: string }) {
 
           {tab === "history" && (
             <div className="overflow-hidden rounded-xl border">
-              <table className="w-full text-sm">
-                <thead className="bg-secondary text-start text-xs text-muted-foreground">
-                  <tr>
-                    <th className="px-4 py-2.5 font-medium">Month</th>
-                    <th className="px-4 py-2.5 font-medium">Net Salary</th>
-                    <th className="px-4 py-2.5 font-medium">Paid</th>
-                    <th className="px-4 py-2.5 font-medium">Balance</th>
-                    <th className="px-4 py-2.5 font-medium">Status</th>
-                    <th className="px-4 py-2.5 font-medium">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {payrollRows.length === 0 ? (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-secondary text-start text-xs text-muted-foreground">
                     <tr>
-                      <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
-                        No payroll records yet
-                      </td>
+                      <th className="px-4 py-2.5 font-medium">Month</th>
+                      <th className="px-4 py-2.5 font-medium">Net Salary</th>
+                      <th className="px-4 py-2.5 font-medium">Paid</th>
+                      <th className="px-4 py-2.5 font-medium">Balance</th>
+                      <th className="px-4 py-2.5 font-medium">Status</th>
+                      <th className="px-4 py-2.5 font-medium">Actions</th>
                     </tr>
-                  ) : (
-                    payrollRows.map((r) => (
-                      <tr key={r.id} className="border-t">
-                        <td className="px-4 py-2.5">{monthLabel(r.payrollMonth)}</td>
-                        <td className="px-4 py-2.5 tabular-nums">{money(r.netSalary)}</td>
-                        <td className="px-4 py-2.5 tabular-nums text-emerald-600">
-                          {money(r.amountPaid)}
-                        </td>
-                        <td className="px-4 py-2.5 tabular-nums">{money(r.remainingBalance)}</td>
-                        <td className="px-4 py-2.5">
-                          <PayrollStatusBadge status={r.status} />
-                        </td>
-                        <td className="px-4 py-2.5">
-                          <div className="flex gap-1">
-                            <Button
-                              variant="ghost"
-                              className="h-8 w-8 p-0"
-                              onClick={() => setPayslip(r)}
-                            >
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              className="h-8 w-8 p-0"
-                              onClick={() => printPayslip(r)}
-                            >
-                              <Printer className="h-4 w-4" />
-                            </Button>
-                          </div>
+                  </thead>
+                  <tbody>
+                    {payrollRows.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
+                          No payroll records yet
                         </td>
                       </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
+                    ) : (
+                      payrollRows.map((r) => (
+                        <tr key={r.id} className="border-t">
+                          <td className="px-4 py-2.5">{monthLabel(r.payrollMonth)}</td>
+                          <td className="px-4 py-2.5 tabular-nums">{money(r.netSalary)}</td>
+                          <td className="px-4 py-2.5 tabular-nums text-emerald-600">
+                            {money(r.amountPaid)}
+                          </td>
+                          <td className="px-4 py-2.5 tabular-nums">{money(r.remainingBalance)}</td>
+                          <td className="px-4 py-2.5">
+                            <PayrollStatusBadge status={r.status} />
+                          </td>
+                          <td className="px-4 py-2.5">
+                            <div className="flex gap-1">
+                              <Button
+                                variant="ghost"
+                                className="h-8 w-8 p-0"
+                                onClick={() => setPayslip(r)}
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                className="h-8 w-8 p-0"
+                                onClick={() => printPayslip(r)}
+                              >
+                                <Printer className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
         </div>

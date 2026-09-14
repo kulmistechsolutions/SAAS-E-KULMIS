@@ -157,69 +157,71 @@ export default function AttendanceOfficersPage() {
         </div>
       ) : (
         <div className="overflow-hidden rounded-xl border">
-          <table className="w-full text-sm">
-            <thead className="bg-secondary text-start text-xs uppercase text-muted-foreground">
-              <tr>
-                <th className="px-4 py-2.5 text-start font-medium">
-                  {t("attendanceOfficers.officer")}
-                </th>
-                <th className="px-4 py-2.5 text-start font-medium">
-                  {t("attendanceOfficers.assigned")}
-                </th>
-                <th className="px-4 py-2.5 text-start font-medium">
-                  {t("attendanceOfficers.status")}
-                </th>
-                <th className="px-4 py-2.5" />
-              </tr>
-            </thead>
-            <tbody>
-              {officers.map((o) => (
-                <tr key={o.id} className="border-t">
-                  <td className="px-4 py-3">
-                    <p className="font-medium">{o.fullName || o.username}</p>
-                    <p className="text-xs text-muted-foreground">{o.username}</p>
-                  </td>
-                  <td className="px-4 py-3">
-                    {o.assignments.length === 0 ? (
-                      // Worth saying plainly: an officer with no grants can
-                      // reach nothing, which looks like a broken account
-                      // rather than an unfinished setup.
-                      <span className="text-xs text-amber-600 dark:text-amber-400">
-                        {t("attendanceOfficers.nothingAssigned")}
-                      </span>
-                    ) : (
-                      <div className="flex flex-wrap gap-1.5">
-                        {o.assignments.slice(0, 6).map((a) => (
-                          <Badge key={a.id} tone="muted">
-                            {a.class.name}
-                            {a.section ? ` · ${a.section.name}` : ""}
-                            {a.shift ? ` · ${a.shift.name}` : ""}
-                          </Badge>
-                        ))}
-                        {o.assignments.length > 6 && (
-                          <Badge tone="muted">+{o.assignments.length - 6}</Badge>
-                        )}
-                      </div>
-                    )}
-                  </td>
-                  <td className="px-4 py-3">
-                    <Badge tone={o.status === "ACTIVE" ? "success" : "muted"}>
-                      {o.status}
-                    </Badge>
-                  </td>
-                  <td className="px-4 py-3 text-end">
-                    <Button
-                      variant="outline"
-                      className="h-8 px-3 text-xs"
-                      onClick={() => startEdit(o)}
-                    >
-                      {t("attendanceOfficers.assign")}
-                    </Button>
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-secondary text-start text-xs uppercase text-muted-foreground">
+                <tr>
+                  <th className="px-4 py-2.5 text-start font-medium">
+                    {t("attendanceOfficers.officer")}
+                  </th>
+                  <th className="px-4 py-2.5 text-start font-medium">
+                    {t("attendanceOfficers.assigned")}
+                  </th>
+                  <th className="px-4 py-2.5 text-start font-medium">
+                    {t("attendanceOfficers.status")}
+                  </th>
+                  <th className="px-4 py-2.5" />
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {officers.map((o) => (
+                  <tr key={o.id} className="border-t">
+                    <td className="px-4 py-3">
+                      <p className="font-medium">{o.fullName || o.username}</p>
+                      <p className="text-xs text-muted-foreground">{o.username}</p>
+                    </td>
+                    <td className="px-4 py-3">
+                      {o.assignments.length === 0 ? (
+                        // Worth saying plainly: an officer with no grants can
+                        // reach nothing, which looks like a broken account
+                        // rather than an unfinished setup.
+                        <span className="text-xs text-amber-600 dark:text-amber-400">
+                          {t("attendanceOfficers.nothingAssigned")}
+                        </span>
+                      ) : (
+                        <div className="flex flex-wrap gap-1.5">
+                          {o.assignments.slice(0, 6).map((a) => (
+                            <Badge key={a.id} tone="muted">
+                              {a.class.name}
+                              {a.section ? ` · ${a.section.name}` : ""}
+                              {a.shift ? ` · ${a.shift.name}` : ""}
+                            </Badge>
+                          ))}
+                          {o.assignments.length > 6 && (
+                            <Badge tone="muted">+{o.assignments.length - 6}</Badge>
+                          )}
+                        </div>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      <Badge tone={o.status === "ACTIVE" ? "success" : "muted"}>
+                        {o.status}
+                      </Badge>
+                    </td>
+                    <td className="px-4 py-3 text-end">
+                      <Button
+                        variant="outline"
+                        className="h-8 px-3 text-xs"
+                        onClick={() => startEdit(o)}
+                      >
+                        {t("attendanceOfficers.assign")}
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 

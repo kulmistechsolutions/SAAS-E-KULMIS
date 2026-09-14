@@ -57,32 +57,34 @@ export default function QuestionBankPage() {
       </div>
 
       <div className="overflow-hidden rounded-xl border">
-        <table className="w-full text-sm">
-          <thead className="bg-secondary text-start text-xs text-muted-foreground">
-            <tr>
-              <th className="px-4 py-2.5">{tr("quizQuestionBank.subject")}</th>
-              <th className="px-4 py-2.5">{tr("quizQuestionBank.question")}</th>
-              <th className="px-4 py-2.5">{tr("quizQuestionBank.type")}</th>
-              <th className="px-4 py-2.5">{tr("quizQuestionBank.marks")}</th>
-              <th className="px-4 py-2.5"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {state.questionBank.map((q) => (
-              <tr key={q.id} className="border-t">
-                <td className="px-4 py-2.5">{q.subject}</td>
-                <td className="px-4 py-2.5">{q.text}</td>
-                <td className="px-4 py-2.5">{questionTypeLabel(q.type)}</td>
-                <td className="px-4 py-2.5">{q.marks}</td>
-                <td className="px-4 py-2.5">
-                  <Button variant="ghost" className="h-8 w-8 p-0 text-rose-600" onClick={() => deleteBankItem(q.id)}>
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </td>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-secondary text-start text-xs text-muted-foreground">
+              <tr>
+                <th className="px-4 py-2.5">{tr("quizQuestionBank.subject")}</th>
+                <th className="px-4 py-2.5">{tr("quizQuestionBank.question")}</th>
+                <th className="px-4 py-2.5">{tr("quizQuestionBank.type")}</th>
+                <th className="px-4 py-2.5">{tr("quizQuestionBank.marks")}</th>
+                <th className="px-4 py-2.5"></th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {state.questionBank.map((q) => (
+                <tr key={q.id} className="border-t">
+                  <td className="px-4 py-2.5">{q.subject}</td>
+                  <td className="px-4 py-2.5">{q.text}</td>
+                  <td className="px-4 py-2.5">{questionTypeLabel(q.type)}</td>
+                  <td className="px-4 py-2.5">{q.marks}</td>
+                  <td className="px-4 py-2.5">
+                    <Button variant="ghost" className="h-8 w-8 p-0 text-rose-600" onClick={() => deleteBankItem(q.id)}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

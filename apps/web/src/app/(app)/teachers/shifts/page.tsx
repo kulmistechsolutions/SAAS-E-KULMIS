@@ -157,49 +157,51 @@ export default function TeacherShiftsPage() {
             </Button>
           </div>
         ) : (
-          <table className="w-full text-sm">
-            <thead className="bg-secondary text-start text-xs text-muted-foreground">
-              <tr>
-                <th className="px-4 py-2.5 font-medium">{t("attendanceShifts.name")}</th>
-                <th className="px-4 py-2.5 font-medium">{t("attendanceShifts.time")}</th>
-                <th className="px-4 py-2.5 font-medium">{t("attendanceStudents.status")}</th>
-                <th className="px-4 py-2.5 font-medium">{t("financeHistory.actions")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {shifts.map((s) => (
-                <tr key={s.id} className="border-t">
-                  <td className="px-4 py-3 font-medium">{s.name}</td>
-                  <td className="px-4 py-3 text-muted-foreground">
-                    {s.startTime && s.endTime
-                      ? `${s.startTime} – ${s.endTime}`
-                      : "—"}
-                  </td>
-                  <td className="px-4 py-3">
-                    <Badge tone="success">{t("attendanceShifts.active")}</Badge>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex gap-1">
-                      <button
-                        type="button"
-                        onClick={() => openEdit(s)}
-                        className="flex h-8 w-8 items-center justify-center rounded-lg text-primary hover:bg-primary/10"
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setDeleting(s)}
-                        className="flex h-8 w-8 items-center justify-center rounded-lg text-destructive hover:bg-destructive/10"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-secondary text-start text-xs text-muted-foreground">
+                <tr>
+                  <th className="px-4 py-2.5 font-medium">{t("attendanceShifts.name")}</th>
+                  <th className="px-4 py-2.5 font-medium">{t("attendanceShifts.time")}</th>
+                  <th className="px-4 py-2.5 font-medium">{t("attendanceStudents.status")}</th>
+                  <th className="px-4 py-2.5 font-medium">{t("financeHistory.actions")}</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {shifts.map((s) => (
+                  <tr key={s.id} className="border-t">
+                    <td className="px-4 py-3 font-medium">{s.name}</td>
+                    <td className="px-4 py-3 text-muted-foreground">
+                      {s.startTime && s.endTime
+                        ? `${s.startTime} – ${s.endTime}`
+                        : "—"}
+                    </td>
+                    <td className="px-4 py-3">
+                      <Badge tone="success">{t("attendanceShifts.active")}</Badge>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex gap-1">
+                        <button
+                          type="button"
+                          onClick={() => openEdit(s)}
+                          className="flex h-8 w-8 items-center justify-center rounded-lg text-primary hover:bg-primary/10"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setDeleting(s)}
+                          className="flex h-8 w-8 items-center justify-center rounded-lg text-destructive hover:bg-destructive/10"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
 
