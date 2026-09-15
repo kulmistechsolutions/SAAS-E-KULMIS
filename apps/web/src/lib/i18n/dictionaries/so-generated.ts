@@ -1811,6 +1811,7 @@ export const soGenerated: PartialDictionary = {
     partial: "Qayb",
     unpaid: "Bixin",
     free: "Bilaash",
+    notBilled: "Lama dallicin",
     advance: "Horay",
     allMonthsOwed: "Deynta bilaha oo dhan",
     viewDetails: "Eeg faahfaahinta",

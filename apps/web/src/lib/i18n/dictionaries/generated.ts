@@ -1842,6 +1842,7 @@ export const generated = {
     partial: "Partial",
     unpaid: "Unpaid",
     free: "Free",
+    notBilled: "Not billed",
     advance: "Advance",
     allMonthsOwed: "Owed, all months",
     viewDetails: "View details",

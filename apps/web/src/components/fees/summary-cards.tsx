@@ -4,6 +4,7 @@ import {
   ArrowUpRight,
   Banknote,
   CircleDollarSign,
+  FileQuestion,
   Gift,
   Handshake,
   PieChart,
@@ -133,6 +134,16 @@ const SECONDARY: {
     label: "feesSummaryCards.advance",
     icon: ArrowUpRight,
     tone: "text-purple-600 dark:text-purple-400",
+  },
+  {
+    // On the roll, not free, and carrying no charge for the month. They were
+    // counted in the total above and shown in none of these pills, so the row
+    // did not add up — and the students nobody has billed, which is the list a
+    // school most needs, were the ones it could not see.
+    key: "unbilledStudents",
+    label: "feesSummaryCards.notBilled",
+    icon: FileQuestion,
+    tone: "text-amber-600 dark:text-amber-400",
   },
   {
     key: "totalOutstanding",

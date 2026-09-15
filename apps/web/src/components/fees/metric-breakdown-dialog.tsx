@@ -46,6 +46,7 @@ const TITLE: Record<FeeMetric, string> = {
   unpaidStudents: "Nothing paid yet",
   advancePayments: "Paid ahead",
   freeStudents: "Free students",
+  unbilledStudents: "Not billed for",
   expectedMonthlyIncome: "Expected for",
   netFeeCollection: "Net collection for",
   totalActiveStudents: "Active students",
@@ -65,6 +66,9 @@ const BY_STATE: Partial<Record<FeeMetric, StudentPosition["state"]>> = {
   unpaidStudents: "UNPAID",
   advancePayments: "ADVANCE",
   freeStudents: "FREE",
+  // Clicking the pill has to name the students, or the school is told two of
+  // them are unbilled and left to find which two.
+  unbilledStudents: "UNBILLED",
 };
 
 /** One student's numbers for the month on screen. */

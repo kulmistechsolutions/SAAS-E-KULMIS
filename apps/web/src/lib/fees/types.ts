@@ -96,6 +96,14 @@ export interface FeeDashboardSummary {
    *  `partialPayments` so a school can see who has not started paying at all,
    *  which is the list it chases first. */
   unpaidStudents: number;
+  /**
+   * On the roll, not free, and carrying no charge for this month at all.
+   *
+   * They were counted in the total and shown in no bucket, so the pills did
+   * not add up to the number above them — and the students the school most
+   * needs to see, the ones nobody has billed, were the ones it could not.
+   */
+  unbilledStudents: number;
   expectedMonthlyIncome: number;
   netFeeCollection: number;
   totalActiveStudents: number;

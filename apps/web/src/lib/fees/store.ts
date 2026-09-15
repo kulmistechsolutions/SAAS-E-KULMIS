@@ -726,6 +726,7 @@ export function dashboardSummary(
       advancePayments: pos.students.advance,
       freeStudents: pos.students.free,
       unpaidStudents: pos.students.unpaid,
+      unbilledStudents: pos.students.unbilled,
       expectedMonthlyIncome: pos.expectedThisMonth,
       netFeeCollection: pos.collectedThisMonth,
       totalActiveStudents: pos.students.total,
@@ -785,6 +786,7 @@ export function dashboardSummary(
   let unpaid = 0;
   let advance = 0;
   let free = 0;
+  let unbilled = 0;
   for (const st of students) {
     // Never charged anything — has no payment behavior to report, so it
     // doesn't belong in fullyPaid/partial/advance at all.
@@ -793,8 +795,13 @@ export function dashboardSummary(
       continue;
     }
     // No monthly fee setup activated for this student yet — they haven't
-    // been billed, so they can't be "fully paid" either.
-    if (!hasBeenCharged(st.id, month)) continue;
+    // been billed, so they can't be "fully paid" either. Counted, though:
+    // going uncounted is how a student sits unbilled for a month and nobody
+    // on the page can see that anybody is missing.
+    if (!hasBeenCharged(st.id, month)) {
+      unbilled += 1;
+      continue;
+    }
     const adv = advanceMonthsLeft(st.id, month);
     const out = outstandingBalance(st.id, month);
     if (adv > 0) advance += 1;
@@ -822,6 +829,7 @@ export function dashboardSummary(
     advancePayments: advance,
     freeStudents: free,
     unpaidStudents: unpaid,
+    unbilledStudents: unbilled,
     expectedMonthlyIncome,
     netFeeCollection: collectedThisMonth,
     totalActiveStudents: students.length,
