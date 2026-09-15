@@ -325,6 +325,10 @@ export interface PlatformSmsConfig {
   providerBalance: string | null;
   connectionVerified: boolean;
   packagesUnlocked: boolean;
+  /** Null means a school cannot buy a quantity of its own choosing. */
+  customPricePerSms: number | null;
+  customMinSms: number;
+  customMaxSms: number;
   updatedAt: string;
 }
 
@@ -477,6 +481,9 @@ export async function fetchPlatformSmsConnectionLogs(take = 50) {
 export async function updatePlatformSmsConfig(body: {
   enabled?: boolean;
   defaultSenderId?: string | null;
+  customPricePerSms?: number | null;
+  customMinSms?: number;
+  customMaxSms?: number;
 }) {
   return platformFetch<PlatformSmsConfig>("/platform/sms/config", {
     method: "PATCH",

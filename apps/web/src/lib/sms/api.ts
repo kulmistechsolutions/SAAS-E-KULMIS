@@ -225,8 +225,17 @@ export async function apiRequestSmsSenderId(body: {
   );
 }
 
+/** The platform's per-SMS rate for a quantity the school picks itself. */
+export interface CustomSmsRate {
+  /** Null means custom amounts are not on sale. */
+  pricePerSms: number | null;
+  minSms: number;
+  maxSms: number;
+  currency: string;
+}
+
 export async function apiSmsPackages() {
-  return api<SmsPackage[]>("/sms/packages");
+  return api<{ packages: SmsPackage[]; custom: CustomSmsRate }>("/sms/packages");
 }
 
 export async function apiSmsTemplates() {
@@ -501,7 +510,9 @@ export async function apiSmsPaymentStatus() {
 }
 
 export async function apiPurchaseSmsPackage(body: {
-  packageId: string;
+  /** One of these two — a package, or a quantity of the school's own. */
+  packageId?: string;
+  customCredits?: number;
   payerAccount?: string;
   channel?: "API_PURCHASE" | "HPP_PURCHASE";
   paymentMethod?: string;

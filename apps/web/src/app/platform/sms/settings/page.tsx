@@ -81,6 +81,16 @@ export default function PlatformSmsSettingsPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [defaultSenderId, setDefaultSenderId] = useState("");
+  /**
+   * What a school pays per SMS when it names its own quantity.
+   *
+   * Empty means custom amounts are off and schools buy packages only — which
+   * is the right default, because a rate nobody set is not a rate of zero.
+   */
+  const [customRate, setCustomRate] = useState("");
+  const [customMin, setCustomMin] = useState("50");
+  const [customMax, setCustomMax] = useState("20000");
+  const [savingRate, setSavingRate] = useState(false);
   const [enabled, setEnabled] = useState(false);
 
   const load = useCallback(async () => {
@@ -95,6 +105,11 @@ export default function PlatformSmsSettingsPage() {
       setBaseUrl(cfg.baseUrl || "https://smsapi.hormuud.com");
       setUsername(cfg.username);
       setDefaultSenderId(cfg.defaultSenderId ?? "");
+      setCustomRate(
+        cfg.customPricePerSms === null ? "" : String(cfg.customPricePerSms),
+      );
+      setCustomMin(String(cfg.customMinSms));
+      setCustomMax(String(cfg.customMaxSms));
       setEnabled(cfg.enabled);
     } catch (e) {
       toast(e instanceof Error ? e.message : "Failed to load SMS settings", "error");
@@ -141,6 +156,43 @@ export default function PlatformSmsSettingsPage() {
       toast(e instanceof Error ? e.message : "Connection test failed", "error");
     } finally {
       setTesting(false);
+    }
+  }
+
+  async function saveCustomRate() {
+    const rate = customRate.trim();
+    const min = Number(customMin);
+    const max = Number(customMax);
+    if (rate && !(Number(rate) > 0)) {
+      toast("A rate has to be above zero, or empty to turn it off.", "error");
+      return;
+    }
+    if (!Number.isInteger(min) || !Number.isInteger(max) || min <= 0 || max <= 0) {
+      toast("The smallest and largest amounts are whole numbers.", "error");
+      return;
+    }
+    if (min > max) {
+      toast("The smallest amount cannot be larger than the largest.", "error");
+      return;
+    }
+    setSavingRate(true);
+    try {
+      const cfg = await updatePlatformSmsConfig({
+        customPricePerSms: rate ? Number(rate) : null,
+        customMinSms: min,
+        customMaxSms: max,
+      });
+      setConfig(cfg);
+      toast(
+        rate
+          ? "Schools can now buy a quantity of their own."
+          : "Custom amounts turned off. Schools buy packages only.",
+        "success",
+      );
+    } catch (e) {
+      toast(e instanceof Error ? e.message : "Could not save the rate", "error");
+    } finally {
+      setSavingRate(false);
     }
   }
 
@@ -321,6 +373,57 @@ export default function PlatformSmsSettingsPage() {
                 {t("platformSmsSettings.setThisToTheSenderName")} <span className="font-mono">{t("platformSmsSettings.n203InvalidSenderId")}</span>{" "}
                 {t("platformSmsSettings.unlessThatExactNameIsRegistered")}
               </p>
+            </div>
+
+            {/* A quantity a school picks itself, priced at one rate. Without
+                this the platform had to invent a package every time somebody
+                asked for an amount that was not on the shelf. */}
+            <div className="rounded-lg border border-white/10 p-3">
+              <p className="text-sm font-medium text-slate-200">
+                Extended SMS — a quantity the school chooses
+              </p>
+              <p className="mt-0.5 text-xs text-slate-500">
+                Leave the rate empty to turn this off; schools then buy
+                packages only. The published packages work out at 0.025 per SMS.
+              </p>
+              <div className="mt-3 grid gap-3 sm:grid-cols-3">
+                <div>
+                  <Label className="text-slate-400">Price per SMS</Label>
+                  <Input
+                    className="mt-1 border-white/10 bg-[#0b1120] text-white"
+                    inputMode="decimal"
+                    value={customRate}
+                    onChange={(e) => setCustomRate(e.target.value)}
+                    placeholder="0.025"
+                  />
+                </div>
+                <div>
+                  <Label className="text-slate-400">Smallest order</Label>
+                  <Input
+                    className="mt-1 border-white/10 bg-[#0b1120] text-white"
+                    inputMode="numeric"
+                    value={customMin}
+                    onChange={(e) => setCustomMin(e.target.value.replace(/[^0-9]/g, ""))}
+                  />
+                </div>
+                <div>
+                  <Label className="text-slate-400">Largest order</Label>
+                  <Input
+                    className="mt-1 border-white/10 bg-[#0b1120] text-white"
+                    inputMode="numeric"
+                    value={customMax}
+                    onChange={(e) => setCustomMax(e.target.value.replace(/[^0-9]/g, ""))}
+                  />
+                </div>
+              </div>
+              <Button
+                className="mt-3"
+                variant="outline"
+                disabled={savingRate}
+                onClick={() => void saveCustomRate()}
+              >
+                {savingRate ? "Saving…" : "Save rate"}
+              </Button>
             </div>
 
             <div className="flex items-center justify-between rounded-lg border border-white/10 px-3 py-2">

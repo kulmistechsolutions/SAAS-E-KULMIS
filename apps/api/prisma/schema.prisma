@@ -2250,6 +2250,12 @@ model SmsGlobalConfig {
   providerBalanceAt  DateTime?
   /// Must be true (successful Test Connection) before packages can be managed.
   connectionVerified Boolean   @default(false)
+  /// Price of one SMS when a school buys a quantity of its own choosing.
+  /// Null turns custom amounts off — a school then buys packages only.
+  customPricePerSms  Decimal?  @db.Decimal(10, 4)
+  /// The smallest and largest custom order the platform will take.
+  customMinSms       Int       @default(50)
+  customMaxSms       Int       @default(20000)
   updatedAt          DateTime  @updatedAt
   createdAt          DateTime  @default(now())
 

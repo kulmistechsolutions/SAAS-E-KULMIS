@@ -30,6 +30,7 @@ import {
   type SmsPaymentOrderRow,
   type SmsPaymentReceipt,
   type SmsPaymentStatusInfo,
+  type CustomSmsRate,
 } from "@/lib/sms/api";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
@@ -61,6 +62,16 @@ export default function SchoolSmsPackagesPage() {
     "API_PURCHASE",
   );
   const [selectedPkg, setSelectedPkg] = useState<string>("");
+  /**
+   * Buying a quantity rather than a package.
+   *
+   * A school that needs 640 messages had to buy 1,000 or ask the platform to
+   * invent a package. The amount here is only ever displayed — the server
+   * prices the order from its own rate, because a price the buyer can name is
+   * not a price.
+   */
+  const [customRate, setCustomRate] = useState<CustomSmsRate | null>(null);
+  const [customQty, setCustomQty] = useState("");
   const [receipt, setReceipt] = useState<SmsPaymentReceipt | null>(null);
   const [tab, setTab] = useState<"buy" | "history" | "receipt">("buy");
   const [paymentStatus, setPaymentStatus] = useState<SmsPaymentStatusInfo | null>(null);
@@ -77,10 +88,13 @@ export default function SchoolSmsPackagesPage() {
         ),
       ]);
       setBalance(b);
-      setPackages(pkgs);
+      setPackages(pkgs.packages);
+      setCustomRate(pkgs.custom);
       setOrders(ords);
       setPaymentStatus(status);
-      setSelectedPkg((prev) => prev || pkgs.find((p) => p.isActive)?.id || "");
+      setSelectedPkg(
+        (prev) => prev || pkgs.packages.find((p) => p.isActive)?.id || "",
+      );
     } catch (e) {
       toast(e instanceof Error ? e.message : "Failed to load packages", "error");
     } finally {
@@ -91,6 +105,49 @@ export default function SchoolSmsPackagesPage() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  const customEnabled = Boolean(
+    customRate?.pricePerSms && customRate.pricePerSms > 0,
+  );
+  const customQtyNumber = Number(customQty);
+  const customValid =
+    customEnabled &&
+    Number.isInteger(customQtyNumber) &&
+    customQtyNumber >= (customRate?.minSms ?? 0) &&
+    customQtyNumber <= (customRate?.maxSms ?? 0);
+  // Shown, never sent. The server charges its own figure; this is here so
+  // nobody is surprised by what leaves their wallet.
+  const customPrice =
+    customValid && customRate?.pricePerSms
+      ? Math.ceil(customQtyNumber * customRate.pricePerSms * 100) / 100
+      : null;
+
+  async function buyCustom() {
+    if (!customValid) return;
+    if (channel === "API_PURCHASE" && !payerAccount.trim()) {
+      toast("Enter the mobile wallet number to pay from", "error");
+      return;
+    }
+    setPayingId("custom");
+    try {
+      const res = await apiPurchaseSmsPackage({
+        customCredits: customQtyNumber,
+        payerAccount: payerAccount.trim() || undefined,
+        channel,
+      });
+      setReceipt(res);
+      if (res.status === "SUCCESS") {
+        toast(`${customQtyNumber} SMS added.`, "success");
+        setCustomQty("");
+      }
+      setTab("receipt");
+      await load();
+    } catch (e) {
+      toast(e instanceof Error ? e.message : "Purchase failed", "error");
+    } finally {
+      setPayingId(null);
+    }
+  }
 
   async function buy() {
     if (!selectedPkg) {
@@ -353,6 +410,68 @@ export default function SchoolSmsPackagesPage() {
               <p className="text-xs text-muted-foreground">
                 {t("smsPackages.afterWaafiConfirmsPaymentCreditsAre")}
               </p>
+
+              {/* A quantity of the school's own choosing, at the same rate as
+                  the packages. Hidden entirely when the platform has not set
+                  a rate — an empty box would read as "coming soon". */}
+              {customEnabled && customRate && (
+                <div className="mt-6 border-t pt-5">
+                  <h3 className="font-semibold">Extended SMS</h3>
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    Need an amount that is not on the list? Enter how many SMS
+                    you want — from {customRate.minSms.toLocaleString()} to{" "}
+                    {customRate.maxSms.toLocaleString()}.
+                  </p>
+                  <div className="mt-3 flex flex-wrap items-end gap-3">
+                    <div className="min-w-[140px] flex-1">
+                      <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                        How many SMS
+                      </label>
+                      <input
+                        inputMode="numeric"
+                        value={customQty}
+                        onChange={(e) =>
+                          setCustomQty(e.target.value.replace(/[^0-9]/g, ""))
+                        }
+                        placeholder={String(customRate.minSms)}
+                        className="h-10 w-full rounded-lg border bg-background px-3 text-sm outline-none focus:border-primary"
+                      />
+                    </div>
+                    <div className="min-w-[120px]">
+                      <p className="text-xs text-muted-foreground">You pay</p>
+                      <p className="mt-1 text-xl font-bold tabular-nums">
+                        {customPrice === null
+                          ? "—"
+                          : money(customPrice, customRate.currency)}
+                      </p>
+                    </div>
+                  </div>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {money(customRate.pricePerSms ?? 0, customRate.currency)} per
+                    SMS. The final amount is confirmed by the payment itself.
+                  </p>
+                  {customQty && !customValid && (
+                    <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">
+                      Enter a whole number between{" "}
+                      {customRate.minSms.toLocaleString()} and{" "}
+                      {customRate.maxSms.toLocaleString()}.
+                    </p>
+                  )}
+                  <Button
+                    className="mt-3 w-full"
+                    disabled={!customValid || payingId !== null}
+                    onClick={() => void buyCustom()}
+                  >
+                    {payingId === "custom" ? (
+                      <Loader2 className="me-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <CreditCard className="me-2 h-4 w-4" />
+                    )}
+                    Pay for {customValid ? customQtyNumber.toLocaleString() : "—"}{" "}
+                    SMS
+                  </Button>
+                </div>
+              )}
             </div>
           )}
         </div>

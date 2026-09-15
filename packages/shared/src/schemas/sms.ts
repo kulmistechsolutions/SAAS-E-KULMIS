@@ -23,6 +23,10 @@ export const updateSmsGlobalConfigSchema = z.object({
   username: z.string().min(1).optional(),
   password: z.string().optional(),
   defaultSenderId: z.string().max(20).nullable().optional(),
+  /** Null turns custom amounts off; schools then buy packages only. */
+  customPricePerSms: z.number().positive().nullable().optional(),
+  customMinSms: z.number().int().positive().optional(),
+  customMaxSms: z.number().int().positive().optional(),
 });
 
 /** Draft credentials for Test Connection (password optional if already saved). */
@@ -329,14 +333,26 @@ export const testWaafiConnectionSchema = z.object({
   enabled: z.boolean().optional(),
 });
 
-export const purchaseSmsPackageSchema = z.object({
-  packageId: z.string().min(1),
-  /** Mobile wallet number in international format (required for API_PURCHASE). */
-  payerAccount: z.string().min(8).max(20).optional(),
-  /** Override channel; defaults to Super Admin Waafi config. */
-  channel: z.enum(["API_PURCHASE", "HPP_PURCHASE"]).optional(),
-  paymentMethod: z.string().min(3).max(40).optional(),
-});
+export const purchaseSmsPackageSchema = z
+  .object({
+    /** One of packageId or customCredits — a package, or a quantity. */
+    packageId: z.string().min(1).optional(),
+    /**
+     * How many SMS the school wants when it is not buying a package. Priced
+     * at the platform's own per-SMS rate; the amount is never sent by the
+     * client, because a price a buyer can name is not a price.
+     */
+    customCredits: z.number().int().positive().optional(),
+    /** Mobile wallet number in international format (required for API_PURCHASE). */
+    payerAccount: z.string().min(8).max(20).optional(),
+    /** Override channel; defaults to Super Admin Waafi config. */
+    channel: z.enum(["API_PURCHASE", "HPP_PURCHASE"]).optional(),
+    paymentMethod: z.string().min(3).max(40).optional(),
+  })
+  .refine((v) => Boolean(v.packageId) !== Boolean(v.customCredits), {
+    message: "Choose a package or enter a custom amount, not both.",
+    path: ["packageId"],
+  });
 
 export type UpdateSmsGlobalConfigInput = z.infer<
   typeof updateSmsGlobalConfigSchema

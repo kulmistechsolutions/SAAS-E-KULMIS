@@ -85,6 +85,9 @@ export class SmsService {
     lastSuccessAt: Date | null;
     providerBalance: string | null;
     connectionVerified: boolean;
+    customPricePerSms: Prisma.Decimal | null;
+    customMinSms: number;
+    customMaxSms: number;
     updatedAt: Date;
   }) {
     return {
@@ -102,6 +105,13 @@ export class SmsService {
       providerBalance: row.providerBalance,
       connectionVerified: row.connectionVerified,
       packagesUnlocked: row.connectionVerified && row.enabled,
+      // What a school pays per SMS when it names its own quantity. Null means
+      // custom amounts are not on sale and only packages can be bought.
+      customPricePerSms: row.customPricePerSms
+        ? Number(row.customPricePerSms)
+        : null,
+      customMinSms: row.customMinSms,
+      customMaxSms: row.customMaxSms,
       updatedAt: row.updatedAt,
     };
   }
@@ -240,6 +250,23 @@ export class SmsService {
     if (input.enabled !== undefined) data.enabled = input.enabled;
     if (input.defaultSenderId !== undefined) {
       data.defaultSenderId = input.defaultSenderId;
+    }
+    if (input.customPricePerSms !== undefined) {
+      data.customPricePerSms =
+        input.customPricePerSms === null
+          ? null
+          : new Prisma.Decimal(input.customPricePerSms);
+    }
+    if (input.customMinSms !== undefined) data.customMinSms = input.customMinSms;
+    if (input.customMaxSms !== undefined) data.customMaxSms = input.customMaxSms;
+    // A floor above the ceiling would take every custom order off sale while
+    // still looking configured.
+    const min = input.customMinSms ?? existing.customMinSms;
+    const max = input.customMaxSms ?? existing.customMaxSms;
+    if (min > max) {
+      throw new BadRequestException(
+        "The smallest custom amount cannot be larger than the largest.",
+      );
     }
 
     const updated = await this.prisma.smsGlobalConfig.update({

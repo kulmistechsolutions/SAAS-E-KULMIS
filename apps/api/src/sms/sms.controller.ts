@@ -28,6 +28,7 @@ import { CurrentUser } from "../auth/current-user.decorator";
 import type { AuthUser } from "../auth/auth.types";
 import { SmsService } from "./sms.service";
 import { SmsSenderIdService } from "./sms-sender-id.service";
+import { SmsPaymentService } from "./sms-payment.service";
 import { senderIdFeatureEnabled } from "./sender-id-feature";
 import { RequirePermission } from "../auth/require-permission.decorator";
 
@@ -43,6 +44,7 @@ export class SmsController {
   constructor(
     private readonly sms: SmsService,
     private readonly senderIds: SmsSenderIdService,
+    private readonly payments: SmsPaymentService,
   ) {}
 
   @RequirePermission("sms.view")
@@ -99,8 +101,14 @@ export class SmsController {
 
   @RequirePermission("sms.view")
   @Get("packages")
-  packages() {
-    return this.sms.listPackages(true);
+  async packages() {
+    const [packages, rate] = await Promise.all([
+      this.sms.listPackages(true),
+      this.payments.customSmsRate(),
+    ]);
+    // The rate travels with the shelf, so the page can price a quantity
+    // without a second call — and shows nothing when none is set.
+    return { packages, custom: rate };
   }
 
   @RequirePermission("sms.view")

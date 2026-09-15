@@ -15,6 +15,10 @@ import { Prisma } from "@prisma/client";
 import { randomBytes } from "crypto";
 import { PrismaService } from "../prisma/prisma.service";
 import {
+  quoteCustomSms,
+  type CustomSmsRate,
+} from "./sms-custom-quote";
+import {
   normalizeWaafiAccount,
   waafiApiPurchase,
   waafiFriendlyFailureMessage,
@@ -25,6 +29,9 @@ import {
 } from "./waafi.client";
 
 const ORDER_TTL_MS = 15 * 60 * 1000; // 15 minutes
+
+/** The reserved row custom orders are recorded against. Never offered. */
+const CUSTOM_PACKAGE_NAME = "Custom amount";
 
 @Injectable()
 export class SmsPaymentService {
@@ -300,17 +307,86 @@ export class SmsPaymentService {
 
   // ── School: initiate purchase ────────────────────────────────────────────
 
+  /**
+   * The rate a custom order is priced at, as the platform has set it.
+   */
+  async customSmsRate(): Promise<CustomSmsRate> {
+    const [sms, waafi] = await Promise.all([
+      this.prisma.smsGlobalConfig.findFirst(),
+      this.prisma.waafiPaymentConfig.findFirst(),
+    ]);
+    return {
+      pricePerSms: sms?.customPricePerSms ? Number(sms.customPricePerSms) : null,
+      minSms: sms?.customMinSms ?? 50,
+      maxSms: sms?.customMaxSms ?? 20000,
+      currency: waafi?.currency || "USD",
+    };
+  }
+
+  /**
+   * The package a custom order is recorded against.
+   *
+   * Orders and purchases both carry a package, so a custom amount needs one to
+   * point at — but it must never appear on the shelf. This row is created once,
+   * kept inactive, and named so a school's own history reads "Custom amount"
+   * rather than the name of a package it did not buy.
+   */
+  private async customPackage(currency: string) {
+    const existing = await this.prisma.smsPackage.findFirst({
+      where: { name: CUSTOM_PACKAGE_NAME },
+    });
+    if (existing) return existing;
+    return this.prisma.smsPackage.create({
+      data: {
+        name: CUSTOM_PACKAGE_NAME,
+        description: "A quantity chosen by the school, priced per SMS.",
+        credits: 0,
+        price: new Prisma.Decimal(0),
+        currency,
+        isActive: false,
+        sortOrder: 9999,
+      },
+    });
+  }
+
   async initiatePurchase(
     schoolId: string,
     userId: string,
     input: PurchaseSmsPackageInput,
   ) {
     const cfg = await this.requirePaymentsUnlocked();
-    const pkg = await this.prisma.smsPackage.findUnique({
-      where: { id: input.packageId },
-    });
-    if (!pkg || !pkg.isActive) {
-      throw new NotFoundException("SMS package not found or inactive.");
+
+    // A package, or a quantity the school chose. Either way the credits and
+    // the amount below are the server's, never the browser's.
+    let pkg;
+    let credits: number;
+    let amountDec: Prisma.Decimal;
+    let currency: string;
+
+    if (input.customCredits) {
+      const rate = await this.customSmsRate();
+      let quote;
+      try {
+        quote = quoteCustomSms(input.customCredits, rate);
+      } catch (e) {
+        throw new BadRequestException(
+          e instanceof Error ? e.message : "That amount cannot be priced.",
+        );
+      }
+      currency = quote.currency;
+      pkg = await this.customPackage(currency);
+      credits = quote.credits;
+      amountDec = new Prisma.Decimal(quote.amount);
+    } else {
+      pkg = await this.prisma.smsPackage.findUnique({
+        where: { id: input.packageId! },
+      });
+      if (!pkg || !pkg.isActive) {
+        throw new NotFoundException("SMS package not found or inactive.");
+      }
+      credits = pkg.credits;
+      amountDec = pkg.price;
+      currency = pkg.currency || cfg.currency || "USD";
     }
 
     const channel =
@@ -337,7 +413,7 @@ export class SmsPaymentService {
 
     const referenceId = this.makeReferenceId();
     const invoiceId = referenceId;
-    const amount = Number(pkg.price);
+    const amount = Number(amountDec);
     const expiresAt = new Date(Date.now() + ORDER_TTL_MS);
 
     const order = await this.prisma.smsPaymentOrder.create({
@@ -346,9 +422,9 @@ export class SmsPaymentService {
         packageId: pkg.id,
         referenceId,
         invoiceId,
-        amount: pkg.price,
-        currency: pkg.currency || cfg.currency || "USD",
-        credits: pkg.credits,
+        amount: amountDec,
+        currency,
+        credits,
         status: "PENDING",
         paymentMethod,
         channel,
