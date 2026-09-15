@@ -258,7 +258,8 @@ export class PlatformService {
     });
     if (!school) throw new NotFoundException("School not found");
 
-    const [recent, byModule, byUser, errors, counts] = await Promise.all([
+    const [recent, byModule, byUser, errors, counts, failedLoginRows] =
+      await Promise.all([
       this.prisma.auditLog.findMany({
         where: { schoolId, createdAt: { gte: since } },
         orderBy: { createdAt: "desc" },
@@ -311,7 +312,51 @@ export class PlatformService {
         },
         _count: { _all: true },
       }),
+      // Who is failing, not just how many times. A hundred and twenty-one
+      // failures is a head teacher locked out of their own school or somebody
+      // trying the door, and the count alone cannot tell them apart.
+      this.prisma.auditLog.findMany({
+        where: {
+          schoolId,
+          createdAt: { gte: since },
+          action: "LOGIN_FAILED",
+        },
+        select: { username: true, role: true, ip: true, createdAt: true },
+        orderBy: { createdAt: "desc" },
+        take: 500,
+      }),
     ]);
+
+    // One row per name tried, with the addresses it was tried from: one
+    // address over an afternoon is somebody who forgot their password; many
+    // addresses, or many names, is not.
+    const failedMap = new Map<
+      string,
+      { username: string; role: string | null; attempts: number; lastAt: Date; ips: Set<string> }
+    >();
+    for (const f of failedLoginRows) {
+      const name = f.username ?? "(no username)";
+      const cur =
+        failedMap.get(name) ??
+        { username: name, role: f.role, attempts: 0, lastAt: f.createdAt, ips: new Set<string>() };
+      cur.attempts += 1;
+      if (f.createdAt > cur.lastAt) cur.lastAt = f.createdAt;
+      if (f.ip) cur.ips.add(f.ip);
+      if (!cur.role && f.role) cur.role = f.role;
+      failedMap.set(name, cur);
+    }
+    const failedBy = [...failedMap.values()]
+      .sort((a, b) => b.attempts - a.attempts)
+      .slice(0, 10)
+      .map((f) => ({
+        username: f.username,
+        // Null means the name matched no account at all — somebody guessing,
+        // or a parent typing their child's code into the staff login.
+        role: f.role,
+        attempts: f.attempts,
+        lastAt: f.lastAt,
+        addresses: f.ips.size,
+      }));
 
     const errorsByPath = new Map<string, { count: number; message: string }>();
     for (const e of errors) {
@@ -331,6 +376,7 @@ export class PlatformService {
         counts.find((c) => c.action === "LOGIN")?._count._all ?? 0,
       failedLogins:
         counts.find((c) => c.action === "LOGIN_FAILED")?._count._all ?? 0,
+      failedBy,
       lastActiveAt: recent[0]?.createdAt ?? null,
       lastAction: recent[0]
         ? {

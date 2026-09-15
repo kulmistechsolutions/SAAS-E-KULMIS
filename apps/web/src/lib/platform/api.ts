@@ -1227,6 +1227,19 @@ export interface SchoolActivityDetail {
   since: string;
   logins: number;
   failedLogins: number;
+  /**
+   * Who could not get in. One name from one address over an afternoon is
+   * somebody who forgot their password; many names, or many addresses, is
+   * not — and the total on its own cannot tell them apart.
+   */
+  failedBy: {
+    username: string;
+    /** Null means the name matched no account at all. */
+    role: string | null;
+    attempts: number;
+    lastAt: string;
+    addresses: number;
+  }[];
   lastActiveAt: string | null;
   lastAction: {
     module: string;

@@ -230,6 +230,44 @@ function Detail({ schoolId, onClose }: { schoolId: string; onClose: () => void }
         ))}
       </div>
 
+      {data.failedBy.length > 0 && (
+        <div className="rounded-lg border border-white/10 bg-black/20 p-3">
+          <p className="text-sm font-medium text-white">Who could not get in</p>
+          <p className="mt-0.5 text-xs text-slate-500">
+            One name from one address is somebody who forgot their password.
+            Many names, or many addresses, is not.
+          </p>
+          <ul className="mt-2 space-y-1.5">
+            {data.failedBy.map((f) => (
+              <li
+                key={f.username}
+                className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-white/5 px-3 py-2 text-sm"
+              >
+                <span className="min-w-0">
+                  <span className="font-medium text-white">{f.username}</span>
+                  <span className="ms-2 text-xs text-slate-400">
+                    {f.role ?? "no such account"}
+                  </span>
+                </span>
+                <span className="whitespace-nowrap text-xs text-slate-400">
+                  <span
+                    className={
+                      f.attempts >= 20 ? "font-bold text-amber-300" : "text-slate-300"
+                    }
+                  >
+                    {f.attempts} tries
+                  </span>
+                  {" · "}
+                  {f.addresses === 1 ? "1 address" : `${f.addresses} addresses`}
+                  {" · "}
+                  {f.lastAt.slice(0, 16).replace("T", " ")}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {data.lastAction && (
         <div className="rounded-lg border border-white/10 bg-black/20 p-3 text-sm text-slate-300">
           <span className="text-slate-400">Last thing they did: </span>
