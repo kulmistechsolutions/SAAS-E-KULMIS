@@ -23,6 +23,8 @@ import {
   BarChart3,
   ScrollText,
   ShieldCheck,
+  Menu,
+  X,
 } from "lucide-react";
 import { usePlatformAuth } from "@/lib/platform/auth";
 import { countUnread, fetchPlatformEvents, getLastSeenAt } from "@/lib/platform/notifications";
@@ -78,12 +80,110 @@ const NAV: {
 
 const UNREAD_POLL_MS = 60_000;
 
+/**
+ * The console's navigation, drawn once.
+ *
+ * It used to exist only as a rail hidden below `lg`, so on a phone the
+ * platform console had no navigation at all — the whole of it was reachable
+ * only by typing URLs. The same markup now serves the rail and the drawer.
+ */
+function PlatformNav({
+  pathname,
+  unread,
+  onNavigate,
+  onLogout,
+}: {
+  pathname: string;
+  unread: number;
+  onNavigate?: () => void;
+  onLogout: () => void;
+}) {
+  const t = useT();
+  return (
+    <>
+      <div className="border-b border-white/10 p-5">
+        <div className="flex items-center gap-3">
+          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600 text-white shadow-lg">
+            <Shield className="h-5 w-5" />
+          </span>
+          <div>
+            <p className="font-bold text-white">
+              {t("platformPlatformShell.ekulmis")}
+            </p>
+            <p className="text-[11px] text-violet-300">
+              {t("platformPlatformShell.platformSuperAdmin")}
+            </p>
+          </div>
+        </div>
+      </div>
+      <nav className="scrollbar-slim flex-1 space-y-1 overflow-y-auto p-3">
+        {NAV.map((group) => (
+          <div key={group.section ?? "top"} className={group.section ? "pt-4" : ""}>
+            {group.section && (
+              <p className="px-3 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-600">
+                {group.section}
+              </p>
+            )}
+            <div className="space-y-1">
+              {group.items.map((item) => {
+                const active = item.exact
+                  ? pathname === item.href
+                  : pathname.startsWith(item.href);
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={onNavigate}
+                    className={cn(
+                      "flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm transition-colors",
+                      active
+                        ? "bg-violet-600/90 font-medium text-white"
+                        : "text-slate-400 hover:bg-white/5 hover:text-white",
+                    )}
+                  >
+                    <item.icon className="h-4 w-4" />
+                    {item.label}
+                    {item.href === "/platform/notifications" && unread > 0 && (
+                      <span className="ms-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-500 px-1.5 text-[11px] font-semibold text-white">
+                        {unread > 99 ? "99+" : unread}
+                      </span>
+                    )}
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </nav>
+      <div className="space-y-1 border-t border-white/10 p-3">
+        <Link
+          href="/login"
+          onClick={onNavigate}
+          className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-400 hover:bg-white/5 hover:text-white"
+        >
+          <ExternalLink className="h-4 w-4" />
+          {t("platformPlatformShell.schoolErpLogin")}
+        </Link>
+        <button
+          type="button"
+          onClick={onLogout}
+          className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-400 hover:bg-rose-500/10 hover:text-rose-300"
+        >
+          <LogOut className="h-4 w-4" />
+          {t("platformPlatformShell.signOut")}
+        </button>
+      </div>
+    </>
+  );
+}
+
 export function PlatformShell({ children }: { children: React.ReactNode }) {
   const t = useT();
   const pathname = usePathname();
   const router = useRouter();
   const { admin, logout, isPreview } = usePlatformAuth();
   const [unread, setUnread] = useState(0);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   async function refreshUnread() {
     try {
@@ -111,79 +211,52 @@ export function PlatformShell({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="flex min-h-screen bg-[#0b1120] text-slate-200">
+    // `dark` scopes the shared components to the dark palette. Button,
+    // Dialog, Input and Select all paint with --background / --card, which
+    // resolve light unless something above them says otherwise — which is why
+    // every outline button in this console came out as a white pill on a dark
+    // page, and why a dialog opened white.
+    <div className="dark flex min-h-screen bg-[#0b1120] text-slate-200">
       <aside className="hidden w-60 shrink-0 flex-col border-e border-white/10 bg-[#0f172a] lg:flex">
-        <div className="border-b border-white/10 p-5">
-          <div className="flex items-center gap-3">
-            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600 text-white shadow-lg">
-              <Shield className="h-5 w-5" />
-            </span>
-            <div>
-              <p className="font-bold text-white">{t("platformPlatformShell.ekulmis")}</p>
-              <p className="text-[11px] text-violet-300">{t("platformPlatformShell.platformSuperAdmin")}</p>
-            </div>
-          </div>
-        </div>
-        <nav className="flex-1 space-y-1 p-3">
-          {NAV.map((group) => (
-            <div key={group.section ?? "top"} className={group.section ? "pt-4" : ""}>
-              {group.section && (
-                <p className="px-3 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-600">
-                  {group.section}
-                </p>
-              )}
-              <div className="space-y-1">
-                {group.items.map((item) => {
-                  const active = item.exact
-                    ? pathname === item.href
-                    : pathname.startsWith(item.href);
-                  return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      className={cn(
-                        "flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm transition-colors",
-                        active
-                          ? "bg-violet-600/90 font-medium text-white"
-                          : "text-slate-400 hover:bg-white/5 hover:text-white",
-                      )}
-                    >
-                      <item.icon className="h-4 w-4" />
-                      {item.label}
-                      {item.href === "/platform/notifications" && unread > 0 && (
-                        <span className="ms-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-500 px-1.5 text-[11px] font-semibold text-white">
-                          {unread > 99 ? "99+" : unread}
-                        </span>
-                      )}
-                    </Link>
-                  );
-                })}
-              </div>
-            </div>
-          ))}
-        </nav>
-        <div className="space-y-1 border-t border-white/10 p-3">
-          <Link
-            href="/login"
-            className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-400 hover:bg-white/5 hover:text-white"
-          >
-            <ExternalLink className="h-4 w-4" />
-            {t("platformPlatformShell.schoolErpLogin")}
-          </Link>
+        <PlatformNav
+          pathname={pathname}
+          unread={unread}
+          onLogout={handleLogout}
+        />
+      </aside>
+
+      {/* The same navigation as a drawer, because a console with no way to
+          move around it on a phone is a console nobody can use on a phone. */}
+      {menuOpen && (
+        <div className="fixed inset-0 z-50 lg:hidden">
           <button
             type="button"
-            onClick={handleLogout}
-            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-400 hover:bg-rose-500/10 hover:text-rose-300"
-          >
-            <LogOut className="h-4 w-4" />
-            {t("platformPlatformShell.signOut")}
-          </button>
+            aria-label="Close menu"
+            onClick={() => setMenuOpen(false)}
+            className="absolute inset-0 bg-black/60"
+          />
+          <div className="absolute inset-y-0 start-0 flex w-64 flex-col border-e border-white/10 bg-[#0f172a]">
+            <PlatformNav
+              pathname={pathname}
+              unread={unread}
+              onNavigate={() => setMenuOpen(false)}
+              onLogout={handleLogout}
+            />
+          </div>
         </div>
-      </aside>
+      )}
 
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="sticky top-0 z-10 flex items-center justify-between border-b border-white/10 bg-[#0b1120]/90 px-4 py-3 backdrop-blur lg:px-6">
-          <div className="lg:hidden">
+          <div className="flex items-center gap-2 lg:hidden">
+            <button
+              type="button"
+              onClick={() => setMenuOpen(true)}
+              aria-label="Open menu"
+              className="rounded-lg border border-white/10 p-2 text-slate-300 hover:bg-white/5 hover:text-white"
+            >
+              {menuOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
+            </button>
             <p className="text-sm font-bold text-white">{t("platformPlatformShell.platformSuperAdmin")}</p>
           </div>
           <div className="ms-auto text-end text-sm">
