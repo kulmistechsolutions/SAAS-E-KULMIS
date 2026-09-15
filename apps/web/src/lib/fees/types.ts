@@ -8,7 +8,19 @@ export type FeeChargeStatus = "UNPAID" | "PARTIAL" | "PAID" | "ADVANCE" | "INACT
  * families who had actually handed money over, and there was no way to ask
  * for the free ones at all.
  */
-export type StudentFeeState = FeeChargeStatus | "ADVANCE_MULTI" | "FREE";
+/**
+ * UNBILLED is its own answer.
+ *
+ * It used to be folded into UNPAID, which put a student with no charge
+ * at all beside families who owe money — the desk read "Unpaid, $0.00
+ * outstanding", was offered a Pay button that could only refuse, and had
+ * no way to tell that nobody had billed the child.
+ */
+export type StudentFeeState =
+  | FeeChargeStatus
+  | "ADVANCE_MULTI"
+  | "FREE"
+  | "UNBILLED";
 
 export type PaymentType = "THIS_MONTH" | "PARTIAL" | "ADVANCE";
 

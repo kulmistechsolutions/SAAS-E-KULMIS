@@ -1534,6 +1534,7 @@ export const soGenerated: PartialDictionary = {
   feesFormat: {
     arrears: "Bixin Deyn Hore",
     free: "Bilaash",
+    notBilled: "Lama dallicin",
     month1: "Jannaayo",
     month2: "Febraayo",
     month3: "Maarso",

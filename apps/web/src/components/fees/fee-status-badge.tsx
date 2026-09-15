@@ -15,6 +15,8 @@ const TONE: Record<
   ADVANCE_MULTI: "info",
   INACTIVE: "muted",
   FREE: "info",
+  // Amber, not red: nothing is owed, but something is missing.
+  UNBILLED: "warning",
 };
 
 export function FeeStatusBadge({

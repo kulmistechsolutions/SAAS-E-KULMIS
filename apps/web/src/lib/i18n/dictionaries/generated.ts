@@ -1539,6 +1539,7 @@ export const generated = {
   feesFormat: {
     arrears: "Arrears Cleared",
     free: "Free",
+    notBilled: "Not billed",
     month1: "January",
     month2: "February",
     month3: "March",

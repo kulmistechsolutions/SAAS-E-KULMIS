@@ -85,6 +85,7 @@ export function feeStatusLabel(
   if (status === "ADVANCE") return translateIn(lang, "feesFormat.advance");
   if (status === "INACTIVE") return translateIn(lang, "feesFormat.inactive");
   if (status === "FREE") return translateIn(lang, "feesFormat.free");
+  if (status === "UNBILLED") return translateIn(lang, "feesFormat.notBilled");
   if (status === "PAID") return translateIn(lang, "feesFormat.paid");
   if (status === "UNPAID") return translateIn(lang, "feesFormat.unpaid");
   if (status === "PARTIAL") return translateIn(lang, "feesFormat.partial");

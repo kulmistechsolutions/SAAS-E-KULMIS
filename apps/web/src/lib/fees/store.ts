@@ -368,6 +368,11 @@ export function aggregateStudentStatus(
 
   const charge = studentCharges(studentId).find((c) => c.monthKey === monthKeyArg);
   if (charge?.status === "PAID" || charge?.advanceCovered) return { status: "PAID" };
+  // No charge at all for the month is not "unpaid" — the family owes nothing
+  // because nobody billed them. The engine says UNBILLED and this fallback has
+  // to agree, or scrolling back a month brings the contradiction straight back:
+  // "Unpaid, $0.00 outstanding", beside a Pay button that can only refuse.
+  if (!charge) return { status: "UNBILLED" };
   return { status: "UNPAID" };
 }
 
@@ -929,9 +934,11 @@ function engineStatus(
   // in among the families who had just paid, and left no way to list the free
   // ones — the school could see the badge but could not filter for it.
   if (p.state === "FREE") return "FREE";
-  // Nothing billed yet reads as unpaid, which is what the browser-side
-  // version returned and what the filters below expect.
-  if (p.state === "UNBILLED") return "UNPAID";
+  // Nothing billed at all is not "unpaid": the family owes nothing yet
+  // because nobody has charged them. Calling it unpaid showed "$0.00
+  // outstanding" beside a Pay button that could only refuse, and hid the one
+  // thing the desk needed to know — that this child has no charge this month.
+  if (p.state === "UNBILLED") return "UNBILLED";
   return p.state;
 }
 

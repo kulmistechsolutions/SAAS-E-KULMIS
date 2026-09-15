@@ -264,6 +264,9 @@ export function CollectFeesSection({
             <option value="PARTIAL">{feeStatusLabel("PARTIAL")}</option>
             <option value="PAID">{feeStatusLabel("PAID")}</option>
             <option value="FREE">{feeStatusLabel("FREE")}</option>
+            {/* The list a school chases before any other: children
+                nobody has charged this month. */}
+            <option value="UNBILLED">{feeStatusLabel("UNBILLED")}</option>
             <option value="ADVANCE">{feeStatusLabel("ADVANCE")}</option>
             <option value="ADVANCE_MULTI">{t("feesCollectFeesSection.advanceMultipleMonths")}</option>
             <option value="INACTIVE">{feeStatusLabel("INACTIVE")}</option>
@@ -298,8 +301,14 @@ export function CollectFeesSection({
               // and the dialog decides which months are actually offered.
               // A free student has nothing to pay either way.
               const isFree = r.feeWaived || r.monthlyFee === 0;
+              // Nobody has charged this child for the month, so there is
+              // nothing to take: Pay could only refuse, and offering it sent
+              // the desk looking for a fault in the payment instead of the
+              // missing charge. The month's setup is what this row needs.
+              const notBilled = r.status === "UNBILLED";
               const canPay =
                 !isFree &&
+                !notBilled &&
                 (r.status === "UNPAID" ||
                   r.status === "PARTIAL" ||
                   (r.outstandingBalance > 0 && r.status !== "ADVANCE_MULTI") ||
@@ -372,6 +381,18 @@ export function CollectFeesSection({
                           </Button>
                         )}
                       </div>
+                    ) : notBilled ? (
+                      // The fault is upstream of this desk: the month has not
+                      // been set up for this child's class. Say so, and go
+                      // where it can be fixed.
+                      <Link
+                        href="/finance/monthly-setup"
+                        title="No charge was raised for this student this month. Run the month's setup for their class."
+                        className="inline-flex h-8 items-center rounded-lg border border-amber-500 px-3 text-xs font-medium text-amber-600 transition-colors hover:bg-amber-500/10 dark:text-amber-400"
+                      >
+                        <CalendarClock className="me-1 h-3.5 w-3.5" />
+                        Set up month
+                      </Link>
                     ) : (
                       <Link
                         href={`/students/${r.studentId}`}
