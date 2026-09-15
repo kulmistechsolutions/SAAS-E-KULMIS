@@ -73,6 +73,15 @@ export default function PlatformSmsPackagesPage() {
   const [deletePkg, setDeletePkg] = useState<{ id: string; name: string } | null>(
     null,
   );
+  /**
+   * Retired packages, folded away.
+   *
+   * A package a school has bought can only be deactivated, never removed —
+   * its purchases have to keep their name. Listing those beside the live ones
+   * made "Delete" look broken: the row was still there afterwards. They are
+   * kept, and kept out of the way.
+   */
+  const [showRetired, setShowRetired] = useState(false);
 
   const [assignSchool, setAssignSchool] = useState("");
   const [assignPkg, setAssignPkg] = useState("");
@@ -531,18 +540,34 @@ export default function PlatformSmsPackagesPage() {
             </div>
           </div>
           <div className="rounded-2xl border border-white/10 bg-[#0f172a] p-5">
-            <h2 className="font-semibold text-white">{t("platformSms.packages")}</h2>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h2 className="font-semibold text-white">{t("platformSms.packages")}</h2>
+              {data.packages.some((p) => !p.isActive) && (
+                <button
+                  type="button"
+                  onClick={() => setShowRetired((v) => !v)}
+                  className="text-xs font-medium text-violet-300 hover:underline"
+                >
+                  {showRetired ? "Hide" : "Show"} retired (
+                  {data.packages.filter((p) => !p.isActive).length})
+                </button>
+              )}
+            </div>
             <ul className="mt-3 space-y-2">
-              {data.packages.map((p) => (
+              {data.packages
+                .filter((p) => showRetired || p.isActive)
+                .map((p) => (
                 <li
                   key={p.id}
-                  className="flex items-center justify-between rounded-lg border border-white/5 px-3 py-3"
+                  className={`flex flex-wrap items-center justify-between gap-3 rounded-lg border px-3 py-3 ${
+                    p.isActive ? "border-white/5" : "border-white/5 opacity-60"
+                  }`}
                 >
                   <div>
                     <p className="font-medium text-white">{p.name}</p>
                     <p className="text-xs text-slate-400">
                       {p.credits} {t("platformSms.credits")} {p.currency} {String(p.price)}
-                      {!p.isActive && " · inactive"}
+                      {!p.isActive && " \u00b7 retired"}
                     </p>
                   </div>
                   <div className="flex flex-wrap items-center justify-end gap-2">
@@ -585,7 +610,8 @@ export default function PlatformSmsPackagesPage() {
                   </div>
                 </li>
               ))}
-              {data.packages.length === 0 && (
+              {data.packages.filter((p) => showRetired || p.isActive).length ===
+                0 && (
                 <p className="text-sm text-slate-500">{t("platformSms.noPackagesYet")}</p>
               )}
             </ul>
