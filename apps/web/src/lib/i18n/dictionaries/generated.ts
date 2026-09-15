@@ -1837,6 +1837,8 @@ export const generated = {
     today: "today",
     totalExpected: "Total Expected",
     totalCollected: "Total Collected",
+    settledThisMonth: "Settled This Month",
+    cashTaken: "taken this month",
     totalOutstandingNow: "Outstanding This Month",
     collectionRate: "Collection Rate",
     paid: "Paid",

@@ -1806,6 +1806,8 @@ export const soGenerated: PartialDictionary = {
     today: "maanta",
     totalExpected: "Wadarta la Filayo",
     totalCollected: "Wadarta la Qaaday",
+    settledThisMonth: "Bishan La Bixiyay",
+    cashTaken: "la qaaday bishan",
     totalOutstandingNow: "Maqan Bishan",
     collectionRate: "Heerka Qaadista",
     paid: "Bixiyay",

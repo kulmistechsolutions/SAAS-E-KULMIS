@@ -61,14 +61,21 @@ const PRIMARY: Primary[] = [
     metric: "expectedMonthlyIncome",
   },
   {
+    // What has been paid against THIS month's billing, so that the three
+    // figures on this row are one arithmetic: expected - settled =
+    // outstanding. The card used to show cash taken in the month, which is a
+    // different question — a payment taken in September may settle August —
+    // and the row therefore never added up. The cash figure is still here,
+    // under the number, where it cannot be mistaken for the same thing.
     key: "collected",
-    label: "feesSummaryCards.totalCollected",
+    label: "feesSummaryCards.settledThisMonth",
     icon: Banknote,
     ring: "bg-emerald-100 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-400",
     value: "text-emerald-600 dark:text-emerald-400",
-    amount: (s) => money(s.collectedThisMonth),
-    note: (s, _m, t) => `+ ${money(s.collectedToday)} ${t("feesSummaryCards.today")}`,
-    metric: "collectedThisMonth",
+    amount: (s) => money(s.settledThisMonth),
+    note: (s, _m, t) =>
+      `${money(s.collectedThisMonth)} ${t("feesSummaryCards.cashTaken")} · + ${money(s.collectedToday)} ${t("feesSummaryCards.today")}`,
+    metric: "settledThisMonth",
   },
   {
     key: "outstanding",
@@ -87,14 +94,15 @@ const PRIMARY: Primary[] = [
     icon: PieChart,
     ring: "bg-violet-100 text-violet-600 dark:bg-violet-500/15 dark:text-violet-400",
     value: "text-violet-600 dark:text-violet-400",
-    // Divided from the two cards beside it rather than taken from a separate
-    // figure, so the three can never disagree on screen.
+    // Settled against billed, which is what a collection rate means to a
+    // school. Dividing cash taken by this month's billing mixed two bases and
+    // gave a rate that disagreed with the outstanding figure beside it.
     amount: (s) =>
       s.expectedMonthlyIncome > 0
-        ? `${((s.collectedThisMonth / s.expectedMonthlyIncome) * 100).toFixed(2)}%`
+        ? `${((s.settledThisMonth / s.expectedMonthlyIncome) * 100).toFixed(2)}%`
         : "—",
     note: (s) =>
-      `${money(s.collectedThisMonth)} / ${money(s.expectedMonthlyIncome)}`,
+      `${money(s.settledThisMonth)} / ${money(s.expectedMonthlyIncome)}`,
     metric: "collectionPercentage",
   },
 ];

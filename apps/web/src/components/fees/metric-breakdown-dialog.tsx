@@ -40,6 +40,7 @@ const TITLE: Record<FeeMetric, string> = {
   outstandingThisMonth: "Still owed for",
   collectedToday: "Collected today",
   collectedThisMonth: "Collected in",
+  settledThisMonth: "Settled against",
   collectionPercentage: "Collection rate for",
   fullyPaidStudents: "Fully paid",
   partialPayments: "Part paid",

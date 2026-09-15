@@ -95,7 +95,23 @@ export interface FeeDashboardSummary {
   totalOutstanding: number;
   outstandingThisMonth: number;
   collectedToday: number;
+  /**
+   * Cash taken in this calendar month, whichever month it settled.
+   *
+   * Not the same question as "how much of this month's billing is paid": a
+   * payment taken in September may clear an August charge. Kept, because it is
+   * what the safe actually took, but it is no longer the headline.
+   */
   collectedThisMonth: number;
+  /**
+   * Money applied to this month's own billing — expected minus outstanding.
+   *
+   * Derived from the two figures either side of it so the row reconciles by
+   * construction: expected − settled = outstanding, always. The cards used to
+   * show billing, cash and outstanding side by side as though they were one
+   * arithmetic, and they were three different ones.
+   */
+  settledThisMonth: number;
   collectionPercentage: number;
   fullyPaidStudents: number;
   partialPayments: number;

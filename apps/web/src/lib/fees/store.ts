@@ -725,6 +725,10 @@ export function dashboardSummary(
       outstandingThisMonth: pos.outstandingThisMonth,
       collectedToday: pos.collectedToday,
       collectedThisMonth: pos.collectedThisMonth,
+      settledThisMonth: Math.max(
+        0,
+        pos.expectedThisMonth - pos.outstandingThisMonth,
+      ),
       collectionPercentage: pos.collectionRate ?? 0,
       fullyPaidStudents: pos.students.paid,
       partialPayments: pos.students.partial,
@@ -828,6 +832,7 @@ export function dashboardSummary(
     outstandingThisMonth,
     collectedToday,
     collectedThisMonth,
+    settledThisMonth: Math.max(0, expectedMonthlyIncome - outstandingThisMonth),
     collectionPercentage,
     fullyPaidStudents: fullyPaid,
     partialPayments: partial,
