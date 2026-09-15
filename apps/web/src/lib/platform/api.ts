@@ -378,6 +378,11 @@ export interface PlatformSmsOverview {
     creditsRemaining: number;
     amountPaid: string | number;
     purchasedAt: string;
+    /** ACTIVE | EXHAUSTED | EXPIRED | CANCELLED. */
+    status: string;
+    /** Null on every package sold so far — none was given a term. */
+    expiresAt: string | null;
+    note: string | null;
     school: { id: string; name: string; subdomain: string };
     package: { name: string };
   }[];

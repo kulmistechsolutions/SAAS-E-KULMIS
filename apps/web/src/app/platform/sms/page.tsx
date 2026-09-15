@@ -8,10 +8,12 @@ import {
   AlertTriangle,
   Lock,
   MessageSquare,
+  Pencil,
   Plus,
   RefreshCw,
   Settings2,
   ShieldCheck,
+  Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,10 +21,13 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { SenderIdReview } from "@/components/platform/sender-id-review";
 import { GatewayCredentialsDialog } from "@/components/platform/gateway-credentials-dialog";
+import { Dialog } from "@/components/ui/dialog";
 import {
   adjustPlatformSmsCredits,
   assignPlatformSmsPackage,
   createPlatformSmsPackage,
+  deletePlatformSmsPackage,
+  updatePlatformSmsPackage,
   fetchPlatformSmsGatewayLicenses,
   fetchPlatformSmsMessages,
   type PlatformSmsMessage,
@@ -48,6 +53,26 @@ export default function PlatformSmsPackagesPage() {
   const [pkgCredits, setPkgCredits] = useState("100");
   const [pkgPrice, setPkgPrice] = useState("10");
   const [pkgDesc, setPkgDesc] = useState("");
+
+  /**
+   * The package being edited, as a draft.
+   *
+   * A price or a credit count typed wrong could only be fixed by deactivating
+   * the package and making another one beside it, which leaves the school
+   * looking at two packages with the same name. Editing changes the offer from
+   * here on; purchases already made keep the credits and the price they were
+   * sold at, because a receipt is a record of what happened.
+   */
+  const [editPkg, setEditPkg] = useState<{
+    id: string;
+    name: string;
+    credits: string;
+    price: string;
+    currency: string;
+  } | null>(null);
+  const [deletePkg, setDeletePkg] = useState<{ id: string; name: string } | null>(
+    null,
+  );
 
   const [assignSchool, setAssignSchool] = useState("");
   const [assignPkg, setAssignPkg] = useState("");
@@ -151,6 +176,48 @@ export default function PlatformSmsPackagesPage() {
       await load();
     } catch (e) {
       toast(e instanceof Error ? e.message : "Create failed", "error");
+    }
+  }
+
+  async function saveEdit() {
+    if (!editPkg) return;
+    const credits = Number(editPkg.credits);
+    const price = Number(editPkg.price);
+    if (!editPkg.name.trim()) return toast("Name the package.", "error");
+    if (!Number.isInteger(credits) || credits <= 0)
+      return toast("Credits must be a whole number above zero.", "error");
+    if (!Number.isFinite(price) || price < 0)
+      return toast("Price cannot be negative.", "error");
+    try {
+      await updatePlatformSmsPackage(editPkg.id, {
+        name: editPkg.name.trim(),
+        credits,
+        price,
+        currency: editPkg.currency.trim() || "USD",
+      });
+      toast("Package updated", "success");
+      setEditPkg(null);
+      await load();
+    } catch (e) {
+      toast(e instanceof Error ? e.message : "Update failed", "error");
+    }
+  }
+
+  async function removePackage() {
+    if (!deletePkg) return;
+    try {
+      await deletePlatformSmsPackage(deletePkg.id);
+      // A package a school has already bought is never really deleted — the
+      // server deactivates it instead, so the purchase it belongs to keeps
+      // its name. Saying so beats a school's history quietly losing a label.
+      toast(
+        "Package removed. One a school has already bought is kept, deactivated, so its purchases still read correctly.",
+        "success",
+      );
+      setDeletePkg(null);
+      await load();
+    } catch (e) {
+      toast(e instanceof Error ? e.message : "Delete failed", "error");
     }
   }
 
@@ -478,24 +545,131 @@ export default function PlatformSmsPackagesPage() {
                       {!p.isActive && " · inactive"}
                     </p>
                   </div>
-                  <Button
-                    variant="outline"
-                    className="border-white/20 text-xs text-slate-200"
-                    disabled={!unlocked}
-                    onClick={() =>
-                      void setPlatformSmsPackageActive(p.id, !p.isActive).then(
-                        load,
-                      )
-                    }
-                  >
-                    {p.isActive ? "Deactivate" : "Activate"}
-                  </Button>
+                  <div className="flex flex-wrap items-center justify-end gap-2">
+                    <Button
+                      variant="outline"
+                      className="border-white/20 text-xs text-slate-200"
+                      disabled={!unlocked}
+                      onClick={() =>
+                        setEditPkg({
+                          id: p.id,
+                          name: p.name,
+                          credits: String(p.credits),
+                          price: String(p.price),
+                          currency: p.currency,
+                        })
+                      }
+                    >
+                      <Pencil className="me-1.5 h-3.5 w-3.5" /> Edit
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="border-white/20 text-xs text-slate-200"
+                      disabled={!unlocked}
+                      onClick={() =>
+                        void setPlatformSmsPackageActive(p.id, !p.isActive).then(
+                          load,
+                        )
+                      }
+                    >
+                      {p.isActive ? "Deactivate" : "Activate"}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="border-rose-500/40 text-xs text-rose-300 hover:bg-rose-500/10"
+                      disabled={!unlocked}
+                      onClick={() => setDeletePkg({ id: p.id, name: p.name })}
+                    >
+                      <Trash2 className="me-1.5 h-3.5 w-3.5" /> Delete
+                    </Button>
+                  </div>
                 </li>
               ))}
               {data.packages.length === 0 && (
                 <p className="text-sm text-slate-500">{t("platformSms.noPackagesYet")}</p>
               )}
             </ul>
+          </div>
+
+          {/* What each school bought, and what became of it. A package that
+              ran out and a package that expired are different things, and
+              the console could show neither. */}
+          <div className="rounded-2xl border border-white/10 bg-[#0f172a] p-5 lg:col-span-2">
+            <h2 className="font-semibold text-white">Packages schools have bought</h2>
+            <p className="mt-0.5 text-xs text-slate-400">
+              Newest first. &ldquo;Used up&rdquo; means the credits were spent;
+              &ldquo;Expired&rdquo; means a term ran out with credits still on it.
+            </p>
+            <div className="mt-3 overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="border-b border-white/10 text-xs uppercase tracking-wide text-slate-400">
+                  <tr>
+                    <th className="px-3 py-2 text-start font-medium">School</th>
+                    <th className="px-3 py-2 text-start font-medium">Package</th>
+                    <th className="px-3 py-2 text-end font-medium">Credits</th>
+                    <th className="px-3 py-2 text-end font-medium">Left</th>
+                    <th className="px-3 py-2 text-start font-medium">Status</th>
+                    <th className="px-3 py-2 text-start font-medium">Bought</th>
+                    <th className="px-3 py-2 text-start font-medium">Expires</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.recentPurchases.map((r) => (
+                    <tr key={r.id} className="border-b border-white/5 last:border-0">
+                      <td className="px-3 py-2.5">
+                        <p className="font-medium text-white">{r.school.name}</p>
+                        <p className="font-mono text-[11px] text-slate-500">
+                          {r.school.subdomain}
+                        </p>
+                      </td>
+                      <td className="px-3 py-2.5 text-slate-300">{r.package.name}</td>
+                      <td className="px-3 py-2.5 text-end tabular-nums text-slate-300">
+                        {r.creditsTotal}
+                      </td>
+                      <td
+                        className={`px-3 py-2.5 text-end font-semibold tabular-nums ${
+                          r.creditsRemaining > 0 ? "text-emerald-300" : "text-slate-500"
+                        }`}
+                      >
+                        {r.creditsRemaining}
+                      </td>
+                      <td className="px-3 py-2.5">
+                        <span
+                          className={`whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold ${
+                            r.status === "ACTIVE"
+                              ? "bg-emerald-500/15 text-emerald-300"
+                              : r.status === "EXHAUSTED"
+                                ? "bg-slate-500/20 text-slate-300"
+                                : "bg-amber-500/15 text-amber-300"
+                          }`}
+                        >
+                          {r.status === "EXHAUSTED"
+                            ? "Used up"
+                            : r.status === "ACTIVE"
+                              ? "Active"
+                              : r.status === "EXPIRED"
+                                ? "Expired"
+                                : "Cancelled"}
+                        </span>
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-2.5 text-slate-400">
+                        {r.purchasedAt.slice(0, 10)}
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-2.5 text-slate-400">
+                        {r.expiresAt ? r.expiresAt.slice(0, 10) : "No end date"}
+                      </td>
+                    </tr>
+                  ))}
+                  {data.recentPurchases.length === 0 && (
+                    <tr>
+                      <td colSpan={7} className="px-3 py-8 text-center text-slate-500">
+                        No school has bought a package yet.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}
@@ -824,6 +998,96 @@ export default function PlatformSmsPackagesPage() {
           schoolName={credsSchool.name}
         />
       )}
+
+      {/* ── Editing an offer, not a receipt ─────────────────────────── */}
+      <Dialog
+        open={!!editPkg}
+        onClose={() => setEditPkg(null)}
+        title="Edit package"
+        description="Changes apply to packages sold from now on. Purchases already made keep the credits and the price they were sold at."
+        footer={
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setEditPkg(null)}>
+              Cancel
+            </Button>
+            <Button onClick={() => void saveEdit()}>Save package</Button>
+          </div>
+        }
+      >
+        {editPkg && (
+          <div className="space-y-3">
+            <div>
+              <Label>Name</Label>
+              <Input
+                className="mt-1"
+                value={editPkg.name}
+                onChange={(e) => setEditPkg({ ...editPkg, name: e.target.value })}
+              />
+            </div>
+            <div className="grid gap-3 sm:grid-cols-3">
+              <div>
+                <Label>Credits</Label>
+                <Input
+                  className="mt-1"
+                  inputMode="numeric"
+                  value={editPkg.credits}
+                  onChange={(e) =>
+                    setEditPkg({ ...editPkg, credits: e.target.value })
+                  }
+                />
+              </div>
+              <div>
+                <Label>Price</Label>
+                <Input
+                  className="mt-1"
+                  inputMode="decimal"
+                  value={editPkg.price}
+                  onChange={(e) => setEditPkg({ ...editPkg, price: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label>Currency</Label>
+                <Input
+                  className="mt-1"
+                  value={editPkg.currency}
+                  onChange={(e) =>
+                    setEditPkg({ ...editPkg, currency: e.target.value })
+                  }
+                />
+              </div>
+            </div>
+          </div>
+        )}
+      </Dialog>
+
+      <Dialog
+        open={!!deletePkg}
+        onClose={() => setDeletePkg(null)}
+        title="Remove this package?"
+        footer={
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setDeletePkg(null)}>
+              Keep it
+            </Button>
+            <Button
+              className="bg-rose-600 hover:bg-rose-500"
+              onClick={() => void removePackage()}
+            >
+              Remove package
+            </Button>
+          </div>
+        }
+      >
+        <p className="text-sm">
+          <span className="font-semibold">{deletePkg?.name}</span> will no longer
+          be offered to schools.
+        </p>
+        <p className="mt-2 text-sm text-muted-foreground">
+          A package a school has already bought is kept and simply deactivated,
+          so that school&apos;s purchase history still reads correctly. Credits
+          already sold are never touched.
+        </p>
+      </Dialog>
     </div>
   );
 }
