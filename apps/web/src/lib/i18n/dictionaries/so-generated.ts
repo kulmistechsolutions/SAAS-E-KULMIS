@@ -3674,6 +3674,9 @@ export const soGenerated: PartialDictionary = {
     actions: "Ficillo",
     noPayrollRecordsForThisFilter: "Shaandhadan diiwaan mushahar ma laha.",
     pay: "Bixi",
+    removeRow: "Ka saar safka mushaharka",
+    removeRowBody: "Ma ka saaraysaa {name} mushaharka {month}?",
+    removeRowSafe: "Safkan lacag lagama bixin, sidaas lacagta horay loo bixiyay waxba kama beddelmayso. Wadarta bisha ayaa dib loo xisaabinaya.",
   },
   salaryPayslipDialog: {
     salaryPayslip: "Payslip-ka Mushaharka",

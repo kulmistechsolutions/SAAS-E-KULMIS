@@ -9,6 +9,7 @@ import { getTeachersState, refreshTeachers } from "@/lib/teachers/store";
 import { ensureEmployeesLoaded, getEmployeesState } from "@/lib/employees/store";
 import {
   apiCreateSalary,
+  apiDeleteSalary,
   apiListSalaries,
   apiPaySalary,
   apiReverseSalaryPayment,
@@ -523,6 +524,45 @@ export async function reverseSalaryPayment(
     return { ok: true };
   } catch (e) {
     return { ok: false, error: apiErr(e, "Failed to reverse salary payment.") };
+  }
+}
+
+/**
+ * Take a payroll row off a month it should never have been on.
+ *
+ * NUURULYAQIIN paid Kaamil for August under a name that carried no staff id,
+ * registered him as an employee in September, and Generate Payroll — matching
+ * on ids alone — added him to August a second time. The month then read
+ * $3,380 against a real $2,930, and there was nothing on the screen that could
+ * say so: the API has had DELETE /salaries/:id all along, the payroll page
+ * simply never offered it, so a stray row was permanent.
+ *
+ * Only a row with nothing paid against it can go. A settled row is an account
+ * of money that left the school and deleting it would take its payment history
+ * with it; those are reversed, which leaves the trail intact.
+ */
+export async function removePayroll(
+  row: PayrollRow,
+  actorName?: string,
+): Promise<{ ok: boolean; error?: string }> {
+  if (row.amountPaid > 0) {
+    return {
+      ok: false,
+      error: `${row.employeeName} has ${money(row.amountPaid)} paid against this row. Reverse the payment first.`,
+    };
+  }
+  try {
+    await apiDeleteSalary(row.payrollId);
+    const [year, month] = row.payrollMonth.split("-").map(Number);
+    await refreshSalaries(year, month);
+    logAudit(
+      "Payroll Row Removed",
+      actorName ?? "Admin User",
+      `${row.employeeName} — ${monthLabel(row.payrollMonth)} (${money(row.netSalary)})`,
+    );
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: apiErr(e, "Failed to remove the payroll row.") };
   }
 }
 

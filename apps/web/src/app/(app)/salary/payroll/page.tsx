@@ -9,10 +9,13 @@ import {
   Download,
   Eye,
   Printer,
+  Trash2,
   Users,
   Wallet,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Can } from "@/components/auth/can";
+import { Dialog } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Pagination } from "@/components/ui/pagination";
 import { Select } from "@/components/ui/select";
@@ -34,6 +37,7 @@ import {
   generatePayroll,
   getPayroll,
   payrollRows,
+  removePayroll,
   useSalaryState,
 } from "@/lib/salary/store";
 import type { PayrollRow, PayrollStatus } from "@/lib/salary/types";
@@ -59,6 +63,8 @@ export default function PayrollPage() {
   const [pageSize, setPageSize] = useState(15);
   const [payRow, setPayRow] = useState<PayrollRow | null>(null);
   const [payslipId, setPayslipId] = useState<string | null>(null);
+  const [removeRow, setRemoveRow] = useState<PayrollRow | null>(null);
+  const [removing, setRemoving] = useState(false);
 
   useEffect(() => {
     if (mounted) setMonth(state.activePayrollMonth);
@@ -335,6 +341,23 @@ export default function PayrollPage() {
                         >
                           <Printer className="h-4 w-4" />
                         </Button>
+                        {/*
+                          Only where nothing has been paid. A settled row is an
+                          account of money that left the school; that is undone
+                          by reversing the payment, which keeps the trail.
+                        */}
+                        {r.amountPaid === 0 && (
+                          <Can perform="salaries.delete">
+                            <Button
+                              variant="ghost"
+                              className="h-8 w-8 p-0 text-rose-600 hover:text-rose-700"
+                              title={t("salaryPayroll.removeRow")}
+                              onClick={() => setRemoveRow(r)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </Can>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -386,6 +409,61 @@ export default function PayrollPage() {
         onClose={() => setPayRow(null)}
       />
       <PayslipDialog payroll={payslip} onClose={() => setPayslipId(null)} />
+
+      <Dialog
+        open={!!removeRow}
+        onClose={() => setRemoveRow(null)}
+        title={t("salaryPayroll.removeRow")}
+        className="max-w-md"
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setRemoveRow(null)}>
+              {t("common.cancel")}
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={removing}
+              onClick={async () => {
+                if (!removeRow) return;
+                setRemoving(true);
+                const res = await removePayroll(removeRow);
+                setRemoving(false);
+                if (res.ok) {
+                  toast(
+                    `${removeRow.employeeName} — ${monthLabel(removeRow.payrollMonth)}`,
+                    "success",
+                  );
+                  setRemoveRow(null);
+                } else {
+                  toast(res.error ?? "Failed.", "error");
+                }
+              }}
+            >
+              {removing ? t("common.saving") : t("common.delete")}
+            </Button>
+          </>
+        }
+      >
+        {removeRow && (
+          <div className="space-y-3 text-sm">
+            <p>
+              {t("salaryPayroll.removeRowBody")
+                .replace("{name}", removeRow.employeeName)
+                .replace("{month}", monthLabel(removeRow.payrollMonth))}
+            </p>
+            <div className="rounded-lg border bg-secondary/40 px-3 py-2">
+              <p className="font-medium">{removeRow.employeeName}</p>
+              <p className="text-xs text-muted-foreground">
+                {removeRow.employeeCode} &middot; {money(removeRow.netSalary)}{" "}
+                &middot; {payrollStatusLabel(removeRow.status)}
+              </p>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {t("salaryPayroll.removeRowSafe")}
+            </p>
+          </div>
+        )}
+      </Dialog>
     </div>
   );
 }

@@ -3647,6 +3647,9 @@ export const arGenerated: PartialDictionary = {
     actions: "إجراءات",
     noPayrollRecordsForThisFilter: "لا توجد سجلات رواتب لهذه التصفية.",
     pay: "دفع",
+    removeRow: "إزالة سطر الرواتب",
+    removeRowBody: "هل تريد إزالة {name} من رواتب {month}؟",
+    removeRowSafe: "لم يُدفع أي مبلغ مقابل هذا السطر، لذا لن يتغير أي مبلغ مدفوع. سيُعاد احتساب إجماليات الشهر.",
   },
   salaryPayslipDialog: {
     salaryPayslip: "قسيمة الراتب",

@@ -3733,6 +3733,9 @@ export const generated = {
     actions: "Actions",
     noPayrollRecordsForThisFilter: "No payroll records for this filter.",
     pay: "Pay",
+    removeRow: "Remove payroll row",
+    removeRowBody: "Remove {name} from the {month} payroll?",
+    removeRowSafe: "Nothing has been paid against this row, so no money already paid changes. The month’s totals are recalculated.",
   },
   salaryPayslipDialog: {
     salaryPayslip: "Salary Payslip",
