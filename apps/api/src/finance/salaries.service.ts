@@ -38,6 +38,43 @@ export class SalariesService {
     );
     if (existing) return existing;
 
+    // The same person, already on this month's payroll under no id at all.
+    //
+    // Early rows carry a name and nothing else. Matching only on ids therefore
+    // missed them, so registering someone as staff after their month had been
+    // run put them on it twice: NUURULYAQIIN paid Kaamil $450 in August and
+    // then showed a payroll of $3,380 against a real $2,930, with a second
+    // $450 sitting unpaid. The old row is adopted rather than duplicated —
+    // which also heals it, so the month can never split again.
+    const unlinked = await this.prisma.forTenant(schoolId, (tx) =>
+      tx.salary.findFirst({
+        where: {
+          year: dto.year,
+          month: dto.month,
+          teacherId: null,
+          employeeId: null,
+          employeeName: {
+            equals: dto.employeeName.trim(),
+            mode: "insensitive",
+          },
+        },
+      }),
+    );
+    if (unlinked) {
+      return this.prisma.forTenant(schoolId, (tx) =>
+        tx.salary.update({
+          where: { id: unlinked.id },
+          data: {
+            teacherId: dto.teacherId ?? null,
+            employeeId: dto.employeeId ?? null,
+            // The name and money already on the row are the school's own
+            // record of what it paid; only the link was missing.
+            position: unlinked.position ?? dto.position ?? null,
+          },
+        }),
+      );
+    }
+
     const status = dto.status ?? "PENDING";
     // Generating payroll fires one request per employee, and an impatient
     // second click sends the whole batch again: two requests both pass the
@@ -66,23 +103,42 @@ export class SalariesService {
     };
 
     return this.prisma
-      .forTenant(schoolId, (tx) =>
-      tx.salary.create({
-        data: {
-          schoolId,
-          teacherId: dto.teacherId ?? null,
-          employeeId: dto.employeeId ?? null,
-          employeeName: dto.employeeName,
-          position: dto.position ?? null,
-          amount: dto.amount,
-          year: dto.year,
-          month: dto.month,
-          status,
-          paidAt: status === "PAID" ? new Date() : null,
-          note: dto.note ?? null,
-        },
-      }),
-      )
+      .forTenant(schoolId, async (tx) => {
+        const row = await tx.salary.create({
+          data: {
+            schoolId,
+            teacherId: dto.teacherId ?? null,
+            employeeId: dto.employeeId ?? null,
+            employeeName: dto.employeeName,
+            position: dto.position ?? null,
+            amount: dto.amount,
+            year: dto.year,
+            month: dto.month,
+            status,
+            // A row created as PAID has to carry the money that makes it
+            // paid, and a payment record behind it. Six rows in production
+            // read "Paid, $450" with nothing in the salary ledger and no
+            // method or date on the payslip — settled on paper, unaccounted
+            // for anywhere the school could check.
+            amountPaid: status === "PAID" ? dto.amount : 0,
+            paidAt: status === "PAID" ? new Date() : null,
+            note: dto.note ?? null,
+          },
+        });
+        if (status === "PAID" && dto.amount > 0) {
+          await tx.salaryPayment.create({
+            data: {
+              schoolId,
+              salaryId: row.id,
+              amount: dto.amount,
+              employeeName: dto.employeeName,
+              paymentMethod: "CASH",
+              note: dto.note ?? "Recorded as already paid on creation.",
+            },
+          });
+        }
+        return row;
+      })
       .catch(onDuplicate);
   }
 

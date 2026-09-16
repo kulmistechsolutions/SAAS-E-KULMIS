@@ -87,10 +87,18 @@ export async function refreshSalaries(year?: number, month?: number): Promise<vo
     }
     const payroll = [...payrollById.values()];
 
-    const activeMonth =
-      payroll.length > 0
-        ? payroll.reduce((max, p) => (p.payrollMonth > max ? p.payrollMonth : max), payroll[0]!.payrollMonth)
-        : buildMonthKey(new Date().getFullYear(), new Date().getMonth() + 1);
+    // The month the school is in, not the last one it ran.
+    //
+    // This used to be the newest month that already had payroll, so a school
+    // that ran August and came back in September opened on August, pressed
+    // Generate, and was told payroll had "already been generated this month" —
+    // about a month it was not in. Eight schools were sitting on a month
+    // behind, reporting that payroll could not be created at all. The picker
+    // still lists every month; only where it starts has changed.
+    const activeMonth = buildMonthKey(
+      new Date().getFullYear(),
+      new Date().getMonth() + 1,
+    );
 
     setState({
       employees: [...employees.values()],
@@ -378,10 +386,13 @@ export async function generatePayroll(
   if (created === 0) {
     return {
       ok: false,
+      // Named, never "this month". The page can be on a month the calendar
+      // left behind, and a message that says "this month" about a different
+      // one is how a school concludes the system is confused.
       error:
         skipped.length > 0
-          ? `Could not generate payroll: ${skipped.join("; ")}`
-          : "Payroll already generated for all active employees this month.",
+          ? `Could not generate payroll for ${monthLabel(payrollMonth)}: ${skipped.join("; ")}`
+          : `Every active employee already has payroll for ${monthLabel(payrollMonth)}.`,
       created: 0,
     };
   }
