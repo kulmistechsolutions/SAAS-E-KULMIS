@@ -300,6 +300,11 @@ export class DashboardService {
     const mo = now.getUTCMonth();
     const startOfToday = new Date(Date.UTC(y, mo, now.getUTCDate()));
     const startOfMonth = new Date(Date.UTC(y, mo, 1));
+    const startOfNextMonth = new Date(Date.UTC(y, mo + 1, 1));
+    // The window every figure under "Income vs Expense (This Month)" is
+    // measured over, written the same way FinanceService.dashboard writes it
+    // so the two pages cannot drift apart again.
+    const thisMonth = { gte: startOfMonth, lt: startOfNextMonth };
     const sixMonthsAgo = new Date(Date.UTC(y, mo - 5, 1));
     const buckets = lastSixMonths();
 
@@ -349,19 +354,39 @@ export class DashboardService {
         activeYear,
         recentPayments,
       ] = await Promise.all([
-        tx.payment.aggregate({ _sum: { amount: true } }),
+        // Every figure below is this calendar month, because that is what
+        // the panel above it says. Unscoped, these five summed the school's
+        // whole history: HANUUNIYE read "Income vs Expense (This Month)
+        // $1,899" beside "Fee Collection (This Month) $1,872" — the $27 gap
+        // was simply a payment taken in an earlier month, and the panel had
+        // no way to say so.
+        tx.payment.aggregate({ _sum: { amount: true }, where: { paidAt: thisMonth } }),
         // Donations, rent, canteen and the like. Fees alone are not the
         // school's income, and a Net Income that ignored the rest disagreed
         // with the finance page — see FinanceService.dashboard.
-        tx.otherIncome.aggregate({ _sum: { amount: true } }),
-        tx.expense.aggregate({ _sum: { amount: true } }),
+        tx.otherIncome.aggregate({
+          _sum: { amount: true },
+          where: { receivedAt: thisMonth },
+        }),
+        tx.expense.aggregate({
+          _sum: { amount: true },
+          where: { spentAt: thisMonth },
+        }),
         // See FinanceService.dashboard: outflow is `amountPaid` on every row,
         // not `amount` on fully-paid ones, or partials vanish from Net Income.
-        tx.salary.aggregate({ _sum: { amountPaid: true } }),
+        // Payroll is filed by year and month rather than by a date column, so
+        // the month is named rather than bounded.
+        tx.salary.aggregate({
+          _sum: { amountPaid: true },
+          where: { year: y, month: mo + 1 },
+        }),
         // Repaying a loan is money leaving the school, so it belongs in Net
         // Income beside expenses and salaries. The principal is deliberately
         // absent from income: borrowing does not make a school richer.
-        tx.schoolDebtRepayment.aggregate({ _sum: { amount: true } }),
+        tx.schoolDebtRepayment.aggregate({
+          _sum: { amount: true },
+          where: { paidAt: thisMonth },
+        }),
         tx.academicYear.findFirst({ where: { isActive: true } }),
         tx.payment.findMany({
           orderBy: { paidAt: "desc" },
