@@ -17,7 +17,6 @@ import {
   Info,
   Receipt,
   School,
-  Sparkles,
   UserPlus,
   Users,
   UsersRound,
@@ -528,7 +527,6 @@ function AdminDashboard() {
             onClick={scrollToQuickActions}
             className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-violet-600 to-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
           >
-            <Sparkles className="h-4 w-4" />
             {tr("dashboard.quickActions")}
           </button>
         </div>
