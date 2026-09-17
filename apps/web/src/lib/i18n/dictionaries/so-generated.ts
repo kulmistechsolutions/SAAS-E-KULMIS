@@ -625,6 +625,8 @@ export const soGenerated: PartialDictionary = {
     take: "Qaad xaadiriska",
   },
   attendanceStudents: {
+    alreadyTaken: "Horay ayaa loo qaaday — {n} la calaamadeeyay",
+    notYetTaken: "Weli lama qaadin",
     loading: "Waa la soo dejinayaa…",
     backToAttendance: "Ku noqo Xaadiriska",
     studentAttendance: "Xaadiriska Ardayda",
@@ -787,6 +789,7 @@ export const soGenerated: PartialDictionary = {
     cancelled: "La joojiyay",
   },
   attendanceShifts: {
+    retired: "La joojiyay",
     title: "Maamulka Shiftiyada Xaadiriska",
     description: "Diyaari fasalada dugsigaagu xaadiriska u qaato, tusaale SubaX iyo Galabnimo — madax-bannaan jadwalka.",
     addShift: "Ku Dar Shift",

@@ -221,6 +221,26 @@ export class StudentAttendanceService {
         }
       }
 
+      // The same day's row sitting under no shift at all. Writing beside it
+      // would leave one child two registers for one morning, disagreeing with
+      // each other; the shift is given to the row that is already there.
+      const atThisShift = new Set(priorRows.map((r) => r.studentId));
+      const strayRows = shiftId
+        ? await tx.studentAttendance.findMany({
+            where: {
+              studentId: { in: dto.records.map((r) => r.studentId) },
+              date,
+              shiftId: null,
+            },
+            select: { id: true, studentId: true },
+          })
+        : [];
+      const strayByStudent = new Map(
+        strayRows
+          .filter((r) => !atThisShift.has(r.studentId))
+          .map((r) => [r.studentId, r.id]),
+      );
+
       let marked = 0;
       let skipped = 0;
       for (const rec of dto.records) {
@@ -244,6 +264,21 @@ export class StudentAttendanceService {
         // the no-shift case falls back to a manual find-then-write — the
         // partial unique index on (schoolId, studentId, date) WHERE shiftId
         // IS NULL still guarantees one row per day at the DB level.
+        const strayId = strayByStudent.get(rec.studentId);
+        if (shiftId && strayId) {
+          await tx.studentAttendance.update({
+            where: { id: strayId },
+            data: {
+              shiftId,
+              classId: dto.classId,
+              sectionId,
+              status: rec.status,
+              markedByUserId,
+            },
+          });
+          marked++;
+          continue;
+        }
         if (shiftId) {
           await tx.studentAttendance.upsert({
             where: {
@@ -313,6 +348,25 @@ export class StudentAttendanceService {
         select: { studentId: true, status: true },
       });
 
+      // A register taken before the school had shifts carries no shiftId, and
+      // the marking screen will not open a day without one. Scoped to a shift,
+      // the query found nothing, the day came back empty, and the screen
+      // painted every child with the school's default status: a student marked
+      // Late in September reopened as Present, and saving wrote a second row
+      // beside the first. Fall back to the unshifted register for anyone this
+      // shift has nothing for — never to another named shift, which is a
+      // different register on purpose.
+      if (shiftId) {
+        const already = new Set(records.map((r) => r.studentId));
+        const unshifted = await tx.studentAttendance.findMany({
+          where: { classId, sectionId, date, shiftId: null },
+          select: { studentId: true, status: true },
+        });
+        for (const r of unshifted) {
+          if (!already.has(r.studentId)) records.push(r);
+        }
+      }
+
       // Whose register this is depends on the class's year, not on whether
       // anything has been marked yet. In the current year the roll is the
       // class as it stands — a half-marked day must still list everyone left
@@ -334,6 +388,11 @@ export class StudentAttendanceService {
       const byStudent = new Map(records.map((r) => [r.studentId, r.status]));
       return {
         date: dateStr,
+        // How much of this day is already on record. Without it the screen
+        // cannot tell an untaken register from one where everybody really was
+        // present — both arrive as a column of Present — so an officer can
+        // overwrite a morning's work believing it was blank.
+        markedCount: students.filter((s) => byStudent.has(s.id)).length,
         roster: students.map((s) => ({
           ...s,
           status: byStudent.get(s.id) ?? null,

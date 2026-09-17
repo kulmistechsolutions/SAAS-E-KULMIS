@@ -130,6 +130,8 @@ function StudentAttendanceScreen() {
 
   const [rows, setRows] = useState<StudentMarkRow[]>([]);
   const [loaded, setLoaded] = useState(false);
+  // How much of this day was already on record when the register opened.
+  const [markedCount, setMarkedCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -273,6 +275,7 @@ function StudentAttendanceScreen() {
     setLoading(false);
     if (res.error) return toast(res.error, "error");
     setRows(res.rows);
+    setMarkedCount(res.markedCount ?? 0);
     setLoaded(true);
   }
 
@@ -429,8 +432,17 @@ function StudentAttendanceScreen() {
                     </label>
                     <Select value={shiftId} onChange={(e) => { setShiftId(e.target.value); setLoaded(false); }}>
                       <option value="">{t("attendanceStudents.selectShift")}</option>
+                      {/*
+                        Retired shifts are listed and named as such. Their
+                        registers cannot be opened any other way, and a day
+                        that cannot be opened cannot be corrected.
+                      */}
                       {shifts.map((s) => (
-                        <option key={s.id} value={s.id}>{s.name}</option>
+                        <option key={s.id} value={s.id}>
+                          {s.status === "ACTIVE"
+                            ? s.name
+                            : `${s.name} (${t("attendanceShifts.retired")})`}
+                        </option>
                       ))}
                     </Select>
                   </div>
@@ -446,10 +458,31 @@ function StudentAttendanceScreen() {
               {loaded && (
                 <>
                   <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex flex-wrap items-center gap-2">
                     <p className="text-sm text-muted-foreground">
                       {formatDisplayDate(date)} · {klass}{section ? ` · Section ${section}` : ""}
                       {shiftId ? ` · ${shifts.find((s) => s.id === shiftId)?.name ?? ""}` : ""} · {eligibleRows.length} {t("attendanceStudents.students")}
                     </p>
+                    {/*
+                      Whether what is on screen is a record or a blank form.
+                      The rows open on the school's default status, so an
+                      untaken day and a day where everyone was present look
+                      exactly alike — and an officer can overwrite a morning's
+                      work believing there was nothing there.
+                    */}
+                    {markedCount > 0 ? (
+                      <span className="rounded-full bg-emerald-500/15 px-3 py-1 text-xs font-medium text-emerald-700 dark:text-emerald-400">
+                        {t("attendanceStudents.alreadyTaken").replace(
+                          "{n}",
+                          String(markedCount),
+                        )}
+                      </span>
+                    ) : (
+                      <span className="rounded-full bg-amber-500/15 px-3 py-1 text-xs font-medium text-amber-700 dark:text-amber-400">
+                        {t("attendanceStudents.notYetTaken")}
+                      </span>
+                    )}
+                    </div>
                     <div className="flex flex-wrap gap-2">
                       <Button variant="outline" onClick={() => markAll("PRESENT")}>
                         <CheckCheck className="me-2 h-4 w-4" /> {t("attendanceStudents.markAllPresent")}

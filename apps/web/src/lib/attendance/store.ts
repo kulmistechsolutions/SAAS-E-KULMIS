@@ -179,10 +179,23 @@ function summarizeTeacher(
 // Student attendance
 // ---------------------------------------------------------------------------
 
-/** A school's attendance shifts — empty for schools that don't use shifts. */
+/**
+ * A school's attendance shifts — empty for schools that don't use shifts.
+ *
+ * Retired shifts are included on purpose. Every register carries the shift it
+ * was taken under, and the marking screen will not open a day without one, so
+ * leaving a retired shift out of the picker put its registers permanently out
+ * of reach: 271 days across the estate could not be looked at or corrected at
+ * all. A retired shift is not offered for new work — it is named as retired
+ * and sorted last — but the past it holds stays reachable.
+ */
 export async function listAttendanceShifts(): Promise<ApiShift[]> {
   try {
-    return await apiListAttendanceShifts();
+    const all = await apiListAttendanceShifts(true);
+    return [...all].sort((a, b) => {
+      if (a.status !== b.status) return a.status === "ACTIVE" ? -1 : 1;
+      return a.orderIndex - b.orderIndex;
+    });
   } catch {
     return [];
   }
@@ -231,7 +244,7 @@ export async function loadStudentMarkingRows(
   section: string,
   date: string,
   shiftId?: string | null,
-): Promise<{ rows: StudentMarkRow[]; error?: string }> {
+): Promise<{ rows: StudentMarkRow[]; markedCount?: number; error?: string }> {
   await ensureAcademicsLoaded();
   const { classId, error: classErr } = resolveClassId(className, academicYear);
   if (classErr || !classId) return { rows: [], error: classErr };
@@ -252,7 +265,7 @@ export async function loadStudentMarkingRows(
         eligible: true,
       }));
 
-    return { rows };
+    return { rows, markedCount: res.markedCount ?? 0 };
   } catch (e) {
     return { rows: [], error: apiErr(e, "Failed to load student roster.") };
   }

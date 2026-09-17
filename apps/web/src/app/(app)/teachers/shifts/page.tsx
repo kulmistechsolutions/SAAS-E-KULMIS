@@ -177,7 +177,17 @@ export default function TeacherShiftsPage() {
                         : "—"}
                     </td>
                     <td className="px-4 py-3">
-                      <Badge tone="success">{t("attendanceShifts.active")}</Badge>
+                      {/*
+                        Read from the shift, not assumed. The list now carries
+                        retired shifts too — their registers are only reachable
+                        if the shift can be named — and a retired one badged
+                        "Active" is a screen telling the school something untrue.
+                      */}
+                      {s.status === "ACTIVE" ? (
+                        <Badge tone="success">{t("attendanceShifts.active")}</Badge>
+                      ) : (
+                        <Badge tone="warning">{t("attendanceShifts.retired")}</Badge>
+                      )}
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex gap-1">

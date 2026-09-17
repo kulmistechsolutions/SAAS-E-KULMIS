@@ -625,6 +625,8 @@ export const generated = {
     take: "Take attendance",
   },
   attendanceStudents: {
+    alreadyTaken: "Already taken — {n} marked",
+    notYetTaken: "Not taken yet",
     loading: "Loading…",
     backToAttendance: "Back to Attendance",
     studentAttendance: "Student Attendance",
@@ -787,6 +789,7 @@ export const generated = {
     cancelled: "Cancelled",
   },
   attendanceShifts: {
+    retired: "Retired",
     title: "Attendance Shift Management",
     description: "Set up the sessions your school takes attendance for, e.g. Morning and Afternoon — independent of the timetable.",
     addShift: "Add Shift",

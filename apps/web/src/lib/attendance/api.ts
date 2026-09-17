@@ -15,6 +15,8 @@ export interface ApiStudentRosterItem {
 
 export interface ApiStudentRosterResponse {
   date: string;
+  /** How many of these children already have a mark on this day. */
+  markedCount?: number;
   roster: ApiStudentRosterItem[];
 }
 

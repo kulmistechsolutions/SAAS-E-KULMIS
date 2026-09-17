@@ -624,6 +624,8 @@ export const arGenerated: PartialDictionary = {
     take: "تسجيل الحضور",
   },
   attendanceStudents: {
+    alreadyTaken: "تم أخذه مسبقًا — {n} مُسجّل",
+    notYetTaken: "لم يُؤخذ بعد",
     loading: "جارٍ التحميل…",
     backToAttendance: "العودة إلى الحضور",
     studentAttendance: "حضور الطلاب",
@@ -786,6 +788,7 @@ export const arGenerated: PartialDictionary = {
     cancelled: "ملغى",
   },
   attendanceShifts: {
+    retired: "متوقف",
     title: "إدارة فترات الحضور",
     description: "أعدّ الفترات التي يسجّل فيها مدرستك الحضور، مثل الصباح والمساء — بشكل مستقل عن الجدول الدراسي.",
     addShift: "إضافة فترة",
