@@ -190,6 +190,41 @@ describe("the values a template can name", () => {
   });
 });
 
+describe("the template every school already has", () => {
+  it("renders the built-in Somali exam-result message", () => {
+    // Shipped with every school, written in the double-brace Somali tokens.
+    // With only the handbook's snake_case names present it rendered as
+    // "Salaan ,  wuxuu ku dhacay  imtixaanka ." — a blank message to every
+    // parent, with nothing having failed. The preview caught it; nothing was
+    // sent. Both spellings are emitted now.
+    const body =
+      "Salaan {{Magaca Waalidka}}, {{Magaca Ardayga}} wuxuu ku dhacay " +
+      "{{Dhibcaha}} imtixaanka {{Imtixaanka}}. Guul! - {{Magaca Dugsiga}}";
+    expect(renderSmsTemplate(body, buildResultVars(result(), ctx()))).toBe(
+      "Salaan Ahmed Hassan, Abdi Ali wuxuu ku dhacay 87.7% imtixaanka " +
+        "Second Term Examination. Guul! - Hanuuniye School",
+    );
+  });
+
+  it("answers to the camelCase names the alias table is built on", () => {
+    const v = buildResultVars(result(), ctx());
+    expect(v.studentName).toBe("Abdi Ali");
+    expect(v.parentName).toBe("Ahmed Hassan");
+    expect(v.schoolName).toBe("Hanuuniye School");
+    expect(v.className).toBe("Grade 8");
+    expect(v.examName).toBe("Second Term Examination");
+    expect(v.studentCode).toBe("STD0001");
+    expect(v.academicYear).toBe("2026/2027");
+    expect(v.marks).toBe("87.7%");
+  });
+
+  it("still answers to the handbook's names", () => {
+    const v = buildResultVars(result(), ctx());
+    expect(v.student_name).toBe("Abdi Ali");
+    expect(v.school_name).toBe("Hanuuniye School");
+  });
+});
+
 describe("a whole message, end to end", () => {
   it("renders the handbook's Somali template", () => {
     const body = [

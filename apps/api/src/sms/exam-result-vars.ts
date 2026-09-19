@@ -217,6 +217,26 @@ export function buildResultVars(
     school_address: ctx.schoolAddress,
   };
 
+  // The same values under the names the renderer's own alias table knows, so
+  // that a school's existing exam-result template keeps working. Every school
+  // ships with one written in Somali double braces — "Salaan {{Magaca
+  // Waalidka}}, {{Magaca Ardayga}} wuxuu ku dhacay {{Dhibcaha}}…" — and those
+  // tokens resolve through camelCase keys, not the handbook's snake_case. With
+  // only one spelling present the built-in template rendered as "Salaan ,
+  // wuxuu ku dhacay  imtixaanka ." — a blank message to every parent, sent
+  // without anything having failed.
+  vars.studentName = result.studentName;
+  vars.studentCode = result.studentCode;
+  vars.className = result.className;
+  vars.section = result.sectionName ?? "";
+  vars.parentName = ctx.parentName;
+  vars.schoolName = ctx.schoolName;
+  vars.examName = ctx.examName;
+  vars.academicYear = ctx.academicYear;
+  // "Dhibcaha" is what the child scored. The percentage reads as a result to a
+  // parent; a raw total means nothing without the maximum beside it.
+  vars.marks = `${percentage}%`;
+
   // Each subject by its own code and by its name, so a template can place
   // them itself: "SO: {SO}  MA: {MA}".
   for (const s of result.subjects) {
