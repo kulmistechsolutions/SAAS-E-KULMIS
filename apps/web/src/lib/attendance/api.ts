@@ -217,10 +217,33 @@ export async function apiUpdateAttendanceShift(
   return api<ApiShift>(`/attendance-shifts/${id}`, { method: "PATCH", body });
 }
 
+/** What is riding on a shift, asked before anyone deletes one for good. */
+export interface ApiShiftUsage {
+  id: string;
+  name: string;
+  status: "ACTIVE" | "INACTIVE";
+  studentAttendance: number;
+  teacherAttendance: number;
+  teacherAssignments: number;
+  teachers: number;
+  officerGrants: number;
+  firstDate: string | null;
+  lastDate: string | null;
+}
+
+export async function apiAttendanceShiftUsage(
+  id: string,
+): Promise<ApiShiftUsage> {
+  return api<ApiShiftUsage>(`/attendance-shifts/${id}/usage`);
+}
+
 export async function apiDeleteAttendanceShift(
   id: string,
-): Promise<{ success: boolean }> {
-  return api(`/attendance-shifts/${id}`, { method: "DELETE" });
+  hard = false,
+): Promise<{ success: boolean; deleted: boolean; attendanceKept?: number }> {
+  return api(`/attendance-shifts/${id}${hard ? "?hard=true" : ""}`, {
+    method: "DELETE",
+  });
 }
 
 export interface ApiAttendanceReportRow {

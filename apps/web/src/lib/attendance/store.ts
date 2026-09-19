@@ -226,13 +226,24 @@ export async function updateAttendanceShift(
   }
 }
 
+/**
+ * Retire a shift, or with `hard`, delete it.
+ *
+ * Retiring keeps the name resolvable everywhere it is already referenced and
+ * is what the button has always done — but it said "Removed" and left the
+ * row on screen for ever, which is the system saying one thing and doing
+ * another. A hard delete keeps every attendance record: the register's shift
+ * is `onDelete: SetNull`, and the marking screen already falls back to the
+ * unshifted rows for that day, so the marks stay readable.
+ */
 export async function deleteAttendanceShift(
   id: string,
-): Promise<{ ok: boolean; error?: string }> {
+  hard = false,
+): Promise<{ ok: boolean; error?: string; deleted?: boolean }> {
   try {
-    await apiDeleteAttendanceShift(id);
+    const res = await apiDeleteAttendanceShift(id, hard);
     notify();
-    return { ok: true };
+    return { ok: true, deleted: res.deleted };
   } catch (e) {
     return { ok: false, error: apiErr(e, "Failed to remove shift.") };
   }

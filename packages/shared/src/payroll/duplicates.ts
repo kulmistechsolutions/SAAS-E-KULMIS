@@ -1,5 +1,3 @@
-import type { PayrollRow } from "./types";
-
 /**
  * The same person, on one month, more than once.
  *
@@ -16,10 +14,15 @@ import type { PayrollRow } from "./types";
  * Matched on the trimmed, case-folded name, which is what a duplicate looks
  * like: the ids are exactly what the two rows disagree about.
  */
-export function duplicatePeople(
-  rows: PayrollRow[],
-): { name: string; rows: PayrollRow[]; extra: number }[] {
-  const byName = new Map<string, PayrollRow[]>();
+export interface DuplicateCandidate {
+  employeeName: string;
+  netSalary: number;
+}
+
+export function duplicatePeople<T extends DuplicateCandidate>(
+  rows: T[],
+): { name: string; rows: T[]; extra: number }[] {
+  const byName = new Map<string, T[]>();
   for (const r of rows) {
     const key = r.employeeName.trim().toLowerCase().replace(/\s+/g, " ");
     if (!key) continue;

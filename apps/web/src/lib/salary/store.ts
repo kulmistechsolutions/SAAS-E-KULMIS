@@ -17,7 +17,7 @@ import {
   mapApiSalary,
 } from "./api";
 import { monthKey, monthLabel } from "./format";
-export { duplicatePeople } from "./duplicates";
+export { duplicatePeople } from "@ekulmis/shared";
 import type {
   Employee,
   PaymentMethod,

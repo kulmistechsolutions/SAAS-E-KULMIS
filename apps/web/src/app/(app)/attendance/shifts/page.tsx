@@ -6,6 +6,7 @@ import Link from "next/link";
 import { ArrowLeft, Clock, Pencil, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
+import { ShiftDeleteDialog } from "@/components/attendance/shift-delete-dialog";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -38,7 +39,6 @@ export default function AttendanceShiftsPage() {
   const [saving, setSaving] = useState(false);
 
   const [deleting, setDeleting] = useState<ApiShift | null>(null);
-  const [removing, setRemoving] = useState(false);
 
   const refresh = () => {
     setLoading(true);
@@ -86,16 +86,6 @@ export default function AttendanceShiftsPage() {
     void refresh();
   }
 
-  async function handleDelete() {
-    if (!deleting) return;
-    setRemoving(true);
-    const res = await deleteAttendanceShift(deleting.id);
-    setRemoving(false);
-    if (!res.ok) return toast(res.error ?? t("attendanceShifts.removeFailed"), "error");
-    toast(t("attendanceShifts.shiftRemoved"), "success");
-    setDeleting(null);
-    void refresh();
-  }
 
   if (!mounted) {
     return (
@@ -259,26 +249,11 @@ export default function AttendanceShiftsPage() {
         </div>
       </Dialog>
 
-      <Dialog
-        open={!!deleting}
+      <ShiftDeleteDialog
+        shift={deleting}
         onClose={() => setDeleting(null)}
-        title={t("attendanceShifts.removeShift")}
-        className="max-w-sm"
-        footer={
-          <>
-            <Button variant="outline" onClick={() => setDeleting(null)} disabled={removing}>
-              {t("feesReversePaymentDialog.cancel")}
-            </Button>
-            <Button variant="destructive" onClick={() => void handleDelete()} disabled={removing}>
-              {removing ? t("attendanceShifts.removing") : t("attendanceShifts.remove")}
-            </Button>
-          </>
-        }
-      >
-        <p className="text-sm text-muted-foreground">
-          {t("attendanceShifts.removeConfirm", { name: deleting?.name ?? "" })}
-        </p>
-      </Dialog>
+        onDone={() => void refresh()}
+      />
     </div>
   );
 }

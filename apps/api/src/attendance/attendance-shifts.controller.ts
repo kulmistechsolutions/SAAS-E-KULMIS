@@ -61,10 +61,36 @@ export class AttendanceShiftsController {
     return this.shifts.update(me.schoolId, id, parsed.data);
   }
 
+  /**
+   * What is riding on this shift, before anyone is asked to delete it.
+   *
+   * Readable by anyone who can see the list, because the delete dialog shows
+   * it and the dialog is what makes "delete" an informed choice rather than a
+   * button press.
+   */
+  @RequirePermission("attendance.view")
+  @Get(":id/usage")
+  usage(@CurrentUser() me: AuthUser, @Param("id") id: string) {
+    return this.shifts.usage(me.schoolId, id);
+  }
+
+  /**
+   * Retire the shift, or with `?hard=true`, delete it.
+   *
+   * Retiring stays the default. A hard delete keeps every attendance record —
+   * their `shiftId` is `onDelete: SetNull`, and the register still opens,
+   * because the marking screen falls back to the unshifted rows for the day.
+   * What goes with it is which teachers worked the shift and which officers
+   * held it: statements about a session that no longer exists.
+   */
   @Roles(UserRole.ADMINISTRATOR, UserRole.ATTENDANCE_OFFICER)
   @RequirePermission("attendance.update")
   @Delete(":id")
-  remove(@CurrentUser() me: AuthUser, @Param("id") id: string) {
-    return this.shifts.remove(me.schoolId, id);
+  remove(
+    @CurrentUser() me: AuthUser,
+    @Param("id") id: string,
+    @Query("hard") hard?: string,
+  ) {
+    return this.shifts.remove(me.schoolId, id, { hard: hard === "true" });
   }
 }

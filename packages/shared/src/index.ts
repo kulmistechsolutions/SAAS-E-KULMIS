@@ -7,6 +7,7 @@ export * from "./rbac/staff-routes";
 export * from "./rbac/role-modules";
 export * from "./promotions/plan";
 export * from "./finance/payment-type";
+export * from "./payroll/duplicates";
 export * from "./grades";
 export * from "./grading";
 export * from "./password-policy";

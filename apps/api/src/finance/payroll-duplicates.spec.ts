@@ -1,7 +1,13 @@
-import {
-  duplicatePeople,
-} from "../../../web/src/lib/salary/duplicates";
-import type { PayrollRow } from "../../../web/src/lib/salary/types";
+import { duplicatePeople } from "@ekulmis/shared";
+
+/** The two fields the detector reads, plus what the page carries alongside. */
+interface PayrollRow {
+  payrollId: string;
+  employeeName: string;
+  netSalary: number;
+  amountPaid: number;
+  status: string;
+}
 
 /**
  * A month that already carries a duplicate stays wrong until somebody takes
