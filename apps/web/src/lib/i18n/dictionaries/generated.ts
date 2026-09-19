@@ -3743,6 +3743,9 @@ export const generated = {
     reverseFailed: "Failed to reverse salary payment.",
   },
   salaryPayroll: {
+    duplicateTitle: "{n} person on this month twice",
+    duplicateTotals: "Total Payroll shows {shown}; without the extra rows it is {real}.",
+    duplicateHelp: "Check which row is real, then remove the other with the bin button on its line. A row with money paid against it cannot be removed — reverse the payment first.",
     loadingPayroll: "Loading payroll…",
     monthlyPayroll: "Monthly Payroll",
     generatePayrollAndProcessFullOr: "Generate payroll and process full or partial salary payments.",

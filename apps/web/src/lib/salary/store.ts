@@ -17,6 +17,7 @@ import {
   mapApiSalary,
 } from "./api";
 import { monthKey, monthLabel } from "./format";
+export { duplicatePeople } from "./duplicates";
 import type {
   Employee,
   PaymentMethod,

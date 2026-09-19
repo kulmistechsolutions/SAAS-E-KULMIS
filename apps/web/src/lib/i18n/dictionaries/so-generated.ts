@@ -3684,6 +3684,9 @@ export const soGenerated: PartialDictionary = {
     reverseFailed: "Lacag-bixinta mushaharka dib looma celin karin.",
   },
   salaryPayroll: {
+    duplicateTitle: "{n} qof ayaa bishan laba jeer ku jira",
+    duplicateTotals: "Total Payroll wuxuu tusayaa {shown}; safafka dheeraadka ah laʼaantood waa {real}.",
+    duplicateHelp: "Hubi kee yahay kan dhabta ah, kadibna kan kale ku saar badhanka qashinka ee safkiisa. Saf lacag laga bixiyay lama saari karo — horta bixinta celi.",
     loadingPayroll: "Mushaharka waa la soo dejinayaa…",
     monthlyPayroll: "Mushaharka Bishii",
     generatePayrollAndProcessFullOr: "Abuur mushaharka oo fuli bixin buuxa ama qayb ah.",

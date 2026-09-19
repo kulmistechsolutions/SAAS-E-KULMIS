@@ -3657,6 +3657,9 @@ export const arGenerated: PartialDictionary = {
     paymentReferenceOrRemarks: "مرجع الدفع أو ملاحظات…",
   },
   salaryPayroll: {
+    duplicateTitle: "{n} شخص مكرر في هذا الشهر",
+    duplicateTotals: "إجمالي الرواتب يظهر {shown}؛ وبدون الصفوف الزائدة يكون {real}.",
+    duplicateHelp: "تحقق من الصف الصحيح ثم احذف الآخر بزر السلة في سطره. لا يمكن حذف صف دُفع مقابله مبلغ — اعكس الدفعة أولاً.",
     loadingPayroll: "جارٍ تحميل كشف الرواتب…",
     monthlyPayroll: "كشف الرواتب الشهري",
     generatePayrollAndProcessFullOr: "أنشئ كشف الرواتب ونفّذ دفعات كاملة أو جزئية.",

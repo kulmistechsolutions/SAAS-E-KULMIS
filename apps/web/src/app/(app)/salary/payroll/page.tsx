@@ -8,12 +8,14 @@ import {
   CheckCircle2,
   Download,
   Eye,
+  AlertTriangle,
   Printer,
   Trash2,
   Users,
   Wallet,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { Can } from "@/components/auth/can";
 import { Dialog } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -36,6 +38,7 @@ import {
   availableMonths,
   generatePayroll,
   getPayroll,
+  duplicatePeople,
   payrollRows,
   removePayroll,
   useSalaryState,
@@ -91,6 +94,24 @@ export default function PayrollPage() {
         : [],
     [mounted, month, search, position, status, state],
   );
+
+  /**
+   * One person, twice, on one month — computed over the whole month rather
+   * than the filtered view, or a search that happened to match one of the two
+   * would hide the very thing this is for.
+   */
+  const duplicates = useMemo(
+    () => (mounted ? duplicatePeople(payrollRows({ month })) : []),
+    [mounted, month, state],
+  );
+  const duplicateIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const d of duplicates) {
+      // The first row is the one that stands; the rest are the extras.
+      for (const r of d.rows.slice(1)) ids.add(r.payrollId);
+    }
+    return ids;
+  }, [duplicates]);
 
   /**
    * Totalled from the rows on screen, never from the whole month.
@@ -265,6 +286,54 @@ export default function PayrollPage() {
         />
       </div>
 
+      {/*
+        A month that already carries a duplicate stays wrong until somebody
+        takes the extra row off, and the school had no way of knowing that was
+        what they were looking at — only a repeated name in a list of twelve,
+        and a total that did not match what they had paid. So the screen says
+        it, names the person, and says what the total would be without them.
+      */}
+      {duplicates.length > 0 && (
+        <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-4">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400" />
+            <div className="min-w-0 flex-1 text-sm">
+              <p className="font-semibold text-amber-800 dark:text-amber-300">
+                {t("salaryPayroll.duplicateTitle").replace(
+                  "{n}",
+                  String(duplicates.length),
+                )}
+              </p>
+              <ul className="mt-1.5 space-y-0.5">
+                {duplicates.map((d) => (
+                  <li key={d.name} className="text-amber-800/90 dark:text-amber-300/90">
+                    <span className="font-medium">{d.name}</span>
+                    {" \u00b7 "}
+                    {d.rows.length}
+                    {" \u00d7 "}
+                    {d.rows.map((r) => money(r.netSalary)).join(" + ")}
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-1.5 text-amber-800/90 dark:text-amber-300/90">
+                {t("salaryPayroll.duplicateTotals")
+                  .replace("{shown}", money(totals.net))
+                  .replace(
+                    "{real}",
+                    money(
+                      totals.net -
+                        duplicates.reduce((sum, d) => sum + d.extra, 0),
+                    ),
+                  )}
+              </p>
+              <p className="mt-1 text-xs text-amber-700/80 dark:text-amber-400/80">
+                {t("salaryPayroll.duplicateHelp")}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[960px] text-sm">
@@ -288,7 +357,15 @@ export default function PayrollPage() {
                 </tr>
               ) : (
                 pageRows.map((r) => (
-                  <tr key={r.payrollId} className="border-t transition-colors hover:bg-secondary/40">
+                  <tr
+                    key={r.payrollId}
+                    className={cn(
+                      "border-t transition-colors hover:bg-secondary/40",
+                      // The extra row, not the one that stands.
+                      duplicateIds.has(r.payrollId) &&
+                        "bg-amber-500/10 hover:bg-amber-500/15",
+                    )}
+                  >
                     <td className="px-4 py-2.5">
                       <p className="font-medium">{r.employeeName}</p>
                       {r.employeeCode && (
