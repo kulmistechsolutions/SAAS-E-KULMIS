@@ -132,6 +132,9 @@ const USERS_CHILDREN: NavChild[] = [
 const SMS_CHILDREN: NavChild[] = [
   { label: "nav.dashboard", href: "/sms/dashboard" },
   { label: "nav.sendSms", href: "/sms" },
+  // Its own entry rather than a mode of Send SMS: the audience is decided by
+  // the exam, not picked from a list, and every parent gets a different message.
+  { label: "nav.smsExamResults", href: "/sms/exam-results" },
   { label: "nav.smsGroups", href: "/sms/groups" },
   { label: "nav.smsTemplates", href: "/sms/templates" },
   { label: "nav.smsHistory", href: "/sms/history" },

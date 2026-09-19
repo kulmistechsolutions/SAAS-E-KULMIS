@@ -58,4 +58,30 @@ export class ExamResultSmsController {
     if (!parsed.success) throw new BadRequestException(parsed.error.flatten());
     return this.service.send(me.schoolId, me.userId, parsed.data);
   }
+
+  /**
+   * Send again only to the parents this exam's messages failed to reach.
+   *
+   * Nine dropped messages out of four hundred should cost a school nine
+   * credits to put right, and the parents who already have the result should
+   * not get it twice because of somebody else's failure.
+   */
+  @Roles(UserRole.ADMINISTRATOR, UserRole.EXAM_MANAGER)
+  @RequirePermission("sms.create")
+  @Post("retry")
+  retry(@CurrentUser() me: AuthUser, @Body() body: unknown) {
+    const parsed = optionsSchema.safeParse(body);
+    if (!parsed.success) throw new BadRequestException(parsed.error.flatten());
+    const { examId, ...rest } = parsed.data;
+    return this.service.retryFailed(me.schoolId, me.userId, examId, rest);
+  }
+
+  /** How this exam's send went, per parent. */
+  @RequirePermission("sms.view")
+  @Post("history")
+  history(@CurrentUser() me: AuthUser, @Body() body: unknown) {
+    const parsed = z.object({ examId: z.string().min(1) }).safeParse(body);
+    if (!parsed.success) throw new BadRequestException(parsed.error.flatten());
+    return this.service.history(me.schoolId, parsed.data.examId);
+  }
 }

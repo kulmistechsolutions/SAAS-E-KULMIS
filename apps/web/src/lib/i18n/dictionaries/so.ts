@@ -154,6 +154,7 @@ const curated: PartialDictionary = {
   },
   nav: {
     smsGroups: "Kooxaha",
+    smsExamResults: "Natiijada Imtixaanka",
     smsTemplates: "Qaabab",
     smsHistory: "Taariikhda SMS",
     sendSms: "Dir SMS",

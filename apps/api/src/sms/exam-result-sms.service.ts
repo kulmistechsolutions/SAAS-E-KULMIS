@@ -154,6 +154,100 @@ export class ExamResultSmsService {
     } as never);
   }
 
+  /**
+   * Send again to the parents this exam's messages failed to reach.
+   *
+   * Only those. A gateway that dropped nine messages out of four hundred
+   * should cost the school nine credits to put right, not four hundred — and
+   * the parents who already have their child's result should not get it twice
+   * because of somebody else's failure.
+   *
+   * Nothing special happens here: a failed message was never a send, so the
+   * duplicate guard already lets these through. The work is finding them.
+   */
+  async retryFailed(
+    schoolId: string,
+    userId: string | undefined,
+    examId: string,
+    opts: Omit<ExamResultSmsOptions, "examId" | "studentIds"> = {},
+  ) {
+    const failed = await this.prisma.forTenant(schoolId, (tx) =>
+      tx.smsMessage.findMany({
+        where: {
+          category: "EXAM_RESULT",
+          providerRefId: examId,
+          status: "FAILED",
+        },
+        select: { recipientRefId: true },
+        distinct: ["recipientRefId"],
+      }),
+    );
+    const studentIds = failed
+      .map((f) => f.recipientRefId)
+      .filter((id): id is string => Boolean(id));
+
+    if (studentIds.length === 0) {
+      throw new BadRequestException(
+        "No failed messages to retry for this exam.",
+      );
+    }
+    return this.send(schoolId, userId, { ...opts, examId, studentIds });
+  }
+
+  /** How this exam's send went: what reached a parent and what did not. */
+  async history(schoolId: string, examId: string) {
+    const rows = await this.prisma.forTenant(schoolId, (tx) =>
+      tx.smsMessage.findMany({
+        where: { category: "EXAM_RESULT", providerRefId: examId },
+        select: {
+          id: true,
+          recipientRefId: true,
+          recipientName: true,
+          recipientPhone: true,
+          status: true,
+          creditsUsed: true,
+          error: true,
+          createdAt: true,
+          sentAt: true,
+          deliveredAt: true,
+        },
+        orderBy: { createdAt: "desc" },
+      }),
+    );
+
+    const students = await this.prisma.forTenant(schoolId, (tx) =>
+      tx.student.findMany({
+        where: {
+          id: {
+            in: rows
+              .map((r) => r.recipientRefId)
+              .filter((id): id is string => Boolean(id)),
+          },
+        },
+        select: { id: true, fullName: true, code: true },
+      }),
+    );
+    const byId = new Map(students.map((s) => [s.id, s]));
+
+    const counts: Record<string, number> = {};
+    for (const r of rows) counts[r.status] = (counts[r.status] ?? 0) + 1;
+
+    return {
+      rows: rows.map((r) => ({
+        ...r,
+        studentName: r.recipientRefId
+          ? (byId.get(r.recipientRefId)?.fullName ?? "")
+          : "",
+        studentCode: r.recipientRefId
+          ? (byId.get(r.recipientRefId)?.code ?? "")
+          : "",
+      })),
+      counts,
+      failed: counts.FAILED ?? 0,
+      credits: rows.reduce((n, r) => n + r.creditsUsed, 0),
+    };
+  }
+
   /** The shared work behind preview and send, so the two cannot disagree. */
   private async prepare(schoolId: string, opts: ExamResultSmsOptions) {
     const school = await this.prisma.school.findUnique({

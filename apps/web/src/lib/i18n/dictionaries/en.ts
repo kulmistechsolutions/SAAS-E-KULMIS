@@ -154,6 +154,7 @@ const core = {
   },
   nav: {
     smsGroups: "Groups",
+    smsExamResults: "Exam Results",
     smsTemplates: "Templates",
     smsHistory: "SMS History",
     sendSms: "Send SMS",

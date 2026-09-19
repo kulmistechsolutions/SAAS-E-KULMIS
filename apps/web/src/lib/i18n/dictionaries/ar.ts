@@ -149,6 +149,7 @@ const curated: PartialDictionary = {
   },
   nav: {
     smsGroups: "المجموعات",
+    smsExamResults: "نتائج الامتحان",
     smsTemplates: "القوالب",
     smsHistory: "سجل الرسائل",
     sendSms: "إرسال رسالة",
