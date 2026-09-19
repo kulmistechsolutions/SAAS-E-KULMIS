@@ -77,10 +77,39 @@ export function renderSmsTemplate(
     }
   }
 
-  return body.replace(/\{\{\s*([^}]+?)\s*\}\}/g, (_, raw: string) => {
-    const key = String(raw).trim();
-    return flat[key] ?? flat[key.toLowerCase()] ?? "";
-  });
+  // Both spellings. The system's own templates are written {{Magaca Ardayga}};
+  // schools writing an exam-result template from the handbook write
+  // {student_name}. Refusing one of them would have meant every school
+  // learning which of the two this particular screen wanted.
+  //
+  // Doubles first, so {{x}} is never read as a single {x} wrapped in braces.
+  const withDoubles = body.replace(
+    /\{\{\s*([^{}]+?)\s*\}\}/g,
+    (whole, raw: string) => substitute(flat, raw, whole),
+  );
+  return withDoubles.replace(
+    /\{\s*([^{}]+?)\s*\}/g,
+    (whole, raw: string) => substitute(flat, raw, whole),
+  );
+}
+
+/**
+ * One placeholder, or nothing when no value answers to it.
+ *
+ * Blanking rather than leaving the braces standing, because that is what every
+ * template in the system has always done and what the built-in emergency
+ * notice relies on — {{Farriinta}} is a slot the sender fills, not a variable.
+ * A name nobody fills is a mistake the screen catches before sending: the
+ * composer warns about unknown placeholders, and the exam-result preview lists
+ * them per student.
+ */
+function substitute(
+  flat: Record<string, string>,
+  raw: string,
+  _whole: string,
+): string {
+  const key = String(raw).trim();
+  return flat[key] ?? flat[key.toLowerCase()] ?? "";
 }
 
 /**

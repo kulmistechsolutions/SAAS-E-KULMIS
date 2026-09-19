@@ -11,6 +11,9 @@ import { SmsSenderIdService } from "./sms-sender-id.service";
 import { PlatformGuard } from "../platform/platform.guard";
 import { StorageModule } from "../storage/storage.module";
 import { FinanceModule } from "../finance/finance.module";
+import { ExaminationsModule } from "../examinations/examinations.module";
+import { ExamResultSmsService } from "./exam-result-sms.service";
+import { ExamResultSmsController } from "./exam-result-sms.controller";
 
 @Module({
   imports: [
@@ -20,6 +23,10 @@ import { FinanceModule } from "../finance/finance.module";
     // and finance calls back here when a payment is taken, so the two
     // modules genuinely point at each other.
     forwardRef(() => FinanceModule),
+    // Exam-result SMS reads the same result sheet a school prints, rather
+    // than recomputing marks here — and examinations already sends through
+    // this module, so the two genuinely point at each other.
+    forwardRef(() => ExaminationsModule),
     JwtModule.registerAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
@@ -27,14 +34,20 @@ import { FinanceModule } from "../finance/finance.module";
       }),
     }),
   ],
-  controllers: [SmsController, PlatformSmsController, SmsPaymentController],
+  controllers: [
+    SmsController,
+    PlatformSmsController,
+    SmsPaymentController,
+    ExamResultSmsController,
+  ],
   providers: [
     SmsService,
     SmsAutoService,
     SmsPaymentService,
     SmsSenderIdService,
+    ExamResultSmsService,
     PlatformGuard,
   ],
-  exports: [SmsService, SmsAutoService, SmsPaymentService],
+  exports: [SmsService, SmsAutoService, SmsPaymentService, ExamResultSmsService],
 })
 export class SmsModule {}

@@ -1699,7 +1699,13 @@ export class SmsService {
       templateId: input.templateId,
       recipients,
       scheduledAt: input.scheduledAt,
+      providerRefId: (input as { providerRefId?: string }).providerRefId,
     });
+  }
+
+  /** Credits a school has left across its active packages. */
+  async creditBalance(schoolId: string): Promise<number> {
+    return this.sumRemaining(this.prisma, schoolId);
   }
 
   /** Resolve who would receive a message for the given audience, without sending. */
@@ -2232,6 +2238,14 @@ export class SmsService {
       recipients: Recipient[];
       scheduledAt?: string | null;
       campaignId?: string;
+      /**
+       * What this batch is about, in the sender's own terms — an exam id for
+       * an exam-result send. The column was written `undefined` and read
+       * nowhere, and having it carry the subject of the batch is what lets a
+       * school be told "this parent has already had this result" rather than
+       * "this parent has had an exam result at some point".
+       */
+      providerRefId?: string;
     },
   ) {
     const gateway = await this.resolveGateway(schoolId);
@@ -2380,7 +2394,7 @@ export class SmsService {
             creditsUsed: r.credits,
             status: isScheduled ? "QUEUED" : "PENDING",
             scheduledAt,
-            providerRefId: undefined,
+            providerRefId: opts.providerRefId,
             createdByUserId: userId ?? null,
           },
         });
