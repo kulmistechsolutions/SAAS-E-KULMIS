@@ -6,6 +6,7 @@ import { SettingsInput, SettingsSelect } from "@/components/settings/settings-fi
 import { SettingsSaveBar } from "@/components/settings/settings-save-bar";
 import { SettingsToggle } from "@/components/settings/settings-toggle";
 import { useSettingsSection } from "@/components/settings/use-settings-section";
+import { BackfillPanel } from "@/components/attendance/backfill-panel";
 
 export default function AttendanceSettingsPage() {
   const t = useT();
@@ -42,6 +43,11 @@ export default function AttendanceSettingsPage() {
           {t("settingsAttendance.officerEditsHelp")}
         </p>
       </div>
+
+      {/* Its own endpoint, not part of this form: opening a window over past
+          months is an action with a date and an author, not a preference that
+          sits in a draft until somebody remembers to press Save. */}
+      <BackfillPanel />
 
       <SettingsSaveBar dirty={dirty} saving={saving} onSave={save} onCancel={cancel} onResetDefault={resetToDefault} />
     </div>

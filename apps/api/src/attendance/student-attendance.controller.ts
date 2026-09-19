@@ -6,7 +6,11 @@ import {
   Post,
   Query,
 } from "@nestjs/common";
-import { markStudentAttendanceSchema, UserRole } from "@ekulmis/shared";
+import {
+  markStudentAttendanceSchema,
+  openBackfillSchema,
+  UserRole,
+} from "@ekulmis/shared";
 import { StudentAttendanceService } from "./student-attendance.service";
 import { TeachersService } from "../teachers/teachers.service";
 import { AttendanceScopeService } from "./attendance-scope.service";
@@ -92,6 +96,81 @@ export class StudentAttendanceController {
       sectionId ?? null,
       date,
       shiftId ?? null,
+    );
+  }
+
+  /**
+   * Catch-up marking: the window, and today where the school is.
+   *
+   * Read by every staff account, because the marking screen has to know
+   * whether a past day may be entered before it offers to enter one.
+   */
+  @RequirePermission("attendance.view")
+  @Get("backfill")
+  backfill(@CurrentUser() me: AuthUser) {
+    return this.attendance.backfillState(me.schoolId);
+  }
+
+  /**
+   * Open it over a stretch of days already taught, or close it again.
+   *
+   * A school joining halfway through the year arrives with months of registers
+   * on paper. This is how they go in: the school opens the window, the people
+   * who normally take the register fill the days, and the school closes it. It
+   * is not a setting that drifts — it names its dates, it records who opened
+   * it, and the screen says it is open for as long as it is.
+   */
+  @Roles(UserRole.ADMINISTRATOR)
+  @RequirePermission("settings.update")
+  @Post("backfill/open")
+  openBackfill(@CurrentUser() me: AuthUser, @Body() body: unknown) {
+    const parsed = openBackfillSchema.safeParse(body);
+    if (!parsed.success) throw new BadRequestException(parsed.error.flatten());
+    return this.attendance.openBackfill(
+      me.schoolId,
+      parsed.data.from,
+      parsed.data.to,
+      { userId: me.userId, name: me.username },
+    );
+  }
+
+  @Roles(UserRole.ADMINISTRATOR)
+  @RequirePermission("settings.update")
+  @Post("backfill/close")
+  closeBackfill(@CurrentUser() me: AuthUser) {
+    return this.attendance.closeBackfill(me.schoolId);
+  }
+
+  /**
+   * One month of a register, day by day.
+   *
+   * What a school catching up needs and could not get: which days are done,
+   * which are still missing, and how far each got. Opening thirty-one days one
+   * at a time to find out is how a day stays unmarked.
+   */
+  @RequirePermission("attendance.view")
+  @Get("month-status")
+  async monthStatus(
+    @CurrentUser() me: AuthUser,
+    @Query("classId") classId: string,
+    @Query("year") year: string,
+    @Query("month") month: string,
+    @Query("sectionId") sectionId?: string,
+    @Query("shiftId") shiftId?: string,
+  ) {
+    const y = Number(year);
+    const m = Number(month);
+    if (!classId || !Number.isInteger(y) || !Number.isInteger(m) || m < 1 || m > 12) {
+      throw new BadRequestException("classId, year and month (1-12) are required");
+    }
+    await this.assertClassAccess(me, classId, sectionId ?? null, shiftId ?? null);
+    return this.attendance.monthStatus(
+      me.schoolId,
+      classId,
+      sectionId ?? null,
+      shiftId ?? null,
+      y,
+      m,
     );
   }
 

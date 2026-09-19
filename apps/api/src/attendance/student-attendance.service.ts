@@ -5,6 +5,13 @@ import { PrismaService } from "../prisma/prisma.service";
 import { SmsAutoService } from "../sms/sms-auto.service";
 import { safeTimeZone } from "../common/time-zone.util";
 import { studentInClassWhere } from "../students/student-class.util";
+import {
+  daysInMonth,
+  markingDecision,
+  normaliseWindow,
+  validateWindow,
+  type BackfillWindow,
+} from "./backfill-window";
 
 function parseDate(s: string): Date {
   return new Date(`${s}T00:00:00.000Z`);
@@ -66,26 +73,36 @@ export class StudentAttendanceService {
    * schools from marking a register on a policy nobody chose. A saved
    * section is a decision; an unsaved one is not.
    */
-  private async rulesFor(
-    schoolId: string,
-  ): Promise<{ rules: AttendanceRules; timezone: string } | null> {
+  private async rulesFor(schoolId: string): Promise<{
+    rules: AttendanceRules | null;
+    timezone: string;
+    backfill: BackfillWindow | null;
+  }> {
     const school = await this.prisma.school.findUnique({
       where: { id: schoolId },
       select: { attendanceSettings: true, timezone: true },
     });
-    const stored = school?.attendanceSettings as Partial<AttendanceRules> | null;
-    if (!stored) return null;
+    const stored = school?.attendanceSettings as
+      | (Partial<AttendanceRules> & { backfill?: unknown })
+      | null;
     return {
-      rules: {
-        lockTime: stored.lockTime ?? "23:59",
-        excusedEnabled: stored.excusedEnabled ?? true,
-        // Defaults to the behaviour schools already have, so switching this
-        // on is a decision rather than something that happens to them.
-        officerEdits: stored.officerEdits ?? "ALWAYS",
-      },
+      // Null rules still mean "do not enforce". The timezone comes back either
+      // way, because one rule now applies to every school whether or not it has
+      // ever opened that page: a register cannot be taken for a day that has
+      // not happened.
+      rules: stored
+        ? {
+            lockTime: stored.lockTime ?? "23:59",
+            excusedEnabled: stored.excusedEnabled ?? true,
+            // Defaults to the behaviour schools already have, so switching
+            // this on is a decision rather than something that happens to them.
+            officerEdits: stored.officerEdits ?? "ALWAYS",
+          }
+        : null,
       // Falls back rather than throwing: a bad settings value used to stop
       // a teacher marking the register at all.
       timezone: safeTimeZone(school?.timezone),
+      backfill: normaliseWindow(stored?.backfill),
     };
   }
 
@@ -104,32 +121,190 @@ export class StudentAttendanceService {
     statuses: string[],
     role: string | undefined,
   ): Promise<void> {
-    const policy = await this.rulesFor(schoolId);
-    if (!policy) return;
-    const { rules, timezone } = policy;
-
-    if (!rules.excusedEnabled && statuses.includes("EXCUSED")) {
-      throw new BadRequestException(
-        "Excused attendance is switched off for this school (Settings → Attendance).",
-      );
-    }
-
-    // SUPER_ADMINISTRATOR as well as ADMINISTRATOR: the school owner signs in
-    // as the former, so checking only the latter left the escape valve below
-    // shut for the one person it was written for — a past register could not
-    // be corrected by anybody at all.
-    if (role === "ADMINISTRATOR" || role === "SUPER_ADMINISTRATOR") return;
-    const lock = minutesOfDay(rules.lockTime);
-    if (lock === null) return;
-
+    const { rules, timezone, backfill } = await this.rulesFor(schoolId);
     const now = schoolNow(timezone);
-    const lockedOut =
-      dateStr < now.date || (dateStr === now.date && now.minutes >= lock);
-    if (lockedOut) {
-      throw new BadRequestException(
-        `Attendance for ${dateStr} is locked (after ${rules.lockTime}). Ask an administrator to change it.`,
-      );
+
+    // Every rule lives in one pure function, in order, so none of them can be
+    // half-applied here — see backfill-window.ts. SUPER_ADMINISTRATOR counts
+    // as unrestricted there as well as ADMINISTRATOR: the school owner signs in
+    // as the former, and checking only the latter once left a past register
+    // correctable by nobody at all.
+    const decision = markingDecision({
+      date: dateStr,
+      today: now.date,
+      nowMinutes: now.minutes,
+      lockMinutes: rules ? minutesOfDay(rules.lockTime) : null,
+      role,
+      backfill,
+      excusedEnabled: rules ? rules.excusedEnabled : true,
+      statuses,
+    });
+    if (!decision.allowed) throw new BadRequestException(decision.reason);
+  }
+
+  /** The school's catch-up window, and today where the school is. */
+  async backfillState(schoolId: string) {
+    const { timezone, backfill } = await this.rulesFor(schoolId);
+    const year = await this.prisma.forTenant(schoolId, (tx) =>
+      tx.academicYear.findFirst({
+        where: { isActive: true },
+        select: { name: true, startDate: true, endDate: true },
+      }),
+    );
+    return {
+      today: schoolNow(timezone).date,
+      window: backfill,
+      // A year without dates cannot bound anything, so it is reported as no
+      // bound rather than as a year running from the epoch.
+      academicYear:
+        year && year.startDate && year.endDate
+          ? {
+              name: year.name,
+              start: year.startDate.toISOString().slice(0, 10),
+              end: year.endDate.toISOString().slice(0, 10),
+            }
+          : null,
+    };
+  }
+
+  /**
+   * Open catch-up marking over a stretch of days already taught.
+   *
+   * Deliberately narrow: inside the active academic year, ending no later than
+   * today. A window with no end is the lock switched off, and the point of this
+   * one is that it closes — which is why who opened it is recorded, and why
+   * the screen says it is open for as long as it is.
+   */
+  async openBackfill(
+    schoolId: string,
+    from: string,
+    to: string,
+    actor: { userId: string; name?: string | null },
+  ) {
+    const state = await this.backfillState(schoolId);
+    const bounds = state.academicYear
+      ? { start: state.academicYear.start, end: state.academicYear.end }
+      : null;
+    const problem = validateWindow(from, to, state.today, bounds);
+    if (problem) throw new BadRequestException(problem);
+
+    return this.writeWindow(schoolId, {
+      open: true,
+      from,
+      to,
+      openedByUserId: actor.userId,
+      openedByName: actor.name ?? null,
+      openedAt: new Date().toISOString(),
+      closedAt: null,
+    });
+  }
+
+  /** Close it. The dates stay, so the school can see what it caught up on. */
+  async closeBackfill(schoolId: string) {
+    const { backfill } = await this.rulesFor(schoolId);
+    if (!backfill) {
+      throw new BadRequestException("Catch-up marking is not open.");
     }
+    return this.writeWindow(schoolId, {
+      ...backfill,
+      open: false,
+      closedAt: new Date().toISOString(),
+    });
+  }
+
+  /**
+   * Write the window back without disturbing anything else on that page.
+   *
+   * attendanceSettings holds the times and the excused switch too, and this
+   * runs from its own endpoint rather than from the settings form, so the
+   * stored object is read and spread rather than replaced.
+   */
+  private async writeWindow(schoolId: string, window: BackfillWindow) {
+    const school = await this.prisma.school.findUnique({
+      where: { id: schoolId },
+      select: { attendanceSettings: true },
+    });
+    const current =
+      school?.attendanceSettings && typeof school.attendanceSettings === "object"
+        ? (school.attendanceSettings as Record<string, unknown>)
+        : {};
+    await this.prisma.school.update({
+      where: { id: schoolId },
+      data: {
+        attendanceSettings: {
+          ...current,
+          backfill: window,
+        } as unknown as Prisma.InputJsonValue,
+      },
+    });
+    return window;
+  }
+
+  /**
+   * One month of a register, day by day: what is done and what is missing.
+   *
+   * The question a school catching up actually has. Without it the only way to
+   * find the days still outstanding is to open all thirty-one of them, and a
+   * day nobody marked looks exactly like a day everybody was present.
+   */
+  async monthStatus(
+    schoolId: string,
+    classId: string,
+    sectionId: string | null,
+    shiftId: string | null,
+    year: number,
+    month: number,
+  ) {
+    const dates = daysInMonth(year, month);
+    const from = parseDate(dates[0]!);
+    const to = new Date(parseDate(dates[dates.length - 1]!));
+    to.setUTCDate(to.getUTCDate() + 1);
+
+    const { timezone } = await this.rulesFor(schoolId);
+    const today = schoolNow(timezone).date;
+
+    return this.prisma.forTenant(schoolId, async (tx) => {
+      const rows = await tx.studentAttendance.findMany({
+        where: {
+          classId,
+          sectionId,
+          date: { gte: from, lt: to },
+          // The same fallback the register itself uses: a day taken before the
+          // school had shifts carries none, and it is still that day's work.
+          ...(shiftId
+            ? { OR: [{ shiftId }, { shiftId: null }] }
+            : { shiftId: null }),
+        },
+        select: { date: true, studentId: true, status: true },
+      });
+
+      const onRoll = await tx.student.count({
+        where: { ...studentInClassWhere(classId, sectionId), status: "ACTIVE" },
+      });
+
+      const byDate = new Map<string, Set<string>>();
+      const notPresentBy = new Map<string, number>();
+      for (const r of rows) {
+        const key = r.date.toISOString().slice(0, 10);
+        if (!byDate.has(key)) byDate.set(key, new Set());
+        byDate.get(key)!.add(r.studentId);
+        if (r.status === "ABSENT" || r.status === "LATE") {
+          notPresentBy.set(key, (notPresentBy.get(key) ?? 0) + 1);
+        }
+      }
+
+      return {
+        year,
+        month,
+        onRoll,
+        days: dates.map((date) => ({
+          date,
+          marked: byDate.get(date)?.size ?? 0,
+          notPresent: notPresentBy.get(date) ?? 0,
+          future: date > today,
+        })),
+      };
+    });
   }
 
   /** Display names for a set of user ids, deduplicated and empty-safe. */
@@ -164,7 +339,8 @@ export class StudentAttendanceService {
       dto.records.map((r) => r.status),
       role,
     );
-    const policy = (await this.rulesFor(schoolId))?.rules.officerEdits ?? "ALWAYS";
+    const policy =
+      (await this.rulesFor(schoolId)).rules?.officerEdits ?? "ALWAYS";
     const date = parseDate(dto.date);
     const sectionId = dto.sectionId ?? null;
     const shiftId = dto.shiftId ?? null;

@@ -57,6 +57,19 @@ export const attendanceSettingsSchema = z.object({
   officerEdits: z.enum(["ALWAYS", "OWN", "NEVER"]).optional().default("ALWAYS"),
 });
 
+/**
+ * Catch-up marking, opened over a stretch of days a school has already taught.
+ *
+ * Both ends are required and both are dates rather than months: a window that
+ * cannot say where it stops is the attendance lock switched off, and the whole
+ * point of this one is that it closes. The server checks it against the active
+ * academic year and refuses anything reaching into the future.
+ */
+export const openBackfillSchema = z.object({
+  from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD."),
+  to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD."),
+});
+
 export const examSettingsSchema = z.object({
   maxTerms: z.number().int().min(1).max(12),
   defaultExamStatus: z.string().min(1),

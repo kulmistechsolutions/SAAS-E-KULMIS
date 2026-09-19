@@ -57,12 +57,42 @@ import { useAuth } from "@/lib/auth";
 import { loadTeacherMe } from "@/lib/teachers/session";
 import type { TeacherMe } from "@/lib/teachers/api";
 import { useHydrated } from "@/lib/use-hydrated";
+import { MonthGrid } from "@/components/attendance/month-grid";
+import {
+  apiBackfillState,
+  type ApiBackfillState,
+} from "@/lib/attendance/api";
 
 const TABS = [
   { id: "mark", label: "Mark Attendance" },
   { id: "dashboard", label: "Dashboard" },
   { id: "reports", label: "Reports" },
 ];
+
+/** Months from "YYYY-MM" to "YYYY-MM", inclusive. */
+function monthsBetween(from: string, to: string): string[] {
+  const out: string[] = [];
+  let [y, m] = from.split("-").map(Number);
+  for (let i = 0; i < 36 && y && m; i++) {
+    const key = `${y}-${String(m).padStart(2, "0")}`;
+    out.push(key);
+    if (key >= to) break;
+    m += 1;
+    if (m > 12) {
+      m = 1;
+      y += 1;
+    }
+  }
+  return out;
+}
+
+function monthName(key: string): string {
+  const [y, m] = key.split("-").map(Number);
+  return new Date(Date.UTC(y ?? 1970, (m ?? 1) - 1, 1)).toLocaleDateString(
+    undefined,
+    { month: "long", year: "numeric", timeZone: "UTC" },
+  );
+}
 
 function StudentAttendanceScreen() {
   const t = useT();
@@ -126,6 +156,19 @@ function StudentAttendanceScreen() {
   // stays hidden, no forced complexity.
   useEffect(() => {
     void listAttendanceShifts().then(setShifts);
+  }, []);
+
+  // Catch-up marking. Null until the answer arrives; the tab is not offered
+  // before then, because offering a window that turns out to be closed is
+  // worse than showing it a moment late.
+  const [backfill, setBackfill] = useState<ApiBackfillState | null>(null);
+  const [catchMonth, setCatchMonth] = useState("");
+  const [gridKey, setGridKey] = useState(0);
+
+  useEffect(() => {
+    void apiBackfillState()
+      .then(setBackfill)
+      .catch(() => setBackfill(null));
   }, []);
 
   const [rows, setRows] = useState<StudentMarkRow[]>([]);
@@ -209,6 +252,37 @@ function StudentAttendanceScreen() {
     if (hasAllSections) return all;
     return all.filter((s) => allowed.has(s.name));
   }, [klass, year, academics.sections, isTeacher, teacherMe]);
+
+  // Ids for the catch-up grid, which asks the server about a month rather
+  // than a day and so needs the class by id, not by the name in the picker.
+  const markClassId = selectedMarkClass?.id ?? "";
+  const markSectionId =
+    sectionOptions.find((sec) => sec.name === section)?.id ?? null;
+
+  // Which months catch-up marking is open over, and whether it is open at all.
+  const catchUpOpen = backfill?.window?.open === true;
+  const catchMonths = useMemo(
+    () =>
+      catchUpOpen && backfill?.window
+        ? monthsBetween(
+            backfill.window.from.slice(0, 7),
+            backfill.window.to.slice(0, 7),
+          )
+        : [],
+    [catchUpOpen, backfill],
+  );
+
+  useEffect(() => {
+    if (catchMonths.length > 0 && !catchMonths.includes(catchMonth)) {
+      setCatchMonth(catchMonths[0]!);
+    }
+  }, [catchMonths, catchMonth]);
+
+  // A window that closes while somebody is standing in the tab must not leave
+  // them on a screen that no longer exists.
+  useEffect(() => {
+    if (tab === "catchup" && !catchUpOpen) setTab("mark");
+  }, [tab, catchUpOpen]);
 
   // A class flagged hasSections=true but with zero actual Section rows (e.g.
   // the toggle was left on at creation and no section was ever added) must
@@ -303,6 +377,9 @@ function StudentAttendanceScreen() {
     );
     setSaving(false);
     if (!res.ok) return toast(res.error ?? "Save failed.", "error");
+    // The month grid is showing what is done and what is missing; this day
+    // just changed sides.
+    setGridKey((k) => k + 1);
     toast(
       `Attendance saved. ${res.summary?.present} present, ${res.summary?.absent} absent (${res.summary?.percentage}%).`,
     );
@@ -363,9 +440,138 @@ function StudentAttendanceScreen() {
       </div>
 
       <div className="rounded-2xl border bg-card shadow-sm">
-        <Tabs tabs={TABS} active={tab} onChange={setTab} className="px-2" />
+        <Tabs
+          tabs={
+            catchUpOpen
+              ? [
+                  TABS[0]!,
+                  {
+                    id: "catchup",
+                    label: t("attendanceBackfill.tab"),
+                  },
+                  ...TABS.slice(1),
+                ]
+              : TABS
+          }
+          active={tab}
+          onChange={setTab}
+          className="px-2"
+        />
 
         <div className="p-6">
+          {tab === "catchup" && (
+            <div className="space-y-5">
+              <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm">
+                <p className="font-medium text-amber-700 dark:text-amber-400">
+                  {t("attendanceBackfill.openNow")
+                    .replace("{from}", backfill?.window?.from ?? "")
+                    .replace("{to}", backfill?.window?.to ?? "")}
+                </p>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  {t("attendanceBackfill.tabHelp")}
+                </p>
+              </div>
+
+              <div className={cn(
+                "grid gap-3 rounded-xl border bg-secondary/20 p-4 sm:grid-cols-2",
+                shifts.length > 0 ? "lg:grid-cols-4" : "lg:grid-cols-3",
+              )}>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                    {t("attendanceBackfill.month")}
+                  </label>
+                  <Select
+                    value={catchMonth}
+                    onChange={(e) => setCatchMonth(e.target.value)}
+                  >
+                    {catchMonths.map((m) => (
+                      <option key={m} value={m}>
+                        {monthName(m)}
+                      </option>
+                    ))}
+                  </Select>
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                    {t("attendanceStudents.class")}
+                  </label>
+                  <Select value={klass} onChange={(e) => { setKlass(e.target.value); setSection(""); setLoaded(false); }}>
+                    <option value="">{t("attendanceStudents.selectClass")}</option>
+                    {yearClassGroups.map((g) =>
+                      g.label === null ? (
+                        g.items.map((c) => (
+                          <option key={c.id} value={c.name}>{c.name}</option>
+                        ))
+                      ) : (
+                        <optgroup key={g.label} label={g.label}>
+                          {g.items.map((c) => (
+                            <option key={c.id} value={c.name}>{c.name}</option>
+                          ))}
+                        </optgroup>
+                      ),
+                    )}
+                  </Select>
+                </div>
+                {sectionOptions.length > 0 && (
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                      {t("attendanceStudents.section")}
+                    </label>
+                    <Select value={section} onChange={(e) => { setSection(e.target.value); setLoaded(false); }}>
+                      <option value="">
+                        {markClassNeedsSection ? "Select section" : "— (no sections)"}
+                      </option>
+                      {sectionOptions.map((sec) => (
+                        <option key={sec.id} value={sec.name}>
+                          {t("attendanceStudents.section")} {sec.name}
+                        </option>
+                      ))}
+                    </Select>
+                  </div>
+                )}
+                {shifts.length > 0 && (
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                      {t("attendanceStudents.shift")} *
+                    </label>
+                    <Select value={shiftId} onChange={(e) => { setShiftId(e.target.value); setLoaded(false); }}>
+                      <option value="">{t("attendanceStudents.selectShift")}</option>
+                      {shifts.map((sh) => (
+                        <option key={sh.id} value={sh.id}>
+                          {sh.status === "ACTIVE"
+                            ? sh.name
+                            : `${sh.name} (${t("attendanceShifts.retired")})`}
+                        </option>
+                      ))}
+                    </Select>
+                  </div>
+                )}
+              </div>
+
+              {!markClassId || (shifts.length > 0 && !shiftId) ? (
+                <p className="rounded-xl border bg-card p-6 text-center text-sm text-muted-foreground">
+                  {t("attendanceBackfill.pickClass")}
+                </p>
+              ) : (
+                <MonthGrid
+                  classId={markClassId}
+                  sectionId={markSectionId}
+                  shiftId={shiftId || null}
+                  month={catchMonth}
+                  refreshKey={gridKey}
+                  onPickDay={(d) => {
+                    // Straight into the register that is already tested, on
+                    // the day they picked. A second marking screen would be a
+                    // second set of rules to keep in step with this one.
+                    setDate(d);
+                    setLoaded(false);
+                    setTab("mark");
+                  }}
+                />
+              )}
+            </div>
+          )}
+
           {tab === "mark" && (
             <div className="space-y-5">
               <div className={cn(

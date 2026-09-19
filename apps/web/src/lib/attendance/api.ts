@@ -263,6 +263,80 @@ export async function apiStudentDailyAttendanceReport(filters: {
   );
 }
 
+/**
+ * Catch-up marking — the window a school opens to enter months it kept on
+ * paper. Closed (or never opened) is the normal state; `window` is null then.
+ */
+export interface ApiBackfillWindow {
+  open: boolean;
+  from: string;
+  to: string;
+  openedByUserId?: string | null;
+  openedByName?: string | null;
+  openedAt?: string | null;
+  closedAt?: string | null;
+}
+
+export interface ApiBackfillState {
+  /** Today where the school is, not where the server is. */
+  today: string;
+  window: ApiBackfillWindow | null;
+  academicYear: { name: string; start: string; end: string } | null;
+}
+
+export async function apiBackfillState(): Promise<ApiBackfillState> {
+  return api<ApiBackfillState>("/student-attendance/backfill");
+}
+
+export async function apiOpenBackfill(
+  from: string,
+  to: string,
+): Promise<ApiBackfillWindow> {
+  return api<ApiBackfillWindow>("/student-attendance/backfill/open", {
+    method: "POST",
+    body: { from, to },
+  });
+}
+
+export async function apiCloseBackfill(): Promise<ApiBackfillWindow> {
+  return api<ApiBackfillWindow>("/student-attendance/backfill/close", {
+    method: "POST",
+  });
+}
+
+export interface ApiMonthStatusDay {
+  date: string;
+  /** How many children on this day already have a mark. */
+  marked: number;
+  /** Of those, how many were not simply present. */
+  notPresent: number;
+  future: boolean;
+}
+
+export interface ApiMonthStatus {
+  year: number;
+  month: number;
+  onRoll: number;
+  days: ApiMonthStatusDay[];
+}
+
+export async function apiMonthStatus(opts: {
+  classId: string;
+  year: number;
+  month: number;
+  sectionId?: string | null;
+  shiftId?: string | null;
+}): Promise<ApiMonthStatus> {
+  const params = new URLSearchParams({
+    classId: opts.classId,
+    year: String(opts.year),
+    month: String(opts.month),
+  });
+  if (opts.sectionId) params.set("sectionId", opts.sectionId);
+  if (opts.shiftId) params.set("shiftId", opts.shiftId);
+  return api<ApiMonthStatus>(`/student-attendance/month-status?${params}`);
+}
+
 export async function apiTeacherRoster(
   shift: string,
   date: string,
