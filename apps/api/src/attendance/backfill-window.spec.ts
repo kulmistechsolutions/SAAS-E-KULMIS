@@ -219,6 +219,17 @@ describe("opening a window", () => {
       .toContain("academic year");
   });
 
+  it("is checked against today alone when the year has no usable dates", () => {
+    // Six schools have an active year ending on or before the day it starts —
+    // KTS runs "2026/2027" from 2026-08-01 to 2026-06-20. Passing that through
+    // as a bound would refuse every month there is, so the caller passes null
+    // and only the future check applies.
+    expect(validateWindow("2026-08-01", "2026-08-31", "2026-09-17", null))
+      .toBeNull();
+    expect(validateWindow("2026-08-01", "2026-12-31", "2026-09-17", null))
+      .toContain("future");
+  });
+
   it("refuses a backwards window and a malformed one", () => {
     expect(validateWindow("2026-08-31", "2026-08-01", "2026-09-17", null))
       .not.toBeNull();

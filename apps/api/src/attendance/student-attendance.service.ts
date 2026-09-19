@@ -154,14 +154,20 @@ export class StudentAttendanceService {
     return {
       today: schoolNow(timezone).date,
       window: backfill,
-      // A year without dates cannot bound anything, so it is reported as no
-      // bound rather than as a year running from the epoch.
+      // Reported with whether its dates can actually bound anything. Six
+      // schools have an active year ending on or before the day it starts —
+      // KTS runs "2026/2027" from 2026-08-01 to 2026-06-20 — and bounding a
+      // window by that would refuse every month there is. A typo in a field
+      // on another screen must not lock a school out of a feature.
       academicYear:
         year && year.startDate && year.endDate
           ? {
               name: year.name,
               start: year.startDate.toISOString().slice(0, 10),
               end: year.endDate.toISOString().slice(0, 10),
+              usable:
+                year.endDate.toISOString().slice(0, 10) >
+                year.startDate.toISOString().slice(0, 10),
             }
           : null,
     };
@@ -182,9 +188,12 @@ export class StudentAttendanceService {
     actor: { userId: string; name?: string | null },
   ) {
     const state = await this.backfillState(schoolId);
-    const bounds = state.academicYear
-      ? { start: state.academicYear.start, end: state.academicYear.end }
-      : null;
+    // Only where the year's own dates make sense; otherwise the window is
+    // checked against today alone, which is the rule that matters.
+    const bounds =
+      state.academicYear && state.academicYear.usable
+        ? { start: state.academicYear.start, end: state.academicYear.end }
+        : null;
     const problem = validateWindow(from, to, state.today, bounds);
     if (problem) throw new BadRequestException(problem);
 

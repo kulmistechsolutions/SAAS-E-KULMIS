@@ -26,6 +26,27 @@ function lastDay(month: string, cap: string): string {
   return end > cap ? cap : end;
 }
 
+/** Twelve months back from a date, as "YYYY-MM". */
+function aYearBack(today: string): string {
+  const [y, m] = today.slice(0, 7).split("-").map(Number);
+  return `${(y ?? 1970) - 1}-${String(m ?? 1).padStart(2, "0")}`;
+}
+
+/**
+ * Which months a school may pick from: back to the start of its academic year.
+ *
+ * Falls back to the last twelve months where that year's dates cannot say —
+ * six schools have an active year ending before it starts, and a typo on the
+ * academic-year screen must not leave this one with a single month in it.
+ */
+function pickableMonths(state: ApiBackfillState): string[] {
+  const start =
+    state.academicYear && state.academicYear.usable
+      ? state.academicYear.start
+      : aYearBack(state.today);
+  return monthsUpTo(start, state.today);
+}
+
 /** Every month from the year's start up to and including the current one. */
 function monthsUpTo(start: string, today: string): string[] {
   const out: string[] = [];
@@ -76,9 +97,7 @@ export function BackfillPanel() {
     try {
       const s = await apiBackfillState();
       setState(s);
-      const months = s.academicYear
-        ? monthsUpTo(s.academicYear.start, s.today)
-        : [s.today.slice(0, 7)];
+      const months = pickableMonths(s);
       // Defaults to the month before this one, which is what a school
       // catching up almost always wants first.
       const fallback = months[Math.max(0, months.length - 2)] ?? months[0]!;
@@ -105,9 +124,7 @@ export function BackfillPanel() {
   }
   if (!state) return null;
 
-  const months = state.academicYear
-    ? monthsUpTo(state.academicYear.start, state.today)
-    : [state.today.slice(0, 7)];
+  const months = pickableMonths(state);
   const isOpen = state.window?.open === true;
 
   async function open() {
@@ -225,7 +242,7 @@ export function BackfillPanel() {
             </p>
           )}
           <p className="text-xs text-muted-foreground">
-            {state.academicYear
+            {state.academicYear && state.academicYear.usable
               ? t("attendanceBackfill.yearBound").replace(
                   "{year}",
                   state.academicYear.name,

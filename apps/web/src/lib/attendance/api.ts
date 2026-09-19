@@ -281,7 +281,13 @@ export interface ApiBackfillState {
   /** Today where the school is, not where the server is. */
   today: string;
   window: ApiBackfillWindow | null;
-  academicYear: { name: string; start: string; end: string } | null;
+  academicYear: {
+    name: string;
+    start: string;
+    end: string;
+    /** False when the year's own dates cannot bound anything (end <= start). */
+    usable: boolean;
+  } | null;
 }
 
 export async function apiBackfillState(): Promise<ApiBackfillState> {
