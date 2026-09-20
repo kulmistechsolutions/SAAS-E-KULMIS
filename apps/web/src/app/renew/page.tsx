@@ -19,8 +19,15 @@ interface Plan {
   id: string;
   name: string;
   description?: string | null;
-  priceUsd?: number | null;
-  yearlyPriceUsd?: number | null;
+  /**
+   * What this school will actually be charged, worked out by the server.
+   *
+   * Not the plan's list price: a plan can be priced per student, so the amount
+   * depends on how many this school has. Reading priceUsd here would show one
+   * number on the screen and take another off the card.
+   */
+  computedMonthlyPriceUsd?: number | string | null;
+  computedYearlyPriceUsd?: number | string | null;
   maxStudents?: number | null;
   maxTeachers?: number | null;
   isCurrent?: boolean;
@@ -35,8 +42,11 @@ interface Mine {
 
 type Cycle = "MONTHLY" | "YEARLY";
 
-function money(n: number | null | undefined): string {
-  return n === null || n === undefined ? "—" : `$${n}`;
+/** Decimals cross the wire as strings; both have to render as one price. */
+function money(n: number | string | null | undefined): string {
+  if (n === null || n === undefined || n === "") return "—";
+  const v = typeof n === "string" ? Number(n) : n;
+  return Number.isFinite(v) ? `$${v.toFixed(2)}` : "—";
 }
 
 /**
@@ -90,22 +100,38 @@ export default function RenewPage() {
 
   const chosen = plans.find((p) => p.id === planId) ?? null;
   const price =
-    cycle === "YEARLY" ? chosen?.yearlyPriceUsd : chosen?.priceUsd;
+    cycle === "YEARLY"
+      ? chosen?.computedYearlyPriceUsd
+      : chosen?.computedMonthlyPriceUsd;
 
   async function pay() {
     if (!chosen) return;
     setBusy(true);
     setError(null);
     try {
-      const res = await api<{ id: string; redirectUrl?: string }>(
-        "/subscriptions/purchase",
-        {
-          method: "POST",
-          body: { planId: chosen.id, billingCycle: cycle, payerPhone: phone },
+      // `payerAccount` is what the server asks for, and what Waafi pushes the
+      // approval to. The receipt comes straight back: an API purchase is
+      // approved on the phone, a hosted one sends the payer to Waafi's page.
+      const res = await api<{
+        id: string;
+        status: string;
+        hppUrl?: string | null;
+      }>("/subscriptions/purchase", {
+        method: "POST",
+        body: {
+          planId: chosen.id,
+          billingCycle: cycle,
+          payerAccount: phone.trim(),
         },
-      );
+      });
       setOrderId(res.id);
-      if (res.redirectUrl) window.location.href = res.redirectUrl;
+      if (res.status === "SUCCESS") {
+        // Some wallets settle immediately; there is nothing to wait for.
+        setAccessToken(null);
+        setDone(true);
+        return;
+      }
+      if (res.hppUrl) window.location.href = res.hppUrl;
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not start the payment.");
     } finally {
@@ -204,15 +230,15 @@ export default function RenewPage() {
                 </p>
               )}
               <p className="mt-2 text-2xl font-bold tabular-nums">
-                {money(p.priceUsd)}
+                {money(p.computedMonthlyPriceUsd)}
                 <span className="text-sm font-normal text-muted-foreground">
                   {" "}
                   / month
                 </span>
               </p>
-              {p.yearlyPriceUsd ? (
+              {p.computedYearlyPriceUsd ? (
                 <p className="text-xs text-muted-foreground">
-                  {money(p.yearlyPriceUsd)} / year
+                  {money(p.computedYearlyPriceUsd)} / year
                 </p>
               ) : null}
               <p className="mt-2 text-xs text-muted-foreground">
