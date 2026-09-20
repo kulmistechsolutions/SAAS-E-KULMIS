@@ -2817,6 +2817,12 @@ export const arGenerated: PartialDictionary = {
     failedToUpdateTrial: "فشل تحديث الفترة التجريبية",
   },
   platformSchools: {
+    signInAs: "الدخول كمدرسة",
+    signInOpen: "فتح الجلسة",
+    signInReason: "لماذا تسجّل الدخول؟",
+    signInReasonHint: "مثال: مساعدتهم في تجديد اشتراك منتهٍ، تذكرة رقم ١٤٢",
+    signInWarning: "يفتح هذا جلسة مدتها ٣٠ دقيقة بصفة مدير المدرسة. ويُسجَّل في سجل تدقيق المدرسة نفسها باسمك وبهذا السبب، حيث يمكن لموظفيها قراءته.",
+    signInOpened: "فُتحت الجلسة بصفة {user}. تنتهي بعد {minutes} دقيقة.",
     loadingSchools: "جارٍ تحميل المدارس…",
     schools: "المدارس",
     provisionSuspendAndManageTenantSchools: "تسجيل وتعليق وإدارة المدارس المستأجرة",

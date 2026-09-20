@@ -25,6 +25,14 @@ export interface JwtPayload {
    * alternative is a credential that quietly works somewhere nobody checked.
    */
   scope?: "BILLING";
+  /**
+   * The platform administrator who signed in to this school for support.
+   *
+   * Their username, so the school's screens can say whose session this is and
+   * any future rule can refuse one. A support session is not a secret kept
+   * from the customer.
+   */
+  imp?: string;
 }
 
 /** The authenticated principal attached to `req.user` by JwtAuthGuard. */
@@ -43,4 +51,6 @@ export interface AuthUser {
   permissionRole: string;
   /** Set when this request carries a renewal-only token. */
   scope?: "BILLING";
+  /** The platform administrator signed in as this school, when one did. */
+  impersonatedBy?: string;
 }

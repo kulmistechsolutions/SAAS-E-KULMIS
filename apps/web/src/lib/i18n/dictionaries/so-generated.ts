@@ -2822,6 +2822,12 @@ export const soGenerated: PartialDictionary = {
     failedToUpdateTrial: "Tijaabada lama cusboonaysiin karin",
   },
   platformSchools: {
+    signInAs: "U gal sida dugsiga",
+    signInOpen: "Fur session",
+    signInReason: "Maxaad u galaysaa?",
+    signInReasonHint: "tusaale: Waxaan ka caawinayaa cusboonaysiinta plan dhacay, tigidh #142",
+    signInWarning: "Tani waxay furaysaa session 30 daqiiqo ah oo ah maamulaha dugsiga. Waxaa lagu qorayaa diiwaanka hawlaha ee DUGSIGA LAFTIISA, magacaaga iyo sababtan, halkaas oo shaqaaluhoodu akhrisan karaan.",
+    signInOpened: "Session waa la furay sida {user}. Waxay dhammaanaysaa {minutes} daqiiqo gudahood.",
     loadingSchools: "Dugsiyada waa la soo dejinayaa…",
     schools: "Dugsiyada",
     provisionSuspendAndManageTenantSchools: "Diiwaangeli, hakii, oo maaree dugsiyada kiraysta",

@@ -2880,6 +2880,12 @@ export const generated = {
     failedToUpdateTrial: "Failed to update trial",
   },
   platformSchools: {
+    signInAs: "Sign in as school",
+    signInOpen: "Open session",
+    signInReason: "Why are you signing in?",
+    signInReasonHint: "e.g. Helping them renew an expired plan, ticket #142",
+    signInWarning: "This opens a 30-minute session as the school's administrator. It is written to the school's OWN audit trail with your name and this reason, where their staff can read it.",
+    signInOpened: "Session opened as {user}. It ends in {minutes} minutes.",
     loadingSchools: "Loading schools…",
     schools: "Schools",
     provisionSuspendAndManageTenantSchools: "Provision, suspend, and manage tenant schools",

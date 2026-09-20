@@ -231,6 +231,29 @@ export async function fetchPlatformSchool(id: string): Promise<PlatformSchool> {
   return mapSchool(row);
 }
 
+export interface SupportSession {
+  accessToken: string;
+  expiresInMinutes: number;
+  school: { id: string; name: string; subdomain: string; status: string };
+  signedInAs: { username: string; role: string };
+}
+
+/**
+ * Open a support session on a school, as its administrator.
+ *
+ * The reason is not decoration: it is written to the school's own audit trail
+ * alongside the platform's, so the school can see that this happened and why.
+ */
+export async function signInToSchool(
+  id: string,
+  reason: string,
+): Promise<SupportSession> {
+  return platformFetch<SupportSession>(`/platform/schools/${id}/sign-in`, {
+    method: "POST",
+    body: { reason },
+  });
+}
+
 export async function createPlatformSchool(
   payload: CreateSchoolPayload,
 ): Promise<{ school: PlatformSchool; admin: { username: string } }> {

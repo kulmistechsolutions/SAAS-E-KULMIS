@@ -13,6 +13,7 @@ import {
   TrialCell,
 } from "@/components/platform/school-trial-dialog";
 import { createSchool, loadSchools } from "@/lib/platform/data";
+import { SchoolSignInDialog } from "@/components/platform/school-sign-in-dialog";
 import { shortDate, tenantUrl } from "@/lib/platform/format";
 import { usePlatformSchoolsState } from "@/lib/platform/store";
 import type { PlatformSchool } from "@/lib/platform/types";
@@ -29,6 +30,9 @@ export default function PlatformSchoolsPage() {
   const [schools, setSchools] = useState<PlatformSchool[]>([]);
   const [search, setSearch] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
+  const [signInFor, setSignInFor] = useState<
+    { id: string; name: string; subdomain: string } | null
+  >(null);
   const [loginsFor, setLoginsFor] = useState<{ id: string; name: string } | null>(
     null,
   );
@@ -136,6 +140,24 @@ export default function PlatformSchoolsPage() {
                     >
                       {t("platformSchools.logins")}
                     </button>
+                    {/*
+                      Support without asking a school for its password —
+                      which is what teaches schools that giving it away is
+                      normal. The reason goes into their own audit trail.
+                    */}
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setSignInFor({
+                          id: s.id,
+                          name: s.name,
+                          subdomain: s.subdomain,
+                        })
+                      }
+                      className="text-xs text-amber-400 hover:text-amber-300 hover:underline"
+                    >
+                      {t("platformSchools.signInAs")}
+                    </button>
                     <button
                       type="button"
                       onClick={() =>
@@ -170,6 +192,10 @@ export default function PlatformSchoolsPage() {
         onSubmit={handleCreate}
       />
 
+      <SchoolSignInDialog
+        school={signInFor}
+        onClose={() => setSignInFor(null)}
+      />
       <SchoolLoginsDialog
         open={!!loginsFor}
         onClose={() => setLoginsFor(null)}

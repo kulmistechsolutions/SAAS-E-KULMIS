@@ -78,6 +78,7 @@ export class JwtAuthGuard implements CanActivate {
       permissionRole: payload.crid ?? payload.role,
       username: payload.username,
       scope: payload.scope,
+      impersonatedBy: payload.imp,
     };
     // Ensure tenant scoping for token-authenticated requests.
     req.tenant ??= { schoolId: payload.sid, subdomain: "" };

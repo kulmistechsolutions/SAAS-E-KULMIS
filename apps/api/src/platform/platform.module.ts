@@ -5,6 +5,7 @@ import { PlatformAuthController } from "./platform-auth.controller";
 import { PlatformAuthService } from "./platform-auth.service";
 import { SchoolsController } from "./schools.controller";
 import { SchoolsService } from "./schools.service";
+import { SchoolSignInService } from "./school-sign-in.service";
 import { PlatformDashboardController } from "./platform-dashboard.controller";
 import { PlatformService } from "./platform.service";
 import { DataHealthService } from "./data-health.service";
@@ -31,6 +32,7 @@ import { PlatformGuard } from "./platform.guard";
   providers: [DataHealthService, 
     PlatformAuthService,
     SchoolsService,
+    SchoolSignInService,
     PlatformService,
     PlatformGuard,
   ],
