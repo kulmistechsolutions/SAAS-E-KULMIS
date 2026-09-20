@@ -14,6 +14,17 @@ export interface JwtPayload {
    * under. Absent for everybody on a built-in role, which is everybody today.
    */
   crid?: string;
+  /**
+   * Present only on a token issued to renew a lapsed subscription.
+   *
+   * A school whose plan has expired cannot sign in — which also meant it
+   * could not reach the screen that sells it a new one, and the only way back
+   * was to telephone the platform owner. This token exists so it can pay, and
+   * for nothing else: JwtAuthGuard refuses it on every route that has not
+   * explicitly opted in with @BillingScope(). Deny by default, because the
+   * alternative is a credential that quietly works somewhere nobody checked.
+   */
+  scope?: "BILLING";
 }
 
 /** The authenticated principal attached to `req.user` by JwtAuthGuard. */
@@ -30,4 +41,6 @@ export interface AuthUser {
    * uses this; nothing should reach for `role` to answer "may they".
    */
   permissionRole: string;
+  /** Set when this request carries a renewal-only token. */
+  scope?: "BILLING";
 }

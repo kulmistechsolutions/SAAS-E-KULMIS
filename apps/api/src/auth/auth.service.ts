@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   UnauthorizedException,
 } from "@nestjs/common";
@@ -80,9 +81,48 @@ export class AuthService {
       throw new UnauthorizedException("Invalid credentials");
     }
     // Checked after the password so a wrong password can never reveal a
-    // school's billing state. Throws ForbiddenException (403), which the web
-    // app shows as an upgrade prompt rather than a credentials error.
-    await this.subscriptions.assertSchoolAccess(schoolId);
+    // school's billing state.
+    //
+    // A lapsed subscription used to end here, with "please contact Platform
+    // Administrator". The screen that sells a plan sits behind sign-in, so the
+    // one thing that would fix the situation was the one thing the school
+    // could not reach, and every renewal became a phone call. An administrator
+    // now gets a token scoped to billing and nothing else, so they can choose
+    // a plan and pay for it themselves; the moment the payment clears, the
+    // ordinary sign-in works again.
+    //
+    // Only an administrator, because only an administrator can buy anything.
+    // A teacher meeting a lapsed plan still gets the refusal — with something
+    // they can act on, which is to tell their administrator.
+    const access = await this.subscriptions.schoolAccess(schoolId);
+    if (!access.allowed) {
+      const canRenew =
+        user.role === "ADMINISTRATOR" || user.role === "SUPER_ADMINISTRATOR";
+      await this.audit.record({
+        schoolId,
+        userId: user.id,
+        username: user.username,
+        role: user.role,
+        module: AUTH_MODULE,
+        action: canRenew ? "Renewal Session Issued" : LOGIN_FAILED,
+        ip: ctx.ip ?? null,
+        metadata: {
+          reason: `subscription ${access.reason}`,
+          userAgent: ctx.userAgent ?? null,
+        },
+      });
+      if (!canRenew) {
+        throw new ForbiddenException(
+          `${access.message ?? "Your school subscription has expired."} Ask your school administrator to renew it.`,
+        );
+      }
+      return {
+        renewal: true as const,
+        accessToken: await this.signBillingToken(user),
+        access,
+        user: this.userSummary(user),
+      };
+    }
     await this.prisma.user.update({
       where: { id: user.id },
       data: { lastLoginAt: new Date() },
@@ -157,6 +197,29 @@ export class AuthService {
       where: { tokenHash, revokedAt: null },
       data: { revokedAt: new Date() },
     });
+  }
+
+  /**
+   * A token that can pay for a plan and do nothing else.
+   *
+   * Thirty minutes, because it exists for one transaction and a credential
+   * that outlives its purpose is a credential somebody finds later. It carries
+   * no refresh token for the same reason \u2014 renewing it would mean renewing
+   * the right to spend without signing in again.
+   *
+   * What it may reach is decided by @BillingScope() on the route, not here;
+   * JwtAuthGuard refuses it everywhere else.
+   */
+  private async signBillingToken(user: User): Promise<string> {
+    const payload: JwtPayload = {
+      sub: user.id,
+      sid: user.schoolId,
+      role: user.role,
+      username: user.username,
+      scope: "BILLING",
+      ...(user.customRoleId ? { crid: user.customRoleId } : {}),
+    };
+    return this.jwt.signAsync(payload, { expiresIn: 30 * 60 });
   }
 
   private async signAccessToken(user: User): Promise<string> {

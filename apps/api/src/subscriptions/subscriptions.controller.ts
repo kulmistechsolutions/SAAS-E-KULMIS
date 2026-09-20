@@ -28,6 +28,7 @@ import {
 } from "../platform/platform-roles.guard";
 import { Public } from "../auth/public.decorator";
 import { Roles } from "../auth/roles.decorator";
+import { BillingScope } from "../auth/billing-scope.decorator";
 import { CurrentUser } from "../auth/current-user.decorator";
 import { CurrentPlatformAdmin } from "../platform/current-platform-admin.decorator";
 import type { AuthUser } from "../auth/auth.types";
@@ -195,17 +196,28 @@ export class SubscriptionsController {
   constructor(private readonly subscriptions: SubscriptionsService) {}
 
   @Roles(UserRole.ADMINISTRATOR)
+  // ── Reachable with a renewal-only token ──────────────────────────────
+  //
+  // A school whose plan has lapsed cannot sign in, so these four are the whole
+  // of what it can do: see where it stands, read the plans, pay for one, and
+  // have that payment checked. Everything else refuses the token outright.
+  // Marking a route here is a decision about what a school with no live plan
+  // may do, and it is meant to stay this short.
+
+  @BillingScope()
   @Get("me")
   getMine(@CurrentUser() me: AuthUser) {
     return this.subscriptions.getMySubscription(me.schoolId);
   }
 
+  @BillingScope()
   @Roles(UserRole.ADMINISTRATOR)
   @Get("plans")
   listPlans(@CurrentUser() me: AuthUser) {
     return this.subscriptions.listAvailablePlans(me.schoolId);
   }
 
+  @BillingScope()
   @Roles(UserRole.ADMINISTRATOR)
   @Post("purchase")
   purchase(@CurrentUser() me: AuthUser, @Body() body: unknown) {
@@ -224,12 +236,14 @@ export class SubscriptionsController {
     return this.subscriptions.listSchoolSubscriptionOrders(me.schoolId);
   }
 
+  @BillingScope()
   @Roles(UserRole.ADMINISTRATOR)
   @Get("payments/:id")
   paymentReceipt(@CurrentUser() me: AuthUser, @Param("id") id: string) {
     return this.subscriptions.getSubscriptionOrderReceipt(me.schoolId, id);
   }
 
+  @BillingScope()
   @Roles(UserRole.ADMINISTRATOR)
   @Post("payments/:id/verify")
   verifyPayment(@CurrentUser() me: AuthUser, @Param("id") id: string) {

@@ -32,8 +32,37 @@ export interface AuthUser {
 
 interface LoginResponse {
   accessToken: string;
-  refreshToken: string;
+  refreshToken?: string;
   user: { id: string; username: string; role: UserRole; schoolId: string };
+  /**
+   * The school's plan has lapsed and this administrator may renew it.
+   *
+   * The token that comes back opens the billing screens and nothing else, so
+   * there is no session to start — the caller is sent to /renew instead.
+   */
+  renewal?: true;
+  access?: {
+    reason: "EXPIRED" | "TRIAL_ENDED" | "NONE" | string;
+    message: string | null;
+    trialEndsAt?: string | null;
+  };
+}
+
+/**
+ * Thrown when sign-in was correct but the subscription is not.
+ *
+ * Not a login failure: the password was right, the school simply has nothing
+ * to sign in to until it has a plan. The login screen catches this and sends
+ * them to pay rather than showing a credentials error.
+ */
+export class SubscriptionLapsed extends Error {
+  constructor(
+    readonly reason: string,
+    message: string,
+  ) {
+    super(message);
+    this.name = "SubscriptionLapsed";
+  }
 }
 
 interface AuthContextValue {
@@ -176,7 +205,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       auth: false,
     });
     setAccessToken(res.accessToken);
-    setRefreshToken(res.refreshToken);
+    if (res.renewal) {
+      // A renewal token, not a session. Kept so the /renew screen can read the
+      // plans and pay; deliberately no refresh token, because renewing the
+      // right to spend without signing in again is not something to offer.
+      setRefreshToken(null);
+      throw new SubscriptionLapsed(
+        res.access?.reason ?? "EXPIRED",
+        res.access?.message ?? "Your school subscription has expired.",
+      );
+    }
+    setRefreshToken(res.refreshToken ?? null);
     const me = await api<AuthUser>("/auth/me");
     syncCachedAuthUser(me);
     setUser(me);

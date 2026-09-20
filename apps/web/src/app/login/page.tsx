@@ -7,6 +7,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Eye, EyeOff } from "lucide-react";
 import { loginSchema, type LoginInput } from "@ekulmis/shared";
+import { SubscriptionLapsed } from "@/lib/auth";
 import { useSchoolBranding } from "@/lib/settings/use-school-branding";
 import { apiGetBranding } from "@/lib/settings/api";
 import { useAuth } from "@/lib/auth";
@@ -114,6 +115,14 @@ export default function LoginPage() {
       // staff belong on the admin dashboard.
       router.push(portalHomeForRole(me.role) ?? "/dashboard");
     } catch (e) {
+      // The password was right; the school simply has no live plan. Sending
+      // them to renew it is the whole point — this used to end at "contact
+      // Platform Administrator", which is not something a school can do at
+      // eleven at night with a term starting.
+      if (e instanceof SubscriptionLapsed) {
+        router.push("/renew");
+        return;
+      }
       setError(friendlyLoginError(e, t));
       setHint(misdirected(values.identifier)?.hint ?? null);
     }
