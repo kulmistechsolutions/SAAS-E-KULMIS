@@ -237,7 +237,28 @@ export default function LibraryPortalReadPage({
           import.meta.url,
         ).toString();
         const buf = await blob.arrayBuffer();
-        const doc = await pdfjs.getDocument({ data: buf }).promise;
+        // Tell pdf.js where its own font and encoding data is.
+        //
+        // A PDF may use one of the fourteen standard fonts — Helvetica,
+        // Times, Courier — without embedding them, on the understanding that
+        // the reader supplies them. pdf.js ships substitutes for exactly that,
+        // but only reaches for them if it is told where they are. Told
+        // nothing, it falls back to whatever the browser has, which is why a
+        // textbook came back in the wrong typeface with the wrong spacing.
+        // That was never a quality setting; it was a different font.
+        //
+        // The cmaps do the same job for anything not plain Latin — Arabic,
+        // CJK, any CID encoding — where the glyphs are otherwise looked up in
+        // the wrong table.
+        const doc = await pdfjs.getDocument({
+          data: buf,
+          standardFontDataUrl: "/pdfjs/standard_fonts/",
+          cMapUrl: "/pdfjs/cmaps/",
+          cMapPacked: true,
+          // Never silently swap in a system font that merely has the same
+          // name: the page must be this PDF's type, not the machine's.
+          useSystemFonts: false,
+        }).promise;
         if (cancelled) return;
         const firstPage = await doc.getPage(1);
         const base = firstPage.getViewport({ scale: 1 });
