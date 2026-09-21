@@ -11,6 +11,7 @@ export type SettingsSectionKey =
   | "salary"
   | "expenses"
   | "attendance"
+  | "library"
   | "quiz"
   | "notifications"
   | "email"
@@ -266,6 +267,7 @@ export interface SettingsState {
   salary: SalarySettings;
   expenses: ExpenseSettings;
   attendance: AttendanceSettings;
+  library: LibrarySettings;
   quiz: QuizSettings;
   notifications: NotificationSettings;
   email: EmailSettings;
@@ -275,6 +277,21 @@ export interface SettingsState {
   system: SystemInfo;
   audit: SettingsAuditEntry[];
   backups: { id: string; label: string; createdAt: string; data: string }[];
+}
+
+/**
+ * How this school wants its reading room to behave.
+ *
+ * The student watermark exists so a leaked page can be traced back to
+ * whoever opened it. That is a real reason, and it stays on by default —
+ * but a school lending its own textbooks to its own pupils may want the
+ * book to read like the book, and a student reads through that stamp for
+ * an hour at a time.
+ */
+export interface LibrarySettings {
+  studentWatermark: boolean;
+  /** 0.04 (barely there) to 0.3 (unmistakable). */
+  watermarkOpacity: number;
 }
 
 export interface SettingsDashboardSummary {

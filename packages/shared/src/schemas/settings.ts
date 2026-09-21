@@ -70,6 +70,28 @@ export const openBackfillSchema = z.object({
   to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD."),
 });
 
+/**
+ * A school's own choices for the reading room.
+ *
+ * The student watermark exists so a leaked page can be traced back to whoever
+ * opened it — a real reason, and the default stays on. But it is the school's
+ * call: one that lends its own textbooks to its own pupils may simply want the
+ * book to read like the book, and the watermark tiled across every page is
+ * something a student reads through for an hour at a time.
+ */
+export const librarySettingsSchema = z.object({
+  /** Stamp the reader's name, id and the date across each page. */
+  studentWatermark: z.boolean().default(true),
+  /**
+   * How visible it is, 0.04 (barely there) to 0.3 (unmistakable).
+   *
+   * A school that wants the trace without the glare can keep it and turn it
+   * down, rather than being forced to choose between the two.
+   */
+  watermarkOpacity: z.number().min(0.04).max(0.3).default(0.1),
+});
+export type LibrarySettingsInput = z.infer<typeof librarySettingsSchema>;
+
 export const examSettingsSchema = z.object({
   maxTerms: z.number().int().min(1).max(12),
   defaultExamStatus: z.string().min(1),

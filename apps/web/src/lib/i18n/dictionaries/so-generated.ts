@@ -3883,6 +3883,18 @@ export const soGenerated: PartialDictionary = {
     hideDefaultGrades: "Ka qari liiska Grade-ka caadiga ah dropdown-yada",
     hideDefaultGradesHint: "Marka heerarkaaga ay ka koobmaan fasal kasta, tan shid si aad uga saarto liiska Grade 1-12 ee dropdown-yada oo dhan. Waxba lama tirtirin — fasal horeba Grade caadi ah isticmaalaya wuu sii haystaa, oo waad damin kartaa si aad mar kale u aragto.",
   },
+  settingsLibrary: {
+    title: "Goobaha Maktabadda",
+    description: "Sida buugaagta dugsigan ugu muuqdaan maktabadda ardayda.",
+    studentWatermark: "Bog kasta ku qor magaca akhristaha",
+    watermarkOnHelp: "Bog kastaa wuxuu qaadayaa magaca ardayga, aqoonsigiisa iyo taariikhda — sidaas darteed bog la faafiyo waa la raad-raaci karaa.",
+    watermarkOffHelp: "Boggagu waxay u muuqanayaan sidii PDF-ka loo soo geliyay. Bog la faafiyo lama raad-raaci karo.",
+    opacity: "Intee in le'eg ayuu muuqdaa",
+    opacityFaint: "Khafiif",
+    opacityStrong: "Adag",
+    previewBody: "Sidan ayuu bogga buugga ardayga ugu muuqan doonaa marka calaamaddu sidan xoog u leedahay. Hoos u dhig ilaa ay noqoto mid la raadraaci karo laakiin aan akhrista ku adkayn.",
+    previewStamp: "Maryama Yousuf · HA00122 · 21/09/2026",
+  },
   settingsAttendance: {
     officerEdits: "Beddelka sarkaalka ee diiwaan la qaaday",
     officerEditsAlways: "Ogolow — sarkaal kasta oo loo qoondeeyay wuu dib u calaamadin karaa",
@@ -4142,6 +4154,7 @@ export const soGenerated: PartialDictionary = {
     changePasswordFailed: "Furaha sirta ah looma bedeli karin — hubi furahaaga hadda jira",
   },
   settingsSettingsNav: {
+    library: "Maktabadda",
     documents: "Naqshadaha Daabacaadda",
     dashboard: "Shaxda Guud",
     schoolInformation: "Macluumaadka Dugsiga",

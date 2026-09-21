@@ -98,6 +98,9 @@ export interface LibraryPortalBookDetail {
   author: string | null;
   fileSizeBytes: number;
   allowDownload: boolean;
+  /** Whether this school stamps the reader's name across each page. */
+  studentWatermark?: boolean;
+  watermarkOpacity?: number;
 }
 
 export const apiLibraryPortalBook = (id: string) =>

@@ -148,6 +148,10 @@ export function buildSettingsSeed(): SettingsState {
       officerEdits: "ALWAYS",
       lockTime: "16:00",
     },
+    library: {
+      studentWatermark: true,
+      watermarkOpacity: 0.1,
+    },
     quiz: {
       maxAttempts: 2,
       autoSubmit: true,

@@ -61,6 +61,7 @@ const NAV: {
   { href: "/settings/salary", label: "settingsSettingsNav.salary", icon: Receipt },
   { href: "/settings/expenses", label: "settingsSettingsNav.expenses", icon: Receipt },
   { href: "/settings/attendance", label: "settingsSettingsNav.attendance", icon: CalendarCheck },
+  { href: "/settings/library", label: "settingsSettingsNav.library", icon: BookOpen },
   { href: "/settings/quiz", label: "settingsSettingsNav.onlineQuiz", icon: ClipboardList },
   { href: "/settings/notifications", label: "settingsSettingsNav.notifications", icon: Bell },
   { href: "/settings/security", label: "settingsSettingsNav.security", icon: Shield },

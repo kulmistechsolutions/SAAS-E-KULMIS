@@ -1,0 +1,11 @@
+-- A school's own choices for the reading room.
+--
+-- The student watermark was hard-coded on: every page a student opened was
+-- stamped with their name, id and the date, tiled across it. It exists so a
+-- leaked page is traceable, which is a real reason — but it is the school's
+-- call, not the platform's, and a school that lends textbooks to its own
+-- pupils may simply want the book to read like the book.
+--
+-- Null means "never opened that page", which the reader treats as the
+-- previous behaviour: watermark on. A school has to decide to turn it off.
+ALTER TABLE "schools" ADD COLUMN IF NOT EXISTS "librarySettings" JSONB;

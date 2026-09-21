@@ -3856,6 +3856,18 @@ export const arGenerated: PartialDictionary = {
     hideDefaultGrades: "إخفاء قائمة الصفوف الافتراضية من قوائم الاختيار",
     hideDefaultGradesHint: "بمجرد أن تغطي مراحلك كل صف، فعّل هذا لإزالة قائمة الصفوف 1–12 المتبقية من كل قائمة اختيار. لا يُحذف شيء — أي صف يستخدم بالفعل صفًا افتراضيًا يبقى عليه، ويمكنك إيقاف هذا لاحقًا لرؤيتها مجددًا.",
   },
+  settingsLibrary: {
+    title: "إعدادات المكتبة",
+    description: "كيف تظهر كتب هذه المدرسة في مكتبة الطلاب.",
+    studentWatermark: "طبع اسم القارئ على كل صفحة",
+    watermarkOnHelp: "تحمل كل صفحة اسم الطالب ورقمه والتاريخ، فيمكن تتبّع أي صفحة مُسرّبة إلى من فتحها.",
+    watermarkOffHelp: "تُعرض الصفحات كما رُفع ملف PDF تمامًا. ولا يمكن تتبّع أي صفحة مُسرّبة.",
+    opacity: "مدى وضوح الطبع",
+    opacityFaint: "خفيف",
+    opacityStrong: "قوي",
+    previewBody: "هكذا ستبدو صفحة الكتاب للطالب بهذه الدرجة من الوضوح. خفّفها حتى تبقى قابلة للتتبّع دون أن تُتعب القراءة.",
+    previewStamp: "Maryama Yousuf · HA00122 · 21/09/2026",
+  },
   settingsAttendance: {
     officerEdits: "تعديل الموظف لسجل مأخوذ",
     officerEditsAlways: "السماح — أي موظف مُسند يمكنه إعادة التسجيل",
@@ -4115,6 +4127,7 @@ export const arGenerated: PartialDictionary = {
     changePasswordFailed: "تعذر تغيير كلمة المرور — تحقق من كلمة المرور الحالية",
   },
   settingsSettingsNav: {
+    library: "المكتبة",
     documents: "تصاميم الطباعة والمستندات",
     dashboard: "لوحة التحكم",
     schoolInformation: "معلومات المدرسة",

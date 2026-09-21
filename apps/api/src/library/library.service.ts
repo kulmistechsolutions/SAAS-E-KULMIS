@@ -405,7 +405,29 @@ export class LibraryService {
       }),
     );
     if (!doc) throw new NotFoundException("Document not found");
-    return doc;
+
+    // How this school wants its books read. Sent with the book rather than
+    // fetched separately, because the reader needs it before it draws the
+    // first page and a second round trip is a page that renders once without
+    // the stamp and then again with it.
+    const school = await this.prisma.school.findUnique({
+      where: { id: schoolId },
+      select: { librarySettings: true },
+    });
+    const stored = school?.librarySettings as
+      | { studentWatermark?: boolean; watermarkOpacity?: number }
+      | null;
+
+    return {
+      ...doc,
+      // A school that has never opened that page keeps what it had: the
+      // watermark on. Turning it off is a decision, not a default.
+      studentWatermark: stored?.studentWatermark !== false,
+      watermarkOpacity:
+        typeof stored?.watermarkOpacity === "number"
+          ? Math.min(0.3, Math.max(0.04, stored.watermarkOpacity))
+          : 0.1,
+    };
   }
 
   /**

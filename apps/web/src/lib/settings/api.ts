@@ -62,6 +62,7 @@ export interface ApiSchool {
   // Whole settings pages, stored as JSON. Null = never customised, so the
   // seed default for that page applies.
   attendanceSettings: SettingsState["attendance"] | null;
+  librarySettings: SettingsState["library"] | null;
   examSettings: Omit<SettingsState["examinations"], "passingPercentage"> | null;
   quizSettings: SettingsState["quiz"] | null;
   academicSettings: Omit<SettingsState["academic"], "passingPercentage"> | null;
@@ -209,6 +210,7 @@ export function mapApiSchoolToSettings(
         row.examPassingPercentage ?? base.examinations.passingPercentage,
     },
     attendance: { ...base.attendance, ...(row.attendanceSettings ?? {}) },
+    library: { ...base.library, ...(row.librarySettings ?? {}) },
     quiz: { ...base.quiz, ...(row.quizSettings ?? {}) },
     academic: { ...base.academic, ...(row.academicSettings ?? {}) },
     salary: {
@@ -335,6 +337,9 @@ export function mapSettingsSectionToPatch(
   }
   if (key === "attendance") {
     return { attendanceSettings: section as SettingsState["attendance"] };
+  }
+  if (key === "library") {
+    return { librarySettings: section as SettingsState["library"] };
   }
   if (key === "quiz") {
     return { quizSettings: section as SettingsState["quiz"] };

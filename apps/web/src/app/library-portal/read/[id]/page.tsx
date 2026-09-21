@@ -35,9 +35,10 @@ function stampWatermark(
   width: number,
   height: number,
   label: string,
+  opacity = 0.1,
 ) {
   ctx.save();
-  ctx.globalAlpha = 0.1;
+  ctx.globalAlpha = opacity;
   ctx.fillStyle = "#000000";
   ctx.font = `${Math.max(13, width * 0.02)}px sans-serif`;
   ctx.translate(width / 2, height / 2);
@@ -59,6 +60,7 @@ function PdfPage({
   scale,
   size,
   watermarkLabel,
+  watermarkOpacity,
   rootRef,
   onVisible,
 }: {
@@ -67,6 +69,7 @@ function PdfPage({
   scale: number;
   size: PageSize;
   watermarkLabel: string;
+  watermarkOpacity: number;
   rootRef: React.RefObject<HTMLDivElement | null>;
   onVisible: (page: number) => void;
 }) {
@@ -98,7 +101,24 @@ function PdfPage({
     (async () => {
       const page = await pdf.getPage(pageNumber);
       if (cancelled) return;
-      const viewport = page.getViewport({ scale });
+
+      // Render at the screen's real pixel density, not at CSS pixels.
+      //
+      // The canvas was sized to the layout width and then stretched to fill
+      // it, so on a phone reporting devicePixelRatio 3 every page was blown
+      // up threefold from a third of the pixels it needed. That is the grain
+      // and the soft text students were reading through — not the PDF, which
+      // is vector, and not the file, which is untouched. Rendering at the
+      // device ratio and letting the browser scale DOWN gives the opposite:
+      // crisp type at any zoom.
+      //
+      // Capped, because the bitmap costs width × height × ratio² bytes and a
+      // 300-page book on a 4× tablet would exhaust the tab.
+      const dpr = Math.min(
+        typeof window === "undefined" ? 1 : window.devicePixelRatio || 1,
+        2.5,
+      );
+      const viewport = page.getViewport({ scale: scale * dpr });
       const canvas = canvasRef.current;
       if (!canvas) return;
       canvas.width = viewport.width;
@@ -107,13 +127,21 @@ function PdfPage({
       if (!ctx) return;
       await page.render({ canvasContext: ctx, viewport }).promise;
       if (cancelled) return;
-      stampWatermark(ctx, viewport.width, viewport.height, watermarkLabel);
+      if (watermarkLabel) {
+        stampWatermark(
+          ctx,
+          viewport.width,
+          viewport.height,
+          watermarkLabel,
+          watermarkOpacity,
+        );
+      }
       setRendered(true);
     })();
     return () => {
       cancelled = true;
     };
-  }, [nearby, rendered, pdf, pageNumber, scale, watermarkLabel]);
+  }, [nearby, rendered, pdf, pageNumber, scale, watermarkLabel, watermarkOpacity]);
 
   return (
     <div
@@ -170,12 +198,15 @@ export default function LibraryPortalReadPage({
   const blobRef = useRef<Blob | null>(null);
   const baseViewportRef = useRef<{ width: number; height: number } | null>(null);
 
+  // Empty when the school has turned the stamp off, which is what stops the
+  // page being drawn over at all — the reader checks for a label, not a flag,
+  // so there is one thing to be wrong rather than two.
   const watermarkLabel = useMemo(
     () =>
-      me
+      me && book?.studentWatermark !== false
         ? `${me.student.fullName} · ${me.student.code} · ${new Date().toLocaleDateString()}`
         : "",
-    [me],
+    [me, book],
   );
 
   const fitToContainer = useCallback(() => {
@@ -333,6 +364,7 @@ export default function LibraryPortalReadPage({
                   scale={scale}
                   size={pageSize}
                   watermarkLabel={watermarkLabel}
+                  watermarkOpacity={book?.watermarkOpacity ?? 0.1}
                   rootRef={scrollRef}
                   onVisible={setVisiblePage}
                 />

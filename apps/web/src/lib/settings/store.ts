@@ -273,6 +273,7 @@ const API_SECTIONS = new Set<SettingsSectionKey>([
   "grades",
   "examinations",
   "attendance",
+  "library",
   "quiz",
   "academic",
   "notifications",

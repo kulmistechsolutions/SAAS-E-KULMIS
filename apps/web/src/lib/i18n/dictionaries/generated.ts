@@ -3942,6 +3942,18 @@ export const generated = {
     hideDefaultGrades: "Hide the default Grade list from pickers",
     hideDefaultGradesHint: "Once your own levels cover every class, turn this on to remove the leftover Grade 1-12 list from every picker. Nothing is deleted — a class already using a default Grade keeps it, and you can turn this back on to see it again.",
   },
+  settingsLibrary: {
+    title: "Library Settings",
+    description: "How this school's books read in the student library.",
+    studentWatermark: "Stamp the reader's name on each page",
+    watermarkOnHelp: "Each page carries the student's name, ID and the date, so a leaked page can be traced back to whoever opened it.",
+    watermarkOffHelp: "Pages are shown exactly as the PDF was uploaded. A leaked page cannot be traced back to a student.",
+    opacity: "How visible the stamp is",
+    opacityFaint: "Faint",
+    opacityStrong: "Strong",
+    previewBody: "This is how a page of a book will look to a student with the stamp set this strongly. Turn it down until it is traceable but not tiring to read through.",
+    previewStamp: "Maryama Yousuf · HA00122 · 21/09/2026",
+  },
   settingsAttendance: {
     officerEdits: "Officer edits to a taken register",
     officerEditsAlways: "Allow — any assigned officer may re-mark it",
@@ -4201,6 +4213,7 @@ export const generated = {
     changePasswordFailed: "Could not change password — check your current password",
   },
   settingsSettingsNav: {
+    library: "Library",
     documents: "Print & Document Designs",
     dashboard: "Dashboard",
     schoolInformation: "School Information",

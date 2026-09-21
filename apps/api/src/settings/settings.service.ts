@@ -159,6 +159,7 @@ export class SettingsService {
     "notificationSettings",
     "securitySettings",
     "printSettings",
+    "librarySettings",
   ] as const;
 
   async update(schoolId: string, dto: UpdateSettingsInput) {
