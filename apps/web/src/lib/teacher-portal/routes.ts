@@ -10,6 +10,7 @@ export const TEACHER_PORTAL_NAV = [
   { href: "/teacher-portal/attendance", label: "Attendance" },
   { href: "/teacher-portal/exams", label: "Official Exams" },
   { href: "/teacher-portal/quizzes", label: "My Quizzes" },
+  { href: "/teacher-portal/question-bank", label: "Question Bank" },
   { href: "/teacher-portal/results", label: "Results", requiresStudents: true },
   { href: "/teacher-portal/announcements", label: "Announcements" },
   { href: "/teacher-portal/notifications", label: "Notifications" },

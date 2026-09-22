@@ -1871,6 +1871,53 @@ model QuizPracticeAttempt {
   @@map("quiz_practice_attempts")
 }
 
+/// The school's question bank: questions written once and used again.
+///
+/// Copied into a quiz, never linked — editing a bank question afterwards must
+/// not reach into a paper students have already sat. The question columns
+/// mirror QuizQuestion so a question moves between the two unchanged.
+model QuestionBankItem {
+  id              String    @id @default(cuid())
+  schoolId        String
+  /// The teacher it belongs to; null when an administrator wrote it.
+  teacherId       String?
+  createdByUserId String?
+  createdByName   String?
+  subjectId       String?
+  classId         String?
+  academicYearId  String?
+  topic           String?
+  /// EASY | MEDIUM | HARD
+  difficulty      String    @default("MEDIUM")
+  /// AUTO | so | en | ar
+  language        String    @default("AUTO")
+  /// Visible to other teachers in the school.
+  shared          Boolean   @default(true)
+  question        String
+  questionHtml    String?
+  questionType    String    @default("MCQ")
+  options         Json      @default("[]")
+  optionsHtml     Json?
+  correctAnswer   String    @default("")
+  gradingMode     String    @default("EXACT")
+  pairs           Json?
+  blanks          Json?
+  acceptedAnswers Json?
+  marks           Int       @default(1)
+  direction       String?
+  contentFont     String?
+  usageCount      Int       @default(0)
+  lastUsedAt      DateTime?
+  archivedAt      DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([schoolId, archivedAt])
+  @@index([schoolId, subjectId])
+  @@index([schoolId, teacherId])
+  @@map("question_bank_items")
+}
+
 model QuizAnswer {
   id                String  @id @default(cuid())
   schoolId          String

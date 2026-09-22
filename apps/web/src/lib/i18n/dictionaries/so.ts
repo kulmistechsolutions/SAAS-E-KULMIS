@@ -225,6 +225,7 @@ const curated: PartialDictionary = {
     allQuizzes: "Dhammaan Imtixaannada",
     myQuizzes: "Imtixaannadayda",
     createQuiz: "Abuur Imtixaan",
+    questionBank: "Bangiga Su'aalaha",
     allUsers: "Dhammaan Isticmaalayaasha",
     rolesPermissions: "Doorarka & Oggolaanshaha",
 

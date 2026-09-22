@@ -20,9 +20,15 @@ import { join } from "node:path";
 const WEB = join(__dirname, "..", "..", "..", "web", "src");
 const read = (...p: string[]) => readFileSync(join(WEB, ...p), "utf8");
 
-const api = readFileSync(join(__dirname, "quiz.service.ts"), "utf8");
+const api =
+  readFileSync(join(__dirname, "quiz.service.ts"), "utf8") +
+  // Where a stored question is sanitised, for the quiz and the bank alike.
+  readFileSync(join(__dirname, "question-content.ts"), "utf8");
 const editorComp = read("components", "quiz", "rich-text.tsx");
-const editorPage = read("app", "(app)", "quiz", "[id]", "page.tsx");
+const editorPage =
+  read("app", "(app)", "quiz", "[id]", "page.tsx") +
+  // The question editor itself lives in a component shared with the bank.
+  readFileSync(join(__dirname, "..", "..", "..", "web", "src", "components", "quiz", "question-editor.tsx"), "utf8");
 const take = read("components", "quiz", "take-quiz.tsx");
 const live = read("app", "(app)", "quiz", "[id]", "live", "page.tsx");
 const printer = read("lib", "quiz", "print.ts");

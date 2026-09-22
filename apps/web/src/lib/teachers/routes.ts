@@ -25,7 +25,6 @@ export const TEACHER_BLOCKED_EXACT = new Set([
   "/examinations/blocked",
   "/examinations/monitoring",
   "/examinations/marks",
-  "/quiz/question-bank",
   "/quiz/portal",
 ]);
 

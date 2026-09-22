@@ -109,6 +109,7 @@ const QUIZ_CHILDREN: NavChild[] = [
   { label: "nav.dashboard", href: "/quiz" },
   { label: "nav.allQuizzes", href: "/quiz/list" },
   { label: "nav.createQuiz", href: "/quiz/create" },
+  { label: "nav.questionBank", href: "/quiz/question-bank" },
   { label: "nav.monitoring", href: "/quiz/monitoring" },
   { label: "nav.reports", href: "/quiz/reports" },
 ];
@@ -116,6 +117,7 @@ const QUIZ_CHILDREN: NavChild[] = [
 const TEACHER_QUIZ_CHILDREN: NavChild[] = [
   { label: "nav.myQuizzes", href: "/quiz/list" },
   { label: "nav.createQuiz", href: "/quiz/create" },
+  { label: "nav.questionBank", href: "/quiz/question-bank" },
   { label: "nav.reports", href: "/quiz/reports" },
 ];
 

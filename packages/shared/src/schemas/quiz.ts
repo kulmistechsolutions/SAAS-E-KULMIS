@@ -127,6 +127,9 @@ export const quizQuestionSchema = z
     }
   });
 
+/** One question, as the builder and the question bank send it. */
+export type QuizQuestionInput = z.infer<typeof quizQuestionSchema>;
+
 export const createQuizSchema = z.object({
   title: z.string().min(1),
   academicYearId: z.string().min(1),

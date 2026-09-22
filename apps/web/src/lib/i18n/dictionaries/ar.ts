@@ -220,6 +220,7 @@ const curated: PartialDictionary = {
     allQuizzes: "جميع الاختبارات",
     myQuizzes: "اختباراتي",
     createQuiz: "إنشاء اختبار",
+    questionBank: "بنك الأسئلة",
     allUsers: "جميع المستخدمين",
     rolesPermissions: "الأدوار والصلاحيات",
 

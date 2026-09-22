@@ -226,6 +226,7 @@ const core = {
     allQuizzes: "All Quizzes",
     myQuizzes: "My Quizzes",
     createQuiz: "Create Quiz",
+    questionBank: "Question Bank",
     allUsers: "All Users",
     rolesPermissions: "Roles & Permissions",
 

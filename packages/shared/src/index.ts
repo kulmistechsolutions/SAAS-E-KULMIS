@@ -27,6 +27,7 @@ export * from "./schemas/platform";
 export * from "./schemas/examination";
 export * from "./schemas/promotion";
 export * from "./schemas/quiz";
+export * from "./schemas/question-bank";
 export * from "./schemas/sms";
 export * from "./schemas/library";
 export * from "./schemas/ai";

@@ -14,7 +14,10 @@ const WEB = join(__dirname, "..", "..", "..", "web", "src");
 const read = (...p: string[]) => readFileSync(join(WEB, ...p), "utf8");
 
 const take = read("components", "quiz", "take-quiz.tsx");
-const editor = read("app", "(app)", "quiz", "[id]", "page.tsx");
+const editor =
+  read("app", "(app)", "quiz", "[id]", "page.tsx") +
+  // The question editor itself lives in a component shared with the bank.
+  readFileSync(join(__dirname, "..", "..", "..", "web", "src", "components", "quiz", "question-editor.tsx"), "utf8");
 const results = read("app", "(app)", "quiz", "[id]", "results", "page.tsx");
 const marks = read("components", "quiz", "attempt-marks-dialog.tsx");
 const teacherList = read("app", "teacher-portal", "quizzes", "page.tsx");

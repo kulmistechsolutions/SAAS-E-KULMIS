@@ -30,6 +30,7 @@ import {
   type UserRole,
 } from "@ekulmis/shared";
 import { AuditService } from "../audit/audit.service";
+import { questionContent } from "./question-content";
 import { Prisma } from "@prisma/client";
 import {
   diffQuestions,
@@ -466,51 +467,15 @@ export class QuizService {
       diffs.filter((d) => mode === "NEW_VERSION" && needsReplacement(d)).map((d) => d.id),
     );
 
-    const body = (q: (typeof incoming)[number], i: number) => {
-      // Sanitised here, not in the browser. A question written at one school
-      // is rendered in the browsers of students at every other school that
-      // sits it, so what a request happens to contain decides nothing.
-      const html = sanitizeRichText(q.questionHtml);
-      const optionHtml = (q.optionsHtml ?? []).map((o) => sanitizeRichText(o));
-      return {
-      question: q.question,
-      // Null when the teacher formatted nothing: the plain text is then the
-      // whole truth, which is what every question in the system is today.
-      questionHtml: hasFormatting(html) ? html : null,
-      // DbNull, not undefined: on an update undefined means "leave it", and a
-      // teacher who removed the formatting from every option would find it
-      // still there after saving.
-      optionsHtml: optionHtml.some((o) => hasFormatting(o)) ? optionHtml : Prisma.DbNull,
-      // Only a written True / False question has words to accept; on anything
-      // else a leftover list from a changed question type would be noise.
-      acceptedAnswers:
-        q.questionType === "TRUE_FALSE_WRITTEN"
-          ? ((cleanTfAccepted(q.acceptedAnswers ?? null) ?? Prisma.DbNull) as
-              | Prisma.InputJsonValue
-              | typeof Prisma.DbNull)
-          : Prisma.DbNull,
-      questionType: q.questionType,
-      options: q.options,
-      correctAnswer: q.correctAnswer ?? "",
-      gradingMode: q.gradingMode,
-      pairs: q.questionType === "MATCH" ? q.pairs : undefined,
-      blanks:
-        q.questionType === "FILL_BLANK"
-          ? q.blanks.length
-            ? q.blanks
-            : [q.correctAnswer]
-          : undefined,
-      marks: q.marks,
+    const body = (q: (typeof incoming)[number], i: number) => ({
+      // Sanitised and cleaned the same way as a question in the bank.
+      ...questionContent(q),
       requiresManualGrade:
         q.questionType === "ESSAY" || q.questionType === "SHORT_ANSWER",
       orderIndex: i,
-      // Null follows the quiz, which is what almost every question wants.
-      direction: q.direction ?? null,
-      contentFont: q.contentFont ?? null,
       // Back on the paper if it had previously been taken off.
       retiredAt: null,
-      };
-    };
+    });
 
     const kept = new Set<string>();
     for (const [i, q] of incoming.entries()) {

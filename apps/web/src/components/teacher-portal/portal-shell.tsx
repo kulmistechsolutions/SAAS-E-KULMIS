@@ -20,6 +20,7 @@ import {
   UserCircle,
   Users,
   X,
+  Library,
 } from "lucide-react";
 import { useSchoolBranding } from "@/lib/settings/use-school-branding";
 import { shiftsLabel } from "@/lib/teachers/format";
@@ -41,6 +42,7 @@ const ICONS: Record<string, typeof LayoutDashboard> = {
   Results: BarChart3,
   Announcements: Megaphone,
   Notifications: Bell,
+  "Question Bank": Library,
 };
 
 export function TeacherPortalShell({

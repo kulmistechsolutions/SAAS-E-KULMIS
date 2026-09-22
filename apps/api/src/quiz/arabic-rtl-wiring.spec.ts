@@ -18,10 +18,15 @@ const WEB = join(__dirname, "..", "..", "..", "web", "src");
 const read = (...p: string[]) => readFileSync(join(WEB, ...p), "utf8");
 
 const take = read("components", "quiz", "take-quiz.tsx");
-const editor = read("app", "(app)", "quiz", "[id]", "page.tsx");
+const editor =
+  read("app", "(app)", "quiz", "[id]", "page.tsx") +
+  // The question editor itself lives in a component shared with the bank.
+  readFileSync(join(__dirname, "..", "..", "..", "web", "src", "components", "quiz", "question-editor.tsx"), "utf8");
 const live = read("app", "(app)", "quiz", "[id]", "live", "page.tsx");
 const printer = read("lib", "quiz", "print.ts");
-const api = readFileSync(join(__dirname, "quiz.service.ts"), "utf8");
+const api =
+  readFileSync(join(__dirname, "quiz.service.ts"), "utf8") +
+  readFileSync(join(__dirname, "question-content.ts"), "utf8");
 
 describe("the student's screen", () => {
   it("renders the question through the shared component", () => {

@@ -25,10 +25,16 @@ const shared = readFileSync(
   join(HERE, "..", "..", "..", "..", "packages", "shared", "src", "schemas", "quiz.ts"),
   "utf8",
 );
-const builder = readFileSync(
-  join(HERE, "..", "..", "..", "web", "src", "app", "(app)", "quiz", "[id]", "page.tsx"),
-  "utf8",
-);
+const builder =
+  readFileSync(
+    join(HERE, "..", "..", "..", "web", "src", "app", "(app)", "quiz", "[id]", "page.tsx"),
+    "utf8",
+  ) +
+  // The question editor itself lives in a component shared with the bank.
+  readFileSync(
+    join(HERE, "..", "..", "..", "web", "src", "components", "quiz", "question-editor.tsx"),
+    "utf8",
+  );
 
 describe("saving a quiz no longer deletes its questions", () => {
   it("has no blanket delete left in the save path", () => {
