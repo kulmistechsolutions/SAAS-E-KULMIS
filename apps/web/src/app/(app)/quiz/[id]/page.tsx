@@ -26,6 +26,7 @@ import {
 } from "@/components/quiz/edit-mode-dialog";
 import { useAuth } from "@/lib/auth";
 import { quizFieldProps } from "@/components/quiz/rtl-text";
+import { RichTextEditor } from "@/components/quiz/rich-text";
 import {
   ARABIC_FONTS,
   QUIZ_LANGUAGES,
@@ -62,6 +63,16 @@ interface BQ {
    */
   direction: DirectionSetting | null;
   contentFont: string | null;
+  /**
+   * The question as the teacher formatted it, or null when it is plain.
+   *
+   * `question` holds the same words without the formatting. Both are sent:
+   * the screen shows the formatted one, and everything else — grading, the
+   * change history, an export, a message home — reads the words.
+   */
+  questionHtml: string | null;
+  /** The formatted options, index-aligned with `options`. */
+  optionsHtml: string[] | null;
 }
 
 const TYPE_LABEL: Record<QType, string> = {
@@ -87,6 +98,8 @@ function blankQuestion(type: QType): BQ {
     marks: 1,
     direction: null,
     contentFont: null,
+    questionHtml: null,
+    optionsHtml: null,
   };
 }
 
@@ -102,6 +115,8 @@ function toBQ(q: {
   marks: number;
   direction?: DirectionSetting | null;
   contentFont?: string | null;
+  questionHtml?: string | null;
+  optionsHtml?: string[] | null;
 }): BQ {
   const type = (q.questionType as QType) ?? "MCQ";
   return {
@@ -117,6 +132,8 @@ function toBQ(q: {
     marks: q.marks,
     direction: q.direction ?? null,
     contentFont: q.contentFont ?? null,
+    questionHtml: q.questionHtml ?? null,
+    optionsHtml: Array.isArray(q.optionsHtml) ? q.optionsHtml : null,
   };
 }
 
@@ -135,6 +152,16 @@ function toPayload(qs: BQ[]): QuizBuilderQuestion[] {
     marks: q.marks,
     direction: q.direction,
     contentFont: q.contentFont,
+    questionHtml: q.questionHtml,
+    // Only the options that survived the trim above keep their formatting,
+    // and in the same order, or a highlight lands on the wrong choice.
+    optionsHtml:
+      q.questionType === "MCQ" && q.optionsHtml
+        ? q.options
+            .map((o, i) => [o, q.optionsHtml?.[i] ?? ""] as const)
+            .filter(([o]) => o.trim())
+            .map(([, h]) => h)
+        : null,
   }));
 }
 
@@ -152,6 +179,7 @@ export default function QuizBuilderPage({ params }: { params: Promise<{ id: stri
   const [pendingPublish, setPendingPublish] = useState(false);
   const [questions, setQuestions] = useState<BQ[]>([]);
   const [instructions, setInstructions] = useState("");
+  const [instructionsHtml, setInstructionsHtml] = useState<string | null>(null);
   const [preventMinimize, setPreventMinimize] = useState(false);
   const [disableCopyPaste, setDisableCopyPaste] = useState(false);
   const [resetOnMinimize, setResetOnMinimize] = useState(false);
@@ -177,6 +205,7 @@ export default function QuizBuilderPage({ params }: { params: Promise<{ id: stri
       setQuestions(loaded);
       setQuestionsAtLoad(JSON.stringify(toPayload(loaded)));
       setInstructions(q.instructions ?? "");
+      setInstructionsHtml(q.instructionsHtml ?? null);
       setPreventMinimize(!!q.preventMinimize);
       setDisableCopyPaste(!!q.disableCopyPaste);
       setResetOnMinimize(!!q.resetOnMinimize);
@@ -267,6 +296,7 @@ export default function QuizBuilderPage({ params }: { params: Promise<{ id: stri
     try {
       await apiUpdateQuizBuilder(quiz!.id, {
         instructions: instructions.trim() || null,
+        instructionsHtml,
         preventMinimize,
         disableCopyPaste,
         resetOnMinimize,
@@ -348,7 +378,18 @@ export default function QuizBuilderPage({ params }: { params: Promise<{ id: stri
         <h2 className="font-semibold">{tr("quiz.instructionsAmpRules")}</h2>
         <div className="space-y-2">
           <Label>{tr("quiz.instructionsForStudentsShownBeforeThey")}</Label>
-          <Textarea value={instructions} onChange={(e) => setInstructions(e.target.value)} rows={3} placeholder={tr("quiz.eGReadEachQuestionCarefully")} />
+          <RichTextEditor
+            text={instructions}
+            html={instructionsHtml}
+            rows={3}
+            quizDirection={quizDir}
+            quizFont={contentFont || null}
+            placeholder={tr("quiz.eGReadEachQuestionCarefully")}
+            onChange={(n) => {
+              setInstructions(n.text);
+              setInstructionsHtml(n.html);
+            }}
+          />
         </div>
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="space-y-2">
@@ -541,7 +582,18 @@ function QuestionEditor({
         </div>
       </div>
 
-      <Textarea {...fld(q.question)} value={q.question} onChange={(e) => onChange({ question: e.target.value })} rows={2} placeholder={q.questionType === "FILL_BLANK" ? "Use ___ for each blank, e.g. The capital of France is ___" : "Question text"} />
+      <RichTextEditor
+        text={q.question}
+        html={q.questionHtml}
+        rows={2}
+        direction={q.direction}
+        quizDirection={quizDirection}
+        font={q.contentFont}
+        quizFont={quizFont}
+        placeholder={q.questionType === "FILL_BLANK" ? "Use ___ for each blank, e.g. The capital of France is ___" : "Question text"}
+        onChange={(n) => onChange({ question: n.text, questionHtml: n.html })}
+      />
+      <p className="text-[11px] text-muted-foreground">{tr("richText.hint")}</p>
 
       {q.questionType === "MCQ" && (
         <div className="space-y-2">
@@ -549,11 +601,37 @@ function QuestionEditor({
           {q.options.map((opt, oi) => (
             <div key={oi} className="flex items-center gap-2">
               <input type="radio" name={`correct-${q.key}`} checked={!!opt && q.correctAnswer === opt} onChange={() => onChange({ correctAnswer: opt })} title={tr("quiz.correctAnswer")} />
-              <Input {...fld(opt)} value={opt} onChange={(e) => { const options = [...q.options]; options[oi] = e.target.value; const next: Partial<BQ> = { options }; if (q.correctAnswer === opt) next.correctAnswer = e.target.value; onChange(next); }} className="h-9" placeholder={`Option ${oi + 1}`} />
-              {q.options.length > 2 && <Button variant="ghost" className="h-8 w-8 p-0 text-rose-600" onClick={() => onChange({ options: q.options.filter((_, x) => x !== oi) })}><Trash2 className="h-4 w-4" /></Button>}
+              <div className="flex-1">
+                <RichTextEditor
+                  compact
+                  rows={1}
+                  text={opt}
+                  html={q.optionsHtml?.[oi] ?? null}
+                  direction={q.direction}
+                  quizDirection={quizDirection}
+                  font={q.contentFont}
+                  quizFont={quizFont}
+                  placeholder={`Option ${oi + 1}`}
+                  onChange={(n) => {
+                    const options = [...q.options];
+                    options[oi] = n.text;
+                    const optionsHtml = [...(q.optionsHtml ?? q.options.map(() => ""))];
+                    optionsHtml[oi] = n.html ?? "";
+                    const next: Partial<BQ> = {
+                      options,
+                      optionsHtml: optionsHtml.some((h) => h) ? optionsHtml : null,
+                    };
+                    // The right answer is stored as the option's words, so it
+                    // has to move with them or the paper marks itself wrong.
+                    if (q.correctAnswer === opt) next.correctAnswer = n.text;
+                    onChange(next);
+                  }}
+                />
+              </div>
+              {q.options.length > 2 && <Button variant="ghost" className="h-8 w-8 p-0 text-rose-600" onClick={() => onChange({ options: q.options.filter((_, x) => x !== oi), optionsHtml: q.optionsHtml ? q.optionsHtml.filter((_, x) => x !== oi) : null })}><Trash2 className="h-4 w-4" /></Button>}
             </div>
           ))}
-          <Button variant="outline" className="h-8" onClick={() => onChange({ options: [...q.options, ""] })}><Plus className="me-1 h-3 w-3" />{tr("quiz.option")}</Button>
+          <Button variant="outline" className="h-8" onClick={() => onChange({ options: [...q.options, ""], optionsHtml: q.optionsHtml ? [...q.optionsHtml, ""] : null })}><Plus className="me-1 h-3 w-3" />{tr("quiz.option")}</Button>
         </div>
       )}
 

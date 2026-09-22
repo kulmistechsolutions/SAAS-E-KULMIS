@@ -38,6 +38,7 @@ import { resolveLogoUrl } from "@/lib/settings/api";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import { QuizText, quizFieldProps } from "@/components/quiz/rtl-text";
+import { RichText } from "@/components/quiz/rich-text";
 import type { DirectionSetting } from "@ekulmis/shared";
 import { useHydrated } from "@/lib/use-hydrated";
 
@@ -52,6 +53,10 @@ type PublicQuestion = {
   marks: number;
   direction?: DirectionSetting | null;
   contentFont?: string | null;
+  /** The question as the teacher formatted it; null when it is plain. */
+  questionHtml?: string | null;
+  /** The formatted options, in the order they are being served. */
+  optionsHtml?: string[] | null;
 };
 
 type PublicQuiz = {
@@ -72,6 +77,7 @@ type PublicQuiz = {
   teacherName: string | null;
   direction?: DirectionSetting | null;
   contentFont?: string | null;
+  instructionsHtml?: string | null;
   questions: PublicQuestion[];
 };
 
@@ -344,6 +350,8 @@ function TakeQuizContent({ code }: { code: string }) {
           marks: q.marks,
           direction: q.direction ?? null,
           contentFont: q.contentFont ?? null,
+          questionHtml: q.questionHtml ?? null,
+          optionsHtml: Array.isArray(q.optionsHtml) ? q.optionsHtml : null,
         })),
       };
       const started = await apiStartQuizAttempt({
@@ -478,9 +486,10 @@ function TakeQuizContent({ code }: { code: string }) {
               {q.instructions && (
                 <div>
                   <h2 className="text-sm font-semibold">{tr("quizTake.quizInstructions")}</h2>
-                  <QuizText
+                  <RichText
                     as="p"
                     text={q.instructions}
+                    html={landing?.quiz.instructionsHtml}
                     className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground"
                   />
                 </div>
@@ -592,9 +601,10 @@ function TakeQuizContent({ code }: { code: string }) {
                 </div>
               </dl>
               {q.instructions && (
-                <QuizText
+                <RichText
                   as="p"
                   text={q.instructions}
+                  html={access.quiz.instructionsHtml}
                   className="whitespace-pre-wrap text-sm text-muted-foreground"
                 />
               )}
@@ -759,9 +769,10 @@ function TakeQuizContent({ code }: { code: string }) {
                       : "⚪ Not Answered"}
                 </span>
               </div>
-              <QuizText
+              <RichText
                 as="p"
                 text={q.question}
+                html={q.questionHtml}
                 direction={q.direction}
                 quizDirection={result.quiz.direction}
                 font={q.contentFont}
@@ -896,9 +907,10 @@ function TakeQuizContent({ code }: { code: string }) {
                 {answeredCount}/{quiz.questions.length} {tr("quizTake.answered")}
               </p>
             </div>
-            <QuizText
+            <RichText
               as="p"
               text={q.question}
+              html={q.questionHtml}
               direction={q.direction}
               quizDirection={quiz.direction}
               font={q.contentFont}
@@ -908,7 +920,7 @@ function TakeQuizContent({ code }: { code: string }) {
 
             {q.questionType === "MCQ" ? (
               <div className="mt-5 space-y-2.5">
-                {(q.options ?? []).map((opt) => (
+                {(q.options ?? []).map((opt, oi) => (
                   <button
                     key={opt}
                     type="button"
@@ -920,8 +932,9 @@ function TakeQuizContent({ code }: { code: string }) {
                         : "hover:bg-secondary",
                     )}
                   >
-                    <QuizText
+                    <RichText
                       text={opt}
+                      html={q.optionsHtml?.[oi] ?? null}
                       direction={q.direction}
                       quizDirection={quiz.direction}
                       font={q.contentFont}

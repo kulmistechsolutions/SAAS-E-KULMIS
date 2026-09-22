@@ -135,3 +135,34 @@
     display: none;
   }
 }
+
+/*
+ * Formatting inside a question.
+ *
+ * A teacher can set one letter of a word larger, bolder or highlighted, and
+ * the same marks have to look the same in the editor, on the student's
+ * screen and on the printed sheet. `mark` in particular has a browser default
+ * that is unreadable in dark mode, so it is given colours of its own; where
+ * the teacher chose a colour, their inline style wins over these.
+ */
+.quiz-rich mark {
+  background-color: #fef08a;
+  color: #0f172a;
+  padding: 0 0.1em;
+  border-radius: 0.15em;
+}
+.quiz-rich u {
+  text-underline-offset: 0.2em;
+}
+/* A highlight the teacher chose is a light colour; black text has to stay on
+   it in dark mode too, or the marked letter becomes the one nobody can read. */
+.quiz-rich span[style*="background-color"] {
+  color: #0f172a;
+  padding: 0 0.1em;
+  border-radius: 0.15em;
+}
+.quiz-rich sup,
+.quiz-rich sub {
+  font-size: 0.75em;
+  line-height: 0;
+}

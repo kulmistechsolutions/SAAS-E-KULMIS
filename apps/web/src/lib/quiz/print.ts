@@ -4,6 +4,7 @@ import {
   fontStack,
   quizDirectionSetting,
   resolveDirection,
+  sanitizeRichText,
   type DirectionSetting,
 } from "@ekulmis/shared";
 
@@ -58,6 +59,9 @@ export function attemptReviewPdfHtml(review: QuizAttemptReview): string {
     return ` dir="${dirOf(q)}"${family ? ` style="font-family:${family};line-height:1.9"` : ""}`;
   };
 
+  const body = (q: { question: string; questionHtml?: string | null }) =>
+    q.questionHtml ? sanitizeRichText(q.questionHtml) : esc(q.question);
+
   const rows = review.questions
     .map((q) => {
       const right = q.status === "CORRECT";
@@ -74,7 +78,7 @@ export function attemptReviewPdfHtml(review: QuizAttemptReview): string {
     <div class="q ${verdict.cls}">
       <div class="qhead">
         <span class="qnum">${q.number}</span>
-        <p class="prompt"${attr(q)}>${esc(q.question)}</p>
+        <p class="prompt"${attr(q)}>${body(q)}</p>
         <span class="badge ${verdict.cls}">${verdict.mark} ${verdict.label}</span>
       </div>
       <div class="cmp">
@@ -151,6 +155,13 @@ export function attemptReviewPdfHtml(review: QuizAttemptReview): string {
   .val.big{font-size:20px;font-weight:700}
   .val.big small{font-size:12px;font-weight:400;color:#64748b}
   .expl{margin:10px 0 0;font-size:12px;background:#fffbeb;border:1px solid #fde68a;padding:8px 10px;border-radius:8px}
+  /* A highlight has to survive the printer. Most browsers drop background
+     colours when printing unless asked, and a marked letter that prints white
+     is the one thing on the sheet that had to be visible. */
+  .prompt mark,.prompt span[style*="background-color"]{
+    -webkit-print-color-adjust:exact;print-color-adjust:exact;
+    color:#0f172a;padding:0 .1em;border-radius:.15em}
+  .prompt mark{background-color:#fef08a}
   .foot{margin-top:28px;padding-top:12px;border-top:1px solid #e2e8f0;font-size:11px;color:#64748b;text-align:center}
 </style></head><body>
   <div class="brand">

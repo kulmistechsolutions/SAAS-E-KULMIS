@@ -1726,6 +1726,8 @@ model Quiz {
   direction              String     @default("AUTO")
   /// An Arabic face, where the school chose one. Null keeps the page's own.
   contentFont            String?
+  /// The instructions as the teacher formatted them, or null when plain.
+  instructionsHtml       String?
   /// "1.0", "1.1", "2.0" — minor for a correction, major for a rewrite.
   ///
   /// A typo is not the same event as changing what question 5 asks, and the
@@ -1758,6 +1760,19 @@ model QuizQuestion {
   // MCQ | DIRECT | MATCH | FILL_BLANK (legacy: ESSAY | SHORT_ANSWER)
   questionType        String   @default("MCQ")
   options             Json
+  /// The question as the teacher formatted it, or null when it is plain.
+  ///
+  /// Sanitised on every write: a question written at one school is rendered
+  /// in the browser of every student who sits it, and on a shared system
+  /// those students belong to other schools. `question` holds the same words
+  /// without the formatting and is what everything but the screen reads.
+  questionHtml        String?
+  /// The formatted options, parallel to `options`, or null when plain.
+  ///
+  /// `options` stays the plain text because that is what a submitted answer
+  /// is matched against; formatting an option must not change what counts
+  /// as the right answer.
+  optionsHtml         Json?
   correctAnswer       String   @default("")
   // EXACT (string match) | AI_CONCEPT (OpenAI-scored) — only honoured for DIRECT.
   gradingMode         String   @default("EXACT")

@@ -17,7 +17,11 @@ import type {
   VerifyQuizAccessInput,
   DirectionSetting,
 } from "@ekulmis/shared";
-import { quizDirectionSetting } from "@ekulmis/shared";
+import {
+  hasFormatting,
+  quizDirectionSetting,
+  sanitizeRichText,
+} from "@ekulmis/shared";
 import type { Prisma } from "@prisma/client";
 import {
   diffQuestions,
@@ -46,6 +50,26 @@ function shuffleArray<T>(items: T[]): T[] {
     [copy[i], copy[j]] = [copy[j]!, copy[i]!];
   }
   return copy;
+}
+
+/**
+ * The formatted options, put back in step with the order being served.
+ *
+ * The choices are shuffled per student, so the formatting has to travel with
+ * the option it belongs to rather than with its position — otherwise the
+ * highlight lands on a different answer for every student who sits the paper.
+ */
+function optionHtmlFor(
+  q: { options: unknown; optionsHtml: unknown },
+  served: string[],
+): string[] | undefined {
+  const html = Array.isArray(q.optionsHtml) ? (q.optionsHtml as string[]) : null;
+  if (!html) return undefined;
+  const original = Array.isArray(q.options) ? (q.options as string[]) : [];
+  return served.map((opt) => {
+    const at = original.indexOf(opt);
+    return at >= 0 ? (html[at] ?? "") : "";
+  });
 }
 
 function letterGrade(pct: number): string {
@@ -388,8 +412,18 @@ export class QuizService {
       diffs.filter((d) => mode === "NEW_VERSION" && needsReplacement(d)).map((d) => d.id),
     );
 
-    const body = (q: (typeof incoming)[number], i: number) => ({
+    const body = (q: (typeof incoming)[number], i: number) => {
+      // Sanitised here, not in the browser. A question written at one school
+      // is rendered in the browsers of students at every other school that
+      // sits it, so what a request happens to contain decides nothing.
+      const html = sanitizeRichText(q.questionHtml);
+      const optionHtml = (q.optionsHtml ?? []).map((o) => sanitizeRichText(o));
+      return {
       question: q.question,
+      // Null when the teacher formatted nothing: the plain text is then the
+      // whole truth, which is what every question in the system is today.
+      questionHtml: hasFormatting(html) ? html : null,
+      optionsHtml: optionHtml.some((o) => hasFormatting(o)) ? optionHtml : undefined,
       questionType: q.questionType,
       options: q.options,
       correctAnswer: q.correctAnswer ?? "",
@@ -410,7 +444,8 @@ export class QuizService {
       contentFont: q.contentFont ?? null,
       // Back on the paper if it had previously been taken off.
       retiredAt: null,
-    });
+      };
+    };
 
     const kept = new Set<string>();
     for (const [i, q] of incoming.entries()) {
@@ -534,6 +569,16 @@ export class QuizService {
           ...set("language"),
           ...set("direction"),
           ...set("contentFont"),
+          // Sanitised on the way in, never on the way out: what a request
+          // happens to contain decides nothing about what is stored.
+          ...(dto.instructionsHtml !== undefined
+            ? {
+                instructionsHtml: (() => {
+                  const html = sanitizeRichText(dto.instructionsHtml);
+                  return hasFormatting(html) ? html : null;
+                })(),
+              }
+            : {}),
         },
       });
 
@@ -776,6 +821,7 @@ export class QuizService {
           durationMin: quiz.timeLimitMin,
           instructions: quiz.instructions,
           examinationRules: quiz.examinationRules || DEFAULT_EXAM_RULES,
+          instructionsHtml: quiz.instructionsHtml,
           description: quiz.description,
           showResultsImmediately: quiz.showResultsImmediately,
           allowReviewAnswers: quiz.allowReviewAnswers,
@@ -917,6 +963,7 @@ export class QuizService {
           description: quiz.description,
           instructions: quiz.instructions,
           examinationRules: quiz.examinationRules || DEFAULT_EXAM_RULES,
+          instructionsHtml: quiz.instructionsHtml,
           timeLimitMin: quiz.timeLimitMin,
           maxAttempts: quiz.maxAttempts,
           totalQuestions: quiz.questions.length,
@@ -1043,6 +1090,7 @@ export class QuizService {
         section: quiz.section?.name ?? null,
         subject: quiz.subject?.name ?? null,
         teacherName: quiz.teacher?.fullName ?? null,
+        instructionsHtml: quiz.instructionsHtml,
         language: quiz.language,
         direction: quizDirectionSetting(
           quiz.language,
@@ -1050,7 +1098,8 @@ export class QuizService {
         ),
         contentFont: quiz.contentFont,
         questions: questions.map((q) => {
-          let options = Array.isArray(q.options) ? (q.options as string[]) : [];
+          const original = Array.isArray(q.options) ? (q.options as string[]) : [];
+          let options = original;
           if (quiz.shuffleAnswers && options.length > 1) {
             options = shuffleArray(options);
           }
@@ -1077,6 +1126,10 @@ export class QuizService {
                 : undefined,
             direction: q.direction,
             contentFont: q.contentFont,
+            questionHtml: q.questionHtml,
+            // Index-aligned with the options as they were shuffled, or the
+            // formatting would land on the wrong choice.
+            optionsHtml: optionHtmlFor(q, options),
           };
         }),
       };
@@ -1600,6 +1653,7 @@ export class QuizService {
           explanation: a?.aiFeedback ?? null,
           direction: q.direction,
           contentFont: q.contentFont,
+          questionHtml: q.questionHtml,
         };
       });
 

@@ -44,9 +44,25 @@ export const quizQuestionSchema = z
     /** An Arabic face for this question alone. Null follows the quiz. */
     contentFont: z.string().max(40).nullish(),
     question: z.string().min(1),
+    /**
+     * The same question with the teacher's formatting, when there is any.
+     *
+     * Sanitised on the server before it is stored — a sanitiser that runs
+     * only in the browser is decoration, since the request can be made
+     * without one. `question` keeps the words and is what grading, the
+     * change history and every export read.
+     */
+    questionHtml: z.string().max(20000).nullish(),
     questionType: quizQuestionTypeSchema.default("MCQ"),
     // MCQ: the answer choices.
     options: z.array(z.string().min(1)).default([]),
+    /**
+     * The formatted options, index-aligned with `options`.
+     *
+     * `options` stays plain because a submitted answer is matched against it;
+     * formatting an option must not change what counts as correct.
+     */
+    optionsHtml: z.array(z.string().max(4000)).nullish(),
     // MCQ: correct option text. DIRECT: model answer. FILL_BLANK: first/only blank.
     correctAnswer: z.string().default(""),
     // Only meaningful for DIRECT; other types are always graded EXACT.
@@ -151,6 +167,8 @@ export const updateQuizBuilderSchema = z.object({
   direction: z.enum(["AUTO", "LTR", "RTL"]).optional(),
   /** An Arabic face for the whole paper. */
   contentFont: z.string().max(40).nullish(),
+  /** The instructions with the teacher's formatting, when there is any. */
+  instructionsHtml: z.string().max(20000).nullish(),
   editMode: z.enum(["CORRECTION", "NEW_VERSION"]).optional(),
   /** Why, in the teacher's words. Written into the quiz's change history. */
   editReason: z.string().max(300).optional(),

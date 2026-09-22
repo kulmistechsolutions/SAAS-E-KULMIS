@@ -106,7 +106,11 @@ describe("the record that leaves the screen", () => {
   });
 
   it("shows the monitor the same text the student saw", () => {
-    expect(live).toContain("QuizText");
+    // RichText resolves direction the same way QuizText does and shows the
+    // teacher's formatting as well, so the monitor and the student's screen
+    // cannot drift apart.
+    expect(live).toContain("RichText");
+    expect(live).toContain("quizDirection={review.quiz.direction}");
   });
 });
 

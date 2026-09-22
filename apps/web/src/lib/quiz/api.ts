@@ -28,6 +28,10 @@ export interface ApiQuizQuestion {
   /** Overrides the quiz's own setting for this one question. */
   direction?: "AUTO" | "LTR" | "RTL" | null;
   contentFont?: string | null;
+  /** The question as the teacher formatted it; null when it is plain. */
+  questionHtml?: string | null;
+  /** The formatted options, index-aligned with `options`. */
+  optionsHtml?: string[] | null;
 }
 
 export interface QuizBuilderQuestion {
@@ -41,6 +45,8 @@ export interface QuizBuilderQuestion {
   marks: number;
   direction?: "AUTO" | "LTR" | "RTL" | null;
   contentFont?: string | null;
+  questionHtml?: string | null;
+  optionsHtml?: string[] | null;
 }
 
 export interface ApiQuiz {
@@ -83,6 +89,7 @@ export interface ApiQuiz {
   language?: string | null;
   direction?: "AUTO" | "LTR" | "RTL" | null;
   contentFont?: string | null;
+  instructionsHtml?: string | null;
   questions?: ApiQuizQuestion[];
   _count?: { questions: number; attempts: number };
 }
@@ -124,6 +131,7 @@ export interface QuizAccessResponse {
     description: string | null;
     instructions: string | null;
     examinationRules: string;
+    instructionsHtml?: string | null;
     timeLimitMin: number | null;
     maxAttempts: number;
     totalQuestions: number;
@@ -153,6 +161,7 @@ export interface QuizLandingResponse {
     passingMarks: number;
     durationMin: number | null;
     instructions: string | null;
+    instructionsHtml?: string | null;
     examinationRules: string;
     description: string | null;
     showResultsImmediately: boolean;
@@ -214,6 +223,7 @@ export interface QuizAttemptReview {
     explanation: string | null;
     direction?: "AUTO" | "LTR" | "RTL" | null;
     contentFont?: string | null;
+    questionHtml?: string | null;
   }[];
 }
 
@@ -395,6 +405,7 @@ export const apiUpdateQuizBuilder = (
     language?: string;
     direction?: "AUTO" | "LTR" | "RTL";
     contentFont?: string | null;
+    instructionsHtml?: string | null;
     questions?: QuizBuilderQuestion[];
   },
 ) => api<ApiQuiz>(`/quiz/${id}/builder`, { method: "PATCH", body });
