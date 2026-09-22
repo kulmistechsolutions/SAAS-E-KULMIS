@@ -1755,11 +1755,19 @@ model QuizQuestion {
   marks               Int      @default(1)
   requiresManualGrade Boolean  @default(false)
   orderIndex          Int      @default(0)
+  /// Taken off the paper, kept on the record.
+  ///
+  /// Answers are stored against question ids, so deleting a question a student
+  /// has already answered leaves their sheet pointing at nothing. A question
+  /// that has been answered is retired instead: excluded from the paper and
+  /// from the total, still resolvable when a result is read back.
+  retiredAt           DateTime?
   createdAt           DateTime @default(now())
 
   quiz Quiz @relation(fields: [quizId], references: [id], onDelete: Cascade)
 
   @@index([quizId])
+  @@index([quizId, retiredAt])
   @@map("quiz_questions")
 }
 

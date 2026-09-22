@@ -25,6 +25,14 @@ type QType = "MCQ" | "DIRECT" | "MATCH" | "FILL_BLANK";
 
 interface BQ {
   key: string;
+  /**
+   * The question row this already is on the server, when it is one.
+   *
+   * Carried through the editor and sent back on save so the server updates it
+   * in place. Without it every save was a delete-and-recreate, and the answers
+   * students had already given pointed at questions that no longer existed.
+   */
+  id?: string;
   question: string;
   questionType: QType;
   options: string[];
@@ -60,6 +68,7 @@ function blankQuestion(type: QType): BQ {
 }
 
 function toBQ(q: {
+  id?: string;
   question: string;
   questionType?: string;
   options: unknown;
@@ -72,6 +81,7 @@ function toBQ(q: {
   const type = (q.questionType as QType) ?? "MCQ";
   return {
     key: uid(),
+    id: q.id,
     question: q.question,
     questionType: ["MCQ", "DIRECT", "MATCH", "FILL_BLANK"].includes(type) ? type : "DIRECT",
     options: Array.isArray(q.options) ? (q.options as string[]) : [],
@@ -85,6 +95,9 @@ function toBQ(q: {
 
 function toPayload(qs: BQ[]): QuizBuilderQuestion[] {
   return qs.map((q) => ({
+    // Only for a question that already exists; a new one has none and the
+    // server creates it.
+    ...(q.id ? { id: q.id } : {}),
     question: q.question.trim(),
     questionType: q.questionType,
     options: q.questionType === "MCQ" ? q.options.filter((o) => o.trim()) : [],

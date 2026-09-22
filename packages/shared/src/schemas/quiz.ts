@@ -23,6 +23,16 @@ export const matchPairSchema = z.object({
 
 export const quizQuestionSchema = z
   .object({
+    /**
+     * The question this row already is, when it is one.
+     *
+     * Sent back by the builder so a save can update in place instead of
+     * deleting and recreating. Without it the server cannot tell an edited
+     * question from a new one, which is how a published paper lost the answer
+     * sheets behind it: new ids, and every stored answer pointing at a
+     * question that no longer existed.
+     */
+    id: z.string().min(1).optional(),
     question: z.string().min(1),
     questionType: quizQuestionTypeSchema.default("MCQ"),
     // MCQ: the answer choices.
