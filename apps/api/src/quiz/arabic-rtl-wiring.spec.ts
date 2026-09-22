@@ -45,6 +45,15 @@ describe("the student's screen", () => {
     expect(take).toContain("direction: q.direction ?? null");
   });
 
+  it("sets the title and the instructions the same way", () => {
+    // The first screen a student sees. These carry no quiz setting of their
+    // own — they come from the landing payload — so detection decides, which
+    // is right for free text that says what it is.
+    expect(take).toContain('text={q.title}');
+    expect(take).toContain('text={q.instructions}');
+    expect(take).not.toMatch(/>\s*\{q\.instructions\}\s*</);
+  });
+
   it("uses the paper's own direction on the review sheet, not a live quiz", () => {
     // A student opening a past result has no quiz loaded; reading direction
     // off one would have been a crash on the screen parents are shown.

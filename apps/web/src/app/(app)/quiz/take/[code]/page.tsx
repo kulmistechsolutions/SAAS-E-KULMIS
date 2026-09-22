@@ -451,7 +451,11 @@ function TakeQuizContent({ code }: { code: string }) {
                 <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
                   {tr("quizTake.examination")}
                 </p>
-                <h1 className="mt-1 text-2xl font-bold tracking-tight sm:text-3xl">{q.title}</h1>
+                <QuizText
+                  as="h1"
+                  text={q.title}
+                  className="mt-1 text-2xl font-bold tracking-tight sm:text-3xl"
+                />
               </div>
               <dl className="grid gap-3 sm:grid-cols-2">
                 {[
@@ -474,9 +478,11 @@ function TakeQuizContent({ code }: { code: string }) {
               {q.instructions && (
                 <div>
                   <h2 className="text-sm font-semibold">{tr("quizTake.quizInstructions")}</h2>
-                  <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">
-                    {q.instructions}
-                  </p>
+                  <QuizText
+                    as="p"
+                    text={q.instructions}
+                    className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground"
+                  />
                 </div>
               )}
               <div>
@@ -566,7 +572,7 @@ function TakeQuizContent({ code }: { code: string }) {
             </div>
             <div className="space-y-5 px-6 py-7 sm:px-8">
               <div>
-                <h1 className="text-2xl font-bold">{q.title}</h1>
+                <QuizText as="h1" text={q.title} className="text-2xl font-bold" />
                 <p className="mt-1 text-sm text-muted-foreground">
                   {tr("quizTake.welcome")} <strong className="text-foreground">{access.studentName}</strong> ({access.studentCode})
                 </p>
@@ -586,7 +592,11 @@ function TakeQuizContent({ code }: { code: string }) {
                 </div>
               </dl>
               {q.instructions && (
-                <p className="whitespace-pre-wrap text-sm text-muted-foreground">{q.instructions}</p>
+                <QuizText
+                  as="p"
+                  text={q.instructions}
+                  className="whitespace-pre-wrap text-sm text-muted-foreground"
+                />
               )}
               <Button className="h-11 w-full" onClick={() => void startQuiz()} disabled={loading}>
                 {loading ? "Starting…" : access.resumeAttemptId ? "Resume Quiz" : "Begin Examination"}
