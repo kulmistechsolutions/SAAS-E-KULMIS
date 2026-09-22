@@ -1,3 +1,12 @@
+/* The Arabic faces a school can choose for quiz content.
+ *
+ * Arabic set in a Latin UI font falls back to whatever the device has, which
+ * on a cheap Android phone is often a face with no proper Naskh forms: the
+ * letters join wrongly and a carefully typed question looks amateur. Loaded
+ * with display=swap so a slow connection shows the text in a fallback rather
+ * than showing nothing. */
+@import url("https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Cairo:wght@400;600;700&family=Noto+Naskh+Arabic:wght@400;700&family=Noto+Sans+Arabic:wght@400;600;700&family=Tajawal:wght@400;500;700&display=swap");
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

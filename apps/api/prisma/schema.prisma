@@ -1720,6 +1720,12 @@ model Quiz {
   disableCopyPaste       Boolean    @default(false)
   resetOnMinimize        Boolean    @default(false)
   publishedAt            DateTime?
+  /// ENGLISH | ARABIC | SOMALI | MIXED — what the paper is written in.
+  language               String     @default("AUTO")
+  /// AUTO | LTR | RTL. AUTO detects from the text, which is almost always right.
+  direction              String     @default("AUTO")
+  /// An Arabic face, where the school chose one. Null keeps the page's own.
+  contentFont            String?
   /// "1.0", "1.1", "2.0" — minor for a correction, major for a rewrite.
   ///
   /// A typo is not the same event as changing what question 5 asks, and the
@@ -1761,6 +1767,13 @@ model QuizQuestion {
   marks               Int      @default(1)
   requiresManualGrade Boolean  @default(false)
   orderIndex          Int      @default(0)
+  /// AUTO | LTR | RTL for this question alone. Null means "as the quiz says".
+  ///
+  /// Per question because a single paper legitimately mixes them: question 1
+  /// English, question 2 Arabic.
+  direction           String?
+  /// An Arabic face for this question alone. Null means "as the quiz says".
+  contentFont         String?
   /// Taken off the paper, kept on the record.
   ///
   /// Answers are stored against question ids, so deleting a question a student

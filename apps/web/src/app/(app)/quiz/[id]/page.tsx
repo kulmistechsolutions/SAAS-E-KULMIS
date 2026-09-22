@@ -25,6 +25,13 @@ import {
   type QuizEditMode,
 } from "@/components/quiz/edit-mode-dialog";
 import { useAuth } from "@/lib/auth";
+import { quizFieldProps } from "@/components/quiz/rtl-text";
+import {
+  ARABIC_FONTS,
+  QUIZ_LANGUAGES,
+  quizDirectionSetting,
+  type DirectionSetting,
+} from "@ekulmis/shared";
 
 type QType = "MCQ" | "DIRECT" | "MATCH" | "FILL_BLANK";
 
@@ -46,6 +53,15 @@ interface BQ {
   pairs: { left: string; right: string }[];
   blanks: string[];
   marks: number;
+  /**
+   * Which way this one question runs, when it differs from the paper's.
+   *
+   * Null means "as the quiz says", which is what almost every question wants.
+   * The exception is a genuinely mixed paper — question 1 in English,
+   * question 2 in Arabic — which schools here do set.
+   */
+  direction: DirectionSetting | null;
+  contentFont: string | null;
 }
 
 const TYPE_LABEL: Record<QType, string> = {
@@ -69,6 +85,8 @@ function blankQuestion(type: QType): BQ {
     pairs: type === "MATCH" ? [{ left: "", right: "" }, { left: "", right: "" }] : [],
     blanks: type === "FILL_BLANK" ? [""] : [],
     marks: 1,
+    direction: null,
+    contentFont: null,
   };
 }
 
@@ -82,6 +100,8 @@ function toBQ(q: {
   pairs?: { left: string; right: string }[] | null;
   blanks?: string[] | null;
   marks: number;
+  direction?: DirectionSetting | null;
+  contentFont?: string | null;
 }): BQ {
   const type = (q.questionType as QType) ?? "MCQ";
   return {
@@ -95,6 +115,8 @@ function toBQ(q: {
     pairs: q.pairs ?? [],
     blanks: q.blanks ?? [],
     marks: q.marks,
+    direction: q.direction ?? null,
+    contentFont: q.contentFont ?? null,
   };
 }
 
@@ -111,6 +133,8 @@ function toPayload(qs: BQ[]): QuizBuilderQuestion[] {
     pairs: q.questionType === "MATCH" ? q.pairs.filter((p) => p.left.trim() && p.right.trim()) : [],
     blanks: q.questionType === "FILL_BLANK" ? q.blanks.filter((b) => b.trim()) : [],
     marks: q.marks,
+    direction: q.direction,
+    contentFont: q.contentFont,
   }));
 }
 
@@ -137,6 +161,9 @@ export default function QuizBuilderPage({ params }: { params: Promise<{ id: stri
   const [duration, setDuration] = useState("");
   const [maxAttempts, setMaxAttempts] = useState("1");
   const [passing, setPassing] = useState("");
+  const [language, setLanguage] = useState("AUTO");
+  const [direction, setDirection] = useState<DirectionSetting>("AUTO");
+  const [contentFont, setContentFont] = useState("");
   /** JSON of the questions as loaded, to tell a real edit from a plain save. */
   const [questionsAtLoad, setQuestionsAtLoad] = useState("");
   const [addType, setAddType] = useState<QType>("MCQ");
@@ -159,6 +186,9 @@ export default function QuizBuilderPage({ params }: { params: Promise<{ id: stri
       setDuration(q.timeLimitMin ? String(q.timeLimitMin) : "");
       setMaxAttempts(String(q.maxAttempts ?? 1));
       setPassing(q.passingMarks != null ? String(q.passingMarks) : "");
+      setLanguage(q.language ?? "AUTO");
+      setDirection((q.direction as DirectionSetting) ?? "AUTO");
+      setContentFont(q.contentFont ?? "");
     } catch {
       toast("Could not load quiz", "error");
     } finally {
@@ -189,6 +219,10 @@ export default function QuizBuilderPage({ params }: { params: Promise<{ id: stri
   const questionsDirty =
     questionsAtLoad !== "" && JSON.stringify(toPayload(questions)) !== questionsAtLoad;
   const totalMarks = questions.reduce((s, q) => s + (Number(q.marks) || 0), 0);
+  // An Arabic paper left on Auto is right-to-left: saying the language is
+  // Arabic is saying enough, and a paper of diagrams and numbers has nothing
+  // for detection to work from.
+  const quizDir = quizDirectionSetting(language, direction);
 
   const patch = (key: string, next: Partial<BQ>) =>
     setQuestions((qs) => qs.map((q) => (q.key === key ? { ...q, ...next } : q)));
@@ -242,6 +276,9 @@ export default function QuizBuilderPage({ params }: { params: Promise<{ id: stri
         timeLimitMin: duration ? Number(duration) : null,
         maxAttempts: Number(maxAttempts) || 1,
         passingMarks: passing.trim() === "" ? null : Number(passing),
+        language,
+        direction,
+        contentFont: contentFont || null,
         ...(canEditQuestions ? { questions: toPayload(questions) } : {}),
         ...(edit
           ? { editMode: edit.mode, ...(edit.reason ? { editReason: edit.reason } : {}) }
@@ -337,6 +374,53 @@ export default function QuizBuilderPage({ params }: { params: Promise<{ id: stri
             </p>
           </div>
         </div>
+        {/* Language and direction. A paper written in Arabic has to read as
+            Arabic everywhere it appears — here, on the student's screen and on
+            the result sheet — and the teacher should not have to set that
+            three times, or indeed at all when the text already says so. */}
+        <div className="grid gap-3 border-t pt-4 sm:grid-cols-3">
+          <div className="space-y-2">
+            <Label>{tr("quiz.language")}</Label>
+            <Select value={language} onChange={(e) => setLanguage(e.target.value)} className="h-9">
+              {QUIZ_LANGUAGES.map((l) => (
+                <option key={l.id} value={l.id}>
+                  {tr(`quiz.language_${l.id}`)}
+                </option>
+              ))}
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>{tr("quiz.textDirection")}</Label>
+            <Select
+              value={direction}
+              onChange={(e) => setDirection(e.target.value as DirectionSetting)}
+              className="h-9"
+            >
+              <option value="AUTO">{tr("quiz.dirAuto")}</option>
+              <option value="LTR">{tr("quiz.dirLtr")}</option>
+              <option value="RTL">{tr("quiz.dirRtl")}</option>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>{tr("quiz.arabicFont")}</Label>
+            <Select
+              value={contentFont}
+              onChange={(e) => setContentFont(e.target.value)}
+              className="h-9"
+            >
+              <option value="">{tr("quiz.fontDefault")}</option>
+              {ARABIC_FONTS.map((f) => (
+                <option key={f.id} value={f.id}>
+                  {f.label}
+                </option>
+              ))}
+            </Select>
+          </div>
+          <p className="text-xs text-muted-foreground sm:col-span-3">
+            {tr("quiz.directionHint")}
+          </p>
+        </div>
+
         <div className="space-y-2">
           <Toggle label={tr("quiz.showResultToStudentImmediatelyAfter")} checked={showResults} onChange={setShowResults} />
           <Toggle label={tr("quiz.allowStudentsToReviewAnswersAfter")} checked={allowReview} onChange={setAllowReview} />
@@ -355,7 +439,15 @@ export default function QuizBuilderPage({ params }: { params: Promise<{ id: stri
 
         <div className="space-y-4">
           {questions.map((q, i) => (
-            <QuestionEditor key={q.key} q={q} index={i} onChange={(n) => patch(q.key, n)} onRemove={() => setQuestions((qs) => qs.filter((x) => x.key !== q.key))} />
+            <QuestionEditor
+              key={q.key}
+              q={q}
+              index={i}
+              quizDirection={quizDir}
+              quizFont={contentFont || null}
+              onChange={(n) => patch(q.key, n)}
+              onRemove={() => setQuestions((qs) => qs.filter((x) => x.key !== q.key))}
+            />
           ))}
           {questions.length === 0 && <p className="text-sm text-muted-foreground">{tr("quiz.noQuestionsYetAddOneBelow")}</p>}
         </div>
@@ -404,8 +496,27 @@ export default function QuizBuilderPage({ params }: { params: Promise<{ id: stri
   );
 }
 
-function QuestionEditor({ q, index, onChange, onRemove }: { q: BQ; index: number; onChange: (n: Partial<BQ>) => void; onRemove: () => void }) {
+function QuestionEditor({
+  q,
+  index,
+  quizDirection,
+  quizFont,
+  onChange,
+  onRemove,
+}: {
+  q: BQ;
+  index: number;
+  quizDirection: DirectionSetting;
+  quizFont: string | null;
+  onChange: (n: Partial<BQ>) => void;
+  onRemove: () => void;
+}) {
   const tr = useT();
+  // Every field a teacher types content into turns round with the question,
+  // because an input that stays left-to-right while Arabic is typed into it
+  // puts the cursor on the wrong side and the question mark at the wrong end.
+  const fld = (text: string) =>
+    quizFieldProps(text || q.question, q.direction, quizDirection, q.contentFont, quizFont);
   return (
     <div className="space-y-3 rounded-lg border bg-secondary/20 p-4">
       <div className="flex items-center justify-between">
@@ -413,12 +524,24 @@ function QuestionEditor({ q, index, onChange, onRemove }: { q: BQ; index: number
           Q{index + 1} · {TYPE_LABEL[q.questionType]}
         </span>
         <div className="flex items-center gap-2">
+          <Select
+            value={q.direction ?? ""}
+            onChange={(e) =>
+              onChange({ direction: (e.target.value || null) as DirectionSetting | null })
+            }
+            className="h-8 w-28 text-xs"
+            title={tr("quiz.questionDirection")}
+          >
+            <option value="">{tr("quiz.dirAsQuiz")}</option>
+            <option value="LTR">{tr("quiz.dirLtr")}</option>
+            <option value="RTL">{tr("quiz.dirRtl")}</option>
+          </Select>
           <Input type="number" value={q.marks} onChange={(e) => onChange({ marks: Number(e.target.value) || 1 })} className="h-8 w-16" title={tr("quiz.marks")} />
           <Button variant="ghost" className="h-8 w-8 p-0 text-rose-600" onClick={onRemove}><Trash2 className="h-4 w-4" /></Button>
         </div>
       </div>
 
-      <Textarea value={q.question} onChange={(e) => onChange({ question: e.target.value })} rows={2} placeholder={q.questionType === "FILL_BLANK" ? "Use ___ for each blank, e.g. The capital of France is ___" : "Question text"} />
+      <Textarea {...fld(q.question)} value={q.question} onChange={(e) => onChange({ question: e.target.value })} rows={2} placeholder={q.questionType === "FILL_BLANK" ? "Use ___ for each blank, e.g. The capital of France is ___" : "Question text"} />
 
       {q.questionType === "MCQ" && (
         <div className="space-y-2">
@@ -426,7 +549,7 @@ function QuestionEditor({ q, index, onChange, onRemove }: { q: BQ; index: number
           {q.options.map((opt, oi) => (
             <div key={oi} className="flex items-center gap-2">
               <input type="radio" name={`correct-${q.key}`} checked={!!opt && q.correctAnswer === opt} onChange={() => onChange({ correctAnswer: opt })} title={tr("quiz.correctAnswer")} />
-              <Input value={opt} onChange={(e) => { const options = [...q.options]; options[oi] = e.target.value; const next: Partial<BQ> = { options }; if (q.correctAnswer === opt) next.correctAnswer = e.target.value; onChange(next); }} className="h-9" placeholder={`Option ${oi + 1}`} />
+              <Input {...fld(opt)} value={opt} onChange={(e) => { const options = [...q.options]; options[oi] = e.target.value; const next: Partial<BQ> = { options }; if (q.correctAnswer === opt) next.correctAnswer = e.target.value; onChange(next); }} className="h-9" placeholder={`Option ${oi + 1}`} />
               {q.options.length > 2 && <Button variant="ghost" className="h-8 w-8 p-0 text-rose-600" onClick={() => onChange({ options: q.options.filter((_, x) => x !== oi) })}><Trash2 className="h-4 w-4" /></Button>}
             </div>
           ))}
@@ -437,7 +560,7 @@ function QuestionEditor({ q, index, onChange, onRemove }: { q: BQ; index: number
       {q.questionType === "DIRECT" && (
         <div className="space-y-2">
           <Label className="text-xs">{tr("quiz.modelAnswer")}</Label>
-          <Textarea value={q.correctAnswer} onChange={(e) => onChange({ correctAnswer: e.target.value })} rows={2} placeholder={tr("quiz.theCorrectExpectedAnswer")} />
+          <Textarea {...fld(q.correctAnswer)} value={q.correctAnswer} onChange={(e) => onChange({ correctAnswer: e.target.value })} rows={2} placeholder={tr("quiz.theCorrectExpectedAnswer")} />
           <Label className="text-xs">{tr("quiz.grading")}</Label>
           <Select value={q.gradingMode} onChange={(e) => onChange({ gradingMode: e.target.value as BQ["gradingMode"] })} className="h-9">
             <option value="EXACT">{tr("quiz.exactMatchAnswerMustMatch")}</option>
@@ -451,9 +574,9 @@ function QuestionEditor({ q, index, onChange, onRemove }: { q: BQ; index: number
           <Label className="text-xs">{tr("quiz.pairsLeftRight")}</Label>
           {q.pairs.map((p, pi) => (
             <div key={pi} className="flex items-center gap-2">
-              <Input value={p.left} onChange={(e) => { const pairs = [...q.pairs]; pairs[pi] = { ...pairs[pi], left: e.target.value }; onChange({ pairs }); }} className="h-9" placeholder={tr("quiz.left")} />
+              <Input {...fld(p.left)} value={p.left} onChange={(e) => { const pairs = [...q.pairs]; pairs[pi] = { ...pairs[pi], left: e.target.value }; onChange({ pairs }); }} className="h-9" placeholder={tr("quiz.left")} />
               <span className="text-muted-foreground">↔</span>
-              <Input value={p.right} onChange={(e) => { const pairs = [...q.pairs]; pairs[pi] = { ...pairs[pi], right: e.target.value }; onChange({ pairs }); }} className="h-9" placeholder={tr("quiz.right")} />
+              <Input {...fld(p.right)} value={p.right} onChange={(e) => { const pairs = [...q.pairs]; pairs[pi] = { ...pairs[pi], right: e.target.value }; onChange({ pairs }); }} className="h-9" placeholder={tr("quiz.right")} />
               {q.pairs.length > 2 && <Button variant="ghost" className="h-8 w-8 p-0 text-rose-600" onClick={() => onChange({ pairs: q.pairs.filter((_, x) => x !== pi) })}><Trash2 className="h-4 w-4" /></Button>}
             </div>
           ))}
@@ -467,7 +590,7 @@ function QuestionEditor({ q, index, onChange, onRemove }: { q: BQ; index: number
           {q.blanks.map((b, bi) => (
             <div key={bi} className="flex items-center gap-2">
               <span className="text-xs text-muted-foreground">#{bi + 1}</span>
-              <Input value={b} onChange={(e) => { const blanks = [...q.blanks]; blanks[bi] = e.target.value; onChange({ blanks }); }} className="h-9" placeholder={`Blank ${bi + 1} answer`} />
+              <Input {...fld(b)} value={b} onChange={(e) => { const blanks = [...q.blanks]; blanks[bi] = e.target.value; onChange({ blanks }); }} className="h-9" placeholder={`Blank ${bi + 1} answer`} />
               {q.blanks.length > 1 && <Button variant="ghost" className="h-8 w-8 p-0 text-rose-600" onClick={() => onChange({ blanks: q.blanks.filter((_, x) => x !== bi) })}><Trash2 className="h-4 w-4" /></Button>}
             </div>
           ))}

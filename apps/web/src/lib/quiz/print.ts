@@ -1,5 +1,11 @@
 import type { QuizAttemptReview } from "./api";
 import { resolveLogoUrl } from "@/lib/settings/api";
+import {
+  fontStack,
+  quizDirectionSetting,
+  resolveDirection,
+  type DirectionSetting,
+} from "@ekulmis/shared";
 
 function esc(s: string | null | undefined): string {
   return (s ?? "")
@@ -8,6 +14,25 @@ function esc(s: string | null | undefined): string {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
 }
+
+/**
+ * The Google Fonts stylesheet for a chosen Arabic face.
+ *
+ * The printed sheet opens in a window of its own, which loads none of the
+ * app's CSS — so an Arabic paper printed without this falls back to whatever
+ * the machine has, and on most of the school laptops here that is a face with
+ * no proper Naskh joining. This is the record a parent is handed; it has to
+ * look like the paper the child sat.
+ */
+const PRINT_FONT_HREF: Record<string, string> = {
+  "noto-sans-arabic":
+    "https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;600;700&display=swap",
+  "noto-naskh-arabic":
+    "https://fonts.googleapis.com/css2?family=Noto+Naskh+Arabic:wght@400;600;700&display=swap",
+  amiri: "https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&display=swap",
+  cairo: "https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap",
+  tajawal: "https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap",
+};
 
 export function attemptReviewPdfHtml(review: QuizAttemptReview): string {
   // On the local storage backend the server cannot mint a direct URL, so
@@ -18,6 +43,21 @@ export function attemptReviewPdfHtml(review: QuizAttemptReview): string {
   const logo = logoSrc
     ? `<img src="${esc(logoSrc)}" alt="" style="height:56px;width:56px;object-fit:contain;border-radius:10px"/>`
     : "";
+  // The paper's own direction, resolved once: an Arabic sheet has to read as
+  // Arabic on paper too, and per question because a paper may mix them.
+  const quizDir = quizDirectionSetting(null, review.quiz.direction);
+  const quizFont = review.quiz.contentFont ?? null;
+  const dirOf = (q: { question: string; direction?: DirectionSetting | null }) =>
+    resolveDirection(q.direction ?? quizDir, q.question);
+  const fontOf = (q: { contentFont?: string | null }) =>
+    fontStack(q.contentFont ?? quizFont);
+  const attr = (
+    q: { question: string; direction?: DirectionSetting | null; contentFont?: string | null },
+  ) => {
+    const family = fontOf(q);
+    return ` dir="${dirOf(q)}"${family ? ` style="font-family:${family};line-height:1.9"` : ""}`;
+  };
+
   const rows = review.questions
     .map((q) => {
       const right = q.status === "CORRECT";
@@ -34,17 +74,17 @@ export function attemptReviewPdfHtml(review: QuizAttemptReview): string {
     <div class="q ${verdict.cls}">
       <div class="qhead">
         <span class="qnum">${q.number}</span>
-        <p class="prompt">${esc(q.question)}</p>
+        <p class="prompt"${attr(q)}>${esc(q.question)}</p>
         <span class="badge ${verdict.cls}">${verdict.mark} ${verdict.label}</span>
       </div>
       <div class="cmp">
         <div class="cell ${right ? "ok" : missed ? "skip" : "bad"}">
           <span class="lbl">Student's answer</span>
-          <span class="val">${esc(q.studentAnswer) || "<em>left blank</em>"}</span>
+          <span class="val"${attr(q)}>${esc(q.studentAnswer) || "<em>left blank</em>"}</span>
         </div>
         <div class="cell ok">
           <span class="lbl">Correct answer</span>
-          <span class="val">${esc(q.correctAnswer) || "—"}</span>
+          <span class="val"${attr(q)}>${esc(q.correctAnswer) || "—"}</span>
         </div>
         <div class="cell marks">
           <span class="lbl">Marks</span>
@@ -60,12 +100,14 @@ export function attemptReviewPdfHtml(review: QuizAttemptReview): string {
     })
     .join("");
 
+  const fontHref = quizFont ? (PRINT_FONT_HREF[quizFont] ?? "") : "";
   const mins = Math.floor(review.timeTakenSec / 60);
   const secs = review.timeTakenSec % 60;
 
   return `<!DOCTYPE html>
 <html><head><meta charset="utf-8"/><title>${esc(review.quiz.title)} — Result</title>
 <style>
+  ${fontHref ? `@import url("${fontHref}");` : ""}
   @page { margin: 18mm; }
   body{font-family:Georgia,"Times New Roman",serif;color:#0f172a;max-width:800px;margin:0 auto;padding:24px;line-height:1.45}
   .brand{display:flex;gap:14px;align-items:center;border-bottom:2px solid #0f766e;padding-bottom:16px;margin-bottom:20px}

@@ -16,6 +16,7 @@ import {
 import { toast } from "@/lib/toast";
 import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
+import { QuizText } from "@/components/quiz/rtl-text";
 import { printAttemptReviewPdf } from "@/lib/quiz/print";
 
 const STATUS_LABEL: Record<string, string> = {
@@ -285,7 +286,15 @@ export default function QuizLiveMonitoringPage({
                         <p className="font-medium">
                           Q{q.number}: {q.status}
                         </p>
-                        <p className="mt-1 text-muted-foreground line-clamp-2">{q.question}</p>
+                        <QuizText
+                          as="p"
+                          text={q.question}
+                          direction={q.direction}
+                          quizDirection={review.quiz.direction}
+                          font={q.contentFont}
+                          quizFont={review.quiz.contentFont}
+                          className="mt-1 text-muted-foreground line-clamp-2"
+                        />
                         <p className="mt-1">
                           {t("quizLive.student")} {q.studentAnswer || "—"} {t("quizLive.correct")} {q.correctAnswer || "—"}
                         </p>

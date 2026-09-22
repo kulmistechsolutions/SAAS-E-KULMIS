@@ -37,6 +37,8 @@ import { printAttemptReviewPdf } from "@/lib/quiz/print";
 import { resolveLogoUrl } from "@/lib/settings/api";
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
+import { QuizText, quizFieldProps } from "@/components/quiz/rtl-text";
+import type { DirectionSetting } from "@ekulmis/shared";
 import { useHydrated } from "@/lib/use-hydrated";
 
 type PublicQuestion = {
@@ -48,6 +50,8 @@ type PublicQuestion = {
   matchChoices?: string[];
   blankCount?: number;
   marks: number;
+  direction?: DirectionSetting | null;
+  contentFont?: string | null;
 };
 
 type PublicQuiz = {
@@ -66,6 +70,8 @@ type PublicQuiz = {
   section: string | null;
   subject: string | null;
   teacherName: string | null;
+  direction?: DirectionSetting | null;
+  contentFont?: string | null;
   questions: PublicQuestion[];
 };
 
@@ -325,6 +331,8 @@ function TakeQuizContent({ code }: { code: string }) {
         section: row.section?.name ?? access.quiz.section,
         subject: row.subject?.name ?? access.quiz.subject,
         teacherName: row.teacherName ?? access.quiz.teacherName,
+        direction: row.direction ?? null,
+        contentFont: row.contentFont ?? null,
         questions: (row.questions ?? []).map((q) => ({
           id: q.id,
           question: q.question,
@@ -334,6 +342,8 @@ function TakeQuizContent({ code }: { code: string }) {
           matchChoices: q.matchChoices,
           blankCount: q.blankCount,
           marks: q.marks,
+          direction: q.direction ?? null,
+          contentFont: q.contentFont ?? null,
         })),
       };
       const started = await apiStartQuizAttempt({
@@ -739,15 +749,39 @@ function TakeQuizContent({ code }: { code: string }) {
                       : "⚪ Not Answered"}
                 </span>
               </div>
-              <p className="mt-2 whitespace-pre-wrap font-medium">{q.question}</p>
+              <QuizText
+                as="p"
+                text={q.question}
+                direction={q.direction}
+                quizDirection={result.quiz.direction}
+                font={q.contentFont}
+                quizFont={result.quiz.contentFont}
+                className="mt-2 whitespace-pre-wrap font-medium"
+              />
               <div className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
                 <div className="rounded-xl border bg-secondary/20 p-3">
                   <p className="text-xs text-muted-foreground">{tr("quizTake.yourAnswer")}</p>
-                  <p className="mt-1 whitespace-pre-wrap">{q.studentAnswer || "—"}</p>
+                  <QuizText
+                    as="p"
+                    text={q.studentAnswer || "—"}
+                    direction={q.direction}
+                    quizDirection={result.quiz.direction}
+                    font={q.contentFont}
+                    quizFont={result.quiz.contentFont}
+                    className="mt-1 whitespace-pre-wrap"
+                  />
                 </div>
                 <div className="rounded-xl border bg-emerald-50/50 p-3 dark:bg-emerald-950/20">
                   <p className="text-xs text-muted-foreground">{tr("quizTake.correctAnswer")}</p>
-                  <p className="mt-1 whitespace-pre-wrap">{q.correctAnswer || "—"}</p>
+                  <QuizText
+                    as="p"
+                    text={q.correctAnswer || "—"}
+                    direction={q.direction}
+                    quizDirection={result.quiz.direction}
+                    font={q.contentFont}
+                    quizFont={result.quiz.contentFont}
+                    className="mt-1 whitespace-pre-wrap"
+                  />
                 </div>
               </div>
               <p className="mt-3 text-xs text-muted-foreground">
@@ -852,9 +886,15 @@ function TakeQuizContent({ code }: { code: string }) {
                 {answeredCount}/{quiz.questions.length} {tr("quizTake.answered")}
               </p>
             </div>
-            <p className="mt-3 whitespace-pre-wrap text-base font-medium leading-relaxed sm:text-lg">
-              {q.question}
-            </p>
+            <QuizText
+              as="p"
+              text={q.question}
+              direction={q.direction}
+              quizDirection={quiz.direction}
+              font={q.contentFont}
+              quizFont={quiz.contentFont}
+              className="mt-3 whitespace-pre-wrap text-base font-medium leading-relaxed sm:text-lg"
+            />
 
             {q.questionType === "MCQ" ? (
               <div className="mt-5 space-y-2.5">
@@ -870,7 +910,14 @@ function TakeQuizContent({ code }: { code: string }) {
                         : "hover:bg-secondary",
                     )}
                   >
-                    {opt}
+                    <QuizText
+                      text={opt}
+                      direction={q.direction}
+                      quizDirection={quiz.direction}
+                      font={q.contentFont}
+                      quizFont={quiz.contentFont}
+                      className="block"
+                    />
                   </button>
                 ))}
               </div>
@@ -878,10 +925,22 @@ function TakeQuizContent({ code }: { code: string }) {
               <div className="mt-5 space-y-2.5">
                 {(q.matchLeft ?? []).map((left, li) => (
                   <div key={li} className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                    <span className="flex-1 rounded-xl border bg-secondary/40 px-3 py-2.5 text-sm">
-                      {left}
-                    </span>
+                    <QuizText
+                      text={left}
+                      direction={q.direction}
+                      quizDirection={quiz.direction}
+                      font={q.contentFont}
+                      quizFont={quiz.contentFont}
+                      className="flex-1 rounded-xl border bg-secondary/40 px-3 py-2.5 text-sm"
+                    />
                     <select
+                      {...quizFieldProps(
+                        (q.matchChoices ?? []).join(" "),
+                        q.direction,
+                        quiz.direction,
+                        q.contentFont,
+                        quiz.contentFont,
+                      )}
                       className="h-11 flex-1 rounded-xl border border-input bg-background px-3 text-sm outline-none focus:border-primary"
                       value={readArr(q.id, (q.matchLeft ?? []).length)[li] ?? ""}
                       onChange={(e) =>
@@ -904,6 +963,13 @@ function TakeQuizContent({ code }: { code: string }) {
                   <div key={bi} className="flex items-center gap-2">
                     <span className="text-xs text-muted-foreground">{tr("quizTake.blank")} {bi + 1}</span>
                     <Input
+                      {...quizFieldProps(
+                        readArr(q.id, q.blankCount ?? 1)[bi] || q.question,
+                        q.direction,
+                        quiz.direction,
+                        q.contentFont,
+                        quiz.contentFont,
+                      )}
                       value={readArr(q.id, q.blankCount ?? 1)[bi] ?? ""}
                       onChange={(e) =>
                         setArrAt(q.id, bi, e.target.value, q.blankCount ?? 1)
@@ -915,6 +981,13 @@ function TakeQuizContent({ code }: { code: string }) {
               </div>
             ) : (
               <Textarea
+                {...quizFieldProps(
+                  answers[q.id] || q.question,
+                  q.direction,
+                  quiz.direction,
+                  q.contentFont,
+                  quiz.contentFont,
+                )}
                 className="mt-5"
                 rows={5}
                 value={answers[q.id] ?? ""}

@@ -33,6 +33,16 @@ export const quizQuestionSchema = z
      * question that no longer existed.
      */
     id: z.string().min(1).optional(),
+    /**
+     * Which way this question runs, when it differs from the quiz.
+     *
+     * Null means "as the quiz says", which is what almost every question
+     * wants. It is per question because a single paper legitimately mixes
+     * them: question 1 English, question 2 Arabic.
+     */
+    direction: z.enum(["AUTO", "LTR", "RTL"]).nullish(),
+    /** An Arabic face for this question alone. Null follows the quiz. */
+    contentFont: z.string().max(40).nullish(),
     question: z.string().min(1),
     questionType: quizQuestionTypeSchema.default("MCQ"),
     // MCQ: the answer choices.
@@ -130,6 +140,17 @@ export const updateQuizBuilderSchema = z.object({
    *
    * Ignored on a draft: nobody has sat it, so there is nothing to protect.
    */
+  /** ENGLISH | ARABIC | SOMALI | MIXED | AUTO. */
+  language: z.string().max(20).optional(),
+  /**
+   * AUTO detects from the text, which is almost always right. The override
+   * exists because a question can be mostly English with an Arabic quotation
+   * in it, or the reverse, and only the teacher knows which way it is meant
+   * to run.
+   */
+  direction: z.enum(["AUTO", "LTR", "RTL"]).optional(),
+  /** An Arabic face for the whole paper. */
+  contentFont: z.string().max(40).nullish(),
   editMode: z.enum(["CORRECTION", "NEW_VERSION"]).optional(),
   /** Why, in the teacher's words. Written into the quiz's change history. */
   editReason: z.string().max(300).optional(),

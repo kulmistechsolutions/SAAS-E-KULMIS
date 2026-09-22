@@ -15,7 +15,9 @@ import type {
   SubmitQuizAttemptInput,
   UpdateQuizBuilderInput,
   VerifyQuizAccessInput,
+  DirectionSetting,
 } from "@ekulmis/shared";
+import { quizDirectionSetting } from "@ekulmis/shared";
 import type { Prisma } from "@prisma/client";
 import {
   diffQuestions,
@@ -403,6 +405,9 @@ export class QuizService {
       requiresManualGrade:
         q.questionType === "ESSAY" || q.questionType === "SHORT_ANSWER",
       orderIndex: i,
+      // Null follows the quiz, which is what almost every question wants.
+      direction: q.direction ?? null,
+      contentFont: q.contentFont ?? null,
       // Back on the paper if it had previously been taken off.
       retiredAt: null,
     });
@@ -526,6 +531,9 @@ export class QuizService {
           ...set("preventMinimize"),
           ...set("disableCopyPaste"),
           ...set("resetOnMinimize"),
+          ...set("language"),
+          ...set("direction"),
+          ...set("contentFont"),
         },
       });
 
@@ -1035,6 +1043,12 @@ export class QuizService {
         section: quiz.section?.name ?? null,
         subject: quiz.subject?.name ?? null,
         teacherName: quiz.teacher?.fullName ?? null,
+        language: quiz.language,
+        direction: quizDirectionSetting(
+          quiz.language,
+          quiz.direction as DirectionSetting,
+        ),
+        contentFont: quiz.contentFont,
         questions: questions.map((q) => {
           let options = Array.isArray(q.options) ? (q.options as string[]) : [];
           if (quiz.shuffleAnswers && options.length > 1) {
@@ -1061,6 +1075,8 @@ export class QuizService {
               q.questionType === "FILL_BLANK"
                 ? Math.max(1, blanks.length)
                 : undefined,
+            direction: q.direction,
+            contentFont: q.contentFont,
           };
         }),
       };
@@ -1582,6 +1598,8 @@ export class QuizService {
               ? ("CORRECT" as const)
               : ("INCORRECT" as const),
           explanation: a?.aiFeedback ?? null,
+          direction: q.direction,
+          contentFont: q.contentFont,
         };
       });
 
@@ -1624,6 +1642,11 @@ export class QuizService {
           allowReviewAnswers: attempt.quiz.allowReviewAnswers,
           allowPdfDownload: attempt.quiz.allowPdfDownload,
           showResultsImmediately: attempt.quiz.showResultsImmediately,
+          direction: quizDirectionSetting(
+            attempt.quiz.language,
+            attempt.quiz.direction as DirectionSetting,
+          ),
+          contentFont: attempt.quiz.contentFont,
         },
         date: attempt.submittedAt ?? attempt.startedAt,
         timeTakenSec,

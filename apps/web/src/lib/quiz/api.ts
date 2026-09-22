@@ -25,6 +25,9 @@ export interface ApiQuizQuestion {
   matchLeft?: string[];
   matchChoices?: string[];
   blankCount?: number;
+  /** Overrides the quiz's own setting for this one question. */
+  direction?: "AUTO" | "LTR" | "RTL" | null;
+  contentFont?: string | null;
 }
 
 export interface QuizBuilderQuestion {
@@ -36,6 +39,8 @@ export interface QuizBuilderQuestion {
   pairs?: QuizMatchPair[];
   blanks?: string[];
   marks: number;
+  direction?: "AUTO" | "LTR" | "RTL" | null;
+  contentFont?: string | null;
 }
 
 export interface ApiQuiz {
@@ -74,6 +79,10 @@ export interface ApiQuiz {
   teacherName?: string | null;
   /** "1.0", "1.1", "2.0" — moves only once a quiz has been published. */
   version?: string;
+  /** The language the paper is written in, and how its text runs. */
+  language?: string | null;
+  direction?: "AUTO" | "LTR" | "RTL" | null;
+  contentFont?: string | null;
   questions?: ApiQuizQuestion[];
   _count?: { questions: number; attempts: number };
 }
@@ -176,6 +185,8 @@ export interface QuizAttemptReview {
     allowReviewAnswers: boolean;
     allowPdfDownload: boolean;
     showResultsImmediately: boolean;
+    direction?: "AUTO" | "LTR" | "RTL" | null;
+    contentFont?: string | null;
   };
   date: string;
   timeTakenSec: number;
@@ -201,6 +212,8 @@ export interface QuizAttemptReview {
     maxMarks: number;
     status: "CORRECT" | "INCORRECT" | "UNANSWERED";
     explanation: string | null;
+    direction?: "AUTO" | "LTR" | "RTL" | null;
+    contentFont?: string | null;
   }[];
 }
 
@@ -379,6 +392,9 @@ export const apiUpdateQuizBuilder = (
     preventMinimize?: boolean;
     disableCopyPaste?: boolean;
     resetOnMinimize?: boolean;
+    language?: string;
+    direction?: "AUTO" | "LTR" | "RTL";
+    contentFont?: string | null;
     questions?: QuizBuilderQuestion[];
   },
 ) => api<ApiQuiz>(`/quiz/${id}/builder`, { method: "PATCH", body });
