@@ -854,7 +854,7 @@ function TakeQuizContent({
                     // Never PASS or FAIL: that is a verdict on a student, and
                     // this is a teacher checking a paper.
                     <div className="mx-auto inline-flex rounded-full bg-violet-100 px-4 py-1.5 text-sm font-semibold text-violet-800 dark:bg-violet-950/50 dark:text-violet-200">
-                      {tr("quizPractice.practiceOnly")} · {tr("quizTake.grade")} {result.grade}
+                      {tr("quizPractice.practiceOnly")} {tr("quizTake.grade")} {result.grade}
                     </div>
                   ) : (
                   <div
