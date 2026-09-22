@@ -118,8 +118,14 @@ export class QuizController {
 
   @Public()
   @Get("code/:code")
-  byCode(@CurrentTenant() tenant: TenantContext, @Param("code") code: string) {
-    return this.quiz.getByCode(tenant.schoolId, code);
+  byCode(
+    @CurrentTenant() tenant: TenantContext,
+    @Param("code") code: string,
+    // Optional: a student who is mid-attempt is served the paper they
+    // started on, not whatever the teacher has published since.
+    @Query("studentId") studentId?: string,
+  ) {
+    return this.quiz.getByCode(tenant.schoolId, code, studentId);
   }
 
   @Public()
@@ -176,6 +182,9 @@ export class QuizController {
     return this.quiz.updateBuilder(me.schoolId, id, parsed.data, {
       userId: me.userId,
       role: me.role,
+      // Named in the quiz's change history: "the teacher edited it" is not an
+      // answer anyone can act on.
+      username: me.username,
     });
   }
 
@@ -248,6 +257,22 @@ export class QuizController {
     @Param("attemptId") attemptId: string,
   ) {
     return this.quiz.getAttemptReview(me.schoolId, attemptId);
+  }
+
+  /**
+   * What has changed on this quiz, and who sat which version.
+   *
+   * Declared before @Get(":id") because Nest matches routes in order and
+   * "history" would otherwise be read as a quiz id.
+   */
+  @Roles(UserRole.ADMINISTRATOR, UserRole.TEACHER, UserRole.EXAM_MANAGER)
+  @RequirePermission("quiz.view")
+  @Get(":id/history")
+  async history(@CurrentUser() me: AuthUser, @Param("id") id: string) {
+    if (me.role === "TEACHER") {
+      await this.quiz.assertOwnsQuiz(me.schoolId, me.userId, id);
+    }
+    return this.quiz.versionHistory(me.schoolId, id);
   }
 
   @Roles(UserRole.ADMINISTRATOR, UserRole.TEACHER, UserRole.EXAM_MANAGER)

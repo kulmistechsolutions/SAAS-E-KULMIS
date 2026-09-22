@@ -1720,6 +1720,11 @@ model Quiz {
   disableCopyPaste       Boolean    @default(false)
   resetOnMinimize        Boolean    @default(false)
   publishedAt            DateTime?
+  /// "1.0", "1.1", "2.0" — minor for a correction, major for a rewrite.
+  ///
+  /// A typo is not the same event as changing what question 5 asks, and the
+  /// difference decides what a student who already sat the paper is shown.
+  version                String     @default("1.0")
   createdAt              DateTime   @default(now())
   updatedAt              DateTime   @updatedAt
 
@@ -1731,6 +1736,7 @@ model Quiz {
   questions    QuizQuestion[]
   attempts     QuizAttempt[]
   activities   QuizActivityEvent[]
+  changes      QuizVersionChange[]
 
   @@unique([schoolId, code])
   @@index([schoolId])
@@ -1777,6 +1783,11 @@ model QuizAttempt {
   quizId         String
   studentId      String
   status         QuizAttemptStatus @default(IN_PROGRESS)
+  /// The version of the paper this attempt was started on.
+  ///
+  /// Null for every attempt taken before versions existed: unknowable, and
+  /// saying so is better than back-filling one they may not have sat.
+  quizVersion    String?
   score          Int?
   percentage     Float?
   result         String?
@@ -1811,6 +1822,35 @@ model QuizAnswer {
 
   @@unique([schoolId, attemptId, questionId])
   @@map("quiz_answers")
+}
+
+/// What changed on a quiz, when, by whom and why.
+///
+/// A published quiz is an academic record. Once a student has sat it, any
+/// change to it is an event somebody may have to account for later — a mark
+/// queried, a result disputed — and "the teacher edited it at some point" is
+/// not an answer. Each row holds the version it produced, what changed, and
+/// the reason given.
+model QuizVersionChange {
+  id              String   @id @default(cuid())
+  schoolId        String
+  quizId          String
+  version         String
+  /// CORRECTION | NEW_VERSION | PUBLISH | CLOSE | ARCHIVE | REOPEN
+  action          String
+  summary         String
+  reason          String?
+  /// Per-question before/after, where the change was to a question.
+  details         Json?
+  changedByUserId String?
+  changedByName   String?
+  createdAt       DateTime @default(now())
+
+  quiz Quiz @relation(fields: [quizId], references: [id], onDelete: Cascade)
+
+  @@index([quizId, createdAt])
+  @@index([schoolId])
+  @@map("quiz_version_changes")
 }
 
 /// Per-student quiz participation timeline (link opened → login → start → submit).

@@ -17,6 +17,13 @@ import type {
   VerifyQuizAccessInput,
 } from "@ekulmis/shared";
 import type { Prisma } from "@prisma/client";
+import {
+  diffQuestions,
+  needsReplacement,
+  nextVersion,
+  summarise,
+  type QuizEditMode,
+} from "./quiz-version";
 import { ConfigService } from "@nestjs/config";
 import { PrismaService } from "../prisma/prisma.service";
 import { studentInClassWhere } from "../students/student-class.util";
@@ -343,12 +350,41 @@ export class QuizService {
     schoolId: string,
     quizId: string,
     incoming: NonNullable<UpdateQuizBuilderInput["questions"]>,
+    mode: QuizEditMode = "CORRECTION",
   ) {
     const existing = await tx.quizQuestion.findMany({
-      where: { quizId },
-      select: { id: true },
+      where: { quizId, retiredAt: null },
+      orderBy: { orderIndex: "asc" },
     });
     const known = new Set(existing.map((q) => q.id));
+
+    // What actually moved, so the change can be written down and so a new
+    // version knows which questions it has to replace rather than edit.
+    const diffs = diffQuestions(
+      existing.map((q) => ({
+        id: q.id,
+        question: q.question,
+        questionType: q.questionType,
+        options: Array.isArray(q.options) ? (q.options as string[]) : [],
+        correctAnswer: q.correctAnswer,
+        marks: q.marks,
+        pairs: (q.pairs as { left: string; right: string }[] | null) ?? [],
+        blanks: (q.blanks as string[] | null) ?? [],
+      })),
+      incoming.map((q) => ({
+        id: (q as { id?: string }).id,
+        question: q.question,
+        questionType: q.questionType,
+        options: q.options,
+        correctAnswer: q.correctAnswer,
+        marks: q.marks,
+        pairs: q.pairs,
+        blanks: q.blanks,
+      })),
+    );
+    const replace = new Set(
+      diffs.filter((d) => mode === "NEW_VERSION" && needsReplacement(d)).map((d) => d.id),
+    );
 
     const body = (q: (typeof incoming)[number], i: number) => ({
       question: q.question,
@@ -374,6 +410,23 @@ export class QuizService {
     const kept = new Set<string>();
     for (const [i, q] of incoming.entries()) {
       const id = (q as { id?: string }).id;
+
+      // A new version replaces a question whose substance moved rather than
+      // editing it: the old one is retired, a fresh row takes its place. Every
+      // answer already given stays attached to the question it was given for,
+      // which is the whole reason a school chooses this over a correction.
+      if (id && known.has(id) && replace.has(id)) {
+        await tx.quizQuestion.update({
+          where: { id },
+          data: { retiredAt: new Date() },
+        });
+        await tx.quizQuestion.create({
+          data: { schoolId, quizId, ...body(q, i) },
+        });
+        kept.add(id);
+        continue;
+      }
+
       if (id && known.has(id)) {
         kept.add(id);
         await tx.quizQuestion.update({ where: { id }, data: body(q, i) });
@@ -407,13 +460,15 @@ export class QuizService {
         data: { retiredAt: new Date() },
       });
     }
+
+    return diffs;
   }
 
   async updateBuilder(
     schoolId: string,
     quizId: string,
     dto: UpdateQuizBuilderInput,
-    opts?: { userId?: string; role?: string },
+    opts?: { userId?: string; role?: string; username?: string },
   ) {
     if (opts?.role === "TEACHER" && opts.userId) {
       await this.assertOwnsQuiz(schoolId, opts.userId, quizId);
@@ -424,6 +479,7 @@ export class QuizService {
         select: {
           id: true,
           status: true,
+          version: true,
           passingMarks: true,
           _count: { select: { attempts: true } },
         },
@@ -474,7 +530,39 @@ export class QuizService {
       });
 
       if (dto.questions) {
-        await this.saveQuestions(tx, schoolId, quizId, dto.questions);
+        const mode: QuizEditMode = dto.editMode ?? "CORRECTION";
+        const published = quiz.status !== "DRAFT";
+        const diffs = (await this.saveQuestions(
+          tx,
+          schoolId,
+          quizId,
+          dto.questions,
+          mode,
+        )) ?? [];
+
+        const changed = diffs.some((d) => d.kind !== "UNCHANGED");
+        if (published && changed) {
+          const version = nextVersion(quiz.version, mode, { published: true });
+          await tx.quiz.update({
+            where: { id: quizId },
+            data: { version },
+          });
+          await tx.quizVersionChange.create({
+            data: {
+              schoolId,
+              quizId,
+              version,
+              action: mode,
+              summary: summarise(diffs),
+              reason: dto.editReason ?? null,
+              details: diffs.filter(
+                (d) => d.kind !== "UNCHANGED",
+              ) as unknown as Prisma.InputJsonValue,
+              changedByUserId: opts?.userId ?? null,
+              changedByName: opts?.username ?? null,
+            },
+          });
+        }
       }
 
       // Pass/fail is stored on the attempt, decided by the pass mark as it
@@ -834,14 +922,84 @@ export class QuizService {
     });
   }
 
-  async getByCode(schoolId: string, code: string) {
+  /**
+   * The paper, as this student should see it.
+   *
+   * `studentId` is what makes a mid-attempt student safe. A teacher who
+   * publishes a new version while somebody is halfway through must not change
+   * the questions under them: the student answered three of them already, and
+   * swapping question 5 mid-sitting is how an answer ends up against a
+   * question that was never asked.
+   *
+   * So a student with an attempt in progress is served the paper as it stood
+   * when they started — questions that existed then, minus any retired before
+   * then. Everyone else gets the current one.
+   */
+  /**
+   * What has changed on this quiz, newest first.
+   *
+   * A published quiz is an academic record: once a student has sat it, any
+   * change is an event somebody may have to account for later — a mark
+   * queried, a result disputed — and "the teacher edited it at some point" is
+   * not an answer.
+   */
+  async versionHistory(schoolId: string, quizId: string) {
+    return this.prisma.forTenant(schoolId, async (tx) => {
+      const quiz = await tx.quiz.findFirst({
+        where: { id: quizId },
+        select: { id: true, title: true, version: true, status: true },
+      });
+      if (!quiz) throw new NotFoundException("Quiz not found");
+
+      const changes = await tx.quizVersionChange.findMany({
+        where: { quizId },
+        orderBy: { createdAt: "desc" },
+      });
+
+      // How many people sat each version, so a school reading this knows what
+      // a change actually touched.
+      const attempts = await tx.quizAttempt.groupBy({
+        by: ["quizVersion"],
+        where: { quizId },
+        _count: { _all: true },
+      });
+
+      return {
+        quiz,
+        changes,
+        attemptsByVersion: attempts.map((a) => ({
+          version: a.quizVersion ?? "(before versions)",
+          attempts: a._count._all,
+        })),
+      };
+    });
+  }
+
+  async getByCode(schoolId: string, code: string, studentId?: string) {
     const schoolQuizDefaults = await this.quizDefaults(schoolId);
     return this.prisma.forTenant(schoolId, async (tx) => {
+      const inProgress = studentId
+        ? await tx.quizAttempt.findFirst({
+            where: { studentId, status: "IN_PROGRESS", quiz: { code } },
+            orderBy: { startedAt: "desc" },
+            select: { startedAt: true },
+          })
+        : null;
+
+      // As it stood then, or as it stands now.
+      const asOf = inProgress?.startedAt;
+      const paper = asOf
+        ? {
+            createdAt: { lte: asOf },
+            OR: [{ retiredAt: null }, { retiredAt: { gt: asOf } }],
+          }
+        : { retiredAt: null };
+
       const quiz = await tx.quiz.findFirst({
         where: { code, status: "PUBLISHED" },
         include: {
           questions: {
-            where: { retiredAt: null },
+            where: paper,
             orderBy: { orderIndex: "asc" },
           },
           class: { select: { name: true } },
@@ -1249,6 +1407,10 @@ export class QuizService {
           quizId: quiz.id,
           studentId: dto.studentId,
           status: "IN_PROGRESS",
+          // The paper this student is sitting. Recorded now, so a change made
+          // while they are halfway through is a change to a different version
+          // and not to theirs.
+          quizVersion: quiz.version,
         },
       });
       await this.recordActivity(tx, {

@@ -116,6 +116,23 @@ export const updateQuizBuilderSchema = z.object({
   disableCopyPaste: z.boolean().optional(),
   resetOnMinimize: z.boolean().optional(),
   questions: z.array(quizQuestionSchema).min(1).optional(),
+  /**
+   * Which kind of change this is, for a quiz students have already sat.
+   *
+   * CORRECTION fixes the paper in place — a typo, a mark, a formatting slip.
+   * The students who sat it sat that question, only misspelt, so their sheets
+   * follow the correction.
+   *
+   * NEW_VERSION is a different paper. A question whose substance moved is
+   * retired and replaced, so every answer already given stays attached to the
+   * question it was actually given for, and the new question goes only to
+   * students who have not started.
+   *
+   * Ignored on a draft: nobody has sat it, so there is nothing to protect.
+   */
+  editMode: z.enum(["CORRECTION", "NEW_VERSION"]).optional(),
+  /** Why, in the teacher's words. Written into the quiz's change history. */
+  editReason: z.string().max(300).optional(),
 });
 
 export type UpdateQuizBuilderInput = z.infer<typeof updateQuizBuilderSchema>;
