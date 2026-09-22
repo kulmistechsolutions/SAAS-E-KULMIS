@@ -72,6 +72,8 @@ export interface ApiQuiz {
   subject?: { name: string } | null;
   teacher?: { fullName: string };
   teacherName?: string | null;
+  /** "1.0", "1.1", "2.0" — moves only once a quiz has been published. */
+  version?: string;
   questions?: ApiQuizQuestion[];
   _count?: { questions: number; attempts: number };
 }
@@ -337,6 +339,27 @@ export const apiArchiveQuiz = (id: string) =>
   api<ApiQuiz>(`/quiz/${id}/archive`, { method: "PATCH" });
 
 export const apiGetQuiz = (id: string) => api<ApiQuiz>(`/quiz/${id}`);
+
+export interface QuizVersionChange {
+  id: string;
+  version: string;
+  action: string;
+  summary: string;
+  reason: string | null;
+  details: unknown;
+  changedByName: string | null;
+  createdAt: string;
+}
+
+export interface QuizHistory {
+  quiz: { id: string; title: string; version: string; status: string };
+  changes: QuizVersionChange[];
+  attemptsByVersion: { version: string; attempts: number }[];
+}
+
+/** What has changed on this quiz, and who sat which version. */
+export const apiQuizHistory = (id: string) =>
+  api<QuizHistory>(`/quiz/${id}/history`);
 
 export const apiUpdateQuizBuilder = (
   id: string,

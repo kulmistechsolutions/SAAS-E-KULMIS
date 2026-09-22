@@ -19,6 +19,11 @@ import {
   type QuizBuilderQuestion,
 } from "@/lib/quiz/api";
 import { toast } from "@/lib/toast";
+import { QuizVersionHistory } from "@/components/quiz/version-history";
+import {
+  QuizEditModeDialog,
+  type QuizEditMode,
+} from "@/components/quiz/edit-mode-dialog";
 import { useAuth } from "@/lib/auth";
 
 type QType = "MCQ" | "DIRECT" | "MATCH" | "FILL_BLANK";
@@ -119,6 +124,8 @@ export default function QuizBuilderPage({ params }: { params: Promise<{ id: stri
   const [quiz, setQuiz] = useState<ApiQuiz | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [askEditMode, setAskEditMode] = useState(false);
+  const [pendingPublish, setPendingPublish] = useState(false);
   const [questions, setQuestions] = useState<BQ[]>([]);
   const [instructions, setInstructions] = useState("");
   const [preventMinimize, setPreventMinimize] = useState(false);
@@ -191,20 +198,18 @@ export default function QuizBuilderPage({ params }: { params: Promise<{ id: stri
     toast("Quiz link copied", "success");
   }
 
-  async function save(thenPublish = false) {
-    // Saving replaces the questions wholesale, and answers are stored against
-    // question ids — so for a paper students have already sat, say what that
-    // costs before doing it rather than after.
-    if (attemptCount > 0 && questionsDirty) {
-      const ok = window.confirm(
-        [
-          `${attemptCount} student(s) have already answered this quiz.`,
-          "Changing the questions replaces the paper they sat. They keep the marks they were given, but their result sheets will no longer show these questions.",
-          "Settings and the pass mark can be changed without this.",
-          "Continue?",
-        ].join("\n\n"),
-      );
-      if (!ok) return;
+  async function save(
+    thenPublish = false,
+    edit?: { mode: QuizEditMode; reason: string },
+  ) {
+    // A paper students have already sat is an academic record. Which kind of
+    // change this is decides what those students are shown afterwards, so it
+    // is asked once, here, before anything is written — and the answer is
+    // carried into the save rather than guessed at by the server.
+    if (attemptCount > 0 && questionsDirty && !edit) {
+      setAskEditMode(true);
+      setPendingPublish(thenPublish);
+      return;
     }
     // basic validation
     for (const q of questions) {
@@ -238,6 +243,9 @@ export default function QuizBuilderPage({ params }: { params: Promise<{ id: stri
         maxAttempts: Number(maxAttempts) || 1,
         passingMarks: passing.trim() === "" ? null : Number(passing),
         ...(canEditQuestions ? { questions: toPayload(questions) } : {}),
+        ...(edit
+          ? { editMode: edit.mode, ...(edit.reason ? { editReason: edit.reason } : {}) }
+          : {}),
       });
       if (thenPublish) {
         await apiPublishQuiz(quiz!.id);
@@ -261,7 +269,15 @@ export default function QuizBuilderPage({ params }: { params: Promise<{ id: stri
             <ArrowLeft className="h-4 w-4" />{tr("quiz.allQuizzes")}
           </Link>
           <h1 className="mt-2 text-2xl font-bold">{quiz.title}</h1>
-          <p className="mt-1 font-mono text-sm text-muted-foreground">{quiz.code}</p>
+          <p className="mt-1 flex flex-wrap items-center gap-2 font-mono text-sm text-muted-foreground">
+            {quiz.code}
+            {/* Only once it is published: a draft's version says nothing. */}
+            {quiz.status !== "DRAFT" && (
+              <span className="rounded bg-secondary px-1.5 py-0.5 text-xs font-sans font-medium text-foreground/80">
+                v{quiz.version ?? "1.0"}
+              </span>
+            )}
+          </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" className="h-9" onClick={copyLink}><Copy className="me-2 h-4 w-4" />{tr("quiz.copyLink")}</Button>
@@ -370,6 +386,20 @@ export default function QuizBuilderPage({ params }: { params: Promise<{ id: stri
           )}
         </div>
       )}
+      {/* Only where there is something to account for: a draft nobody has
+          sat has no history worth reading. */}
+      {quiz.status !== "DRAFT" && <QuizVersionHistory quizId={quiz.id} />}
+
+      <QuizEditModeDialog
+        open={askEditMode}
+        attemptCount={attemptCount}
+        version={quiz.version ?? "1.0"}
+        onCancel={() => setAskEditMode(false)}
+        onConfirm={(mode, reason) => {
+          setAskEditMode(false);
+          void save(pendingPublish, { mode, reason });
+        }}
+      />
     </div>
   );
 }
