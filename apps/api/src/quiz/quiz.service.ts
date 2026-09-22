@@ -18,17 +18,26 @@ import type {
   DirectionSetting,
 } from "@ekulmis/shared";
 import {
+  cleanTfAccepted,
+  gradeTrueFalse,
   hasFormatting,
   quizDirectionSetting,
+  resolveDirection,
   sanitizeRichText,
+  tfLabels,
+  type PracticeQuizSubmitInput,
+  type TfAccepted,
+  type UserRole,
 } from "@ekulmis/shared";
-import type { Prisma } from "@prisma/client";
+import { AuditService } from "../audit/audit.service";
+import { Prisma } from "@prisma/client";
 import {
   diffQuestions,
   needsReplacement,
   nextVersion,
   summarise,
   type QuizEditMode,
+  onPaper,
 } from "./quiz-version";
 import { ConfigService } from "@nestjs/config";
 import { PrismaService } from "../prisma/prisma.service";
@@ -72,6 +81,50 @@ function optionHtmlFor(
   });
 }
 
+/**
+ * The right answer, as a person reads it on a result sheet.
+ *
+ * True / False is stored as the canonical TRUE or FALSE; the sheet says it in
+ * the paper's own language, the same words the student saw on the buttons.
+ */
+function correctDisplayFor(
+  q: {
+    questionType: string;
+    correctAnswer: string;
+    pairs: unknown;
+    blanks: unknown;
+    question: string;
+    direction: string | null;
+  },
+  quiz: { language: string | null; direction: string | null },
+): string {
+  if (q.questionType === "MATCH" && Array.isArray(q.pairs)) {
+    return (q.pairs as { left: string; right: string }[])
+      .map((p) => `${p.left} → ${p.right}`)
+      .join("; ");
+  }
+  if (q.questionType === "FILL_BLANK" && Array.isArray(q.blanks)) {
+    return (q.blanks as string[]).join(", ");
+  }
+  if (q.questionType === "TRUE_FALSE" || q.questionType === "TRUE_FALSE_WRITTEN") {
+    const v = q.correctAnswer === "FALSE" ? "FALSE" : "TRUE";
+    return tfLabelsFor(q, quiz)[v];
+  }
+  return q.correctAnswer;
+}
+
+/** The True / False words for this question's language and direction. */
+function tfLabelsFor(
+  q: { question: string; direction: string | null },
+  quiz: { language: string | null; direction: string | null },
+) {
+  const setting = quizDirectionSetting(
+    quiz.language,
+    (q.direction ?? quiz.direction) as DirectionSetting,
+  );
+  return tfLabels(quiz.language, resolveDirection(setting, q.question));
+}
+
 function letterGrade(pct: number): string {
   if (pct >= 90) return "A";
   if (pct >= 80) return "B";
@@ -99,6 +152,7 @@ export class QuizService {
     private readonly subscriptions: SubscriptionsService,
     private readonly storage: StorageService,
     private readonly notifications: NotificationsService,
+    private readonly audit: AuditService,
     config: ConfigService,
   ) {
     this.bucket = config.get<string>("MINIO_BUCKET") ?? "ekulmis";
@@ -423,7 +477,18 @@ export class QuizService {
       // Null when the teacher formatted nothing: the plain text is then the
       // whole truth, which is what every question in the system is today.
       questionHtml: hasFormatting(html) ? html : null,
-      optionsHtml: optionHtml.some((o) => hasFormatting(o)) ? optionHtml : undefined,
+      // DbNull, not undefined: on an update undefined means "leave it", and a
+      // teacher who removed the formatting from every option would find it
+      // still there after saving.
+      optionsHtml: optionHtml.some((o) => hasFormatting(o)) ? optionHtml : Prisma.DbNull,
+      // Only a written True / False question has words to accept; on anything
+      // else a leftover list from a changed question type would be noise.
+      acceptedAnswers:
+        q.questionType === "TRUE_FALSE_WRITTEN"
+          ? ((cleanTfAccepted(q.acceptedAnswers ?? null) ?? Prisma.DbNull) as
+              | Prisma.InputJsonValue
+              | typeof Prisma.DbNull)
+          : Prisma.DbNull,
       questionType: q.questionType,
       options: q.options,
       correctAnswer: q.correctAnswer ?? "",
@@ -1097,7 +1162,37 @@ export class QuizService {
           quiz.direction as DirectionSetting,
         ),
         contentFont: quiz.contentFont,
-        questions: questions.map((q) => {
+        questions: this.servePaper(quiz, questions),
+      };
+    });
+  }
+
+  /**
+   * The questions as a student is served them: shuffled if the quiz says so,
+   * with everything needed to answer and nothing that gives the answer away.
+   *
+   * One function for the student's paper and the teacher's practice run, so
+   * that what a teacher tests is what a student gets. Two copies would drift,
+   * and the first difference would be a question that worked in practice and
+   * broke in the exam.
+   */
+  private servePaper(
+    quiz: { shuffleAnswers: boolean },
+    questions: {
+      id: string;
+      question: string;
+      questionType: string;
+      options: unknown;
+      optionsHtml: unknown;
+      marks: number;
+      pairs: unknown;
+      blanks: unknown;
+      direction: string | null;
+      contentFont: string | null;
+      questionHtml: string | null;
+    }[],
+  ) {
+    return questions.map((q) => {
           const original = Array.isArray(q.options) ? (q.options as string[]) : [];
           let options = original;
           if (quiz.shuffleAnswers && options.length > 1) {
@@ -1131,8 +1226,6 @@ export class QuizService {
             // formatting would land on the wrong choice.
             optionsHtml: optionHtmlFor(q, options),
           };
-        }),
-      };
     });
   }
 
@@ -1589,10 +1682,9 @@ export class QuizService {
             include: {
               subject: { select: { name: true } },
               teacher: { select: { fullName: true } },
-              questions: {
-            where: { retiredAt: null },
-            orderBy: { orderIndex: "asc" },
-          },
+              // Every question, filtered below to the paper this attempt was
+              // sat on — which may include one since retired.
+              questions: { orderBy: { orderIndex: "asc" } },
             },
           },
           answers: true,
@@ -1612,15 +1704,21 @@ export class QuizService {
       }
 
       const answerMap = new Map(attempt.answers.map((a) => [a.questionId, a]));
-      const totalMarks = attempt.quiz.questions.reduce((s, q) => s + q.marks, 0);
+      const paper = attempt.quiz.questions.filter((q) => onPaper(q, attempt));
+      const totalMarks = paper.reduce((s, q) => s + q.marks, 0);
       let attempted = 0;
       let correct = 0;
       let incorrect = 0;
       let unanswered = 0;
 
-      const questions = attempt.quiz.questions.map((q, i) => {
+      const questions = paper.map((q, i) => {
         const a = answerMap.get(q.id);
-        const studentAnswer = a?.answer?.trim() ? a.answer : "";
+        let studentAnswer = a?.answer?.trim() ? a.answer : "";
+        // A button answer is stored as TRUE / FALSE; the sheet shows the word
+        // the student actually pressed. A written one is shown as written.
+        if (q.questionType === "TRUE_FALSE" && (studentAnswer === "TRUE" || studentAnswer === "FALSE")) {
+          studentAnswer = tfLabelsFor(q, attempt.quiz)[studentAnswer];
+        }
         const answered = !!studentAnswer;
         if (!answered) unanswered++;
         else {
@@ -1628,17 +1726,12 @@ export class QuizService {
           if (a?.isCorrect) correct++;
           else incorrect++;
         }
-        let correctDisplay = q.correctAnswer;
-        if (q.questionType === "MATCH" && Array.isArray(q.pairs)) {
-          correctDisplay = (q.pairs as { left: string; right: string }[])
-            .map((p) => `${p.left} → ${p.right}`)
-            .join("; ");
-        } else if (q.questionType === "FILL_BLANK" && Array.isArray(q.blanks)) {
-          correctDisplay = (q.blanks as string[]).join(", ");
-        }
+        const correctDisplay = correctDisplayFor(q, attempt.quiz);
         return {
           number: i + 1,
           questionId: q.id,
+          // The answer row, so a teacher reviewing the sheet can override it.
+          answerId: a?.id ?? null,
           question: q.question,
           questionType: q.questionType,
           studentAnswer: studentAnswer || null,
@@ -1704,7 +1797,7 @@ export class QuizService {
         },
         date: attempt.submittedAt ?? attempt.startedAt,
         timeTakenSec,
-        totalQuestions: attempt.quiz.questions.length,
+        totalQuestions: paper.length,
         attempted,
         correct,
         incorrect,
@@ -1865,10 +1958,26 @@ export class QuizService {
       gradingMode: string;
       pairs: unknown;
       blanks: unknown;
+      acceptedAnswers?: unknown;
     },
     answer: string,
   ): { marks: number; isCorrect: boolean; needsReview: boolean } {
     switch (q.questionType) {
+      // Both True / False types resolve the answer the same way: the buttons
+      // send TRUE or FALSE, which the rules read back as themselves, and a
+      // written answer is read in any of the languages plus the school's own
+      // extra words for this question.
+      case "TRUE_FALSE":
+      case "TRUE_FALSE_WRITTEN": {
+        const ok = gradeTrueFalse(
+          answer,
+          q.correctAnswer,
+          q.questionType === "TRUE_FALSE_WRITTEN"
+            ? (q.acceptedAnswers as TfAccepted | null)
+            : null,
+        );
+        return { marks: ok ? q.marks : 0, isCorrect: ok, needsReview: false };
+      }
       case "MCQ": {
         const ok = answer === q.correctAnswer;
         return { marks: ok ? q.marks : 0, isCorrect: ok, needsReview: false };
@@ -1973,6 +2082,7 @@ export class QuizService {
             quizId: quiz.id,
             studentId: dto.studentId,
             status: "IN_PROGRESS",
+            quizVersion: quiz.version,
           },
         });
       }
@@ -1980,9 +2090,14 @@ export class QuizService {
       // Clear prior autosaved rows then rewrite with final answers.
       await tx.quizAnswer.deleteMany({ where: { attemptId: attempt.id } });
 
-      const qmap = new Map(quiz.questions.map((q) => [q.id, q]));
+      // The paper this student sat, not every question the quiz has ever had.
+      // A retired question counted into the total would mark down every
+      // student who sat the new version for a question they were never shown.
+      const sat = attempt;
+      const paper = quiz.questions.filter((q) => onPaper(q, sat));
+      const qmap = new Map(paper.map((q) => [q.id, q]));
       let score = 0;
-      const totalMarks = quiz.questions.reduce((s, q) => s + q.marks, 0);
+      const totalMarks = paper.reduce((s, q) => s + q.marks, 0);
       let hasManual = false;
       const aiPending: {
         answerId: string;
@@ -2186,14 +2301,24 @@ export class QuizService {
     };
   }
 
+  /**
+   * Set the mark on one answer — grading one the system left to the teacher,
+   * or overriding one it marked itself.
+   *
+   * The second is new, and it is why this is audited: a student writes "T"
+   * for TRUE, the system marks it wrong, the teacher decides it should count.
+   * That is a change to an academic record, so the mark before and after, the
+   * student's actual answer and the reason go into the school's audit log
+   * under the name of whoever made it.
+   */
   async gradeAnswer(
     schoolId: string,
     attemptId: string,
     answerId: string,
     dto: GradeQuizAnswerInput,
-    opts?: { userId?: string; role?: string },
+    opts?: { userId?: string; role?: string; username?: string },
   ) {
-    return this.prisma.forTenant(schoolId, async (tx) => {
+    const done = await this.prisma.forTenant(schoolId, async (tx) => {
       const answer = await tx.quizAnswer.findFirst({
         where: { id: answerId, attemptId },
         include: {
@@ -2217,56 +2342,348 @@ export class QuizService {
       const question = answer.attempt.quiz.questions.find(
         (q) => q.id === answer.questionId,
       );
-      if (!question?.requiresManualGrade) {
-        throw new BadRequestException("This answer does not require manual grading");
+      if (!question) {
+        throw new BadRequestException("That question is no longer on this quiz");
       }
       if (dto.marks > question.marks) {
         throw new BadRequestException(`Marks cannot exceed ${question.marks}`);
       }
+      const override = !question.requiresManualGrade;
+      const before = { marks: answer.marks, isCorrect: answer.isCorrect };
+      const scoreBefore = answer.attempt.score;
 
       await tx.quizAnswer.update({
         where: { id: answerId },
         data: {
           marks: dto.marks,
           isCorrect: dto.marks === question.marks,
+          awardedPercentage: question.marks
+            ? Math.round((dto.marks / question.marks) * 100)
+            : 0,
         },
       });
 
-      const allAnswers = await tx.quizAnswer.findMany({
-        where: { attemptId },
-      });
-      const qmap = new Map(
-        answer.attempt.quiz.questions.map((q) => [q.id, q]),
-      );
+      // Recomputed over the paper this attempt was sat on, the same way it was
+      // scored at submission, so an override moves the total by exactly the
+      // marks that changed and nothing else.
+      const sat = answer.attempt;
+      const paper = sat.quiz.questions.filter((q) => onPaper(q, sat));
+      const allAnswers = await tx.quizAnswer.findMany({ where: { attemptId } });
+      const byQuestion = new Map(allAnswers.map((a) => [a.questionId, a]));
       let pending = false;
       let score = 0;
       let totalMarks = 0;
-      for (const a of allAnswers) {
-        const q = qmap.get(a.questionId);
-        if (!q) continue;
+      for (const q of paper) {
         totalMarks += q.marks;
-        if (q.requiresManualGrade && a.marks === 0 && !a.answer) {
-          pending = true;
-        }
+        const a = byQuestion.get(q.id);
+        if (!a) continue;
+        if (q.requiresManualGrade && a.marks === 0 && !a.answer) pending = true;
         score += a.marks;
       }
 
-      const passing =
-        answer.attempt.quiz.passingMarks ??
-        Math.ceil(totalMarks * 0.5);
+      const passing = sat.quiz.passingMarks ?? Math.ceil(totalMarks * 0.5);
       const percentage = totalMarks
         ? Math.round((score / totalMarks) * 1000) / 10
         : 0;
 
-      return tx.quizAttempt.update({
+      const updated = await tx.quizAttempt.update({
         where: { id: attemptId },
         data: {
           score,
           percentage,
+          // Kept in step with the score: a grade left from before the change
+          // would contradict the marks printed beside it.
+          grade: letterGrade(percentage),
           result: pending ? null : score >= passing ? "PASS" : "FAIL",
           status: pending ? "PENDING_REVIEW" : "GRADED",
         },
       });
+
+      return {
+        updated,
+        audit: {
+          override,
+          quizId: sat.quizId,
+          quizTitle: sat.quiz.title,
+          studentId: sat.studentId,
+          questionId: question.id,
+          questionType: question.questionType,
+          question: question.question.slice(0, 200),
+          studentAnswer: (answer.answer ?? "").slice(0, 200),
+          maxMarks: question.marks,
+          marksBefore: before.marks,
+          marksAfter: dto.marks,
+          correctBefore: before.isCorrect,
+          correctAfter: dto.marks === question.marks,
+          scoreBefore,
+          scoreAfter: score,
+        },
+      };
+    });
+
+    await this.audit.record({
+      schoolId,
+      userId: opts?.userId ?? null,
+      username: opts?.username ?? null,
+      role: (opts?.role as UserRole | undefined) ?? null,
+      module: "quiz",
+      action: done.audit.override ? "QUIZ_MARK_OVERRIDDEN" : "QUIZ_ANSWER_GRADED",
+      metadata: {
+        ...done.audit,
+        attemptId,
+        answerId,
+        reason: dto.reason ?? null,
+      },
+    });
+    return done.updated;
+  }
+
+  /**
+   * The paper, served to a teacher trying it.
+   *
+   * Any status — a draft is exactly when a teacher most needs to try it — and
+   * no window, no student, no eligibility check. It is served through the same
+   * function as a student's paper, so what the teacher sees is what a student
+   * will get.
+   */
+  async practicePaper(schoolId: string, quizId: string) {
+    const branding = await this.schoolBranding(schoolId);
+    const schoolQuizDefaults = await this.quizDefaults(schoolId);
+    return this.prisma.forTenant(schoolId, async (tx) => {
+      const quiz = await tx.quiz.findFirst({
+        where: { id: quizId },
+        include: {
+          questions: { where: { retiredAt: null }, orderBy: { orderIndex: "asc" } },
+          class: { select: { name: true } },
+          section: { select: { name: true } },
+          subject: { select: { name: true } },
+          teacher: { select: { fullName: true } },
+        },
+      });
+      if (!quiz) throw new NotFoundException("Quiz not found");
+      if (quiz.questions.length === 0) {
+        throw new BadRequestException("Add a question before trying the quiz");
+      }
+      const questions = quiz.shuffleQuestions
+        ? shuffleArray(quiz.questions)
+        : quiz.questions;
+      const totalMarks = quiz.questions.reduce((n, q) => n + q.marks, 0);
+
+      return {
+        ...branding,
+        practice: true as const,
+        status: quiz.status,
+        version: quiz.version,
+        totalMarks,
+        passingMarks: quiz.passingMarks ?? Math.ceil(totalMarks * 0.5),
+        examinationRules: quiz.examinationRules || DEFAULT_EXAM_RULES,
+        paper: {
+          id: quiz.id,
+          title: quiz.title,
+          code: quiz.code,
+          description: quiz.description,
+          instructions: quiz.instructions,
+          instructionsHtml: quiz.instructionsHtml,
+          timeLimitMin: quiz.timeLimitMin,
+          showResultsImmediately: quiz.showResultsImmediately,
+          allowReviewAnswers: quiz.allowReviewAnswers,
+          allowPdfDownload: quiz.allowPdfDownload,
+          autoSubmit: schoolQuizDefaults.autoSubmit,
+          autoSave: schoolQuizDefaults.autoSave,
+          preventMinimize: quiz.preventMinimize,
+          disableCopyPaste: quiz.disableCopyPaste,
+          resetOnMinimize: quiz.resetOnMinimize,
+          className: quiz.class.name,
+          section: quiz.section?.name ?? null,
+          subject: quiz.subject?.name ?? null,
+          teacherName: quiz.teacher?.fullName ?? null,
+          language: quiz.language,
+          direction: quizDirectionSetting(
+            quiz.language,
+            quiz.direction as DirectionSetting,
+          ),
+          contentFont: quiz.contentFont,
+          questions: this.servePaper(quiz, questions),
+        },
+      };
+    });
+  }
+
+  /**
+   * Grade a teacher's practice run, and keep it where no report can see it.
+   *
+   * Graded by the same rules as a student's answers. The two things a real
+   * attempt would do that this does not: spend the school's AI grading
+   * allowance, and wait for a teacher's hand-marking. Those questions are
+   * reported as pending with their marks shown separately, so the teacher sees
+   * what the machine-graded part of the paper came to and knows the rest is
+   * graded later.
+   */
+  async submitPractice(
+    schoolId: string,
+    quizId: string,
+    user: { userId: string; username?: string },
+    dto: PracticeQuizSubmitInput,
+  ) {
+    const branding = await this.schoolBranding(schoolId);
+    return this.prisma.forTenant(schoolId, async (tx) => {
+      const quiz = await tx.quiz.findFirst({
+        where: { id: quizId },
+        include: {
+          questions: { where: { retiredAt: null }, orderBy: { orderIndex: "asc" } },
+          class: { select: { name: true } },
+          section: { select: { name: true } },
+          subject: { select: { name: true } },
+          teacher: { select: { fullName: true } },
+        },
+      });
+      if (!quiz) throw new NotFoundException("Quiz not found");
+
+      const given = new Map(dto.answers.map((a) => [a.questionId, a.answer ?? ""]));
+      let score = 0;
+      let totalMarks = 0;
+      let pendingMarks = 0;
+      let attempted = 0;
+      let correct = 0;
+      let incorrect = 0;
+      let unanswered = 0;
+      const stored: {
+        questionId: string;
+        answer: string;
+        isCorrect: boolean;
+        marks: number;
+        pending: boolean;
+      }[] = [];
+
+      const questions = quiz.questions.map((q, i) => {
+        totalMarks += q.marks;
+        const answer = given.get(q.id) ?? "";
+        const answered = answer.trim().length > 0;
+        let marks = 0;
+        let isCorrect = false;
+        let pending = false;
+        if (answered) {
+          if (q.requiresManualGrade) {
+            pending = true;
+          } else {
+            const g = this.gradeExact(q, answer);
+            if (g.needsReview) pending = true;
+            else {
+              marks = g.marks;
+              isCorrect = g.isCorrect;
+            }
+          }
+        }
+        if (pending) pendingMarks += q.marks;
+        score += marks;
+        if (!answered) unanswered++;
+        else {
+          attempted++;
+          if (pending) {
+            /* neither right nor wrong yet */
+          } else if (isCorrect) correct++;
+          else incorrect++;
+        }
+        stored.push({ questionId: q.id, answer, isCorrect, marks, pending });
+
+        let shown = answered ? answer : "";
+        if (q.questionType === "TRUE_FALSE" && (shown === "TRUE" || shown === "FALSE")) {
+          shown = tfLabelsFor(q, quiz)[shown];
+        }
+        return {
+          number: i + 1,
+          questionId: q.id,
+          answerId: null,
+          question: q.question,
+          questionType: q.questionType,
+          studentAnswer: shown || null,
+          correctAnswer: correctDisplayFor(q, quiz),
+          marksAwarded: marks,
+          maxMarks: q.marks,
+          status: !answered
+            ? ("UNANSWERED" as const)
+            : pending
+              ? ("PENDING" as const)
+              : isCorrect
+                ? ("CORRECT" as const)
+                : ("INCORRECT" as const),
+          explanation: null,
+          direction: q.direction,
+          contentFont: q.contentFont,
+          questionHtml: q.questionHtml,
+        };
+      });
+
+      const percentage = totalMarks
+        ? Math.round((score / totalMarks) * 1000) / 10
+        : 0;
+      const grade = letterGrade(percentage);
+      const passing = quiz.passingMarks ?? Math.ceil(totalMarks * 0.5);
+      // With marks still to be given, pass or fail is not yet known.
+      const result = pendingMarks > 0 ? null : score >= passing ? "PASS" : "FAIL";
+
+      const row = await tx.quizPracticeAttempt.create({
+        data: {
+          schoolId,
+          quizId: quiz.id,
+          userId: user.userId,
+          username: user.username ?? null,
+          quizVersion: quiz.version,
+          answers: stored as unknown as Prisma.InputJsonValue,
+          score,
+          totalMarks,
+          pendingMarks,
+          percentage,
+          grade,
+          result,
+          timeTakenSec: dto.timeTakenSec,
+        },
+      });
+
+      return {
+        ...branding,
+        practice: true as const,
+        attemptId: row.id,
+        status: "PRACTICE",
+        student: {
+          id: "",
+          code: "PRACTICE",
+          name: user.username ?? "Teacher",
+          photoUrl: null,
+          className: quiz.class.name,
+          section: quiz.section?.name ?? null,
+        },
+        quiz: {
+          id: quiz.id,
+          title: quiz.title,
+          code: quiz.code,
+          subject: quiz.subject?.name ?? null,
+          teacherName: quiz.teacher.fullName,
+          allowReviewAnswers: true,
+          allowPdfDownload: false,
+          showResultsImmediately: true,
+          direction: quizDirectionSetting(
+            quiz.language,
+            quiz.direction as DirectionSetting,
+          ),
+          contentFont: quiz.contentFont,
+        },
+        date: row.submittedAt,
+        timeTakenSec: dto.timeTakenSec,
+        totalQuestions: quiz.questions.length,
+        attempted,
+        correct,
+        incorrect,
+        unanswered,
+        totalMarks,
+        marksObtained: score,
+        pendingMarks,
+        percentage,
+        grade,
+        result,
+        teacherComment: null,
+        questions,
+      };
     });
   }
 }

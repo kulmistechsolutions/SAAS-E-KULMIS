@@ -23,7 +23,7 @@ const read = (...p: string[]) => readFileSync(join(WEB, ...p), "utf8");
 const api = readFileSync(join(__dirname, "quiz.service.ts"), "utf8");
 const editorComp = read("components", "quiz", "rich-text.tsx");
 const editorPage = read("app", "(app)", "quiz", "[id]", "page.tsx");
-const take = read("app", "(app)", "quiz", "take", "[code]", "page.tsx");
+const take = read("components", "quiz", "take-quiz.tsx");
 const live = read("app", "(app)", "quiz", "[id]", "live", "page.tsx");
 const printer = read("lib", "quiz", "print.ts");
 const schema = readFileSync(

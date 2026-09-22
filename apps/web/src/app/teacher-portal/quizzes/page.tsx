@@ -4,7 +4,7 @@
 import { useT } from "@/lib/i18n/provider";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { Plus } from "lucide-react";
+import { FlaskConical, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { apiListQuizzes, apiQuizDashboard } from "@/lib/quiz/api";
 import { useTeacherPortal } from "@/components/teacher-portal/portal-context";
@@ -124,9 +124,19 @@ export default function TeacherPortalQuizzesPage() {
                     <QuizStatusBadge status={statusMap[q.status] ?? "DRAFT"} />
                   </td>
                   <td className="px-4 py-3 text-end">
-                    <Link href={`/teacher-portal/quizzes/${q.id}`} className="text-primary hover:underline">
-                      {t("teacherPortalQuizzes.open")}
-                    </Link>
+                    <div className="flex items-center justify-end gap-3">
+                      {/* Try it as a student would — no Student ID, not recorded. */}
+                      <Link
+                        href={`/teacher-portal/quizzes/${q.id}/practice`}
+                        className="inline-flex items-center gap-1 text-violet-600 hover:underline"
+                      >
+                        <FlaskConical className="h-3.5 w-3.5" />
+                        {t("quizPractice.tryQuiz")}
+                      </Link>
+                      <Link href={`/teacher-portal/quizzes/${q.id}`} className="text-primary hover:underline">
+                        {t("teacherPortalQuizzes.open")}
+                      </Link>
+                    </div>
                   </td>
                 </tr>
               ))}

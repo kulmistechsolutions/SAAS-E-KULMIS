@@ -12,6 +12,7 @@ import {
   clearQuizAnswersSchema,
   createQuizSchema,
   gradeQuizAnswerSchema,
+  practiceQuizSubmitSchema,
   quizLinkOpenedSchema,
   saveQuizAnswersSchema,
   startQuizAttemptSchema,
@@ -275,6 +276,44 @@ export class QuizController {
     return this.quiz.versionHistory(me.schoolId, id);
   }
 
+  /**
+   * The paper, for the teacher to try — no Student ID, any status.
+   *
+   * A teacher may try only their own quiz; the people who can already open
+   * every quiz in the school can try any of them.
+   */
+  @Roles(UserRole.ADMINISTRATOR, UserRole.TEACHER, UserRole.EXAM_MANAGER)
+  @RequirePermission("quiz.view")
+  @Get(":id/practice")
+  async practicePaper(@CurrentUser() me: AuthUser, @Param("id") id: string) {
+    if (me.role === "TEACHER") {
+      await this.quiz.assertOwnsQuiz(me.schoolId, me.userId, id);
+    }
+    return this.quiz.practicePaper(me.schoolId, id);
+  }
+
+  /** Grade a practice run. Stored apart from every student's attempts. */
+  @Roles(UserRole.ADMINISTRATOR, UserRole.TEACHER, UserRole.EXAM_MANAGER)
+  @RequirePermission("quiz.view")
+  @Post(":id/practice")
+  async submitPractice(
+    @CurrentUser() me: AuthUser,
+    @Param("id") id: string,
+    @Body() body: unknown,
+  ) {
+    const parsed = practiceQuizSubmitSchema.safeParse(body);
+    if (!parsed.success) throw new BadRequestException(parsed.error.flatten());
+    if (me.role === "TEACHER") {
+      await this.quiz.assertOwnsQuiz(me.schoolId, me.userId, id);
+    }
+    return this.quiz.submitPractice(
+      me.schoolId,
+      id,
+      { userId: me.userId, username: me.username },
+      parsed.data,
+    );
+  }
+
   @Roles(UserRole.ADMINISTRATOR, UserRole.TEACHER, UserRole.EXAM_MANAGER)
   @RequirePermission("quiz.view")
   @Get(":id")
@@ -301,7 +340,8 @@ export class QuizController {
       attemptId,
       answerId,
       parsed.data,
-      { userId: me.userId, role: me.role },
+      // Named in the audit log: an overridden mark is a change to a record.
+      { userId: me.userId, role: me.role, username: me.username },
     );
   }
 }

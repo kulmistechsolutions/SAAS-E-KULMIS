@@ -4,7 +4,7 @@
 import { useT } from "@/lib/i18n/provider";
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { Eye, Plus, Trash2 } from "lucide-react";
+import { Eye, FlaskConical, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Pagination } from "@/components/ui/pagination";
@@ -81,6 +81,7 @@ export default function QuizListPage() {
                   <td className="px-4 py-2.5">
                     <div className="flex gap-1">
                       <Link href={`/quiz/${r.id}`} className="inline-flex h-8 w-8 items-center justify-center rounded-md hover:bg-secondary"><Eye className="h-4 w-4" /></Link>
+                      <Link href={`/quiz/${r.id}/practice`} title={t("quizPractice.tryQuiz")} aria-label={t("quizPractice.tryQuiz")} className="inline-flex h-8 w-8 items-center justify-center rounded-md text-violet-600 hover:bg-violet-50 dark:hover:bg-violet-950/40"><FlaskConical className="h-4 w-4" /></Link>
                       <Button variant="ghost" className="h-8 w-8 p-0 text-rose-600" onClick={() => { deleteQuiz(r.id); toast("Quiz deleted", "success"); }}>
                         <Trash2 className="h-4 w-4" />
                       </Button>

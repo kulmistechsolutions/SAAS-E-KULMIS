@@ -17,6 +17,7 @@ import type { GradeResult } from "@/lib/quiz/types";
 import { printAttemptReviewPdf } from "@/lib/quiz/print";
 import { useAuth } from "@/lib/auth";
 import { toast } from "@/lib/toast";
+import { AttemptMarksDialog } from "@/components/quiz/attempt-marks-dialog";
 
 type AttemptRow = {
   id: string;
@@ -51,6 +52,10 @@ export default function QuizResultsPage({ params }: { params: Promise<{ id: stri
     failRate: 0,
   });
 
+  // Bumped after a mark is changed, so the table and the summary reload.
+  const [reloadKey, setReloadKey] = useState(0);
+  const [marksFor, setMarksFor] = useState<string | null>(null);
+
   useEffect(() => {
     void (async () => {
       try {
@@ -78,7 +83,7 @@ export default function QuizResultsPage({ params }: { params: Promise<{ id: stri
         toast(e instanceof Error ? e.message : "Failed to load results", "error");
       }
     })();
-  }, [id]);
+  }, [id, reloadKey]);
 
   async function printOne(attemptId: string) {
     try {
@@ -195,13 +200,22 @@ export default function QuizResultsPage({ params }: { params: Promise<{ id: stri
                   <td className="px-4 py-2.5">{a.status}</td>
                   <td className="px-4 py-2.5">
                     {a.status !== "IN_PROGRESS" && (
-                      <Button
-                        variant="ghost"
-                        className="h-8 px-2 text-xs"
-                        onClick={() => void printOne(a.id)}
-                      >
-                        {t("quizResults.viewPdf")}
-                      </Button>
+                      <div className="flex gap-1">
+                        <Button
+                          variant="ghost"
+                          className="h-8 px-2 text-xs"
+                          onClick={() => void printOne(a.id)}
+                        >
+                          {t("quizResults.viewPdf")}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          className="h-8 px-2 text-xs"
+                          onClick={() => setMarksFor(a.id)}
+                        >
+                          {t("quizOverride.open")}
+                        </Button>
+                      </div>
                     )}
                   </td>
                 </tr>
@@ -217,6 +231,12 @@ export default function QuizResultsPage({ params }: { params: Promise<{ id: stri
           </table>
         </div>
       </div>
+
+      <AttemptMarksDialog
+        attemptId={marksFor}
+        onClose={() => setMarksFor(null)}
+        onChanged={() => setReloadKey((k) => k + 1)}
+      />
     </div>
   );
 }

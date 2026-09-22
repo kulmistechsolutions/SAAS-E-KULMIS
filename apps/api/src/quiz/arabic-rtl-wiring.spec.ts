@@ -17,7 +17,7 @@ import { join } from "node:path";
 const WEB = join(__dirname, "..", "..", "..", "web", "src");
 const read = (...p: string[]) => readFileSync(join(WEB, ...p), "utf8");
 
-const take = read("app", "(app)", "quiz", "take", "[code]", "page.tsx");
+const take = read("components", "quiz", "take-quiz.tsx");
 const editor = read("app", "(app)", "quiz", "[id]", "page.tsx");
 const live = read("app", "(app)", "quiz", "[id]", "live", "page.tsx");
 const printer = read("lib", "quiz", "print.ts");

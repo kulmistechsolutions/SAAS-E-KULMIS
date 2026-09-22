@@ -36,6 +36,7 @@ export * from "./currency";
 export * from "./csv";
 export * from "./text/direction";
 export * from "./text/rich-text";
+export * from "./quiz/true-false";
 
 /** Multi-tenant primitives (MASTER_PRD scope decision: multi-tenant SaaS). */
 export interface TenantContext {

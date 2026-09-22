@@ -32,11 +32,25 @@ export interface ApiQuizQuestion {
   questionHtml?: string | null;
   /** The formatted options, index-aligned with `options`. */
   optionsHtml?: string[] | null;
+  /** TRUE_FALSE_WRITTEN: the school's extra accepted words, per side. */
+  acceptedAnswers?: QuizTfAccepted | null;
+}
+
+/** Extra words a written True / False question accepts, per side. */
+export interface QuizTfAccepted {
+  TRUE?: string[];
+  FALSE?: string[];
 }
 
 export interface QuizBuilderQuestion {
   question: string;
-  questionType: "MCQ" | "DIRECT" | "MATCH" | "FILL_BLANK";
+  questionType:
+    | "MCQ"
+    | "DIRECT"
+    | "MATCH"
+    | "FILL_BLANK"
+    | "TRUE_FALSE"
+    | "TRUE_FALSE_WRITTEN";
   options?: string[];
   correctAnswer?: string;
   gradingMode?: "EXACT" | "AI_CONCEPT";
@@ -47,6 +61,7 @@ export interface QuizBuilderQuestion {
   contentFont?: string | null;
   questionHtml?: string | null;
   optionsHtml?: string[] | null;
+  acceptedAnswers?: QuizTfAccepted | null;
 }
 
 export interface ApiQuiz {
@@ -210,16 +225,23 @@ export interface QuizAttemptReview {
   grade: string;
   result: string | null;
   teacherComment: string | null;
+  /** Present on a teacher's practice run, which is never a student's result. */
+  practice?: boolean;
+  /** Practice only: marks a real attempt would send to AI or to the teacher. */
+  pendingMarks?: number;
   questions: {
     number: number;
     questionId: string;
+    /** The stored answer row, for a teacher overriding its mark. */
+    answerId?: string | null;
     question: string;
     questionType: string;
     studentAnswer: string | null;
     correctAnswer: string;
     marksAwarded: number;
     maxMarks: number;
-    status: "CORRECT" | "INCORRECT" | "UNANSWERED";
+    /** PENDING only on a practice run: graded by AI or by hand for a student. */
+    status: "CORRECT" | "INCORRECT" | "UNANSWERED" | "PENDING";
     explanation: string | null;
     direction?: "AUTO" | "LTR" | "RTL" | null;
     contentFont?: string | null;
@@ -534,8 +556,36 @@ export const apiGradeQuizAnswer = (
   attemptId: string,
   answerId: string,
   marks: number,
+  reason?: string,
 ) =>
   api(`/quiz/attempts/${attemptId}/answers/${answerId}/grade`, {
     method: "PATCH",
-    body: { marks },
+    body: { marks, ...(reason ? { reason } : {}) },
+  });
+
+/** The paper, for the teacher to try — no Student ID, any status. */
+export interface QuizPracticePaper {
+  schoolName: string;
+  logoUrl: string | null;
+  logoKey: string | null;
+  practice: true;
+  status: ApiQuiz["status"];
+  version: string;
+  totalMarks: number;
+  passingMarks: number;
+  examinationRules: string;
+  paper: ApiQuiz & { teacherName?: string | null };
+}
+
+export const apiPracticeQuiz = (quizId: string) =>
+  api<QuizPracticePaper>(`/quiz/${quizId}/practice`);
+
+/** Grade a practice run. Kept apart from every student's attempts. */
+export const apiSubmitPracticeQuiz = (
+  quizId: string,
+  body: { answers: { questionId: string; answer: string }[]; timeTakenSec: number },
+) =>
+  api<QuizAttemptReview>(`/quiz/${quizId}/practice`, {
+    method: "POST",
+    body,
   });

@@ -1743,6 +1743,7 @@ model Quiz {
   teacher      Teacher             @relation(fields: [teacherId], references: [id], onDelete: Cascade)
   questions    QuizQuestion[]
   attempts     QuizAttempt[]
+  practiceAttempts QuizPracticeAttempt[]
   activities   QuizActivityEvent[]
   changes      QuizVersionChange[]
 
@@ -1773,6 +1774,10 @@ model QuizQuestion {
   /// is matched against; formatting an option must not change what counts
   /// as the right answer.
   optionsHtml         Json?
+  /// TRUE_FALSE_WRITTEN: the school's extra accepted words, per side.
+  /// {"TRUE": ["sax"], "FALSE": ["khalad"]}; null means only the built-in
+  /// words in every language count.
+  acceptedAnswers     Json?
   correctAnswer       String   @default("")
   // EXACT (string match) | AI_CONCEPT (OpenAI-scored) — only honoured for DIRECT.
   gradingMode         String   @default("EXACT")
@@ -1831,6 +1836,39 @@ model QuizAttempt {
   @@index([quizId])
   @@index([studentId])
   @@map("quiz_attempts")
+}
+
+/// A teacher trying their own paper.
+///
+/// Not a kind of QuizAttempt, on purpose: everything that reports on students
+/// reads quiz_attempts, and a practice row there would have to be left out by
+/// every one of those queries forever. Here nothing that reports on students
+/// can see it. No student, no attempt count — trying a paper never uses an
+/// attempt or makes the quiz count as sat.
+model QuizPracticeAttempt {
+  id           String   @id @default(cuid())
+  schoolId     String
+  quizId       String
+  userId       String
+  username     String?
+  quizVersion  String?
+  /// [{questionId, answer, isCorrect, marks, pending}]
+  answers      Json
+  score        Int      @default(0)
+  totalMarks   Int      @default(0)
+  /// Marks a real attempt would send to AI or to the teacher.
+  pendingMarks Int      @default(0)
+  percentage   Float    @default(0)
+  grade        String?
+  result       String?
+  timeTakenSec Int      @default(0)
+  submittedAt  DateTime @default(now())
+
+  quiz Quiz @relation(fields: [quizId], references: [id], onDelete: Cascade)
+
+  @@index([quizId, submittedAt])
+  @@index([schoolId])
+  @@map("quiz_practice_attempts")
 }
 
 model QuizAnswer {

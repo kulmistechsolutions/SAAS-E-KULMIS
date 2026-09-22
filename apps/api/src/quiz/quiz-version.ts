@@ -213,3 +213,23 @@ export function summarise(diffs: QuestionDiff[]): string {
   if (removed) parts.push(`${removed} removed`);
   return parts.length > 0 ? parts.join(", ") : "No question changes";
 }
+
+/**
+ * Whether a question was on the paper a given attempt was sat on.
+ *
+ * A NEW_VERSION edit retires a question and adds its replacement; a CORRECTION
+ * may add a question. A student who started before either sat the paper as it
+ * stood then, and is graded and shown that paper — not the one the teacher
+ * has since made. Attempts from before versions existed carry no version and
+ * keep the old behaviour, the current paper, because their questions were
+ * recreated wholesale on every save and have no usable history.
+ */
+export function onPaper(
+  q: { createdAt: Date; retiredAt: Date | null },
+  attempt: { startedAt: Date; quizVersion: string | null },
+): boolean {
+  if (!attempt.quizVersion) return !q.retiredAt;
+  const asOf = attempt.startedAt.getTime();
+  if (q.createdAt.getTime() > asOf) return false;
+  return !q.retiredAt || q.retiredAt.getTime() > asOf;
+}

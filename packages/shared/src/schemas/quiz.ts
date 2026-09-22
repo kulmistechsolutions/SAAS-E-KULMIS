@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { tfConflicts } from "../quiz/true-false";
 
 export const quizStatusSchema = z.enum(["DRAFT", "PUBLISHED", "CLOSED", "ARCHIVED"]);
 
@@ -7,6 +8,10 @@ export const quizQuestionTypeSchema = z.enum([
   "DIRECT",
   "MATCH",
   "FILL_BLANK",
+  // Two buttons; the answer comes back as "TRUE" or "FALSE".
+  "TRUE_FALSE",
+  // The student writes the word. A different skill and a different paper.
+  "TRUE_FALSE_WRITTEN",
   // legacy types kept for backward compatibility
   "ESSAY",
   "SHORT_ANSWER",
@@ -72,8 +77,39 @@ export const quizQuestionSchema = z
     // FILL_BLANK: accepted answer per blank (index-aligned with the ___ slots).
     blanks: z.array(z.string().min(1)).default([]),
     marks: z.number().int().positive().default(1),
+    /**
+     * TRUE_FALSE_WRITTEN: extra words the school accepts, per side.
+     *
+     * On top of the built-in true / صح / run and false / خطأ / been, which
+     * always count. "T" or "sax" is the school's call, not the system's.
+     */
+    acceptedAnswers: z
+      .object({
+        TRUE: z.array(z.string().max(60)).max(20).optional(),
+        FALSE: z.array(z.string().max(60)).max(20).optional(),
+      })
+      .nullish(),
   })
   .superRefine((q, ctx) => {
+    if (
+      (q.questionType === "TRUE_FALSE" || q.questionType === "TRUE_FALSE_WRITTEN") &&
+      q.correctAnswer !== "TRUE" &&
+      q.correctAnswer !== "FALSE"
+    ) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Choose TRUE or FALSE as the correct answer", path: ["correctAnswer"] });
+    }
+    if (q.questionType === "TRUE_FALSE_WRITTEN") {
+      // A word accepted on both sides would mark every answer that uses it
+      // right. Caught here, by the teacher who made it.
+      const clash = tfConflicts(q.acceptedAnswers ?? null);
+      if (clash.length) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `Accepted for both TRUE and FALSE: ${clash.join(", ")}`,
+          path: ["acceptedAnswers"],
+        });
+      }
+    }
     if (q.questionType === "MCQ" && q.options.length < 2) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, message: "MCQ needs at least 2 options", path: ["options"] });
     }
@@ -238,6 +274,36 @@ export type SubmitQuizAttemptInput = z.infer<typeof submitQuizAttemptSchema>;
 
 export const gradeQuizAnswerSchema = z.object({
   marks: z.number().int().min(0),
+  /**
+   * Why, when this changes a mark the system already gave.
+   *
+   * Overriding an automatic mark — a student wrote "T" and the teacher
+   * accepts it — changes an academic record, so it is written to the audit
+   * log with the mark before and after and the reason in the teacher's words.
+   */
+  reason: z.string().trim().max(300).optional(),
 });
+
+/**
+ * A teacher trying their own paper.
+ *
+ * No student, no attempt row, no attempt count: the answers are graded by the
+ * same rules a student's would be and stored in a table of their own, which
+ * nothing that reports on students reads.
+ */
+export const practiceQuizSubmitSchema = z.object({
+  answers: z
+    .array(
+      z.object({
+        questionId: z.string().min(1),
+        answer: z.string().max(20000).default(""),
+      }),
+    )
+    .max(500),
+  /** Seconds from starting the practice run to submitting it. */
+  timeTakenSec: z.number().int().min(0).max(24 * 3600).default(0),
+});
+
+export type PracticeQuizSubmitInput = z.infer<typeof practiceQuizSubmitSchema>;
 
 export type GradeQuizAnswerInput = z.infer<typeof gradeQuizAnswerSchema>;
