@@ -12,11 +12,29 @@ export const StudentStatus = {
 export type StudentStatus = (typeof StudentStatus)[keyof typeof StudentStatus];
 export const studentStatusSchema = z.nativeEnum(StudentStatus);
 
+/**
+ * A date of birth a student could actually have.
+ *
+ * A year typed with a slipped key — 20114 for 2014, 0013 for 2013 — was
+ * either taken as written, leaving a child born in year 13 on the register,
+ * or crashed the registration outright with an error the desk could not
+ * read. Both happened in production. Refused here with a sentence instead:
+ * born after 1950 and not in the future.
+ */
+export const studentDobSchema = z.coerce
+  .date()
+  .refine((d) => d.getUTCFullYear() >= 1950, {
+    message: "Date of birth looks wrong — check the year.",
+  })
+  .refine((d) => d.getTime() <= Date.now() + 24 * 3600 * 1000, {
+    message: "Date of birth cannot be in the future.",
+  });
+
 /** Individual student registration (Module 1). Parent is auto-created/reused. */
 export const registerStudentSchema = z.object({
   fullName: z.string().min(1, "Full name is required"),
   gender: genderSchema,
-  dob: z.coerce.date().nullable().optional(),
+  dob: studentDobSchema.nullable().optional(),
   phone: z.string().min(1).nullable().optional(),
   notes: z.string().nullable().optional(),
   /// Only collected by the DETAILED registration form — see
@@ -89,7 +107,7 @@ export const updateStudentSchema = z
   .object({
     fullName: z.string().min(1).optional(),
     gender: genderSchema.optional(),
-    dob: z.coerce.date().nullable().optional(),
+    dob: studentDobSchema.nullable().optional(),
     phone: z.string().nullable().optional(),
     notes: z.string().nullable().optional(),
     /// DETAILED-form bio fields — see registerStudentSchema.
