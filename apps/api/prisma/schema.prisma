@@ -666,6 +666,14 @@ model Student {
   feeWaived            Boolean       @default(false)
   status               StudentStatus @default(ACTIVE)
   registrationDate     DateTime      @default(now())
+  /// When the student took their place in their current class register.
+  ///
+  /// Their S/N is their rank by this within the class: a new student goes to
+  /// the end, a deleted one closes the gap, and a student who replaces a
+  /// deleted one may take the same place by taking the same moment. Reset
+  /// when a student alone is moved to another class; kept when a whole class
+  /// is promoted, so the order travels with them.
+  rosterAt             DateTime      @default(now())
   createdAt            DateTime      @default(now())
   updatedAt            DateTime      @updatedAt
 
@@ -691,6 +699,7 @@ model Student {
   @@index([schoolId])
   @@index([parentId])
   @@index([classId])
+  @@index([classId, rosterAt])
   @@index([villageId])
   @@index([districtId])
   @@map("students")

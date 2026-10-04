@@ -49,6 +49,25 @@ export const registerStudentSchema = z.object({
 });
 export type RegisterStudentInput = z.infer<typeof registerStudentSchema>;
 
+/**
+ * Delete a student and register a new one in their place.
+ *
+ * Schools re-use a place when a student leaves mid-year: the newcomer sits in
+ * the same seat of the register. Each half is optional — the school may keep
+ * the old ID, the old S/N, both, or neither — because some want the number on
+ * the register unbroken and others only want the ID the parents already know.
+ * Done in one step on the server, so a registration that fails leaves the old
+ * student exactly where they were.
+ */
+export const replaceStudentSchema = z.object({
+  student: registerStudentSchema,
+  /** Give the new student the deleted student's ID. */
+  keepCode: z.boolean().default(false),
+  /** Put the new student at the deleted student's S/N in the class. */
+  keepSerial: z.boolean().default(false),
+});
+export type ReplaceStudentInput = z.infer<typeof replaceStudentSchema>;
+
 export const ParentStatus = { ACTIVE: "ACTIVE", INACTIVE: "INACTIVE" } as const;
 export type ParentStatus = (typeof ParentStatus)[keyof typeof ParentStatus];
 export const parentStatusSchema = z.nativeEnum(ParentStatus);

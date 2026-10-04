@@ -3318,6 +3318,16 @@ export const soGenerated: PartialDictionary = {
     reasonHelp: "Waxaa lagu kaydinayaa taariikhda beddelka ee imtixaankan, magacaaga iyo taariikhda la socoto.",
     save: "Kaydi version {version}",
   },
+  studentReplace: {
+    sn: "S/N",
+    action: "Ku beddel arday cusub…",
+    title: "Beddel Arday",
+    description: "Diiwaangeli arday cusub oo galaya booska {name} ({code}).",
+    warning: "Marka aad kaydiso, {name} ({code}) waa la tirtirayaa — xogtiisa la socota, sida tirtir kasta — ardayga cusubna wuxuu galayaa booskiisa. Haddii aad joojiso, waxba isma beddelaan.",
+    keepCode: "Ardayga cusub sii isla ID-ga ({code})",
+    keepSerial: "Ardayga cusub geli isla S/N-ka ({sn})",
+    hint: "Ka saar calaamadda mid ka mid ah si ID cusub loo siiyo, ama ardayga cusub loogu daro dhammaadka fasalka. S/N-ka waxaa lagu hayn karaa oo kaliya isla fasalka.",
+  },
   questionBank: {
     title: "Bangiga Su'aalaha",
     subtitle: "Su'aalo dugsigaagu hal mar qoray oo mar kale isticmaalo. Su'aashu imtixaanka waxay u gashaa nuqul ahaan, sidaas darteed halkan wax ka beddelkeedu ma taabto warqad ay ardaydu horay u galeen.",

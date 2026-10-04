@@ -15,6 +15,7 @@ import type { Response } from "express";
 import {
   addStudentClassSchema,
   registerStudentSchema,
+  replaceStudentSchema,
   resetStudentPortalPasswordSchema,
   updateStudentSchema,
   uploadStudentPhotoSchema,
@@ -253,6 +254,28 @@ export class StudentsController {
       throw new BadRequestException("ids must be an array of student ids");
     }
     return this.students.removeMany(me.schoolId, ids as string[]);
+  }
+
+  /**
+   * Delete a student and register a new one in their place, keeping the old
+   * ID, the old S/N, both or neither. Held to the same people as deleting,
+   * because that is what it does to the student being replaced.
+   */
+  @Roles(UserRole.ADMINISTRATOR)
+  @RequirePermission("students.delete")
+  @Post(":id/replace")
+  replace(
+    @CurrentUser() me: AuthUser,
+    @Param("id") id: string,
+    @Body() body: unknown,
+  ) {
+    const parsed = replaceStudentSchema.safeParse(body);
+    if (!parsed.success) throw new BadRequestException(parsed.error.flatten());
+    return this.students.replace(me.schoolId, id, parsed.data, {
+      userId: me.userId,
+      username: me.username,
+      role: me.role,
+    });
   }
 
   @Roles(UserRole.ADMINISTRATOR)

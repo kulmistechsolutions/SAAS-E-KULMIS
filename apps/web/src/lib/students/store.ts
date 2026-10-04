@@ -21,6 +21,7 @@ import {
   apiListParents,
   apiListStudentsWithParents,
   apiRegisterStudent,
+  apiReplaceStudent,
   apiRemoveStudentClass,
   apiResetParentPassword,
   apiUpdateParent,
@@ -461,7 +462,15 @@ async function applyStudentPhoto(
 
 export async function registerStudent(
   input: StudentInput,
-  opts?: { skipRefresh?: boolean; photo?: StudentPhotoChange },
+  opts?: {
+    skipRefresh?: boolean;
+    photo?: StudentPhotoChange;
+    /**
+     * Register in the place of this student, who is deleted in the same step.
+     * Keep their ID, their S/N, both or neither.
+     */
+    replace?: { studentId: string; keepCode: boolean; keepSerial: boolean };
+  },
 ): Promise<RegisterResult> {
   await ensureAcademicsLoaded();
   const st = ensure();
@@ -504,7 +513,10 @@ export async function registerStudent(
     };
   }
 
+  // A replacement may legitimately re-use the departing child's parent and
+  // even their name; the server checks what actually clashes.
   if (
+    !opts?.replace &&
     isDuplicate(
       st,
       input.parentPhone,
@@ -521,7 +533,7 @@ export async function registerStudent(
   }
 
   try {
-    const res = await apiRegisterStudent({
+    const body = {
       fullName: input.fullName.trim(),
       gender: input.gender,
       dob: input.dob ?? null,
@@ -540,7 +552,13 @@ export async function registerStudent(
       agreementAmount: input.agreementAmount,
       feeWaived: input.feeWaived,
       chargeRegistrationFee: input.chargeRegistrationFee,
-    });
+    };
+    const res = opts?.replace
+      ? await apiReplaceStudent(opts.replace.studentId, body, {
+          keepCode: opts.replace.keepCode,
+          keepSerial: opts.replace.keepSerial,
+        })
+      : await apiRegisterStudent(body);
 
     let student = res.student;
     mergeStudentIntoState(res.student, res.parent);
@@ -564,7 +582,9 @@ export async function registerStudent(
       }
     }
 
-    const refreshed = opts?.skipRefresh ? true : await refreshStudents();
+    // A replacement removed a student too, so the list is always reloaded.
+    const refreshed =
+      opts?.skipRefresh && !opts?.replace ? true : await refreshStudents();
     if (!refreshed) {
       mergeStudentIntoState(student, res.parent);
     }

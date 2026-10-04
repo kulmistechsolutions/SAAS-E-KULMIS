@@ -20,6 +20,7 @@ interface ApiParent {
 interface ApiStudent {
   id: string;
   code: string;
+  serialNo?: number | null;
   fullName: string;
   gender: Gender;
   dob: string | null;
@@ -76,6 +77,7 @@ export function mapApiStudent(s: ApiStudent): Student {
   return {
     id: s.id,
     code: s.code,
+    serialNo: s.serialNo ?? null,
     fullName: s.fullName,
     gender: s.gender,
     dob: s.dob ? s.dob.slice(0, 10) : null,
@@ -235,6 +237,38 @@ export async function apiRegisterStudent(
     parentCreated: boolean;
     initialParentPassword?: string;
   }>("/students", { method: "POST", body: input });
+  return {
+    student: mapApiStudent(res.student),
+    parent: mapApiParent(res.student.parent),
+    parentCreated: res.parentCreated,
+    parentCode: res.student.parent?.code,
+    initialParentPassword: res.initialParentPassword,
+  };
+}
+
+/**
+ * Delete a student and register a new one in their place, in one step on the
+ * server: if the registration fails the old student is still there.
+ */
+export async function apiReplaceStudent(
+  oldId: string,
+  input: RegisterStudentApiInput,
+  keep: { keepCode: boolean; keepSerial: boolean },
+): Promise<{
+  student: Student;
+  parent: Parent;
+  parentCreated: boolean;
+  parentCode?: string;
+  initialParentPassword?: string;
+}> {
+  const res = await api<{
+    student: ApiStudent;
+    parentCreated: boolean;
+    initialParentPassword?: string;
+  }>(`/students/${oldId}/replace`, {
+    method: "POST",
+    body: { student: input, ...keep },
+  });
   return {
     student: mapApiStudent(res.student),
     parent: mapApiParent(res.student.parent),

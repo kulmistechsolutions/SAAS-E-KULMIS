@@ -66,7 +66,7 @@ import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import { useHydrated } from "@/lib/use-hydrated";
 
-type SortKey = "fullName" | "code" | "registrationDate" | "className";
+type SortKey = "serial" | "fullName" | "code" | "registrationDate" | "className";
 type SortDir = "asc" | "desc";
 
 
@@ -95,8 +95,11 @@ export default function StudentsPage() {
   const [section, setSection] = useState("");
   const [gender, setGender] = useState("");
   const [status, setStatus] = useState("");
-  const [sortKey, setSortKey] = useState<SortKey>("registrationDate");
-  const [sortDir, setSortDir] = useState<SortDir>("desc");
+  // The class register by default — each class from S/N 1 up, a new student
+  // at the end of theirs. The list used to open newest-first and number its
+  // rows, so registering a sixth student made the newcomer "1".
+  const [sortKey, setSortKey] = useState<SortKey>("serial");
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [page, setPage] = useState(1);
   // How many rows at once. A list of thirteen pages is thirteen clicks
   // to read, and reading all of it is usually why it was opened.
@@ -131,6 +134,8 @@ export default function StudentsPage() {
   const [editing, setEditing] = useState<StudentWithParent | null>(null);
   const [importOpen, setImportOpen] = useState(false);
   const [deleting, setDeleting] = useState<StudentWithParent | null>(null);
+  /** Being deleted with a new student registered in their place. */
+  const [replacing, setReplacing] = useState<StudentWithParent | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkConfirm, setBulkConfirm] = useState(false);
   const [bulkBusy, setBulkBusy] = useState(false);
@@ -172,7 +177,11 @@ export default function StudentsPage() {
 
     rows.sort((a, b) => {
       let cmp = 0;
-      if (sortKey === "fullName") cmp = a.fullName.localeCompare(b.fullName);
+      if (sortKey === "serial")
+        cmp =
+          a.className.localeCompare(b.className, undefined, { numeric: true }) ||
+          (a.serialNo ?? Number.MAX_SAFE_INTEGER) - (b.serialNo ?? Number.MAX_SAFE_INTEGER);
+      else if (sortKey === "fullName") cmp = a.fullName.localeCompare(b.fullName);
       else if (sortKey === "code") cmp = a.code.localeCompare(b.code);
       else if (sortKey === "registrationDate")
         cmp =
@@ -352,6 +361,7 @@ export default function StudentsPage() {
             <Button
               onClick={() => {
                 setEditing(null);
+                setReplacing(null);
                 setFormOpen(true);
               }}
             >
@@ -495,7 +505,12 @@ export default function StudentsPage() {
                     className="h-4 w-4 cursor-pointer accent-primary"
                   />
                 </th>
-                <th className="px-4 py-3 font-medium">#</th>
+                <SortableTh
+                  label={t("studentReplace.sn")}
+                  active={sortKey === "serial"}
+                  dir={sortDir}
+                  onClick={() => toggleSort("serial")}
+                />
                 <SortableTh
                   label={t("students.studentId")}
                   active={sortKey === "code"}
@@ -564,8 +579,10 @@ export default function StudentsPage() {
                         className="h-4 w-4 cursor-pointer accent-primary"
                       />
                     </td>
-                    <td className="px-4 py-3 text-muted-foreground">
-                      {(currentPage - 1) * pageSize + i + 1}
+                    {/* The student's place in their class register, not
+                        the row's place on this page. */}
+                    <td className="px-4 py-3 tabular-nums text-muted-foreground">
+                      {s.serialNo ?? "—"}
                     </td>
                     <td className="px-4 py-3 font-mono text-xs font-medium">
                       {s.code}
@@ -622,6 +639,7 @@ export default function StudentsPage() {
                           icon={Pencil}
                           onClick={() => {
                             setEditing(s);
+                            setReplacing(null);
                             setFormOpen(true);
                           }}
                         />
@@ -680,8 +698,12 @@ export default function StudentsPage() {
 
       <StudentFormDialog
         open={formOpen}
-        onClose={() => setFormOpen(false)}
+        onClose={() => {
+          setFormOpen(false);
+          setReplacing(null);
+        }}
         student={editing}
+        replacing={replacing}
         onSaved={(msg, tone) => toast(msg, tone ?? "success")}
       />
       <ImportDialog
@@ -704,6 +726,19 @@ export default function StudentsPage() {
         }
         onConfirm={handleDelete}
         onClose={() => setDeleting(null)}
+        // Delete, and register someone new in this student's place — keeping
+        // their ID, their S/N, both or neither. Nothing is deleted until that
+        // registration is saved.
+        extraAction={{
+          label: t("studentReplace.action"),
+          onClick: () => {
+            if (!deleting) return;
+            setEditing(null);
+            setReplacing(deleting);
+            setDeleting(null);
+            setFormOpen(true);
+          },
+        }}
       />
       <ConfirmDialog
         open={bulkConfirm}

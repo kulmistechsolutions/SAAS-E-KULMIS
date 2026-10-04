@@ -11,8 +11,11 @@ import type { Prisma, PrismaClient } from "@prisma/client";
 import type {
   AddStudentClassInput,
   RegisterStudentInput,
+  ReplaceStudentInput,
   UpdateStudentInput,
 } from "@ekulmis/shared";
+import { AuditService } from "../audit/audit.service";
+import { rosterRanks, spreadTies } from "./roster";
 import { PrismaService } from "../prisma/prisma.service";
 import { StorageService } from "../storage/storage.service";
 import { FeesService } from "../finance/fees.service";
@@ -145,6 +148,7 @@ export class StudentsService {
     private readonly passwordPolicy: PasswordPolicyService,
     private readonly notifications: NotificationsService,
     private readonly autoSms: SmsAutoService,
+    private readonly audit: AuditService,
   ) {
     this.bucket =
       this.config.get<string>("SUPABASE_STORAGE_BUCKET") ??
@@ -207,10 +211,99 @@ export class StudentsService {
    * sequential Student/Parent IDs from the school prefixes, prevents duplicates,
    * and validates the class/section — all in one tenant transaction.
    */
-  async register(schoolId: string, dto: RegisterStudentInput) {
-    await this.subscriptions.assertCanAddStudent(schoolId);
+  async register(
+    schoolId: string,
+    dto: RegisterStudentInput,
+    /**
+     * Register in the place of a student who is removed in the same step.
+     *
+     * One transaction for both: if the new registration fails for any reason
+     * — a duplicate name, a bad class — the old student is still there,
+     * untouched. Deleting first and registering after would leave a school
+     * with a gap and no student if the second half failed.
+     */
+    replace?: {
+      studentId: string;
+      keepCode: boolean;
+      keepSerial: boolean;
+      by?: { userId: string; username?: string; role?: string };
+    },
+  ) {
+    // A replacement does not add a student, so it is not held to the plan's
+    // student limit: a full school must still be able to fill a place.
+    if (!replace) await this.subscriptions.assertCanAddStudent(schoolId);
+    let removedPhotoKey = null as string | null;
+    // Asserted rather than annotated: it is set inside the transaction's
+    // callback, which the compiler cannot see run.
+    let replaced = null as {
+      id: string;
+      code: string;
+      fullName: string;
+      serialNo: number;
+      keptCode: boolean;
+      keptSerial: boolean;
+    } | null;
     const registerOnce = () =>
       this.prisma.forTenant(schoolId, async (tx) => {
+        // The student being replaced, removed first so their ID is free to be
+        // given again — still inside this transaction, so a failure below
+        // brings them back.
+        let old: {
+          id: string;
+          code: string;
+          fullName: string;
+          classId: string;
+          parentId: string;
+          rosterAt: Date;
+          photoKey: string | null;
+          serialNo: number;
+        } | null = null;
+        if (replace) {
+          const row = await tx.student.findFirst({
+            where: { id: replace.studentId },
+            select: {
+              id: true,
+              code: true,
+              fullName: true,
+              classId: true,
+              parentId: true,
+              rosterAt: true,
+              photoKey: true,
+            },
+          });
+          if (!row) throw new NotFoundException("The student to replace was not found");
+          // Their S/N is a place in their class; it means nothing in another.
+          if (replace.keepSerial && dto.classId !== row.classId) {
+            throw new BadRequestException(
+              "To keep the S/N, the new student must go into the same class.",
+            );
+          }
+          const serials = await this.serialsFor(tx as unknown as PrismaClient, [row.classId]);
+          old = { ...row, serialNo: serials.get(row.id) ?? 0 };
+
+          if (replace.keepSerial) {
+            // Students who joined in the same instant (an import) are ordered
+            // by ID; a newcomer with a new ID would sort to the end of that
+            // group. Give each of them a moment of their own first.
+            const tied = await tx.student.findMany({
+              where: { classId: row.classId, rosterAt: row.rosterAt },
+              select: { id: true, code: true },
+            });
+            if (tied.length > 1) {
+              const spread = spreadTies(row.rosterAt, tied);
+              for (const t of tied) {
+                if (t.id === row.id) continue;
+                await tx.student.update({
+                  where: { id: t.id },
+                  data: { rosterAt: spread.get(t.id)! },
+                });
+              }
+              old.rosterAt = spread.get(row.id)!;
+            }
+          }
+          await tx.student.delete({ where: { id: row.id } });
+        }
+
         const school = await tx.school.findUnique({
           where: { id: schoolId },
           select: {
@@ -298,12 +391,19 @@ export class StudentsService {
           );
         }
 
-        const { code } = await nextStudentCode(
-          tx,
-          schoolId,
-          school.studentPrefix,
-          school.studentIdLength,
-        );
+        // The old ID, when the school asked for it; otherwise the next one,
+        // as for any registration.
+        const code =
+          old && replace?.keepCode
+            ? old.code
+            : (
+                await nextStudentCode(
+                  tx,
+                  schoolId,
+                  school.studentPrefix,
+                  school.studentIdLength,
+                )
+              ).code;
         const portalPasswordHash = await hashPassword(code);
 
         const student = await tx.student.create({
@@ -327,9 +427,30 @@ export class StudentsService {
             feeStartMode: dto.feeStartMode ?? null,
             feeAgreementAmount: dto.agreementAmount ?? null,
             feeWaived: dto.feeWaived ?? false,
+            // Taking the old student's moment takes their place in the class
+            // register; otherwise the default, now, puts them at the end.
+            ...(old && replace?.keepSerial ? { rosterAt: old.rosterAt } : {}),
           },
           include: studentInclude,
         });
+
+        if (old) {
+          // The old family goes only if this was their last child — and only
+          // now, after the new student exists, since the new one may be
+          // registered under the very same parent.
+          if (old.parentId !== student.parentId) {
+            await this.dropParentIfChildless(tx as unknown as PrismaClient, old.parentId);
+          }
+          removedPhotoKey = old.photoKey;
+          replaced = {
+            id: old.id,
+            code: old.code,
+            fullName: old.fullName,
+            serialNo: old.serialNo,
+            keptCode: !!replace?.keepCode,
+            keptSerial: !!replace?.keepSerial,
+          };
+        }
 
         return {
           student,
@@ -342,6 +463,34 @@ export class StudentsService {
     // same instant can pick the same one. The unique index catches it; retry
     // and the loser simply takes the next free number.
     const result = await retryOnCodeCollision(registerOnce);
+
+    // Storage is cleaned only once the database has committed: a photo
+    // removed for a replacement that then rolled back would be lost for good.
+    if (removedPhotoKey) await this.removePhotoObject(removedPhotoKey);
+    if (replaced) {
+      const r = replaced;
+      // A student was removed from the school's records; that is said in the
+      // audit log with both names, both IDs and what was carried over.
+      await this.audit.record({
+        schoolId,
+        userId: replace?.by?.userId ?? null,
+        username: replace?.by?.username ?? null,
+        role: (replace?.by?.role as never) ?? null,
+        module: "students",
+        action: "STUDENT_REPLACED",
+        metadata: {
+          removedId: r.id,
+          removedCode: r.code,
+          removedName: r.fullName,
+          removedSerialNo: r.serialNo,
+          newId: result.student.id,
+          newCode: result.student.code,
+          newName: result.student.fullName,
+          keptCode: r.keptCode,
+          keptSerial: r.keptSerial,
+        },
+      });
+    }
 
     const student = await this.attachPhotoMeta(result.student);
     try {
@@ -386,10 +535,58 @@ export class StudentsService {
     this.logger.log(
       `Registered student ${student.code} (${student.id}) in school ${schoolId}`,
     );
+    const [withSerial] = await this.withSerials(schoolId, [student]);
     return {
       ...result,
-      student,
+      student: withSerial,
+      replaced,
     };
+  }
+
+  /** Delete a student and register a new one in their place, in one step. */
+  async replace(
+    schoolId: string,
+    studentId: string,
+    dto: ReplaceStudentInput,
+    by?: { userId: string; username?: string; role?: string },
+  ) {
+    return this.register(schoolId, dto.student, {
+      studentId,
+      keepCode: dto.keepCode,
+      keepSerial: dto.keepSerial,
+      by,
+    });
+  }
+
+  /** S/N for every student in these classes, by the class register. */
+  private async serialsFor(
+    tx: PrismaClient,
+    classIds: string[],
+  ): Promise<Map<string, number>> {
+    if (classIds.length === 0) return new Map();
+    const rows = await tx.student.findMany({
+      where: { classId: { in: classIds } },
+      select: { id: true, classId: true, rosterAt: true, code: true },
+    });
+    return rosterRanks(rows);
+  }
+
+  /**
+   * The S/N attached to each student.
+   *
+   * Ranked over the whole class, not over the rows asked for: a list filtered
+   * to girls, or to one section, must still show each student's number in the
+   * class register rather than their position in the filtered list.
+   */
+  async withSerials<T extends { id: string; classId: string }>(
+    schoolId: string,
+    rows: T[],
+  ): Promise<(T & { serialNo: number | null })[]> {
+    const classIds = [...new Set(rows.map((r) => r.classId))];
+    const ranks = await this.prisma.forTenant(schoolId, (tx) =>
+      this.serialsFor(tx as unknown as PrismaClient, classIds),
+    );
+    return rows.map((r) => ({ ...r, serialNo: ranks.get(r.id) ?? null }));
   }
 
   async findAll(
@@ -425,13 +622,16 @@ export class StudentsService {
       }),
     );
     if (opts.includePhotoUrls === false) {
-      return rows.map((s) => ({
-        ...withoutSecrets(s),
-        hasPhoto: !!s.photoKey,
-        photoUrl: null,
-      }));
+      return this.withSerials(
+        schoolId,
+        rows.map((s) => ({
+          ...withoutSecrets(s),
+          hasPhoto: !!s.photoKey,
+          photoUrl: null,
+        })),
+      );
     }
-    return this.attachPhotoMetas(rows);
+    return this.withSerials(schoolId, await this.attachPhotoMetas(rows));
   }
 
   async findOne(schoolId: string, id: string) {
@@ -439,7 +639,10 @@ export class StudentsService {
       tx.student.findFirst({ where: { id }, include: studentInclude }),
     );
     if (!student) throw new NotFoundException("Student not found");
-    return this.attachPhotoMeta(student);
+    const [withSerial] = await this.withSerials(schoolId, [
+      await this.attachPhotoMeta(student),
+    ]);
+    return withSerial;
   }
 
   /**
@@ -732,6 +935,13 @@ export class StudentsService {
           placeOfBirth: dto.placeOfBirth,
           motherName: dto.motherName,
           classId: dto.classId,
+          // Moved into another class on their own, a student joins the end of
+          // its register like any newcomer — not the middle, by the date they
+          // first enrolled, which would renumber everyone after them. Whole
+          // classes moved by a promotion keep their order instead.
+          ...(dto.classId !== undefined && dto.classId !== current.classId
+            ? { rosterAt: new Date() }
+            : {}),
           sectionId: dto.sectionId,
           villageId: dto.villageId,
           districtId: dto.districtId,

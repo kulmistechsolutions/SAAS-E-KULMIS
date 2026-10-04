@@ -21,6 +21,8 @@ export interface StudentFieldDef {
  * students registered on the simple form, so picking them never breaks.
  */
 export const STUDENT_EXPORT_FIELDS: StudentFieldDef[] = [
+  // The class register number, the same one the list shows.
+  { key: "serialNo", label: "S/N", value: (r) => (r.serialNo ? String(r.serialNo) : "—") },
   { key: "code", label: "Student ID", value: (r) => r.code },
   { key: "fullName", label: "Full Name", value: (r) => r.fullName },
   { key: "gender", label: "Gender", value: (r) => genderLabel(r.gender) },
@@ -51,6 +53,7 @@ export const STUDENT_EXPORT_FIELDS: StudentFieldDef[] = [
 
 /** Matches what the list print/export used to show unconditionally. */
 export const DEFAULT_STUDENT_EXPORT_FIELDS = [
+  "serialNo",
   "code",
   "fullName",
   "gender",

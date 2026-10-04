@@ -13,6 +13,8 @@ interface Props {
   confirmLabel?: string;
   onConfirm: () => void;
   onClose: () => void;
+  /** A second way forward, offered beside the main one. */
+  extraAction?: { label: string; onClick: () => void };
 }
 
 export function ConfirmDialog({
@@ -22,6 +24,7 @@ export function ConfirmDialog({
   confirmLabel = "Delete",
   onConfirm,
   onClose,
+  extraAction,
 }: Props) {
   const t = useT();
   return (
@@ -35,6 +38,11 @@ export function ConfirmDialog({
           <Button variant="outline" onClick={onClose}>
             {t("studentsConfirmDialog.cancel")}
           </Button>
+          {extraAction && (
+            <Button variant="outline" onClick={extraAction.onClick}>
+              {extraAction.label}
+            </Button>
+          )}
           <Button variant="destructive" onClick={onConfirm}>
             {confirmLabel}
           </Button>

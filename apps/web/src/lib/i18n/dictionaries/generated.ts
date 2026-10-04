@@ -3377,6 +3377,16 @@ export const generated = {
     reasonHelp: "Saved in this quiz's change history, with your name and the date.",
     save: "Save as version {version}",
   },
+  studentReplace: {
+    sn: "S/N",
+    action: "Replace with a new student…",
+    title: "Replace Student",
+    description: "Register a new student in the place of {name} ({code}).",
+    warning: "When you save, {name} ({code}) is deleted — with their records, as with any delete — and the new student takes their place. If you cancel, nothing changes.",
+    keepCode: "Give the new student the same ID ({code})",
+    keepSerial: "Put the new student at the same S/N ({sn})",
+    hint: "Untick either one to give a new ID, or to put the new student at the end of the class. The S/N can only be kept in the same class.",
+  },
   questionBank: {
     title: "Question Bank",
     subtitle: "Questions your school has written once and uses again. A question goes into a quiz as a copy, so changing it here never changes a paper students have already sat.",

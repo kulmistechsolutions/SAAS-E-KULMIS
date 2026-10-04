@@ -22,6 +22,12 @@ export interface Parent {
 export interface Student {
   id: string;
   code: string;
+  /**
+   * Place in the class register: 1 for the first to join the class, a new
+   * student at the end. Computed by the server across the whole class, so a
+   * filtered list still shows the student's real number.
+   */
+  serialNo?: number | null;
   fullName: string;
   gender: Gender;
   dob?: string | null;

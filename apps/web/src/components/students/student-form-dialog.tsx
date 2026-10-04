@@ -36,6 +36,13 @@ interface Props {
   open: boolean;
   onClose: () => void;
   student?: StudentWithParent | null;
+  /**
+   * Register a new student in this student's place: they are deleted and the
+   * newcomer takes their class, and — if the school chooses — their ID and
+   * their S/N. Done in one step, so cancelling or a failed save leaves them
+   * exactly where they were.
+   */
+  replacing?: StudentWithParent | null;
   onSaved?: (message: string, tone?: "success" | "error" | "info") => void;
 }
 
@@ -114,9 +121,14 @@ const empty = (year: string, className: string): FormState => ({
   chargeRegistrationFee: false,
 });
 
-export function StudentFormDialog({ open, onClose, student, onSaved }: Props) {
+export function StudentFormDialog({ open, onClose, student, replacing, onSaved }: Props) {
   const t = useT();
   const isEdit = !!student;
+  // Both on by default: taking someone's place usually means their place in
+  // the register and the ID their family and teachers already know. Either can
+  // be turned off — a school may want a fresh ID, or the newcomer at the end.
+  const [keepCode, setKeepCode] = useState(true);
+  const [keepSerial, setKeepSerial] = useState(true);
   const settings = useSettingsState();
   const academics = useAcademicsState();
   const years = useMemo(
@@ -196,6 +208,18 @@ export function StudentFormDialog({ open, onClose, student, onSaved }: Props) {
         feeWaived: student.feeWaived ?? false,
         chargeRegistrationFee: false,
       });
+    } else if (replacing) {
+      // The newcomer starts in the departing student's class and section;
+      // everything about the person is theirs to fill in.
+      setKeepCode(true);
+      setKeepSerial(true);
+      setForm({
+        ...empty(replacing.academicYear, replacing.className),
+        section: replacing.section ?? "",
+        monthlyFee: String(replacing.monthlyFee),
+        chargeRegistrationFee: settings.fees.registrationFeeAmount > 0,
+      });
+      setPhotoPreview(null);
     } else {
       const y = activeAcademicYear() || academicYearNames(academics)[0] || "";
       const classes = classNamesForYear(y);
@@ -210,7 +234,7 @@ export function StudentFormDialog({ open, onClose, student, onSaved }: Props) {
     // not whenever the academics store re-emits (which was wiping the form
     // mid-keystroke whenever the store refreshed elsewhere in the app).
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, student?.id]);
+  }, [open, student?.id, replacing?.id]);
 
   // The settings store hands back its seed defaults until the school's real
   // ones arrive, and registrationFeeAmount seeds to 0 — so a dialog opened in
@@ -349,7 +373,22 @@ export function StudentFormDialog({ open, onClose, student, onSaved }: Props) {
               ? form.chargeRegistrationFee
               : undefined,
         },
-        { photo },
+        {
+          photo,
+          ...(replacing
+            ? {
+                replace: {
+                  studentId: replacing.id,
+                  keepCode,
+                  // A place in a class register means nothing in another one.
+                  keepSerial:
+                    keepSerial &&
+                    form.className === replacing.className &&
+                    form.academicYear === replacing.academicYear,
+                },
+              }
+            : {}),
+        },
       );
       if (!res.ok) return setError(res.error ?? "Failed to register student.");
       const idMsg = res.student ? ` Student ID: ${res.student.code}.` : "";
@@ -362,8 +401,13 @@ export function StudentFormDialog({ open, onClose, student, onSaved }: Props) {
         );
       }
       const warn = res.warning ? ` Photo: ${res.warning}` : "";
+      const replacedMsg = replacing
+        ? ` ${replacing.fullName} (${replacing.code}) was removed${
+            res.student?.serialNo ? `; the new student is S/N ${res.student.serialNo}` : ""
+          }.`
+        : "";
       onSaved?.(
-        `${res.student?.fullName} registered.${idMsg}${parentMsg}${warn}`,
+        `${res.student?.fullName} registered.${idMsg}${replacedMsg}${parentMsg}${warn}`,
         res.warning ? "error" : "success",
       );
       if (!res.warning) onClose();
@@ -377,11 +421,21 @@ export function StudentFormDialog({ open, onClose, student, onSaved }: Props) {
       open={open}
       onClose={onClose}
       scrollable={false}
-      title={isEdit ? "Edit Student" : "Register Student"}
+      title={
+        isEdit
+          ? "Edit Student"
+          : replacing
+            ? t("studentReplace.title")
+            : "Register Student"
+      }
       description={
         isEdit
           ? `Update ${student?.code} — ID does not change.`
-          : "Student ID and parent account are created automatically."
+          : replacing
+            ? t("studentReplace.description")
+                .replace("{name}", replacing.fullName)
+                .replace("{code}", replacing.code)
+            : "Student ID and parent account are created automatically."
       }
       className="sm:max-w-4xl lg:max-w-5xl"
       footer={
@@ -405,6 +459,52 @@ export function StudentFormDialog({ open, onClose, student, onSaved }: Props) {
       }
     >
       <form onSubmit={handleSubmit} noValidate>
+        {replacing && (
+          <div className="mb-3 space-y-2 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
+            <p className="text-amber-900 dark:text-amber-200">
+              {t("studentReplace.warning")
+                .replace("{name}", replacing.fullName)
+                .replace("{code}", replacing.code)}
+            </p>
+            <div className="flex flex-wrap gap-x-6 gap-y-2">
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={keepCode}
+                  onChange={(e) => setKeepCode(e.target.checked)}
+                  className="h-4 w-4 accent-primary"
+                />
+                {t("studentReplace.keepCode").replace("{code}", replacing.code)}
+              </label>
+              <label
+                className={cn(
+                  "flex items-center gap-2",
+                  (form.className !== replacing.className ||
+                    form.academicYear !== replacing.academicYear) &&
+                    "opacity-50",
+                )}
+              >
+                <input
+                  type="checkbox"
+                  checked={keepSerial}
+                  onChange={(e) => setKeepSerial(e.target.checked)}
+                  disabled={
+                    form.className !== replacing.className ||
+                    form.academicYear !== replacing.academicYear
+                  }
+                  className="h-4 w-4 accent-primary"
+                />
+                {t("studentReplace.keepSerial").replace(
+                  "{sn}",
+                  String(replacing.serialNo ?? "—"),
+                )}
+              </label>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {t("studentReplace.hint")}
+            </p>
+          </div>
+        )}
         {error && (
           <div
             role="alert"
