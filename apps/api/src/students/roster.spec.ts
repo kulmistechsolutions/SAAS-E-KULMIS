@@ -199,3 +199,37 @@ describe("the students list", () => {
     expect(form).toContain("checked={keepSerial}");
   });
 });
+
+describe("the numbers schools had already printed", () => {
+  const restore = readFileSync(
+    join(__dirname, "..", "..", "prisma", "migrations", "20261005090000_student_roster_restore_printed_order", "migration.sql"),
+    "utf8",
+  );
+
+  it("puts students who were already there back newest first, as printed", () => {
+    // alihsanpiss Grade 8 had STD0708 at 1 and STD0604 at 75 on paper.
+    expect(restore).toContain(`TIMESTAMP '2000-01-01' + (t.cutoff - st."createdAt")`);
+  });
+
+  it("leaves anyone registered or moved since at the end, where they are", () => {
+    expect(restore).toContain(`WHERE st."createdAt" <= t.cutoff`);
+    expect(restore).toContain(`AND st."rosterAt" = st."createdAt"`);
+  });
+
+  it("orders the restored students newest first", () => {
+    // The mapping reverses entry order: the later a student was entered, the
+    // earlier their key, so the newest is 1 — exactly what the old list showed.
+    const cutoff = Date.UTC(2026, 9, 4, 6, 56);
+    const base = Date.UTC(2000, 0, 1);
+    const key = (created: number) => new Date(base + (cutoff - created));
+    const rows = [
+      { id: "STD0604", classId: "g8", rosterAt: key(Date.UTC(2026, 7, 30, 16, 36)), code: "STD0604" },
+      { id: "STD0677", classId: "g8", rosterAt: key(Date.UTC(2026, 7, 30, 17, 2)), code: "STD0677" },
+      { id: "STD0708", classId: "g8", rosterAt: key(Date.UTC(2026, 8, 7, 8, 37)), code: "STD0708" },
+      // Registered after the change: at the end.
+      { id: "NEW", classId: "g8", rosterAt: new Date(Date.UTC(2026, 9, 5)), code: "STD0800" },
+    ];
+    const r = rosterRanks(rows);
+    expect([r.get("STD0708"), r.get("STD0677"), r.get("STD0604"), r.get("NEW")]).toEqual([1, 2, 3, 4]);
+  });
+});
