@@ -55,6 +55,31 @@ export class AuthService {
    * "Invalid credentials" either way, so the trail never leaks which usernames
    * exist.
    */
+  /**
+   * The account a typed username means.
+   *
+   * Exactly as typed first. Failing that, ignoring surrounding spaces and
+   * case — but only when that leaves exactly one account, so two usernames
+   * that differ only in case can never be confused. A phone keyboard adds a
+   * space after a word it completes, and teachers type their code in lower
+   * case: in one week 29 sign-ins for accounts that exist were refused as
+   * "unknown user" for nothing more than that — "TCH0013 " at alihsanpiss,
+   * "tch0018", "ALPHA ". The password is still checked exactly.
+   */
+  private async findLoginUser(schoolId: string, typed: string) {
+    const exact = await this.prisma.user.findUnique({
+      where: { schoolId_username: { schoolId, username: typed } },
+    });
+    if (exact) return exact;
+    const trimmed = typed.trim();
+    if (!trimmed) return null;
+    const loose = await this.prisma.user.findMany({
+      where: { schoolId, username: { equals: trimmed, mode: "insensitive" } },
+      take: 2,
+    });
+    return loose.length === 1 ? loose[0]! : null;
+  }
+
   async login(
     schoolId: string,
     username: string,
@@ -62,9 +87,7 @@ export class AuthService {
     ctx: LoginContext = {},
   ) {
     // System-level lookup (runs as the privileged connection, bypassing RLS).
-    const user = await this.prisma.user.findUnique({
-      where: { schoolId_username: { schoolId, username } },
-    });
+    const user = await this.findLoginUser(schoolId, username);
     if (!user || user.status !== "ACTIVE") {
       await this.recordLoginFailure(schoolId, username, ctx, {
         reason: user ? `account ${user.status}` : "unknown user",
