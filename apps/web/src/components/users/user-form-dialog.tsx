@@ -29,6 +29,9 @@ export function UserFormDialog({
 }: UserFormDialogProps) {
   const t = useT();
   const isEdit = !!user;
+  // The school's owner account keeps its role, its full access and its
+  // ACTIVE status; only the name, username and password are theirs to change.
+  const isOwner = user?.role === "SUPER_ADMINISTRATOR";
 
   const [fullName, setFullName] = useState("");
   const [username, setUsername] = useState("");
@@ -78,11 +81,15 @@ export function UserFormDialog({
           id: user!.id,
           fullName,
           username,
-          role,
-          status,
-          // "" means back to the built-in role, which has to reach the server
-          // as null rather than being left out.
-          customRoleId: customRoleId || null,
+          ...(isOwner
+            ? {}
+            : {
+                role,
+                status,
+                // "" means back to the built-in role, which has to reach the
+                // server as null rather than being left out.
+                customRoleId: customRoleId || null,
+              }),
         })
       : await createUser({ fullName, username, password, role, status });
     setSubmitting(false);
@@ -159,6 +166,7 @@ export function UserFormDialog({
             <Select
               id="u-role"
               value={role}
+              disabled={isOwner}
               onChange={(e) => setRole(e.target.value)}
             >
               {roleOptions.map((r) => (
@@ -173,6 +181,7 @@ export function UserFormDialog({
             <Select
               id="u-status"
               value={status}
+              disabled={isOwner}
               onChange={(e) => setStatus(e.target.value as AccountStatus)}
             >
               <option value="ACTIVE">{t("usersUserFormDialog.active")}</option>
@@ -181,7 +190,7 @@ export function UserFormDialog({
             </Select>
           </div>
         </div>
-        {isEdit && customRoles.length > 0 && (
+        {isEdit && !isOwner && customRoles.length > 0 && (
           <div className="space-y-2">
             <Label htmlFor="u-custom-role">
               {t("usersUserFormDialog.schoolRole")}

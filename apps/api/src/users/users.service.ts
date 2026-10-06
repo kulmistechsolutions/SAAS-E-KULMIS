@@ -1,10 +1,17 @@
 import {
+  BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
 import { Prisma, type User } from "@prisma/client";
-import type { CreateUserInput, UpdateUserInput } from "@ekulmis/shared";
+import {
+  ASSIGNABLE_STAFF_ROLES,
+  UserRole,
+  type CreateUserInput,
+  type UpdateUserInput,
+} from "@ekulmis/shared";
 import { PrismaService } from "../prisma/prisma.service";
 import { hashPassword } from "../auth/password.util";
 import { PasswordPolicyService } from "../settings/password-policy.service";
@@ -89,8 +96,67 @@ export class UsersService {
     return toDto(user);
   }
 
-  async update(schoolId: string, id: string, dto: UpdateUserInput) {
-    await this.findOne(schoolId, id); // 404s if not in this tenant
+  /**
+   * The school's Super Administrator is its owner account: one per school,
+   * made when the school was set up. Nobody in the school may make another,
+   * take the role away, switch the account off, or delete it — and only the
+   * owner may change it at all. Without this an Administrator could demote or
+   * lock out the owner, and the owner could switch their own account off.
+   */
+  private guardOwner(
+    target: { id: string; role: string },
+    actorId: string,
+    action: "edit" | "password" | "delete",
+  ) {
+    if (target.role !== UserRole.SUPER_ADMINISTRATOR) return;
+    if (action === "delete") {
+      throw new ForbiddenException(
+        "The Super Administrator account cannot be deleted.",
+      );
+    }
+    if (target.id !== actorId) {
+      throw new ForbiddenException(
+        "Only the Super Administrator can change their own account.",
+      );
+    }
+  }
+
+  async update(
+    schoolId: string,
+    id: string,
+    dto: UpdateUserInput,
+    actorId: string,
+  ) {
+    const current = await this.findOne(schoolId, id); // 404s if not in this tenant
+    const isOwner = current.role === UserRole.SUPER_ADMINISTRATOR;
+    this.guardOwner(current, actorId, "edit");
+    // Saving the form sends the role back unchanged — that is not an
+    // assignment. A different role must be one User Management hands out,
+    // and the owner's own role is never changed.
+    if (dto.role !== undefined && dto.role !== current.role) {
+      if (isOwner || !ASSIGNABLE_STAFF_ROLES.includes(dto.role)) {
+        throw new BadRequestException(
+          "This role cannot be assigned through User Management.",
+        );
+      }
+    }
+    if (isOwner && dto.customRoleId) {
+      throw new BadRequestException(
+        "The Super Administrator keeps full access and cannot be put on a school role.",
+      );
+    }
+    if (dto.status !== undefined && dto.status !== "ACTIVE") {
+      if (isOwner) {
+        throw new BadRequestException(
+          "The Super Administrator account cannot be deactivated or locked.",
+        );
+      }
+      if (id === actorId) {
+        throw new BadRequestException(
+          "You cannot deactivate or lock your own account.",
+        );
+      }
+    }
     try {
       const user = await this.prisma.forTenant(schoolId, (tx) =>
         tx.user.update({
@@ -121,8 +187,13 @@ export class UsersService {
   }
 
   /** Admin password reset — also revokes the user's refresh tokens. */
-  async resetPassword(schoolId: string, id: string, newPassword: string) {
-    await this.findOne(schoolId, id);
+  async resetPassword(
+    schoolId: string,
+    id: string,
+    newPassword: string,
+    actorId: string,
+  ) {
+    this.guardOwner(await this.findOne(schoolId, id), actorId, "password");
     await this.passwordPolicy.assertAllowed(schoolId, newPassword);
     const passwordHash = await hashPassword(newPassword);
     await this.prisma.forTenant(schoolId, (tx) =>
@@ -136,8 +207,8 @@ export class UsersService {
     return { success: true };
   }
 
-  async remove(schoolId: string, id: string) {
-    await this.findOne(schoolId, id);
+  async remove(schoolId: string, id: string, actorId: string) {
+    this.guardOwner(await this.findOne(schoolId, id), actorId, "delete");
     await this.prisma.forTenant(schoolId, (tx) =>
       tx.user.delete({ where: { id } }),
     );

@@ -39,12 +39,14 @@ import {
 import type { AccountStatus } from "@/lib/users/types";
 import { toast } from "@/lib/toast";
 import { useHydrated } from "@/lib/use-hydrated";
+import { useAuth } from "@/lib/auth";
 
 
 export default function UsersListPage() {
   const t = useT();
   const mounted = useHydrated();
   const state = useUsersState();
+  const { user: me } = useAuth();
   const [search, setSearch] = useState("");
   const [role, setRole] = useState("");
   const [status, setStatus] = useState<AccountStatus | "">("");
@@ -169,7 +171,12 @@ export default function UsersListPage() {
               </tr>
             </thead>
             <tbody>
-              {pageRows.map((r) => (
+              {pageRows.map((r) => {
+                // The school's owner account: never switched off, locked or
+                // deleted, and changed only by the owner themselves.
+                const owner = isSchoolSuperAdminRole(r.role);
+                const mayChange = !owner || r.id === me?.userId;
+                return (
                 <tr key={r.id} className="border-t">
                   <td className="px-4 py-2.5 text-muted-foreground">{r.serial}</td>
                   <td className="px-4 py-2.5 font-mono text-xs">{r.userId}</td>
@@ -195,13 +202,17 @@ export default function UsersListPage() {
                       >
                         <Eye className="h-4 w-4" />
                       </Link>
-                      <Button variant="ghost" className="h-8 w-8 p-0" onClick={() => setEditId(r.id)}>
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" className="h-8 w-8 p-0" onClick={() => setResetId(r.id)}>
-                        <KeyRound className="h-4 w-4" />
-                      </Button>
-                      {r.status === "ACTIVE" ? (
+                      {mayChange && (
+                        <>
+                          <Button variant="ghost" className="h-8 w-8 p-0" onClick={() => setEditId(r.id)}>
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" className="h-8 w-8 p-0" onClick={() => setResetId(r.id)}>
+                            <KeyRound className="h-4 w-4" />
+                          </Button>
+                        </>
+                      )}
+                      {owner || r.id === me?.userId ? null : r.status === "ACTIVE" ? (
                         <>
                           <Button
                             variant="ghost"
@@ -245,17 +256,20 @@ export default function UsersListPage() {
                           <Unlock className="h-4 w-4" />
                         </Button>
                       )}
-                      <Button
-                        variant="ghost"
-                        className="h-8 w-8 p-0 text-rose-600"
-                        onClick={() => setDeleteId(r.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      {!owner && r.id !== me?.userId && (
+                        <Button
+                          variant="ghost"
+                          className="h-8 w-8 p-0 text-rose-600"
+                          onClick={() => setDeleteId(r.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
                     </div>
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>

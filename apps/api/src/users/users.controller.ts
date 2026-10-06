@@ -114,15 +114,10 @@ export class UsersController {
     if (!parsed.success) {
       throw new BadRequestException(parsed.error.flatten());
     }
-    if (
-      parsed.data.role !== undefined &&
-      !ASSIGNABLE_STAFF_ROLES.includes(parsed.data.role)
-    ) {
-      throw new BadRequestException(
-        "This role cannot be assigned through User Management.",
-      );
-    }
-    return this.users.update(me.schoolId, id, parsed.data);
+    // Which roles may be given is decided against the account's current role
+    // in the service, so the owner can save their own name without the form
+    // handing back their role being read as a new assignment.
+    return this.users.update(me.schoolId, id, parsed.data, me.userId);
   }
 
   @RequirePermission("users.update")
@@ -136,7 +131,12 @@ export class UsersController {
     if (!parsed.success) {
       throw new BadRequestException(parsed.error.flatten());
     }
-    return this.users.resetPassword(me.schoolId, id, parsed.data.newPassword);
+    return this.users.resetPassword(
+      me.schoolId,
+      id,
+      parsed.data.newPassword,
+      me.userId,
+    );
   }
 
   @RequirePermission("users.delete", "users.update")
@@ -145,6 +145,6 @@ export class UsersController {
     if (id === me.userId) {
       throw new BadRequestException("You cannot delete your own account");
     }
-    return this.users.remove(me.schoolId, id);
+    return this.users.remove(me.schoolId, id, me.userId);
   }
 }

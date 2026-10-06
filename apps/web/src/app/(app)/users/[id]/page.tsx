@@ -15,6 +15,8 @@ import { printUserProfile } from "@/lib/users/print";
 import { getRole, getUser, sessionsForUser } from "@/lib/users/store";
 import { UserScopeCard } from "@/components/users/user-scope-card";
 import { activeAcademicYear } from "@/lib/academics/store";
+import { useAuth } from "@/lib/auth";
+import { isSchoolSuperAdminRole } from "@/lib/users/super-admin";
 
 export default function UserProfilePage({
   params,
@@ -23,6 +25,7 @@ export default function UserProfilePage({
 }) {
   const t = useT();
   const { id } = use(params);
+  const { user: me } = useAuth();
   const [editing, setEditing] = useState(false);
   const [resetOpen, setResetOpen] = useState(false);
 
@@ -54,14 +57,19 @@ export default function UserProfilePage({
           <p className="mt-1 font-mono text-sm text-muted-foreground">{user.userId}</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" className="h-9" onClick={() => setEditing(true)}>
-            <Pencil className="me-2 h-4 w-4" />
-            {t("users.edit")}
-          </Button>
-          <Button variant="outline" className="h-9" onClick={() => setResetOpen(true)}>
-            <KeyRound className="me-2 h-4 w-4" />
-            {t("users.resetPassword")}
-          </Button>
+          {/* Only the owner changes the owner's account. */}
+          {(!isSchoolSuperAdminRole(user.role) || user.id === me?.userId) && (
+            <>
+              <Button variant="outline" className="h-9" onClick={() => setEditing(true)}>
+                <Pencil className="me-2 h-4 w-4" />
+                {t("users.edit")}
+              </Button>
+              <Button variant="outline" className="h-9" onClick={() => setResetOpen(true)}>
+                <KeyRound className="me-2 h-4 w-4" />
+                {t("users.resetPassword")}
+              </Button>
+            </>
+          )}
           <Button variant="outline" className="h-9" onClick={() => printUserProfile(user)}>
             <Printer className="me-2 h-4 w-4" />
             {t("users.printProfile")}
