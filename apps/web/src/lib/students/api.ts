@@ -21,6 +21,7 @@ interface ApiStudent {
   id: string;
   code: string;
   serialNo?: number | null;
+  sectionSerialNo?: number | null;
   fullName: string;
   gender: Gender;
   dob: string | null;
@@ -78,6 +79,7 @@ export function mapApiStudent(s: ApiStudent): Student {
     id: s.id,
     code: s.code,
     serialNo: s.serialNo ?? null,
+    sectionSerialNo: s.sectionSerialNo ?? null,
     fullName: s.fullName,
     gender: s.gender,
     dob: s.dob ? s.dob.slice(0, 10) : null,

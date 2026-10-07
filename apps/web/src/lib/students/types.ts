@@ -28,6 +28,8 @@ export interface Student {
    * filtered list still shows the student's real number.
    */
   serialNo?: number | null;
+  /** The same register order counted from 1 within the student's section. */
+  sectionSerialNo?: number | null;
   fullName: string;
   gender: Gender;
   dob?: string | null;

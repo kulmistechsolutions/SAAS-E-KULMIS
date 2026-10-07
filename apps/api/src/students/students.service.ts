@@ -15,7 +15,7 @@ import type {
   UpdateStudentInput,
 } from "@ekulmis/shared";
 import { AuditService } from "../audit/audit.service";
-import { rosterRanks, spreadTies } from "./roster";
+import { rosterRanks, sectionRanks, spreadTies } from "./roster";
 import { PrismaService } from "../prisma/prisma.service";
 import { StorageService } from "../storage/storage.service";
 import { FeesService } from "../finance/fees.service";
@@ -564,11 +564,14 @@ export class StudentsService {
     classIds: string[],
   ): Promise<Map<string, number>> {
     if (classIds.length === 0) return new Map();
-    const rows = await tx.student.findMany({
+    return rosterRanks(await this.rosterRows(tx, classIds));
+  }
+
+  private rosterRows(tx: PrismaClient, classIds: string[]) {
+    return tx.student.findMany({
       where: { classId: { in: classIds } },
-      select: { id: true, classId: true, rosterAt: true, code: true },
+      select: { id: true, classId: true, sectionId: true, rosterAt: true, code: true },
     });
-    return rosterRanks(rows);
   }
 
   /**
@@ -581,12 +584,25 @@ export class StudentsService {
   async withSerials<T extends { id: string; classId: string }>(
     schoolId: string,
     rows: T[],
-  ): Promise<(T & { serialNo: number | null })[]> {
+  ): Promise<
+    (T & { serialNo: number | null; sectionSerialNo: number | null })[]
+  > {
     const classIds = [...new Set(rows.map((r) => r.classId))];
-    const ranks = await this.prisma.forTenant(schoolId, (tx) =>
-      this.serialsFor(tx as unknown as PrismaClient, classIds),
-    );
-    return rows.map((r) => ({ ...r, serialNo: ranks.get(r.id) ?? null }));
+    const register =
+      classIds.length === 0
+        ? []
+        : await this.prisma.forTenant(schoolId, (tx) =>
+            this.rosterRows(tx as unknown as PrismaClient, classIds),
+          );
+    const ranks = rosterRanks(register);
+    // A list narrowed to one section numbers that section from 1, in the
+    // same register order; the class S/N stays for the class view.
+    const inSection = sectionRanks(register);
+    return rows.map((r) => ({
+      ...r,
+      serialNo: ranks.get(r.id) ?? null,
+      sectionSerialNo: inSection.get(r.id) ?? null,
+    }));
   }
 
   async findAll(

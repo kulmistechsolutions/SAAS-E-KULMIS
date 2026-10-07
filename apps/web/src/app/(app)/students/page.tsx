@@ -173,7 +173,14 @@ export default function StudentsPage() {
         if (!hay.includes(q)) return false;
       }
       return true;
-    });
+    })
+      // With a section chosen the S/N counts that section from 1, in the
+      // same register order — as choosing a class counts the class from 1.
+      .map((s) =>
+        section && s.section === section && s.sectionSerialNo != null
+          ? { ...s, serialNo: s.sectionSerialNo }
+          : s,
+      );
 
     rows.sort((a, b) => {
       let cmp = 0;

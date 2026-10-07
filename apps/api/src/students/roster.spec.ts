@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { rosterRanks, spreadTies, type RosterRow } from "./roster";
+import { rosterRanks, sectionRanks, spreadTies, type RosterRow } from "./roster";
 
 /**
  * A student's S/N is their place in their class register.
@@ -231,5 +231,30 @@ describe("the numbers schools had already printed", () => {
     ];
     const r = rosterRanks(rows);
     expect([r.get("STD0708"), r.get("STD0677"), r.get("STD0604"), r.get("NEW")]).toEqual([1, 2, 3, 4]);
+  });
+});
+
+describe("a section of a class", () => {
+  it("numbers each section from 1, in the class register order", () => {
+    const rows = [
+      { ...row("a", "g5", 1), sectionId: "A" },
+      { ...row("b", "g5", 2), sectionId: "B" },
+      { ...row("c", "g5", 3), sectionId: "A" },
+      { ...row("d", "g5", 4), sectionId: "B" },
+      { ...row("e", "g6", 5), sectionId: "A" },
+    ];
+    const s = sectionRanks(rows);
+    expect(["a", "c", "b", "d", "e"].map((id) => s.get(id))).toEqual([1, 2, 1, 2, 1]);
+    // The class S/N is unchanged.
+    expect(["a", "b", "c", "d"].map((id) => rosterRanks(rows).get(id))).toEqual([1, 2, 3, 4]);
+  });
+
+  it("gives no section number to a student without a section", () => {
+    expect(sectionRanks([row("a", "g5", 1)]).get("a")).toBeUndefined();
+  });
+
+  it("is what the list shows once a section is chosen", () => {
+    const page = read("app", "(app)", "students", "page.tsx");
+    expect(page).toContain("? { ...s, serialNo: s.sectionSerialNo }");
   });
 });
