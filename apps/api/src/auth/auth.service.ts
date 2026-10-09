@@ -77,7 +77,28 @@ export class AuthService {
       where: { schoolId, username: { equals: trimmed, mode: "insensitive" } },
       take: 2,
     });
-    return loose.length === 1 ? loose[0]! : null;
+    if (loose.length === 1) return loose[0]!;
+    // A teacher often signs in with the email the school registered for them
+    // rather than their TCH code — one alphaschool teacher was refused 47
+    // times in a week that way. Accepted only when that email belongs to
+    // exactly one teacher here with an account; the password is still
+    // checked exactly.
+    if (loose.length === 0 && trimmed.includes("@")) {
+      const teachers = await this.prisma.teacher.findMany({
+        where: {
+          schoolId,
+          email: { equals: trimmed, mode: "insensitive" },
+        },
+        select: { userId: true },
+        take: 2,
+      });
+      if (teachers.length === 1) {
+        return this.prisma.user.findFirst({
+          where: { id: teachers[0]!.userId, schoolId },
+        });
+      }
+    }
+    return null;
   }
 
   async login(

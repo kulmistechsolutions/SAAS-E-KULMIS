@@ -62,8 +62,9 @@ function misdirected(identifier: string):
     };
   }
   // Student and parent codes are letters then digits (STD0001, NPAR0136,
-  // HA00047) — never how a staff username is issued.
-  if (/^[A-Za-z]{2,6}\d{3,6}$/.test(v)) {
+  // HA00047). Teacher codes share the shape (TCH0011, NTCH0004) and do sign
+  // in here, so they are left alone.
+  if (/^[A-Za-z]{2,6}\d{3,6}$/.test(v) && !/^N?TC?H?\d/i.test(v)) {
     return {
       kind: "portal",
       hint: "That looks like a student or parent ID. Those sign in on their own portal, not here.",
@@ -213,6 +214,24 @@ export default function LoginPage() {
             {hint && (
               <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2.5 text-sm text-amber-700 dark:text-amber-400">
                 {hint}
+                {/* Students kept retrying here after reading the hint; a
+                    button to the right door does what the sentence asks. */}
+                {portals?.student !== false && (
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <Link
+                      href="/student-portal/login"
+                      className="rounded-md bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-700"
+                    >
+                      {t("auth.studentPortalLink")}
+                    </Link>
+                    <Link
+                      href="/parent-portal/login"
+                      className="rounded-md border border-amber-600/40 px-3 py-1.5 text-xs font-semibold hover:bg-amber-500/10"
+                    >
+                      {t("auth.parentPortalLink")}
+                    </Link>
+                  </div>
+                )}
               </div>
             )}
             <Button type="submit" className="w-full" disabled={isSubmitting}>

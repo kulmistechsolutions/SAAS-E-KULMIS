@@ -75,3 +75,14 @@ describe("finding the account a typed username means", () => {
     expect(await find("a", "   ")).toBeNull();
   });
 });
+
+describe("signing in with a teacher's registered email", () => {
+  const src = require("node:fs").readFileSync(require("node:path").join(__dirname, "auth.service.ts"), "utf8") as string;
+  it("is tried only when no username matched and the text is an email", () => {
+    expect(src).toContain('if (loose.length === 0 && trimmed.includes("@")) {');
+  });
+  it("needs exactly one teacher with an account to own that email", () => {
+    expect(src).toContain('email: { equals: trimmed, mode: "insensitive" },');
+    expect(src).toContain("if (teachers.length === 1) {");
+  });
+});
