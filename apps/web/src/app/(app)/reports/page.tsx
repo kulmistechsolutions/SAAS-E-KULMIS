@@ -164,8 +164,11 @@ export default function ReportsDashboardPage() {
                 <p className="mb-3 text-sm text-muted-foreground">
                   {cat.description}
                 </p>
+                {/* Every report, not the first four and a "+10 more" that
+                    led nowhere: a school could not find Students by Village
+                    without knowing to type its name into the search. */}
                 <ul className="space-y-1">
-                  {cat.reports.slice(0, 4).map((r) => (
+                  {cat.reports.map((r) => (
                     <li key={r.slug}>
                       <Link
                         href={`/reports/${cat.id}/${r.slug}`}
@@ -175,11 +178,6 @@ export default function ReportsDashboardPage() {
                       </Link>
                     </li>
                   ))}
-                  {cat.reports.length > 4 && (
-                    <li className="text-xs text-muted-foreground">
-                      +{cat.reports.length - 4} {t("reports.more")}
-                    </li>
-                  )}
                 </ul>
               </div>
             );
