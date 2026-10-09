@@ -322,7 +322,6 @@ export class StudentReportsService {
 
     return {
       columns: [
-        { key: "sn", label: "S/N", align: "right" as const },
         { key: "code", label: "Student ID", mono: true as const },
         { key: "name", label: "Student" },
         { key: "gender", label: "Gender" },
@@ -334,8 +333,8 @@ export class StudentReportsService {
         { key: "parentPhone", label: "Parent Phone" },
         { key: "status", label: "Status" },
       ],
-      rows: students.map((s, i) => ({
-        sn: i + 1,
+      // The page and the printout number the rows themselves.
+      rows: students.map((s) => ({
         code: s.code,
         name: s.fullName,
         gender: s.gender,
