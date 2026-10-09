@@ -44,7 +44,9 @@ export class AllExceptionsFilter implements ExceptionFilter {
     // themselves with a specific message (see prisma-errors.ts); this is the
     // net for the ones that don't, so a routine collision stops being a 500
     // and stops filling the error log with noise.
-    const known = !isHttp ? mapPrismaError(exception) : null;
+    const known = !isHttp
+      ? (mapPrismaError(exception) ?? mapBodyParserError(exception))
+      : null;
 
     const status = isHttp
       ? exception.getStatus()
@@ -86,6 +88,33 @@ export class AllExceptionsFilter implements ExceptionFilter {
         : { statusCode: status, message: responseBody },
     );
   }
+}
+
+/**
+ * Errors the body parser raises before a request reaches any controller.
+ * They carry their own 4xx status: "request aborted" when the browser drops
+ * the connection mid-upload (a slow line, a closed tab), "request entity too
+ * large" for a body over the limit. Neither is a server fault, and both were
+ * landing in the error log as 500s with no school attached.
+ */
+export function mapBodyParserError(
+  e: unknown,
+): { status: number; message: string } | null {
+  if (!(e instanceof Error)) return null;
+  const err = e as Error & { type?: unknown; status?: unknown; expose?: unknown };
+  if (typeof err.type !== "string" || err.expose !== true) return null;
+  if (typeof err.status !== "number" || err.status < 400 || err.status >= 500) {
+    return null;
+  }
+  return {
+    status: err.status,
+    message:
+      err.type === "entity.too.large"
+        ? "The upload is too large. Please use a smaller photo or file."
+        : err.type === "request.aborted"
+          ? "The connection was closed before the request finished."
+          : err.message,
+  };
 }
 
 /**
