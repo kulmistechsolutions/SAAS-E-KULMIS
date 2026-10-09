@@ -15,6 +15,11 @@ export const REPORT_CATEGORIES: ReportCategoryDef[] = [
       { slug: "registration", title: "Registration Report", description: "Students by registration date.", filters: ["academicYear", "className", "dateFrom", "dateTo"] },
       { slug: "by-class", title: "Distribution by Class", description: "Student counts per class.", filters: ["academicYear", "gender", "status"] },
       { slug: "by-section", title: "Distribution by Section", description: "Student counts per class and section.", filters: ["academicYear", "className"] },
+      // Where the students live: which village sends the most, and how many
+      // each sends. The list below prints one village's students at a time.
+      { slug: "by-village", title: "Students by Village", description: "Which villages the students come from, most first, with the count from each.", filters: ["className", "section", "gender", "status", "district"], chart: { xKey: "group", yKey: "total", label: "Students" } },
+      { slug: "by-district", title: "Students by District", description: "Which districts the students come from, most first, with the count from each.", filters: ["className", "section", "gender", "status"], chart: { xKey: "group", yKey: "total", label: "Students" } },
+      { slug: "village-list", title: "Village Student List", description: "The students of a chosen village or district, ready to print with the columns you pick.", filters: ["village", "district", "className", "section", "gender", "status"] },
       { slug: "parent-list", title: "Parent List", description: "All parents with contact details.", filters: ["academicYear", "status"] },
       { slug: "parent-relationships", title: "Parent-Student Relationships", description: "Parent linked to each child.", filters: ["academicYear", "className"] },
     ],

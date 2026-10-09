@@ -36,6 +36,11 @@ import type { ReportDef, ReportFilterKey, ReportFilters } from "@/lib/reports/ty
 import { cn } from "@/lib/utils";
 import { toast } from "@/lib/toast";
 import { useHydrated } from "@/lib/use-hydrated";
+import { ensureVillagesLoaded, useVillagesState } from "@/lib/villages/store";
+import { ensureDistrictsLoaded, useDistrictsState } from "@/lib/districts/store";
+
+/** Filter value for students with no village or district recorded. */
+const NONE_RECORDED = "__none__";
 
 
 /**
@@ -96,6 +101,8 @@ const FILTER_LABELS: Record<ReportFilterKey, string> = {
   paymentStatus: "Payment Status",
   teacherId: "Teacher",
   category: "Category",
+  village: "Village",
+  district: "District",
 };
 
 interface Props {
@@ -137,6 +144,16 @@ export function ReportPageShell({ categoryId, categoryLabel, report }: Props) {
     () => groupClassNames(classOptions, reportYear, t("common.defaultGrades")),
     [classOptions, reportYear, academics.structureTrees, t],
   );
+  const villages = useVillagesState();
+  const districts = useDistrictsState();
+  const wantsVillage = report.filters.includes("village");
+  const wantsDistrict = report.filters.includes("district");
+  useEffect(() => {
+    if (!mounted) return;
+    if (wantsVillage) void ensureVillagesLoaded();
+    if (wantsDistrict) void ensureDistrictsLoaded();
+  }, [mounted, wantsVillage, wantsDistrict]);
+
   const sectionOptions = useMemo(
     () =>
       filters.className
@@ -357,7 +374,10 @@ export function ReportPageShell({ categoryId, categoryLabel, report }: Props) {
         .filter((k) => k !== "academicYear" && filters[k as ReportFilterKey])
         .map((k) => ({
           label: FILTER_LABELS[k],
-          value: String(filters[k as ReportFilterKey]),
+          value:
+            filters[k as ReportFilterKey] === NONE_RECORDED
+              ? "None recorded"
+              : String(filters[k as ReportFilterKey]),
         }))
         .concat(search.trim() ? [{ label: "Search", value: search.trim() }] : []),
       data: { ...data, columns: visibleColumns, rows: sorted },
@@ -576,6 +596,31 @@ export function ReportPageShell({ categoryId, categoryLabel, report }: Props) {
                   {sectionOptions.map((s) => (
                     <option key={s} value={s}>{t("reportsReportPageShell.section")} {s}</option>
                   ))}
+                </Select>
+              </div>
+            )}
+            {wantsVillage && (
+              <div>
+                <Label>{FILTER_LABELS.village}</Label>
+                <Select value={filters.village ?? ""} onChange={(e) => setFilter("village", e.target.value)}>
+                  <option value="">{t("reportsReportPageShell.all")}</option>
+                  {villages.map((v) => (
+                    <option key={v.id} value={v.name}>{v.name}</option>
+                  ))}
+                  <option value={NONE_RECORDED}>(No village recorded)</option>
+                </Select>
+              </div>
+            )}
+            {/* A school that never records districts has no list to offer. */}
+            {wantsDistrict && districts.length > 0 && (
+              <div>
+                <Label>{FILTER_LABELS.district}</Label>
+                <Select value={filters.district ?? ""} onChange={(e) => setFilter("district", e.target.value)}>
+                  <option value="">{t("reportsReportPageShell.all")}</option>
+                  {districts.map((d) => (
+                    <option key={d.id} value={d.name}>{d.name}</option>
+                  ))}
+                  <option value={NONE_RECORDED}>(No district recorded)</option>
                 </Select>
               </div>
             )}

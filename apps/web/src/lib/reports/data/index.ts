@@ -177,7 +177,7 @@ async function fetchStudentReportAsync(
   filters: ReportFilters,
 ): Promise<ReportData> {
   const params = new URLSearchParams();
-  for (const key of ["className", "section", "gender", "status", "dateFrom", "dateTo", "search"] as const) {
+  for (const key of ["className", "section", "gender", "status", "dateFrom", "dateTo", "search", "village", "district"] as const) {
     const value = filters[key];
     if (value) params.set(key, String(value));
   }

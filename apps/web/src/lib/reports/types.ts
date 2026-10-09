@@ -14,7 +14,9 @@ export type ReportFilterKey =
   | "subject"
   | "paymentStatus"
   | "teacherId"
-  | "category";
+  | "category"
+  | "village"
+  | "district";
 
 export interface ReportFilters {
   search?: string;
@@ -34,6 +36,8 @@ export interface ReportFilters {
   paymentStatus?: string;
   teacherId?: string;
   category?: string;
+  village?: string;
+  district?: string;
 }
 
 export interface ReportColumn {

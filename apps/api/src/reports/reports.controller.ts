@@ -200,6 +200,8 @@ export class ReportsController {
     @Query("dateFrom") dateFrom?: string,
     @Query("dateTo") dateTo?: string,
     @Query("search") search?: string,
+    @Query("village") village?: string,
+    @Query("district") district?: string,
   ) {
     return this.studentReports.build(me.schoolId, slug, {
       className,
@@ -209,6 +211,8 @@ export class ReportsController {
       dateFrom,
       dateTo,
       search,
+      village,
+      district,
     });
   }
 
