@@ -47,6 +47,42 @@ function pct(present: number, total: number): string {
  * server-side instead, and treats section purely as an optional narrowing
  * filter — a class with no sections at all must still report normally.
  */
+/**
+ * Who to call about a student. An attendance list is read to chase absences,
+ * and a school asked for the parent's phone on it so the office can ring home
+ * straight from the printout instead of looking each child up.
+ */
+const STUDENT_CONTACT = {
+  code: true,
+  fullName: true,
+  phone: true,
+  parent: { select: { name: true, phone: true } },
+} as const;
+
+const PARENT_COLUMNS = [
+  { key: "parent", label: "Parent" },
+  { key: "parentPhone", label: "Parent Phone" },
+];
+
+type Contact = {
+  phone: string | null;
+  parent: { name: string; phone: string } | null;
+} | null | undefined;
+
+/** The parent's phone, or the student's own when no parent number is held. */
+function parentContact(s: Contact) {
+  return {
+    parent: s?.parent?.name || "—",
+    parentPhone: s?.parent?.phone || s?.phone || "—",
+  };
+}
+
+function contactMatches(s: Contact, q: string): boolean {
+  return [s?.parent?.phone, s?.phone, s?.parent?.name].some(
+    (v) => !!v && v.toLowerCase().includes(q),
+  );
+}
+
 @Injectable()
 export class AttendanceReportsService {
   constructor(private readonly prisma: PrismaService) {}
@@ -127,7 +163,7 @@ export class AttendanceReportsService {
           ...(filters.shiftId ? { shiftId: filters.shiftId } : {}),
         },
         include: {
-          student: { select: { code: true, fullName: true } },
+          student: { select: STUDENT_CONTACT },
           shift: { select: { name: true } },
         },
         orderBy: [{ createdAt: "asc" }],
@@ -148,7 +184,8 @@ export class AttendanceReportsService {
         ? rows.filter(
             (r) =>
               r.student.fullName.toLowerCase().includes(q) ||
-              r.student.code.toLowerCase().includes(q),
+              r.student.code.toLowerCase().includes(q) ||
+              contactMatches(r.student, q),
           )
         : rows;
 
@@ -160,6 +197,7 @@ export class AttendanceReportsService {
           { key: "code", label: "ID", mono: true },
           { key: "className", label: "Class" },
           { key: "section", label: "Section" },
+          ...PARENT_COLUMNS,
           { key: "shift", label: "Shift" },
           { key: "date", label: "Date" },
           { key: "status", label: "Status" },
@@ -169,6 +207,7 @@ export class AttendanceReportsService {
           code: r.student.code,
           className: classById.get(r.classId) ?? "—",
           section: r.sectionId ? (sectionById.get(r.sectionId) ?? "—") : "—",
+          ...parentContact(r.student),
           shift: r.shift?.name ?? "—",
           date: r.date.toISOString().slice(0, 10),
           status: r.status,
@@ -207,8 +246,7 @@ export class AttendanceReportsService {
             where: { id: { in: studentIds } },
             select: {
               id: true,
-              code: true,
-              fullName: true,
+              ...STUDENT_CONTACT,
               class: { select: { name: true } },
               section: { select: { name: true } },
             },
@@ -242,6 +280,7 @@ export class AttendanceReportsService {
           { key: "code", label: "ID", mono: true },
           { key: "className", label: "Class" },
           { key: "section", label: "Section" },
+          ...PARENT_COLUMNS,
           { key: "present", label: "Present Days", align: "right" },
           { key: "total", label: "Total Days", align: "right" },
           { key: "rate", label: "Attendance %", align: "right" },
@@ -253,6 +292,7 @@ export class AttendanceReportsService {
             code: s?.code ?? "—",
             className: s?.class.name ?? "—",
             section: s?.section?.name ?? "—",
+            ...parentContact(s),
             present: v.present,
             total: v.total,
             rate: pct(v.present, v.total),
@@ -340,7 +380,7 @@ export class AttendanceReportsService {
           ...(classId ? { classId } : {}),
           ...(sectionId ? { sectionId } : {}),
         },
-        include: { student: { select: { code: true, fullName: true } } },
+        include: { student: { select: STUDENT_CONTACT } },
         orderBy: [{ date: "desc" }],
         take: 2000,
       });
@@ -359,7 +399,8 @@ export class AttendanceReportsService {
         ? rows.filter(
             (r) =>
               r.student.fullName.toLowerCase().includes(q) ||
-              r.student.code.toLowerCase().includes(q),
+              r.student.code.toLowerCase().includes(q) ||
+              contactMatches(r.student, q),
           )
         : rows;
 
@@ -369,6 +410,7 @@ export class AttendanceReportsService {
           { key: "code", label: "ID", mono: true },
           { key: "className", label: "Class" },
           { key: "section", label: "Section" },
+          ...PARENT_COLUMNS,
           { key: "date", label: "Date" },
           { key: "status", label: "Status" },
         ],
@@ -377,6 +419,7 @@ export class AttendanceReportsService {
           code: r.student.code,
           className: classById.get(r.classId) ?? "—",
           section: r.sectionId ? (sectionById.get(r.sectionId) ?? "—") : "—",
+          ...parentContact(r.student),
           date: r.date.toISOString().slice(0, 10),
           status: r.status,
         })),
