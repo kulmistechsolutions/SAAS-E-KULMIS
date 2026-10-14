@@ -21,7 +21,10 @@ interface ApiUser {
 export function mapApiUser(u: ApiUser): SystemUser {
   return {
     id: u.id,
-    userId: u.code ?? u.id,
+    // Staff get a USR- code; teachers, parents and students sign in with
+    // their own code (TCH0001, PAR0003) as the username, which is what the
+    // school knows them by. The database id was meaningless on the list.
+    userId: u.code ?? u.username,
     fullName: u.fullName ?? u.username,
     username: u.username,
     passwordHash: "",
