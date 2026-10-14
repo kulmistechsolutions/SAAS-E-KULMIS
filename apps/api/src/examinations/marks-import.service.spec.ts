@@ -51,6 +51,8 @@ const STUDENTS: Record<
 
 /** Captures the bulk statements commit() issues, so they can be asserted. */
 const writes: { sql: string; params: unknown[] }[] = [];
+/** The exams commit() moves out of DRAFT. */
+const opened: unknown[] = [];
 
 /** Minimal stand-in for the tenant client the service asks for. */
 function fakePrisma() {
@@ -62,6 +64,10 @@ function fakePrisma() {
     exam: {
       findMany: ({ where }: { where: { id: { in: string[] } } }) =>
         Promise.resolve(EXAMS.filter((e) => where.id.in.includes(e.id))),
+      updateMany: (args: unknown) => {
+        opened.push(args);
+        return Promise.resolve({ count: 1 });
+      },
     },
     student: {
       findMany: ({ where }: { where: { sectionId?: string } }) =>
@@ -341,5 +347,18 @@ describe("marks import", () => {
     await expect(
       service.commit("s1", EXAM_IDS, await toBuffer(wb)),
     ).rejects.toThrow(/no marks to import/i);
+  });
+});
+
+describe("an imported exam shows on the Results page", () => {
+  it("moves the exams it wrote marks for out of DRAFT", () => {
+    const src = require("node:fs").readFileSync(require("node:path").join(__dirname, "marks-import.service.ts"), "utf8") as string;
+    expect(src).toContain('where: { id: { in: [...byExam.keys()] }, status: "DRAFT" },');
+    expect(src).toContain('data: { status: "OPEN" },');
+  });
+
+  it("does the same for a single-subject import", () => {
+    const src = require("node:fs").readFileSync(require("node:path").join(__dirname, "examinations.service.ts"), "utf8") as string;
+    expect(src).toContain('if (exam.status === "DRAFT" && summary.imported + summary.updated > 0) {');
   });
 });

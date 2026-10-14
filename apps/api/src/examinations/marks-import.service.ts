@@ -575,6 +575,13 @@ export class MarksImportService {
             rows.map(() => now),
           );
         }
+        // An exam with marks is no longer a draft, as when marks are entered
+        // by hand. alihsanpiss imported two exams' marks and found the
+        // Results page empty for them: drafts are never listed there.
+        await tx.exam.updateMany({
+          where: { id: { in: [...byExam.keys()] }, status: "DRAFT" },
+          data: { status: "OPEN" },
+        });
       },
       { timeout: 60_000, maxWait: 30_000 },
     );

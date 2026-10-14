@@ -1359,6 +1359,12 @@ export class ExaminationsService {
         }
 
         await this.refreshSubmissionStatuses(tx, schoolId, examId);
+        // Same as entering marks by hand: an exam with marks is no longer a
+        // draft. Left as DRAFT, the Results page — which never lists drafts —
+        // hid every mark the import had just saved.
+        if (exam.status === "DRAFT" && summary.imported + summary.updated > 0) {
+          await tx.exam.update({ where: { id: examId }, data: { status: "OPEN" } });
+        }
         return summary;
       },
       { timeout: 60_000, maxWait: 60_000 },
