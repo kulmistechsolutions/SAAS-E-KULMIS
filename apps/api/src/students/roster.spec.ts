@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { rosterRanks, sectionRanks, spreadTies, type RosterRow } from "./roster";
+import { inRegisterOrder, rosterRanks, sectionRanks, spreadTies, type RosterRow } from "./roster";
 
 /**
  * A student's S/N is their place in their class register.
@@ -256,5 +256,43 @@ describe("a section of a class", () => {
   it("is what the list shows once a section is chosen", () => {
     const page = read("app", "(app)", "students", "page.tsx");
     expect(page).toContain("? { ...s, serialNo: s.sectionSerialNo }");
+  });
+});
+
+describe("one S/N everywhere", () => {
+  const regRows = [
+    { ...row("a", "g5", 1, "STU0001"), sectionId: "A" },
+    { ...row("b", "g5", 2, "STU0002"), sectionId: "B" },
+    { ...row("c", "g5", 3, "STU0003"), sectionId: "A" },
+  ];
+  const tx = { student: { findMany: jest.fn().mockResolvedValue(regRows) } };
+
+  it("lists a class in register order with the class S/N, whatever the names", async () => {
+    const out = await inRegisterOrder(tx, "g5", undefined, [
+      { id: "c", fullName: "Aaron" },
+      { id: "a", fullName: "Zahra" },
+      { id: "b", fullName: "Mohamed" },
+    ]);
+    expect(out.map((s) => [s.id, s.serialNo])).toEqual([["a", 1], ["b", 2], ["c", 3]]);
+  });
+
+  it("uses the section S/N for a section's list", async () => {
+    const out = await inRegisterOrder(tx, "g5", "A", [
+      { id: "c", fullName: "Aaron" },
+      { id: "a", fullName: "Zahra" },
+    ]);
+    expect(out.map((s) => [s.id, s.serialNo])).toEqual([["a", 1], ["c", 2]]);
+  });
+
+  it("is what attendance and mark entry use, and they no longer sort by name", () => {
+    const att = readFileSync(join(__dirname, "..", "attendance", "student-attendance.service.ts"), "utf8");
+    const exams = readFileSync(join(__dirname, "..", "examinations", "examinations.service.ts"), "utf8");
+    expect(att).toContain("const students = await inRegisterOrder(");
+    expect(exams).toContain("return inRegisterOrder(");
+    const sheet = read("app", "(app)", "attendance", "students", "page.tsx");
+    expect(sheet).toContain("{r.serialNo ?? i + 1}");
+    const marks = read("components", "examinations", "mark-entry-table.tsx");
+    expect(marks).toContain("{st.serialNo ?? i + 1}");
+    expect(marks).not.toContain(".sort((a, b) => a.fullName.localeCompare(b.fullName))");
   });
 });

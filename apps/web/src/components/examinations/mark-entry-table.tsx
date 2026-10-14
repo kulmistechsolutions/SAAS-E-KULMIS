@@ -26,6 +26,7 @@ interface RosterStudent {
   id: string;
   code: string;
   fullName: string;
+  serialNo?: number | null;
 }
 
 interface MarkEntryTableProps {
@@ -59,8 +60,20 @@ export function MarkEntryTable({
           s.className === exam.className &&
           (s.section ?? "") === exam.section,
       )
-      .sort((a, b) => a.fullName.localeCompare(b.fullName))
-      .map((s) => ({ id: s.id, code: s.code, fullName: s.fullName }));
+      // The register order and S/N of the students page — the section's
+      // own numbering for a section exam, the class's otherwise — so the
+      // marks sheet lists students exactly as the class list does.
+      .map((s) => ({
+        id: s.id,
+        code: s.code,
+        fullName: s.fullName,
+        serialNo: (exam.section ? s.sectionSerialNo : s.serialNo) ?? null,
+      }))
+      .sort(
+        (a, b) =>
+          (a.serialNo ?? Number.MAX_SAFE_INTEGER) - (b.serialNo ?? Number.MAX_SAFE_INTEGER) ||
+          a.fullName.localeCompare(b.fullName),
+      );
   }, [exam, isTeacher]);
 
   const students = isTeacher ? roster : adminStudents;
@@ -312,7 +325,7 @@ export function MarkEntryTable({
           <tbody>
             {students.map((st, i) => (
               <tr key={st.id} className="border-t">
-                <td className="px-4 py-2.5 text-muted-foreground">{i + 1}</td>
+                <td className="px-4 py-2.5 tabular-nums text-muted-foreground">{st.serialNo ?? i + 1}</td>
                 <td className="px-4 py-2.5 font-mono text-xs">{st.code}</td>
                 <td className="px-4 py-2.5 font-medium">{st.fullName}</td>
                 <td className="px-4 py-2.5 text-muted-foreground">{subject}</td>

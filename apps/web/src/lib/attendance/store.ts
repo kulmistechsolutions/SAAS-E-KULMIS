@@ -265,10 +265,12 @@ export async function loadStudentMarkingRows(
 
   try {
     const res = await apiStudentRoster(classId, date, sectionId, shiftId);
+    // Already in register order from the server; sorting by name here put
+    // the sheet out of step with the students page.
     const rows = res.roster
-      .sort((a, b) => a.fullName.localeCompare(b.fullName))
       .map((s) => ({
         studentId: s.id,
+        serialNo: s.serialNo ?? null,
         code: s.code,
         fullName: s.fullName,
         gender: s.gender,

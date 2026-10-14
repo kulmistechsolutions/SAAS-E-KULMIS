@@ -31,6 +31,7 @@ import { SmsService } from "../sms/sms.service";
 import { SmsAutoService } from "../sms/sms-auto.service";
 import { StorageService } from "../storage/storage.service";
 import { studentInClassWhere } from "../students/student-class.util";
+import { inRegisterOrder } from "../students/roster";
 import type { AuthUser } from "../auth/auth.types";
 
 export interface MonitoringDetailRow {
@@ -1113,21 +1114,29 @@ export class ExaminationsService {
     return { exam, examSubject };
   }
 
-  /** Active students in the exam's class + section, sorted A→Z. */
-  private examStudents(
+  /**
+   * Active students in the exam's class + section, in register order with
+   * each one's S/N — the number the students page and the attendance sheet
+   * show, so a teacher entering marks sees the same order and numbers.
+   */
+  private async examStudents(
     tx: Parameters<Parameters<PrismaService["forTenant"]>[1]>[0],
     exam: { classId: string; sectionId: string | null },
   ) {
-    return tx.student.findMany({
-      where: {
-        // Same null-vs-undefined distinction as refreshSubmissionStatuses —
-        // a whole-class exam's roster must include every section.
-        ...studentInClassWhere(exam.classId, exam.sectionId ?? undefined),
-        status: "ACTIVE",
-      },
-      select: { id: true, code: true, fullName: true },
-      orderBy: { fullName: "asc" },
-    });
+    return inRegisterOrder(
+      tx,
+      exam.classId,
+      exam.sectionId,
+      await tx.student.findMany({
+        where: {
+          // Same null-vs-undefined distinction as refreshSubmissionStatuses —
+          // a whole-class exam's roster must include every section.
+          ...studentInClassWhere(exam.classId, exam.sectionId ?? undefined),
+          status: "ACTIVE",
+        },
+        select: { id: true, code: true, fullName: true },
+      }),
+    );
   }
 
   /**

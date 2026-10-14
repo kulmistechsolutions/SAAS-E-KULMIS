@@ -151,6 +151,8 @@ export interface ApiExamRosterStudent {
   id: string;
   code: string;
   fullName: string;
+  /** S/N in the class (or section) register, as on the students page. */
+  serialNo?: number | null;
 }
 
 export const apiExamRoster = (examId: string) =>

@@ -11,6 +11,8 @@ export interface ApiStudentRosterItem {
   fullName: string;
   gender: string;
   status: ApiAttendanceStatus | null;
+  /** The student's S/N in the class register, as on the students page. */
+  serialNo?: number | null;
 }
 
 export interface ApiStudentRosterResponse {

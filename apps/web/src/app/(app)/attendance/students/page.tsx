@@ -757,7 +757,7 @@ function StudentAttendanceScreen() {
                         <tbody>
                           {rows.map((r, i) => (
                             <tr key={r.studentId} className={cn("border-t", !r.eligible && "bg-muted/30 opacity-60")}>
-                              <td className="px-4 py-3 text-muted-foreground">{i + 1}</td>
+                              <td className="px-4 py-3 tabular-nums text-muted-foreground">{r.serialNo ?? i + 1}</td>
                               <td className="px-4 py-3 font-mono text-xs">{r.code}</td>
                               <td className="px-4 py-3 font-medium">
                                 {r.fullName}

@@ -30,6 +30,8 @@ export interface AttendanceState {
 
 export interface StudentMarkRow {
   studentId: string;
+  /** S/N in the class register — the same number the students page shows. */
+  serialNo?: number | null;
   code: string;
   fullName: string;
   gender: string;

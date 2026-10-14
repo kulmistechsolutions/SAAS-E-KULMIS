@@ -5,6 +5,7 @@ import { PrismaService } from "../prisma/prisma.service";
 import { SmsAutoService } from "../sms/sms-auto.service";
 import { safeTimeZone } from "../common/time-zone.util";
 import { studentInClassWhere } from "../students/student-class.util";
+import { inRegisterOrder } from "../students/roster";
 import {
   daysInMonth,
   markingDecision,
@@ -563,13 +564,19 @@ export class StudentAttendanceService {
       });
       const currentYear = cls?.academicYear.isActive ?? true;
       const markedIds = records.map((r) => r.studentId);
-      const students = await tx.student.findMany({
-        where: currentYear
-          ? { ...studentInClassWhere(classId, sectionId), status: "ACTIVE" }
-          : { id: { in: markedIds } },
-        orderBy: { fullName: "asc" },
-        select: { id: true, code: true, fullName: true, gender: true },
-      });
+      // In register order with each child's S/N, so the attendance sheet
+      // numbers students exactly as the students page does.
+      const students = await inRegisterOrder(
+        tx,
+        classId,
+        sectionId,
+        await tx.student.findMany({
+          where: currentYear
+            ? { ...studentInClassWhere(classId, sectionId), status: "ACTIVE" }
+            : { id: { in: markedIds } },
+          select: { id: true, code: true, fullName: true, gender: true },
+        }),
+      );
       const byStudent = new Map(records.map((r) => [r.studentId, r.status]));
       return {
         date: dateStr,
