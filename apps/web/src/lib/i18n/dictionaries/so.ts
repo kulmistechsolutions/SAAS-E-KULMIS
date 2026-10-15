@@ -237,6 +237,9 @@ const curated: PartialDictionary = {
   },
 
   dashboard: {
+    headerToday: "Maanta",
+    headerSummary: "Ardayda, xaadiriska, lacagaha iyo imtixaannada maanta oo kooban.",
+    quickActionsHint: "Gaaban-jidyada shaqooyinka maalinlaha ah",
     totalStudents: "Wadarta Ardayda",
     totalTeachers: "Wadarta Macallimiinta",
     totalParents: "Wadarta Waalidiinta",

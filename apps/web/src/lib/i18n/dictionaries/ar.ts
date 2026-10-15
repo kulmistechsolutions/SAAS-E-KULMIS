@@ -232,6 +232,9 @@ const curated: PartialDictionary = {
   },
 
   dashboard: {
+    headerToday: "اليوم",
+    headerSummary: "نظرة سريعة على الطلاب والحضور والرسوم والامتحانات اليوم.",
+    quickActionsHint: "اختصارات للمهام اليومية",
     totalStudents: "إجمالي الطلاب",
     totalTeachers: "إجمالي المعلمين",
     totalParents: "إجمالي أولياء الأمور",

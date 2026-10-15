@@ -238,6 +238,9 @@ const core = {
   },
 
   dashboard: {
+    headerToday: "Today",
+    headerSummary: "Today's students, attendance, fees and exams at a glance.",
+    quickActionsHint: "Shortcuts to everyday tasks",
     totalStudents: "Total Students",
     totalTeachers: "Total Teachers",
     totalParents: "Total Parents",

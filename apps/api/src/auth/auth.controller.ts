@@ -84,10 +84,11 @@ export class AuthController {
    */
   @Get("me")
   async me(@CurrentUser() user: AuthUser) {
-    const sessionTimeoutMinutes = await this.auth.getSessionTimeoutMinutes(
-      user.schoolId,
-    );
-    return { ...user, sessionTimeoutMinutes };
+    const [sessionTimeoutMinutes, fullName] = await Promise.all([
+      this.auth.getSessionTimeoutMinutes(user.schoolId),
+      this.auth.fullNameOf(user.userId),
+    ]);
+    return { ...user, sessionTimeoutMinutes, fullName };
   }
 
   @Post("change-password")

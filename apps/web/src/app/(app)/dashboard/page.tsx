@@ -9,6 +9,7 @@ import {
   CalendarCheck,
   CalendarDays,
   CheckCircle2,
+  ChevronDown,
   ChevronRight,
   ClipboardList,
   DollarSign,
@@ -23,6 +24,10 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth";
+import { api } from "@/lib/api";
+import { useI18n } from "@/lib/i18n/provider";
+import { useSchoolBranding } from "@/lib/settings/use-school-branding";
+import { roleLabel } from "@/lib/users/format";
 import { isRouteAllowedForRole } from "@/lib/rbac/routes";
 import { toast } from "@/lib/toast";
 import { StatCard, type StatTheme } from "@/components/dashboard/stat-card";
@@ -336,6 +341,28 @@ function AdminDashboard() {
   const tr = useT();
   const t = useT();
   const { user } = useAuth();
+  const { lang } = useI18n();
+  const branding = useSchoolBranding();
+  /** Greeted by name rather than username ("Kts"). From /auth/me. */
+  const [fullName, setFullName] = useState<string | null>(null);
+  const [actionsOpen, setActionsOpen] = useState(false);
+  useEffect(() => {
+    let live = true;
+    void api<{ fullName?: string | null }>("/auth/me")
+      .then((me) => {
+        if (live) setFullName(me.fullName?.trim() || null);
+      })
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, []);
+  useEffect(() => {
+    if (!actionsOpen) return;
+    const close = () => setActionsOpen(false);
+    window.addEventListener("click", close);
+    return () => window.removeEventListener("click", close);
+  }, [actionsOpen]);
   const router = useRouter();
   const [data, setData] = useState<AdminDashboardResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -457,21 +484,17 @@ function AdminDashboard() {
     else toast(`${label} — coming soon`, "info");
   }
 
-  function scrollToQuickActions() {
-    document
-      .getElementById("quick-actions")
-      ?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }
-
-  const name = user?.username
-    ? user.username.charAt(0).toUpperCase() + user.username.slice(1)
-    : "Admin";
-  const today = new Date().toLocaleDateString(undefined, {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-    weekday: "long",
-  });
+  const name =
+    fullName ||
+    (user?.username
+      ? user.username.charAt(0).toUpperCase() + user.username.slice(1)
+      : "Admin");
+  // In the page's own language, not the browser's: an English date on a
+  // Somali screen read as part of a different system.
+  const today = new Date().toLocaleDateString(
+    lang === "so" ? "so-SO" : lang === "ar" ? "ar" : "en-GB",
+    { year: "numeric", month: "long", day: "numeric", weekday: "long" },
+  );
 
   if (loading) {
     return (
@@ -510,25 +533,87 @@ function AdminDashboard() {
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
+        <div className="min-w-0">
           <h1 className="text-2xl font-bold text-foreground sm:text-3xl">
             {tr("dashboard.welcomeBack")} {name}! <span className="align-middle">👋</span>
           </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {tr("dashboard.hereAposSWhatAposS")}
+          {/* Who is signed in, where, and for which year — the greeting alone
+              said "Kts" and nothing else. */}
+          <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm font-medium text-foreground/80">
+            <span>{branding.name}</span>
+            {user?.role && (
+              <>
+                <span className="text-muted-foreground">·</span>
+                <span>{roleLabel(user.role)}</span>
+              </>
+            )}
+            {data.activeAcademicYear && (
+              <>
+                <span className="text-muted-foreground">·</span>
+                <span>
+                  {tr("dashboard.academicYear")} {data.activeAcademicYear}
+                </span>
+              </>
+            )}
+          </p>
+          <p className="mt-0.5 text-sm text-muted-foreground">
+            {tr("dashboard.headerSummary")}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <span className="inline-flex items-center gap-2 rounded-lg border bg-card px-3 py-2 text-sm font-medium text-foreground shadow-sm">
+          <span className="inline-flex items-center gap-2 rounded-lg border bg-card px-3 py-2 text-sm text-foreground shadow-sm">
             <CalendarDays className="h-4 w-4 text-muted-foreground" />
-            {today}
+            <span className="text-muted-foreground">{tr("dashboard.headerToday")}:</span>
+            <span className="font-medium">{today}</span>
           </span>
-          <button
-            onClick={scrollToQuickActions}
-            className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-violet-600 to-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
-          >
-            {tr("dashboard.quickActions")}
-          </button>
+          {/* Opens the shortcuts right here; it used to scroll the page to a
+              panel further down, which read as the button doing nothing. */}
+          <div className="relative">
+            <button
+              type="button"
+              aria-haspopup="menu"
+              aria-expanded={actionsOpen}
+              onClick={(e) => {
+                e.stopPropagation();
+                setActionsOpen((o) => !o);
+              }}
+              className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-violet-600 to-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
+            >
+              {tr("dashboard.quickActions")}
+              <ChevronDown className={cn("h-4 w-4 transition-transform", actionsOpen && "rotate-180")} />
+            </button>
+            {actionsOpen && (
+              <div
+                role="menu"
+                onClick={(e) => e.stopPropagation()}
+                className="absolute end-0 z-30 mt-2 w-64 overflow-hidden rounded-xl border bg-card shadow-lg"
+              >
+                <p className="border-b px-3 py-2 text-xs text-muted-foreground">
+                  {tr("dashboard.quickActionsHint")}
+                </p>
+                {visibleQuickActions.map((q) => {
+                  const Icon = ACTION_ICONS[q.icon];
+                  return (
+                    <button
+                      key={q.label}
+                      type="button"
+                      role="menuitem"
+                      onClick={() => {
+                        setActionsOpen(false);
+                        runAction(q.label);
+                      }}
+                      className="flex w-full items-center gap-3 px-3 py-2 text-start text-sm hover:bg-secondary"
+                    >
+                      <span className={cn("flex h-7 w-7 items-center justify-center rounded-lg", ACTION_THEME[q.theme])}>
+                        <Icon className="h-4 w-4" />
+                      </span>
+                      {t(q.titleKey)}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

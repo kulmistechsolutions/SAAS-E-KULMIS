@@ -285,6 +285,18 @@ export class AuthService {
    * log a user out the moment they've been inactive this long, instead of
    * silently staying signed in via reactive refresh-on-401.
    */
+  /**
+   * The name a person is greeted by. The token carries only the username
+   * ("kts"), which is how the dashboard used to greet a school's owner.
+   */
+  async fullNameOf(userId: string): Promise<string | null> {
+    const u = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { fullName: true },
+    });
+    return u?.fullName?.trim() || null;
+  }
+
   async getSessionTimeoutMinutes(schoolId: string): Promise<number> {
     const school = await this.prisma.school.findUnique({
       where: { id: schoolId },
