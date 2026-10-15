@@ -210,6 +210,9 @@ export const updateSettingsSchema = z
     timezone: ianaTimeZone.optional(),
     language: z.string().min(1).optional(),
     documentHeaderLayout: z.enum(["LEFT", "CENTERED"]).optional(),
+    /** Printed height of the letterhead banner, in millimetres. */
+    headerImageHeightMm: z.number().int().min(12).max(90).optional(),
+    headerImageEnabled: z.boolean().optional(),
     /// Minutes an access token stays valid before forcing a re-login. Null
     /// resets to the platform default (JWT_ACCESS_TTL).
     sessionTimeoutMinutes: z.number().int().min(5).max(1440).nullable().optional(),
@@ -293,3 +296,9 @@ export const uploadSchoolLogoSchema = z.object({
 });
 
 export type UploadSchoolLogoInput = z.infer<typeof uploadSchoolLogoSchema>;
+
+/** The letterhead banner — a raster image only; it is cropped in the browser. */
+export const uploadHeaderImageSchema = z.object({
+  file: z.string().min(1, "Image data is required"),
+  mimeType: z.enum(["image/jpeg", "image/png", "image/webp"]),
+});

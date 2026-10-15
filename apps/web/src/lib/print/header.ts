@@ -18,6 +18,15 @@ export function escapeHtml(s: string): string {
     .replace(/"/g, "&quot;");
 }
 
+/**
+ * The school's own letterhead, printed as it designed it: full width, at the
+ * height it chose, never stretched (object-fit keeps its proportions).
+ */
+export const BANNER_CSS = `
+    .ek-banner { width:100%; margin:0 0 8px; text-align:center; }
+    .ek-banner img { width:100%; object-fit:contain; display:block; margin:0 auto; }
+`;
+
 /** Paste this once into a print document's <style>. */
 export const PRINT_HEADER_CSS = `
     .ek-head { display:flex; align-items:center; gap:16px; padding-bottom:18px; margin-bottom:22px; border-bottom:3px solid var(--ek-accent, #4f46e5); }
@@ -29,7 +38,18 @@ export const PRINT_HEADER_CSS = `
     .ek-head h1 { margin:0; font-size:21px; font-weight:700; letter-spacing:-.01em; color:#0f172a; }
     .ek-head .ek-tagline { color:#64748b; font-size:12.5px; margin-top:3px; }
     .ek-head .ek-subtitle { color:#475569; font-size:12.5px; margin-top:2px; font-weight:600; }
+    ${BANNER_CSS}
+    .ek-banner-row { display:flex; align-items:center; gap:16px; padding-bottom:12px; margin-bottom:20px; border-bottom:3px solid var(--ek-accent, #4f46e5); }
+    .ek-banner-row .ek-subtitle { color:#334155; font-size:13px; font-weight:700; }
+    .ek-banner-row .ek-side { margin-inline-start:auto; text-align:end; }
 `;
+
+/** The banner block, or null when the school has none switched on. */
+export function bannerHtml(): string | null {
+  const b = schoolBranding().headerImage;
+  if (!b) return null;
+  return `<div class="ek-banner"><img src="${escapeHtml(b.url)}" alt="" style="height:${b.heightMm}mm" /></div>`;
+}
 
 /**
  * The `<div class="ek-head">…</div>` block every printed document opens
@@ -41,6 +61,19 @@ export const PRINT_HEADER_CSS = `
 export function printHeaderHtml(subtitle?: string, sideHtml?: string): string {
   const school = schoolBranding();
   const accent = school.primaryColor || "#4f46e5";
+  // A school that uploaded its own letterhead gets exactly that, with this
+  // document's title and reference on a line beneath it.
+  const banner = bannerHtml();
+  if (banner) {
+    return `<div style="--ek-accent:${accent}">${banner}${
+      subtitle || sideHtml
+        ? `<div class="ek-banner-row">
+            ${subtitle ? `<div class="ek-subtitle">${escapeHtml(subtitle)}</div>` : ""}
+            ${sideHtml ? `<div class="ek-side">${sideHtml}</div>` : ""}
+          </div>`
+        : `<div class="ek-banner-row"></div>`
+    }</div>`;
+  }
   const initials = school.name.trim().slice(0, 2).toUpperCase() || "S";
   const logo = school.logoUrl
     ? `<img src="${school.logoUrl}" alt="" class="ek-logo" />`

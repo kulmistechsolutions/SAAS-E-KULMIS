@@ -9,9 +9,12 @@ import {
   apiGetBranding,
   apiGetSettings,
   apiPatchSettings,
+  apiRemoveHeaderImage,
   apiRemoveSchoolLogo,
+  apiUploadHeaderImage,
   apiUploadSchoolLogo,
   mapSettingsSectionToPatch,
+  resolveHeaderImageUrl,
   resolveLogoUrl,
 } from "./api";
 import { buildSettingsSeed } from "./seed";
@@ -65,6 +68,9 @@ export async function refreshSettings(): Promise<void> {
         motto: b.motto ?? current.school.motto,
         logoDataUrl: resolveLogoUrl(b.logoUrl, b.logoKey),
         documentHeaderLayout: b.documentHeaderLayout,
+        headerImageUrl: resolveHeaderImageUrl(b.headerImageUrl, b.headerImageKey),
+        headerImageHeightMm: b.headerImageHeightMm ?? current.school.headerImageHeightMm,
+        headerImageEnabled: b.headerImageEnabled ?? current.school.headerImageEnabled,
       };
       // Without this the login screen fell back to the seed, so every
       // school's staff were greeted by the product's name, footer and blue
@@ -379,6 +385,32 @@ export async function uploadSchoolLogo(
   }
 }
 
+/** Upload/replace the letterhead banner (already cropped in the browser). */
+export async function uploadHeaderImage(
+  file: string,
+  mimeType: string,
+): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const remote = await apiUploadHeaderImage(file, mimeType);
+    setState({ ...ensure(), school: remote.school });
+    logSettingsAudit("LOGO_CHANGED");
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: apiErr(e, "Failed to upload the header image.") };
+  }
+}
+
+export async function removeHeaderImage(): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const remote = await apiRemoveHeaderImage();
+    setState({ ...ensure(), school: remote.school });
+    logSettingsAudit("LOGO_CHANGED");
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: apiErr(e, "Failed to remove the header image.") };
+  }
+}
+
 export async function removeSchoolLogo(): Promise<{
   ok: boolean;
   error?: string;
@@ -538,6 +570,14 @@ export function schoolBranding() {
     loginBackgroundUrl: s.branding.loginBackgroundDataUrl,
     /** "LEFT" (logo beside name) or "CENTERED" (logo above name) — every printed document. */
     headerLayout: s.school.documentHeaderLayout,
+    /**
+     * The school's own letterhead banner, when it uploaded one and left it
+     * switched on. Printed full width in place of the generated header.
+     */
+    headerImage:
+      s.school.headerImageEnabled && s.school.headerImageUrl
+        ? { url: s.school.headerImageUrl, heightMm: s.school.headerImageHeightMm }
+        : null,
     // The rest of the letterhead. Already collected in School Settings and
     // already sent by the API; nothing but the printed page had ever asked
     // for it, so a school that filled in its address and phone number saw

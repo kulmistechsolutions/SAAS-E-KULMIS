@@ -27,6 +27,7 @@ import {
   usePrintSettings,
 } from "@/lib/print/design-store";
 import { PAPER_ORDER, PAPER_SIZES, type PaperSize } from "@/lib/print/paper";
+import { HeaderBannerCard } from "@/components/settings/header-banner-card";
 import { receiptDocumentHtml } from "@/lib/fees/print";
 import { invoiceDocumentHtml } from "@/lib/fees/invoice";
 import { premiumResultCardHtml } from "@/lib/examinations/print";
@@ -257,6 +258,9 @@ export default function PrintDesignsPage() {
           never what they say.
         </p>
       </div>
+
+      {/* The school's own letterhead, used on every document below. */}
+      <HeaderBannerCard />
 
       <div className="flex flex-wrap items-end gap-3 rounded-2xl border bg-card p-4 shadow-sm">
         <div className="relative min-w-[220px] flex-1">

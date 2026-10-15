@@ -41,6 +41,14 @@ model School {
   language             String  @default("en")
   /// "LEFT" (logo beside name) or "CENTERED" (logo above name) on every printed document.
   documentHeaderLayout String  @default("LEFT")
+  /// The school's own printed letterhead (a banner image), cropped by the
+  /// school and printed full width across the top of every document in
+  /// place of the generated logo-and-name header. Null when none uploaded.
+  headerImageKey       String?
+  /// How tall the banner prints, in millimetres.
+  headerImageHeightMm  Int     @default(32)
+  /// Switch the banner off without deleting it.
+  headerImageEnabled   Boolean @default(true)
   /// Minutes an access token stays valid before the app forces a re-login.
   /// Null means "use the platform default" (JWT_ACCESS_TTL).
   sessionTimeoutMinutes Int?

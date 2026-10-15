@@ -42,6 +42,12 @@ export interface SchoolSettings {
   language: string;
   /** "LEFT" (logo beside the school name) or "CENTERED" (logo above it), applied to every printed document. */
   documentHeaderLayout: "LEFT" | "CENTERED";
+  /** The school's own letterhead banner, printed across the top of documents. */
+  headerImageUrl: string | null;
+  /** Printed height of the banner, in millimetres. */
+  headerImageHeightMm: number;
+  /** Off keeps the banner stored but prints the generated header instead. */
+  headerImageEnabled: boolean;
   reportHeader: string;
   reportFooter: string;
 }

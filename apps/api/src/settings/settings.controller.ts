@@ -11,6 +11,7 @@ import {
 import type { Response } from "express";
 import {
   updateSettingsSchema,
+  uploadHeaderImageSchema,
   uploadSchoolLogoSchema,
   UserRole,
   type TenantContext,
@@ -91,5 +92,38 @@ export class SettingsController {
   @Delete("logo")
   removeLogo(@CurrentUser() me: AuthUser) {
     return this.settings.removeLogo(me.schoolId);
+  }
+
+  /** Public letterhead bytes, for the same reason as the logo above. */
+  @Public()
+  @Get("header-image")
+  async headerImage(@CurrentTenant() tenant: TenantContext, @Res() res: Response) {
+    const { buffer, contentType } = await this.settings.getHeaderImageFile(
+      tenant.schoolId,
+    );
+    res.setHeader("Content-Type", contentType);
+    res.setHeader("Cache-Control", "public, max-age=300");
+    res.send(buffer);
+  }
+
+  /** Upload/replace the letterhead banner — administrators only. */
+  @Roles(UserRole.ADMINISTRATOR)
+  @RequirePermission("settings.update")
+  @Post("header-image")
+  uploadHeaderImage(@CurrentUser() me: AuthUser, @Body() body: unknown) {
+    const parsed = uploadHeaderImageSchema.safeParse(body);
+    if (!parsed.success) {
+      throw new BadRequestException(parsed.error.flatten());
+    }
+    const mime = assertSchoolLogoMime(parsed.data.mimeType);
+    const buffer = Buffer.from(parsed.data.file, "base64");
+    return this.settings.uploadHeaderImage(me.schoolId, buffer, mime);
+  }
+
+  @Roles(UserRole.ADMINISTRATOR)
+  @RequirePermission("settings.update")
+  @Delete("header-image")
+  removeHeaderImage(@CurrentUser() me: AuthUser) {
+    return this.settings.removeHeaderImage(me.schoolId);
   }
 }

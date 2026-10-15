@@ -1,7 +1,7 @@
 "use client";
 
 import { schoolBranding } from "@/lib/settings/store";
-import { escapeHtml } from "./header";
+import { BANNER_CSS, bannerHtml, escapeHtml } from "./header";
 
 /**
  * The full school letterhead — the one on official paper, not the compact one.
@@ -31,6 +31,7 @@ export interface LetterheadOptions {
 /** Paste once into a document's `<style>`. Self-contained; no other CSS needed. */
 export const LETTERHEAD_CSS = `
   .doc { position:relative; }
+  ${BANNER_CSS}
 
   /* The watermark sits under everything and must never be readable over text:
      it is a mark of provenance, not content. */
@@ -133,6 +134,9 @@ export function watermarkHtml(): string {
 /** The letterhead block: logo, name, motto, contact strip, and the title band. */
 export function letterheadHtml(opts: LetterheadOptions): string {
   const s = schoolBranding();
+  // The school's own letterhead replaces the generated one; the document's
+  // title band below is the same either way.
+  const banner = bannerHtml();
   const logo = s.logoUrl
     ? `<img src="${s.logoUrl}" alt="" class="lh-logo" />`
     : `<div class="lh-logo-fallback">${escapeHtml(
@@ -147,7 +151,7 @@ export function letterheadHtml(opts: LetterheadOptions): string {
     .map((v) => `<span>${escapeHtml(v)}</span>`)
     .join("");
 
-  return `<div class="lh">
+  const head = banner ?? `<div class="lh">
     <div class="lh-top">
       ${logo}
       <div class="lh-id">
@@ -161,7 +165,9 @@ export function letterheadHtml(opts: LetterheadOptions): string {
       <div class="lh-quote"></div>
     </div>
     ${contact ? `<div class="lh-contact">${contact}</div>` : ""}
-  </div>
+  </div>`;
+
+  return `${head}
   <div class="doc-title">
     <div class="dt-main">
       <h2>${escapeHtml(opts.title)}</h2>

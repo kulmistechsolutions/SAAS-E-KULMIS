@@ -39,6 +39,15 @@ export function schoolLogoKey(schoolId: string, ext: string): string {
   return `${schoolId}/school/logo.${ext}`;
 }
 
+/** The letterhead banner is wider and more detailed than a logo. */
+export const HEADER_IMAGE_MAX_BYTES = 3 * 1024 * 1024;
+
+export function schoolHeaderImageKey(schoolId: string, ext: string): string {
+  // A fresh name on every upload, so a cached copy of the old banner can
+  // never print under the new one.
+  return `${schoolId}/school/header-${Date.now()}.${ext}`;
+}
+
 export function logoContentTypeFromKey(key: string): string {
   const ext = key.split(".").pop()?.toLowerCase();
   switch (ext) {

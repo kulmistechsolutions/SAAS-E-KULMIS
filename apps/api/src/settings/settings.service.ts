@@ -10,8 +10,10 @@ import { PrismaService } from "../prisma/prisma.service";
 import { StorageService } from "../storage/storage.service";
 import {
   SCHOOL_LOGO_MAX_BYTES,
+  HEADER_IMAGE_MAX_BYTES,
   logoContentTypeFromKey,
   logoExtension,
+  schoolHeaderImageKey,
   schoolLogoKey,
   type SchoolLogoMime,
 } from "./school-logo.util";
@@ -42,20 +44,91 @@ export class SettingsService {
    * storage has no direct URL — callers fall back to streaming the bytes
    * through GET /settings/logo (see getLogoFile below).
    */
-  private async attachLogoUrl<T extends { logoKey: string | null }>(
+  private async attachLogoUrl<
+    T extends { logoKey: string | null; headerImageKey?: string | null },
+  >(
     school: T,
-  ): Promise<T & { logoUrl: string | null }> {
-    if (!school.logoKey) return { ...school, logoUrl: null };
+  ): Promise<T & { logoUrl: string | null; headerImageUrl: string | null }> {
+    const [logoUrl, headerImageUrl] = await Promise.all([
+      this.signed(school.logoKey),
+      this.signed(school.headerImageKey ?? null),
+    ]);
+    return { ...school, logoUrl, headerImageUrl };
+  }
+
+  private async signed(key: string | null): Promise<string | null> {
+    if (!key) return null;
     try {
-      const logoUrl = await this.storage.getSignedUrl(
-        this.bucket,
-        school.logoKey,
-        3600,
-      );
-      return { ...school, logoUrl };
+      return await this.storage.getSignedUrl(this.bucket, key, 3600);
     } catch {
-      return { ...school, logoUrl: null };
+      return null;
     }
+  }
+
+  /** Stream the letterhead banner — for storage backends with no direct URL. */
+  async getHeaderImageFile(
+    schoolId: string,
+  ): Promise<{ buffer: Buffer; contentType: string }> {
+    const school = await this.prisma.school.findUnique({
+      where: { id: schoolId },
+      select: { headerImageKey: true },
+    });
+    if (!school?.headerImageKey) throw new NotFoundException("No header image set");
+    try {
+      const buffer = await this.storage.getObject(this.bucket, school.headerImageKey);
+      return { buffer, contentType: logoContentTypeFromKey(school.headerImageKey) };
+    } catch (err) {
+      const code = (err as { code?: string } | null)?.code;
+      if (code === "ENOENT" || code === "NoSuchKey") {
+        throw new NotFoundException("No header image set");
+      }
+      throw err;
+    }
+  }
+
+  /**
+   * Store the school's letterhead banner. The school crops it in the browser
+   * first, so what arrives is exactly what prints.
+   */
+  async uploadHeaderImage(schoolId: string, buffer: Buffer, mime: SchoolLogoMime) {
+    if (buffer.length > HEADER_IMAGE_MAX_BYTES) {
+      throw new BadRequestException("Header image must be under 3 MB");
+    }
+    const existing = await this.prisma.school.findUnique({
+      where: { id: schoolId },
+      select: { headerImageKey: true },
+    });
+    if (!existing) throw new NotFoundException("School not found");
+    const key = schoolHeaderImageKey(schoolId, logoExtension(mime));
+    await this.storage.putObject(this.bucket, key, buffer, mime);
+    if (existing.headerImageKey && existing.headerImageKey !== key) {
+      await this.storage
+        .removeObject(this.bucket, existing.headerImageKey)
+        .catch(() => undefined);
+    }
+    const school = await this.prisma.school.update({
+      where: { id: schoolId },
+      data: { headerImageKey: key, headerImageEnabled: true },
+    });
+    return this.attachLogoUrl(school);
+  }
+
+  async removeHeaderImage(schoolId: string) {
+    const existing = await this.prisma.school.findUnique({
+      where: { id: schoolId },
+      select: { headerImageKey: true },
+    });
+    if (!existing) throw new NotFoundException("School not found");
+    if (existing.headerImageKey) {
+      await this.storage
+        .removeObject(this.bucket, existing.headerImageKey)
+        .catch(() => undefined);
+    }
+    const school = await this.prisma.school.update({
+      where: { id: schoolId },
+      data: { headerImageKey: null },
+    });
+    return this.attachLogoUrl(school);
   }
 
   /** Stream the raw logo bytes — used when the storage backend has no direct URL. */
@@ -106,6 +179,11 @@ export class SettingsService {
         language: true,
         timezone: true,
         documentHeaderLayout: true,
+        // Parents print receipts from their portal, which reads branding
+        // rather than the staff settings, so the letterhead travels here too.
+        headerImageKey: true,
+        headerImageHeightMm: true,
+        headerImageEnabled: true,
         // The login screen is the one page every school opens daily and the
         // only one an anonymous visitor sees first — it has to be able to
         // show that school's own title, footer and colours, not the

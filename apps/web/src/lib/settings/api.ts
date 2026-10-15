@@ -20,6 +20,16 @@ export function resolveLogoUrl(
   return `${API_URL}/api/settings/logo?tenant=${encodeURIComponent(TENANT)}`;
 }
 
+/** Same as the logo: a signed URL, or the public byte proxy. */
+export function resolveHeaderImageUrl(
+  url: string | null | undefined,
+  key: string | null | undefined,
+): string | null {
+  if (url) return url;
+  if (!key) return null;
+  return `${API_URL}/api/settings/header-image?tenant=${encodeURIComponent(TENANT)}`;
+}
+
 export interface ApiSchool {
   id: string;
   subdomain: string;
@@ -41,6 +51,10 @@ export interface ApiSchool {
   timezone: string;
   language: string;
   documentHeaderLayout: "LEFT" | "CENTERED";
+  headerImageKey?: string | null;
+  headerImageUrl?: string | null;
+  headerImageHeightMm?: number;
+  headerImageEnabled?: boolean;
   sessionTimeoutMinutes: number | null;
   receiptHeader: string | null;
   receiptFooter: string | null;
@@ -118,6 +132,10 @@ export interface ApiBranding {
   language: string;
   timezone: string;
   documentHeaderLayout: "LEFT" | "CENTERED";
+  headerImageKey?: string | null;
+  headerImageUrl?: string | null;
+  headerImageHeightMm?: number;
+  headerImageEnabled?: boolean;
   // Null means the school never chose one — callers fall back to its name
   // (title), the product default (footer), or the app palette (colours).
   brandLoginTitle: string | null;
@@ -154,6 +172,9 @@ export function mapApiSchoolToSettings(
       timezone: row.timezone,
       language: row.language,
       documentHeaderLayout: row.documentHeaderLayout,
+      headerImageUrl: resolveHeaderImageUrl(row.headerImageUrl, row.headerImageKey),
+      headerImageHeightMm: row.headerImageHeightMm ?? base.school.headerImageHeightMm,
+      headerImageEnabled: row.headerImageEnabled ?? base.school.headerImageEnabled,
       reportHeader: row.reportHeader ?? base.school.reportHeader,
       reportFooter: row.reportFooter ?? base.school.reportFooter,
     },
@@ -269,6 +290,8 @@ export function mapSettingsSectionToPatch(
       timezone: s.timezone,
       language: s.language,
       documentHeaderLayout: s.documentHeaderLayout,
+      headerImageHeightMm: s.headerImageHeightMm,
+      headerImageEnabled: s.headerImageEnabled,
       reportHeader: s.reportHeader || null,
       reportFooter: s.reportFooter || null,
     };
@@ -421,6 +444,22 @@ export async function apiUploadSchoolLogo(
 
 export async function apiRemoveSchoolLogo(): Promise<SettingsState> {
   const row = await api<ApiSchool>("/settings/logo", { method: "DELETE" });
+  return mapApiSchoolToSettings(row);
+}
+
+export async function apiUploadHeaderImage(
+  file: string,
+  mimeType: string,
+): Promise<SettingsState> {
+  const row = await api<ApiSchool>("/settings/header-image", {
+    method: "POST",
+    body: { file, mimeType },
+  });
+  return mapApiSchoolToSettings(row);
+}
+
+export async function apiRemoveHeaderImage(): Promise<SettingsState> {
+  const row = await api<ApiSchool>("/settings/header-image", { method: "DELETE" });
   return mapApiSchoolToSettings(row);
 }
 
