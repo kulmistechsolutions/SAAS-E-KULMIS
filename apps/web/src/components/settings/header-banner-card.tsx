@@ -133,23 +133,43 @@ export function HeaderBannerCard() {
               />
               Use this header on printed documents
             </label>
-            <div>
-              <Label>Height on paper: {height} mm</Label>
+            <label className="flex items-center gap-2 text-sm font-medium">
               <input
-                type="range"
-                min={MIN_MM}
-                max={MAX_MM}
-                value={height}
-                onChange={(e) => setHeight(Number(e.target.value))}
-                onPointerUp={() => void saveSchool({ headerImageHeightMm: height })}
-                onKeyUp={() => void saveSchool({ headerImageHeightMm: height })}
-                className="mt-2 w-full accent-primary"
+                type="checkbox"
+                checked={height === 0}
+                onChange={(e) => {
+                  const next = e.target.checked ? 0 : 35;
+                  setHeight(next);
+                  void saveSchool({ headerImageHeightMm: next });
+                }}
               />
-              <p className="mt-1 text-xs text-muted-foreground">
-                The picture keeps its proportions; if it is wider than the page at
-                this height, it is shown smaller rather than cut.
+              Fit the page width (recommended)
+            </label>
+            {height === 0 ? (
+              <p className="text-xs text-muted-foreground">
+                The header spans the full width of the page, the same as the
+                tables under it, and its height follows the picture.
               </p>
-            </div>
+            ) : (
+              <div>
+                <Label>Height on paper: {height} mm</Label>
+                <input
+                  type="range"
+                  min={MIN_MM}
+                  max={MAX_MM}
+                  value={height}
+                  onChange={(e) => setHeight(Number(e.target.value))}
+                  onPointerUp={() => void saveSchool({ headerImageHeightMm: height })}
+                  onKeyUp={() => void saveSchool({ headerImageHeightMm: height })}
+                  className="mt-2 w-full accent-primary"
+                />
+                <p className="mt-1 text-xs text-muted-foreground">
+                  A fixed height keeps the picture&apos;s proportions, so a wide
+                  header becomes narrower than the page. Use it only to make the
+                  header shorter.
+                </p>
+              </div>
+            )}
             <div className="rounded-xl border bg-muted/30 p-3">
               <p className="mb-2 text-xs font-medium text-muted-foreground">Current header</p>
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -197,7 +217,11 @@ function PaperPreview({ url, heightMm, enabled }: { url: string; heightMm: numbe
           <img
             src={url}
             alt=""
-            style={{ width: PRINT_WIDTH_MM * scale, height: heightMm * scale, objectFit: "contain" }}
+            style={
+              heightMm > 0
+                ? { maxWidth: PRINT_WIDTH_MM * scale, height: heightMm * scale, margin: "0 auto", display: "block" }
+                : { width: PRINT_WIDTH_MM * scale, height: "auto", display: "block" }
+            }
           />
         ) : (
           <div className="text-center text-[9px] text-slate-400" style={{ height: 22 * scale }}>

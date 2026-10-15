@@ -45,8 +45,9 @@ model School {
   /// school and printed full width across the top of every document in
   /// place of the generated logo-and-name header. Null when none uploaded.
   headerImageKey       String?
-  /// How tall the banner prints, in millimetres.
-  headerImageHeightMm  Int     @default(32)
+  /// How tall the banner prints, in millimetres. 0 = fit the page width,
+  /// height following the picture's own proportions (the default).
+  headerImageHeightMm  Int     @default(0)
   /// Switch the banner off without deleting it.
   headerImageEnabled   Boolean @default(true)
   /// Minutes an access token stays valid before the app forces a re-login.

@@ -37,7 +37,13 @@ describe("the letterhead banner", () => {
     expect(store).toContain("s.school.headerImageEnabled && s.school.headerImageUrl");
   });
 
-  it("prints at the chosen height without stretching", () => {
+  it("spans the page width by default, height from the picture", () => {
+    const header = read("lib", "print", "header.ts");
+    expect(header).toContain(".ek-banner img.fit { width:100%; height:auto; }");
+    expect(header).toContain("b.heightMm > 0");
+  });
+
+  it("prints a chosen fixed height without stretching", () => {
     const header = read("lib", "print", "header.ts");
     expect(header).toContain("object-fit:contain");
     expect(header).toContain('style="height:${b.heightMm}mm"');

@@ -24,7 +24,11 @@ export function escapeHtml(s: string): string {
  */
 export const BANNER_CSS = `
     .ek-banner { width:100%; margin:0 0 8px; text-align:center; }
-    .ek-banner img { width:100%; object-fit:contain; display:block; margin:0 auto; }
+    .ek-banner img { display:block; margin:0 auto; max-width:100%; }
+    /* Fit width: as wide as the page content, height from the picture itself. */
+    .ek-banner img.fit { width:100%; height:auto; }
+    /* A fixed height the school chose; never stretched, centred if narrower. */
+    .ek-banner img.fixed { width:auto; object-fit:contain; }
 `;
 
 /** Paste this once into a print document's <style>. */
@@ -48,7 +52,11 @@ export const PRINT_HEADER_CSS = `
 export function bannerHtml(): string | null {
   const b = schoolBranding().headerImage;
   if (!b) return null;
-  return `<div class="ek-banner"><img src="${escapeHtml(b.url)}" alt="" style="height:${b.heightMm}mm" /></div>`;
+  const img =
+    b.heightMm > 0
+      ? `<img class="fixed" src="${escapeHtml(b.url)}" alt="" style="height:${b.heightMm}mm" />`
+      : `<img class="fit" src="${escapeHtml(b.url)}" alt="" />`;
+  return `<div class="ek-banner">${img}</div>`;
 }
 
 /**

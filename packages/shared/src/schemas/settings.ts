@@ -210,8 +210,12 @@ export const updateSettingsSchema = z
     timezone: ianaTimeZone.optional(),
     language: z.string().min(1).optional(),
     documentHeaderLayout: z.enum(["LEFT", "CENTERED"]).optional(),
-    /** Printed height of the letterhead banner, in millimetres. */
-    headerImageHeightMm: z.number().int().min(12).max(90).optional(),
+    /** Printed height of the letterhead banner in mm; 0 fits the page width. */
+    headerImageHeightMm: z
+      .number()
+      .int()
+      .refine((n) => n === 0 || (n >= 12 && n <= 90), "Use 0 (fit width) or 12–90 mm")
+      .optional(),
     headerImageEnabled: z.boolean().optional(),
     /// Minutes an access token stays valid before forcing a re-login. Null
     /// resets to the platform default (JWT_ACCESS_TTL).

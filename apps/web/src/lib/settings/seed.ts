@@ -31,7 +31,7 @@ export function buildSettingsSeed(): SettingsState {
       language: "en",
       documentHeaderLayout: "LEFT",
       headerImageUrl: null,
-      headerImageHeightMm: 32,
+      headerImageHeightMm: 0,
       headerImageEnabled: true,
       reportHeader: "",
       reportFooter: "",
