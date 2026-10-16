@@ -253,6 +253,12 @@ export const apiDeleteExam = (examId: string, force?: boolean) =>
 export const apiUpdateExamStatus = (examId: string, status: ExamStatus) =>
   api<ApiExam>(`/examinations/${examId}/status`, { method: "PATCH", body: { status } });
 
+export const apiAddExamSubjects = (examId: string, subjectIds: string[]) =>
+  api<{ added: { subjectId: string; name: string; hasTeacher: boolean }[] }>(
+    `/examinations/${examId}/subjects`,
+    { method: "POST", body: { subjectIds } },
+  );
+
 export const apiAssignExamGroup = (examId: string, examGroupId: string | null) =>
   api<ApiExam>(`/examinations/${examId}/group`, { method: "PATCH", body: { examGroupId } });
 

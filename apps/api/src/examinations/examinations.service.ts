@@ -314,6 +314,88 @@ export class ExaminationsService {
     });
   }
 
+  /**
+   * Add subjects to an exam that already exists.
+   *
+   * Schools kept finding, after an exam was made and marks were going in,
+   * that a subject had been left off — and the only way to add it was to
+   * delete the exam (and every mark in it) and make it again. This adds just
+   * the missing subjects: nothing already on the exam is touched, a subject
+   * already there is skipped, and each new one is given its teacher by the
+   * same rule exam creation uses (the section's teacher, else the class's).
+   */
+  async addExamSubjects(
+    schoolId: string,
+    examId: string,
+    subjectIds: string[],
+    actor?: Pick<AuthUser, "userId" | "username" | "role">,
+  ) {
+    const added = await this.prisma.forTenant(schoolId, async (tx) => {
+      const exam = await tx.exam.findFirst({
+        where: { id: examId },
+        select: {
+          id: true, status: true, classId: true, sectionId: true, academicYearId: true,
+          subjects: { select: { subjectId: true } },
+        },
+      });
+      if (!exam) throw new NotFoundException("Exam not found");
+      if (exam.status === "ARCHIVED") {
+        throw new BadRequestException("An archived exam cannot be changed.");
+      }
+      const have = new Set(exam.subjects.map((s) => s.subjectId));
+      const wanted = [...new Set(subjectIds)].filter((id) => !have.has(id));
+      if (wanted.length === 0) return [];
+
+      // Only this school's subjects (RLS) and only ones that exist.
+      const subjects = await tx.subject.findMany({
+        where: { id: { in: wanted } },
+        select: { id: true, name: true },
+      });
+      if (subjects.length !== wanted.length) {
+        throw new BadRequestException("One of those subjects was not found.");
+      }
+
+      const assignments = await tx.teacherAssignment.findMany({
+        where: {
+          academicYearId: exam.academicYearId,
+          classId: exam.classId,
+          subjectId: { in: wanted },
+          OR: [{ sectionId: exam.sectionId }, { sectionId: null }],
+        },
+        select: { subjectId: true, sectionId: true, teacherId: true },
+      });
+      const bySubject = new Map<string, { sectionId: string | null; teacherId: string }>();
+      for (const a of assignments) {
+        const cur = bySubject.get(a.subjectId);
+        if (!cur || (cur.sectionId === null && a.sectionId !== null)) {
+          bySubject.set(a.subjectId, { sectionId: a.sectionId, teacherId: a.teacherId });
+        }
+      }
+
+      await tx.examSubject.createMany({
+        data: wanted.map((subjectId) => ({
+          schoolId,
+          examId,
+          subjectId,
+          teacherId: bySubject.get(subjectId)?.teacherId ?? null,
+        })),
+        skipDuplicates: true,
+      });
+      return subjects.map((s) => ({
+        subjectId: s.id,
+        name: s.name,
+        hasTeacher: bySubject.has(s.id),
+      }));
+    });
+
+    if (added.length > 0) {
+      await this.recordExamAudit(schoolId, actor, "EXAM_SUBJECTS_ADDED", examId, {
+        subjects: added.map((a) => a.name),
+      });
+    }
+    return { added };
+  }
+
   async updateExamStatus(schoolId: string, examId: string, status: string) {
     const updatedExam = await this.prisma.forTenant(schoolId, async (tx) => {
       const exam = await tx.exam.findFirst({ where: { id: examId } });

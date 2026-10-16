@@ -3,7 +3,8 @@
 
 import { useT } from "@/lib/i18n/provider";
 import { useMemo, useState } from "react";
-import { AlertTriangle, Loader2, LockOpen, Trash2 } from "lucide-react";
+import { AlertTriangle, Loader2, LockOpen, Plus, Trash2 } from "lucide-react";
+import { AddExamSubjectsDialog } from "@/components/examinations/add-exam-subjects-dialog";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
@@ -21,6 +22,8 @@ export default function ExaminationsManagePage() {
   const [yearFilter, setYearFilter] = useState("");
   const [classFilter, setClassFilter] = useState("");
   const [deleting, setDeleting] = useState<Exam | null>(null);
+  /** The exam a missing subject is being added to. */
+  const [addingTo, setAddingTo] = useState<Exam | null>(null);
   const [rowBusy, setRowBusy] = useState<string | null>(null);
   const [bulkTyped, setBulkTyped] = useState("");
   const [bulkBusy, setBulkBusy] = useState(false);
@@ -142,6 +145,18 @@ export default function ExaminationsManagePage() {
                   </td>
                   <td className="px-4 py-2.5 text-end">
                     <div className="inline-flex items-center gap-2">
+                      {e.status !== "ARCHIVED" && (
+                        <button
+                          type="button"
+                          onClick={() => setAddingTo(e)}
+                          disabled={rowBusy === e.id}
+                          title={`Subjects: ${e.subjects.join(", ") || "none"}`}
+                          className="inline-flex items-center gap-1 rounded-lg border px-2.5 py-1 text-xs font-medium text-primary hover:bg-primary/5 disabled:opacity-50"
+                        >
+                          <Plus className="h-3.5 w-3.5" />
+                          Subject ({e.subjects.length})
+                        </button>
+                      )}
                       {e.status === "DRAFT" && (
                         <button
                           type="button"
@@ -227,6 +242,8 @@ export default function ExaminationsManagePage() {
           </Button>
         </div>
       </div>
+
+      <AddExamSubjectsDialog exam={addingTo} onClose={() => setAddingTo(null)} />
 
       <ConfirmDialog
         open={!!deleting}

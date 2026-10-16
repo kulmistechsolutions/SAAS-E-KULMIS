@@ -31,6 +31,7 @@ import {
   apiStudentResults,
   apiUnpublishExamGroup,
   apiUpdateExamStatus,
+  apiAddExamSubjects,
   apiUpsertMarks,
   type ApiExam,
   type ApiExamGroup,
@@ -542,6 +543,20 @@ export async function createExams(
     return { ok: true, exams: created };
   } catch (e) {
     return { ok: false, error: apiErr(e, "Failed to create exam.") };
+  }
+}
+
+/** Add subjects that were left off an exam; nothing already on it changes. */
+export async function addExamSubjects(
+  examId: string,
+  subjectIds: string[],
+): Promise<{ ok: boolean; error?: string; added?: { name: string; hasTeacher: boolean }[] }> {
+  try {
+    const res = await apiAddExamSubjects(examId, subjectIds);
+    await refreshExaminations();
+    return { ok: true, added: res.added };
+  } catch (e) {
+    return { ok: false, error: apiErr(e, "Failed to add subjects.") };
   }
 }
 

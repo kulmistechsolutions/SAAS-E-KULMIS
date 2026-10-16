@@ -36,6 +36,11 @@ import { CurrentTenant } from "../tenant/current-tenant.decorator";
 import type { TenantContext } from "@ekulmis/shared";
 import { contentDispositionHeader } from "../common/content-disposition.util";
 import { RequirePermission } from "../auth/require-permission.decorator";
+import { z } from "zod";
+
+const addExamSubjectsSchema = z.object({
+  subjectIds: z.array(z.string().min(1).max(64)).min(1).max(40),
+});
 
 @Controller("examinations")
 export class ExaminationsController {
@@ -654,6 +659,20 @@ export class ExaminationsController {
     const parsed = assignExamGroupSchema.safeParse(body);
     if (!parsed.success) throw new BadRequestException(parsed.error.flatten());
     return this.exams.assignExamGroup(me.schoolId, id, parsed.data.examGroupId, me);
+  }
+
+  /** Add subjects left off an exam, without recreating it. */
+  @Roles(UserRole.ADMINISTRATOR, UserRole.EXAM_MANAGER)
+  @RequirePermission("examinations.update")
+  @Post(":id/subjects")
+  addSubjects(
+    @CurrentUser() me: AuthUser,
+    @Param("id") id: string,
+    @Body() body: unknown,
+  ) {
+    const parsed = addExamSubjectsSchema.safeParse(body);
+    if (!parsed.success) throw new BadRequestException(parsed.error.flatten());
+    return this.exams.addExamSubjects(me.schoolId, id, parsed.data.subjectIds, me);
   }
 
   @Roles(UserRole.ADMINISTRATOR, UserRole.EXAM_MANAGER)
