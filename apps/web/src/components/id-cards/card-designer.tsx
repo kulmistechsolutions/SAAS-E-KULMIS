@@ -11,6 +11,7 @@ import {
   Copy,
   Droplets,
   Image as ImageIcon,
+  ImagePlus,
   Minus,
   PenLine,
   QrCode,
@@ -119,7 +120,14 @@ export function CardDesigner({ design, ctx, onChange, onReset }: Props) {
       if (d.mode === "move") {
         update(d.id, { x: snap(d.ox + dx), y: snap(d.oy + dy) });
       } else {
-        update(d.id, { w: Math.max(2, snap(d.ow + dx)), h: Math.max(2, snap(d.oh + dy)) });
+        const el = design.elements.find((e) => e.id === d.id);
+        const w = Math.max(2, snap(d.ow + dx));
+        update(
+          d.id,
+          el?.ratio
+            ? { w, h: Math.max(1, Math.round((w / el.ratio) * 10) / 10) }
+            : { w, h: Math.max(2, snap(d.oh + dy)) },
+        );
       }
     };
     const onUp = () => {
@@ -131,7 +139,7 @@ export function CardDesigner({ design, ctx, onChange, onReset }: Props) {
       window.removeEventListener("mousemove", onMove);
       window.removeEventListener("mouseup", onUp);
     };
-  }, [scale, update]);
+  }, [scale, update, design.elements]);
 
   // Arrow keys nudge the selection — finer control than a mouse gives.
   useEffect(() => {
@@ -172,6 +180,8 @@ export function CardDesigner({ design, ctx, onChange, onReset }: Props) {
       field: { field: "studentName", fontSize: 6, bold: true, color: "accentDark" },
       photo: { w: 20, h: 24, radius: 1.2, borderWidth: 0.4, borderColor: "accent" },
       logo: { w: 9, h: 9 },
+      // Starts as a strip across the top, the usual place for a letterhead.
+      image: { x: 0, y: 0, w: design.width, h: Math.round(design.width / 4.5), fit: "contain" },
       qr: { w: 10, h: 10 },
       signature: { w: 24, h: 7, fontSize: 3.8, color: "#64748b", align: "center", text: "" },
       box: { w: 26, h: 8, bg: "accent", radius: 1 },
@@ -236,6 +246,7 @@ export function CardDesigner({ design, ctx, onChange, onReset }: Props) {
           <ToolBtn icon={PenLine} label="Signature" onClick={() => addEl("signature")} />
           <ToolBtn icon={ImageIcon} label="Photo" onClick={() => addEl("photo")} />
           <ToolBtn icon={QrCode} label="QR" onClick={() => addEl("qr")} />
+          <ToolBtn icon={ImagePlus} label="Image / Banner" onClick={() => addEl("image")} />
           <ToolBtn icon={Droplets} label="Watermark" onClick={() => addEl("watermark")} />
           <ToolBtn icon={Square} label="Box" onClick={() => addEl("box")} />
           <ToolBtn icon={Minus} label="Line" onClick={() => addEl("line")} />
@@ -363,7 +374,7 @@ export function CardDesigner({ design, ctx, onChange, onReset }: Props) {
             )}
 
             {selected.type !== "box" && selected.type !== "line" && selected.type !== "photo" &&
-              selected.type !== "qr" && selected.type !== "logo" && (
+              selected.type !== "qr" && selected.type !== "logo" && selected.type !== "image" && (
               <>
                 <div className="grid grid-cols-2 gap-2">
                   <Num label="Size (pt)" step={0.2} value={selected.fontSize ?? 5}
@@ -406,6 +417,15 @@ export function CardDesigner({ design, ctx, onChange, onReset }: Props) {
                   </IconBtn>
                 </div>
               </>
+            )}
+
+            {(selected.type === "image" || selected.type === "logo") && (
+              <ImageControls
+                el={selected}
+                cardWidth={design.width}
+                cardHeight={design.height}
+                onUpdate={(patch) => update(selected.id, patch)}
+              />
             )}
 
             {selected.type === "watermark" && (
@@ -553,6 +573,153 @@ async function downscaleImage(file: File, maxPx = 512): Promise<string> {
   ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
   // PNG keeps transparency, which most school logos rely on.
   return canvas.toDataURL("image/png");
+}
+
+/**
+ * Upload, size and fit for a picture on the card — a letterhead banner, a
+ * crest, or a logo other than the school's own. A banner is wide, so it is
+ * kept sharper than a watermark (1400px) and resized by its own proportions.
+ */
+function ImageControls({
+  el, cardWidth, cardHeight, onUpdate,
+}: {
+  el: CardElement;
+  cardWidth: number;
+  cardHeight: number;
+  onUpdate: (patch: Partial<CardElement>) => void;
+}) {
+  const isLogo = el.type === "logo";
+  const sizePct = Math.round((el.w / cardWidth) * 100);
+
+  function setWidth(w: number) {
+    const width = Math.max(2, Math.min(cardWidth, w));
+    onUpdate(
+      el.ratio
+        ? { w: width, h: Math.round((width / el.ratio) * 10) / 10 }
+        : { w: width },
+    );
+  }
+
+  return (
+    <div className="space-y-2">
+      <p className="text-[11px] text-muted-foreground">
+        {el.src
+          ? "Using your uploaded image."
+          : isLogo
+            ? "Using the school logo. Upload an image to use a different one."
+            : "Upload a picture — a letterhead banner, crest or seal."}
+      </p>
+      <div className="flex flex-wrap gap-1.5">
+        <label className="inline-flex cursor-pointer items-center gap-1 rounded-lg border px-2 py-1 text-xs hover:bg-secondary">
+          <Upload className="h-3.5 w-3.5" /> {el.src ? "Replace" : "Upload"}
+          <input
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={async (e) => {
+              const file = e.target.files?.[0];
+              e.target.value = "";
+              if (!file) return;
+              try {
+                const { src, ratio } = await loadPicture(file, 1400);
+                // Keep the current width and give the box the picture's own
+                // shape, so nothing is squashed on arrival.
+                const w = Math.min(el.w, cardWidth);
+                onUpdate({ src, ratio, w, h: Math.round((w / ratio) * 10) / 10 });
+              } catch {
+                /* an unreadable file leaves the card as it was */
+              }
+            }}
+          />
+        </label>
+        {el.src && isLogo && (
+          <MiniBtn onClick={() => onUpdate({ src: undefined, ratio: undefined })}>
+            Use school logo
+          </MiniBtn>
+        )}
+      </div>
+
+      <div>
+        <Label>Size — {sizePct}% of card width</Label>
+        <input
+          type="range"
+          min={5}
+          max={100}
+          step={1}
+          value={Math.min(100, Math.max(5, sizePct))}
+          onChange={(e) => setWidth((Number(e.target.value) / 100) * cardWidth)}
+          className="h-2 w-full cursor-pointer accent-primary"
+        />
+      </div>
+
+      <label className="flex items-center gap-2 text-xs">
+        <input
+          type="checkbox"
+          checked={!!el.ratio}
+          onChange={(e) =>
+            onUpdate({ ratio: e.target.checked ? Math.max(0.01, el.w / Math.max(el.h, 0.1)) : undefined })
+          }
+        />
+        Keep proportions when resizing
+      </label>
+
+      <div>
+        <Label>Fit</Label>
+        <Select
+          value={el.fit ?? "contain"}
+          onChange={(e) => onUpdate({ fit: e.target.value as CardElement["fit"] })}
+        >
+          <option value="contain">Show whole picture</option>
+          <option value="cover">Fill box (trim edges)</option>
+          <option value="fill">Stretch to box</option>
+        </Select>
+      </div>
+
+      <div className="flex flex-wrap gap-1.5">
+        <MiniBtn
+          onClick={() => {
+            const h = el.ratio ? Math.round((cardWidth / el.ratio) * 10) / 10 : el.h;
+            onUpdate({ x: 0, y: 0, w: cardWidth, h: Math.min(h, cardHeight) });
+          }}
+        >
+          Full width at top
+        </MiniBtn>
+        <MiniBtn onClick={() => onUpdate({ x: Math.max(0, (cardWidth - el.w) / 2) })}>
+          Centre across
+        </MiniBtn>
+      </div>
+    </div>
+  );
+}
+
+/** Read an uploaded picture, shrink it to `maxPx` on its long side, and note its shape. */
+async function loadPicture(file: File, maxPx: number): Promise<{ src: string; ratio: number }> {
+  const dataUrl = await new Promise<string>((res, rej) => {
+    const fr = new FileReader();
+    fr.onload = () => res(String(fr.result));
+    fr.onerror = () => rej(fr.error);
+    fr.readAsDataURL(file);
+  });
+  const img = await new Promise<HTMLImageElement>((res, rej) => {
+    const i = new Image();
+    i.onload = () => res(i);
+    i.onerror = rej;
+    i.src = dataUrl;
+  });
+  const ratio = img.width / Math.max(1, img.height);
+  const scale = Math.min(1, maxPx / Math.max(img.width, img.height));
+  if (scale === 1 && dataUrl.length < 600_000) return { src: dataUrl, ratio };
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.max(1, Math.round(img.width * scale));
+  canvas.height = Math.max(1, Math.round(img.height * scale));
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return { src: dataUrl, ratio };
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+  // PNG keeps a transparent logo transparent; a photo-like banner that comes
+  // out too heavy as PNG is stored as a high-quality JPEG instead.
+  let src = canvas.toDataURL("image/png");
+  if (src.length > 900_000) src = canvas.toDataURL("image/jpeg", 0.9);
+  return { src, ratio };
 }
 
 // ── Small controls ────────────────────────────────────────────────────────

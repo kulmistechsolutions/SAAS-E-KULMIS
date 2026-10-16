@@ -17,6 +17,7 @@ const elementSchema = z
     id: z.string().min(1).max(64),
     type: z.enum([
       "text", "field", "photo", "logo", "qr", "signature", "box", "line", "watermark",
+      "image",
     ]),
     x: z.number().finite(),
     y: z.number().finite(),
@@ -43,7 +44,11 @@ const elementSchema = z
      * sending; the cap here is the backstop that stops a full-resolution photo
      * bloating every read of this row.
      */
-    src: z.string().max(600_000).optional(),
+    // A letterhead banner across the card needs more pixels than a watermark
+    // (the client caps it at 1400px wide), so the backstop is a little wider.
+    src: z.string().max(1_200_000).optional(),
+    fit: z.enum(["contain", "cover", "fill"]).optional(),
+    ratio: z.number().finite().positive().max(100).optional(),
     locked: z.boolean().optional(),
   })
   .strip();

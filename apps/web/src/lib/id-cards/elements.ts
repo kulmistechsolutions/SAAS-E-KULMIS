@@ -25,7 +25,9 @@ export type ElementType =
   | "signature"
   | "box"
   | "line"
-  | "watermark";
+  | "watermark"
+  /** Any picture the school uploads — a letterhead banner, a crest, a seal. */
+  | "image";
 
 /** Dynamic values a `field` element can bind to (PRD §6). */
 export const FIELD_KEYS = [
@@ -88,6 +90,16 @@ export interface CardElement {
    * so a school that has uploaded a logo gets a watermark with no extra work.
    */
   src?: string;
+  /**
+   * How an uploaded picture fills its box: "contain" shows all of it,
+   * "cover" fills the box and trims the edges, "fill" stretches to the box.
+   */
+  fit?: "contain" | "cover" | "fill";
+  /**
+   * Width ÷ height of the uploaded picture. While set, resizing keeps that
+   * shape, so a banner can be made bigger or smaller without squashing it.
+   */
+  ratio?: number;
   /** Locked elements are skipped by the designer's hit-testing. */
   locked?: boolean;
 }
@@ -179,9 +191,15 @@ function renderOne(el: CardElement, c: CardContext, accent: string): string {
         ? `<img src="${c.photoDataUrl}" alt="" style="${base};object-fit:cover"/>`
         : `<div style="${base};border:0.4mm dashed #cbd5e1;background-color:#f8fafc;color:#94a3b8;display:flex;align-items:center;justify-content:center;font-size:4.2pt;text-align:center;line-height:1.15">NO<br/>PHOTO</div>`;
 
+    case "image":
+      return el.src
+        ? `<img src="${el.src}" alt="" style="${base};object-fit:${el.fit ?? "contain"}"/>`
+        : `<div style="${base};border:0.3mm dashed #cbd5e1;background-color:#f8fafc;color:#94a3b8;display:flex;align-items:center;justify-content:center;font-size:4pt;text-align:center">Upload an image</div>`;
+
     case "logo":
-      return c.logoDataUrl
-        ? `<img src="${c.logoDataUrl}" alt="" style="${base};object-fit:contain"/>`
+      // The school's logo unless this card was given a picture of its own.
+      return el.src || c.logoDataUrl
+        ? `<img src="${el.src || c.logoDataUrl}" alt="" style="${base};object-fit:${el.fit ?? "contain"}"/>`
         : `<div style="${base};display:flex;align-items:center;justify-content:center;font-size:5pt;font-weight:700;color:${color(el.color, accent, "#fff")}">${esc(
             c.schoolName.slice(0, 2).toUpperCase(),
           )}</div>`;
@@ -239,6 +257,8 @@ export function elementLabel(el: CardElement): string {
   if (el.type === "text") return el.text?.slice(0, 24) || "Text";
   if (el.type === "signature") return "Signature";
   if (el.type === "watermark") return el.src ? "Watermark (image)" : "Watermark (logo)";
+  if (el.type === "image") return "Image / Banner";
+  if (el.type === "logo") return el.src ? "Logo (uploaded)" : "Logo (school)";
   return el.type.charAt(0).toUpperCase() + el.type.slice(1);
 }
 
