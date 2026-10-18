@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { ExaminationsService } from "../examinations/examinations.service";
+import { DEFAULT_GRADE_BANDS, type GradeBand } from "@ekulmis/shared";
 import type { ReportData } from "./fee-reports.service";
 
 export interface ExamReportFilters {
@@ -75,7 +76,7 @@ export class ExamReportsService {
       case "rankings":
         return this.rankings(matrix);
       case "grade-distribution":
-        return this.gradeDistribution(matrix);
+        return this.gradeDistribution(matrix, await this.gradeOrder(schoolId));
       case "pass-fail":
         return this.passFail(matrix);
       default:
@@ -205,13 +206,32 @@ export class ExamReportsService {
     };
   }
 
-  private gradeDistribution(matrix: MatrixResult): ReportData {
+  /**
+   * The school's own grades, best first — the order of its Grade
+   * Configuration. The report used a fixed list (A+, A, B, C, D, F), so a
+   * school whose ladder has an E, a "B+" or its own words (Gudbay, Haray) saw
+   * those students counted in "Graded" yet missing from the table.
+   */
+  private async gradeOrder(schoolId: string): Promise<string[]> {
+    const school = await this.prisma.school.findUnique({
+      where: { id: schoolId },
+      select: { gradeBands: true },
+    });
+    const bands = (school?.gradeBands as unknown as GradeBand[] | null) ?? DEFAULT_GRADE_BANDS;
+    return [...(bands.length ? bands : DEFAULT_GRADE_BANDS)]
+      .sort((a, b) => b.min - a.min)
+      .map((b) => b.grade);
+  }
+
+  private gradeDistribution(matrix: MatrixResult, ladder: string[]): ReportData {
     const counts = new Map<string, number>();
     for (const r of matrix.rows) {
       if (r.grade === "—") continue;
       counts.set(r.grade, (counts.get(r.grade) ?? 0) + 1);
     }
-    const order = ["A+", "A", "B", "C", "D", "F"];
+    // Ladder order first; any grade not on it (a band since renamed) still
+    // appears, after them, so the rows always add up to "Graded".
+    const order = [...new Set([...ladder, ...counts.keys()])];
     return {
       columns: [
         { key: "grade", label: "Grade" },
