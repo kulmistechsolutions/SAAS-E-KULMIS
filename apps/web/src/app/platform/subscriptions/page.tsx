@@ -177,6 +177,10 @@ export default function PlatformSubscriptionsPage() {
   const [editingPlan, setEditingPlan] = useState<PlatformSubscriptionPlan | null>(
     null,
   );
+  // Schools tab: find a school, then give or renew its plan.
+  const [schoolSearch, setSchoolSearch] = useState("");
+  type SchoolFilter = "ALL" | "ACTIVE" | "ENDING" | "EXPIRED" | "NO_PLAN";
+  const [schoolFilter, setSchoolFilter] = useState<SchoolFilter>("ALL");
   const [assignOpen, setAssignOpen] = useState(false);
   const [assignRow, setAssignRow] = useState<PlatformSchoolSubscriptionRow | null>(
     null,
@@ -292,6 +296,44 @@ export default function PlatformSubscriptionsPage() {
       toast(e instanceof Error ? e.message : "Failed to cancel", "error");
     }
   }
+
+  const DAY = 24 * 60 * 60 * 1000;
+  const daysLeft = (r: PlatformSchoolSubscriptionRow) =>
+    r.subscription ? Math.ceil((new Date(r.subscription.endDate).getTime() - Date.now()) / DAY) : null;
+  const schoolCounts = useMemo(() => {
+    const c = { ALL: rows.length, ACTIVE: 0, ENDING: 0, EXPIRED: 0, NO_PLAN: 0 };
+    for (const r of rows) {
+      if (!r.subscription) c.NO_PLAN += 1;
+      else if (r.subscription.status === "ACTIVE") {
+        c.ACTIVE += 1;
+        const d = daysLeft(r);
+        if (d !== null && d <= 7) c.ENDING += 1;
+      } else c.EXPIRED += 1;
+    }
+    return c;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rows]);
+  const visibleSchools = useMemo(() => {
+    const q = schoolSearch.trim().toLowerCase();
+    const out = rows.filter((r) => {
+      if (q && !`${r.school.name} ${r.school.subdomain}`.toLowerCase().includes(q)) return false;
+      const sub = r.subscription;
+      if (schoolFilter === "NO_PLAN") return !sub;
+      if (schoolFilter === "ACTIVE") return sub?.status === "ACTIVE";
+      if (schoolFilter === "EXPIRED") return !!sub && sub.status !== "ACTIVE";
+      if (schoolFilter === "ENDING") {
+        const d = daysLeft(r);
+        return sub?.status === "ACTIVE" && d !== null && d <= 7;
+      }
+      return true;
+    });
+    // "Ending soon" reads soonest-first; every other view keeps the school order.
+    if (schoolFilter === "ENDING") {
+      out.sort((a, b) => (daysLeft(a) ?? 0) - (daysLeft(b) ?? 0));
+    }
+    return out;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rows, schoolSearch, schoolFilter]);
 
   if (!mounted) return <div className="text-slate-400">{t("platformSubscriptions.loading")}</div>;
 
@@ -527,6 +569,41 @@ export default function PlatformSubscriptionsPage() {
       )}
 
       {tab === "schools" && (
+        <div className="space-y-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="relative min-w-[240px] flex-1">
+            <Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+            <Input
+              className="border-white/10 bg-white/5 ps-9 text-white placeholder:text-slate-500"
+              placeholder="Search a school by name or subdomain…"
+              value={schoolSearch}
+              onChange={(e) => setSchoolSearch(e.target.value)}
+            />
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {([
+              ["ALL", "All"],
+              ["ACTIVE", "Active"],
+              ["ENDING", "Ending ≤ 7 days"],
+              ["EXPIRED", "Expired"],
+              ["NO_PLAN", "No plan"],
+            ] as const).map(([id, label]) => (
+              <button
+                key={id}
+                type="button"
+                onClick={() => setSchoolFilter(id)}
+                className={
+                  "rounded-full border px-3 py-1 text-xs font-medium transition-colors " +
+                  (schoolFilter === id
+                    ? "border-violet-400/50 bg-violet-500/20 text-violet-200"
+                    : "border-white/10 bg-white/5 text-slate-400 hover:text-white")
+                }
+              >
+                {label} <span className="opacity-70">{schoolCounts[id]}</span>
+              </button>
+            ))}
+          </div>
+        </div>
         <div className="overflow-x-auto rounded-xl border border-white/10 bg-white/5">
           <table className="w-full text-sm">
             <thead>
@@ -541,7 +618,7 @@ export default function PlatformSubscriptionsPage() {
               </tr>
             </thead>
             <tbody>
-              {rows.map((row) => (
+              {visibleSchools.map((row) => (
                 <tr key={row.school.id} className="border-b border-white/5 hover:bg-white/5">
                   <td className="px-4 py-3">
                     <Link
@@ -574,6 +651,16 @@ export default function PlatformSubscriptionsPage() {
                   </td>
                   <td className="px-4 py-3 text-slate-400">
                     {row.subscription ? shortDate(row.subscription.endDate) : "—"}
+                    {row.subscription?.status === "ACTIVE" && (
+                      <span
+                        className={
+                          "ms-2 text-xs " +
+                          ((daysLeft(row) ?? 99) <= 7 ? "text-amber-400" : "text-slate-500")
+                        }
+                      >
+                        {(daysLeft(row) ?? 0) <= 0 ? "ends today" : `${daysLeft(row)}d left`}
+                      </span>
+                    )}
                   </td>
                   <td className="px-4 py-3">
                     {row.subscription ? (
@@ -593,12 +680,17 @@ export default function PlatformSubscriptionsPage() {
                           setAssignRow(row);
                           setAssignOpen(true);
                         }}
-                        className="rounded-lg p-1.5 text-slate-400 hover:bg-white/10 hover:text-white"
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-violet-400/30 bg-violet-500/10 px-2.5 py-1 text-xs font-medium text-violet-200 hover:bg-violet-500/20"
                         title={
                           row.subscription ? "Renew / change plan" : "Assign plan"
                         }
                       >
-                        <RefreshCw className="h-4 w-4" />
+                        <RefreshCw className="h-3.5 w-3.5" />
+                        {!row.subscription
+                          ? "Give plan"
+                          : row.subscription.status === "ACTIVE"
+                            ? "Renew"
+                            : "Give plan"}
                       </button>
                       {row.subscription &&
                         row.subscription.status !== "CANCELLED" && (
@@ -637,8 +729,19 @@ export default function PlatformSubscriptionsPage() {
                   </td>
                 </tr>
               )}
+              {rows.length > 0 && visibleSchools.length === 0 && (
+                <tr>
+                  <td colSpan={7} className="px-4 py-12 text-center text-slate-500">
+                    No school matches “{schoolSearch.trim()}”{schoolFilter !== "ALL" ? " in this filter" : ""}.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
+        </div>
+        <p className="text-xs text-slate-500">
+          Showing {visibleSchools.length} of {rows.length} schools
+        </p>
         </div>
       )}
 
