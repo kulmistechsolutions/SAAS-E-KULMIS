@@ -68,7 +68,11 @@ export function AddExamSubjectsDialog({
 
   const { inClass, others, onExam } = useMemo(() => {
     if (!exam) return { inClass: [], others: [], onExam: new Set<string>() };
-    const onExam = new Set(exam.subjects.map((n) => n.trim().toLowerCase()));
+    // What is on the exam right now: the fresh list from the server once it
+    // has loaded, so a subject just removed can be added back at once.
+    const onExam = new Set(
+      (summary ? summary.map((s) => s.name) : exam.subjects).map((n) => n.trim().toLowerCase()),
+    );
     const classSubjectIds = new Set(
       academics.classSubjects.filter((cs) => cs.classId === exam.classId).map((cs) => cs.subjectId),
     );
@@ -80,7 +84,7 @@ export function AddExamSubjectsDialog({
       others: active.filter((s) => !classSubjectIds.has(s.id)),
       onExam,
     };
-  }, [exam, academics.subjects, academics.classSubjects]);
+  }, [exam, summary, academics.subjects, academics.classSubjects]);
 
   function toggle(id: string) {
     setPicked((p) => {

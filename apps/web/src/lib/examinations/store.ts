@@ -554,9 +554,10 @@ export async function removeExamSubject(
 ): Promise<{ ok: boolean; error?: string; marksRemoved?: number; name?: string }> {
   try {
     const res = await apiRemoveExamSubject(examId, subjectId);
-    // Marks for the subject are gone on the server; reload what the screens hold.
-    await refreshExaminations();
-    await loadExamMarks(examId);
+    // Marks for the subject are gone on the server. The screens reload in the
+    // background: waiting for it here held the dialog on a spinner for seconds.
+    void refreshExaminations();
+    void loadExamMarks(examId);
     const r = res.removed[0];
     return { ok: true, marksRemoved: r?.marksRemoved ?? 0, name: r?.name };
   } catch (e) {
