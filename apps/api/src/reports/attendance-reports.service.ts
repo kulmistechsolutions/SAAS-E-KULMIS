@@ -37,6 +37,33 @@ function pct(present: number, total: number): string {
 }
 
 /**
+ * Every status counted on its own. The reports showed Present and at most
+ * Absent, so a school reading a student's history could not see how often
+ * they were late or excused. Rate counts Late as attending, as it always has.
+ */
+function statusCounts(statuses: string[]) {
+  const c = { present: 0, late: 0, absent: 0, excused: 0 };
+  for (const st of statuses) {
+    if (st === "PRESENT") c.present += 1;
+    else if (st === "LATE") c.late += 1;
+    else if (st === "ABSENT") c.absent += 1;
+    else if (st === "EXCUSED") c.excused += 1;
+  }
+  return c;
+}
+
+function statusSummary(statuses: string[]) {
+  const c = statusCounts(statuses);
+  return [
+    { label: "Present", value: String(c.present) },
+    { label: "Late", value: String(c.late) },
+    { label: "Absent", value: String(c.absent) },
+    { label: "Excused", value: String(c.excused) },
+    { label: "Rate", value: pct(c.present + c.late, statuses.length) },
+  ];
+}
+
+/**
  * Student attendance reports, computed straight from student_attendance.
  *
  * Previously these were built in the browser by fetching one day's roster at
@@ -189,7 +216,6 @@ export class AttendanceReportsService {
           )
         : rows;
 
-      const present = filtered.filter((r) => r.status === "PRESENT" || r.status === "LATE").length;
 
       return {
         columns: [
@@ -214,9 +240,7 @@ export class AttendanceReportsService {
         })),
         summary: [
           { label: "Records", value: String(filtered.length) },
-          { label: "Present", value: String(present) },
-          { label: "Absent", value: String(filtered.filter((r) => r.status === "ABSENT").length) },
-          { label: "Rate", value: pct(present, filtered.length) },
+          ...statusSummary(filtered.map((r) => r.status)),
         ],
       };
     });
@@ -254,10 +278,12 @@ export class AttendanceReportsService {
         : [];
       const studentById = new Map(students.map((s) => [s.id, s]));
 
-      const byStudent = new Map<string, { present: number; total: number }>();
+      const byStudent = new Map<string, { statuses: string[]; present: number; total: number }>();
       for (const r of rows) {
-        const cur = byStudent.get(r.studentId) ?? { present: 0, total: 0 };
+        const cur = byStudent.get(r.studentId) ?? { statuses: [], present: 0, total: 0 };
         cur.total += 1;
+        cur.statuses.push(r.status);
+        // Attending: present or late — what the rate has always counted.
         if (r.status === "PRESENT" || r.status === "LATE") cur.present += 1;
         byStudent.set(r.studentId, cur);
       }
@@ -281,7 +307,10 @@ export class AttendanceReportsService {
           { key: "className", label: "Class" },
           { key: "section", label: "Section" },
           ...PARENT_COLUMNS,
-          { key: "present", label: "Present Days", align: "right" },
+          { key: "presentOnly", label: "Present", align: "right" },
+          { key: "late", label: "Late", align: "right" },
+          { key: "absent", label: "Absent", align: "right" },
+          { key: "excused", label: "Excused", align: "right" },
           { key: "total", label: "Total Days", align: "right" },
           { key: "rate", label: "Attendance %", align: "right" },
         ],
@@ -293,7 +322,10 @@ export class AttendanceReportsService {
             className: s?.class.name ?? "—",
             section: s?.section?.name ?? "—",
             ...parentContact(s),
-            present: v.present,
+            ...(() => {
+              const c = statusCounts(v.statuses);
+              return { presentOnly: c.present, late: c.late, absent: c.absent, excused: c.excused };
+            })(),
             total: v.total,
             rate: pct(v.present, v.total),
           };
@@ -301,6 +333,7 @@ export class AttendanceReportsService {
         summary: [
           { label: "Students", value: String(entries.length) },
           { label: "Average Attendance", value: `${(totalRate * 100).toFixed(1)}%` },
+          ...statusSummary(entries.flatMap(([, v]) => v.statuses)).slice(0, 4),
         ],
       };
     });
@@ -425,10 +458,7 @@ export class AttendanceReportsService {
         })),
         summary: [
           { label: "Records", value: String(filtered.length) },
-          {
-            label: "Present",
-            value: String(filtered.filter((r) => r.status === "PRESENT").length),
-          },
+          ...statusSummary(filtered.map((r) => r.status)),
         ],
       };
     });
