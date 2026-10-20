@@ -35,9 +35,28 @@ export class ClassSubjectController {
     return this.service.create(me.schoolId, parsed.data);
   }
 
+  /** Exams and marks that already use this subject for the class. */
+  @Roles(UserRole.ADMINISTRATOR)
+  @Get("usage")
+  usage(
+    @CurrentUser() me: AuthUser,
+    @Query("classId") classId: string,
+    @Query("subjectId") subjectId: string,
+  ) {
+    if (!classId || !subjectId) throw new BadRequestException("classId and subjectId are required");
+    return this.service.usage(me.schoolId, classId, subjectId);
+  }
+
   @Roles(UserRole.ADMINISTRATOR)
   @Delete(":id")
-  remove(@CurrentUser() me: AuthUser, @Param("id") id: string) {
-    return this.service.remove(me.schoolId, id);
+  remove(
+    @CurrentUser() me: AuthUser,
+    @Param("id") id: string,
+    @Query("alsoFromExams") alsoFromExams?: string,
+  ) {
+    return this.service.remove(me.schoolId, id, {
+      alsoFromExams: alsoFromExams === "true",
+      actor: { userId: me.userId, username: me.username, role: me.role },
+    });
   }
 }

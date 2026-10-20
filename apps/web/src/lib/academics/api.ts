@@ -146,5 +146,19 @@ export const apiCreateClassSubject = (body: {
   subjectId: string;
 }) => api<ApiClassSubject>("/class-subjects", { method: "POST", body });
 
-export const apiDeleteClassSubject = (id: string) =>
-  api(`/class-subjects/${id}`, { method: "DELETE" });
+export const apiDeleteClassSubject = (id: string, alsoFromExams = false) =>
+  api<{ removedFromExams?: number; marksRemoved?: number }>(
+    `/class-subjects/${id}${alsoFromExams ? "?alsoFromExams=true" : ""}`,
+    { method: "DELETE" },
+  );
+
+export interface ApiClassSubjectUsage {
+  exams: { id: string; name: string; section: string | null; status: string; marks: number }[];
+  totalMarks: number;
+}
+
+/** The exams, and marks, that already use this subject for the class. */
+export const apiClassSubjectUsage = (classId: string, subjectId: string) =>
+  api<ApiClassSubjectUsage>(
+    `/class-subjects/usage?classId=${encodeURIComponent(classId)}&subjectId=${encodeURIComponent(subjectId)}`,
+  );

@@ -1037,20 +1037,26 @@ export async function assignSubjectToClass(
 export async function removeSubjectFromClass(
   classId: string,
   subjectId: string,
-): Promise<{ ok: boolean; error?: string }> {
+  opts: { alsoFromExams?: boolean } = {},
+): Promise<{ ok: boolean; error?: string; removedFromExams?: number; marksRemoved?: number }> {
   const s = ensure();
   const targets = s.classSubjects.filter(
     (cs) => cs.classId === classId && cs.subjectId === subjectId,
   );
   try {
+    let removedFromExams = 0;
+    let marksRemoved = 0;
     for (const t of targets) {
-      await apiDeleteClassSubject(t.id);
+      // Only the first row takes the exams with it; the rest find nothing left.
+      const r = await apiDeleteClassSubject(t.id, !!opts.alsoFromExams);
+      removedFromExams += r?.removedFromExams ?? 0;
+      marksRemoved += r?.marksRemoved ?? 0;
     }
     await refreshAcademics();
     const subject = s.subjects.find((sub) => sub.id === subjectId);
     const cls = s.classes.find((c) => c.id === classId);
     logAudit("Subject Removed", `${cls?.name} ✕ ${subject?.name}`);
-    return { ok: true };
+    return { ok: true, removedFromExams, marksRemoved };
   } catch (e) {
     return { ok: false, error: apiErr(e, "Failed to remove subject.") };
   }

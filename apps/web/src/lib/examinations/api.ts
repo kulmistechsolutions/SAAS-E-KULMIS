@@ -253,6 +253,23 @@ export const apiDeleteExam = (examId: string, force?: boolean) =>
 export const apiUpdateExamStatus = (examId: string, status: ExamStatus) =>
   api<ApiExam>(`/examinations/${examId}/status`, { method: "PATCH", body: { status } });
 
+export interface ApiExamSubjectSummary {
+  subjectId: string;
+  name: string;
+  teacher: string | null;
+  submissionStatus: string;
+  marksEntered: number;
+}
+
+export const apiExamSubjectSummary = (examId: string) =>
+  api<ApiExamSubjectSummary[]>(`/examinations/${examId}/subjects`);
+
+export const apiRemoveExamSubject = (examId: string, subjectId: string) =>
+  api<{ removed: { subjectId: string; name: string; marksRemoved: number }[] }>(
+    `/examinations/${examId}/subjects/${subjectId}`,
+    { method: "DELETE" },
+  );
+
 export const apiAddExamSubjects = (examId: string, subjectIds: string[]) =>
   api<{ added: { subjectId: string; name: string; hasTeacher: boolean }[] }>(
     `/examinations/${examId}/subjects`,

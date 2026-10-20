@@ -32,6 +32,7 @@ import {
   apiUnpublishExamGroup,
   apiUpdateExamStatus,
   apiAddExamSubjects,
+  apiRemoveExamSubject,
   apiUpsertMarks,
   type ApiExam,
   type ApiExamGroup,
@@ -543,6 +544,23 @@ export async function createExams(
     return { ok: true, exams: created };
   } catch (e) {
     return { ok: false, error: apiErr(e, "Failed to create exam.") };
+  }
+}
+
+/** Take a subject off an exam, with any marks entered for it. */
+export async function removeExamSubject(
+  examId: string,
+  subjectId: string,
+): Promise<{ ok: boolean; error?: string; marksRemoved?: number; name?: string }> {
+  try {
+    const res = await apiRemoveExamSubject(examId, subjectId);
+    // Marks for the subject are gone on the server; reload what the screens hold.
+    await refreshExaminations();
+    await loadExamMarks(examId);
+    const r = res.removed[0];
+    return { ok: true, marksRemoved: r?.marksRemoved ?? 0, name: r?.name };
+  } catch (e) {
+    return { ok: false, error: apiErr(e, "Failed to remove the subject.") };
   }
 }
 

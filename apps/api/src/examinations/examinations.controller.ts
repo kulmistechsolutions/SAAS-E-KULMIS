@@ -661,6 +661,26 @@ export class ExaminationsController {
     return this.exams.assignExamGroup(me.schoolId, id, parsed.data.examGroupId, me);
   }
 
+  /** The exam's subjects and how many marks each holds (for the edit dialog). */
+  @Roles(UserRole.ADMINISTRATOR, UserRole.EXAM_MANAGER)
+  @RequirePermission("examinations.view")
+  @Get(":id/subjects")
+  subjectSummary(@CurrentUser() me: AuthUser, @Param("id") id: string) {
+    return this.exams.examSubjectSummary(me.schoolId, id);
+  }
+
+  /** Take a subject off an exam, with any marks entered for it. */
+  @Roles(UserRole.ADMINISTRATOR, UserRole.EXAM_MANAGER)
+  @RequirePermission("examinations.update")
+  @Delete(":id/subjects/:subjectId")
+  removeSubject(
+    @CurrentUser() me: AuthUser,
+    @Param("id") id: string,
+    @Param("subjectId") subjectId: string,
+  ) {
+    return this.exams.removeExamSubject(me.schoolId, id, subjectId, me);
+  }
+
   /** Add subjects left off an exam, without recreating it. */
   @Roles(UserRole.ADMINISTRATOR, UserRole.EXAM_MANAGER)
   @RequirePermission("examinations.update")

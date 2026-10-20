@@ -1,18 +1,19 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { Loader2 } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Loader2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { ensureAcademicsLoaded, useAcademicsState } from "@/lib/academics/store";
-import { addExamSubjects } from "@/lib/examinations/store";
+import { addExamSubjects, removeExamSubject } from "@/lib/examinations/store";
+import { apiExamSubjectSummary, type ApiExamSubjectSummary } from "@/lib/examinations/api";
 import type { Exam } from "@/lib/examinations/types";
 import { toast } from "@/lib/toast";
 
 /**
- * Add a subject that was left off an exam — without deleting the exam and
- * every mark already entered in it. Subjects this class is set up to study
- * are listed first; anything already on the exam is shown ticked and fixed.
+ * The subjects of an exam: take one off (its marks go with it and the students
+ * are no longer calculated for it), or add one that was left off — either way
+ * without deleting the exam and every other mark entered in it.
  */
 export function AddExamSubjectsDialog({
   exam,
@@ -24,13 +25,46 @@ export function AddExamSubjectsDialog({
   const academics = useAcademicsState();
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState(false);
+  const [summary, setSummary] = useState<ApiExamSubjectSummary[] | null>(null);
+  /** The subject whose removal is waiting for a second click. */
+  const [confirming, setConfirming] = useState<string | null>(null);
+  const [removing, setRemoving] = useState<string | null>(null);
+
+  const loadSummary = useCallback(async (id: string) => {
+    try {
+      setSummary(await apiExamSubjectSummary(id));
+    } catch {
+      setSummary([]);
+    }
+  }, []);
 
   useEffect(() => {
     if (exam) {
       setPicked(new Set());
+      setConfirming(null);
+      setSummary(null);
       void ensureAcademicsLoaded();
+      void loadSummary(exam.id);
     }
-  }, [exam]);
+  }, [exam, loadSummary]);
+
+  async function remove(subjectId: string) {
+    if (!exam) return;
+    setRemoving(subjectId);
+    const res = await removeExamSubject(exam.id, subjectId);
+    setRemoving(null);
+    setConfirming(null);
+    if (!res.ok) {
+      toast(res.error ?? "Failed to remove the subject", "error");
+      return;
+    }
+    toast(
+      `${res.name ?? "Subject"} removed from ${exam.name}` +
+        (res.marksRemoved ? ` — ${res.marksRemoved} mark${res.marksRemoved === 1 ? "" : "s"} removed with it.` : "."),
+      "success",
+    );
+    await loadSummary(exam.id);
+  }
 
   const { inClass, others, onExam } = useMemo(() => {
     if (!exam) return { inClass: [], others: [], onExam: new Set<string>() };
@@ -101,10 +135,10 @@ export function AddExamSubjectsDialog({
     <Dialog
       open={!!exam}
       onClose={onClose}
-      title="Add subjects to this exam"
+      title="Exam subjects"
       description={
         exam
-          ? `${exam.name} — ${exam.className}${exam.section && exam.section !== "All" ? ` ${exam.section}` : ""}. Subjects and marks already on the exam are kept.`
+          ? `${exam.name} — ${exam.className}${exam.section && exam.section !== "All" ? ` ${exam.section}` : ""}. Take a subject off, or add one that was left out. Everything else on the exam is kept.`
           : undefined
       }
       className="max-w-md"
@@ -119,6 +153,62 @@ export function AddExamSubjectsDialog({
       }
     >
       <div className="space-y-3">
+        <div>
+          <p className="mb-1 text-xs font-semibold text-muted-foreground">On this exam</p>
+          {summary === null ? (
+            <p className="py-2 text-xs text-muted-foreground">Loading…</p>
+          ) : (
+            summary.map((s) => (
+              <div key={s.subjectId} className="rounded-lg px-2 py-1.5 text-sm hover:bg-secondary/60">
+                <div className="flex items-center gap-2">
+                  <span className="font-medium">{s.name}</span>
+                  <span className="text-[11px] text-muted-foreground">
+                    {s.marksEntered > 0 ? `${s.marksEntered} marks entered` : "no marks yet"}
+                  </span>
+                  {summary.length > 1 && confirming !== s.subjectId && (
+                    <button
+                      type="button"
+                      onClick={() => setConfirming(s.subjectId)}
+                      className="ms-auto inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" /> Remove
+                    </button>
+                  )}
+                </div>
+                {confirming === s.subjectId && (
+                  <div className="mt-1.5 rounded-lg border border-rose-300/60 bg-rose-50/60 p-2 text-xs dark:border-rose-900/50 dark:bg-rose-950/20">
+                    <p>
+                      Remove <b>{s.name}</b> from this exam?{" "}
+                      {s.marksEntered > 0
+                        ? `The ${s.marksEntered} marks entered for it will be removed too, and students will no longer be calculated for it. `
+                        : "Students will no longer be calculated for it. "}
+                      Other subjects are not affected.
+                    </p>
+                    <div className="mt-2 flex gap-2">
+                      <Button variant="outline" className="h-7 px-2 text-xs" onClick={() => setConfirming(null)}>
+                        Keep it
+                      </Button>
+                      <Button
+                        className="h-7 bg-rose-600 px-2 text-xs hover:bg-rose-700"
+                        disabled={removing === s.subjectId}
+                        onClick={() => void remove(s.subjectId)}
+                      >
+                        {removing === s.subjectId && <Loader2 className="me-1 h-3.5 w-3.5 animate-spin" />}
+                        Yes, remove
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))
+          )}
+          {summary !== null && summary.length === 1 && (
+            <p className="px-2 pt-1 text-[11px] text-muted-foreground">
+              An exam needs at least one subject, so the last one cannot be removed.
+            </p>
+          )}
+        </div>
+        <p className="border-t pt-3 text-xs font-semibold text-muted-foreground">Add a subject</p>
         {inClass.length > 0 && (
           <div>
             <p className="mb-1 text-xs font-semibold text-muted-foreground">Subjects of this class</p>

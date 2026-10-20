@@ -32,6 +32,7 @@ import { SmsAutoService } from "../sms/sms-auto.service";
 import { StorageService } from "../storage/storage.service";
 import { studentInClassWhere } from "../students/student-class.util";
 import { inRegisterOrder } from "../students/roster";
+import { removeSubjectsFromExam } from "./exam-subject-removal";
 import type { AuthUser } from "../auth/auth.types";
 
 export interface MonitoringDetailRow {
@@ -394,6 +395,93 @@ export class ExaminationsService {
       });
     }
     return { added };
+  }
+
+  /** The exam's subjects with how many marks each already holds. */
+  async examSubjectSummary(schoolId: string, examId: string) {
+    return this.prisma.forTenant(schoolId, async (tx) => {
+      const exam = await tx.exam.findFirst({
+        where: { id: examId },
+        select: {
+          id: true,
+          subjects: {
+            select: {
+              subjectId: true,
+              teacherId: true,
+              submissionStatus: true,
+              subject: { select: { name: true } },
+            },
+          },
+        },
+      });
+      if (!exam) throw new NotFoundException("Exam not found");
+      const teacherIds = [...new Set(exam.subjects.map((s) => s.teacherId).filter((t): t is string => !!t))];
+      const teachers = teacherIds.length
+        ? await tx.teacher.findMany({ where: { id: { in: teacherIds } }, select: { id: true, fullName: true } })
+        : [];
+      const teacherName = new Map(teachers.map((t) => [t.id, t.fullName]));
+      const counts = await tx.examMark.groupBy({
+        by: ["subjectId"],
+        where: { examId, marks: { not: null } },
+        _count: { _all: true },
+      });
+      const bySubject = new Map(counts.map((c) => [c.subjectId, c._count._all]));
+      return exam.subjects
+        .map((s) => ({
+          subjectId: s.subjectId,
+          name: s.subject.name,
+          teacher: s.teacherId ? (teacherName.get(s.teacherId) ?? null) : null,
+          submissionStatus: s.submissionStatus,
+          marksEntered: bySubject.get(s.subjectId) ?? 0,
+        }))
+        .sort((a, b) => a.name.localeCompare(b.name));
+    });
+  }
+
+  /**
+   * Take a subject off an exam, with any marks entered for it.
+   *
+   * The students are no longer calculated for that subject and the rest of the
+   * exam is untouched, as if it had never been on it. An exam must keep at
+   * least one subject — to drop them all, delete the exam. What was removed is
+   * written to the audit log, marks included, so it can be put back.
+   */
+  async removeExamSubject(
+    schoolId: string,
+    examId: string,
+    subjectId: string,
+    actor?: Pick<AuthUser, "userId" | "username" | "role">,
+  ) {
+    const result = await this.prisma.forTenant(schoolId, async (tx) => {
+      const exam = await tx.exam.findFirst({
+        where: { id: examId },
+        select: { id: true, status: true, subjects: { select: { subjectId: true } } },
+      });
+      if (!exam) throw new NotFoundException("Exam not found");
+      if (exam.status === "ARCHIVED") {
+        throw new BadRequestException("An archived exam cannot be changed.");
+      }
+      if (!exam.subjects.some((s) => s.subjectId === subjectId)) {
+        throw new NotFoundException("That subject is not on this exam.");
+      }
+      if (exam.subjects.length <= 1) {
+        throw new BadRequestException(
+          "An exam needs at least one subject. Delete the exam instead.",
+        );
+      }
+      const r = await removeSubjectsFromExam(tx, examId, [subjectId]);
+      // What remains may now all be submitted (or not) — recompute.
+      await this.refreshSubmissionStatuses(tx, schoolId, examId);
+      return r;
+    });
+
+    await this.recordExamAudit(schoolId, actor, "EXAM_SUBJECT_REMOVED", examId, {
+      subjects: result.removed.map((r) => r.name),
+      marksRemoved: result.removed.reduce((n, r) => n + r.marksRemoved, 0),
+      // [studentId, subjectId, marks] — enough to restore the marks by hand.
+      marks: result.snapshot,
+    });
+    return { removed: result.removed };
   }
 
   async updateExamStatus(schoolId: string, examId: string, status: string) {

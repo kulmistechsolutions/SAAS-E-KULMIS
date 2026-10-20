@@ -154,7 +154,7 @@ export default function ExaminationsManagePage() {
                           className="inline-flex items-center gap-1 rounded-lg border px-2.5 py-1 text-xs font-medium text-primary hover:bg-primary/5 disabled:opacity-50"
                         >
                           <Plus className="h-3.5 w-3.5" />
-                          Subject ({e.subjects.length})
+                          Subjects ({e.subjects.length})
                         </button>
                       )}
                       {e.status === "DRAFT" && (

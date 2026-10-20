@@ -2,7 +2,8 @@
 
 
 import { useT, type TranslationKey } from "@/lib/i18n/provider";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { apiClassSubjectUsage, type ApiClassSubjectUsage } from "@/lib/academics/api";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import {
@@ -77,6 +78,19 @@ export default function ClassProfilePage() {
   const [deletingSection, setDeletingSection] = useState<Section | null>(null);
   const [assignOpen, setAssignOpen] = useState(false);
   const [removingSubject, setRemovingSubject] = useState<Subject | null>(null);
+  /** What the subject is already used for in this class's exams. */
+  const [removeUsage, setRemoveUsage] = useState<ApiClassSubjectUsage | null>(null);
+  useEffect(() => {
+    setRemoveUsage(null);
+    if (!removingSubject) return;
+    let live = true;
+    apiClassSubjectUsage(id, removingSubject.id)
+      .then((u) => live && setRemoveUsage(u))
+      .catch(() => live && setRemoveUsage({ exams: [], totalMarks: 0 }));
+    return () => {
+      live = false;
+    };
+  }, [removingSubject, id]);
   const [reportDialogOpen, setReportDialogOpen] = useState(false);
 
   const cls = getClass(id);
@@ -147,11 +161,19 @@ export default function ClassProfilePage() {
     setDeletingSection(null);
   }
 
-  async function handleRemoveSubject() {
+  async function handleRemoveSubject(alsoFromExams = false) {
     if (!removingSubject) return;
-    const res = await removeSubjectFromClass(id, removingSubject.id);
+    const res = await removeSubjectFromClass(id, removingSubject.id, { alsoFromExams });
     if (!res.ok) toast(res.error ?? "Remove failed.", "error");
-    else toast(`${removingSubject.name} removed from ${cls?.name}.`, "success");
+    else
+      toast(
+        `${removingSubject.name} removed from ${cls?.name}` +
+          (alsoFromExams
+            ? ` and from ${res.removedFromExams ?? 0} exam(s)` +
+              (res.marksRemoved ? ` (${res.marksRemoved} marks removed with it).` : ".")
+            : "."),
+        "success",
+      );
     setRemovingSubject(null);
   }
 
@@ -480,10 +502,24 @@ export default function ClassProfilePage() {
       <ConfirmDialog
         open={!!removingSubject}
         title={tr("academicsClasses.removeSubject")}
-        message={removingSubject ? `Remove ${removingSubject.name} from ${cls.name}?` : ""}
+        message={
+          !removingSubject
+            ? ""
+            : removeUsage && removeUsage.exams.length > 0
+              ? `${removingSubject.name} is on ${removeUsage.exams.length} exam(s) of ${cls.name} ` +
+                `(${removeUsage.totalMarks} marks entered). ` +
+                `"Remove from class" keeps it on those exams as they are. ` +
+                `"Remove from class and exams" also takes it off them: its marks are removed and students are no longer calculated for it.`
+              : `Remove ${removingSubject.name} from ${cls.name}?`
+        }
         confirmLabel={tr("academicsClasses.remove")}
-        onConfirm={handleRemoveSubject}
+        onConfirm={() => void handleRemoveSubject(false)}
         onClose={() => setRemovingSubject(null)}
+        extraAction={
+          removeUsage && removeUsage.exams.length > 0
+            ? { label: "Remove from class and exams", onClick: () => void handleRemoveSubject(true) }
+            : undefined
+        }
       />
       <FieldSelectDialog
         open={reportDialogOpen}
