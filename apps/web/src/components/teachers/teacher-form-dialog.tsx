@@ -168,6 +168,10 @@ export function TeacherFormDialog({ open, onClose, teacher, onSaved }: Props) {
     if (!form.phone.trim()) return setError("Phone number is required.");
     const salary = Number(form.salary);
     if (Number.isNaN(salary) || salary < 0) return setError("Invalid salary.");
+    // Whole dollars only — a salary of 3.5 was refused by the server with a
+    // bare "Bad Request".
+    if (!Number.isInteger(salary))
+      return setError("Salary must be a whole number with no decimals (for example 350).");
     if (form.shifts.length === 0) return setError("Select at least one shift.");
     if (!isEdit) {
       if (!form.password.trim()) return setError("Login password is required.");
@@ -270,7 +274,7 @@ export function TeacherFormDialog({ open, onClose, teacher, onSaved }: Props) {
         </div>
         <div>
           <Label required>{t("teachersTeacherFormDialog.salary")}</Label>
-          <Input type="number" min={0} value={form.salary} onChange={(e) => set("salary", e.target.value)} />
+          <Input type="number" min={0} step={1} value={form.salary} onChange={(e) => set("salary", e.target.value)} />
         </div>
         <div>
           <Label required>{t("teachersTeacherFormDialog.shift")}</Label>

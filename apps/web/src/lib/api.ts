@@ -3,6 +3,8 @@
  * (dev default "demo") and the bearer access token when present.
  * Automatically refreshes expired access tokens using the stored refresh token.
  */
+import { messageFromErrorBody } from "@ekulmis/shared";
+
 export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
 const ROOT_DOMAIN = process.env.NEXT_PUBLIC_APP_ROOT_DOMAIN ?? "";
 
@@ -195,12 +197,9 @@ export async function api<T>(
   if (!res.ok) {
     let message = res.statusText;
     try {
-      const data = (await res.json()) as { message?: string | string[] };
-      if (data.message) {
-        message = Array.isArray(data.message)
-          ? data.message.join(", ")
-          : data.message;
-      }
+      // Says which box was wrong for a validation refusal too, not just
+      // for ones that carry a `message` — those used to read "Bad Request".
+      message = messageFromErrorBody(await res.json(), res.statusText);
     } catch {
       // keep statusText
     }
