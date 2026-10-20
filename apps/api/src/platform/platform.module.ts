@@ -9,6 +9,7 @@ import { SchoolSignInService } from "./school-sign-in.service";
 import { PlatformDashboardController } from "./platform-dashboard.controller";
 import { PlatformService } from "./platform.service";
 import { DataHealthService } from "./data-health.service";
+import { SystemHealthService } from "./system-health.service";
 import { PlatformGuard } from "./platform.guard";
 
 /** Platform (Super Admin) layer — manages all tenants, separate from schools. */
@@ -29,7 +30,7 @@ import { PlatformGuard } from "./platform.guard";
     SchoolsController,
     PlatformDashboardController,
   ],
-  providers: [DataHealthService, 
+  providers: [DataHealthService, SystemHealthService, 
     PlatformAuthService,
     SchoolsService,
     SchoolSignInService,

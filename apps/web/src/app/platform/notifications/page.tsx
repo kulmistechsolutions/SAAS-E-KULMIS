@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Bell, Layers, MessageSquare, RefreshCw } from "lucide-react";
+import { Bell, Layers, MessageSquare, Server, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -18,6 +18,7 @@ const FILTERS: { id: "ALL" | PlatformEventType; label: string }[] = [
   { id: "ALL", label: "All events" },
   { id: "SUBSCRIPTION", label: "Subscriptions" },
   { id: "SMS_PURCHASE", label: "SMS purchases" },
+  { id: "SYSTEM", label: "System alerts" },
 ];
 
 function timeAgo(iso: string): string {
@@ -129,12 +130,18 @@ export default function PlatformNotificationsPage() {
                 <span
                   className={cn(
                     "mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full",
-                    e.type === "SUBSCRIPTION"
-                      ? "bg-violet-500/15 text-violet-300"
-                      : "bg-emerald-500/15 text-emerald-300",
+                    e.type === "SYSTEM"
+                      ? e.status === "ONGOING"
+                        ? "bg-rose-500/20 text-rose-300"
+                        : "bg-amber-500/15 text-amber-300"
+                      : e.type === "SUBSCRIPTION"
+                        ? "bg-violet-500/15 text-violet-300"
+                        : "bg-emerald-500/15 text-emerald-300",
                   )}
                 >
-                  {e.type === "SUBSCRIPTION" ? (
+                  {e.type === "SYSTEM" ? (
+                    <Server className="h-4 w-4" />
+                  ) : e.type === "SUBSCRIPTION" ? (
                     <Layers className="h-4 w-4" />
                   ) : (
                     <MessageSquare className="h-4 w-4" />
@@ -143,7 +150,7 @@ export default function PlatformNotificationsPage() {
                 <div className="min-w-0 flex-1">
                   <p className="text-sm text-slate-100">
                     <Link
-                      href={`/platform/schools/${e.schoolId}`}
+                      href={e.type === "SYSTEM" ? "/platform/system-health" : `/platform/schools/${e.schoolId}`}
                       className="font-medium hover:text-violet-300 hover:underline"
                     >
                       {e.title}

@@ -1,6 +1,7 @@
 import { Controller, Get, Param, Query, UseGuards } from "@nestjs/common";
 import { PlatformService } from "./platform.service";
 import { DataHealthService } from "./data-health.service";
+import { SystemHealthService } from "./system-health.service";
 import { PlatformGuard } from "./platform.guard";
 import { Public } from "../auth/public.decorator";
 
@@ -11,7 +12,14 @@ export class PlatformDashboardController {
   constructor(
     private readonly platform: PlatformService,
     private readonly dataHealth: DataHealthService,
+    private readonly systemHealth: SystemHealthService,
   ) {}
+
+  /** Server uptime, speed and incidents, from the host monitor's checks. */
+  @Get("system-health")
+  systemHealthReport() {
+    return this.systemHealth.report();
+  }
 
   @Get()
   dashboard() {

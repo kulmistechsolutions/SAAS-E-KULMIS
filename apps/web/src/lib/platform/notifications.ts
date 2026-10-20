@@ -1,9 +1,10 @@
 import {
   fetchPlatformSmsPayments,
   fetchPlatformSubscriptionHistory,
+  fetchSystemHealth,
 } from "./api";
 
-export type PlatformEventType = "SUBSCRIPTION" | "SMS_PURCHASE";
+export type PlatformEventType = "SUBSCRIPTION" | "SMS_PURCHASE" | "SYSTEM";
 
 export interface PlatformEvent {
   id: string;
@@ -37,10 +38,33 @@ function money(n: string | number, currency = "USD") {
  *  data (subscription history + SMS payment orders), each already capped
  *  at the most recent 100 rows server-side. */
 export async function fetchPlatformEvents(): Promise<PlatformEvent[]> {
-  const [history, payments] = await Promise.all([
+  const [history, payments, health] = await Promise.all([
     fetchPlatformSubscriptionHistory({ pageSize: 100 }),
     fetchPlatformSmsPayments(),
+    // The monitor's incidents are alerts for the platform owner. A failure to
+    // read them must not hide the rest of the feed.
+    fetchSystemHealth().catch(() => null),
   ]);
+
+  const systemEvents: PlatformEvent[] = (health?.incidents ?? []).map((i) => ({
+    id: `sys_${i.kind}_${i.startedAt}`,
+    type: "SYSTEM",
+    schoolId: "",
+    schoolName: "System",
+    subdomain: "",
+    title:
+      i.kind === "OUTAGE"
+        ? i.endedAt
+          ? `Server was unreachable for ${i.minutes} min`
+          : `Server not reporting for ${i.minutes} min`
+        : i.endedAt
+          ? `System problem for ${i.minutes} min — resolved`
+          : "System problem — ongoing",
+    detail: i.message,
+    status: i.endedAt ? "RESOLVED" : "ONGOING",
+    // An ongoing incident stays at the top as long as it lasts.
+    occurredAt: i.endedAt ?? new Date().toISOString(),
+  }));
 
   const subscriptionEvents: PlatformEvent[] = history.rows.map((r) => ({
     id: `sub_${r.id}`,
@@ -68,7 +92,7 @@ export async function fetchPlatformEvents(): Promise<PlatformEvent[]> {
       occurredAt: o.paidAt ?? o.createdAt,
     }));
 
-  return [...subscriptionEvents, ...smsEvents].sort(
+  return [...systemEvents, ...subscriptionEvents, ...smsEvents].sort(
     (a, b) => new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime(),
   );
 }

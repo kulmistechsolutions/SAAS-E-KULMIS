@@ -2997,6 +2997,31 @@ model ErrorLog {
   @@map("error_logs")
 }
 
+/// One row every five minutes from the host monitor (/root/ekulmis-health.sh).
+/// A gap between rows means the server itself was off.
+model SystemHealthCheck {
+  id             String    @id
+  checkedAt      DateTime  @default(now())
+  ok             Boolean
+  apiMs          Int?
+  webMs          Int?
+  dbMs           Int?
+  sitesChecked   Int       @default(0)
+  sitesFailed    Int       @default(0)
+  failedSites    String?
+  diskPct        Int?
+  memAvailableMb Int?
+  load1          Float?
+  bootedAt       DateTime?
+  containersDown String?
+  errors1h       Int?
+  backupAgeHours Float?
+  problems       String?
+
+  @@index([checkedAt])
+  @@map("system_health_checks")
+}
+
 /// Platform Super Admin audit trail (no schoolId required).
 model PlatformAuditLog {
   id        String   @id @default(cuid())

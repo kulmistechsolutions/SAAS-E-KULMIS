@@ -177,6 +177,61 @@ export interface PlatformErrorLogs {
   rows: PlatformErrorLogRow[];
 }
 
+export type SystemStatus = "OK" | "PROBLEM" | "NOT_REPORTING" | "NO_DATA";
+
+export interface SystemHealthCheckRow {
+  id: string;
+  checkedAt: string;
+  ok: boolean;
+  apiMs: number | null;
+  webMs: number | null;
+  dbMs: number | null;
+  sitesChecked: number;
+  sitesFailed: number;
+  failedSites: string | null;
+  diskPct: number | null;
+  memAvailableMb: number | null;
+  load1: number | null;
+  bootedAt: string | null;
+  containersDown: string | null;
+  errors1h: number | null;
+  backupAgeHours: number | null;
+  problems: string | null;
+}
+
+export interface SystemIncident {
+  kind: "OUTAGE" | "PROBLEM";
+  startedAt: string;
+  endedAt: string | null;
+  minutes: number;
+  message: string;
+}
+
+export interface SystemHealthReport {
+  status: SystemStatus;
+  checkedAt: string | null;
+  minutesSinceLast: number | null;
+  checkEveryMinutes: number;
+  latest: SystemHealthCheckRow | null;
+  last24h: {
+    checks: number;
+    expected: number;
+    okChecks: number;
+    uptimePct: number | null;
+    apiAvgMs: number | null;
+    apiP95Ms: number | null;
+    webAvgMs: number | null;
+    webP95Ms: number | null;
+  };
+  series: { t: string; apiMs: number | null; webMs: number | null; ok: boolean }[];
+  incidents: SystemIncident[];
+  recent: SystemHealthCheckRow[];
+}
+
+export async function fetchSystemHealth(): Promise<SystemHealthReport> {
+  return platformFetch<SystemHealthReport>("/platform/dashboard/system-health");
+}
+
 export async function fetchPlatformErrorLogs(opts?: {
   schoolId?: string;
   days?: number;
