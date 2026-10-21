@@ -10,3 +10,9 @@ allowBuilds:
   prisma: true
   sharp: true
   unrs-resolver: true
+
+# Security floors for transitive dependencies (pnpm audit, 2026-10-21).
+# proxy-addr <2.0.8: IP spoofing via IPv4-mapped IPv6 (critical), pulled in
+# through express.
+overrides:
+  proxy-addr: ">=2.0.8"
