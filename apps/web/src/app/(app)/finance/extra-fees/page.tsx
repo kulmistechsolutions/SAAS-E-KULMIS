@@ -506,6 +506,7 @@ export default function ExtraFeesPage() {
                 <Input
                   id="ef-amount"
                   type="number"
+                  step="0.01"
                   min={0}
                   className="mt-1.5"
                   placeholder={tr("financeExtraFees.eG10")}
@@ -534,6 +535,7 @@ export default function ExtraFeesPage() {
                               <span className="flex-1 truncate text-sm">{c.name}</span>
                               <Input
                                 type="number"
+                                step="0.01"
                                 min={0}
                                 className="h-8 w-28"
                                 placeholder="—"
@@ -754,6 +756,7 @@ function StudentPicker({
           <Input
             id="ef-student-amount"
             type="number"
+            step="0.01"
             min={0}
             className="mt-1.5"
             placeholder={tr("financeExtraFees.eG10")}

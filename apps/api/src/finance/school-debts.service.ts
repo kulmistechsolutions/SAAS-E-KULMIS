@@ -1,3 +1,4 @@
+import { roundMoney } from "@ekulmis/shared";
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import type {
   CreateDebtRepaymentInput,
@@ -60,7 +61,7 @@ export class SchoolDebtsService {
         return {
           ...d,
           repaid,
-          outstanding: Math.max(0, d.principal - repaid),
+          outstanding: Math.max(0, roundMoney(d.principal - repaid)),
           repaymentCount: p?._count._all ?? 0,
           lastRepaidAt: p?._max.paidAt ?? null,
           // A debt is overdue when its own date has passed and money is still
@@ -69,7 +70,7 @@ export class SchoolDebtsService {
             d.status === "OPEN" &&
             !!d.dueAt &&
             d.dueAt < new Date() &&
-            d.principal - repaid > 0,
+            roundMoney(d.principal - repaid) > 0,
         };
       });
     });
@@ -85,7 +86,7 @@ export class SchoolDebtsService {
         where: { debtId: id },
         orderBy: { paidAt: "desc" },
       });
-      const repaid = repayments.reduce((n, r) => n + r.amount, 0);
+      const repaid = repayments.reduce((n, r) => roundMoney(n + r.amount), 0);
 
       const userIds = [
         ...new Set(
@@ -108,12 +109,12 @@ export class SchoolDebtsService {
           ? (nameOf.get(debt.recordedByUserId) ?? null)
           : null,
         repaid,
-        outstanding: Math.max(0, debt.principal - repaid),
+        outstanding: Math.max(0, roundMoney(debt.principal - repaid)),
         overdue:
           debt.status === "OPEN" &&
           !!debt.dueAt &&
           debt.dueAt < new Date() &&
-          debt.principal - repaid > 0,
+          roundMoney(debt.principal - repaid) > 0,
         repayments: repayments.map((r) => ({
           ...r,
           recordedBy: r.recordedByUserId
@@ -211,7 +212,7 @@ export class SchoolDebtsService {
         _sum: { amount: true },
       });
       const repaid = paid._sum.amount ?? 0;
-      const remaining = debt.principal - repaid;
+      const remaining = roundMoney(debt.principal - repaid);
       if (remaining <= 0) {
         throw new BadRequestException("This debt is already fully repaid.");
       }
@@ -234,7 +235,7 @@ export class SchoolDebtsService {
         },
       });
 
-      if (repaid + dto.amount >= debt.principal) {
+      if (roundMoney(repaid + dto.amount) >= debt.principal) {
         await tx.schoolDebt.update({
           where: { id: debtId },
           data: { status: "SETTLED" },
@@ -285,7 +286,7 @@ export class SchoolDebtsService {
           : Promise.resolve({ _sum: { amount: null as number | null } }),
       ]);
 
-      const borrowed = debts.reduce((n, d) => n + d.principal, 0);
+      const borrowed = debts.reduce((n, d) => roundMoney(n + d.principal), 0);
       const repaid = repaidAll._sum.amount ?? 0;
 
       return {
@@ -294,7 +295,7 @@ export class SchoolDebtsService {
         settled: debts.filter((d) => d.status === "SETTLED").length,
         borrowed,
         repaid,
-        outstanding: Math.max(0, borrowed - repaid),
+        outstanding: Math.max(0, roundMoney(borrowed - repaid)),
         repaidInPeriod: repaidInRange._sum.amount ?? 0,
       };
     });

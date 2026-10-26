@@ -1,3 +1,4 @@
+import { roundMoney } from "@ekulmis/shared";
 import { Injectable, Logger } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { SmsService } from "./sms.service";
@@ -109,7 +110,7 @@ export class SmsAutoService {
         }),
       );
       const outstanding = owed.reduce(
-        (n, c) => n + (c.amount - c.paidAmount),
+        (n, c) => n + (roundMoney(c.amount - c.paidAmount)),
         0,
       );
       const cur = school?.currency === "USD" ? "$" : `${school?.currency ?? ""} `;

@@ -270,14 +270,14 @@ export class CopilotService {
           tx.salary.count({ where: { year: r.year, month: r.month, status: "PAID" } }),
           tx.$queryRaw<NamedTotalRow[]>`
             SELECT coalesce(c.name, 'Uncategorised') AS name,
-                   sum(e.amount)::int AS amount, count(*)::int AS count
+                   round(sum(e.amount)::numeric, 2)::float8 AS amount, count(*)::int AS count
             FROM expenses e
             LEFT JOIN expense_categories c ON c.id = e."categoryId"
             WHERE e."spentAt" >= ${r.start} AND e."spentAt" < ${r.end}
             GROUP BY 1 ORDER BY 2 DESC`,
           tx.$queryRaw<NamedTotalRow[]>`
             SELECT coalesce(c.name, oi.title) AS name,
-                   sum(oi.amount)::int AS amount, count(*)::int AS count
+                   round(sum(oi.amount)::numeric, 2)::float8 AS amount, count(*)::int AS count
             FROM other_income oi
             LEFT JOIN income_categories c ON c.id = oi."categoryId"
             WHERE oi."receivedAt" >= ${r.start} AND oi."receivedAt" < ${r.end}
@@ -291,11 +291,11 @@ export class CopilotService {
                 ${r.start}::timestamp, interval '1 month') d
             )
             SELECT m.month,
-              coalesce((SELECT sum(fc.amount)::int FROM fee_charges fc
+              coalesce((SELECT round(sum(fc.amount)::numeric, 2)::float8 FROM fee_charges fc
                         WHERE fc.kind = 'MONTHLY'
                           AND fc.year = extract(year FROM m.start)::int
                           AND fc.month = extract(month FROM m.start)::int), 0) AS expected,
-              coalesce((SELECT sum(p.amount)::int FROM payments p
+              coalesce((SELECT round(sum(p.amount)::numeric, 2)::float8 FROM payments p
                         WHERE p."paidAt" >= m.start AND p."paidAt" < m.stop), 0) AS collected
             FROM m ORDER BY m.month`,
         ]);
@@ -656,7 +656,7 @@ export class CopilotService {
           { code: string; name: string; className: string | null; owed: number }[]
         >`
           SELECT st.code, st."fullName" AS name, c.name AS "className",
-                 sum(fc.amount - fc."paidAmount")::int AS owed
+                 round(sum(fc.amount - fc."paidAmount")::numeric, 2)::float8 AS owed
           FROM fee_charges fc
           JOIN students st ON st.id = fc."studentId"
           LEFT JOIN classes c ON c.id = st."classId"

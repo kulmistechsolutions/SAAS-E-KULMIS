@@ -1,3 +1,4 @@
+import { roundMoney } from "@ekulmis/shared";
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { AuditService } from "../audit/audit.service";
@@ -71,7 +72,7 @@ export class FeeAdjustmentsService {
       // A waiver clears whatever is still owed; a discount takes off what was
       // asked for. Neither may reach past the balance into money already
       // collected — refunding is a different decision, with its own approval.
-      const remaining = Math.max(0, charge.amount - charge.paidAmount);
+      const remaining = Math.max(0, roundMoney(charge.amount - charge.paidAmount));
       const off =
         input.type === "WAIVER" ? remaining : Math.round(input.amount ?? 0);
       if (off <= 0) {
@@ -83,7 +84,7 @@ export class FeeAdjustmentsService {
         );
       }
 
-      const newAmount = charge.amount - off;
+      const newAmount = roundMoney(charge.amount - off);
       await tx.feeCharge.update({
         where: { id: charge.id },
         data: {

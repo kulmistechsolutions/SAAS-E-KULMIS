@@ -1,3 +1,4 @@
+import { roundMoney } from "@ekulmis/shared";
 import { Injectable } from "@nestjs/common";
 import { z } from "zod";
 import { PrismaService } from "../prisma/prisma.service";
@@ -234,7 +235,7 @@ export class CardIssuesService {
     const owed = new Map<string, number>();
     for (const c of charges) {
       // A charge can be part-paid, so the debt is the remainder, not the total.
-      const rest = Math.max(0, c.amount - c.paidAmount);
+      const rest = Math.max(0, roundMoney(c.amount - c.paidAmount));
       if (rest > 0) owed.set(c.studentId, (owed.get(c.studentId) ?? 0) + rest);
     }
     const books = new Map<string, number>();

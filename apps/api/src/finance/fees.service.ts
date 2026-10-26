@@ -18,7 +18,7 @@ import type {
   UpdateExtraFeeInput,
   UpdatePaymentPromiseInput,
 } from "@ekulmis/shared";
-import { classifyPayment } from "@ekulmis/shared";
+import { classifyPayment, roundMoney } from "@ekulmis/shared";
 import type { PaymentType, Prisma, UserRole } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { parseDateFrom, parseDateTo } from "../common/date-range.util";
@@ -1221,10 +1221,10 @@ export class FeesService {
       let remaining = dto.amount;
       for (const charge of outstanding) {
         if (remaining <= 0) break;
-        const due = charge.amount - charge.paidAmount;
+        const due = roundMoney(charge.amount - charge.paidAmount);
         if (due <= 0) continue;
         const applied = Math.min(due, remaining);
-        const paidAmount = charge.paidAmount + applied;
+        const paidAmount = roundMoney(charge.paidAmount + applied);
         await tx.feeCharge.update({
           where: { id: charge.id },
           data: {
@@ -1233,7 +1233,7 @@ export class FeesService {
           },
         });
         allocations.push({ feeChargeId: charge.id, amount: applied, year: charge.year, month: charge.month, kind: charge.kind, label: charge.label, settled: paidAmount >= charge.amount });
-        remaining -= applied;
+        remaining = roundMoney(remaining - applied);
       }
 
       // Money left over after settling everything it was aimed at is real
@@ -1259,21 +1259,21 @@ export class FeesService {
         });
         for (const charge of unpaidFuture) {
           if (remaining <= 0) break;
-          const due = charge.amount - charge.paidAmount;
+          const due = roundMoney(charge.amount - charge.paidAmount);
           if (due <= 0) continue;
           const applied = Math.min(due, remaining);
           await tx.feeCharge.update({
             where: { id: charge.id },
             data: {
-              paidAmount: charge.paidAmount + applied,
+              paidAmount: roundMoney(charge.paidAmount + applied),
               status:
-                charge.paidAmount + applied >= charge.amount
+                roundMoney(charge.paidAmount + applied) >= charge.amount
                   ? "PAID"
                   : "PARTIAL",
             },
           });
-          allocations.push({ feeChargeId: charge.id, amount: applied, year: charge.year, month: charge.month, kind: charge.kind, label: charge.label, settled: charge.paidAmount + applied >= charge.amount });
-          remaining -= applied;
+          allocations.push({ feeChargeId: charge.id, amount: applied, year: charge.year, month: charge.month, kind: charge.kind, label: charge.label, settled: roundMoney(charge.paidAmount + applied) >= charge.amount });
+          remaining = roundMoney(remaining - applied);
         }
 
         if (remaining > 0 && mayBillAhead(dto.type)) {
@@ -1304,18 +1304,18 @@ export class FeesService {
             });
             if (dup?.status === "PAID") continue;
             if (dup) {
-              const due = dup.amount - dup.paidAmount;
+              const due = roundMoney(dup.amount - dup.paidAmount);
               const applied = Math.min(due, remaining);
               await tx.feeCharge.update({
                 where: { id: dup.id },
                 data: {
-                  paidAmount: dup.paidAmount + applied,
+                  paidAmount: roundMoney(dup.paidAmount + applied),
                   status:
-                    dup.paidAmount + applied >= dup.amount ? "PAID" : "PARTIAL",
+                    roundMoney(dup.paidAmount + applied) >= dup.amount ? "PAID" : "PARTIAL",
                 },
               });
-              allocations.push({ feeChargeId: dup.id, amount: applied, year: dup.year, month: dup.month, kind: dup.kind, label: dup.label, settled: dup.paidAmount + applied >= dup.amount });
-              remaining -= applied;
+              allocations.push({ feeChargeId: dup.id, amount: applied, year: dup.year, month: dup.month, kind: dup.kind, label: dup.label, settled: roundMoney(dup.paidAmount + applied) >= dup.amount });
+              remaining = roundMoney(remaining - applied);
               continue;
             }
             const applied = Math.min(student.monthlyFee, remaining);
@@ -1331,7 +1331,7 @@ export class FeesService {
               },
             });
             allocations.push({ feeChargeId: newCharge.id, amount: applied, year: y, month: m, kind: newCharge.kind, label: newCharge.label, settled: applied >= newCharge.amount });
-            remaining -= applied;
+            remaining = roundMoney(remaining - applied);
           }
         }
       }
@@ -1342,7 +1342,7 @@ export class FeesService {
       // which is how a family ended up holding a receipt for October while the
       // school had only ever opened September.
       if (remaining > 0) {
-        const settled = dto.amount - remaining;
+        const settled = roundMoney(dto.amount - remaining);
         throw new BadRequestException(
           settled > 0
             ? `This student owes ${settled}, not ${dto.amount}. Collect ${settled}, or choose Advance payment to take money for later months.`
@@ -1508,10 +1508,10 @@ export class FeesService {
         >();
         for (const charge of outstanding) {
           if (remaining <= 0) break;
-          const due = charge.amount - charge.paidAmount;
+          const due = roundMoney(charge.amount - charge.paidAmount);
           if (due <= 0) continue;
           const applied = Math.min(due, remaining);
-          const paidAmount = charge.paidAmount + applied;
+          const paidAmount = roundMoney(charge.paidAmount + applied);
           await tx.feeCharge.update({
             where: { id: charge.id },
             data: {
@@ -1519,7 +1519,7 @@ export class FeesService {
               status: paidAmount >= charge.amount ? "PAID" : "PARTIAL",
             },
           });
-          remaining -= applied;
+          remaining = roundMoney(remaining - applied);
           appliedByStudent.set(
             charge.studentId,
             (appliedByStudent.get(charge.studentId) ?? 0) + applied,
@@ -1675,7 +1675,7 @@ export class FeesService {
           where: { id: u.feeChargeId },
         });
         if (!charge) continue;
-        const paidAmount = Math.max(0, charge.paidAmount - u.amount);
+        const paidAmount = Math.max(0, roundMoney(charge.paidAmount - u.amount));
         await tx.feeCharge.update({
           where: { id: charge.id },
           data: {
@@ -1869,10 +1869,10 @@ export class FeesService {
       });
 
       const billable = charges.filter((c) => c.status !== "INACTIVE");
-      const totalDue = billable.reduce((s, c) => s + c.amount, 0);
-      const totalPaid = billable.reduce((s, c) => s + c.paidAmount, 0);
+      const totalDue = billable.reduce((s, c) => roundMoney(s + c.amount), 0);
+      const totalPaid = billable.reduce((s, c) => roundMoney(s + c.paidAmount), 0);
       const outstanding = billable.reduce(
-        (s, c) => s + Math.max(0, c.amount - c.paidAmount),
+        (s, c) => roundMoney(s + Math.max(0, c.amount - c.paidAmount)),
         0,
       );
 
@@ -1891,8 +1891,8 @@ export class FeesService {
       ).length;
 
       const extras = billable.filter((c) => c.kind === "EXTRA");
-      const extraTotal = extras.reduce((s, c) => s + c.amount, 0);
-      const monthlyTotal = billableMonthly.reduce((s, c) => s + c.amount, 0);
+      const extraTotal = extras.reduce((s, c) => roundMoney(s + c.amount), 0);
+      const monthlyTotal = billableMonthly.reduce((s, c) => roundMoney(s + c.amount), 0);
 
       return {
         student,
@@ -2268,7 +2268,7 @@ export class FeesService {
       targets,
       studentCount: targets.length,
       pendingCount: pending.length,
-      totalAmount: pending.reduce((s, t) => s + t.amount, 0),
+      totalAmount: pending.reduce((s, t) => roundMoney(s + t.amount), 0),
     };
   }
 
@@ -2312,7 +2312,7 @@ export class FeesService {
         return {
           applied: pending.length,
           skipped: targets.length - pending.length,
-          totalAmount: pending.reduce((s, t) => s + t.amount, 0),
+          totalAmount: pending.reduce((s, t) => roundMoney(s + t.amount), 0),
         };
       },
       { timeout: 120_000, maxWait: 30_000 },

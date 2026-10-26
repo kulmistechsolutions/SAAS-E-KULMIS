@@ -8,6 +8,8 @@
  * amount back to a number with /[^\d.-]/ (components/reports/report-chart.tsx),
  * and a dot inside the symbol would corrupt that back-conversion.
  */
+import { roundMoney } from "@ekulmis/shared";
+
 export interface CurrencyDef {
   code: string;
   symbol: string;
@@ -60,8 +62,11 @@ export function formatWithCurrency(
   cur: CurrencyDef,
   opts: FormatMoneyOptions = {},
 ): string {
-  const decimals = opts.decimals ?? cur.decimals;
-  const amount = (Number.isFinite(n) ? n : 0).toLocaleString(undefined, {
+  const value = Number.isFinite(n) ? n : 0;
+  // Screens that ask for whole numbers still show the cents of a fee like
+  // $5.50 — rounding it to $6 would print a figure nobody owes.
+  const decimals = Math.max(opts.decimals ?? cur.decimals, Number.isInteger(roundMoney(value)) ? 0 : 2);
+  const amount = value.toLocaleString(undefined, {
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals,
   });
@@ -73,5 +78,5 @@ export function formatCompactWithCurrency(n: number, cur: CurrencyDef): string {
   const abs = Math.abs(n);
   if (abs >= 1_000_000) return join(cur.symbol, `${Math.round(n / 1_000_000)}M`);
   if (abs >= 1_000) return join(cur.symbol, `${Math.round(n / 1_000)}K`);
-  return join(cur.symbol, String(Math.round(n)));
+  return join(cur.symbol, String(roundMoney(n)));
 }

@@ -97,6 +97,7 @@ export default function AcademicYearSetupPage() {
             <Label>{t("financeAcademicYearSetup.defaultMonthlyFeeOptional")}</Label>
             <Input
               type="number"
+              step="0.01"
               min={0}
               value={monthlyFee}
               onChange={(e) => setMonthlyFee(e.target.value)}

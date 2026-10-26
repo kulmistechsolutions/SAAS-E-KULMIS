@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { moneySchema, positiveMoneySchema } from "../money";
 
 export const PaymentType = {
   THIS_MONTH: "THIS_MONTH",
@@ -39,7 +40,7 @@ export const salaryStatusSchema = z.nativeEnum(SalaryStatus);
 
 const year = z.number().int().min(2000).max(2100);
 const month = z.number().int().min(1).max(12);
-const positiveAmount = z.number().int().positive();
+const positiveAmount = positiveMoneySchema();
 
 /**
  * Money that may carry cents — 0.50, 12.75, 150.
@@ -74,7 +75,7 @@ export const chargeMonthSchema = z.object({
   sectionId: z.string().min(1).nullable().optional(),
   year,
   month,
-  amount: z.number().int().nonnegative().optional(), // defaults to student's monthlyFee
+  amount: moneySchema().optional(), // defaults to student's monthlyFee
 });
 export type ChargeMonthInput = z.infer<typeof chargeMonthSchema>;
 
@@ -88,7 +89,7 @@ export const setupMonthSchema = z
     month,
     scope: z.enum(["all", "selected"]),
     classIds: z.array(z.string().min(1)).optional(),
-    amount: z.number().int().nonnegative().optional(),
+    amount: moneySchema().optional(),
   })
   .refine((o) => o.scope === "all" || (o.classIds && o.classIds.length > 0), {
     message: "Select at least one class",
@@ -167,7 +168,7 @@ export const feeStartModeSchema = z.nativeEnum(FeeStartMode);
 export const setupAcademicYearFeesSchema = z.object({
   academicYearId: z.string().min(1),
   academicMonths: z.number().int().positive().optional(),
-  monthlyFee: z.number().int().nonnegative().optional(),
+  monthlyFee: moneySchema().optional(),
   billingStartMonth: month.optional(),
   billingEndMonth: month.optional(),
 });
@@ -177,7 +178,7 @@ export type SetupAcademicYearFeesInput = z.infer<
 
 export const studentFeeStartSchema = z.object({
   feeStartMode: feeStartModeSchema.optional(),
-  agreementAmount: z.number().int().nonnegative().optional(),
+  agreementAmount: moneySchema().optional(),
   billingStartYear: year.optional(),
   billingStartMonth: month.optional(),
   /// Charge the school's one-time registration fee now. Ignored if the
@@ -227,7 +228,7 @@ export type ReverseSalaryPaymentInput = z.infer<typeof reverseSalaryPaymentSchem
 
 const extraFeeClassAmountSchema = z.object({
   classId: z.string().min(1),
-  amount: z.number().int().nonnegative(),
+  amount: moneySchema(),
 });
 
 const extraFeeBase = z.object({
@@ -238,7 +239,7 @@ const extraFeeBase = z.object({
   /** true = one price for every class; false = per-class prices. */
   appliesToAllClasses: z.boolean().default(true),
   /** Required when appliesToAllClasses is true. */
-  defaultAmount: z.number().int().nonnegative().nullable().optional(),
+  defaultAmount: moneySchema().nullable().optional(),
   /** Required (non-empty) when appliesToAllClasses is false. */
   classAmounts: z.array(extraFeeClassAmountSchema).default([]),
   /**
@@ -379,7 +380,7 @@ export const feeAdjustmentSchema = z.object({
   feeChargeId: z.string().min(1),
   type: z.enum(["DISCOUNT", "WAIVER", "ADJUSTMENT"]),
   /** Ignored for WAIVER, which clears whatever is still owed. */
-  amount: z.number().int().positive().optional(),
+  amount: positiveMoneySchema().optional(),
   reason: z.string().min(3).max(300),
 });
 export type FeeAdjustmentInput = z.infer<typeof feeAdjustmentSchema>;
@@ -399,7 +400,7 @@ export const feeChangeScopeSchema = z.enum([
 
 export const feeChangeSchema = z.object({
   studentId: z.string().min(1),
-  newFee: z.number().int().min(0),
+  newFee: moneySchema(),
   scope: feeChangeScopeSchema,
   reason: z.string().min(3).max(300).optional(),
 });
@@ -421,7 +422,7 @@ export const schoolDebtStatusSchema = z.nativeEnum(SchoolDebtStatus);
 export const createSchoolDebtSchema = z.object({
   lender: z.string().min(1, "Who the money is owed to is required").max(160),
   purpose: z.string().max(300).optional(),
-  principal: z.number().int().positive("Amount must be more than zero"),
+  principal: positiveMoneySchema("Amount must be more than zero"),
   reference: z.string().max(120).optional(),
   takenAt: z.string().optional(),
   dueAt: z.string().optional().nullable(),
@@ -435,7 +436,7 @@ export const updateSchoolDebtSchema = createSchoolDebtSchema
 export type UpdateSchoolDebtInput = z.infer<typeof updateSchoolDebtSchema>;
 
 export const createDebtRepaymentSchema = z.object({
-  amount: z.number().int().positive("Amount must be more than zero"),
+  amount: positiveMoneySchema("Amount must be more than zero"),
   method: z.string().max(60).optional(),
   reference: z.string().max(120).optional(),
   note: z.string().max(600).optional(),

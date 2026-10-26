@@ -1,3 +1,4 @@
+import { roundMoney } from "@ekulmis/shared";
 import { Injectable } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 
@@ -87,7 +88,7 @@ export class FinanceService {
       const totalSalaries = salAgg._sum.amountPaid ?? 0;
       const debtRepaid = debtAgg._sum.amount ?? 0;
       const totalOutstanding = outstandingCharges.reduce(
-        (sum, c) => sum + (c.amount - c.paidAmount),
+        (sum, c) => roundMoney(sum + (c.amount - c.paidAmount)),
         0,
       );
 

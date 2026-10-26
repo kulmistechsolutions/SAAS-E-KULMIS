@@ -1,5 +1,6 @@
 "use client";
 
+import { roundMoney } from "@ekulmis/shared";
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
@@ -302,7 +303,7 @@ function RepayDialog({
     setSaving(true);
     try {
       const dto: CreateRepaymentInput = {
-        amount: Math.round(value),
+        amount: roundMoney(value),
         method: method.trim() || undefined,
         reference: reference.trim() || undefined,
         note: note.trim() || undefined,
@@ -347,7 +348,8 @@ function RepayDialog({
           </span>
           <Input
             type="number"
-            min={1}
+            step="0.01"
+            min={0.01}
             max={remaining}
             value={amount}
             onChange={(e) => setAmount(e.target.value)}

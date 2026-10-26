@@ -136,6 +136,7 @@ export function EmployeeFormDialog({ open, onClose, employee }: Props) {
           <Label>{t("salaryEmployeeFormDialog.monthlySalary")}</Label>
           <Input
             type="number"
+            step="0.01"
             min={0}
             value={salary}
             onChange={(e) => setSalary(e.target.value)}

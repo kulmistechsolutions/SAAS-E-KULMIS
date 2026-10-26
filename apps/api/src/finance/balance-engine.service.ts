@@ -1,3 +1,4 @@
+import { roundMoney } from "@ekulmis/shared";
 import { Injectable } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { currentCalendarMonth } from "./fee-billing.util";
@@ -209,8 +210,8 @@ export class BalanceEngineService {
       const inactive = c.status === "INACTIVE";
       const expected = inactive ? 0 : c.amount;
       const paid = c.paidAmount;
-      const outstanding = inactive ? 0 : Math.max(0, expected - paid);
-      const credit = Math.max(0, paid - expected);
+      const outstanding = inactive ? 0 : Math.max(0, roundMoney(expected - paid));
+      const credit = Math.max(0, roundMoney(paid - expected));
 
       let status: ChargeLine["status"];
       if (inactive) status = "INACTIVE";
@@ -260,15 +261,15 @@ export class BalanceEngineService {
 
     for (const l of lines) {
       if (l.status === "INACTIVE") continue;
-      credit += l.credit;
+      credit = roundMoney(credit + l.credit);
       if (l.due) {
         anyDue = true;
-        expected += l.expected;
-        paid += Math.min(l.paid, l.expected);
-        outstanding += l.outstanding;
+        expected = roundMoney(expected + l.expected);
+        paid = roundMoney(paid + Math.min(l.paid, l.expected));
+        outstanding = roundMoney(outstanding + l.outstanding);
         if (l.paid > 0 && l.paid < l.expected) anyPartLine = true;
       } else {
-        advance += l.paid;
+        advance = roundMoney(advance + l.paid);
       }
     }
 
@@ -464,17 +465,17 @@ export class BalanceEngineService {
         const m =
           months.get(l.monthKey) ??
           { monthKey: l.monthKey, expected: 0, collected: 0, outstanding: 0 };
-        m.expected += l.expected;
-        m.collected += l.paid;
-        m.outstanding += l.outstanding;
+        m.expected = roundMoney(m.expected + l.expected);
+        m.collected = roundMoney(m.collected + l.paid);
+        m.outstanding = roundMoney(m.outstanding + l.outstanding);
         months.set(l.monthKey, m);
 
         // A class's performance is its due work: money not yet owed would
         // read as a class falling behind on a bill it has not been sent.
         if (!l.due) continue;
-        cls.expected += l.expected;
-        cls.collected += l.paid;
-        cls.outstanding += l.outstanding;
+        cls.expected = roundMoney(cls.expected + l.expected);
+        cls.collected = roundMoney(cls.collected + l.paid);
+        cls.outstanding = roundMoney(cls.outstanding + l.outstanding);
       }
       classes.set(className, cls);
     }
@@ -543,16 +544,16 @@ export class BalanceEngineService {
     const liveKey = live.monthKey;
     const totals = positions.reduce(
       (acc, p) => {
-        acc.expected += p.expected;
-        acc.collected += p.paid;
-        acc.outstanding += p.outstanding;
+        acc.expected = roundMoney(acc.expected + p.expected);
+        acc.collected = roundMoney(acc.collected + p.paid);
+        acc.outstanding = roundMoney(acc.outstanding + p.outstanding);
         for (const l of p.lines) {
           if (l.monthKey !== liveKey || l.status === "INACTIVE") continue;
-          acc.expectedThisMonth += l.expected;
-          acc.outstandingThisMonth += l.outstanding;
+          acc.expectedThisMonth = roundMoney(acc.expectedThisMonth + l.expected);
+          acc.outstandingThisMonth = roundMoney(acc.outstandingThisMonth + l.outstanding);
         }
-        acc.advance += p.advance;
-        acc.credit += p.credit;
+        acc.advance = roundMoney(acc.advance + p.advance);
+        acc.credit = roundMoney(acc.credit + p.credit);
         acc.students[
           p.state === "FREE"
             ? "free"

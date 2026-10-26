@@ -1,5 +1,6 @@
 "use client";
 
+import { roundMoney } from "@ekulmis/shared";
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import {
@@ -314,7 +315,7 @@ function AddDebtDialog({
     try {
       const dto: CreateDebtInput = {
         lender: lender.trim(),
-        principal: Math.round(amount),
+        principal: roundMoney(amount),
         purpose: purpose.trim() || undefined,
         reference: reference.trim() || undefined,
         takenAt,
@@ -366,7 +367,8 @@ function AddDebtDialog({
           </span>
           <Input
             type="number"
-            min={1}
+            step="0.01"
+            min={0.01}
             value={principal}
             onChange={(e) => setPrincipal(e.target.value)}
           />

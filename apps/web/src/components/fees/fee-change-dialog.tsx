@@ -131,6 +131,7 @@ export function FeeChangeDialog({
           <Input
             className="mt-1.5"
             type="number"
+            step="0.01"
             min={0}
             value={fee}
             onChange={(e) => setFee(e.target.value)}

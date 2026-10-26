@@ -291,7 +291,8 @@ export function PaymentDialog({
                 <Input
                   className="mt-1.5"
                   type="number"
-                  min={1}
+                  step="0.01"
+                  min={0.01}
                   max={outstanding}
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}

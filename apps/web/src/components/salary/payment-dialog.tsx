@@ -130,7 +130,8 @@ export function SalaryPaymentDialog({
             <Input
               id="pay-amount"
               type="number"
-              min={1}
+              step="0.01"
+              min={0.01}
               max={row.remainingBalance}
               value={amount}
               onChange={(e) => setAmount(e.target.value)}

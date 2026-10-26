@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { moneySchema } from "../money";
 import { genderSchema } from "./student";
 
 /** A shift is identified by its AttendanceShift.id — a school's own named,
@@ -33,7 +34,7 @@ export const registerTeacherSchema = z.object({
   email: z.string().email().nullable().optional(),
   address: z.string().nullable().optional(),
   qualification: z.string().nullable().optional(),
-  salary: z.number().int().nonnegative().optional(),
+  salary: moneySchema().optional(),
   shifts: teacherShiftsSchema,
   password: teacherPasswordSchema.optional(),
 });
@@ -54,7 +55,7 @@ export const updateTeacherSchema = z
     email: z.string().email().nullable().optional(),
     address: z.string().nullable().optional(),
     qualification: z.string().nullable().optional(),
-    salary: z.number().int().nonnegative().optional(),
+    salary: moneySchema().optional(),
     shifts: teacherShiftsSchema.optional(),
     status: employmentStatusSchema.optional(),
     canViewStudents: z.boolean().optional(),

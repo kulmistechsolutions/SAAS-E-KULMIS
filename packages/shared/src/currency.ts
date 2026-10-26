@@ -8,6 +8,8 @@
  * formatted amount back to a number with /[^\d.-]/, and a dot inside the
  * symbol would corrupt that back-conversion.
  */
+import { roundMoney } from "./money";
+
 export interface CurrencyDef {
   code: string;
   symbol: string;
@@ -49,8 +51,11 @@ export function formatMoney(
   opts: { decimals?: number; bare?: boolean } = {},
 ): string {
   const cur = currencyByCode(currencyCode);
-  const decimals = opts.decimals ?? cur.decimals;
-  const amount = (Number.isFinite(n) ? n : 0).toLocaleString(undefined, {
+  const value = Number.isFinite(n) ? n : 0;
+  // Screens that ask for whole numbers still show the cents of a fee like
+  // $5.50 — rounding it to $6 would print a figure nobody owes.
+  const decimals = Math.max(opts.decimals ?? cur.decimals, Number.isInteger(roundMoney(value)) ? 0 : 2);
+  const amount = value.toLocaleString(undefined, {
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals,
   });

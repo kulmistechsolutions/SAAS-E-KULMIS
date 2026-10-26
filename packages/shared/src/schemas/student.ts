@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { moneySchema } from "../money";
 
 export const Gender = { MALE: "MALE", FEMALE: "FEMALE" } as const;
 export type Gender = (typeof Gender)[keyof typeof Gender];
@@ -54,11 +55,11 @@ export const registerStudentSchema = z.object({
   /// settings the schema alone doesn't have.
   villageId: z.string().min(1).nullable().optional(),
   districtId: z.string().min(1).nullable().optional(),
-  monthlyFee: z.number().int().nonnegative().optional(),
+  monthlyFee: moneySchema().optional(),
   feeStartMode: z
     .enum(["FULL_CURRENT", "AGREEMENT", "NEXT_MONTH"])
     .optional(),
-  agreementAmount: z.number().int().nonnegative().optional(),
+  agreementAmount: moneySchema().optional(),
   /// Permanent tuition exemption — see Student.feeWaived.
   feeWaived: z.boolean().optional(),
   /// Charge the school's one-time registration fee now, on top of whatever
@@ -117,7 +118,7 @@ export const updateStudentSchema = z
     sectionId: z.string().nullable().optional(),
     villageId: z.string().min(1).nullable().optional(),
     districtId: z.string().min(1).nullable().optional(),
-    monthlyFee: z.number().int().nonnegative().optional(),
+    monthlyFee: moneySchema().optional(),
     /// Permanent tuition exemption — see Student.feeWaived. Editable any
     /// time, not just at registration, since it's meant to be an ongoing
     /// status an admin turns on or off as circumstances change.

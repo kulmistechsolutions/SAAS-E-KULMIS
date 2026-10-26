@@ -170,7 +170,7 @@ model School {
   feeMonthSetupDay     Int         @default(25)
   /// One-time fee charged at registration, separate from the recurring
   /// tuition fee. 0 = the school doesn't use a registration fee.
-  registrationFeeAmount Int        @default(0)
+  registrationFeeAmount Float      @default(0)
 
   // ── Custom academic structure ──
   /// Off by default, so a school keeps the plain Grade 1–12 ladder and sees no
@@ -660,10 +660,10 @@ model Student {
   /// District, from the school's own district list — collected only by the
   /// DETAILED registration form, same as placeOfBirth/motherName above.
   districtId            String?
-  monthlyFee           Int           @default(0)
-  annualFeeAmount      Int?
+  monthlyFee           Float         @default(0)
+  annualFeeAmount      Float?
   feeStartMode         FeeStartMode?
-  feeAgreementAmount   Int?
+  feeAgreementAmount   Float?
   feeBillingStartYear  Int?
   feeBillingStartMonth Int?
   /// Permanent, ongoing exemption from monthly/academic-year tuition charges —
@@ -795,7 +795,7 @@ model Teacher {
   address          String?
   qualification    String?
   gender           Gender
-  salary           Int              @default(0)
+  salary           Float            @default(0)
   status           EmploymentStatus @default(ACTIVE)
   /// Explicit admin grant — teachers cannot browse students without this.
   canViewStudents  Boolean          @default(false)
@@ -1036,8 +1036,8 @@ model FeeCharge {
   academicYearId String?
   year           Int
   month          Int
-  amount         Int
-  paidAmount     Int           @default(0)
+  amount         Float
+  paidAmount     Float         @default(0)
   status         FeeStatus     @default(UNPAID)
   kind           FeeChargeKind @default(MONTHLY)
   /// Shown on the invoice/history for EXTRA rows, e.g. "Exam Fee". Denormalised
@@ -1074,7 +1074,7 @@ model ExtraFee {
   year                Int
   month               Int
   /// Used when appliesToAllClasses is true. Ignored otherwise.
-  defaultAmount       Int?
+  defaultAmount       Float?
   /// true = every active class at `defaultAmount`; false = only the classes in
   /// classAmounts, each at its own price.
   appliesToAllClasses Boolean @default(true)
@@ -1106,7 +1106,7 @@ model ExtraFeeClassAmount {
   schoolId   String
   extraFeeId String
   classId    String
-  amount     Int
+  amount     Float
 
   extraFee ExtraFee @relation(fields: [extraFeeId], references: [id], onDelete: Cascade)
   class    Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
@@ -1125,8 +1125,8 @@ model AcademicYearFeeSetup {
   academicMonths    Int
   billingStartMonth Int
   billingEndMonth   Int
-  monthlyFee        Int?
-  totalAnnualFee    Int
+  monthlyFee        Float?
+  totalAnnualFee    Float
   activatedAt       DateTime @default(now())
 
   academicYear AcademicYear @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
@@ -1171,9 +1171,9 @@ model FeeAdjustment {
   feeChargeId       String
   type              FeeAdjustmentType
   /// What the charge asked before this adjustment.
-  originalAmount    Int
+  originalAmount    Float
   /// How much came off. `originalAmount - amount` is what remains payable.
-  amount            Int
+  amount            Float
   reason            String
   createdByUserId   String?
   createdByUsername String?
@@ -1203,8 +1203,8 @@ model FeeChangeLog {
   id                String         @id @default(cuid())
   schoolId          String
   studentId         String
-  oldFee            Int
-  newFee            Int
+  oldFee            Float
+  newFee            Float
   scope             FeeChangeScope
   /// How many billing rows this change actually repriced.
   chargesUpdated    Int            @default(0)
@@ -1273,7 +1273,7 @@ model Payment {
   studentId         String
   receiptNumber     String
   type              PaymentType
-  amount            Int
+  amount            Float
   method            String?
   collectedByUserId String?
   note              String?
@@ -1326,7 +1326,7 @@ model PaymentPromise {
   /// Who said it / what was said, e.g. "Mother — will pay after salary Friday".
   note            String
   /// Optional expected amount, just for display — not enforced against any charge.
-  amount          Int?
+  amount          Float?
   status          PaymentPromiseStatus @default(PENDING)
   createdByUserId String?
   createdAt       DateTime             @default(now())
@@ -1393,7 +1393,7 @@ model PaymentAllocation {
   schoolId    String
   paymentId   String
   feeChargeId String
-  amount      Int
+  amount      Float
   createdAt   DateTime @default(now())
 
   payment   Payment   @relation(fields: [paymentId], references: [id], onDelete: Cascade)
@@ -1413,12 +1413,12 @@ model Salary {
   employeeId   String?
   employeeName String
   position     String?
-  amount       Int
+  amount       Float
   /// Running total actually collected against `amount` — drives PARTIAL vs
   /// PAID. Previously nothing tracked this: `status` could say PARTIAL while
   /// the paid amount was silently 0 on every reload, because the individual
   /// payment record was kept client-side only. See SalaryPayment.
-  amountPaid   Int          @default(0)
+  amountPaid   Float        @default(0)
   year         Int
   month        Int
   status       SalaryStatus @default(PENDING)
@@ -1448,7 +1448,7 @@ model SalaryPayment {
   schoolId          String
   salaryId          String
   employeeName      String
-  amount            Int
+  amount            Float
   paymentMethod     String?
   note              String?
   collectedByUserId String?
@@ -1484,7 +1484,7 @@ model Employee {
   fullName  String
   position  String
   phone     String?
-  salary    Int              @default(0)
+  salary    Float            @default(0)
   status    EmploymentStatus @default(ACTIVE)
   notes     String?
   createdAt DateTime         @default(now())
@@ -1559,7 +1559,7 @@ model OtherIncome {
   title            String
   /// Who or what the money came from — the donor, tenant, or payer.
   source           String?
-  amount           Int
+  amount           Float
   method           String?
   note             String?
   recordedByUserId String?
@@ -3394,7 +3394,7 @@ model SchoolDebt {
   /// What it was taken for, in the school's own words.
   purpose  String?
   /// The amount borrowed. Repayments are counted against this.
-  principal Int
+  principal Float
   /// The lender's own reference — a loan number, an agreement id.
   reference String?
   takenAt   DateTime         @default(now())
@@ -3418,7 +3418,7 @@ model SchoolDebtRepayment {
   id       String @id @default(cuid())
   schoolId String
   debtId   String
-  amount   Int
+  amount   Float
   method   String?
   /// Receipt or transfer reference from the lender.
   reference String?

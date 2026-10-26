@@ -1,3 +1,4 @@
+import { roundMoney } from "@ekulmis/shared";
 import {
   BadRequestException,
   ConflictException,
@@ -171,7 +172,7 @@ export class SalariesService {
       if (salary.status === "PAID") {
         throw new BadRequestException("This payroll month is already fully paid.");
       }
-      const remaining = salary.amount - salary.amountPaid;
+      const remaining = roundMoney(salary.amount - salary.amountPaid);
       if (dto.amount > remaining) {
         throw new BadRequestException("Payment cannot exceed the remaining balance.");
       }
@@ -183,7 +184,7 @@ export class SalariesService {
         );
       }
 
-      const amountPaid = salary.amountPaid + dto.amount;
+      const amountPaid = roundMoney(salary.amountPaid + dto.amount);
       const status = amountPaid >= salary.amount ? "PAID" : "PARTIAL";
       const updated = await tx.salary.update({
         where: { id },
@@ -225,7 +226,7 @@ export class SalariesService {
         month,
         totalRows: rows.length,
         rowsWithPayments: paidRows.length,
-        amountAlreadyPaid: paidRows.reduce((s, r) => s + r.amountPaid, 0),
+        amountAlreadyPaid: paidRows.reduce((s, r) => roundMoney(s + r.amountPaid), 0),
       };
     });
   }
@@ -309,7 +310,7 @@ export class SalariesService {
       });
       if (!salary) throw new NotFoundException("Salary not found");
 
-      const amountPaid = Math.max(0, salary.amountPaid - original.amount);
+      const amountPaid = Math.max(0, roundMoney(salary.amountPaid - original.amount));
       await tx.salary.update({
         where: { id: salary.id },
         data: {
@@ -415,7 +416,7 @@ export class SalariesService {
       // claims to be settled while `amountPaid` — which is what the finance
       // reports total as salary outflow — stays behind, and its payment
       // history shows nothing. Record the shortfall as a real payment.
-      const shortfall = updated.amount - updated.amountPaid;
+      const shortfall = roundMoney(updated.amount - updated.amountPaid);
       if (shortfall <= 0) return updated;
 
       await tx.salaryPayment.create({

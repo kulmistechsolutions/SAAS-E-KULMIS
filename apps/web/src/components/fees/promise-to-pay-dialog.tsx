@@ -170,6 +170,7 @@ export function PromiseToPayDialog({
           <Label>{t("feesPromiseToPayDialog.expectedAmountOptional")}</Label>
           <Input
             type="number"
+            step="0.01"
             min={0}
             className="mt-1.5"
             value={amount}

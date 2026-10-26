@@ -405,7 +405,8 @@ export default function OtherIncomePage() {
               <Input
                 id="oi-amount"
                 type="number"
-                min={1}
+                step="0.01"
+                min={0.01}
                 value={form.amount}
                 onChange={(e) => setForm({ ...form, amount: e.target.value })}
               />

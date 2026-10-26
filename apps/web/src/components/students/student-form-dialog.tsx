@@ -736,6 +736,7 @@ export function StudentFormDialog({ open, onClose, student, replacing, onSaved }
               <Input
                 className={cn(inputClass, "ps-6")}
                 type="number"
+                step="0.01"
                 min={0}
                 disabled={form.feeWaived}
                 value={form.monthlyFee}
@@ -833,6 +834,7 @@ export function StudentFormDialog({ open, onClose, student, replacing, onSaved }
                   <Input
                     className={cn(inputClass, "ps-6")}
                     type="number"
+                    step="0.01"
                     min={0}
                     value={form.agreementAmount}
                     onChange={(e) => set("agreementAmount", e.target.value)}

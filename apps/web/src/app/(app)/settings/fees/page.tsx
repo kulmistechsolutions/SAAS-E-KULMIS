@@ -107,6 +107,7 @@ export default function FeeSettingsPage() {
         <SettingsInput
           label={t("settingsFees.registrationFee")}
           type="number"
+          step="0.01"
           min={0}
           value={draft.registrationFeeAmount}
           onChange={(e) => update({ registrationFeeAmount: Number(e.target.value) })}
