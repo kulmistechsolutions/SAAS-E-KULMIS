@@ -7,6 +7,8 @@ import { TeacherAttendanceController } from "./teacher-attendance.controller";
 import { TeacherAttendanceService } from "./teacher-attendance.service";
 import { AttendanceShiftsController } from "./attendance-shifts.controller";
 import { AttendanceShiftsService } from "./attendance-shifts.service";
+import { AttendanceTimeRulesController } from "./attendance-time-rules.controller";
+import { AttendanceTimeRulesService } from "./attendance-time-rules.service";
 import { TeachersModule } from "../teachers/teachers.module";
 import { SmsModule } from "../sms/sms.module";
 
@@ -18,12 +20,14 @@ import { SmsModule } from "../sms/sms.module";
     TeacherAttendanceController,
     AttendanceShiftsController,
     AttendanceOfficersController,
+    AttendanceTimeRulesController,
   ],
   providers: [
     AttendanceScopeService,
     StudentAttendanceService,
     TeacherAttendanceService,
     AttendanceShiftsService,
+    AttendanceTimeRulesService,
   ],
   exports: [
     AttendanceScopeService,

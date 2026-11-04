@@ -521,3 +521,81 @@ export const apiOfficerPerformance = (from: string, to: string) =>
   }>(
     `/attendance-officers/performance?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
   );
+
+/**
+ * Attendance time rules — a class's own register times, for a class that
+ * starts earlier or later than the rest of the school.
+ */
+export interface ApiAttendanceTimes {
+  startTime: string;
+  lateTime: string;
+  endTime: string;
+  lockTime: string;
+}
+
+export interface ApiAttendanceTimeRule {
+  id: string;
+  name: string;
+  mode: "SHIFTED" | "FIXED";
+  offsetMinutes: number;
+  startTime: string | null;
+  lateTime: string | null;
+  endTime: string | null;
+  lockTime: string | null;
+  times: ApiAttendanceTimes;
+  classes: { id: string; name: string }[];
+}
+
+export interface ApiAttendanceTimeRules {
+  school: ApiAttendanceTimes;
+  rules: ApiAttendanceTimeRule[];
+  classes: { id: string; name: string; ruleId: string | null }[];
+}
+
+export interface SaveAttendanceTimeRuleBody {
+  name: string;
+  mode: "SHIFTED" | "FIXED";
+  offsetMinutes: number;
+  startTime?: string | null;
+  lateTime?: string | null;
+  endTime?: string | null;
+  lockTime?: string | null;
+}
+
+export function apiListAttendanceTimeRules(): Promise<ApiAttendanceTimeRules> {
+  return api<ApiAttendanceTimeRules>("/attendance-time-rules");
+}
+
+export function apiSaveAttendanceTimeRule(
+  id: string | null,
+  body: SaveAttendanceTimeRuleBody,
+): Promise<{ id: string }> {
+  return id
+    ? api(`/attendance-time-rules/${id}`, { method: "PATCH", body })
+    : api("/attendance-time-rules", { method: "POST", body });
+}
+
+export function apiAssignAttendanceTimeRule(
+  id: string,
+  classIds: string[],
+): Promise<{ assigned: number; released: number }> {
+  return api(`/attendance-time-rules/${id}/classes`, {
+    method: "PUT",
+    body: { classIds },
+  });
+}
+
+export function apiDeleteAttendanceTimeRule(
+  id: string,
+): Promise<{ success: boolean; classesBackOnSchoolTimes: number }> {
+  return api(`/attendance-time-rules/${id}`, { method: "DELETE" });
+}
+
+export function apiClassAttendanceTimes(classId: string): Promise<{
+  classId: string;
+  rule: { id: string; name: string } | null;
+  times: ApiAttendanceTimes;
+  school: ApiAttendanceTimes;
+}> {
+  return api(`/attendance-time-rules/class/${classId}`);
+}

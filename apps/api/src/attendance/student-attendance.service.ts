@@ -1,6 +1,11 @@
 import { BadRequestException, Injectable } from "@nestjs/common";
 import type { Prisma, PrismaClient } from "@prisma/client";
-import type { MarkStudentAttendanceInput } from "@ekulmis/shared";
+import {
+  effectiveAttendanceTimes,
+  schoolAttendanceTimes,
+  type AttendanceTimes,
+  type MarkStudentAttendanceInput,
+} from "@ekulmis/shared";
 import { PrismaService } from "../prisma/prisma.service";
 import { SmsAutoService } from "../sms/sms-auto.service";
 import { safeTimeZone } from "../common/time-zone.util";
@@ -78,6 +83,8 @@ export class StudentAttendanceService {
     rules: AttendanceRules | null;
     timezone: string;
     backfill: BackfillWindow | null;
+    /** The school's four times, defaults filled in — what a class rule shifts. */
+    times: AttendanceTimes;
   }> {
     const school = await this.prisma.school.findUnique({
       where: { id: schoolId },
@@ -104,6 +111,7 @@ export class StudentAttendanceService {
       // a teacher marking the register at all.
       timezone: safeTimeZone(school?.timezone),
       backfill: normaliseWindow(stored?.backfill),
+      times: schoolAttendanceTimes(stored as Partial<AttendanceTimes> | null),
     };
   }
 
@@ -121,9 +129,28 @@ export class StudentAttendanceService {
     dateStr: string,
     statuses: string[],
     role: string | undefined,
+    classId?: string,
   ): Promise<void> {
-    const { rules, timezone, backfill } = await this.rulesFor(schoolId);
+    const { rules, timezone, backfill, times } = await this.rulesFor(schoolId);
     const now = schoolNow(timezone);
+
+    // A class on its own time rule (an early session) closes at its own hour.
+    // That is a decision the school made for that class, so it holds even
+    // where the school never saved Settings → Attendance; every other class
+    // keeps exactly the lock it had.
+    const classRule = classId
+      ? (
+          await this.prisma.forTenant(schoolId, (tx) =>
+            tx.class.findFirst({
+              where: { id: classId },
+              select: { attendanceTimeRule: true },
+            }),
+          )
+        )?.attendanceTimeRule ?? null
+      : null;
+    const lockTime = classRule
+      ? effectiveAttendanceTimes(times, classRule).lockTime
+      : rules?.lockTime ?? null;
 
     // Every rule lives in one pure function, in order, so none of them can be
     // half-applied here — see backfill-window.ts. SUPER_ADMINISTRATOR counts
@@ -134,7 +161,7 @@ export class StudentAttendanceService {
       date: dateStr,
       today: now.date,
       nowMinutes: now.minutes,
-      lockMinutes: rules ? minutesOfDay(rules.lockTime) : null,
+      lockMinutes: lockTime ? minutesOfDay(lockTime) : null,
       role,
       backfill,
       excusedEnabled: rules ? rules.excusedEnabled : true,
@@ -348,6 +375,7 @@ export class StudentAttendanceService {
       dto.date,
       dto.records.map((r) => r.status),
       role,
+      dto.classId,
     );
     const policy =
       (await this.rulesFor(schoolId)).rules?.officerEdits ?? "ALWAYS";

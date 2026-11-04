@@ -58,6 +58,7 @@ import { loadTeacherMe } from "@/lib/teachers/session";
 import type { TeacherMe } from "@/lib/teachers/api";
 import { useHydrated } from "@/lib/use-hydrated";
 import { MonthGrid } from "@/components/attendance/month-grid";
+import { ClassTimesNote } from "@/components/attendance/class-times-note";
 import {
   apiBackfillState,
   type ApiBackfillState,
@@ -574,6 +575,7 @@ function StudentAttendanceScreen() {
 
           {tab === "mark" && (
             <div className="space-y-5">
+              <ClassTimesNote classId={markClassId} />
               <div className={cn(
                 "grid gap-3 rounded-xl border bg-secondary/20 p-4 sm:grid-cols-2",
                 shifts.length > 0 ? "lg:grid-cols-6" : "lg:grid-cols-5",

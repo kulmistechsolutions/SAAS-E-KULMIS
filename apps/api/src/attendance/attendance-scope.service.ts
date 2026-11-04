@@ -3,6 +3,11 @@ import {
   ForbiddenException,
   Injectable,
 } from "@nestjs/common";
+import {
+  effectiveAttendanceTimes,
+  schoolAttendanceTimes,
+  type AttendanceTimes,
+} from "@ekulmis/shared";
 import { PrismaService } from "../prisma/prisma.service";
 import { safeTimeZone } from "../common/time-zone.util";
 
@@ -321,9 +326,17 @@ export class AttendanceScopeService {
 
       const classes = await tx.class.findMany({
         where: { status: "ACTIVE", ...(year ? { academicYearId: year.id } : {}) },
-        select: { id: true, name: true, orderIndex: true },
+        select: { id: true, name: true, orderIndex: true, attendanceTimeRule: true },
         orderBy: { orderIndex: "asc" },
       });
+      // A class on its own time rule is judged against its own lock.
+      const schoolTimes = schoolAttendanceTimes(
+        school?.attendanceSettings as Partial<AttendanceTimes> | null,
+      );
+      const lockOf = (c: (typeof classes)[number]) =>
+        c.attendanceTimeRule
+          ? lockMinutes(effectiveAttendanceTimes(schoolTimes, c.attendanceTimeRule).lockTime)
+          : lock;
       if (classes.length === 0) {
         return { date: dateStr, lockTime: settings.lockTime ?? null, registers: [] };
       }
@@ -441,8 +454,8 @@ export class AttendanceScopeService {
             // Administrators are exempt from the lock, so this is the only
             // place a late correction shows up at all.
             afterLock:
-              lock !== null && first !== null
-                ? wallMinutes(first, timezone) >= lock
+              lockOf(c) !== null && first !== null
+                ? wallMinutes(first, timezone) >= (lockOf(c) as number)
                 : false,
           });
         }

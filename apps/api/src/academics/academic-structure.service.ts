@@ -381,6 +381,8 @@ export class AcademicStructureService {
             notes: cls.notes,
             status: cls.status,
             shiftId: null, // shifts belong to the year being copied into
+            // Time rules are per school, not per year, so the link carries over.
+            attendanceTimeRuleId: cls.attendanceTimeRuleId,
             levelId: cls.levelId ? (levelIdMap.get(cls.levelId) ?? null) : null,
             stageId: cls.stageId ? (stageIdMap.get(cls.stageId) ?? null) : null,
           },

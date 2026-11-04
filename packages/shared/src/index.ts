@@ -36,6 +36,7 @@ export * from "./schemas/subscriptions";
 export * from "./schemas/timetable";
 export * from "./currency";
 export * from "./money";
+export * from "./attendance/time-rules";
 export * from "./csv";
 export * from "./text/direction";
 export * from "./text/rich-text";

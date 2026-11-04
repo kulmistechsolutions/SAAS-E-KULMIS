@@ -1,6 +1,7 @@
 "use client";
 
 
+import Link from "next/link";
 import { useT } from "@/lib/i18n/provider";
 import { SettingsInput, SettingsSelect } from "@/components/settings/settings-field";
 import { SettingsSaveBar } from "@/components/settings/settings-save-bar";
@@ -20,6 +21,10 @@ export default function AttendanceSettingsPage() {
         <SettingsInput label={t("settingsAttendance.lateTime")} type="time" value={draft.lateTime} onChange={(e) => update({ lateTime: e.target.value })} />
         <SettingsInput label={t("settingsAttendance.attendanceLockTime")} type="time" value={draft.lockTime} onChange={(e) => update({ lockTime: e.target.value })} />
       </div>
+      {/* A class that starts earlier or later keeps its own times there. */}
+      <Link href="/attendance/time-rules" className="inline-flex text-sm font-medium text-primary hover:underline">
+        {t("attendanceTimeRules.manageLink")} →
+      </Link>
       <SettingsToggle label={t("settingsAttendance.excusedAttendance")} checked={draft.excusedEnabled} onChange={(v) => update({ excusedEnabled: v })} />
 
       {/* Two officers can be assigned one register deliberately, so overwriting

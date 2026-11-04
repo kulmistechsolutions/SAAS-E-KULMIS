@@ -6,6 +6,7 @@ import {
   CalendarCheck,
   CalendarDays,
   CheckCircle2,
+  AlarmClock,
   Clock,
   Eye,
   FileText,
@@ -73,6 +74,7 @@ const NAV: NavItem[] = [
   { title: "Monitoring", href: "/attendance/monitoring", icon: Eye, roles: ["ADMINISTRATOR", "SUPER_ADMINISTRATOR"] },
   { title: "Officers", href: "/attendance/officers", icon: ShieldCheck, roles: ["ADMINISTRATOR", "SUPER_ADMINISTRATOR"] },
   { title: "Shift Management", href: "/attendance/shifts", icon: Clock },
+  { title: "Time Rules", href: "/attendance/time-rules", icon: AlarmClock, roles: ["ADMINISTRATOR", "SUPER_ADMINISTRATOR"] },
 ];
 
 const WINDOWS = [7, 14, 30, 90];

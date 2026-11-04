@@ -389,6 +389,9 @@ model Class {
   levelId          String?
   stage            AcademicStage?          @relation(fields: [stageId], references: [id], onDelete: SetNull)
   stageId          String?
+  /// Its own attendance times; null keeps the school's.
+  attendanceTimeRule   AttendanceTimeRule? @relation(fields: [attendanceTimeRuleId], references: [id], onDelete: SetNull)
+  attendanceTimeRuleId String?
 
   @@unique([schoolId, academicYearId, name])
   @@index([schoolId])
@@ -897,6 +900,40 @@ model StudentAttendance {
 /// TEACHER's own shift too (an employment attribute that must survive an
 /// academic-year rollover) as well as student attendance. A school that never
 /// creates one of these keeps the plain single-shift attendance flow.
+/// A class's own attendance times, for a class that does not keep the
+/// school's (Settings → Attendance). Some classes come in before the regular
+/// lessons — an early session for exam years — so their register opens and
+/// closes at a different hour while everything else about it is the same.
+///
+/// SHIFTED moves every school time by `offsetMinutes` and keeps following the
+/// school's times when they change; FIXED holds its own four times. A class
+/// with no rule keeps the school's times, exactly as before rules existed.
+/// Per school, not per academic year: the year copy carries the link over.
+model AttendanceTimeRule {
+  id            String             @id @default(cuid())
+  schoolId      String
+  name          String
+  mode          AttendanceTimeMode @default(SHIFTED)
+  offsetMinutes Int                @default(0)
+  startTime     String?
+  lateTime      String?
+  endTime       String?
+  lockTime      String?
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+
+  classes Class[]
+
+  @@unique([schoolId, name])
+  @@index([schoolId])
+  @@map("attendance_time_rules")
+}
+
+enum AttendanceTimeMode {
+  SHIFTED
+  FIXED
+}
+
 model AttendanceShift {
   id         String       @id @default(cuid())
   schoolId   String
