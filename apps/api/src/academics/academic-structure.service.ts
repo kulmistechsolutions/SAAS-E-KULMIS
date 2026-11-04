@@ -319,7 +319,10 @@ export class AcademicStructureService {
       classes: await tx.class.findMany({
         where: { academicYearId: dto.fromAcademicYearId },
         orderBy: { orderIndex: "asc" },
-        include: { sections: { orderBy: { name: "asc" } } },
+        include: {
+          sections: { orderBy: { name: "asc" } },
+          attendanceShifts: { select: { shiftId: true } },
+        },
       }),
     }));
 
@@ -400,6 +403,18 @@ export class AcademicStructureService {
             })),
           });
           sections += cls.sections.length;
+        }
+
+        // Attendance shifts are per school, so the class keeps its roll calls.
+        if (cls.attendanceShifts.length > 0) {
+          await tx.classAttendanceShift.createMany({
+            data: cls.attendanceShifts.map((x) => ({
+              schoolId,
+              classId: created.id,
+              shiftId: x.shiftId,
+            })),
+            skipDuplicates: true,
+          });
         }
       }
 

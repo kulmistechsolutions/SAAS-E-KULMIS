@@ -27,6 +27,10 @@ export interface ApiShift {
   name: string;
   startTime: string | null;
   endTime: string | null;
+  /** When this shift's register locks for officers; null keeps the class's or school's. */
+  lockTime?: string | null;
+  /** The classes that take this register. Empty = every class. */
+  classIds?: string[];
   orderIndex: number;
   status: "ACTIVE" | "INACTIVE";
 }
@@ -204,6 +208,8 @@ export interface SaveAttendanceShiftBody {
   name: string;
   startTime?: string | null;
   endTime?: string | null;
+  lockTime?: string | null;
+  classIds?: string[];
 }
 
 export async function apiCreateAttendanceShift(
@@ -598,4 +604,33 @@ export function apiClassAttendanceTimes(classId: string): Promise<{
   school: ApiAttendanceTimes;
 }> {
   return api(`/attendance-time-rules/class/${classId}`);
+}
+
+/** One day of a class with every roll call (shift) side by side. */
+export interface ApiAttendanceSessions {
+  date: string;
+  className: string;
+  columns: { id: string | null; name: string; startTime: string | null }[];
+  taken: number[];
+  rows: {
+    id: string;
+    code: string;
+    fullName: string;
+    gender: string;
+    serialNo: number | null;
+    statuses: (ApiAttendanceStatus | null)[];
+    missedSome: boolean;
+    absentAll: boolean;
+  }[];
+  summary: { students: number; missedSome: number; absentAll: number };
+}
+
+export function apiAttendanceSessions(
+  classId: string,
+  date: string,
+  sectionId?: string | null,
+): Promise<ApiAttendanceSessions> {
+  const params = new URLSearchParams({ classId, date });
+  if (sectionId) params.set("sectionId", sectionId);
+  return api<ApiAttendanceSessions>(`/student-attendance/sessions?${params}`);
 }

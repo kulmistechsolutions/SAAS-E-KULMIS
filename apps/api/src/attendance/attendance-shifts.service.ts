@@ -22,12 +22,53 @@ export class AttendanceShiftsService {
    * their name resolve to a raw id forever, on every screen that shows it.
    */
   list(schoolId: string, includeInactive = false) {
-    return this.prisma.forTenant(schoolId, (tx) =>
-      tx.attendanceShift.findMany({
+    return this.prisma.forTenant(schoolId, async (tx) => {
+      const shifts = await tx.attendanceShift.findMany({
         where: includeInactive ? {} : { status: "ACTIVE" },
         orderBy: { orderIndex: "asc" },
-      }),
-    );
+        include: { classes: { select: { classId: true } } },
+      });
+      // classIds empty = the shift is taken by every class.
+      return shifts.map(({ classes, ...s }) => ({
+        ...s,
+        classIds: classes.map((c) => c.classId),
+      }));
+    });
+  }
+
+  /**
+   * Make exactly these classes take the shift's register. Classes of earlier
+   * years keep their links: they are that year's record, not this one's.
+   */
+  private async setClasses(
+    tx: Parameters<Parameters<PrismaService["forTenant"]>[1]>[0],
+    schoolId: string,
+    shiftId: string,
+    classIds: string[] | undefined,
+  ) {
+    if (classIds === undefined) return;
+    const ids = [...new Set(classIds)];
+    if (ids.length > 0) {
+      const found = await tx.class.count({ where: { id: { in: ids } } });
+      if (found !== ids.length) throw new BadRequestException("Unknown class");
+    }
+    const year = await tx.academicYear.findFirst({
+      where: { isActive: true },
+      select: { id: true },
+    });
+    await tx.classAttendanceShift.deleteMany({
+      where: {
+        shiftId,
+        classId: { notIn: ids },
+        ...(year ? { class: { academicYearId: year.id } } : {}),
+      },
+    });
+    if (ids.length > 0) {
+      await tx.classAttendanceShift.createMany({
+        data: ids.map((classId) => ({ schoolId, classId, shiftId })),
+        skipDuplicates: true,
+      });
+    }
   }
 
   async create(schoolId: string, dto: SaveAttendanceShiftInput) {
@@ -39,15 +80,18 @@ export class AttendanceShiftsService {
         throw new BadRequestException("A shift with this name already exists.");
       }
       const count = await tx.attendanceShift.count();
-      return tx.attendanceShift.create({
+      const shift = await tx.attendanceShift.create({
         data: {
           schoolId,
           name: dto.name,
           startTime: dto.startTime ?? null,
           endTime: dto.endTime ?? null,
+          lockTime: dto.lockTime ?? null,
           orderIndex: count,
         },
       });
+      await this.setClasses(tx, schoolId, shift.id, dto.classIds);
+      return shift;
     });
   }
 
@@ -61,14 +105,17 @@ export class AttendanceShiftsService {
       if (clash) {
         throw new BadRequestException("A shift with this name already exists.");
       }
-      return tx.attendanceShift.update({
+      const updated = await tx.attendanceShift.update({
         where: { id },
         data: {
           name: dto.name,
           startTime: dto.startTime ?? null,
           endTime: dto.endTime ?? null,
+          lockTime: dto.lockTime ?? null,
         },
       });
+      await this.setClasses(tx, schoolId, id, dto.classIds);
+      return updated;
     });
   }
 

@@ -257,6 +257,15 @@ function StudentAttendanceScreen() {
   // Ids for the catch-up grid, which asks the server about a month rather
   // than a day and so needs the class by id, not by the name in the picker.
   const markClassId = selectedMarkClass?.id ?? "";
+  // The shifts this class takes the roll in: those naming it, and those
+  // naming no class at all (taken by every class, as before).
+  const classShifts = useMemo(
+    () =>
+      shifts.filter(
+        (s) => !s.classIds?.length || s.classIds.includes(markClassId) || s.id === shiftId,
+      ),
+    [shifts, markClassId, shiftId],
+  );
   const markSectionId =
     sectionOptions.find((sec) => sec.name === section)?.id ?? null;
 
@@ -344,7 +353,7 @@ function StudentAttendanceScreen() {
   async function loadList() {
     if (!klass) return toast("Select a class.", "error");
     if (markClassNeedsSection && !section) return toast("Select a section.", "error");
-    if (shifts.length > 0 && !shiftId) return toast("Select a shift.", "error");
+    if (classShifts.length > 0 && !shiftId) return toast("Select a shift.", "error");
     setLoading(true);
     const res = await loadStudentMarkingRows(year, klass, section, date, shiftId || null);
     setLoading(false);
@@ -475,7 +484,7 @@ function StudentAttendanceScreen() {
 
               <div className={cn(
                 "grid gap-3 rounded-xl border bg-secondary/20 p-4 sm:grid-cols-2",
-                shifts.length > 0 ? "lg:grid-cols-4" : "lg:grid-cols-3",
+                classShifts.length > 0 ? "lg:grid-cols-4" : "lg:grid-cols-3",
               )}>
                 <div>
                   <label className="mb-1 block text-xs font-medium text-muted-foreground">
@@ -530,14 +539,14 @@ function StudentAttendanceScreen() {
                     </Select>
                   </div>
                 )}
-                {shifts.length > 0 && (
+                {classShifts.length > 0 && (
                   <div>
                     <label className="mb-1 block text-xs font-medium text-muted-foreground">
                       {t("attendanceStudents.shift")} *
                     </label>
                     <Select value={shiftId} onChange={(e) => { setShiftId(e.target.value); setLoaded(false); }}>
                       <option value="">{t("attendanceStudents.selectShift")}</option>
-                      {shifts.map((sh) => (
+                      {classShifts.map((sh) => (
                         <option key={sh.id} value={sh.id}>
                           {sh.status === "ACTIVE"
                             ? sh.name
@@ -549,7 +558,7 @@ function StudentAttendanceScreen() {
                 )}
               </div>
 
-              {!markClassId || (shifts.length > 0 && !shiftId) ? (
+              {!markClassId || (classShifts.length > 0 && !shiftId) ? (
                 <p className="rounded-xl border bg-card p-6 text-center text-sm text-muted-foreground">
                   {t("attendanceBackfill.pickClass")}
                 </p>
@@ -578,7 +587,7 @@ function StudentAttendanceScreen() {
               <ClassTimesNote classId={markClassId} />
               <div className={cn(
                 "grid gap-3 rounded-xl border bg-secondary/20 p-4 sm:grid-cols-2",
-                shifts.length > 0 ? "lg:grid-cols-6" : "lg:grid-cols-5",
+                classShifts.length > 0 ? "lg:grid-cols-6" : "lg:grid-cols-5",
               )}>
                 <div>
                   <label className="mb-1 block text-xs font-medium text-muted-foreground">{t("attendanceStudents.academicYear")}</label>
@@ -633,7 +642,7 @@ function StudentAttendanceScreen() {
                     {sectionOptions.map((s) => <option key={s.id} value={s.name}>{t("attendanceStudents.section")} {s.name}</option>)}
                   </Select>
                 </div>
-                {shifts.length > 0 && (
+                {classShifts.length > 0 && (
                   <div>
                     <label className="mb-1 block text-xs font-medium text-muted-foreground">
                       {t("attendanceStudents.shift")} *
@@ -645,7 +654,7 @@ function StudentAttendanceScreen() {
                         registers cannot be opened any other way, and a day
                         that cannot be opened cannot be corrected.
                       */}
-                      {shifts.map((s) => (
+                      {classShifts.map((s) => (
                         <option key={s.id} value={s.id}>
                           {s.status === "ACTIVE"
                             ? s.name

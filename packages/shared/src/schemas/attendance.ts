@@ -46,6 +46,13 @@ export const saveAttendanceShiftSchema = z.object({
   name: z.string().trim().min(1).max(60),
   startTime: timeStr,
   endTime: timeStr,
+  /** When this shift's register locks for officers; null keeps the class's or school's lock. */
+  lockTime: timeStr,
+  /**
+   * The classes that take this register. Empty = every class. Left out, the
+   * shift keeps the classes it has.
+   */
+  classIds: z.array(z.string().min(1)).max(500).optional(),
 });
 export type SaveAttendanceShiftInput = z.infer<
   typeof saveAttendanceShiftSchema

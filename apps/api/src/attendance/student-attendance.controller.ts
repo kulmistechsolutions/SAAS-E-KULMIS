@@ -99,6 +99,22 @@ export class StudentAttendanceController {
     );
   }
 
+  /** One day of a class with every roll call side by side. */
+  @RequirePermission("attendance.view")
+  @Get("sessions")
+  async sessions(
+    @CurrentUser() me: AuthUser,
+    @Query("classId") classId: string,
+    @Query("date") date: string,
+    @Query("sectionId") sectionId?: string,
+  ) {
+    if (!classId || !date) {
+      throw new BadRequestException("classId and date are required");
+    }
+    await this.assertClassAccess(me, classId, sectionId ?? null, null);
+    return this.attendance.sessions(me.schoolId, classId, sectionId ?? null, date);
+  }
+
   /**
    * Catch-up marking: the window, and today where the school is.
    *

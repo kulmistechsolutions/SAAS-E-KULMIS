@@ -392,6 +392,8 @@ model Class {
   /// Its own attendance times; null keeps the school's.
   attendanceTimeRule   AttendanceTimeRule? @relation(fields: [attendanceTimeRuleId], references: [id], onDelete: SetNull)
   attendanceTimeRuleId String?
+  /// The attendance shifts this class is registered in (see ClassAttendanceShift).
+  attendanceShifts     ClassAttendanceShift[]
 
   @@unique([schoolId, academicYearId, name])
   @@index([schoolId])
@@ -934,6 +936,25 @@ enum AttendanceTimeMode {
   FIXED
 }
 
+/// Which classes take a register in which attendance shift. A school may
+/// take the roll two or three times a day for some classes and once for the
+/// rest; a shift with no rows here is taken by every class, as before.
+model ClassAttendanceShift {
+  id        String   @id @default(cuid())
+  schoolId  String
+  classId   String
+  shiftId   String
+  createdAt DateTime @default(now())
+
+  class Class           @relation(fields: [classId], references: [id], onDelete: Cascade)
+  shift AttendanceShift @relation(fields: [shiftId], references: [id], onDelete: Cascade)
+
+  @@unique([classId, shiftId])
+  @@index([schoolId])
+  @@index([shiftId])
+  @@map("class_attendance_shifts")
+}
+
 model AttendanceShift {
   id         String       @id @default(cuid())
   schoolId   String
@@ -941,12 +962,18 @@ model AttendanceShift {
   /// Informational daily window, e.g. "08:00"–"12:00". Not enforced.
   startTime  String?
   endTime    String?
+  /// When this shift's register locks for officers. Null keeps the class's
+  /// or the school's lock. A school taking the roll two or three times a day
+  /// needs each roll call to close at its own hour.
+  lockTime   String?
   orderIndex Int          @default(0)
   status     EntityStatus @default(ACTIVE)
   createdAt  DateTime     @default(now())
   updatedAt  DateTime     @updatedAt
 
   attendance         StudentAttendance[]
+  /// The classes that take this register. None listed = every class.
+  classes            ClassAttendanceShift[]
   teachers           TeacherShift[]
   teacherAssignments TeacherAssignment[]
   teacherAttendance  TeacherAttendance[]

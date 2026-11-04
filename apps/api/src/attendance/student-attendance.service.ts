@@ -130,6 +130,7 @@ export class StudentAttendanceService {
     statuses: string[],
     role: string | undefined,
     classId?: string,
+    shiftId?: string | null,
   ): Promise<void> {
     const { rules, timezone, backfill, times } = await this.rulesFor(schoolId);
     const now = schoolNow(timezone);
@@ -138,19 +139,42 @@ export class StudentAttendanceService {
     // That is a decision the school made for that class, so it holds even
     // where the school never saved Settings → Attendance; every other class
     // keeps exactly the lock it had.
-    const classRule = classId
-      ? (
-          await this.prisma.forTenant(schoolId, (tx) =>
-            tx.class.findFirst({
+    const { classRule, shift } = await this.prisma.forTenant(schoolId, async (tx) => ({
+      classRule: classId
+        ? ((
+            await tx.class.findFirst({
               where: { id: classId },
               select: { attendanceTimeRule: true },
-            }),
-          )
-        )?.attendanceTimeRule ?? null
-      : null;
-    const lockTime = classRule
-      ? effectiveAttendanceTimes(times, classRule).lockTime
-      : rules?.lockTime ?? null;
+            })
+          )?.attendanceTimeRule ?? null)
+        : null,
+      shift: shiftId
+        ? await tx.attendanceShift.findFirst({
+            where: { id: shiftId },
+            select: {
+              name: true,
+              lockTime: true,
+              classes: { select: { classId: true } },
+            },
+          })
+        : null,
+    }));
+
+    // A shift that names its classes is a register only those classes take.
+    if (shift && classId && shift.classes.length > 0 && !shift.classes.some((c) => c.classId === classId)) {
+      throw new BadRequestException(
+        `This class does not take attendance in "${shift.name}". Choose one of its own shifts.`,
+      );
+    }
+
+    // The most specific lock wins: the roll call's own hour (a school taking
+    // the register two or three times a day), then the class's time rule,
+    // then the school's.
+    const lockTime =
+      shift?.lockTime ??
+      (classRule
+        ? effectiveAttendanceTimes(times, classRule).lockTime
+        : rules?.lockTime ?? null);
 
     // Every rule lives in one pure function, in order, so none of them can be
     // half-applied here — see backfill-window.ts. SUPER_ADMINISTRATOR counts
@@ -376,6 +400,7 @@ export class StudentAttendanceService {
       dto.records.map((r) => r.status),
       role,
       dto.classId,
+      dto.shiftId ?? null,
     );
     const policy =
       (await this.rulesFor(schoolId)).rules?.officerEdits ?? "ALWAYS";
@@ -617,6 +642,101 @@ export class StudentAttendanceService {
           ...s,
           status: byStudent.get(s.id) ?? null,
         })),
+      };
+    });
+  }
+
+  /**
+   * One day of a class, every roll call side by side.
+   *
+   * A school that takes the register two or three times a day needs to see
+   * the child who was there at 7:50 and gone by 10:40 — each register on its
+   * own shows only a single Absent among the Presents. Columns are the shifts
+   * this class takes (its own, or every active one when none are named), plus
+   * any register taken without a shift that day.
+   */
+  async sessions(
+    schoolId: string,
+    classId: string,
+    sectionId: string | null,
+    dateStr: string,
+  ) {
+    const date = parseDate(dateStr);
+    if (Number.isNaN(date.getTime())) throw new BadRequestException("Invalid date");
+    return this.prisma.forTenant(schoolId, async (tx) => {
+      const cls = await tx.class.findFirst({
+        where: { id: classId },
+        select: { id: true, name: true, attendanceShifts: { select: { shiftId: true } } },
+      });
+      if (!cls) throw new BadRequestException("Invalid class");
+
+      const records = await tx.studentAttendance.findMany({
+        where: { classId, date, ...(sectionId ? { sectionId } : {}) },
+        select: { studentId: true, shiftId: true, status: true },
+      });
+
+      const own = cls.attendanceShifts.map((x) => x.shiftId);
+      const usedIds = [...new Set(records.map((r) => r.shiftId).filter((x): x is string => !!x))];
+      const shifts = await tx.attendanceShift.findMany({
+        where: {
+          OR: [
+            own.length > 0 ? { id: { in: own } } : { status: "ACTIVE" },
+            // A register already taken in a shift stays visible, even one
+            // retired or no longer listed for the class.
+            { id: { in: usedIds } },
+          ],
+        },
+        select: { id: true, name: true, startTime: true, lockTime: true, orderIndex: true },
+        orderBy: { orderIndex: "asc" },
+      });
+      const columns: { id: string | null; name: string; startTime: string | null }[] =
+        shifts.map((x) => ({ id: x.id, name: x.name, startTime: x.startTime }));
+      if (records.some((r) => r.shiftId === null)) {
+        columns.unshift({ id: null, name: "No shift", startTime: null });
+      }
+
+      const students = await inRegisterOrder(
+        tx,
+        classId,
+        sectionId,
+        await tx.student.findMany({
+          where: {
+            OR: [
+              { ...studentInClassWhere(classId, sectionId), status: "ACTIVE" },
+              { id: { in: [...new Set(records.map((r) => r.studentId))] } },
+            ],
+          },
+          select: { id: true, code: true, fullName: true, gender: true },
+        }),
+      );
+
+      const key = (studentId: string, shiftId: string | null) => `${studentId}|${shiftId ?? ""}`;
+      const statusOf = new Map(records.map((r) => [key(r.studentId, r.shiftId), r.status]));
+      const rows = students.map((st) => {
+        const statuses = columns.map((c) => statusOf.get(key(st.id, c.id)) ?? null);
+        const marked = statuses.filter((x) => x !== null);
+        const absent = marked.filter((x) => x === "ABSENT").length;
+        return {
+          ...st,
+          statuses,
+          // Present for one roll call and missing from another — the case
+          // this view exists for.
+          missedSome: absent > 0 && absent < marked.length,
+          absentAll: marked.length > 0 && absent === marked.length,
+        };
+      });
+
+      return {
+        date: dateStr,
+        className: cls.name,
+        columns,
+        taken: columns.map((c) => rows.filter((r) => r.statuses[columns.indexOf(c)] !== null).length),
+        rows,
+        summary: {
+          students: rows.length,
+          missedSome: rows.filter((r) => r.missedSome).length,
+          absentAll: rows.filter((r) => r.absentAll).length,
+        },
       };
     });
   }

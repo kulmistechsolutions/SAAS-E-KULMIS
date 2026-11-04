@@ -326,7 +326,13 @@ export class AttendanceScopeService {
 
       const classes = await tx.class.findMany({
         where: { status: "ACTIVE", ...(year ? { academicYearId: year.id } : {}) },
-        select: { id: true, name: true, orderIndex: true, attendanceTimeRule: true },
+        select: {
+          id: true,
+          name: true,
+          orderIndex: true,
+          attendanceTimeRule: true,
+          attendanceShifts: { select: { shiftId: true } },
+        },
         orderBy: { orderIndex: "asc" },
       });
       // A class on its own time rule is judged against its own lock.
@@ -362,9 +368,11 @@ export class AttendanceScopeService {
       });
 
       const shifts = await tx.attendanceShift.findMany({
-        select: { id: true, name: true },
+        select: { id: true, name: true, lockTime: true, orderIndex: true },
+        orderBy: { orderIndex: "asc" },
       });
       const shiftName = new Map(shifts.map((x) => [x.id, x.name]));
+      const shiftLock = new Map(shifts.map((x) => [x.id, x.lockTime ? lockMinutes(x.lockTime) : null]));
 
       const markerIds = [
         ...new Set(
@@ -396,6 +404,34 @@ export class AttendanceScopeService {
       for (const c of classes) {
         const roll = rollOf.get(c.id) ?? 0;
         const keys = [...groups.keys()].filter((k) => k.startsWith(`${c.id}|`));
+
+        // A class that takes the roll in named shifts owes each of them: a
+        // morning taken must not hide an afternoon that was not.
+        const owed = c.attendanceShifts
+          .map((x) => x.shiftId)
+          .filter((id) => !keys.includes(`${c.id}|${id}`))
+          .sort(
+            (a, b) =>
+              (shifts.find((x) => x.id === a)?.orderIndex ?? 0) -
+              (shifts.find((x) => x.id === b)?.orderIndex ?? 0),
+          );
+        for (const id of owed) {
+          registers.push({
+            classId: c.id,
+            className: c.name,
+            shiftId: id as string | null,
+            shiftName: (shiftName.get(id) ?? null) as string | null,
+            total: roll,
+            marked: 0,
+            present: 0,
+            absent: 0,
+            state: roll === 0 ? "EMPTY" : "NOT_TAKEN",
+            takenBy: [] as { userId: string; name: string; role: string | null }[],
+            firstMarkedAt: null as Date | null,
+            afterLock: false,
+          });
+        }
+        if (keys.length === 0 && owed.length > 0) continue;
 
         if (keys.length === 0) {
           registers.push({
@@ -453,10 +489,12 @@ export class AttendanceScopeService {
             // Whether it was taken after the school own lock time.
             // Administrators are exempt from the lock, so this is the only
             // place a late correction shows up at all.
-            afterLock:
-              lockOf(c) !== null && first !== null
-                ? wallMinutes(first, timezone) >= (lockOf(c) as number)
-                : false,
+            afterLock: (() => {
+              const l = (shiftId ? shiftLock.get(shiftId) : null) ?? lockOf(c);
+              return l !== null && l !== undefined && first !== null
+                ? wallMinutes(first, timezone) >= l
+                : false;
+            })(),
           });
         }
       }

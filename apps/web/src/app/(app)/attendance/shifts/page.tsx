@@ -1,7 +1,7 @@
 "use client";
 
 import { useT } from "@/lib/i18n/provider";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, Clock, Pencil, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -18,14 +18,18 @@ import {
 import type { ApiShift } from "@/lib/attendance/api";
 import { toast } from "@/lib/toast";
 import { useHydrated } from "@/lib/use-hydrated";
+import { activeAcademicYear, refreshAcademics, useAcademicsState } from "@/lib/academics/store";
 
 interface ShiftFormState {
   name: string;
   startTime: string;
   endTime: string;
+  lockTime: string;
+  /** Empty = every class takes this register. */
+  classIds: string[];
 }
 
-const EMPTY_FORM: ShiftFormState = { name: "", startTime: "", endTime: "" };
+const EMPTY_FORM: ShiftFormState = { name: "", startTime: "", endTime: "", lockTime: "", classIds: [] };
 
 export default function AttendanceShiftsPage() {
   const t = useT();
@@ -40,6 +44,17 @@ export default function AttendanceShiftsPage() {
 
   const [deleting, setDeleting] = useState<ApiShift | null>(null);
 
+  // This year's classes, for choosing which of them take this register.
+  const academics = useAcademicsState();
+  const yearClasses = useMemo(() => {
+    const year = activeAcademicYear();
+    return academics.classes.filter((c) => !year || c.academicYear === year);
+  }, [academics.classes]);
+  const classNames = useMemo(
+    () => new Map(academics.classes.map((c) => [c.id, c.name])),
+    [academics.classes],
+  );
+
   const refresh = () => {
     setLoading(true);
     return listAttendanceShifts()
@@ -48,7 +63,10 @@ export default function AttendanceShiftsPage() {
   };
 
   useEffect(() => {
-    if (mounted) void refresh();
+    if (mounted) {
+      void refresh();
+      void refreshAcademics();
+    }
   }, [mounted]);
 
   function openCreate() {
@@ -63,6 +81,8 @@ export default function AttendanceShiftsPage() {
       name: shift.name,
       startTime: shift.startTime ?? "",
       endTime: shift.endTime ?? "",
+      lockTime: shift.lockTime ?? "",
+      classIds: shift.classIds ?? [],
     });
     setFormOpen(true);
   }
@@ -75,6 +95,8 @@ export default function AttendanceShiftsPage() {
       name,
       startTime: form.startTime || null,
       endTime: form.endTime || null,
+      lockTime: form.lockTime || null,
+      classIds: form.classIds,
     };
     const res = editing
       ? await updateAttendanceShift(editing.id, body)
@@ -143,6 +165,8 @@ export default function AttendanceShiftsPage() {
                 <tr>
                   <th className="px-4 py-2.5 font-medium">{t("attendanceShifts.name")}</th>
                   <th className="px-4 py-2.5 font-medium">{t("attendanceShifts.time")}</th>
+                  <th className="px-4 py-2.5 font-medium">{t("attendanceSessions.lockTime")}</th>
+                  <th className="px-4 py-2.5 font-medium">{t("attendanceSessions.classes")}</th>
                   <th className="px-4 py-2.5 font-medium">{t("attendanceStudents.status")}</th>
                   <th className="px-4 py-2.5 font-medium">{t("financeHistory.actions")}</th>
                 </tr>
@@ -155,6 +179,12 @@ export default function AttendanceShiftsPage() {
                       {s.startTime && s.endTime
                         ? `${s.startTime} – ${s.endTime}`
                         : "—"}
+                    </td>
+                    <td className="px-4 py-3 text-muted-foreground">{s.lockTime ?? "—"}</td>
+                    <td className="px-4 py-3 text-muted-foreground">
+                      {s.classIds && s.classIds.length > 0
+                        ? s.classIds.map((id) => classNames.get(id) ?? "?").join(", ")
+                        : t("attendanceSessions.allClasses")}
                     </td>
                     <td className="px-4 py-3">
                       {/*
@@ -246,6 +276,46 @@ export default function AttendanceShiftsPage() {
             </div>
           </div>
           <p className="text-xs text-muted-foreground">{t("attendanceShifts.timeHint")}</p>
+          <div>
+            <label className="mb-1 block text-xs font-medium text-muted-foreground">
+              {t("attendanceSessions.lockTime")}
+            </label>
+            <Input
+              type="time"
+              value={form.lockTime}
+              onChange={(e) => setForm((f) => ({ ...f, lockTime: e.target.value }))}
+              className="max-w-[10rem]"
+            />
+            <p className="mt-1 text-xs text-muted-foreground">{t("attendanceSessions.lockHint")}</p>
+          </div>
+          <div>
+            <p className="text-xs font-medium text-muted-foreground">{t("attendanceSessions.classes")}</p>
+            <p className="mb-2 text-xs text-muted-foreground">{t("attendanceSessions.classesHint")}</p>
+            <div className="grid max-h-48 grid-cols-2 gap-1 overflow-y-auto rounded-xl border p-2">
+              {yearClasses.map((c) => (
+                <label key={c.id} className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1 hover:bg-secondary/60">
+                  <input
+                    type="checkbox"
+                    checked={form.classIds.includes(c.id)}
+                    onChange={() =>
+                      setForm((f) => ({
+                        ...f,
+                        classIds: f.classIds.includes(c.id)
+                          ? f.classIds.filter((x) => x !== c.id)
+                          : [...f.classIds, c.id],
+                      }))
+                    }
+                  />
+                  {c.name}
+                </label>
+              ))}
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {form.classIds.length === 0
+                ? t("attendanceSessions.allClasses")
+                : t("attendanceSessions.selectedCount", { n: form.classIds.length })}
+            </p>
+          </div>
         </div>
       </Dialog>
 
