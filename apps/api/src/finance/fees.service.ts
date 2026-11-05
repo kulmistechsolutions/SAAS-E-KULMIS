@@ -1350,6 +1350,38 @@ export class FeesService {
         );
       }
 
+      // Money for a later month while this month — or an earlier one — is
+      // still owed is an advance, whichever button took it. The check above
+      // only stopped payments marked Advance, so a desk that picked next
+      // month's fee by name (dto.chargeIds) under "This month" put a family
+      // into advance while the current month stayed unpaid. Asked after the
+      // money is applied, so a payment that clears this month and then runs
+      // into next month is still accepted.
+      // Monthly fees only: an exam fee billed into a later month and paid early
+      // is that fee, not an advance.
+      const reachesAhead = allocations.some(
+        (a) =>
+          a.kind === "MONTHLY" &&
+          (a.year > live.year || (a.year === live.year && a.month > live.month)),
+      );
+      if (reachesAhead) {
+        const stillOwed = await tx.feeCharge.count({
+          where: {
+            studentId: student.id,
+            status: { in: ["UNPAID", "PARTIAL"] },
+            OR: [
+              { year: { lt: live.year } },
+              { year: live.year, month: { lte: live.month } },
+            ],
+          },
+        });
+        if (stillOwed > 0) {
+          throw new BadRequestException(
+            "This student still owes this month's fee. Collect this month first — money for later months can only be taken once it is paid.",
+          );
+        }
+      }
+
       const seq = await tx.counter.upsert({
         where: { schoolId_name: { schoolId, name: "receipt" } },
         create: { schoolId, name: "receipt", value: 1 },
