@@ -428,6 +428,10 @@ export function CardDesigner({ design, ctx, onChange, onReset }: Props) {
               />
             )}
 
+            {selected.type === "photo" && (
+              <PhotoControls el={selected} onUpdate={(patch) => update(selected.id, patch)} />
+            )}
+
             {selected.type === "watermark" && (
               <div className="space-y-2">
                 <p className="text-[11px] text-muted-foreground">
@@ -688,6 +692,77 @@ function ImageControls({
           Centre across
         </MiniBtn>
       </div>
+    </div>
+  );
+}
+
+/**
+ * How the student's photo sits in its box. Schools' photos come in every
+ * shape, so a fixed "trim to fill" cut heads or shoulders off; here the photo
+ * can be shown whole, trimmed, or zoomed, and slid until the face is framed.
+ */
+function PhotoControls({
+  el,
+  onUpdate,
+}: {
+  el: CardElement;
+  onUpdate: (patch: Partial<CardElement>) => void;
+}) {
+  const fit = el.fit ?? "cover";
+  const posX = el.posX ?? 50;
+  const posY = el.posY ?? 50;
+  const zoom = el.zoom ?? 1;
+  const slider = (
+    label: string,
+    value: number,
+    min: number,
+    max: number,
+    step: number,
+    onChange: (v: number) => void,
+  ) => (
+    <div>
+      <Label>{label}</Label>
+      <input
+        type="range"
+        min={min}
+        max={max}
+        step={step}
+        value={value}
+        onChange={(e) => onChange(Number(e.target.value))}
+        className="h-2 w-full cursor-pointer accent-primary"
+      />
+    </div>
+  );
+  return (
+    <div className="space-y-3 rounded-lg border bg-secondary/30 p-2.5">
+      <div>
+        <Label>Photo fit</Label>
+        <Select
+          value={fit}
+          onChange={(e) => onUpdate({ fit: e.target.value as CardElement["fit"] })}
+        >
+          <option value="cover">Fill the box (trim edges)</option>
+          <option value="contain">Show the whole photo</option>
+          <option value="fill">Stretch to the box</option>
+        </Select>
+      </div>
+      {slider(`Zoom — ${Math.round(zoom * 100)}%`, zoom, 1, 4, 0.05, (v) =>
+        onUpdate({ zoom: v === 1 ? undefined : v }),
+      )}
+      {slider(`Move up / down — ${Math.round(posY)}%`, posY, 0, 100, 1, (v) => onUpdate({ posY: v }))}
+      {slider(`Move left / right — ${Math.round(posX)}%`, posX, 0, 100, 1, (v) => onUpdate({ posX: v }))}
+      <div className="flex flex-wrap gap-1.5">
+        <MiniBtn onClick={() => onUpdate({ fit: "contain", zoom: undefined, posX: 50, posY: 50 })}>
+          Whole photo
+        </MiniBtn>
+        <MiniBtn onClick={() => onUpdate({ fit: "cover", posY: 15 })}>Keep the head in</MiniBtn>
+        <MiniBtn onClick={() => onUpdate({ fit: "cover", zoom: undefined, posX: 50, posY: 50 })}>
+          Reset
+        </MiniBtn>
+      </div>
+      <p className="text-[11px] text-muted-foreground">
+        Applies to every card printed with this design.
+      </p>
     </div>
   );
 }

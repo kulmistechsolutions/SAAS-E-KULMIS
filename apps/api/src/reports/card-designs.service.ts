@@ -48,6 +48,9 @@ const elementSchema = z
     // (the client caps it at 1400px wide), so the backstop is a little wider.
     src: z.string().max(1_200_000).optional(),
     fit: z.enum(["contain", "cover", "fill"]).optional(),
+    posX: z.number().finite().min(0).max(100).optional(),
+    posY: z.number().finite().min(0).max(100).optional(),
+    zoom: z.number().finite().min(1).max(4).optional(),
     ratio: z.number().finite().positive().max(100).optional(),
     locked: z.boolean().optional(),
   })

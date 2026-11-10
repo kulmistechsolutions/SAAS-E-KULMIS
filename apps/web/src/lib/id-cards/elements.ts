@@ -96,6 +96,15 @@ export interface CardElement {
    */
   fit?: "contain" | "cover" | "fill";
   /**
+   * Student photo only: which part of the picture stays in view when it is
+   * trimmed or zoomed, as a percentage across (posX) and down (posY). 50/50
+   * is the middle; a lower posY keeps the top of the head in the box.
+   */
+  posX?: number;
+  posY?: number;
+  /** Student photo only: 1 shows the picture as fitted, up to 4× closer. */
+  zoom?: number;
+  /**
    * Width ÷ height of the uploaded picture. While set, resizing keeps that
    * shape, so a banner can be made bigger or smaller without squashing it.
    */
@@ -125,6 +134,10 @@ function color(token: ColorToken | undefined, accent: string, fallback: string):
   if (token === "accentDark") return darken(accent);
   if (token === "accentGradient") return `linear-gradient(135deg, ${accent}, ${darken(accent)})`;
   return token;
+}
+
+function clampPct(v: number | undefined): number {
+  return v === undefined || !Number.isFinite(v) ? 50 : Math.min(100, Math.max(0, v));
 }
 
 function esc(s: string): string {
@@ -186,10 +199,20 @@ function renderOne(el: CardElement, c: CardContext, accent: string): string {
     case "line":
       return `<div style="${base};background-color:${color(el.borderColor, accent, "#94a3b8")}"></div>`;
 
-    case "photo":
-      return c.photoDataUrl
-        ? `<img src="${c.photoDataUrl}" alt="" style="${base};object-fit:cover"/>`
-        : `<div style="${base};border:0.4mm dashed #cbd5e1;background-color:#f8fafc;color:#94a3b8;display:flex;align-items:center;justify-content:center;font-size:4.2pt;text-align:center;line-height:1.15">NO<br/>PHOTO</div>`;
+    case "photo": {
+      if (c.photoDataUrl) {
+        // The box clips; the picture inside can be shown whole, trimmed or
+        // zoomed, and slid so the face stays in view — a school's photos are
+        // rarely cropped to the card's shape.
+        const fit = el.fit ?? "cover";
+        const px = clampPct(el.posX);
+        const py = clampPct(el.posY);
+        const z = Math.min(4, Math.max(1, el.zoom ?? 1));
+        const zoom = z !== 1 ? `;transform:scale(${z});transform-origin:${px}% ${py}%` : "";
+        return `<div style="${base};overflow:hidden;background-color:#ffffff"><img src="${c.photoDataUrl}" alt="" style="display:block;width:100%;height:100%;object-fit:${fit};object-position:${px}% ${py}%${zoom}"/></div>`;
+      }
+      return `<div style="${base};border:0.4mm dashed #cbd5e1;background-color:#f8fafc;color:#94a3b8;display:flex;align-items:center;justify-content:center;font-size:4.2pt;text-align:center;line-height:1.15">NO<br/>PHOTO</div>`;
+    }
 
     case "image":
       return el.src
