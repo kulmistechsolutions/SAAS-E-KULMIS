@@ -127,7 +127,13 @@ export interface ApiSalaryPayment {
 
 export async function apiPaySalary(
   id: string,
-  body: { amount: number; paymentMethod?: string | null; note?: string | null },
+  body: {
+    amount: number;
+    paymentMethod?: string | null;
+    note?: string | null;
+    /** YYYY-MM-DD — the day it was really paid, for a past month entered late. */
+    paidAt?: string;
+  },
 ): Promise<{ salary: ApiSalary; payment: ApiSalaryPayment }> {
   return api(`/salaries/${id}/pay`, { method: "POST", body });
 }

@@ -128,4 +128,6 @@ export interface PaySalaryInput {
   paymentMethod: PaymentMethod;
   notes?: string | null;
   paidBy?: string;
+  /** YYYY-MM-DD; omitted = today. */
+  paidAt?: string;
 }

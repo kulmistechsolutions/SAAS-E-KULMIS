@@ -156,6 +156,29 @@ export class SalariesService {
     return { allowPartialSalary: s?.allowPartialSalary ?? true };
   }
 
+  /**
+   * The date a salary payment is recorded under. A past month settled by hand
+   * and entered later carries the day it was really paid; a date in the
+   * future is refused (a day of slack for schools stored as UTC), and so is
+   * one so old it can only be a typo.
+   */
+  private paymentDate(given?: Date): Date {
+    const now = new Date();
+    if (!given) return now;
+    if (Number.isNaN(given.getTime())) {
+      throw new BadRequestException("The payment date is not a valid date.");
+    }
+    if (given.getTime() > now.getTime() + 36 * 3600 * 1000) {
+      throw new BadRequestException("The payment date cannot be in the future.");
+    }
+    const twoYearsAgo = new Date(now);
+    twoYearsAgo.setFullYear(now.getFullYear() - 2);
+    if (given < twoYearsAgo) {
+      throw new BadRequestException("The payment date is more than two years ago.");
+    }
+    return given;
+  }
+
   /** Records one collection against a payroll row's remaining balance. */
   async pay(
     schoolId: string,
@@ -186,12 +209,13 @@ export class SalariesService {
 
       const amountPaid = roundMoney(salary.amountPaid + dto.amount);
       const status = amountPaid >= salary.amount ? "PAID" : "PARTIAL";
+      const paidAt = this.paymentDate(dto.paidAt);
       const updated = await tx.salary.update({
         where: { id },
         data: {
           amountPaid,
           status,
-          paidAt: status === "PAID" ? new Date() : salary.paidAt,
+          paidAt: status === "PAID" ? paidAt : salary.paidAt,
         },
       });
       const payment = await tx.salaryPayment.create({
@@ -203,6 +227,7 @@ export class SalariesService {
           paymentMethod: dto.paymentMethod ?? null,
           note: dto.note ?? null,
           collectedByUserId: collectedByUserId ?? null,
+          paidAt,
         },
       });
       return { salary: updated, payment };

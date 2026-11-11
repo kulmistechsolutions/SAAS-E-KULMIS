@@ -180,6 +180,14 @@ export function availableMonths(): string[] {
   const s = ensure();
   const set = new Set(s.payroll.map((p) => p.payrollMonth));
   set.add(s.activePayrollMonth);
+  // The twelve months before this one, even with no payroll yet: a month the
+  // school paid by hand and never entered (October, written up in November)
+  // has to be reachable to generate and settle it after the fact.
+  const now = new Date();
+  for (let i = 1; i <= 12; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    set.add(buildMonthKey(d.getFullYear(), d.getMonth() + 1));
+  }
   return [...set].sort((a, b) => b.localeCompare(a));
 }
 
@@ -436,6 +444,7 @@ export async function paySalary(input: PaySalaryInput): Promise<{
       amount: input.amount,
       paymentMethod: input.paymentMethod,
       note: input.notes ?? undefined,
+      ...(input.paidAt ? { paidAt: input.paidAt } : {}),
     });
     const { year, month: payrollMo } = (() => {
       const [y, m] = payroll.payrollMonth.split("-").map(Number);

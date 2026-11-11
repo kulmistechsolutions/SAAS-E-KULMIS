@@ -19,6 +19,26 @@ import { getPayroll, paySalary } from "@/lib/salary/store";
 import type { PaymentMethod, PayrollRow } from "@/lib/salary/types";
 import { toast } from "@/lib/toast";
 
+/** Today as YYYY-MM-DD in the browser's own calendar. */
+function todayKey(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+/**
+ * Where the date field starts. A payroll month that is already over was paid
+ * in that month — settled by hand and only now entered — so it opens on its
+ * last day, keeping the money inside the month it belongs to. The current
+ * month opens on today.
+ */
+function defaultPaidDate(payrollMonth: string): string {
+  const today = todayKey();
+  const [y, m] = payrollMonth.split("-").map(Number);
+  if (!y || !m || payrollMonth >= today.slice(0, 7)) return today;
+  const last = new Date(y, m, 0).getDate();
+  return `${payrollMonth}-${String(last).padStart(2, "0")}`;
+}
+
 interface PaymentDialogProps {
   open: boolean;
   row: PayrollRow | null;
@@ -36,6 +56,7 @@ export function SalaryPaymentDialog({
   const [amount, setAmount] = useState("");
   const [method, setMethod] = useState<PaymentMethod>("BANK_TRANSFER");
   const [notes, setNotes] = useState("");
+  const [paidDate, setPaidDate] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   const payroll = row ? getPayroll(row.payrollId) : null;
@@ -45,6 +66,7 @@ export function SalaryPaymentDialog({
     setAmount(String(row.remainingBalance));
     setMethod("BANK_TRANSFER");
     setNotes("");
+    setPaidDate(defaultPaidDate(row.payrollMonth));
   }, [open, row]);
 
   async function handleSubmit(full = false) {
@@ -52,12 +74,18 @@ export function SalaryPaymentDialog({
     const payAmount = full
       ? payroll.remainingBalance
       : Number(amount) || 0;
+    if (paidDate && paidDate > todayKey()) {
+      toast("The payment date cannot be in the future.", "error");
+      return;
+    }
     setSubmitting(true);
     const res = await paySalary({
       payrollId: row.payrollId,
       amount: payAmount,
       paymentMethod: method,
       notes: notes || null,
+      // Today needs no date: the server stamps the real time of day.
+      ...(paidDate && paidDate !== todayKey() ? { paidAt: paidDate } : {}),
     });
     setSubmitting(false);
     if (!res.ok) {
@@ -136,6 +164,24 @@ export function SalaryPaymentDialog({
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="pay-date">Payment date</Label>
+            <Input
+              id="pay-date"
+              type="date"
+              max={todayKey()}
+              value={paidDate}
+              onChange={(e) => setPaidDate(e.target.value)}
+            />
+            {row.payrollMonth < todayKey().slice(0, 7) && (
+              <p className="text-xs text-muted-foreground">
+                {monthLabel(row.payrollMonth)} is a past month. The payment is
+                recorded on this date and counted in {monthLabel(row.payrollMonth)},
+                not in the current month.
+              </p>
+            )}
           </div>
 
           <div className="space-y-2">

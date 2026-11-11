@@ -216,6 +216,12 @@ export const paySalarySchema = z.object({
   amount: positiveAmount,
   paymentMethod: z.string().min(1).nullable().optional(),
   note: z.string().min(1).nullable().optional(),
+  /**
+   * When the money actually changed hands. Omitted = now. Set when a past
+   * month is being written up after the fact (October paid by hand, entered
+   * in November), so the ledger and payslip carry the real date.
+   */
+  paidAt: z.coerce.date().optional(),
 });
 export type PaySalaryInput = z.infer<typeof paySalarySchema>;
 
