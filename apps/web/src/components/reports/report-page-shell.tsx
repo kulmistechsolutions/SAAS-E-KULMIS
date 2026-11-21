@@ -7,13 +7,33 @@ import Link from "next/link";
 import {
   ArrowDownUp,
   ArrowLeft,
+  BadgeCheck,
+  BookOpen,
+  CalendarDays,
+  CircleDollarSign,
+  Clock,
   Columns3,
   Eye,
   FileDown,
+  FileSpreadsheet,
+  Filter,
+  GraduationCap,
+  Hash,
+  LayoutGrid,
+  Layers,
+  MapPin,
+  Percent,
+  Phone,
   Printer,
   RefreshCw,
   Search,
+  SlidersHorizontal,
+  Tag,
+  User,
+  UserRound,
+  Users,
   X,
+  type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
@@ -26,6 +46,7 @@ import { fetchReport, fetchReportAsync } from "@/lib/reports/data";
 import {
   downloadReportPdf,
   exportReportCsv,
+  exportReportExcel,
   printReport,
   reportDocumentHtml,
 } from "@/lib/reports/print";
@@ -34,6 +55,7 @@ import { useShifts } from "@/lib/teachers/shifts";
 import { ReportBarChart } from "./report-chart";
 import type { ReportDef, ReportFilterKey, ReportFilters } from "@/lib/reports/types";
 import { cn } from "@/lib/utils";
+import { REPORT_THEME, REPORT_THEME_FALLBACK } from "@/lib/reports/theme";
 import { toast } from "@/lib/toast";
 import { useHydrated } from "@/lib/use-hydrated";
 import { ensureVillagesLoaded, useVillagesState } from "@/lib/villages/store";
@@ -104,6 +126,175 @@ const FILTER_LABELS: Record<ReportFilterKey, string> = {
   village: "Village",
   district: "District",
 };
+
+/** The icon shown inside each filter box. */
+const FILTER_ICONS: Partial<Record<ReportFilterKey, LucideIcon>> = {
+  academicYear: CalendarDays,
+  className: Layers,
+  section: LayoutGrid,
+  gender: UserRound,
+  status: BadgeCheck,
+  shift: Clock,
+  examId: BookOpen,
+  village: MapPin,
+  district: MapPin,
+};
+
+/**
+ * One labelled filter box with its icon inside, so every filter in the grid
+ * lines up on the same baseline whatever control it holds.
+ */
+function FilterField({
+  label,
+  icon: Icon,
+  children,
+}: {
+  label: string;
+  icon?: LucideIcon;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="min-w-0">
+      <Label className="mb-1.5 block text-xs font-semibold text-foreground/80">{label}</Label>
+      <div className={cn("relative", Icon && "[&_input]:ps-9 [&_select]:ps-9")}>
+        {Icon && (
+          <Icon className="pointer-events-none absolute start-3 top-5 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        )}
+        {children}
+      </div>
+    </div>
+  );
+}
+
+/** Colour and icon for a summary figure, read from what it counts. */
+function summaryLook(label: string, i: number): { icon: LucideIcon; tile: string } {
+  const l = label.toLowerCase();
+  if (/female|girl/.test(l)) return { icon: User, tile: "bg-pink-500/10 text-pink-600 dark:text-pink-400" };
+  if (/\bmale|\bboy/.test(l)) return { icon: User, tile: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" };
+  if (/class/.test(l)) return { icon: GraduationCap, tile: "bg-violet-500/10 text-violet-600 dark:text-violet-400" };
+  if (/section/.test(l)) return { icon: Layers, tile: "bg-amber-500/10 text-amber-600 dark:text-amber-400" };
+  if (/rate|%|percent|average/.test(l)) return { icon: Percent, tile: "bg-sky-500/10 text-sky-600 dark:text-sky-400" };
+  if (/paid|collect|amount|fee|salar|income|expense|balance|owed|billed|net|\$/.test(l))
+    return { icon: CircleDollarSign, tile: "bg-teal-500/10 text-teal-600 dark:text-teal-400" };
+  if (/student|teacher|parent|total|record|count|staff/.test(l))
+    return { icon: Users, tile: "bg-blue-500/10 text-blue-600 dark:text-blue-400" };
+  const cycle = [
+    { icon: Hash, tile: "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400" },
+    { icon: Tag, tile: "bg-rose-500/10 text-rose-600 dark:text-rose-400" },
+    { icon: Filter, tile: "bg-orange-500/10 text-orange-600 dark:text-orange-400" },
+  ];
+  return cycle[i % cycle.length]!;
+}
+
+/** Status-like words and the badge colour they take. */
+const GOOD = "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400";
+const WARN = "bg-amber-500/10 text-amber-700 dark:text-amber-400";
+const BAD = "bg-rose-500/10 text-rose-700 dark:text-rose-400";
+const MUTED = "bg-slate-500/10 text-slate-700 dark:text-slate-300";
+const BADGE: Record<string, string> = {
+  ACTIVE: GOOD,
+  PAID: GOOD,
+  PRESENT: GOOD,
+  PASS: GOOD,
+  PASSED: GOOD,
+  SUBMITTED: GOOD,
+  COMPLETED: GOOD,
+  GRADUATED: "bg-violet-500/10 text-violet-700 dark:text-violet-400",
+  PROMOTED: "bg-violet-500/10 text-violet-700 dark:text-violet-400",
+  PARTIAL: WARN,
+  PENDING: WARN,
+  LATE: WARN,
+  EXCUSED: "bg-sky-500/10 text-sky-700 dark:text-sky-400",
+  DRAFT: MUTED,
+  INACTIVE: MUTED,
+  UNPAID: BAD,
+  ABSENT: BAD,
+  FAIL: BAD,
+  FAILED: BAD,
+  OVERDUE: BAD,
+  REVERSED: BAD,
+  MALE: "bg-blue-500/10 text-blue-700 dark:text-blue-400",
+  FEMALE: "bg-pink-500/10 text-pink-700 dark:text-pink-400",
+};
+
+const AVATAR = [
+  "bg-blue-500/15 text-blue-700 dark:text-blue-300",
+  "bg-violet-500/15 text-violet-700 dark:text-violet-300",
+  "bg-amber-500/15 text-amber-700 dark:text-amber-300",
+  "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300",
+  "bg-rose-500/15 text-rose-700 dark:text-rose-300",
+  "bg-sky-500/15 text-sky-700 dark:text-sky-300",
+];
+
+/** The column that names the person on each row, if there is one. */
+function personColumnKey(columns: { key: string; label: string }[]): string | null {
+  const c = columns.find((col) =>
+    /^(student|teacher|parent|employee|staff)?\s*(full\s*)?name$|^(student|teacher|parent|employee)$/i.test(
+      col.label.trim(),
+    ),
+  );
+  return c?.key ?? null;
+}
+
+function isPhoneColumn(label: string): boolean {
+  return /phone|tel\b|mobile/i.test(label);
+}
+
+/**
+ * One table cell, dressed for what it holds: an ID as a chip, a person with
+ * their initial, a phone with its icon, a status or gender as a badge.
+ * Only the look changes — the text is exactly what prints and exports.
+ */
+function ReportCell({
+  value,
+  column,
+  isPerson,
+}: {
+  value: string | number | undefined;
+  column: { key: string; label: string; mono?: boolean };
+  isPerson: boolean;
+}) {
+  if (value === undefined || value === null || value === "") {
+    return <span className="text-muted-foreground">—</span>;
+  }
+  const text = String(value);
+  const upper = text.trim().toUpperCase();
+  if (typeof value === "string" && BADGE[upper]) {
+    return (
+      <span className={cn("inline-flex rounded-md px-2 py-0.5 text-[11px] font-semibold tracking-wide", BADGE[upper])}>
+        {upper}
+      </span>
+    );
+  }
+  if (column.mono) {
+    return (
+      <span className="inline-flex whitespace-nowrap rounded-md bg-secondary px-2 py-0.5 font-mono text-xs font-medium">
+        {text}
+      </span>
+    );
+  }
+  if (isPerson) {
+    const initial = text.trim().charAt(0).toUpperCase() || "?";
+    const tone = AVATAR[initial.charCodeAt(0) % AVATAR.length];
+    return (
+      <span className="flex min-w-0 items-center gap-2.5">
+        <span className={cn("flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold", tone)}>
+          {initial}
+        </span>
+        <span className="font-medium">{text}</span>
+      </span>
+    );
+  }
+  if (isPhoneColumn(column.label)) {
+    return (
+      <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
+        <Phone className="h-3.5 w-3.5 shrink-0 text-primary" />
+        {text}
+      </span>
+    );
+  }
+  return <>{text}</>;
+}
 
 interface Props {
   categoryId: string;
@@ -422,6 +613,12 @@ export function ReportPageShell({ categoryId, categoryLabel, report }: Props) {
     toast(`Exported ${sorted.length} rows.`, "success");
   }
 
+  function handleExcel() {
+    exportReportExcel(report.title, visibleColumns, sorted);
+    logReportAction(categoryLabel, report.title, "EXCEL_EXPORTED");
+    toast(`Exported ${sorted.length} rows to Excel.`, "success");
+  }
+
   if (!mounted) {
     return (
       <div className="flex h-64 items-center justify-center text-muted-foreground">
@@ -431,43 +628,81 @@ export function ReportPageShell({ categoryId, categoryLabel, report }: Props) {
   }
 
   const years = getAcademicsState().academicYears;
+  const theme = REPORT_THEME[categoryId] ?? REPORT_THEME_FALLBACK;
+  const ThemeIcon = theme.icon;
+  const personKey = personColumnKey(visibleColumns);
 
   return (
-    <div className="space-y-6">
+    <div className="relative space-y-6">
+      {/* Soft wash behind the header, as on the Reports Center. */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -inset-x-4 -top-4 h-72 rounded-b-[3rem] bg-gradient-to-br from-violet-200/50 via-indigo-100/30 to-transparent dark:from-violet-900/25 dark:via-indigo-900/10 sm:-inset-x-6"
+      />
+
       <Link
         href={`/reports/${categoryId}`}
-        className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
+        className="relative inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
       >
-        <ArrowLeft className="h-4 w-4" /> {t("reportsReportPageShell.backTo")} {categoryLabel}
+        <ArrowLeft className="h-4 w-4 rtl:rotate-180" /> {t("reportsReportPageShell.backTo")} {categoryLabel}
       </Link>
 
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold">{report.title}</h1>
-          <p className="mt-1 text-sm text-muted-foreground">{report.description}</p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            {t("reportsReportPageShell.academicYear")} <span className="font-medium text-foreground">{filters.academicYear ?? year}</span>
-          </p>
+      <div className="relative flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex min-w-0 items-center gap-4">
+          <span className={cn("flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl shadow-sm", theme.tile)}>
+            <ThemeIcon className="h-7 w-7" />
+          </span>
+          <div className="min-w-0">
+            <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">{report.title}</h1>
+            <p className="mt-0.5 text-sm text-muted-foreground">{report.description}</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              {t("reportsReportPageShell.academicYear")}{" "}
+              <span className="font-semibold text-foreground">{filters.academicYear ?? year}</span>
+            </p>
+          </div>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Button onClick={() => setPreviewOpen(true)} disabled={!hasDocument}>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button onClick={() => setPreviewOpen(true)} disabled={!hasDocument} className="shadow-sm shadow-primary/30">
             <Eye className="me-2 h-4 w-4" /> Preview
           </Button>
-          <Button variant="outline" onClick={handlePrint} disabled={!hasDocument}>
+          <Button variant="outline" className="bg-card" onClick={handlePrint} disabled={!hasDocument}>
             <Printer className="me-2 h-4 w-4" /> {t("reportsReportPageShell.print")}
           </Button>
-          <Button variant="outline" onClick={handlePdf} disabled={!hasDocument}>
+          <Button variant="outline" className="bg-card" onClick={handlePdf} disabled={!hasDocument}>
             <FileDown className="me-2 h-4 w-4" /> {t("reportsReportPageShell.pdf")}
           </Button>
-          <Button variant="outline" onClick={handleCsv} disabled={!hasDocument}>
+          <Button variant="outline" className="bg-card" onClick={handleCsv} disabled={!hasDocument}>
             <FileDown className="me-2 h-4 w-4" /> {t("reportsReportPageShell.csv")}
+          </Button>
+          <Button variant="outline" className="bg-card" onClick={handleExcel} disabled={!hasDocument}>
+            <FileSpreadsheet className="me-2 h-4 w-4" /> Excel
           </Button>
         </div>
       </div>
 
-      <div className="rounded-2xl border bg-card p-4 shadow-sm">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-end">
-          <div className="relative flex-1">
+      {data.summary.length > 0 && !awaitingInput && (
+        <div className="relative grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+          {data.summary.map((s, i) => {
+            const look = summaryLook(s.label, i);
+            const Icon = look.icon;
+            return (
+              <div key={s.label} className="flex min-w-0 items-center gap-3 rounded-2xl border bg-card/90 p-4 shadow-sm backdrop-blur">
+                <span className={cn("flex h-11 w-11 shrink-0 items-center justify-center rounded-xl", look.tile)}>
+                  <Icon className="h-5 w-5" />
+                </span>
+                <div className="min-w-0">
+                  <p className="truncate text-xl font-bold tabular-nums leading-tight">{s.value}</p>
+                  <p className="truncate text-xs text-muted-foreground">{s.label}</p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      <div className="relative rounded-2xl border bg-card p-4 shadow-sm">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+          <div className="relative flex-1 lg:max-w-md">
             <Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <input
               value={search}
@@ -476,7 +711,10 @@ export function ReportPageShell({ categoryId, categoryLabel, report }: Props) {
               className="h-10 w-full rounded-lg border bg-background ps-9 pe-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
             />
           </div>
+          <div className="hidden flex-1 lg:block" />
+          <div className="flex flex-wrap gap-2">
           <Button variant="outline" onClick={() => setShowFilters((v) => !v)}>
+            <SlidersHorizontal className="me-2 h-4 w-4" />
             {showFilters ? "Hide Filters" : "Show Filters"}
           </Button>
           <div className="relative">
@@ -548,24 +786,23 @@ export function ReportPageShell({ categoryId, categoryLabel, report }: Props) {
               <RefreshCw className="me-2 h-4 w-4" /> {t("reportsReportPageShell.refresh")}
             </Button>
           )}
+          </div>
         </div>
 
         {showFilters && report.filters.length > 0 && (
-          <div className="mt-4 grid gap-3 border-t pt-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="mt-4 grid items-end gap-x-4 gap-y-3 border-t pt-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
             {report.filters.includes("academicYear") && (
-              <div>
-                <Label>{FILTER_LABELS.academicYear}</Label>
+              <FilterField label={FILTER_LABELS.academicYear} icon={FILTER_ICONS.academicYear}>
                 <Select value={filters.academicYear ?? ""} onChange={(e) => setFilter("academicYear", e.target.value)}>
                   <option value="">{t("reportsReportPageShell.current")}{year})</option>
                   {years.map((y) => (
                     <option key={y.id} value={y.name}>{y.name}</option>
                   ))}
                 </Select>
-              </div>
+              </FilterField>
             )}
             {report.filters.includes("className") && (
-              <div>
-                <Label>{FILTER_LABELS.className}</Label>
+              <FilterField label={FILTER_LABELS.className} icon={FILTER_ICONS.className}>
                 <Select value={filters.className ?? ""} onChange={(e) => setFilters((f) => ({ ...f, className: e.target.value, section: "" }))}>
                   <option value="">{t("reportsReportPageShell.allClasses")}</option>
                   {classGroups.map((g) =>
@@ -582,11 +819,10 @@ export function ReportPageShell({ categoryId, categoryLabel, report }: Props) {
                     ),
                   )}
                 </Select>
-              </div>
+              </FilterField>
             )}
             {report.filters.includes("section") && (
-              <div>
-                <Label>{FILTER_LABELS.section}</Label>
+              <FilterField label={FILTER_LABELS.section} icon={FILTER_ICONS.section}>
                 <Select
                   value={filters.section ?? ""}
                   onChange={(e) => setFilter("section", e.target.value)}
@@ -597,11 +833,10 @@ export function ReportPageShell({ categoryId, categoryLabel, report }: Props) {
                     <option key={s} value={s}>{t("reportsReportPageShell.section")} {s}</option>
                   ))}
                 </Select>
-              </div>
+              </FilterField>
             )}
             {wantsVillage && (
-              <div>
-                <Label>{FILTER_LABELS.village}</Label>
+              <FilterField label={FILTER_LABELS.village} icon={FILTER_ICONS.village}>
                 <Select value={filters.village ?? ""} onChange={(e) => setFilter("village", e.target.value)}>
                   <option value="">{t("reportsReportPageShell.all")}</option>
                   {villages.map((v) => (
@@ -609,12 +844,11 @@ export function ReportPageShell({ categoryId, categoryLabel, report }: Props) {
                   ))}
                   <option value={NONE_RECORDED}>(No village recorded)</option>
                 </Select>
-              </div>
+              </FilterField>
             )}
             {/* A school that never records districts has no list to offer. */}
             {wantsDistrict && districts.length > 0 && (
-              <div>
-                <Label>{FILTER_LABELS.district}</Label>
+              <FilterField label={FILTER_LABELS.district} icon={FILTER_ICONS.district}>
                 <Select value={filters.district ?? ""} onChange={(e) => setFilter("district", e.target.value)}>
                   <option value="">{t("reportsReportPageShell.all")}</option>
                   {districts.map((d) => (
@@ -622,21 +856,19 @@ export function ReportPageShell({ categoryId, categoryLabel, report }: Props) {
                   ))}
                   <option value={NONE_RECORDED}>(No district recorded)</option>
                 </Select>
-              </div>
+              </FilterField>
             )}
             {report.filters.includes("gender") && (
-              <div>
-                <Label>{FILTER_LABELS.gender}</Label>
+              <FilterField label={FILTER_LABELS.gender} icon={FILTER_ICONS.gender}>
                 <Select value={filters.gender ?? ""} onChange={(e) => setFilter("gender", e.target.value)}>
                   <option value="">{t("reportsReportPageShell.all")}</option>
                   <option value="MALE">{t("reportsReportPageShell.male")}</option>
                   <option value="FEMALE">{t("reportsReportPageShell.female")}</option>
                 </Select>
-              </div>
+              </FilterField>
             )}
             {report.filters.includes("status") && (
-              <div>
-                <Label>{FILTER_LABELS.status}</Label>
+              <FilterField label={FILTER_LABELS.status} icon={FILTER_ICONS.status}>
                 <Select value={filters.status ?? ""} onChange={(e) => setFilter("status", e.target.value)}>
                   <option value="">{t("reportsReportPageShell.all")}</option>
                   {statusOptionsFor(categoryId, report.slug).map((o) => (
@@ -645,11 +877,10 @@ export function ReportPageShell({ categoryId, categoryLabel, report }: Props) {
                     </option>
                   ))}
                 </Select>
-              </div>
+              </FilterField>
             )}
             {report.filters.includes("shift") && (
-              <div>
-                <Label>{FILTER_LABELS.shift}</Label>
+              <FilterField label={FILTER_LABELS.shift} icon={FILTER_ICONS.shift}>
                 <Select value={filters.shift ?? ""} onChange={(e) => setFilter("shift", e.target.value)}>
                   <option value="">{t("reportsReportPageShell.allShifts")}</option>
                   {shiftOptions.map((s) => (
@@ -658,22 +889,20 @@ export function ReportPageShell({ categoryId, categoryLabel, report }: Props) {
                     </option>
                   ))}
                 </Select>
-              </div>
+              </FilterField>
             )}
             {report.filters.includes("examId") && (
-              <div>
-                <Label>{FILTER_LABELS.examId}</Label>
+              <FilterField label={FILTER_LABELS.examId} icon={FILTER_ICONS.examId}>
                 <Select value={filters.examId ?? ""} onChange={(e) => setFilter("examId", e.target.value)}>
                   <option value="">{t("reportsReportPageShell.allExams")}</option>
                   {exams.map((e) => (
                     <option key={e.id} value={e.id}>{e.name}</option>
                   ))}
                 </Select>
-              </div>
+              </FilterField>
             )}
             {report.filters.includes("month") && (
-              <div>
-                <Label>{FILTER_LABELS.month}</Label>
+              <FilterField label={FILTER_LABELS.month}>
                 <input
                   type="month"
                   value={filters.month ?? ""}
@@ -687,11 +916,10 @@ export function ReportPageShell({ categoryId, categoryLabel, report }: Props) {
                     Records run from {period.firstMonth} to {period.lastMonth}.
                   </p>
                 )}
-              </div>
+              </FilterField>
             )}
             {report.filters.includes("date") && (
-              <div>
-                <Label>{FILTER_LABELS.date}</Label>
+              <FilterField label={FILTER_LABELS.date}>
                 <input
                   type="date"
                   value={filters.date ?? ""}
@@ -700,11 +928,10 @@ export function ReportPageShell({ categoryId, categoryLabel, report }: Props) {
                   onChange={(e) => setFilter("date", e.target.value)}
                   className="h-10 w-full rounded-lg border bg-background px-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                 />
-              </div>
+              </FilterField>
             )}
             {report.filters.includes("dateFrom") && (
-              <div>
-                <Label>{FILTER_LABELS.dateFrom}</Label>
+              <FilterField label={FILTER_LABELS.dateFrom}>
                 <input
                   type="date"
                   value={filters.dateFrom ?? ""}
@@ -713,11 +940,10 @@ export function ReportPageShell({ categoryId, categoryLabel, report }: Props) {
                   onChange={(e) => setFilter("dateFrom", e.target.value)}
                   className="h-10 w-full rounded-lg border bg-background px-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                 />
-              </div>
+              </FilterField>
             )}
             {report.filters.includes("dateTo") && (
-              <div>
-                <Label>{FILTER_LABELS.dateTo}</Label>
+              <FilterField label={FILTER_LABELS.dateTo}>
                 <input
                   type="date"
                   value={filters.dateTo ?? ""}
@@ -726,7 +952,7 @@ export function ReportPageShell({ categoryId, categoryLabel, report }: Props) {
                   onChange={(e) => setFilter("dateTo", e.target.value)}
                   className="h-10 w-full rounded-lg border bg-background px-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                 />
-              </div>
+              </FilterField>
             )}
             {(search || Object.values(filters).some(Boolean)) && (
               <div className="flex items-end">
@@ -739,17 +965,6 @@ export function ReportPageShell({ categoryId, categoryLabel, report }: Props) {
         )}
       </div>
 
-      {data.summary.length > 0 && (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {data.summary.map((s) => (
-            <div key={s.label} className="rounded-xl border bg-card p-4 shadow-sm">
-              <p className="text-lg font-bold tabular-nums">{s.value}</p>
-              <p className="text-xs text-muted-foreground">{s.label}</p>
-            </div>
-          ))}
-        </div>
-      )}
-
       {report.chart && !dataLoading && (
         <ReportBarChart
           rows={data.rows}
@@ -759,21 +974,30 @@ export function ReportPageShell({ categoryId, categoryLabel, report }: Props) {
         />
       )}
 
-      <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
-        <div className="max-h-[560px] overflow-auto scrollbar-slim">
-          <table className="w-full min-w-[640px] text-sm">
-            <thead className="sticky top-0 z-10 bg-secondary/95 backdrop-blur text-start text-xs uppercase tracking-wide text-muted-foreground">
+      <div className="relative overflow-hidden rounded-2xl border bg-card shadow-sm">
+        <div className="max-h-[600px] overflow-auto scrollbar-slim">
+          <table className="w-full min-w-[640px] border-collapse text-sm">
+            <thead className="sticky top-0 z-10 border-b bg-muted/70 text-xs font-semibold text-foreground/80 backdrop-blur">
               <tr>
-                <th className="px-4 py-3 font-medium">#</th>
+                <th className="w-12 px-4 py-3 text-start align-middle font-semibold">#</th>
                 {visibleColumns.map((c) => (
-                  <th key={c.key} className={cn("px-4 py-3 font-medium", c.align === "right" && "text-end")}>
+                  <th
+                    key={c.key}
+                    className={cn(
+                      "whitespace-nowrap px-4 py-3 align-middle font-semibold",
+                      c.align === "right" ? "text-end" : c.align === "center" ? "text-center" : "text-start",
+                    )}
+                  >
                     <button
                       type="button"
                       onClick={() => toggleSort(c.key)}
-                      className="inline-flex items-center gap-1 hover:text-foreground"
+                      className={cn(
+                        "inline-flex items-center gap-1 hover:text-foreground",
+                        c.align === "right" && "flex-row-reverse",
+                      )}
                     >
                       {c.label}
-                      <ArrowDownUp className="h-3 w-3 opacity-50" />
+                      <ArrowDownUp className={cn("h-3 w-3", sortKey === c.key ? "text-primary opacity-100" : "opacity-40")} />
                     </button>
                   </th>
                 ))}
@@ -812,18 +1036,23 @@ export function ReportPageShell({ categoryId, categoryLabel, report }: Props) {
                 </tr>
               ) : (
                 pageRows.map((row, i) => (
-                  <tr key={i} className="border-t hover:bg-secondary/40">
-                    <td className="px-4 py-3 text-muted-foreground">{(currentPage - 1) * pageSize + i + 1}</td>
+                  <tr key={i} className="border-t transition-colors even:bg-muted/20 hover:bg-primary/5">
+                    <td className="px-4 py-2.5 text-start align-middle tabular-nums text-muted-foreground">
+                      {(currentPage - 1) * pageSize + i + 1}
+                    </td>
                     {visibleColumns.map((c) => (
                       <td
                         key={c.key}
                         className={cn(
-                          "px-4 py-3",
-                          c.align === "right" && "text-end tabular-nums",
-                          c.mono && "font-mono text-xs",
+                          "px-4 py-2.5 align-middle",
+                          c.align === "right"
+                            ? "whitespace-nowrap text-end tabular-nums"
+                            : c.align === "center"
+                              ? "text-center"
+                              : "text-start",
                         )}
                       >
-                        {row[c.key] ?? "—"}
+                        <ReportCell value={row[c.key]} column={c} isPerson={c.key === personKey} />
                       </td>
                     ))}
                   </tr>
@@ -862,6 +1091,9 @@ export function ReportPageShell({ categoryId, categoryLabel, report }: Props) {
           <div className="flex flex-wrap justify-end gap-2">
             <Button variant="outline" onClick={handleCsv}>
               <FileDown className="me-2 h-4 w-4" /> {t("reportsReportPageShell.csv")}
+            </Button>
+            <Button variant="outline" onClick={handleExcel}>
+              <FileSpreadsheet className="me-2 h-4 w-4" /> Excel
             </Button>
             <Button variant="outline" onClick={handlePdf}>
               <FileDown className="me-2 h-4 w-4" /> {t("reportsReportPageShell.pdf")}

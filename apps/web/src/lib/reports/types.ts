@@ -84,6 +84,7 @@ export type ReportAuditAction =
   | "PRINTED"
   | "PDF_DOWNLOADED"
   | "CSV_EXPORTED"
+  | "EXCEL_EXPORTED"
   | "FILTER_APPLIED";
 
 export interface ReportAuditEntry {

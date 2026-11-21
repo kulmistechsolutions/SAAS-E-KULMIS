@@ -234,3 +234,53 @@ export function exportReportCsv(
   a.click();
   URL.revokeObjectURL(url);
 }
+
+/**
+ * The report as an Excel workbook. Excel opens an HTML table saved as .xls
+ * natively, keeps the header bold and every column, and — with the UTF-8
+ * meta — reads Somali and Arabic names correctly, which a CSV double-clicked
+ * into Excel often does not. Codes like MDFS0001 or phone numbers stay text,
+ * so a leading zero is never stripped.
+ */
+export function exportReportExcel(
+  title: string,
+  columns: ReportColumn[],
+  rows: Record<string, string | number>[],
+) {
+  const esc = (v: unknown) =>
+    String(v ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+  const head = columns
+    .map((c) => `<th style="background:#eef2ff;font-weight:bold;border:1px solid #c7d2fe">${esc(c.label)}</th>`)
+    .join("");
+  const body = rows
+    .map(
+      (row) =>
+        "<tr>" +
+        columns
+          .map((c) => {
+            const v = row[c.key];
+            const numeric = typeof v === "number";
+            return `<td style="border:1px solid #e5e7eb${numeric ? "" : ";mso-number-format:'\@'"}">${esc(v)}</td>`;
+          })
+          .join("") +
+        "</tr>",
+    )
+    .join("");
+  const html =
+    `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel">` +
+    `<head><meta charset="utf-8"/></head><body>` +
+    `<table><caption style="font-weight:bold;font-size:14pt">${esc(title)}</caption>` +
+    `<thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></body></html>`;
+  const blob = new Blob(["\ufeff" + html], {
+    type: "application/vnd.ms-excel;charset=utf-8",
+  });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${title.toLowerCase().replace(/\s+/g, "-")}.xls`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
