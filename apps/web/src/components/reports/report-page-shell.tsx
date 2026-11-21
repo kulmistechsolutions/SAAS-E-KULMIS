@@ -296,6 +296,79 @@ function ReportCell({
   return <>{text}</>;
 }
 
+/**
+ * The headline figures for a report: what the server summarised, filled out
+ * from the rows on screen so no report opens on a single lonely card.
+ *
+ * Only facts read straight off the rows are added — how many, how many boys
+ * and girls, how many classes and sections they span, how many in each
+ * status, and the total of a money column — and never a second copy of a
+ * figure the server already gave.
+ */
+function headlineStats(
+  summary: { label: string; value: string }[],
+  columns: { key: string; label: string; align?: string }[],
+  rows: Record<string, string | number>[],
+): { label: string; value: string }[] {
+  const out = [...summary];
+  const has = (re: RegExp) => out.some((x) => re.test(x.label.toLowerCase()));
+  const col = (re: RegExp) => columns.find((c) => re.test(c.label.trim().toLowerCase()));
+  const fmt = (n: number) => n.toLocaleString();
+  if (rows.length === 0) return out.slice(0, 5);
+
+  if (!has(/total|records|students|teachers|parents|count|rows/)) {
+    out.unshift({ label: "Total Records", value: fmt(rows.length) });
+  }
+  const gender = col(/^(gender|sex)$/);
+  if (gender) {
+    const male = rows.filter((r) => String(r[gender.key]).toUpperCase() === "MALE").length;
+    const female = rows.filter((r) => String(r[gender.key]).toUpperCase() === "FEMALE").length;
+    if (male && !has(/\bmale/)) out.push({ label: "Male", value: fmt(male) });
+    if (female && !has(/female/)) out.push({ label: "Female", value: fmt(female) });
+  }
+  const distinct = (key: string) =>
+    new Set(rows.map((r) => String(r[key] ?? "").trim()).filter((v) => v && v !== "—")).size;
+  const cls = col(/^class(es)?$|^class name$/);
+  if (cls && !has(/class/)) {
+    const n = distinct(cls.key);
+    if (n) out.push({ label: n === 1 ? "Class" : "Classes", value: fmt(n) });
+  }
+  const sec = col(/^section$/);
+  if (sec && !has(/section/)) {
+    const n = distinct(sec.key);
+    if (n) out.push({ label: n === 1 ? "Section" : "Sections", value: fmt(n) });
+  }
+  const status = col(/^(status|result|payment status)$/);
+  if (status) {
+    const counts = new Map<string, number>();
+    for (const r of rows) {
+      const v = String(r[status.key] ?? "").trim();
+      if (v) counts.set(v, (counts.get(v) ?? 0) + 1);
+    }
+    // One status for everyone says nothing a total does not.
+    if (counts.size > 1) {
+      for (const [v, n] of [...counts].sort((a, b) => b[1] - a[1]).slice(0, 2)) {
+        const label = v.charAt(0).toUpperCase() + v.slice(1).toLowerCase();
+        if (!has(new RegExp(`^${label.toLowerCase()}`))) out.push({ label, value: fmt(n) });
+      }
+    }
+  }
+  const money = columns.find(
+    (c) =>
+      c.align === "right" &&
+      /amount|paid|collected|balance|fee|salary|total|owed|income|expense/i.test(c.label) &&
+      rows.every((r) => typeof r[c.key] === "number" || r[c.key] === undefined || r[c.key] === "—"),
+  );
+  if (money && !has(new RegExp(money.label.toLowerCase().replace(/[^a-z ]/g, "")))) {
+    const sum = rows.reduce((a, r) => a + (typeof r[money.key] === "number" ? (r[money.key] as number) : 0), 0);
+    out.push({
+      label: `Total ${money.label}`,
+      value: sum.toLocaleString(undefined, { maximumFractionDigits: 2 }),
+    });
+  }
+  return out.slice(0, 5);
+}
+
 interface Props {
   categoryId: string;
   categoryLabel: string;
@@ -588,6 +661,10 @@ export function ReportPageShell({ categoryId, categoryLabel, report }: Props) {
   const awaitingInput = !dataLoading && data.columns.length === 0;
   const prompt = awaitingInput ? data.summary[0] : undefined;
   const hasDocument = data.columns.length > 0 && sorted.length > 0;
+  const stats = useMemo(
+    () => headlineStats(data.summary, data.columns, data.rows),
+    [data],
+  );
 
   const [previewOpen, setPreviewOpen] = useState(false);
   const previewHtml = useMemo(
@@ -680,9 +757,14 @@ export function ReportPageShell({ categoryId, categoryLabel, report }: Props) {
         </div>
       </div>
 
-      {data.summary.length > 0 && !awaitingInput && (
-        <div className="relative grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-          {data.summary.map((s, i) => {
+      {stats.length > 0 && !awaitingInput && !dataLoading && (
+        <div
+          className={cn(
+            "relative grid grid-cols-2 gap-3",
+            stats.length >= 5 ? "sm:grid-cols-3 lg:grid-cols-5" : stats.length === 4 ? "lg:grid-cols-4" : stats.length === 3 ? "sm:grid-cols-3" : "",
+          )}
+        >
+          {stats.map((s, i) => {
             const look = summaryLook(s.label, i);
             const Icon = look.icon;
             return (
