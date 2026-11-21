@@ -11,6 +11,7 @@ import { Shield } from "lucide-react";
 import { usePlatformAuth } from "@/lib/platform/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Card, CardContent } from "@/components/ui/card";
 import Link from "next/link";
 import { toast } from "@/lib/toast";
@@ -68,8 +69,7 @@ export default function PlatformLoginPage() {
             </div>
             <div>
               <label className="mb-1 block text-sm font-medium text-slate-300">{t("platformLogin.password")}</label>
-              <Input
-                type="password"
+              <PasswordInput
                 {...register("password")}
                 placeholder="••••••••"
                 autoComplete="current-password"

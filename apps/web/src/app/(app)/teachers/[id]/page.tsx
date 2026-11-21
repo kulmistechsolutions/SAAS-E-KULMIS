@@ -1,6 +1,7 @@
 "use client";
 
 
+import { RevealPassword } from "@/components/users/reveal-password";
 import { useT } from "@/lib/i18n/provider";
 import { Suspense, use, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
@@ -241,6 +242,10 @@ function TeacherProfileContent({ id }: { id: string }) {
           {tab === "login" && (
             <div className="max-w-md space-y-4">
               <Field label={t("teachers.username")} value={<span className="font-mono">{teacher.username}</span>} />
+              <RevealPassword
+                key={String(savingPassword)}
+                path={`/teachers/${teacher.id}/password`}
+              />
               <div className="space-y-2">
                 <Label>{t("teachers.password")}</Label>
                 <Input

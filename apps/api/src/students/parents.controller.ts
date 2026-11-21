@@ -55,6 +55,12 @@ export class ParentsController {
    * specific one the admin chose.
    */
   @RequirePermission("parents.update")
+  @Get(":id/password")
+  viewPassword(@CurrentUser() me: AuthUser, @Param("id") id: string) {
+    return this.parents.viewPassword(me.schoolId, id, me);
+  }
+
+  @RequirePermission("parents.update")
   @Post(":id/reset-password")
   resetPassword(
     @CurrentUser() me: AuthUser,

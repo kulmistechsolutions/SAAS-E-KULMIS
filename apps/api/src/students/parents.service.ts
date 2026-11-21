@@ -2,6 +2,7 @@ import { ConflictException, Injectable, NotFoundException } from "@nestjs/common
 import type { UpdateParentInput } from "@ekulmis/shared";
 import { PrismaService } from "../prisma/prisma.service";
 import { hashPassword } from "../auth/password.util";
+import { revealIssuedPassword } from "../auth/password-reveal.util";
 import { onUniqueViolation } from "../academics/prisma-errors";
 
 /** The password every parent account starts on, and the reset falls back to. */
@@ -16,6 +17,39 @@ export class ParentsService {
    * parent's User account (previously the UI only generated one locally, so the
    * parent could never actually log in with it) and revokes old sessions.
    */
+  /** The portal password, if it is still the one the school issued. */
+  async viewPassword(
+    schoolId: string,
+    id: string,
+    actor?: { userId?: string; username?: string },
+  ) {
+    const parent = await this.prisma.forTenant(schoolId, (tx) =>
+      tx.parent.findFirst({
+        where: { id },
+        select: { code: true, phone: true, user: { select: { passwordHash: true } } },
+      }),
+    );
+    if (!parent) throw new NotFoundException("Parent not found");
+    const result = await revealIssuedPassword(parent.user?.passwordHash, [
+      DEFAULT_PARENT_PASSWORD,
+      parent.code,
+      parent.phone,
+    ]);
+    await this.prisma.forTenant(schoolId, (tx) =>
+      tx.auditLog.create({
+        data: {
+          schoolId,
+          userId: actor?.userId ?? null,
+          username: actor?.username ?? null,
+          module: "parents",
+          action: "PASSWORD_VIEWED",
+          metadata: { parentCode: parent.code, known: result.known },
+        },
+      }),
+    );
+    return result;
+  }
+
   async resetPassword(schoolId: string, id: string, customPassword?: string) {
     const parent = await this.prisma.forTenant(schoolId, (tx) =>
       tx.parent.findFirst({ where: { id }, select: { userId: true } }),

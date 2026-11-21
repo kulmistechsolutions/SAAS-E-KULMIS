@@ -1,6 +1,7 @@
 "use client";
 
 
+import { RevealPassword } from "@/components/users/reveal-password";
 import { useT } from "@/lib/i18n/provider";
 import { use, useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
@@ -68,6 +69,11 @@ export default function UserProfilePage({
                 <KeyRound className="me-2 h-4 w-4" />
                 {t("users.resetPassword")}
               </Button>
+              <RevealPassword
+                key={String(resetOpen)}
+                path={`/users/${user.id}/password`}
+                className="h-9"
+              />
             </>
           )}
           <Button variant="outline" className="h-9" onClick={() => printUserProfile(user)}>

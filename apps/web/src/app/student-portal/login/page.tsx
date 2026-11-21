@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { GraduationCap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { useSchoolBranding } from "@/lib/settings/use-school-branding";
 import { apiStudentPortalLogin } from "@/lib/student-portal/api";
@@ -84,10 +85,9 @@ export default function StudentPortalLoginPage() {
           </div>
           <div>
             <Label htmlFor="password">{t("studentPortalLogin.password")}</Label>
-            <Input
+            <PasswordInput
               id="password"
-              type="password"
-              className="mt-1.5"
+              wrapperClassName="mt-1.5"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required

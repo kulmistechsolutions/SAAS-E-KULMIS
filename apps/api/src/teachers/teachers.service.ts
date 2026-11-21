@@ -9,6 +9,7 @@ import type { Prisma } from "@prisma/client";
 import type { RegisterTeacherInput, UpdateTeacherInput } from "@ekulmis/shared";
 import { PrismaService } from "../prisma/prisma.service";
 import { hashPassword } from "../auth/password.util";
+import { revealIssuedPassword } from "../auth/password-reveal.util";
 import { PasswordPolicyService } from "../settings/password-policy.service";
 import { normalizeName, normalizePhone } from "../common/person-identity.util";
 import { SubscriptionsService } from "../subscriptions/subscriptions.service";
@@ -388,6 +389,38 @@ export class TeachersService {
       await tx.user.delete({ where: { id: teacher.userId } });
       return { success: true, payrollRemoved };
     });
+  }
+
+  /** The login password, if it is still the one the school issued. */
+  async viewPassword(
+    schoolId: string,
+    id: string,
+    actor?: { userId?: string; username?: string },
+  ) {
+    const teacher = await this.prisma.forTenant(schoolId, (tx) =>
+      tx.teacher.findFirst({
+        where: { id },
+        select: { code: true, user: { select: { passwordHash: true } } },
+      }),
+    );
+    if (!teacher) throw new NotFoundException("Teacher not found");
+    const result = await revealIssuedPassword(teacher.user?.passwordHash, [
+      DEFAULT_TEACHER_PASSWORD,
+      teacher.code,
+    ]);
+    await this.prisma.forTenant(schoolId, (tx) =>
+      tx.auditLog.create({
+        data: {
+          schoolId,
+          userId: actor?.userId ?? null,
+          username: actor?.username ?? null,
+          module: "teachers",
+          action: "PASSWORD_VIEWED",
+          metadata: { teacherCode: teacher.code, known: result.known },
+        },
+      }),
+    );
+    return result;
   }
 
   /** Reset the linked login account password and revoke refresh tokens. */

@@ -21,6 +21,7 @@ import { StorageService } from "../storage/storage.service";
 import { FeesService } from "../finance/fees.service";
 import { SubscriptionsService } from "../subscriptions/subscriptions.service";
 import { hashPassword } from "../auth/password.util";
+import { revealIssuedPassword } from "../auth/password-reveal.util";
 import { PasswordPolicyService } from "../settings/password-policy.service";
 import { NotificationsService } from "../notifications/notifications.service";
 import { SmsAutoService } from "../sms/sms-auto.service";
@@ -1409,6 +1410,38 @@ export class StudentsService {
    * session is a single 24h access token (see StudentPortalService), so an
    * old token stays valid until it naturally expires even after this runs.
    */
+  /** The portal password, if it is still the one the school issued. */
+  async viewPortalPassword(
+    schoolId: string,
+    id: string,
+    actor?: { userId?: string; username?: string },
+  ) {
+    const student = await this.prisma.forTenant(schoolId, (tx) =>
+      tx.student.findFirst({
+        where: { id },
+        select: { code: true, portalPasswordHash: true },
+      }),
+    );
+    if (!student) throw new NotFoundException("Student not found");
+    const result = await revealIssuedPassword(student.portalPasswordHash, [
+      student.code,
+      "12345",
+    ]);
+    await this.prisma.forTenant(schoolId, (tx) =>
+      tx.auditLog.create({
+        data: {
+          schoolId,
+          userId: actor?.userId ?? null,
+          username: actor?.username ?? null,
+          module: "students",
+          action: "PASSWORD_VIEWED",
+          metadata: { studentCode: student.code, known: result.known },
+        },
+      }),
+    );
+    return result;
+  }
+
   async resetPortalPassword(schoolId: string, id: string, customPassword?: string) {
     const student = await this.prisma.forTenant(schoolId, (tx) =>
       tx.student.findFirst({ where: { id }, select: { id: true, code: true } }),

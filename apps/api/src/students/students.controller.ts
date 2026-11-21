@@ -287,6 +287,13 @@ export class StudentsController {
 
   @Roles(UserRole.ADMINISTRATOR, UserRole.RECEPTION_OFFICER)
   @RequirePermission("students.update")
+  @Get(":id/portal-password")
+  viewPortalPassword(@CurrentUser() me: AuthUser, @Param("id") id: string) {
+    return this.students.viewPortalPassword(me.schoolId, id, me);
+  }
+
+  @Roles(UserRole.ADMINISTRATOR, UserRole.RECEPTION_OFFICER)
+  @RequirePermission("students.update")
   @Post(":id/reset-portal-password")
   resetPortalPassword(
     @CurrentUser() me: AuthUser,

@@ -118,6 +118,13 @@ export class TeachersController {
 
   @Roles(UserRole.ADMINISTRATOR)
   @RequirePermission("teachers.update")
+  @Get(":id/password")
+  viewPassword(@CurrentUser() me: AuthUser, @Param("id") id: string) {
+    return this.teachers.viewPassword(me.schoolId, id, me);
+  }
+
+  @Roles(UserRole.ADMINISTRATOR)
+  @RequirePermission("teachers.update")
   @Post(":id/reset-password")
   resetPassword(
     @CurrentUser() me: AuthUser,

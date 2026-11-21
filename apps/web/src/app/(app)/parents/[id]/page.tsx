@@ -1,6 +1,7 @@
 "use client";
 
 
+import { RevealPassword } from "@/components/users/reveal-password";
 import { useT } from "@/lib/i18n/provider";
 import { use, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
@@ -302,7 +303,11 @@ export default function ParentProfilePage({
                   {t("parents.parentsStartOnTheDefault")}{" "}
                   <span className="font-mono">12345</span>{t("parents.resetReturnsThemToItOr")}
                 </p>
-                <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
+                <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+                  <RevealPassword
+                    key={String(resetting)}
+                    path={`/parents/${parent.id}/password`}
+                  />
                   <Button
                     className="h-8 px-3 text-xs"
                     disabled={resetting}

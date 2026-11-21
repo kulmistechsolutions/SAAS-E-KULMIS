@@ -14,6 +14,7 @@ import {
 } from "@ekulmis/shared";
 import { PrismaService } from "../prisma/prisma.service";
 import { hashPassword } from "../auth/password.util";
+import { revealIssuedPassword } from "../auth/password-reveal.util";
 import { PasswordPolicyService } from "../settings/password-policy.service";
 
 function pad(n: number): string {
@@ -184,6 +185,41 @@ export class UsersService {
       }
       throw e;
     }
+  }
+
+  /** The login password, if it is still a default the school issued. */
+  async viewPassword(
+    schoolId: string,
+    id: string,
+    actor: { userId?: string; username?: string },
+  ) {
+    const user = await this.prisma.forTenant(schoolId, (tx) =>
+      tx.user.findFirst({
+        where: { id },
+        select: { username: true, passwordHash: true },
+      }),
+    );
+    if (!user) throw new NotFoundException("User not found");
+    if (actor.userId) {
+      this.guardOwner(await this.findOne(schoolId, id), actor.userId, "password");
+    }
+    const result = await revealIssuedPassword(user.passwordHash, [
+      "12345",
+      user.username,
+    ]);
+    await this.prisma.forTenant(schoolId, (tx) =>
+      tx.auditLog.create({
+        data: {
+          schoolId,
+          userId: actor?.userId ?? null,
+          username: actor?.username ?? null,
+          module: "users",
+          action: "PASSWORD_VIEWED",
+          metadata: { targetUsername: user.username, known: result.known },
+        },
+      }),
+    );
+    return result;
   }
 
   /** Admin password reset — also revokes the user's refresh tokens. */

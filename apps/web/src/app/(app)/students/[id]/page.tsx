@@ -1,6 +1,7 @@
 "use client";
 
 
+import { RevealPassword } from "@/components/users/reveal-password";
 import { useT } from "@/lib/i18n/provider";
 import { FeeAdjustDialog, type AdjustTarget } from "@/components/fees/fee-adjust-dialog";
 import { FeeChangeDialog } from "@/components/fees/fee-change-dialog";
@@ -373,7 +374,11 @@ function StudentPortalLoginCard({ student }: { student: StudentWithParent }) {
         their portal password. Reset only if the student says they can&apos;t sign in —
         most of the time it means they simply forgot it, not that something is broken.
       </p>
-      <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
+      <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+        <RevealPassword
+          key={`${revealedPassword ?? ""}${resetting}`}
+          path={`/students/${student.id}/portal-password`}
+        />
         <Button
           variant="outline"
           className="h-8 px-3 text-xs"

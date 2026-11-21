@@ -11,6 +11,7 @@ import { z } from "zod";
 import { useSchoolBranding } from "@/lib/settings/use-school-branding";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Card, CardContent } from "@/components/ui/card";
 import { loginParent, usePortalState } from "@/lib/parent-portal/store";
 import { toast } from "@/lib/toast";
@@ -93,8 +94,7 @@ export default function ParentPortalLoginPage() {
             </div>
             <div>
               <label className="mb-1 block text-sm font-medium">{t("parentPortalLogin.password")}</label>
-              <Input
-                type="password"
+              <PasswordInput
                 {...register("password")}
                 placeholder="••••••••"
                 autoComplete="current-password"

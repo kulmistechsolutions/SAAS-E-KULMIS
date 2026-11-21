@@ -121,6 +121,12 @@ export class UsersController {
   }
 
   @RequirePermission("users.update")
+  @Get(":id/password")
+  viewPassword(@CurrentUser() me: AuthUser, @Param("id") id: string) {
+    return this.users.viewPassword(me.schoolId, id, me);
+  }
+
+  @RequirePermission("users.update")
   @Post(":id/reset-password")
   resetPassword(
     @CurrentUser() me: AuthUser,
