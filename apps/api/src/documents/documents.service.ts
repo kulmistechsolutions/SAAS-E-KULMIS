@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { BadRequestException, Injectable } from "@nestjs/common";
 import PDFDocument from "pdfkit";
 import ExcelJS from "exceljs";
 
@@ -350,7 +350,13 @@ export class DocumentsService {
     headerRow = 1,
   ): Promise<Record<string, string>[]> {
     const wb = new ExcelJS.Workbook();
-    await wb.xlsx.load(buffer as unknown as ArrayBuffer);
+    try {
+      await wb.xlsx.load(buffer as unknown as ArrayBuffer);
+    } catch {
+      throw new BadRequestException(
+        "That file could not be opened as an Excel workbook. Save it as .xlsx (Excel Workbook) and upload it again — an older .xls, a .csv or a PDF will not open.",
+      );
+    }
     const ws = wb.worksheets[0];
     if (!ws) return [];
 

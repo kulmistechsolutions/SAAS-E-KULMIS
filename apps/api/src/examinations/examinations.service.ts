@@ -1398,7 +1398,16 @@ export class ExaminationsService {
   ): Promise<MarksImportSummary> {
     // Parse the workbook outside the DB transaction (CPU-only work).
     const wb = new ExcelJS.Workbook();
-    await wb.xlsx.load(buffer as unknown as ArrayBuffer);
+    // A file that is not an .xlsx (an old .xls, a CSV, a PDF renamed) is the
+    // teacher's to fix, not a server fault: Daarusalaam's import came back
+    // as a 500 "Can't find end of central directory".
+    try {
+      await wb.xlsx.load(buffer as unknown as ArrayBuffer);
+    } catch {
+      throw new BadRequestException(
+        "That file could not be opened as an Excel workbook. Save it as .xlsx (Excel Workbook) and upload it again — an older .xls, a .csv or a PDF will not open.",
+      );
+    }
     const ws = wb.worksheets[0];
     if (!ws) throw new BadRequestException("The uploaded file has no sheet");
 

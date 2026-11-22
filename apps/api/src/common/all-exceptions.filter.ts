@@ -45,7 +45,9 @@ export class AllExceptionsFilter implements ExceptionFilter {
     // net for the ones that don't, so a routine collision stops being a 500
     // and stops filling the error log with noise.
     const known = !isHttp
-      ? (mapPrismaError(exception) ?? mapBodyParserError(exception))
+      ? (mapPrismaError(exception) ??
+        mapBodyParserError(exception) ??
+        mapUploadError(exception))
       : null;
 
     const status = isHttp
@@ -88,6 +90,34 @@ export class AllExceptionsFilter implements ExceptionFilter {
         : { statusCode: status, message: responseBody },
     );
   }
+}
+
+/**
+ * Errors the upload middleware (multer) raises before a controller runs.
+ *
+ * "Request aborted" is the browser dropping the connection mid-upload — a
+ * slow line, a closed tab, a phone that lost signal while a library book
+ * was going up. Nothing failed on the server; it reached the error log as a
+ * 500 all the same. A file over the size limit is the uploader's to fix too.
+ */
+export function mapUploadError(
+  e: unknown,
+): { status: number; message: string } | null {
+  if (!(e instanceof Error)) return null;
+  const err = e as Error & { code?: unknown; name: string };
+  if (err.name === "MulterError") {
+    if (err.code === "LIMIT_FILE_SIZE") {
+      return { status: 413, message: "The file is too large to upload." };
+    }
+    return { status: 400, message: err.message };
+  }
+  if (err.message === "Request aborted" && (err.stack ?? "").includes("multer")) {
+    return {
+      status: 400,
+      message: "The upload was interrupted before it finished. Please try again.",
+    };
+  }
+  return null;
 }
 
 /**
