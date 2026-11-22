@@ -50,6 +50,9 @@ export const apiRepayDebt = (id: string, dto: CreateRepaymentInput) =>
     body: dto,
   });
 
+export const apiDeleteDebt = (id: string) =>
+  api<{ success: boolean }>(`/school-debts/${id}`, { method: "DELETE" });
+
 export const apiDeleteRepayment = (repaymentId: string) =>
   api<{ success: boolean }>(`/school-debts/repayments/${repaymentId}`, {
     method: "DELETE",

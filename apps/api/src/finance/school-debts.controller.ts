@@ -127,6 +127,33 @@ export class SchoolDebtsController {
     return repayment;
   }
 
+  /** Delete a debt entered by mistake, with its repayments. */
+  @Roles(UserRole.ADMINISTRATOR)
+  @RequirePermission("finance.delete")
+  @Delete(":id")
+  async remove(@CurrentUser() me: AuthUser, @Param("id") id: string) {
+    const removed = await this.debts.remove(me.schoolId, id);
+    await this.audit.record({
+      schoolId: me.schoolId,
+      userId: me.userId,
+      username: me.username,
+      role: me.role,
+      module: "school-debts",
+      action: "DEBT_DELETED",
+      metadata: {
+        debtId: removed.id,
+        lender: removed.lender,
+        principal: Number(removed.principal),
+        status: removed.status,
+        repayments: removed.repayments.map((r) => ({
+          amount: Number(r.amount),
+          paidAt: r.paidAt,
+        })),
+      },
+    });
+    return { success: true };
+  }
+
   /** Remove a repayment that should not have been recorded. */
   @Roles(UserRole.ADMINISTRATOR)
   @RequirePermission("finance.delete")

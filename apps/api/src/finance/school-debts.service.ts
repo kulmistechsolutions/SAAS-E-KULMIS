@@ -246,6 +246,33 @@ export class SchoolDebtsService {
     });
   }
 
+  /**
+   * Delete a debt and the repayments recorded against it — for one entered
+   * by mistake or twice. What is removed is returned so the audit log can
+   * name it: a lender, an amount and every repayment, since money leaving
+   * the books is exactly what somebody asks about later.
+   */
+  async remove(schoolId: string, id: string) {
+    return this.prisma.forTenant(schoolId, async (tx) => {
+      const debt = await tx.schoolDebt.findFirst({
+        where: { id },
+        select: {
+          id: true,
+          lender: true,
+          principal: true,
+          status: true,
+          repayments: { select: { id: true, amount: true, paidAt: true } },
+        },
+      });
+      if (!debt) throw new NotFoundException("Debt not found");
+      // Repayments go with it (FK cascade), but are removed explicitly so
+      // the delete never depends on how the relation is declared.
+      await tx.schoolDebtRepayment.deleteMany({ where: { debtId: id } });
+      await tx.schoolDebt.delete({ where: { id } });
+      return debt;
+    });
+  }
+
   async deleteRepayment(schoolId: string, repaymentId: string) {
     return this.prisma.forTenant(schoolId, async (tx) => {
       // Read before the delete: afterwards there is no amount left to name,

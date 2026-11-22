@@ -9,8 +9,11 @@ import {
   HandCoins,
   Landmark,
   Plus,
+  Trash2,
   Wallet,
 } from "lucide-react";
+import { useAuth } from "@/lib/auth";
+import { ConfirmDialog } from "@/components/students/confirm-dialog";
 import { useT } from "@/lib/i18n/provider";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -25,6 +28,7 @@ import { ApiError } from "@/lib/api";
 import {
   apiCreateDebt,
   apiDebtsSummary,
+  apiDeleteDebt,
   apiListDebts,
   type CreateDebtInput,
 } from "@/lib/debts/api";
@@ -51,6 +55,25 @@ export default function SchoolDebtsPage() {
   const [statusFilter, setStatusFilter] = useState("");
   const [loading, setLoading] = useState(true);
   const [addOpen, setAddOpen] = useState(false);
+  const { user } = useAuth();
+  const isAdmin = user?.role === "ADMINISTRATOR";
+  const [toDelete, setToDelete] = useState<SchoolDebt | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  async function confirmDelete() {
+    if (!toDelete) return;
+    setDeleting(true);
+    try {
+      await apiDeleteDebt(toDelete.id);
+      toast("Debt deleted.", "success");
+      setToDelete(null);
+      void load(statusFilter);
+    } catch (e) {
+      toast(apiErr(e, t("schoolDebts.saveFailed")), "error");
+    } finally {
+      setDeleting(false);
+    }
+  }
 
   const load = useCallback(async (status: string) => {
     setLoading(true);
@@ -221,11 +244,24 @@ export default function SchoolDebtsPage() {
                     </div>
                   </td>
                   <td className="px-4 py-3 text-end">
-                    <Link href={`/finance/debts/${d.id}`}>
-                      <Button variant="outline" className="h-8 px-3 text-xs">
-                        {t("schoolDebts.view")}
-                      </Button>
-                    </Link>
+                    <div className="inline-flex items-center gap-1.5">
+                      <Link href={`/finance/debts/${d.id}`}>
+                        <Button variant="outline" className="h-8 px-3 text-xs">
+                          {t("schoolDebts.view")}
+                        </Button>
+                      </Link>
+                      {isAdmin && (
+                        <Button
+                          variant="outline"
+                          className="h-8 px-2.5 text-rose-600 hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-500/10"
+                          onClick={() => setToDelete(d)}
+                          title="Delete"
+                          aria-label="Delete"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -233,6 +269,23 @@ export default function SchoolDebtsPage() {
           </table>
         </div>
       )}
+
+      <ConfirmDialog
+        open={toDelete !== null}
+        title="Delete this debt?"
+        message={
+          toDelete
+            ? `${toDelete.lender} — ${money(toDelete.principal)}. ` +
+              (toDelete.repaid > 0
+                ? `Its repayments (${money(toDelete.repaid)}) are deleted with it and leave the school's reports. `
+                : "") +
+              "This cannot be undone."
+            : ""
+        }
+        confirmLabel={deleting ? "Deleting…" : "Delete debt"}
+        onConfirm={() => void confirmDelete()}
+        onClose={() => setToDelete(null)}
+      />
 
       <AddDebtDialog
         open={addOpen}

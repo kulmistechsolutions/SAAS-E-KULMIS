@@ -2,7 +2,7 @@
 
 import { roundMoney } from "@ekulmis/shared";
 import { useCallback, useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, HandCoins, Printer, Trash2 } from "lucide-react";
 import { useT } from "@/lib/i18n/provider";
@@ -15,7 +15,9 @@ import { cn } from "@/lib/utils";
 import { money, shortDate } from "@/lib/students/format";
 import { ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import { ConfirmDialog } from "@/components/students/confirm-dialog";
 import {
+  apiDeleteDebt,
   apiDeleteRepayment,
   apiGetDebt,
   apiRepayDebt,
@@ -40,6 +42,22 @@ export default function SchoolDebtDetailPage() {
   const [loading, setLoading] = useState(true);
   const [repayOpen, setRepayOpen] = useState(false);
   const [paper, setPaper] = useState<PaperSize>(() => getStoredPaper());
+  const router = useRouter();
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  async function removeDebt() {
+    setDeleting(true);
+    try {
+      await apiDeleteDebt(id);
+      toast("Debt deleted.", "success");
+      router.push("/finance/debts");
+    } catch (e) {
+      toast(apiErr(e, t("schoolDebts.saveFailed")), "error");
+      setDeleting(false);
+      setDeleteOpen(false);
+    }
+  }
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -105,8 +123,34 @@ export default function SchoolDebtDetailPage() {
               {t("schoolDebts.recordRepayment")}
             </Button>
           )}
+          {user?.role === "ADMINISTRATOR" && (
+            <Button
+              variant="outline"
+              className="border-rose-300 text-rose-600 hover:bg-rose-50 dark:border-rose-500/40 dark:text-rose-400 dark:hover:bg-rose-500/10"
+              onClick={() => setDeleteOpen(true)}
+              disabled={deleting}
+            >
+              <Trash2 className="me-2 h-4 w-4" />
+              Delete
+            </Button>
+          )}
         </div>
       </div>
+
+      <ConfirmDialog
+        open={deleteOpen}
+        title="Delete this debt?"
+        message={
+          `${debt.lender} — ${money(debt.principal)}. ` +
+          (debt.repayments.length
+            ? `Its ${debt.repayments.length} repayment(s) totalling ${money(debt.repaid)} are deleted with it, and leave the school's reports. `
+            : "") +
+          "This cannot be undone."
+        }
+        confirmLabel={deleting ? "Deleting…" : "Delete debt"}
+        onConfirm={() => void removeDebt()}
+        onClose={() => setDeleteOpen(false)}
+      />
 
       <div className="grid gap-4 sm:grid-cols-4">
         <Field label={t("schoolDebts.principal")} value={money(debt.principal)} />
