@@ -135,6 +135,27 @@ function withoutSecrets(student: StudentRow): Omit<StudentRow, "portalPasswordHa
   return rest;
 }
 
+/**
+ * A class from an academic year that has already ended cannot take a student.
+ *
+ * Nuurul-Yaqiin registered three children on 31 October into Grade 1 of
+ * 2025-2026 — a year that had closed — so every list, report and fee setup
+ * for the current year quietly left them out. A year that has not started
+ * yet is fine: enrolling ahead is how a school prepares for it.
+ */
+function assertClassYearOpen(cls: {
+  name: string;
+  academicYear: { name: string; isActive: boolean; endDate: Date | null } | null;
+}): void {
+  const y = cls.academicYear;
+  if (y && !y.isActive && y.endDate && y.endDate.getTime() < Date.now()) {
+    throw new BadRequestException(
+      `${cls.name} belongs to ${y.name}, an academic year that has ended. ` +
+        "Choose the class in the current academic year.",
+    );
+  }
+}
+
 @Injectable()
 export class StudentsService {
   private readonly logger = new Logger(StudentsService.name);
@@ -325,9 +346,14 @@ export class StudentsService {
 
         const cls = await tx.class.findFirst({
           where: { id: dto.classId },
-          select: { id: true },
+          select: {
+            id: true,
+            name: true,
+            academicYear: { select: { name: true, isActive: true, endDate: true } },
+          },
         });
         if (!cls) throw new BadRequestException("Invalid class");
+        assertClassYearOpen(cls);
 
         const sectionId = dto.sectionId ?? null;
         if (sectionId) {
@@ -930,9 +956,16 @@ export class StudentsService {
       if (dto.classId) {
         const cls = await tx.class.findFirst({
           where: { id: dto.classId },
-          select: { id: true },
+          select: {
+            id: true,
+            name: true,
+            academicYear: { select: { name: true, isActive: true, endDate: true } },
+          },
         });
         if (!cls) throw new BadRequestException("Invalid class");
+        // Only a move is checked: saving a phone number on a student who is
+        // still in last year's class must not be refused for it.
+        if (dto.classId !== current.classId) assertClassYearOpen(cls);
       }
       if (dto.sectionId) {
         const sec = await tx.section.findFirst({
@@ -1419,7 +1452,7 @@ export class StudentsService {
     const student = await this.prisma.forTenant(schoolId, (tx) =>
       tx.student.findFirst({
         where: { id },
-        select: { code: true, portalPasswordHash: true },
+        select: { code: true, portalPasswordHash: true }, // verify-only: compared, never returned
       }),
     );
     if (!student) throw new NotFoundException("Student not found");

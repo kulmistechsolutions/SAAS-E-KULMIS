@@ -855,7 +855,13 @@ export class FeesService {
       academicStartYear,
     );
 
-    const billingStart = this.resolveBillingStart(ctx.student, slots);
+    const earlier = (
+      await this.earlierStarts(tx, [ctx.student], slots[0])
+    ).get(ctx.student.id);
+    const billingStart = earlier
+      ? slots[0]!
+      : this.resolveBillingStart(ctx.student, slots);
+    const recordedStart = earlier ?? billingStart;
     let activeCount = 0;
     let created = 0;
 
@@ -913,8 +919,8 @@ export class FeesService {
       where: { id: ctx.student.id },
       data: {
         annualFeeAmount: monthlyFee * activeCount,
-        feeBillingStartYear: billingStart.year,
-        feeBillingStartMonth: billingStart.month,
+        feeBillingStartYear: recordedStart.year,
+        feeBillingStartMonth: recordedStart.month,
       },
     });
 
@@ -969,9 +975,12 @@ export class FeesService {
       feeBillingStartMonth: number;
     }[] = [];
 
+    const earlier = await this.earlierStarts(tx, ctx.students, slots[0]);
     for (const student of ctx.students) {
       const monthlyFee = student.monthlyFee || ctx.defaultMonthlyFee || 0;
-      const billingStart = this.resolveBillingStart(student, slots);
+      const before = earlier.get(student.id);
+      const billingStart = before ? slots[0]! : this.resolveBillingStart(student, slots);
+      const recordedStart = before ?? billingStart;
       let activeCount = 0;
 
       for (const slot of slots) {
@@ -1017,8 +1026,8 @@ export class FeesService {
       studentUpdates.push({
         id: student.id,
         annualFeeAmount: monthlyFee * activeCount,
-        feeBillingStartYear: billingStart.year,
-        feeBillingStartMonth: billingStart.month,
+        feeBillingStartYear: recordedStart.year,
+        feeBillingStartMonth: recordedStart.month,
       });
     }
 
@@ -1053,6 +1062,55 @@ export class FeesService {
     return created;
   }
 
+  /**
+   * The month each student's billing really began, when that is earlier than
+   * the year being set up.
+   *
+   * Setting up a year used to stamp the student's start month with the first
+   * month it billed for that year. Khatam billed August month by month, then
+   * set the year up from September on the 20th — and 84 students who had been
+   * charged (72 had paid) for August were recorded as starting in September,
+   * so August read as money taken before they were due. The start a student
+   * already has, or the first month they were actually charged, is kept.
+   */
+  private async earlierStarts(
+    tx: TenantTx,
+    students: StudentFeeProfile[],
+    firstSlot: { year: number; month: number } | undefined,
+  ): Promise<Map<string, { year: number; month: number }>> {
+    const out = new Map<string, { year: number; month: number }>();
+    if (!firstSlot || students.length === 0) return out;
+    const firstKey = firstSlot.year * 100 + firstSlot.month;
+    const keyOf = (y: number, m: number) => y * 100 + m;
+    for (const st of students) {
+      if (
+        st.feeBillingStartYear &&
+        st.feeBillingStartMonth &&
+        keyOf(st.feeBillingStartYear, st.feeBillingStartMonth) < firstKey
+      ) {
+        out.set(st.id, { year: st.feeBillingStartYear, month: st.feeBillingStartMonth });
+      }
+    }
+    const charged = await tx.feeCharge.findMany({
+      where: {
+        studentId: { in: students.map((st) => st.id) },
+        kind: "MONTHLY",
+        status: { not: "INACTIVE" },
+        year: { lte: firstSlot.year },
+      },
+      select: { studentId: true, year: true, month: true },
+    });
+    for (const c of charged) {
+      const k = keyOf(c.year, c.month);
+      if (k >= firstKey) continue;
+      const had = out.get(c.studentId);
+      if (!had || k < keyOf(had.year, had.month)) {
+        out.set(c.studentId, { year: c.year, month: c.month });
+      }
+    }
+    return out;
+  }
+
   private resolveBillingStart(
     student: StudentFeeProfile,
     slots: ReturnType<typeof buildMonthSlots>,
@@ -1064,6 +1122,17 @@ export class FeesService {
         student.feeBillingStartMonth,
       );
       if (idx >= 0) return slots[idx]!;
+      // Started before this year's first month — already being billed when
+      // the year was set up. Every month of the year is theirs; falling
+      // through to "today" left the months before the setup day INACTIVE.
+      const first = slots[0];
+      if (
+        first &&
+        student.feeBillingStartYear * 100 + student.feeBillingStartMonth <
+          first.year * 100 + first.month
+      ) {
+        return first;
+      }
     }
 
     const mode = student.feeStartMode ?? "FULL_CURRENT";
