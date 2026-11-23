@@ -49,6 +49,21 @@ function resolveParentFields(fieldKeys: string[]): ParentFieldDef[] {
     : PARENT_EXPORT_FIELDS.filter((f) => DEFAULT_PARENT_EXPORT_FIELDS.includes(f.key));
 }
 
+/** The parent list as a table any export format can carry. */
+export function parentsExportSpec(
+  rows: ParentRow[],
+  fieldKeys: string[],
+): import("@/lib/export/table-export").ExportSpec {
+  const fields = resolveParentFields(fieldKeys);
+  return {
+    title: "Parent List",
+    fileName: "parents",
+    subtitle: [`${rows.length} parent(s)`],
+    columns: fields.map((f) => ({ key: f.key, label: f.label })),
+    rows: rows.map((p) => Object.fromEntries(fields.map((f) => [f.key, f.value(p)]))),
+  };
+}
+
 export function exportParentsCsv(
   rows: ParentRow[],
   fieldKeys: string[] = DEFAULT_PARENT_EXPORT_FIELDS,

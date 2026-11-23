@@ -531,6 +531,38 @@ export function generateRecurringDue(): number {
   return created;
 }
 
+/** Expense rows as a table any export format can carry. */
+export function expensesExportSpec(rows: ExpenseRow[]): import("@/lib/export/table-export").ExportSpec {
+  const total = rows.reduce((a, r) => a + Number(r.amount || 0), 0);
+  return {
+    title: "Expenses",
+    fileName: "expenses",
+    subtitle: [`${rows.length} expense(s) · Total ${total.toLocaleString(undefined, { maximumFractionDigits: 2 })}`],
+    columns: [
+      { key: "referenceNo", label: "Reference" },
+      { key: "title", label: "Title" },
+      { key: "categoryName", label: "Category" },
+      { key: "amount", label: "Amount", align: "right" },
+      { key: "paymentMethod", label: "Payment Method" },
+      { key: "expenseDate", label: "Date" },
+      { key: "paidTo", label: "Vendor" },
+      { key: "recordedBy", label: "Recorded By" },
+      { key: "status", label: "Status" },
+    ],
+    rows: rows.map((r) => ({
+      referenceNo: r.referenceNo,
+      title: r.title,
+      categoryName: r.categoryName,
+      amount: Number(r.amount),
+      paymentMethod: r.paymentMethod,
+      expenseDate: r.expenseDate,
+      paidTo: r.paidTo,
+      recordedBy: r.recordedBy,
+      status: r.status,
+    })),
+  };
+}
+
 export function exportExpensesCsv(rows: ExpenseRow[]) {
   const header =
     "Reference,Title,Category,Amount,Payment Method,Date,Vendor,Recorded By,Status\n";

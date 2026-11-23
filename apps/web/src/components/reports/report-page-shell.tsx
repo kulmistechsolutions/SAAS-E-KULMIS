@@ -16,6 +16,8 @@ import {
   Eye,
   FileDown,
   FileSpreadsheet,
+  FileText,
+  FileType2,
   Filter,
   GraduationCap,
   Hash,
@@ -44,9 +46,6 @@ import { api } from "@/lib/api";
 import { logReportAction } from "@/lib/reports/audit";
 import { fetchReport, fetchReportAsync } from "@/lib/reports/data";
 import {
-  downloadReportPdf,
-  exportReportCsv,
-  exportReportExcel,
   printReport,
   reportDocumentHtml,
 } from "@/lib/reports/print";
@@ -56,6 +55,8 @@ import { ReportBarChart } from "./report-chart";
 import type { ReportDef, ReportFilterKey, ReportFilters } from "@/lib/reports/types";
 import { cn } from "@/lib/utils";
 import { REPORT_THEME, REPORT_THEME_FALLBACK } from "@/lib/reports/theme";
+import { exportTable, type ExportFormat } from "@/lib/export/table-export";
+import { ExportMenu } from "@/components/export/export-menu";
 import { toast } from "@/lib/toast";
 import { useHydrated } from "@/lib/use-hydrated";
 import { ensureVillagesLoaded, useVillagesState } from "@/lib/villages/store";
@@ -678,22 +679,38 @@ export function ReportPageShell({ categoryId, categoryLabel, report }: Props) {
     toast("Opening print preview…", "info");
   }
 
-  function handlePdf() {
-    downloadReportPdf(documentOptions);
-    logReportAction(categoryLabel, report.title, "PDF_DOWNLOADED");
-    toast("Use Save as PDF in the print dialog.", "info");
-  }
-
-  function handleCsv() {
-    exportReportCsv(report.title, visibleColumns, sorted);
-    logReportAction(categoryLabel, report.title, "CSV_EXPORTED");
-    toast(`Exported ${sorted.length} rows.`, "success");
-  }
-
-  function handleExcel() {
-    exportReportExcel(report.title, visibleColumns, sorted);
-    logReportAction(categoryLabel, report.title, "EXCEL_EXPORTED");
-    toast(`Exported ${sorted.length} rows to Excel.`, "success");
+  /**
+   * Download the report — PDF and Excel built on the school's letterhead by
+   * the server, Word and CSV here — with exactly the columns and rows on
+   * screen, and the filters written under the title.
+   */
+  const [exporting, setExporting] = useState<ExportFormat | null>(null);
+  async function handleExport(format: ExportFormat) {
+    setExporting(format);
+    try {
+      await exportTable(format, {
+        title: report.title,
+        subtitle: [
+          `Academic Year: ${documentOptions.academicYear}`,
+          ...(documentOptions.scope.length
+            ? [documentOptions.scope.map((x) => `${x.label}: ${x.value}`).join(" · ")]
+            : []),
+        ],
+        columns: visibleColumns.map((c) => ({ key: c.key, label: c.label, align: c.align })),
+        rows: sorted,
+      });
+      logReportAction(
+        categoryLabel,
+        report.title,
+        format === "pdf" ? "PDF_DOWNLOADED" : format === "csv" ? "CSV_EXPORTED" : "EXCEL_EXPORTED",
+        format,
+      );
+      toast(`Exported ${sorted.length} rows.`, "success");
+    } catch (e) {
+      toast(e instanceof Error ? e.message : "The export could not be created.", "error");
+    } finally {
+      setExporting(null);
+    }
   }
 
   if (!mounted) {
@@ -745,14 +762,17 @@ export function ReportPageShell({ categoryId, categoryLabel, report }: Props) {
           <Button variant="outline" className="bg-card" onClick={handlePrint} disabled={!hasDocument}>
             <Printer className="me-2 h-4 w-4" /> {t("reportsReportPageShell.print")}
           </Button>
-          <Button variant="outline" className="bg-card" onClick={handlePdf} disabled={!hasDocument}>
-            <FileDown className="me-2 h-4 w-4" /> {t("reportsReportPageShell.pdf")}
+          <Button variant="outline" className="bg-card" onClick={() => void handleExport("pdf")} disabled={!hasDocument || exporting !== null}>
+            <FileText className="me-2 h-4 w-4 text-rose-600" /> {t("reportsReportPageShell.pdf")}
           </Button>
-          <Button variant="outline" className="bg-card" onClick={handleCsv} disabled={!hasDocument}>
+          <Button variant="outline" className="bg-card" onClick={() => void handleExport("docx")} disabled={!hasDocument || exporting !== null}>
+            <FileType2 className="me-2 h-4 w-4 text-blue-600" /> Word
+          </Button>
+          <Button variant="outline" className="bg-card" onClick={() => void handleExport("xlsx")} disabled={!hasDocument || exporting !== null}>
+            <FileSpreadsheet className="me-2 h-4 w-4 text-emerald-600" /> Excel
+          </Button>
+          <Button variant="outline" className="bg-card" onClick={() => void handleExport("csv")} disabled={!hasDocument || exporting !== null}>
             <FileDown className="me-2 h-4 w-4" /> {t("reportsReportPageShell.csv")}
-          </Button>
-          <Button variant="outline" className="bg-card" onClick={handleExcel} disabled={!hasDocument}>
-            <FileSpreadsheet className="me-2 h-4 w-4" /> Excel
           </Button>
         </div>
       </div>
@@ -1171,15 +1191,7 @@ export function ReportPageShell({ categoryId, categoryLabel, report }: Props) {
         className="max-w-5xl"
         footer={
           <div className="flex flex-wrap justify-end gap-2">
-            <Button variant="outline" onClick={handleCsv}>
-              <FileDown className="me-2 h-4 w-4" /> {t("reportsReportPageShell.csv")}
-            </Button>
-            <Button variant="outline" onClick={handleExcel}>
-              <FileSpreadsheet className="me-2 h-4 w-4" /> Excel
-            </Button>
-            <Button variant="outline" onClick={handlePdf}>
-              <FileDown className="me-2 h-4 w-4" /> {t("reportsReportPageShell.pdf")}
-            </Button>
+            <ExportMenu onPick={(f) => void handleExport(f)} disabled={exporting !== null} />
             <Button onClick={handlePrint}>
               <Printer className="me-2 h-4 w-4" /> {t("reportsReportPageShell.print")}
             </Button>

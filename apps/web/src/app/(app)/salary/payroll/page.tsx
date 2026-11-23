@@ -31,7 +31,7 @@ import {
   payrollStatusLabel,
 } from "@/lib/salary/format";
 import {
-  exportPayrollReportCsv,
+  exportPayrollReportCsv, payrollExportSpec,
   printPayrollReport,
 } from "@/lib/salary/print";
 import {
@@ -49,6 +49,7 @@ import { refreshTeachers } from "@/lib/teachers/store";
 import { toast } from "@/lib/toast";
 import { printPayslip } from "@/lib/salary/print";
 import { useHydrated } from "@/lib/use-hydrated";
+import { ExportMenu } from "@/components/export/export-menu";
 
 const STATUSES: (PayrollStatus | "")[] = ["", "PENDING", "PARTIAL", "PAID"];
 
@@ -187,14 +188,13 @@ export default function PayrollPage() {
           >
             <Printer className="me-2 h-4 w-4" /> Print All
           </Button>
-          <Button
-            variant="outline"
-            className="h-9"
-            onClick={() => exportPayrollReportCsv(rows, `payroll-${month}.csv`)}
-          >
-            <Download className="me-2 h-4 w-4" />
-            {t("salaryPayroll.exportCsv")}
-          </Button>
+          <ExportMenu
+            className="[&>button]:h-9"
+            spec={() => ({
+              ...payrollExportSpec(rows, "Monthly Payroll", [month ? monthLabel(month) : ""]),
+              fileName: `payroll-${month}`,
+            })}
+          />
         </div>
       </div>
 

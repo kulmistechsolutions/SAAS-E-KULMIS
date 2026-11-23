@@ -368,6 +368,43 @@ function openWindow(html: string): void {
   };
 }
 
+/** Payroll rows as a table any export format can carry. */
+export function payrollExportSpec(
+  rows: {
+    employeeCode: string;
+    employeeName: string;
+    position: string;
+    payrollMonth: string;
+    netSalary: number;
+    amountPaid: number;
+    remainingBalance: number;
+    status: string;
+  }[],
+  title: string,
+  subtitle: string[] = [],
+): import("@/lib/export/table-export").ExportSpec {
+  const sum = (k: "netSalary" | "amountPaid" | "remainingBalance") =>
+    rows.reduce((a, r) => a + r[k], 0);
+  return {
+    title,
+    subtitle: [
+      ...subtitle,
+      `${rows.length} row(s) · Net ${sum("netSalary").toLocaleString()} · Paid ${sum("amountPaid").toLocaleString()} · Balance ${sum("remainingBalance").toLocaleString()}`,
+    ],
+    columns: [
+      { key: "employeeCode", label: "Employee ID" },
+      { key: "employeeName", label: "Name" },
+      { key: "position", label: "Position" },
+      { key: "payrollMonth", label: "Month" },
+      { key: "netSalary", label: "Net Salary", align: "right" },
+      { key: "amountPaid", label: "Paid", align: "right" },
+      { key: "remainingBalance", label: "Balance", align: "right" },
+      { key: "status", label: "Status" },
+    ],
+    rows: rows.map((r) => ({ ...r })),
+  };
+}
+
 export function exportPayrollReportCsv(
   rows: {
     employeeCode: string;

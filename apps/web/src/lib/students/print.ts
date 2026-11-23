@@ -98,6 +98,29 @@ export function exportStudentsCsv(
   URL.revokeObjectURL(url);
 }
 
+/** The student list as a table any export format can carry. */
+export function studentsExportSpec(
+  rows: StudentWithParent[],
+  fieldKeys: string[],
+  meta: { academicYear: string; className: string; section: string },
+): import("@/lib/export/table-export").ExportSpec {
+  const fields = resolveStudentFields(fieldKeys);
+  return {
+    title: "Student List",
+    fileName: `students-${meta.className === "All" ? "all" : meta.className}`,
+    subtitle: [
+      `Academic Year: ${meta.academicYear} · Class: ${meta.className} · Section: ${meta.section}`,
+      `${rows.length} student(s)`,
+    ],
+    columns: fields.map((f) => ({
+      key: f.key,
+      label: f.label,
+      align: f.key === "monthlyFee" ? ("right" as const) : undefined,
+    })),
+    rows: rows.map((r) => Object.fromEntries(fields.map((f) => [f.key, f.value(r)]))),
+  };
+}
+
 interface PrintMeta {
   academicYear: string;
   className: string;

@@ -147,6 +147,42 @@ export function printReceipt(
   w.print();
 }
 
+/** Fee payments as a table any export format can carry. */
+export function paymentsExportSpec(payments: FeePayment[]): import("@/lib/export/table-export").ExportSpec {
+  const students = getStudentsState().students;
+  const total = payments.reduce((a, p) => a + Number(p.amount || 0), 0);
+  return {
+    title: "Fee Payments",
+    fileName: "fee-payments",
+    subtitle: [`${payments.length} payment(s) · Total ${total.toLocaleString(undefined, { maximumFractionDigits: 2 })}`],
+    columns: [
+      { key: "receiptNo", label: "Receipt No" },
+      { key: "code", label: "Student ID" },
+      { key: "name", label: "Student Name" },
+      { key: "className", label: "Class" },
+      { key: "section", label: "Section" },
+      { key: "amount", label: "Amount", align: "right" },
+      { key: "type", label: "Payment Type" },
+      { key: "collectedBy", label: "Collected By" },
+      { key: "date", label: "Date" },
+    ],
+    rows: payments.map((p) => {
+      const st = students.find((s) => s.id === p.studentId);
+      return {
+        receiptNo: p.receiptNo,
+        code: st?.code ?? "",
+        name: st?.fullName ?? "",
+        className: st?.className ?? "",
+        section: st?.section ?? "",
+        amount: Number(p.amount),
+        type: paymentTypeLabel(p.paymentType, p.advanceMonths),
+        collectedBy: p.collectedBy,
+        date: p.collectedAt.slice(0, 10),
+      };
+    }),
+  };
+}
+
 export function exportPaymentsCsv(payments: FeePayment[]) {
   const students = getStudentsState().students;
   const header =

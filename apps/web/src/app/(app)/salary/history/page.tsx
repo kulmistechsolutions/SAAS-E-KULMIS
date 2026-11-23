@@ -18,7 +18,7 @@ import {
   payrollStatusLabel,
   shortDate,
 } from "@/lib/salary/format";
-import { exportPayrollReportCsv, printPayslip } from "@/lib/salary/print";
+import { exportPayrollReportCsv, payrollExportSpec, printPayslip } from "@/lib/salary/print";
 import {
   availableMonths,
   getEmployee,
@@ -27,6 +27,7 @@ import {
 } from "@/lib/salary/store";
 import type { PayrollStatus } from "@/lib/salary/types";
 import { useHydrated } from "@/lib/use-hydrated";
+import { ExportMenu } from "@/components/export/export-menu";
 
 
 export default function SalaryHistoryPage() {
@@ -103,14 +104,10 @@ export default function SalaryHistoryPage() {
             {t("salaryHistory.completePayrollRecordsWithPayslipAccess")}
           </p>
         </div>
-        <Button
-          variant="outline"
-          className="h-9"
-          onClick={() => exportPayrollReportCsv(exportRows, "salary-history.csv")}
-        >
-          <Download className="me-2 h-4 w-4" />
-          {t("salaryHistory.exportCsv")}
-        </Button>
+        <ExportMenu
+          className="[&>button]:h-9"
+          spec={() => ({ ...payrollExportSpec(exportRows, "Salary History"), fileName: "salary-history" })}
+        />
       </div>
 
       <div className="flex flex-wrap gap-3">

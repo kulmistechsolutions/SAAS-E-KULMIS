@@ -54,7 +54,11 @@ import {
   exportStudentsCsv,
   printStudentProfile,
   printStudentsList,
+  studentsExportSpec,
 } from "@/lib/students/print";
+import { ExportMenu } from "@/components/export/export-menu";
+import { exportTable, type ExportFormat } from "@/lib/export/table-export";
+import { ApiError } from "@/lib/api";
 import { FieldSelectDialog } from "@/components/shared/field-select-dialog";
 import type { StudentStatus, StudentWithParent } from "@/lib/students/types";
 import {
@@ -140,6 +144,7 @@ export default function StudentsPage() {
   const [bulkConfirm, setBulkConfirm] = useState(false);
   const [bulkBusy, setBulkBusy] = useState(false);
   const [fieldDialogMode, setFieldDialogMode] = useState<"print" | "export" | null>(null);
+  const [exportFormat, setExportFormat] = useState<ExportFormat>("xlsx");
   const [lastFields, setLastFields] = useState<string[]>(DEFAULT_STUDENT_EXPORT_FIELDS);
 
   // Cards reflect the selected academic year so they always agree with the
@@ -293,10 +298,20 @@ export default function StudentsPage() {
     setBulkConfirm(false);
   }
 
-  function handleExport(fields: string[]) {
+  async function handleExport(fields: string[]) {
     setLastFields(fields);
-    exportStudentsCsv(filtered, fields);
-    toast(`Exported ${filtered.length} students to CSV.`, "info");
+    const spec = studentsExportSpec(filtered, fields, {
+      academicYear: year || "All",
+      className: klass || "All",
+      section: section || "All",
+    });
+    const label = { xlsx: "Excel", docx: "Word", pdf: "PDF", csv: "CSV" }[exportFormat];
+    try {
+      await exportTable(exportFormat, spec);
+      toast(`Exported ${filtered.length} students to ${label}.`, "success");
+    } catch (e) {
+      toast(e instanceof ApiError ? e.message : "The export could not be created.", "error");
+    }
   }
 
   function handlePrint(fields: string[]) {
@@ -355,9 +370,13 @@ export default function StudentsPage() {
             </Button>
           </Can>
           <Can perform="students.export">
-            <Button variant="outline" onClick={() => setFieldDialogMode("export")}>
-              <FileDown className="me-2 h-4 w-4" /> {t("students.export")}
-            </Button>
+            <ExportMenu
+              label={t("students.export")}
+              onPick={(f) => {
+                setExportFormat(f);
+                setFieldDialogMode("export");
+              }}
+            />
           </Can>
           <Can perform="students.import">
             <Button variant="outline" onClick={() => setImportOpen(true)}>
@@ -776,7 +795,7 @@ export default function StudentsPage() {
         }
         onConfirm={(fields) => {
           if (fieldDialogMode === "print") handlePrint(fields);
-          else if (fieldDialogMode === "export") handleExport(fields);
+          else if (fieldDialogMode === "export") void handleExport(fields);
         }}
       />
     </div>

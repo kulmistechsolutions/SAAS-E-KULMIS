@@ -87,6 +87,24 @@ function resolveTeacherFields(fieldKeys: string[]): TeacherFieldDef[] {
     : TEACHER_EXPORT_FIELDS.filter((f) => DEFAULT_TEACHER_EXPORT_FIELDS.includes(f.key));
 }
 
+/** The teacher list as a table any export format can carry. */
+export function teachersExportSpec(
+  teachers: Teacher[],
+  assignments: TeacherAssignment[],
+  fieldKeys: string[],
+): import("@/lib/export/table-export").ExportSpec {
+  const fields = resolveTeacherFields(fieldKeys);
+  return {
+    title: "Teacher List",
+    fileName: "teachers",
+    subtitle: [`${teachers.length} teacher(s)`],
+    columns: fields.map((f) => ({ key: f.key, label: f.label })),
+    rows: teachers.map((t) =>
+      Object.fromEntries(fields.map((f) => [f.key, f.value(t, assignments)])),
+    ),
+  };
+}
+
 export function exportTeachersCsv(
   teachers: Teacher[],
   assignments: TeacherAssignment[] = [],

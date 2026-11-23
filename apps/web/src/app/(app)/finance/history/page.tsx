@@ -13,12 +13,13 @@ import { PaymentStatusBadge, PaymentTypeBadge } from "@/components/fees/fee-stat
 import { ReceiptDialog } from "@/components/fees/receipt-dialog";
 import { ReversePaymentDialog } from "@/components/fees/reverse-payment-dialog";
 import { money, paymentTypeLabel, shortDate } from "@/lib/fees/format";
-import { exportPaymentsCsv, printReceipt } from "@/lib/fees/print";
+import { exportPaymentsCsv, paymentsExportSpec, printReceipt } from "@/lib/fees/print";
 import { getPayment, recordReceiptPrint, useFeesState } from "@/lib/fees/store";
 import { getState as getStudentsState } from "@/lib/students/store";
 import type { PaymentType } from "@/lib/fees/types";
 import { classNamesForYear, groupClassNames, useAcademicsState } from "@/lib/academics/store";
 import { useHydrated } from "@/lib/use-hydrated";
+import { ExportMenu } from "@/components/export/export-menu";
 
 
 export default function FeeHistoryPage() {
@@ -100,14 +101,7 @@ export default function FeeHistoryPage() {
               {t("financeHistory.printHistory")}
             </Link>
           </Button>
-          <Button
-            variant="outline"
-            className="h-9"
-            onClick={() => exportPaymentsCsv(fees.payments)}
-          >
-            <Download className="me-2 h-4 w-4" />
-            {t("financeHistory.exportCsv")}
-          </Button>
+          <ExportMenu className="[&>button]:h-9" spec={() => paymentsExportSpec(fees.payments)} />
         </div>
       </div>
 

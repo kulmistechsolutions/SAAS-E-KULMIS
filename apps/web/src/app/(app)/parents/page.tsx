@@ -38,9 +38,13 @@ import {
   DEFAULT_PARENT_EXPORT_FIELDS,
   PARENT_EXPORT_FIELDS,
   exportParentsCsv,
+  parentsExportSpec,
   printParentProfile,
   printParentsList,
 } from "@/lib/parents/print";
+import { ExportMenu } from "@/components/export/export-menu";
+import { exportTable, type ExportFormat } from "@/lib/export/table-export";
+import { ApiError as ExportApiError } from "@/lib/api";
 import { FieldSelectDialog } from "@/components/shared/field-select-dialog";
 import type { ParentStatus } from "@/lib/students/types";
 import type { ParentListRow } from "@/lib/students/store";
@@ -74,6 +78,7 @@ export default function ParentsPage() {
   const [editId, setEditId] = useState<string | null>(null);
   const [disableId, setDisableId] = useState<ParentListRow | null>(null);
   const [fieldDialogMode, setFieldDialogMode] = useState<"print" | "export" | null>(null);
+  const [exportFormat, setExportFormat] = useState<ExportFormat>("xlsx");
   const [lastFields, setLastFields] = useState<string[]>(DEFAULT_PARENT_EXPORT_FIELDS);
 
   const summary = useMemo(() => summarizeParents(state), [state]);
@@ -148,10 +153,14 @@ export default function ParentsPage() {
     printParentsList(filtered, { status: status || "All" }, fields);
   }
 
-  function handleExport(fields: string[]) {
+  async function handleExport(fields: string[]) {
     setLastFields(fields);
-    exportParentsCsv(filtered, fields);
-    toast(`Exported ${filtered.length} parents.`, "info");
+    try {
+      await exportTable(exportFormat, parentsExportSpec(filtered, fields));
+      toast(`Exported ${filtered.length} parents.`, "success");
+    } catch (e) {
+      toast(e instanceof ExportApiError ? e.message : "The export could not be created.", "error");
+    }
   }
 
   if (!mounted) {
@@ -171,9 +180,13 @@ export default function ParentsPage() {
           <Button variant="outline" onClick={() => setFieldDialogMode("print")}>
             <Printer className="me-2 h-4 w-4" /> {t("parents.print")}
           </Button>
-          <Button variant="outline" onClick={() => setFieldDialogMode("export")}>
-            <FileDown className="me-2 h-4 w-4" /> {t("parents.export")}
-          </Button>
+          <ExportMenu
+            label={t("parents.export")}
+            onPick={(f) => {
+              setExportFormat(f);
+              setFieldDialogMode("export");
+            }}
+          />
         </div>
       </div>
 
@@ -319,7 +332,7 @@ export default function ParentsPage() {
         confirmLabel={fieldDialogMode === "print" ? t("parents.print") : t("parents.export")}
         onConfirm={(fields) => {
           if (fieldDialogMode === "print") handlePrint(fields);
-          else if (fieldDialogMode === "export") handleExport(fields);
+          else if (fieldDialogMode === "export") void handleExport(fields);
         }}
       />
     </div>

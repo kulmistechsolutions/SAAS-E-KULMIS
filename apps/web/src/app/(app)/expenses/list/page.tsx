@@ -16,7 +16,7 @@ import { money, paymentMethodLabel } from "@/lib/expenses/format";
 import { printExpense } from "@/lib/expenses/print";
 import {
   deleteExpense,
-  exportExpensesCsv,
+  exportExpensesCsv, expensesExportSpec,
   getExpense,
   listExpenses,
   useExpensesState,
@@ -25,6 +25,7 @@ import type { Expense, ExpenseSortDir, ExpenseSortKey } from "@/lib/expenses/typ
 import { AcademicYearSelect } from "@/components/academics/academic-year-select";
 import { toast } from "@/lib/toast";
 import { useHydrated } from "@/lib/use-hydrated";
+import { ExportMenu } from "@/components/export/export-menu";
 
 
 export default function ExpenseListPage() {
@@ -116,10 +117,7 @@ export default function ExpenseListPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" className="h-9" onClick={() => exportExpensesCsv(rows)}>
-            <Download className="me-2 h-4 w-4" />
-            {t("expensesList.exportCsv")}
-          </Button>
+          <ExportMenu className="[&>button]:h-9" spec={() => expensesExportSpec(rows)} />
           <Button className="h-9" onClick={() => setShowCreate(true)}>
             <Plus className="me-2 h-4 w-4" />
             {t("expensesList.recordExpense")}

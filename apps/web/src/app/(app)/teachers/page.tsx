@@ -50,7 +50,11 @@ import {
   exportTeachersCsv,
   printTeacherProfile,
   printTeachersList,
+  teachersExportSpec,
 } from "@/lib/teachers/print";
+import { ExportMenu } from "@/components/export/export-menu";
+import { exportTable, type ExportFormat } from "@/lib/export/table-export";
+import { ApiError as ExportApiError } from "@/lib/api";
 import { FieldSelectDialog } from "@/components/shared/field-select-dialog";
 import type { EmploymentStatus, Shift, Teacher } from "@/lib/teachers/types";
 import { toast } from "@/lib/toast";
@@ -99,6 +103,7 @@ export default function TeachersPage() {
   const [deleting, setDeleting] = useState<Teacher | null>(null);
   const [assignTeacher, setAssignTeacher] = useState<Teacher | null>(null);
   const [fieldDialogMode, setFieldDialogMode] = useState<"print" | "export" | null>(null);
+  const [exportFormat, setExportFormat] = useState<ExportFormat>("xlsx");
   const [lastFields, setLastFields] = useState<string[]>(DEFAULT_TEACHER_EXPORT_FIELDS);
 
   const summary = useMemo(() => summarize(state), [state]);
@@ -162,10 +167,14 @@ export default function TeachersPage() {
     setDeleting(null);
   }
 
-  function handleExport(fields: string[]) {
+  async function handleExport(fields: string[]) {
     setLastFields(fields);
-    exportTeachersCsv(filtered, state.assignments, fields);
-    toast(`Exported ${filtered.length} teachers.`, "info");
+    try {
+      await exportTable(exportFormat, teachersExportSpec(filtered, state.assignments, fields));
+      toast(`Exported ${filtered.length} teachers.`, "success");
+    } catch (e) {
+      toast(e instanceof ExportApiError ? e.message : "The export could not be created.", "error");
+    }
   }
 
   function handlePrint(fields: string[]) {
@@ -223,9 +232,13 @@ export default function TeachersPage() {
           <Button variant="outline" onClick={() => setFieldDialogMode("print")}>
             <Printer className="me-2 h-4 w-4" /> {tr("teachers.print")}
           </Button>
-          <Button variant="outline" onClick={() => setFieldDialogMode("export")}>
-            <FileDown className="me-2 h-4 w-4" /> {tr("teachers.export")}
-          </Button>
+          <ExportMenu
+            label={tr("teachers.export")}
+            onPick={(f) => {
+              setExportFormat(f);
+              setFieldDialogMode("export");
+            }}
+          />
           <Button variant="outline" onClick={() => setImportOpen(true)}>
             <Upload className="me-2 h-4 w-4" /> {tr("teachers.import")}
           </Button>
@@ -374,7 +387,7 @@ export default function TeachersPage() {
         }
         onConfirm={(fields) => {
           if (fieldDialogMode === "print") handlePrint(fields);
-          else if (fieldDialogMode === "export") handleExport(fields);
+          else if (fieldDialogMode === "export") void handleExport(fields);
         }}
       />
     </div>
