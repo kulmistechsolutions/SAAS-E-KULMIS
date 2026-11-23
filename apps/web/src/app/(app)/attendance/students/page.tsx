@@ -39,7 +39,7 @@ import {
   todayISO,
 } from "@/lib/attendance/format";
 import {
-  exportStudentAttendanceCsv,
+  exportStudentAttendanceCsv, studentAttendanceExportSpec,
 } from "@/lib/attendance/print";
 import { printAttendanceReport } from "@/lib/attendance/report-print";
 import {
@@ -63,6 +63,7 @@ import {
   apiBackfillState,
   type ApiBackfillState,
 } from "@/lib/attendance/api";
+import { ExportMenu } from "@/components/export/export-menu";
 
 const TABS = [
   { id: "mark", label: "Mark Attendance" },
@@ -869,13 +870,20 @@ function StudentAttendanceScreen() {
                     ))}
                   </Select>
                 )}
-                <Button variant="outline" onClick={() => {
-                  exportStudentAttendanceCsv(reportRows.map((r) => ({
-                    code: r.code, name: r.student, className: r.className,
-                    section: r.section, date: r.date, status: r.status as StudentAttendanceStatus,
-                  })));
-                  toast("Report exported.", "info");
-                }}><FileDown className="me-2 h-4 w-4" /> {t("attendanceStudents.csv")}</Button>
+                <ExportMenu
+                  disabled={reportRows.length === 0}
+                  spec={() =>
+                    studentAttendanceExportSpec(
+                      reportRows.map((r) => ({
+                        code: r.code, name: r.student, className: r.className,
+                        section: r.section, date: r.date, status: r.status as StudentAttendanceStatus,
+                      })),
+                      [
+                        `Academic Year: ${year} · Date: ${rDate || "All dates"} · Class: ${rClass || "All classes"} · Section: ${rSection || "All sections"}`,
+                      ],
+                    )
+                  }
+                />
                 <Button variant="outline" onClick={() => {
                   if (reportRows.length === 0) return toast("No records to print.", "error");
                   // Whatever the screen is showing, on school paper. The

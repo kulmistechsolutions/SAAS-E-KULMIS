@@ -32,7 +32,7 @@ import {
   todayISO,
 } from "@/lib/attendance/format";
 import {
-  exportTeacherAttendanceCsv,
+  exportTeacherAttendanceCsv, teacherAttendanceExportSpec,
   printTeacherAttendanceSheet,
 } from "@/lib/attendance/print";
 import {
@@ -45,6 +45,7 @@ import type { TeacherAttendanceStatus, TeacherMarkRow } from "@/lib/attendance/t
 import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import { useHydrated } from "@/lib/use-hydrated";
+import { ExportMenu } from "@/components/export/export-menu";
 
 const TABS = [
   { id: "mark", label: "Mark Attendance" },
@@ -342,13 +343,17 @@ export default function TeacherAttendancePage() {
                   <option value="LATE">{t("attendanceTeachers.late")}</option>
                   <option value="LEAVE">{t("attendanceTeachers.leave")}</option>
                 </Select>
-                <Button variant="outline" onClick={() => {
-                  exportTeacherAttendanceCsv(reportRows.map((r) => ({
-                    code: r.teacher.code, name: r.teacher.fullName,
-                    shift: r.shift, date: r.date, status: r.status,
-                  })));
-                  toast("Report exported.", "info");
-                }}><FileDown className="me-2 h-4 w-4" /> {t("attendanceTeachers.csv")}</Button>
+                <ExportMenu
+                  disabled={reportRows.length === 0}
+                  spec={() =>
+                    teacherAttendanceExportSpec(
+                      reportRows.map((r) => ({
+                        code: r.teacher.code, name: r.teacher.fullName,
+                        shift: shiftLabel(r.shift), date: r.date, status: r.status,
+                      })),
+                    )
+                  }
+                />
                 <Button variant="outline" onClick={() => {
                   if (!reportRows.length) return toast("No records.", "error");
                   const first = reportRows[0];

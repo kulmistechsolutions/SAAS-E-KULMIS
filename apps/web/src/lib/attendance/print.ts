@@ -8,6 +8,31 @@ function escapeHtml(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
+/** Student attendance rows as a table any export format can carry. */
+export function studentAttendanceExportSpec(
+  rows: { code: string; name: string; className: string; section: string | null; date: string; status: StudentAttendanceStatus }[],
+  subtitle: string[] = [],
+): import("@/lib/export/table-export").ExportSpec {
+  const count = (s: StudentAttendanceStatus) => rows.filter((r) => r.status === s).length;
+  return {
+    title: "Student Attendance",
+    fileName: "student-attendance",
+    subtitle: [
+      ...subtitle,
+      `${rows.length} record(s) · Present ${count("PRESENT" as StudentAttendanceStatus)} · Absent ${count("ABSENT" as StudentAttendanceStatus)} · Late ${count("LATE" as StudentAttendanceStatus)}`,
+    ],
+    columns: [
+      { key: "code", label: "Student ID" },
+      { key: "name", label: "Student Name" },
+      { key: "className", label: "Class" },
+      { key: "section", label: "Section" },
+      { key: "date", label: "Date" },
+      { key: "status", label: "Status" },
+    ],
+    rows: rows.map((r) => ({ ...r, section: r.section ?? "", status: studentStatusLabel(r.status) })),
+  };
+}
+
 export function exportStudentAttendanceCsv(
   rows: { code: string; name: string; className: string; section: string | null; date: string; status: StudentAttendanceStatus }[],
   fileName = "student-attendance.csv",
@@ -42,6 +67,26 @@ export function printTeacherAttendanceSheet(opts: {
   <p style="margin-top:16px">Present: ${opts.summary.present} · Absent: ${opts.summary.absent} · Late: ${opts.summary.late} · Leave: ${opts.summary.leave ?? 0} · ${opts.summary.percentage}%</p>
   <script>window.onload=function(){window.print()}</script></body></html>`);
   w.document.close();
+}
+
+/** Teacher attendance rows as a table any export format can carry. */
+export function teacherAttendanceExportSpec(
+  rows: { code: string; name: string; shift: string; date: string; status: TeacherAttendanceStatus }[],
+  subtitle: string[] = [],
+): import("@/lib/export/table-export").ExportSpec {
+  return {
+    title: "Teacher Attendance",
+    fileName: "teacher-attendance",
+    subtitle: [...subtitle, `${rows.length} record(s)`],
+    columns: [
+      { key: "code", label: "Teacher ID" },
+      { key: "name", label: "Name" },
+      { key: "shift", label: "Shift" },
+      { key: "date", label: "Date" },
+      { key: "status", label: "Status" },
+    ],
+    rows: rows.map((r) => ({ ...r, status: teacherStatusLabel(r.status) })),
+  };
 }
 
 export function exportTeacherAttendanceCsv(

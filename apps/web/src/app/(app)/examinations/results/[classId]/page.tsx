@@ -43,6 +43,8 @@ import {
   getAcademicsState,
 } from "@/lib/academics/store";
 import { toast } from "@/lib/toast";
+import { ExportMenu } from "@/components/export/export-menu";
+import { exportTable, type ExportFormat } from "@/lib/export/table-export";
 
 type SortKey = "name" | "total" | "average" | "grade";
 
@@ -377,6 +379,47 @@ function ClassResultsContent() {
     URL.revokeObjectURL(url);
   }
 
+  /**
+   * Excel and PDF keep the dedicated results files (signatures, the school's
+   * result footer); Word and CSV carry the same sheet as a table.
+   */
+  async function exportResults(format: ExportFormat) {
+    if (format === "pdf" || format === "xlsx") return downloadExport(format);
+    if (!data) return;
+    const columns = [
+      { key: "code", label: "Student ID" },
+      { key: "name", label: "Student Name" },
+      ...data.subjects.map((s) => ({ key: `s_${s.subjectId}`, label: s.name, align: "right" as const })),
+      { key: "total", label: "Total", align: "right" as const },
+      { key: "average", label: "Average", align: "right" as const },
+      { key: "grade", label: "Grade", align: "center" as const },
+      { key: "remark", label: "Remark" },
+    ];
+    const rows = data.rows.map((r) => ({
+      code: r.studentCode,
+      name: r.studentName,
+      ...Object.fromEntries(
+        data.subjects.map((s) => [`s_${s.subjectId}`, r.subjectMarks[s.subjectId] ?? ""]),
+      ),
+      total: r.totalObtained,
+      average: r.average,
+      grade: r.grade,
+      remark: r.remark,
+    }));
+    try {
+      await exportTable(format, {
+        title: `${data.exam.name} — Results`,
+        fileName: `${data.exam.name}-${data.exam.className}-results`,
+        subtitle: [`Class: ${data.exam.className} · ${data.rows.length} student(s)`],
+        columns,
+        rows,
+      });
+      toast("Results exported.", "success");
+    } catch (e) {
+      toast(e instanceof Error ? e.message : "The export could not be created.", "error");
+    }
+  }
+
   function handlePrint() {
     window.print();
   }
@@ -658,28 +701,11 @@ function ClassResultsContent() {
                 {saving ? "Saving…" : "Save Changes"}
               </Button>
             )}
-            <Button variant="outline" className="h-9" onClick={exportCsv}>
-              <Download className="me-2 h-4 w-4" />
-              {t("examinationsResults.csvExport")}
-            </Button>
-            <Button
-              variant="outline"
-              className="h-9"
-              disabled={exportBusy || !examId}
-              onClick={() => void downloadExport("pdf")}
-            >
-              <Download className="me-2 h-4 w-4" />
-              {t("examinationsResults.pdf")}
-            </Button>
-            <Button
-              variant="outline"
-              className="h-9"
-              disabled={exportBusy || !examId}
-              onClick={() => void downloadExport("xlsx")}
-            >
-              <Download className="me-2 h-4 w-4" />
-              {t("examinationsResults.excelExport")}
-            </Button>
+            <ExportMenu
+              className="[&>button]:h-9"
+              disabled={exportBusy || !examId || !data}
+              onPick={(f) => void exportResults(f)}
+            />
             <Button variant="outline" className="h-9" onClick={handlePrint}>
               <Printer className="me-2 h-4 w-4" />
               {t("examinationsResults.print")}
