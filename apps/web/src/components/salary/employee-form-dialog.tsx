@@ -9,7 +9,8 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/lib/toast";
-import { createEmployee, updateEmployee } from "@/lib/employees/store";
+import { createEmployee, updateEmployee, useEmployeesState } from "@/lib/employees/store";
+import { PositionPicker } from "./position-picker";
 import type { EmploymentStatus, StaffEmployee } from "@/lib/employees/types";
 
 interface Props {
@@ -18,18 +19,10 @@ interface Props {
   employee?: StaffEmployee | null;
 }
 
-const SUGGESTED_POSITIONS = [
-  "Security Staff",
-  "Cleaner",
-  "Cook",
-  "Driver",
-  "Receptionist",
-  "Other Staff",
-];
-
 export function EmployeeFormDialog({ open, onClose, employee }: Props) {
   const t = useT();
   const isEdit = !!employee;
+  const staff = useEmployeesState().employees;
   const [fullName, setFullName] = useState("");
   const [position, setPosition] = useState("");
   const [phone, setPhone] = useState("");
@@ -116,17 +109,12 @@ export function EmployeeFormDialog({ open, onClose, employee }: Props) {
         </div>
         <div>
           <Label required>{t("salaryEmployeeFormDialog.position")}</Label>
-          <Input
+          <PositionPicker
             value={position}
-            onChange={(e) => setPosition(e.target.value)}
+            onChange={setPosition}
+            existing={staff.map((e) => e.position)}
             placeholder={t("salaryEmployeeFormDialog.positionPlaceholder")}
-            list="employee-position-suggestions"
           />
-          <datalist id="employee-position-suggestions">
-            {SUGGESTED_POSITIONS.map((p) => (
-              <option key={p} value={p} />
-            ))}
-          </datalist>
         </div>
         <div>
           <Label>{t("salaryEmployeeFormDialog.phone")}</Label>
