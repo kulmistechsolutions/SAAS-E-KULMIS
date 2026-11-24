@@ -3,7 +3,9 @@
 
 import { useT } from "@/lib/i18n/provider";
 import { useEffect, useMemo, useState } from "react";
-import { Calendar } from "lucide-react";
+import Link from "next/link";
+import { BarChart3, Calendar, CalendarDays, Layers, LayoutGrid, Plus, Wallet } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { FeeSummaryCards } from "@/components/fees/summary-cards";
 import {
@@ -118,30 +120,58 @@ export default function FeeManagementPage() {
   }, [classes, sections, filterClass, filterSection, t]);
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">{t("finance.feeManagement")}</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {t("finance.realTimeOverviewOfFeeCollection")}
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="flex items-center gap-2 rounded-lg border bg-card px-3 py-2 text-sm">
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-            <AcademicYearSelect
-              value={filterYear}
-              onChange={setFilterYear}
-              className="h-8 min-w-[120px] border-0 bg-transparent py-0 shadow-none"
-            />
+    <div className="relative space-y-6">
+      {/* Soft wash behind the header, as on the reports pages. */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -inset-x-4 -top-4 h-80 rounded-b-[3rem] bg-gradient-to-br from-emerald-200/45 via-sky-100/30 to-transparent dark:from-emerald-900/20 dark:via-sky-900/10 sm:-inset-x-6"
+      />
+
+      <div className="relative flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex items-center gap-4">
+          <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-lg shadow-emerald-500/30">
+            <Wallet className="h-7 w-7" />
+          </span>
+          <div>
+            <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">{t("finance.feeManagement")}</h1>
+            <p className="mt-0.5 text-sm text-muted-foreground">
+              {t("finance.realTimeOverviewOfFeeCollection")}
+              {month ? <> · <span className="font-medium text-foreground">{monthLabel(month)}</span></> : null}
+            </p>
           </div>
-          <div className="flex items-center gap-2 rounded-lg border bg-card px-3 py-2 text-sm">
-            <span className="text-muted-foreground">{t("finance.month")}</span>
-            <Select
-              value={month}
-              onChange={(e) => setFilterMonth(e.target.value)}
-              className="h-8 min-w-[140px] border-0 bg-transparent py-0 shadow-none"
-            >
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Link href="/reports/financial">
+            <Button variant="outline" className="bg-card">
+              <BarChart3 className="me-2 h-4 w-4" /> Financial Reports
+            </Button>
+          </Link>
+          <Link href="/finance/collect">
+            <Button className="shadow-sm shadow-primary/30">
+              <Plus className="me-2 h-4 w-4" /> {t("nav.collectFees")}
+            </Button>
+          </Link>
+        </div>
+      </div>
+
+      {/* Filters: one bar, each box labelled by its icon. */}
+      <div className="relative flex flex-wrap items-center gap-2 rounded-2xl border bg-card/90 p-2 shadow-sm backdrop-blur">
+        <div className="flex items-center gap-2 rounded-lg bg-muted/50 px-3 py-1">
+          <Calendar className="h-4 w-4 text-muted-foreground" />
+          <AcademicYearSelect
+            value={filterYear}
+            onChange={setFilterYear}
+            className="h-8 min-w-[120px] border-0 bg-transparent py-0 shadow-none"
+          />
+        </div>
+        <div className="flex items-center gap-2 rounded-lg bg-muted/50 px-3 py-1">
+          <CalendarDays className="h-4 w-4 text-muted-foreground" />
+          <Select
+            aria-label={t("finance.month")}
+            value={month}
+            onChange={(e) => setFilterMonth(e.target.value)}
+            className="h-8 min-w-[140px] border-0 bg-transparent py-0 shadow-none"
+          >
               {months.map((m) => (
                 <option key={m} value={m}>
                   {monthLabel(m)}
@@ -149,7 +179,8 @@ export default function FeeManagementPage() {
               ))}
             </Select>
           </div>
-          <div className="flex items-center gap-2 rounded-lg border bg-card px-3 py-2 text-sm">
+          <div className="flex items-center gap-2 rounded-lg bg-muted/50 px-3 py-1">
+            <Layers className="h-4 w-4 text-muted-foreground" />
             <Select
               value={filterClass}
               onChange={(e) => {
@@ -167,6 +198,7 @@ export default function FeeManagementPage() {
                 </option>
               ))}
             </Select>
+            {sections.length > 0 && <LayoutGrid className="h-4 w-4 text-muted-foreground" />}
             {sections.length > 0 && (
               <Select
                 value={filterSection}
@@ -182,7 +214,6 @@ export default function FeeManagementPage() {
               </Select>
             )}
           </div>
-        </div>
       </div>
 
       <PaymentPromisesBanner key={bannerKey} />
@@ -202,7 +233,7 @@ export default function FeeManagementPage() {
         />
       )}
 
-      <div className="grid items-start gap-6 xl:grid-cols-3">
+      <div className="relative grid items-start gap-6 xl:grid-cols-3">
         {/* Left column: Recent Payments, then Collect Fees */}
         <div className="space-y-6 xl:col-span-2">
           {mounted && (

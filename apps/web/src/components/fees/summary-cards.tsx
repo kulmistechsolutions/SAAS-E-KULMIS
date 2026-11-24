@@ -161,6 +161,14 @@ const SECONDARY: {
   },
 ];
 
+/** The soft wash behind each headline card, in its own colour. */
+const TINT: Record<string, string> = {
+  expected: "from-sky-500/10",
+  collected: "from-emerald-500/10",
+  outstanding: "from-rose-500/10",
+  rate: "from-violet-500/10",
+};
+
 export function FeeSummaryCards({
   summary,
   month,
@@ -171,6 +179,10 @@ export function FeeSummaryCards({
   onOpenDetails?: (metric: keyof FeeDashboardSummary) => void;
 }) {
   const t = useT();
+  const rate =
+    summary.expectedMonthlyIncome > 0
+      ? Math.min(100, (summary.settledThisMonth / summary.expectedMonthlyIncome) * 100)
+      : 0;
   return (
     <div className="space-y-3">
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -179,57 +191,53 @@ export function FeeSummaryCards({
             key={c.key}
             type="button"
             onClick={() => onOpenDetails?.(c.metric)}
-            className="group rounded-2xl border bg-card p-5 text-start shadow-sm transition hover:border-primary/40 hover:shadow-md"
+            className={cn(
+              "group relative overflow-hidden rounded-2xl border bg-gradient-to-br to-card p-5 text-start shadow-sm transition hover:-translate-y-0.5 hover:shadow-md",
+              TINT[c.key],
+            )}
           >
-            <div className="flex items-center justify-between gap-3">
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                {t(c.label)}
-              </p>
-              <span
-                className={cn(
-                  "flex h-9 w-9 shrink-0 items-center justify-center rounded-full",
-                  c.ring,
-                )}
-              >
-                <c.icon className="h-4 w-4" />
+            <div className="flex items-start gap-4">
+              <span className={cn("flex h-12 w-12 shrink-0 items-center justify-center rounded-xl", c.ring)}>
+                <c.icon className="h-6 w-6" />
               </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium text-muted-foreground">{t(c.label)}</p>
+                <p className={cn("mt-0.5 text-[1.7rem] font-bold leading-tight tabular-nums tracking-tight", c.value)}>
+                  {c.amount(summary)}
+                </p>
+                <p className="mt-1 truncate text-xs tabular-nums text-muted-foreground">
+                  {c.note(summary, month, t)}
+                </p>
+              </div>
             </div>
-            <p
-              className={cn(
-                "mt-3 text-3xl font-bold tabular-nums tracking-tight",
-                c.value,
-              )}
-            >
-              {c.amount(summary)}
-            </p>
-            <p className="mt-1 text-xs tabular-nums text-muted-foreground">
-              {c.note(summary, month, t)}
-            </p>
+            {c.key === "rate" && (
+              <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-violet-500/15">
+                <div className="h-full rounded-full bg-gradient-to-r from-violet-500 to-indigo-500" style={{ width: `${rate}%` }} />
+              </div>
+            )}
+            <ArrowUpRight className="absolute end-3 top-3 h-4 w-4 text-muted-foreground opacity-0 transition group-hover:opacity-100 rtl:-scale-x-100" />
           </button>
         ))}
       </div>
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 xl:grid-cols-7">
         {SECONDARY.map((c) => (
           <button
             key={c.key}
             type="button"
             onClick={() => onOpenDetails?.(c.key)}
-            className="flex items-center gap-3 rounded-xl border bg-card px-3 py-2.5 text-start transition hover:border-primary/40 hover:shadow-sm"
+            className="flex items-center gap-3 rounded-xl border bg-card px-3 py-3 text-start shadow-sm transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"
           >
-            <c.icon className={cn("h-4 w-4 shrink-0", c.tone)} />
+            <span className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted/70", c.tone)}>
+              <c.icon className="h-4 w-4" />
+            </span>
             <span className="min-w-0">
-              <span
-                className={cn(
-                  "block text-lg font-semibold leading-none tabular-nums",
-                  c.tone,
-                )}
-              >
+              <span className={cn("block text-lg font-bold leading-none tabular-nums", c.tone)}>
                 {c.key === "totalOutstanding"
                   ? money(summary[c.key] as number)
                   : (summary[c.key] as number).toLocaleString()}
               </span>
-              <span className="mt-1 block truncate text-[11px] text-muted-foreground">
+              <span className="mt-1 block truncate text-[11px] font-medium text-muted-foreground">
                 {t(c.label)}
               </span>
             </span>
