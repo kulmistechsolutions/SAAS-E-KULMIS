@@ -6,7 +6,10 @@ import type { ReportAuditAction, ReportAuditEntry } from "./types";
 const KEY = "ekulmis_reports_audit_v1";
 
 let entries: ReportAuditEntry[] = [];
+let loaded = false;
 const listeners = new Set<() => void>();
+/** One array for "nothing yet", so the snapshot is the same object every read. */
+const EMPTY: ReportAuditEntry[] = [];
 
 function load(): ReportAuditEntry[] {
   if (typeof window === "undefined") return [];
@@ -19,9 +22,20 @@ function load(): ReportAuditEntry[] {
   return [];
 }
 
+/**
+ * The log, read from storage once.
+ *
+ * It used to re-read storage whenever the log was empty, returning a fresh
+ * [] each time — and useSyncExternalStore treats a snapshot that is a new
+ * object on every read as a store that never stops changing, so the first
+ * page to subscribe (Financial Reports, in a school that had not yet printed
+ * a report) crashed with "This page could not be loaded".
+ */
 function ensure(): ReportAuditEntry[] {
-  if (entries.length === 0 && typeof window !== "undefined") {
-    entries = load();
+  if (!loaded && typeof window !== "undefined") {
+    loaded = true;
+    const read = load();
+    if (read.length) entries = read;
   }
   return entries;
 }
@@ -69,6 +83,6 @@ export function useReportAudit() {
       return () => listeners.delete(cb);
     },
     () => ensure(),
-    () => [],
+    () => EMPTY,
   );
 }
