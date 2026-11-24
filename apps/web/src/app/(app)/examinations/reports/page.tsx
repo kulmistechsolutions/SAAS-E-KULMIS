@@ -25,6 +25,7 @@ import {
   getAcademicsState,
 } from "@/lib/academics/store";
 import { toast } from "@/lib/toast";
+import { ExportMenu } from "@/components/export/export-menu";
 
 /** Every tile leads to a page that can actually produce the report. */
 const REPORTS: { title: string; hint: string; href: string; icon: typeof Users }[] = [
@@ -225,8 +226,27 @@ export default function ExamReportsPage() {
 
               {/* Per-class performance */}
               <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
-                <div className="border-b px-5 py-4">
+                <div className="flex items-center justify-between gap-3 border-b px-5 py-3">
                   <h2 className="font-semibold">{t("examinationsReports.performanceByClass")}</h2>
+                  <ExportMenu
+                    disabled={data.byClass.length === 0}
+                    spec={() => ({
+                      title: "Exam Performance by Class",
+                      fileName: "exam-performance-by-class",
+                      columns: [
+                        { key: "className", label: "Class" },
+                        { key: "students", label: "Students", align: "right" },
+                        { key: "average", label: "Average %", align: "right" },
+                        { key: "passRate", label: "Pass Rate %", align: "right" },
+                      ],
+                      rows: data.byClass.map((c) => ({
+                        className: c.className,
+                        students: c.gradedStudents,
+                        average: c.averagePercent,
+                        passRate: c.passRate,
+                      })),
+                    })}
+                  />
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full min-w-[420px] text-sm">

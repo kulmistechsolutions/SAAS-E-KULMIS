@@ -18,6 +18,7 @@ import { printAttemptReviewPdf } from "@/lib/quiz/print";
 import { useAuth } from "@/lib/auth";
 import { toast } from "@/lib/toast";
 import { AttemptMarksDialog } from "@/components/quiz/attempt-marks-dialog";
+import { ExportMenu } from "@/components/export/export-menu";
 
 type AttemptRow = {
   id: string;
@@ -115,43 +116,31 @@ export default function QuizResultsPage({ params }: { params: Promise<{ id: stri
               {t("quizResults.liveMonitor")}
             </Button>
           </Link>
-          <Button
-            variant="outline"
-            className="h-9"
-            onClick={() => {
-              const header = [
-                "No",
-                "Student",
-                "Code",
-                "Score",
-                "Percentage",
-                "Result",
-                "Submitted",
-              ];
-              const rows = attempts.map((a, i) => [
-                i + 1,
-                a.student.fullName,
-                a.student.code,
-                a.score ?? "",
-                a.percentage ?? "",
-                a.result ?? "",
-                a.submittedAt ?? "",
-              ]);
-              const csv = [header, ...rows]
-                .map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(","))
-                .join("\n");
-              const blob = new Blob([csv], { type: "text/csv" });
-              const url = URL.createObjectURL(blob);
-              const a = document.createElement("a");
-              a.href = url;
-              a.download = `quiz-${id}-results.csv`;
-              a.click();
-              URL.revokeObjectURL(url);
-            }}
-          >
-            <Download className="me-2 h-4 w-4" />
-            {t("quizResults.exportCsv")}
-          </Button>
+          <ExportMenu
+            className="[&>button]:h-9"
+            disabled={attempts.length === 0}
+            spec={() => ({
+              title: `Quiz Results — ${title}`,
+              fileName: `quiz-${id}-results`,
+              subtitle: [`${attempts.length} student(s)`],
+              columns: [
+                { key: "student", label: "Student" },
+                { key: "code", label: "Student ID" },
+                { key: "score", label: "Score", align: "right" },
+                { key: "percentage", label: "Percentage", align: "right" },
+                { key: "result", label: "Result" },
+                { key: "submitted", label: "Submitted" },
+              ],
+              rows: attempts.map((a) => ({
+                student: a.student.fullName,
+                code: a.student.code,
+                score: a.score ?? "",
+                percentage: a.percentage ?? "",
+                result: a.result ?? "",
+                submitted: a.submittedAt ? String(a.submittedAt).replace("T", " ").slice(0, 16) : "",
+              })),
+            })}
+          />
         </div>
       </div>
 

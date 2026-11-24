@@ -15,6 +15,7 @@ import { deleteQuiz, listQuizzes, useQuizState } from "@/lib/quiz/store";
 import type { QuizStatus } from "@/lib/quiz/types";
 import { toast } from "@/lib/toast";
 import { useHydrated } from "@/lib/use-hydrated";
+import { ExportMenu } from "@/components/export/export-menu";
 
 
 export default function QuizListPage() {
@@ -44,7 +45,34 @@ export default function QuizListPage() {
           <h1 className="text-2xl font-bold">{t("quizList.allQuizzes")}</h1>
           <p className="mt-1 text-sm text-muted-foreground">{t("quizList.manageQuizzesAcrossTheSchool")}</p>
         </div>
-        <Link href="/quiz/create"><Button className="h-9"><Plus className="me-2 h-4 w-4" />{t("quizList.create")}</Button></Link>
+        <div className="flex items-start gap-2">
+          <ExportMenu
+            className="[&>button]:h-9"
+            disabled={rows.length === 0}
+            spec={() => ({
+              title: "Quizzes",
+              fileName: "quizzes",
+              subtitle: [`Status: ${status || "All"} · ${rows.length} quiz(zes)`],
+              columns: [
+                { key: "code", label: "Code" },
+                { key: "title", label: "Title" },
+                { key: "teacher", label: "Teacher" },
+                { key: "classSection", label: "Class / Section" },
+                { key: "subject", label: "Subject" },
+                { key: "status", label: "Status" },
+              ],
+              rows: rows.map((r) => ({
+                code: r.code,
+                title: r.title,
+                teacher: r.teacherName,
+                classSection: `${r.className} — ${r.section}`,
+                subject: r.subject,
+                status: r.status,
+              })),
+            })}
+          />
+          <Link href="/quiz/create"><Button className="h-9"><Plus className="me-2 h-4 w-4" />{t("quizList.create")}</Button></Link>
+        </div>
       </div>
 
       <div className="flex flex-wrap gap-3">

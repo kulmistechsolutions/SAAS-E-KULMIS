@@ -14,6 +14,7 @@ import { deleteExam, updateExamStatus, useExaminationsState } from "@/lib/examin
 import { examTypeLabel, shortDate } from "@/lib/examinations/format";
 import type { Exam } from "@/lib/examinations/types";
 import { toast } from "@/lib/toast";
+import { ExportMenu } from "@/components/export/export-menu";
 
 export default function ExaminationsManagePage() {
   const t = useT();
@@ -99,7 +100,38 @@ export default function ExaminationsManagePage() {
         </p>
       </div>
 
-      <div className="flex flex-wrap gap-3">
+      <div className="flex flex-wrap items-center gap-3">
+        <ExportMenu
+          className="order-last ms-auto"
+          disabled={filtered.length === 0}
+          spec={() => ({
+            title: "Examinations",
+            fileName: "examinations",
+            subtitle: [
+              `Academic Year: ${yearFilter || "All"} · Class: ${classFilter || "All"} · ${filtered.length} exam(s)`,
+            ],
+            columns: [
+              { key: "name", label: "Exam" },
+              { key: "academicYear", label: "Academic Year" },
+              { key: "classSection", label: "Class / Section" },
+              { key: "term", label: "Term" },
+              { key: "type", label: "Type" },
+              { key: "period", label: "Period" },
+              { key: "subjects", label: "Subjects" },
+              { key: "status", label: "Status" },
+            ],
+            rows: filtered.map((e) => ({
+              name: e.name,
+              academicYear: e.academicYear,
+              classSection: `${e.className} — ${e.section}`,
+              term: e.term,
+              type: examTypeLabel(e.examType),
+              period: `${shortDate(e.startDate)} — ${shortDate(e.endDate)}`,
+              subjects: e.subjects.join(", "),
+              status: e.status,
+            })),
+          })}
+        />
         <Select className="w-auto min-w-[10rem]" value={yearFilter} onChange={(e) => { setYearFilter(e.target.value); setClassFilter(""); }}>
           <option value="">{t("examinationsManage.allAcademicYears")}</option>
           {years.map((y) => (
