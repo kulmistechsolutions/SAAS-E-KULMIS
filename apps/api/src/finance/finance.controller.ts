@@ -17,4 +17,11 @@ export class FinanceController {
   dashboard(@CurrentUser() me: AuthUser, @Query("month") month?: string) {
     return this.finance.dashboard(me.schoolId, month);
   }
+
+  /** Month-by-month money in and out, for the Financial Reports overview. */
+  @RequirePermission("finance.view")
+  @Get("trend")
+  trend(@CurrentUser() me: AuthUser, @Query("months") months?: string) {
+    return this.finance.trend(me.schoolId, months ? Number(months) || 24 : 24);
+  }
 }

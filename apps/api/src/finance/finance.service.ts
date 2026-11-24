@@ -1,6 +1,24 @@
 import { roundMoney } from "@ekulmis/shared";
 import { Injectable } from "@nestjs/common";
+import { Prisma } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
+
+export interface FinanceTrendMonth {
+  month: string;
+  feeIncome: number;
+  otherIncome: number;
+  expenses: number;
+  salaries: number;
+  debtRepaid: number;
+}
+
+export interface FinanceTrend {
+  months: FinanceTrendMonth[];
+  /** Money in that is not a student fee, by its category, per month. */
+  otherIncomeByCategory: { month: string; category: string; amount: number }[];
+  /** Spending by category, per month. */
+  expensesByCategory: { month: string; category: string; amount: number }[];
+}
 
 /**
  * Finance Dashboard (Module 10): Net Income = Income − Expenses − Salaries.
@@ -107,6 +125,83 @@ export class FinanceService {
       };
     });
   }
+  /**
+   * Month by month, the last `months` calendar months up to this one: what
+   * came in (fees, other income), what went out (expenses, salaries, debt
+   * repaid), and the category split of other income and expenses.
+   *
+   * One query per source, grouped in SQL, so the Financial Reports overview
+   * draws a year's chart from five round-trips instead of a request per
+   * month. Salaries count by the payroll month they belong to, the same rule
+   * the dashboard and the statements use.
+   */
+  trend(schoolId: string, months = 24): Promise<FinanceTrend> {
+    const n = Math.min(60, Math.max(1, Math.floor(months)));
+    const now = new Date();
+    const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - (n - 1), 1));
+    const end = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1));
+    const keys: string[] = [];
+    for (let k = 0; k < n; k++) {
+      const d = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth() + k, 1));
+      keys.push(`${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`);
+    }
+    const startKey = start.getUTCFullYear() * 100 + start.getUTCMonth() + 1;
+    const endKey = now.getUTCFullYear() * 100 + now.getUTCMonth() + 1;
+    type Row = { month: string; amount: number };
+    type CatRow = { month: string; category: string; amount: number };
+    const num = (v: unknown) => Number(v ?? 0);
+
+    return this.prisma.forTenant(schoolId, async (tx) => {
+      const [fees, other, exp, sal, debt, otherCat, expCat] = await Promise.all([
+        tx.$queryRaw<Row[]>(Prisma.sql`
+          SELECT to_char("paidAt", 'YYYY-MM') AS month, sum(amount)::float AS amount
+          FROM payments WHERE "paidAt" >= ${start} AND "paidAt" < ${end}
+          GROUP BY 1`),
+        tx.$queryRaw<Row[]>(Prisma.sql`
+          SELECT to_char("receivedAt", 'YYYY-MM') AS month, sum(amount)::float AS amount
+          FROM other_income WHERE "receivedAt" >= ${start} AND "receivedAt" < ${end}
+          GROUP BY 1`),
+        tx.$queryRaw<Row[]>(Prisma.sql`
+          SELECT to_char("spentAt", 'YYYY-MM') AS month, sum(amount)::float AS amount
+          FROM expenses WHERE "spentAt" >= ${start} AND "spentAt" < ${end}
+          GROUP BY 1`),
+        tx.$queryRaw<Row[]>(Prisma.sql`
+          SELECT year || '-' || lpad(month::text, 2, '0') AS month, sum("amountPaid")::float AS amount
+          FROM salaries WHERE (year * 100 + month) BETWEEN ${startKey} AND ${endKey}
+          GROUP BY 1`),
+        tx.$queryRaw<Row[]>(Prisma.sql`
+          SELECT to_char("paidAt", 'YYYY-MM') AS month, sum(amount)::float AS amount
+          FROM school_debt_repayments WHERE "paidAt" >= ${start} AND "paidAt" < ${end}
+          GROUP BY 1`),
+        tx.$queryRaw<CatRow[]>(Prisma.sql`
+          SELECT to_char(o."receivedAt", 'YYYY-MM') AS month,
+                 coalesce(c.name, 'Uncategorised') AS category, sum(o.amount)::float AS amount
+          FROM other_income o LEFT JOIN income_categories c ON c.id = o."categoryId"
+          WHERE o."receivedAt" >= ${start} AND o."receivedAt" < ${end}
+          GROUP BY 1, 2`),
+        tx.$queryRaw<CatRow[]>(Prisma.sql`
+          SELECT to_char(e."spentAt", 'YYYY-MM') AS month,
+                 coalesce(c.name, 'Uncategorised') AS category, sum(e.amount)::float AS amount
+          FROM expenses e LEFT JOIN expense_categories c ON c.id = e."categoryId"
+          WHERE e."spentAt" >= ${start} AND e."spentAt" < ${end}
+          GROUP BY 1, 2`),
+      ]);
+      const by = (rows: Row[]) => new Map(rows.map((r) => [r.month, num(r.amount)]));
+      const f = by(fees), o = by(other), e = by(exp), s = by(sal), d = by(debt);
+      return {
+        months: keys.map((m) => ({
+          month: m,
+          feeIncome: roundMoney(f.get(m) ?? 0),
+          otherIncome: roundMoney(o.get(m) ?? 0),
+          expenses: roundMoney(e.get(m) ?? 0),
+          salaries: roundMoney(s.get(m) ?? 0),
+          debtRepaid: roundMoney(d.get(m) ?? 0),
+        })),
+        otherIncomeByCategory: otherCat.map((r) => ({ month: r.month, category: r.category, amount: roundMoney(num(r.amount)) })),
+        expensesByCategory: expCat.map((r) => ({ month: r.month, category: r.category, amount: roundMoney(num(r.amount)) })),
+      };
+    });
+  }
 }
 
 /** "YYYY-MM" → the UTC half-open range covering it, plus its parts. */
@@ -123,4 +218,5 @@ function parseMonth(month?: string) {
     start: new Date(Date.UTC(year, monthNo - 1, 1)),
     end: new Date(Date.UTC(year, monthNo, 1)),
   };
+
 }

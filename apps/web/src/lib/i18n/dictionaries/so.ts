@@ -204,6 +204,7 @@ const curated: PartialDictionary = {
     academicYearSetup: "Dejinta Sannad-dugsiyeedka",
     extraFees: "Khidmado Dheeraad ah",
     schoolDebts: "Deynta Dugsiga",
+    financialReports: "Warbixinnada Maaliyadda",
     receipts: "Rasiidhada",
     monthlyPayroll: "Mushaharka Bishii",
     employees: "Shaqaalaha",

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useParams, notFound } from "next/navigation";
 import { ArrowLeft, ChevronRight } from "lucide-react";
 import { getCategory } from "@/lib/reports/catalog";
+import { FinancialOverview } from "@/components/reports/financial-overview";
 
 export default function ReportCategoryPage() {
   const t = useT();
@@ -16,6 +17,10 @@ export default function ReportCategoryPage() {
   if (!category) {
     notFound();
   }
+
+  // Money gets its own overview: figures, a chart and a tab per side of the
+  // ledger, with the detailed reports one click away.
+  if (categoryId === "financial") return <FinancialOverview />;
 
   return (
     <div className="space-y-6">

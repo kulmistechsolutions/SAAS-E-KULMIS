@@ -199,6 +199,7 @@ const curated: PartialDictionary = {
     academicYearSetup: "إعداد العام الدراسي",
     extraFees: "رسوم إضافية",
     schoolDebts: "ديون المدرسة",
+    financialReports: "التقارير المالية",
     receipts: "الإيصالات",
     monthlyPayroll: "كشف الرواتب الشهري",
     employees: "الموظفون",

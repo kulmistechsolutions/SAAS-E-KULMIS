@@ -205,6 +205,7 @@ const core = {
     academicYearSetup: "Academic Year Setup",
     extraFees: "Extra Fees",
     schoolDebts: "School Debts",
+    financialReports: "Financial Reports",
     receipts: "Receipts",
     monthlyPayroll: "Monthly Payroll",
     employees: "Employees",
