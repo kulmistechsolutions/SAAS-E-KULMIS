@@ -35,6 +35,14 @@ export class DocumentsService {
   async buildBrandedPdfReport(opts: {
     schoolName?: string;
     logoBuffer?: Buffer | null;
+    /**
+     * The school's own letterhead banner. When given it is printed across
+     * the top in place of the generated logo-and-name, the way the school's
+     * other printed documents look.
+     */
+    bannerBuffer?: Buffer | null;
+    /** Banner height in mm; 0 or absent = scale to the page width. */
+    bannerHeightMm?: number;
     title: string;
     headerLines?: string[];
     columns: { key: string; label: string; width?: number }[];
@@ -101,7 +109,28 @@ export class DocumentsService {
       const drawPageHeader = (): number => {
         let y = M;
         let textX = M;
-        if (opts.logoBuffer) {
+        let bannerDrawn = false;
+        if (opts.bannerBuffer) {
+          try {
+            // Natural size first, so a "fit the width" banner keeps its shape.
+            const img = (doc as unknown as {
+              openImage(b: Buffer): { width: number; height: number };
+            }).openImage(opts.bannerBuffer);
+            const MM = 72 / 25.4;
+            const maxH = PAGE_H * 0.22;
+            const wanted =
+              opts.bannerHeightMm && opts.bannerHeightMm > 0
+                ? opts.bannerHeightMm * MM
+                : (CONTENT_W * img.height) / img.width;
+            const h = Math.min(maxH, wanted);
+            doc.image(opts.bannerBuffer, M, y, { fit: [CONTENT_W, h], align: "center" });
+            y += h + 6;
+            bannerDrawn = true;
+          } catch {
+            /* an unreadable banner falls back to the logo and name */
+          }
+        }
+        if (!bannerDrawn && opts.logoBuffer) {
           try {
             doc.image(opts.logoBuffer, M, y, { fit: [46, 46] });
             textX = M + 56;
@@ -109,7 +138,7 @@ export class DocumentsService {
             /* skip invalid logo */
           }
         }
-        if (opts.schoolName) {
+        if (opts.schoolName && !bannerDrawn) {
           doc
             .fillColor(INK)
             .fontSize(14)

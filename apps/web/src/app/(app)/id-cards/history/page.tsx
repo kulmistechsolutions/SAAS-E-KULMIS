@@ -23,7 +23,7 @@ import {
   type CardIssueRow,
   type CardReport,
 } from "@/lib/id-cards/api";
-import { exportCardReportCsv, printCardReport } from "@/lib/id-cards/report-export";
+import { exportCardReportCsv, cardReportExportSpec, printCardReport } from "@/lib/id-cards/report-export";
 import { CARD_TYPES, DEFAULT_LAYOUT } from "@/lib/id-cards/types";
 import type { CardDesign } from "@/lib/id-cards/elements";
 import { presetDesign } from "@/lib/id-cards/presets";
@@ -31,6 +31,7 @@ import { resolveGrid } from "@/lib/id-cards/layout";
 import { buildCardContexts } from "@/lib/id-cards/data";
 import { printCards } from "@/lib/id-cards/print";
 import { useHydrated } from "@/lib/use-hydrated";
+import { ExportMenu } from "@/components/export/export-menu";
 
 const STATUS_TONE: Record<string, string> = {
   GENERATED: "bg-sky-500/15 text-sky-600 dark:text-sky-400",
@@ -216,9 +217,7 @@ export default function CardHistoryPage() {
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
             <h2 className="text-sm font-semibold">{t("idCards.reports")}</h2>
             <div className="flex gap-2">
-              <Button variant="outline" onClick={() => exportCardReportCsv(report)}>
-                <FileDown className="me-2 h-4 w-4" /> {t("idCards.exportCsv")}
-              </Button>
+              <ExportMenu spec={() => cardReportExportSpec(report)} />
               <Button variant="outline" onClick={() => printCardReport(report)}>
                 <Printer className="me-2 h-4 w-4" /> {t("idCards.printPdf")}
               </Button>

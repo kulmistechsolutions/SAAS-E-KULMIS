@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { refreshStudents, useStudentsState, withParents } from "@/lib/students/store";
-import { DEFAULT_STUDENT_EXPORT_FIELDS, exportStudentsCsv, printStudentsList } from "@/lib/students/print";
+import { DEFAULT_STUDENT_EXPORT_FIELDS, exportStudentsCsv, studentsExportSpec, printStudentsList } from "@/lib/students/print";
 import { shortDate } from "@/lib/students/format";
 import {
   activeAcademicYear,
@@ -18,6 +18,7 @@ import {
 } from "@/lib/academics/store";
 import type { StudentWithParent } from "@/lib/students/types";
 import { useHydrated } from "@/lib/use-hydrated";
+import { ExportMenu } from "@/components/export/export-menu";
 
 export default function FreeStudentsPage() {
   const t = useT();
@@ -113,14 +114,17 @@ export default function FreeStudentsPage() {
           >
             <Printer className="me-2 h-4 w-4" /> {t("attendanceStudents.print")}
           </Button>
-          <Button
-            variant="outline"
-            onClick={() =>
-              exportStudentsCsv(freeStudents, DEFAULT_STUDENT_EXPORT_FIELDS, "free-students.csv")
-            }
-          >
-            <Download className="me-2 h-4 w-4" /> {t("students.download")}
-          </Button>
+          <ExportMenu
+            spec={() => ({
+              ...studentsExportSpec(freeStudents, DEFAULT_STUDENT_EXPORT_FIELDS, {
+                academicYear: "All",
+                className: "All",
+                section: "All",
+              }),
+              title: "Free Students",
+              fileName: "free-students",
+            })}
+          />
         </div>
       </div>
 

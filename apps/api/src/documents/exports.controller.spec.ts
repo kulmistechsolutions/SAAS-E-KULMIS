@@ -73,6 +73,38 @@ describe("ExportsController", () => {
     expect(sent.body!.subarray(0, 4).toString()).toBe("%PDF");
   });
 
+  it("puts the school's banner on the PDF when it has one", async () => {
+    const png = Buffer.from(
+      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==",
+      "base64",
+    );
+    const getObject = jest.fn().mockResolvedValue(png);
+    const controller = new ExportsController(
+      new DocumentsService(),
+      {
+        school: {
+          findFirst: jest.fn().mockResolvedValue({
+            name: "Test School",
+            logoKey: null,
+            headerImageKey: "s1/school/header.png",
+            headerImageEnabled: true,
+            headerImageHeightMm: 0,
+          }),
+        },
+      } as never,
+      { getObject } as never,
+      { get: () => "ekulmis" } as never,
+    );
+    let body: Buffer | undefined;
+    await controller.table(
+      me,
+      { ...table, format: "pdf" },
+      { setHeader: () => undefined, send: (b: Buffer) => (body = b) } as never,
+    );
+    expect(getObject).toHaveBeenCalledWith("ekulmis", "s1/school/header.png");
+    expect(body!.toString("latin1")).toContain("/Subtype /Image");
+  });
+
   it("refuses an unknown format", async () => {
     const { controller, res } = harness();
     await expect(

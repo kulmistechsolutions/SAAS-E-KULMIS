@@ -8,10 +8,11 @@ import { Pagination } from "@/components/ui/pagination";
 import { PaymentTypeBadge } from "@/components/fees/fee-status-badge";
 import { ReceiptDialog } from "@/components/fees/receipt-dialog";
 import { money, shortDate } from "@/lib/fees/format";
-import { printReceipt } from "@/lib/fees/print";
+import { paymentsExportSpec, printReceipt } from "@/lib/fees/print";
 import { getPayment, useFeesState } from "@/lib/fees/store";
 import { getState as getStudentsState } from "@/lib/students/store";
 import { useHydrated } from "@/lib/use-hydrated";
+import { ExportMenu } from "@/components/export/export-menu";
 
 
 export default function ReceiptsPage() {
@@ -32,11 +33,17 @@ export default function ReceiptsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">{t("financeReceipts.receipts")}</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {t("financeReceipts.viewPrintAndDownloadPaymentReceipts")}
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold">{t("financeReceipts.receipts")}</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {t("financeReceipts.viewPrintAndDownloadPaymentReceipts")}
+          </p>
+        </div>
+        <ExportMenu
+          disabled={!mounted || payments.length === 0}
+          spec={() => ({ ...paymentsExportSpec(payments), title: "Receipts", fileName: "receipts" })}
+        />
       </div>
 
       {mounted && (

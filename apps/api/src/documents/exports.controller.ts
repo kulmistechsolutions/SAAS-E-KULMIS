@@ -65,7 +65,13 @@ export class ExportsController {
 
     const school = await this.prisma.school.findFirst({
       where: { id: me.schoolId },
-      select: { name: true, logoKey: true, phone: true, address: true },
+      select: {
+        name: true,
+        logoKey: true,
+        headerImageKey: true,
+        headerImageEnabled: true,
+        headerImageHeightMm: true,
+      },
     });
     const base = (dto.fileName || dto.title)
       .replace(/[^\p{L}\p{N}\- ]+/gu, "")
@@ -77,18 +83,24 @@ export class ExportsController {
     ) as Record<string, string | number>[];
 
     if (dto.format === "pdf") {
-      let logoBuffer: Buffer | null = null;
-      if (school?.logoKey) {
+      const bucket = this.config.get<string>("MINIO_BUCKET") ?? "ekulmis";
+      const load = async (key: string | null | undefined) => {
+        if (!key) return null;
         try {
-          const bucket = this.config.get<string>("MINIO_BUCKET") ?? "ekulmis";
-          logoBuffer = await this.storage.getObject(bucket, school.logoKey);
+          return await this.storage.getObject(bucket, key);
         } catch {
-          logoBuffer = null;
+          return null;
         }
-      }
+      };
+      const [logoBuffer, bannerBuffer] = await Promise.all([
+        load(school?.logoKey),
+        school?.headerImageEnabled ? load(school.headerImageKey) : Promise.resolve(null),
+      ]);
       const buffer = await this.docs.buildBrandedPdfReport({
         schoolName: school?.name,
         logoBuffer,
+        bannerBuffer,
+        bannerHeightMm: school?.headerImageHeightMm ?? 0,
         title: dto.title,
         headerLines: dto.subtitle,
         columns: dto.columns.map((c) => ({

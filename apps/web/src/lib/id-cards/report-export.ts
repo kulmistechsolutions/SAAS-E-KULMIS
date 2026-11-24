@@ -38,6 +38,37 @@ const COUNT_LABELS: [string, string][] = [
   ["activeStudents", "Active students"],
 ];
 
+/**
+ * The ID-card report as one table: every student still needing something —
+ * a photo, a card — with the counts written under the title.
+ */
+export function cardReportExportSpec(report: CardReport): import("@/lib/export/table-export").ExportSpec {
+  const counts = COUNT_LABELS.map(([key, label]) => `${label}: ${report.counts[key] ?? 0}`);
+  const row = (need: string) => (r: CardReportStudent) => ({
+    need,
+    code: r.code,
+    name: r.name,
+    className: r.className,
+    section: r.section,
+  });
+  return {
+    title: "ID Card Report",
+    fileName: "id-card-report",
+    subtitle: [counts.slice(0, 5).join(" · "), counts.slice(5).join(" · ")],
+    columns: [
+      { key: "need", label: "Needs" },
+      { key: "code", label: "Student ID" },
+      { key: "name", label: "Student" },
+      { key: "className", label: "Class" },
+      { key: "section", label: "Section" },
+    ],
+    rows: [
+      ...report.withoutPhotos.map(row("Photo")),
+      ...report.withoutCards.map(row("ID card")),
+    ],
+  };
+}
+
 export function exportCardReportCsv(report: CardReport) {
   const lines: string[] = ["Summary", "Measure,Value"];
   for (const [key, label] of COUNT_LABELS) {
