@@ -30,6 +30,7 @@ import type { StaffEmployee } from "@/lib/employees/types";
 import { toast } from "@/lib/toast";
 import { useHydrated } from "@/lib/use-hydrated";
 import { cn } from "@/lib/utils";
+import { ExportMenu } from "@/components/export/export-menu";
 
 
 interface Row {
@@ -148,14 +149,49 @@ export default function SalaryEmployeesPage() {
             {t("salaryEmployees.staffDirectoryDescription")}
           </p>
         </div>
-        <Button
-          onClick={() => {
-            setEditing(null);
-            setFormOpen(true);
-          }}
-        >
-          <Plus className="me-2 h-4 w-4" /> {t("salaryEmployeeFormDialog.addEmployee")}
-        </Button>
+        <div className="flex flex-wrap items-start gap-2">
+          <ExportMenu
+            disabled={filtered.length === 0}
+            spec={() => {
+              const active = filtered.filter((r) => r.status === "ACTIVE");
+              const payroll = active.reduce((a, r) => a + r.salary, 0);
+              return {
+                title: "Staff Directory",
+                fileName: "staff",
+                subtitle: [
+                  `Type: ${type ? (type === "TEACHER" ? "Teachers" : "Staff") : "All"} · Status: ${status || "All"}`,
+                  `${filtered.length} people · ${active.length} active · Monthly payroll ${payroll.toLocaleString(undefined, { maximumFractionDigits: 2 })}`,
+                ],
+                columns: [
+                  { key: "code", label: "ID" },
+                  { key: "fullName", label: "Name" },
+                  { key: "type", label: "Type" },
+                  { key: "position", label: "Position" },
+                  { key: "phone", label: "Phone" },
+                  { key: "salary", label: "Monthly Salary", align: "right" },
+                  { key: "status", label: "Status" },
+                ],
+                rows: filtered.map((r) => ({
+                  code: r.code,
+                  fullName: r.fullName,
+                  type: r.type === "TEACHER" ? "Teacher" : "Staff",
+                  position: r.position,
+                  phone: r.phone ?? "",
+                  salary: r.salary,
+                  status: r.status,
+                })),
+              };
+            }}
+          />
+          <Button
+            onClick={() => {
+              setEditing(null);
+              setFormOpen(true);
+            }}
+          >
+            <Plus className="me-2 h-4 w-4" /> {t("salaryEmployeeFormDialog.addEmployee")}
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">

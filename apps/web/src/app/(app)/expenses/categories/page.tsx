@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { CategoryBadge } from "@/components/expenses/category-badge";
 import { createCategory, toggleCategoryStatus, useExpensesState } from "@/lib/expenses/store";
 import { toast } from "@/lib/toast";
+import { ExportMenu } from "@/components/export/export-menu";
 
 export default function ExpenseCategoriesPage() {
   const t = useT();
@@ -33,11 +34,40 @@ export default function ExpenseCategoriesPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">{t("expensesCategories.expenseCategories")}</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {t("expensesCategories.manageCustomCategoriesForSchoolOperational")}
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold">{t("expensesCategories.expenseCategories")}</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {t("expensesCategories.manageCustomCategoriesForSchoolOperational")}
+          </p>
+        </div>
+        <ExportMenu
+          disabled={state.categories.length === 0}
+          spec={() => {
+            const rows = state.categories.map((c) => {
+              const mine = state.expenses.filter((e) => e.categoryId === c.id);
+              return {
+                name: c.name,
+                status: c.status,
+                count: mine.length,
+                total: Math.round(mine.reduce((a, e) => a + Number(e.amount || 0), 0) * 100) / 100,
+              };
+            });
+            const grand = rows.reduce((a, r) => a + r.total, 0);
+            return {
+              title: "Expense Categories",
+              fileName: "expense-categories",
+              subtitle: [`${rows.length} categories · Total spent ${grand.toLocaleString(undefined, { maximumFractionDigits: 2 })}`],
+              columns: [
+                { key: "name", label: "Category" },
+                { key: "status", label: "Status" },
+                { key: "count", label: "Expenses", align: "right" },
+                { key: "total", label: "Total Spent", align: "right" },
+              ],
+              rows,
+            };
+          }}
+        />
       </div>
 
       <div className="flex max-w-md gap-2">
