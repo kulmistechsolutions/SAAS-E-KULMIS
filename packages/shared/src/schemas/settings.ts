@@ -143,6 +143,12 @@ export const printSettingsSchema = z.record(
     template: z.string().min(1).max(64),
     paper: z.enum(["A4", "A5", "LETTER", "ROLL80"]).optional(),
     landscape: z.boolean().optional(),
+    /**
+     * The school's own wording for a letter (transfer, admission, bonafide),
+     * with {placeholders} filled in at print time. Plain text, escaped when
+     * rendered — never markup.
+     */
+    bodyText: z.string().max(4000).optional(),
   }),
 );
 export type PrintSettingsInput = z.infer<typeof printSettingsSchema>;

@@ -24,6 +24,8 @@ export interface DocDesignChoice {
   template: string;
   paper?: PaperSize;
   landscape?: boolean;
+  /** The school's own wording for a letter; see LETTER_PLACEHOLDERS. */
+  bodyText?: string;
 }
 
 type PrintSettings = Record<string, DocDesignChoice>;

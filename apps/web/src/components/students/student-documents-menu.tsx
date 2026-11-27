@@ -23,13 +23,16 @@ import { cn } from "@/lib/utils";
 import { toast } from "@/lib/toast";
 import { ApiError } from "@/lib/api";
 import {
+  DEFAULT_LETTER_TEXT,
   DOC_TITLES,
+  LETTER_PLACEHOLDERS,
   studentDocumentHtml,
+  studentDocumentWordHtml,
   type DocDesign,
   type StudentDocKind,
   type StudentDocOptions,
 } from "@/lib/documents/student-docs";
-import { designFor } from "@/lib/print/design-store";
+import { designFor, savePrintDesign } from "@/lib/print/design-store";
 import { exportHtmlToWord, exportTable, type ExportFormat } from "@/lib/export/table-export";
 import { DEFAULT_STUDENT_EXPORT_FIELDS, studentsExportSpec } from "@/lib/students/print";
 import { updateStudent } from "@/lib/students/store";
@@ -83,6 +86,9 @@ export function StudentDocumentsMenu({
   const [feesCleared, setFeesCleared] = useState(true);
   const [reference, setReference] = useState("");
   const [markInactive, setMarkInactive] = useState(false);
+  // The letter's wording: the school's saved text, else the system's.
+  const [bodyText, setBodyText] = useState("");
+  const [savingText, setSavingText] = useState(false);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -95,9 +101,30 @@ export function StudentDocumentsMenu({
   }, [open]);
 
   useEffect(() => {
-    if (kind !== "TRANSFER") return;
-    setReference(`TC-${student.code}-${new Date().getFullYear()}`);
+    if (!kind) return;
+    if (kind === "TRANSFER") setReference(`TC-${student.code}-${new Date().getFullYear()}`);
+    if (kind !== "INFORMATION") {
+      const def = DOCS.find((d) => d.kind === kind)!;
+      setBodyText(designFor(def.design).bodyText ?? DEFAULT_LETTER_TEXT[kind]);
+    }
   }, [kind, student.code]);
+
+  async function saveText(reset = false) {
+    if (!kind || kind === "INFORMATION") return;
+    const def = DOCS.find((d) => d.kind === kind)!;
+    const current = designFor(def.design);
+    setSavingText(true);
+    try {
+      const { bodyText: _old, ...rest } = current;
+      await savePrintDesign(def.design, reset ? rest : { ...rest, bodyText: bodyText.trim() });
+      if (reset) setBodyText(DEFAULT_LETTER_TEXT[kind]);
+      toast(reset ? "Back to the system's wording." : "Saved as this school's wording.", "success");
+    } catch (e) {
+      toast(e instanceof ApiError ? e.message : "Could not save the wording.", "error");
+    } finally {
+      setSavingText(false);
+    }
+  }
 
   const options = useMemo<StudentDocOptions | null>(() => {
     if (!kind) return null;
@@ -114,12 +141,13 @@ export function StudentDocumentsMenu({
       showGuardian: true,
       showAcademic: true,
       reference: kind === "TRANSFER" ? reference.trim() || undefined : undefined,
+      bodyText: kind === "INFORMATION" ? undefined : bodyText,
       transfer:
         kind === "TRANSFER"
           ? { toSchool, reason, leavingDate, conduct, feesCleared }
           : undefined,
     };
-  }, [kind, reference, toSchool, reason, leavingDate, conduct, feesCleared]);
+  }, [kind, reference, toSchool, reason, leavingDate, conduct, feesCleared, bodyText]);
 
   const html = useMemo(
     () => (options ? studentDocumentHtml(student, options) : ""),
@@ -156,7 +184,8 @@ export function StudentDocumentsMenu({
   async function word() {
     setBusy(true);
     try {
-      await exportHtmlToWord(html, fileBase);
+      // Word gets its own table layout — the printed page's CSS is beyond it.
+      await exportHtmlToWord(studentDocumentWordHtml(student, options!), fileBase);
       toast("Word document downloaded.", "success");
       void finishTransfer();
     } catch {
@@ -256,9 +285,10 @@ export function StudentDocumentsMenu({
           </div>
         }
       >
-        <div className={cn("grid gap-4", kind === "TRANSFER" && "lg:grid-cols-[300px_1fr]")}>
-          {kind === "TRANSFER" && (
-            <div className="space-y-3">
+        <div className={cn("grid gap-4", kind && kind !== "INFORMATION" && "lg:grid-cols-[320px_1fr]")}>
+          {kind && kind !== "INFORMATION" && (
+            <div className="max-h-[62vh] space-y-3 overflow-y-auto pe-1">
+              {kind === "TRANSFER" && (<>
               <div>
                 <Label>Transferring to (school)</Label>
                 <Input value={toSchool} onChange={(e) => setToSchool(e.target.value)} placeholder="e.g. Hormar Secondary School" />
@@ -296,6 +326,41 @@ export function StudentDocumentsMenu({
                   </span>
                 </label>
               )}
+              </>)}
+              <div className="rounded-lg border bg-muted/30 p-2.5">
+                <Label>Letter text</Label>
+                <Textarea
+                  rows={7}
+                  value={bodyText}
+                  onChange={(e) => setBodyText(e.target.value)}
+                  className="mt-1 text-sm"
+                />
+                <p className="mt-1.5 text-[11px] leading-snug text-muted-foreground">
+                  Words in braces are filled in for each student:{" "}
+                  {LETTER_PLACEHOLDERS.map((p) => (
+                    <button
+                      key={p.key}
+                      type="button"
+                      title={p.meaning}
+                      onClick={() => setBodyText((t) => `${t}${t.endsWith(" ") || !t ? "" : " "}${p.key}`)}
+                      className="me-1 mt-0.5 inline-block rounded bg-background px-1 font-mono text-[10.5px] text-primary hover:bg-primary/10"
+                    >
+                      {p.key}
+                    </button>
+                  ))}
+                  A blank line starts a new paragraph.
+                </p>
+                {canEdit && (
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    <Button type="button" variant="outline" className="h-7 px-2 text-xs" disabled={savingText} onClick={() => void saveText(false)}>
+                      Save as school default
+                    </Button>
+                    <Button type="button" variant="ghost" className="h-7 px-2 text-xs" disabled={savingText} onClick={() => void saveText(true)}>
+                      Reset wording
+                    </Button>
+                  </div>
+                )}
+              </div>
             </div>
           )}
           <iframe title="Document preview" srcDoc={html} className="h-[62vh] w-full rounded-lg border bg-white" />
