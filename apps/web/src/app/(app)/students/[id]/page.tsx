@@ -89,6 +89,7 @@ import { toast } from "@/lib/toast";
 import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 import { useHydrated } from "@/lib/use-hydrated";
+import { StudentDocumentsMenu } from "@/components/students/student-documents-menu";
 
 const STATUS_TONE: Record<StudentStatus, "success" | "muted" | "info"> = {
   ACTIVE: "success",
@@ -219,14 +220,7 @@ export default function StudentProfilePage({
               <Button variant="outline" onClick={() => printStudentProfile(student)}>
                 <Printer className="me-2 h-4 w-4" /> {tr("students.print")}
               </Button>
-              <Button
-                variant="outline"
-                onClick={() =>
-                  exportStudentsCsv([student], DEFAULT_STUDENT_EXPORT_FIELDS, `${student.code}.csv`)
-                }
-              >
-                <Download className="me-2 h-4 w-4" /> {tr("students.download")}
-              </Button>
+              <StudentDocumentsMenu student={student} canEdit={!isTeacher} label={tr("students.download")} />
             </div>
           </div>
         </div>

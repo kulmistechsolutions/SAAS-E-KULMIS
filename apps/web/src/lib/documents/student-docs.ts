@@ -48,6 +48,17 @@ export interface StudentDocOptions {
   qrDataUrl?: string | null;
   /** Reference number printed on letters. */
   reference?: string;
+  /**
+   * The particulars of a transfer, written into the Transfer Certificate:
+   * where the student is going, why, and their last day here.
+   */
+  transfer?: {
+    toSchool?: string;
+    reason?: string;
+    leavingDate?: string;
+    conduct?: string;
+    feesCleared?: boolean;
+  };
 }
 
 export const DOC_TITLES: Record<StudentDocKind, string> = {
@@ -157,9 +168,15 @@ function letterBody(s: StudentWithParent, o: StudentDocOptions): string {
     TRANSFER: `This is to certify that <strong>${escapeHtml(s.fullName)}</strong>,
       Student ID <strong>${escapeHtml(s.code)}</strong>, was a student of
       ${escapeHtml(school)} in <strong>${escapeHtml(cls)}</strong> during the
-      academic year <strong>${escapeHtml(s.academicYear)}</strong>. The student
-      is hereby granted a transfer, and this school has no objection to their
-      admission elsewhere.`,
+      academic year <strong>${escapeHtml(s.academicYear)}</strong>${
+        o.transfer?.leavingDate
+          ? `, until <strong>${escapeHtml(dateLong(o.transfer.leavingDate))}</strong>`
+          : ""
+      }. The student is hereby granted a transfer${
+        o.transfer?.toSchool?.trim()
+          ? ` to <strong>${escapeHtml(o.transfer.toSchool.trim())}</strong>`
+          : ""
+      }, and this school has no objection to their admission there.`,
     BONAFIDE: `This is to certify that <strong>${escapeHtml(s.fullName)}</strong>,
       Student ID <strong>${escapeHtml(s.code)}</strong>, is a bonafide student
       of ${escapeHtml(school)}, currently studying in
@@ -174,7 +191,17 @@ function letterBody(s: StudentWithParent, o: StudentDocOptions): string {
       row("Full Name", s.fullName) +
       row("Date of Birth", s.dob ? dateLong(s.dob) : null) +
       (o.showAcademic ? row("Class", cls) + row("Academic Year", s.academicYear) : "") +
-      (o.showGuardian ? row("Parent / Guardian", s.parent?.name) : ""),
+      (o.showGuardian ? row("Parent / Guardian", s.parent?.name) : "") +
+      (o.kind === "TRANSFER"
+        ? row("Date of Admission", s.registrationDate ? dateLong(s.registrationDate) : null) +
+          row("Date of Leaving", o.transfer?.leavingDate ? dateLong(o.transfer.leavingDate) : null) +
+          row("Transferred To", o.transfer?.toSchool?.trim() || null) +
+          row("Reason for Leaving", o.transfer?.reason?.trim() || null) +
+          row("Conduct", o.transfer?.conduct?.trim() || null) +
+          (o.transfer?.feesCleared !== undefined
+            ? row("Fees", o.transfer.feesCleared ? "All dues cleared" : "Dues outstanding")
+            : "")
+        : ""),
   );
 
   return `<p class="lead">${prose[o.kind as Exclude<StudentDocKind, "INFORMATION">]}</p>

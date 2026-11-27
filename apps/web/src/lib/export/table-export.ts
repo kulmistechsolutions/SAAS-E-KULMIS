@@ -287,3 +287,37 @@ async function exportWord(spec: ExportSpec, name: string) {
   ];
   save(new Blob(parts, { type: "application/msword" }), name);
 }
+
+/**
+ * Any printed document — a transfer certificate, a letter — as a Word file,
+ * with every image on it (logo, banner, photo, QR) carried inside.
+ */
+export async function exportHtmlToWord(html: string, fileName: string): Promise<void> {
+  const srcs = [...new Set([...html.matchAll(/<img[^>]+src="([^"]+)"/g)].map((m) => m[1]!))];
+  const images: EmbeddedImage[] = [];
+  let out = html;
+  for (let i = 0; i < srcs.length; i++) {
+    const raw = srcs[i]!.replace(/&amp;/g, "&");
+    const img = await embed(raw, `image${i + 1}`);
+    if (!img) continue;
+    images.push(img);
+    out = out.split(`src="${srcs[i]}"`).join(`src="${img.location}"`);
+  }
+  // Word reads the page's own size and margins from an @page Section1 rule.
+  out = out.replace(
+    "</head>",
+    `<style>@page Section1{size:595.3pt 841.9pt;margin:36pt}div.Section1{page:Section1}</style></head>`,
+  );
+  out = out.replace(/<body([^>]*)>/, '<body$1><div class="Section1">').replace("</body>", "</div></body>");
+  const B = "----=_NextPart_eKulmis_doc";
+  const parts = [
+    `MIME-Version: 1.0\r\nContent-Type: multipart/related; boundary="${B}"; type="text/html"\r\n\r\n`,
+    `--${B}\r\nContent-Type: text/html; charset="utf-8"\r\nContent-Transfer-Encoding: base64\r\nContent-Location: file:///C:/ekulmis/document.htm\r\n\r\n${wrap76(utf8Base64(out))}\r\n\r\n`,
+    ...images.map(
+      (img) =>
+        `--${B}\r\nContent-Type: ${img.mime}\r\nContent-Transfer-Encoding: base64\r\nContent-Location: ${img.location}\r\n\r\n${wrap76(img.base64)}\r\n\r\n`,
+    ),
+    `--${B}--\r\n`,
+  ];
+  save(new Blob(parts, { type: "application/msword" }), fileName.endsWith(".doc") ? fileName : `${fileName}.doc`);
+}
