@@ -38,7 +38,8 @@ import {
   type PersonDocKind,
 } from "@/lib/documents/people-docs";
 import { wordFromPrintHtml } from "@/lib/documents/word";
-import { exportHtmlToWord } from "@/lib/export/table-export";
+import { exportHtmlToWord, type ExportSpec } from "@/lib/export/table-export";
+import { ExportMenu } from "@/components/export/export-menu";
 
 type Who = "students" | "teachers" | "staff" | "parents";
 
@@ -234,7 +235,7 @@ export default function DocumentsCenterPage() {
 
       <div className="relative rounded-2xl border bg-card shadow-sm">
         {/* who */}
-        <div className="flex flex-wrap gap-1 border-b px-3 pt-2">
+        <div className="flex flex-wrap items-center gap-1 border-b px-3 pt-2">
           {TABS.map((t) => {
             const Icon = t.icon;
             const on = who === t.id;
@@ -252,6 +253,19 @@ export default function DocumentsCenterPage() {
               </button>
             );
           })}
+          <div className="ms-auto pb-2">
+            <ExportMenu
+              className="[&>button]:h-9"
+              disabled={people.length === 0}
+              spec={() => {
+                const q = search.trim().toLowerCase();
+                return peopleExportSpec(
+                  who,
+                  q ? people.filter((p) => p.name.toLowerCase().includes(q) || p.code.toLowerCase().includes(q)) : people,
+                );
+              }}
+            />
+          </div>
         </div>
 
         <div className="grid gap-5 p-4 lg:grid-cols-[340px_1fr] sm:p-5">
@@ -390,6 +404,24 @@ export default function DocumentsCenterPage() {
       </Dialog>
     </div>
   );
+}
+
+/** The people on the current tab, as a table to export. */
+function peopleExportSpec(who: Who, list: Person[]): ExportSpec {
+  const label = TABS.find((t) => t.id === who)!.label;
+  const sub =
+    who === "students" ? "Class" : who === "staff" ? "Position" : "Phone";
+  return {
+    title: `${label} — Documents Center`,
+    fileName: `${label.toLowerCase()}-list`,
+    subtitle: [`${list.length} ${label.toLowerCase()}`],
+    columns: [
+      { key: "code", label: "ID" },
+      { key: "name", label: "Name" },
+      { key: "sub", label: sub },
+    ],
+    rows: list.map((p) => ({ code: p.code, name: p.name, sub: p.sub })),
+  };
 }
 
 function QuickLink({
