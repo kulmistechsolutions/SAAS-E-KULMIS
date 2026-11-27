@@ -26,6 +26,7 @@ const elementSchema = z
     text: z.string().max(200).optional(),
     field: z.string().max(40).optional(),
     fontSize: z.number().finite().positive().max(72).optional(),
+    font: z.enum(["sans", "serif", "script", "display"]).optional(),
     bold: z.boolean().optional(),
     italic: z.boolean().optional(),
     align: z.enum(["left", "center", "right"]).optional(),

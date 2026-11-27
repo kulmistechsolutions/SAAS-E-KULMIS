@@ -58,6 +58,12 @@ interface Props {
    */
   onChange: (updater: (prev: CardDesign) => CardDesign) => void;
   onReset: () => void;
+  /** Drawn under every element — a certificate's frame. Not editable. */
+  backgroundHtml?: string;
+  /** The fields this document offers, with its own names for them. */
+  fields?: { key: FieldKey; label: string }[];
+  /** New items start this many times the card size (a certificate is ~4×). */
+  presetScale?: number;
 }
 
 type DragState =
@@ -65,7 +71,16 @@ type DragState =
   | { mode: "resize"; id: string; startX: number; startY: number; ow: number; oh: number }
   | null;
 
-export function CardDesigner({ design, ctx, onChange, onReset }: Props) {
+export function CardDesigner({
+  design,
+  ctx,
+  onChange,
+  onReset,
+  backgroundHtml,
+  fields,
+  presetScale = 1,
+}: Props) {
+  const fieldLabel = (k: FieldKey) => fields?.find((f) => f.key === k)?.label ?? FIELD_LABELS[k];
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [scale, setScale] = useState(0);
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -196,7 +211,23 @@ export function CardDesigner({ design, ctx, onChange, onReset }: Props) {
         opacity: 0.08,
       },
     };
-    const el = clampElement({ ...base, ...(presets[type] ?? {}) }, design);
+    let el = clampElement({ ...base, ...(presets[type] ?? {}) }, design);
+    // A certificate is many times a card's size; start new items in proportion.
+    if (presetScale !== 1 && type !== "image" && type !== "watermark") {
+      const k = presetScale;
+      el = clampElement(
+        {
+          ...el,
+          w: Math.round(el.w * k),
+          h: Math.round(el.h * k * 10) / 10,
+          x: snap(design.width / 2 - (el.w * k) / 2),
+          y: snap(design.height / 2 - (el.h * k) / 2),
+          fontSize: el.fontSize ? Math.round(el.fontSize * k * 10) / 10 : el.fontSize,
+          ...(type === "field" && fields?.length ? { field: fields[0]!.key } : {}),
+        },
+        design,
+      );
+    }
     // A watermark belongs behind the content, so it goes to the front of the
     // list rather than on top of everything that is already there.
     onChange((d) => ({
@@ -275,7 +306,7 @@ export function CardDesigner({ design, ctx, onChange, onReset }: Props) {
                 height: `${design.height}mm`,
                 transform: `scale(${scale})`,
               }}
-              dangerouslySetInnerHTML={{ __html: renderDesign(design, ctx) }}
+              dangerouslySetInnerHTML={{ __html: (backgroundHtml ?? "") + renderDesign(design, ctx) }}
             />
 
             {/* Hit areas, one per element, in the same coordinate space. */}
@@ -334,7 +365,9 @@ export function CardDesigner({ design, ctx, onChange, onReset }: Props) {
         ) : (
           <div className="space-y-3">
             <div className="flex items-center justify-between gap-2">
-              <span className="truncate text-xs font-semibold">{elementLabel(selected)}</span>
+              <span className="truncate text-xs font-semibold">
+                {selected.type === "field" ? fieldLabel(selected.field ?? "studentName") : elementLabel(selected)}
+              </span>
               <div className="flex gap-1">
                 <IconBtn title="Bring forward" onClick={() => reorder(selected.id, 1)}><ChevronUp className="h-3.5 w-3.5" /></IconBtn>
                 <IconBtn title="Send back" onClick={() => reorder(selected.id, -1)}><ChevronDown className="h-3.5 w-3.5" /></IconBtn>
@@ -350,8 +383,8 @@ export function CardDesigner({ design, ctx, onChange, onReset }: Props) {
                   value={selected.field ?? "studentName"}
                   onChange={(e) => update(selected.id, { field: e.target.value as FieldKey })}
                 >
-                  {FIELD_KEYS.map((k) => (
-                    <option key={k} value={k}>{FIELD_LABELS[k]}</option>
+                  {(fields ?? FIELD_KEYS.map((k) => ({ key: k, label: FIELD_LABELS[k] }))).map((f) => (
+                    <option key={f.key} value={f.key}>{f.label}</option>
                   ))}
                 </Select>
                 {selected.field === "studentId" && (
@@ -376,6 +409,21 @@ export function CardDesigner({ design, ctx, onChange, onReset }: Props) {
             {selected.type !== "box" && selected.type !== "line" && selected.type !== "photo" &&
               selected.type !== "qr" && selected.type !== "logo" && selected.type !== "image" && (
               <>
+                <div>
+                  <Label>Font</Label>
+                  <Select
+                    value={selected.font ?? ""}
+                    onChange={(e) =>
+                      update(selected.id, { font: (e.target.value || undefined) as CardElement["font"] })
+                    }
+                  >
+                    <option value="">Default</option>
+                    <option value="sans">Clean (sans)</option>
+                    <option value="serif">Classic (serif)</option>
+                    <option value="script">Handwriting (script)</option>
+                    <option value="display">Engraved capitals</option>
+                  </Select>
+                </div>
                 <div className="grid grid-cols-2 gap-2">
                   <Num label="Size (pt)" step={0.2} value={selected.fontSize ?? 5}
                     onChange={(v) => update(selected.id, { fontSize: v })} />

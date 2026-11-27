@@ -109,6 +109,11 @@ export interface CardElement {
    * shape, so a banner can be made bigger or smaller without squashing it.
    */
   ratio?: number;
+  /**
+   * Typeface: "serif", "script" (handwriting, for names on a certificate),
+   * "display" (engraved capitals) or "sans". Absent = the card's default.
+   */
+  font?: "sans" | "serif" | "script" | "display";
   /** Locked elements are skipped by the designer's hit-testing. */
   locked?: boolean;
 }
@@ -170,6 +175,18 @@ function boxStyle(el: CardElement, accent: string): string {
   return parts.join(";");
 }
 
+/** The typefaces an element can use; loaded by FONT_LINK where it prints. */
+export const FONT_STACK: Record<NonNullable<CardElement["font"]>, string> = {
+  sans: "'Inter',Arial,sans-serif",
+  serif: "'Playfair Display',Georgia,serif",
+  script: "'Great Vibes','Brush Script MT',cursive",
+  display: "'Cinzel',Georgia,serif",
+};
+
+/** The stylesheet link that makes FONT_STACK's faces available. */
+export const FONT_LINK =
+  "https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Great+Vibes&family=Playfair+Display:ital,wght@0,600;1,500&family=Inter:wght@400;600;700&display=swap";
+
 function textStyle(el: CardElement, accent: string): string {
   const parts = [
     `font-size:${el.fontSize ?? 5}pt`,
@@ -186,6 +203,7 @@ function textStyle(el: CardElement, accent: string): string {
   if (el.uppercase) parts.push("text-transform:uppercase");
   if (el.letterSpacing) parts.push(`letter-spacing:${el.letterSpacing}em`);
   if (el.mono) parts.push('font-family:"Courier New",monospace');
+  else if (el.font) parts.push(`font-family:${FONT_STACK[el.font]}`);
   return parts.join(";");
 }
 

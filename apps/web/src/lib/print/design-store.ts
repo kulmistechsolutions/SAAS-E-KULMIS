@@ -28,6 +28,8 @@ export interface DocDesignChoice {
   bodyText?: string;
   /** Other editable words and switches (a certificate's title, signatories…). */
   fields?: Record<string, string | boolean>;
+  /** A free-form layout as JSON (a certificate's positioned items). */
+  layout?: string;
 }
 
 type PrintSettings = Record<string, DocDesignChoice>;

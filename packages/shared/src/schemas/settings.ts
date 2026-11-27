@@ -156,6 +156,11 @@ export const printSettingsSchema = z.record(
     fields: z
       .record(z.string().min(1).max(40), z.union([z.string().max(600), z.boolean()]))
       .optional(),
+    /**
+     * A free-form layout (a certificate's positioned items) as JSON. Read
+     * back only as data — positions, sizes, words — never executed.
+     */
+    layout: z.string().max(100000).optional(),
   }),
 );
 export type PrintSettingsInput = z.infer<typeof printSettingsSchema>;
