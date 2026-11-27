@@ -36,6 +36,7 @@ import {
   UsersRound,
   Wallet,
   type LucideIcon,
+  Award,
 } from "lucide-react";
 import { useSchoolBranding } from "@/lib/settings/use-school-branding";
 import { useAuth } from "@/lib/auth";
@@ -192,6 +193,7 @@ const ADMIN_NAV: NavItem[] = [
   { label: "nav.sms", icon: MessageSquare, children: SMS_CHILDREN },
   { label: "nav.library", icon: BookOpen, href: "/library" },
   { label: "nav.idGenerator", icon: CreditCard, href: "/id-cards" },
+  { label: "nav.certificates", icon: Award, href: "/certificates" },
   { label: "nav.reports", icon: BarChart3, href: "/reports" },
   { label: "nav.copilot", icon: Sparkles, href: "/copilot" },
   { label: "nav.usersRoles", icon: ShieldCheck, children: USERS_CHILDREN },

@@ -26,6 +26,8 @@ export interface DocDesignChoice {
   landscape?: boolean;
   /** The school's own wording for a letter; see LETTER_PLACEHOLDERS. */
   bodyText?: string;
+  /** Other editable words and switches (a certificate's title, signatories…). */
+  fields?: Record<string, string | boolean>;
 }
 
 type PrintSettings = Record<string, DocDesignChoice>;

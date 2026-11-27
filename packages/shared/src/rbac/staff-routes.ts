@@ -74,6 +74,8 @@ export const STAFF_ROUTE_RULES: StaffRouteRule[] = [
   // Printing cards is a front-desk and exam-hall job; the librarian was shown
   // this only because it rode along with a student-list grant.
   { prefix: "/id-cards", roles: [AM, EM, RO] },
+  // Graduation certificates are printed by the same desks as ID cards.
+  { prefix: "/certificates", roles: [AM, EM, RO] },
 
   // --- Money ---------------------------------------------------------------
   { prefix: "/finance", roles: [FO] },
@@ -203,6 +205,7 @@ export const ROUTE_PERMISSIONS: RoutePermissionRule[] = [
   { prefix: "/teachers", anyOf: ["teachers.view"] },
   // Cards are printed by two different desks, for two different reasons.
   { prefix: "/id-cards", anyOf: ["students.print", "examinations.print"] },
+  { prefix: "/certificates", anyOf: ["students.print", "examinations.print"] },
 
   { prefix: "/finance", anyOf: ["fees.view"] },
   { prefix: "/expenses", anyOf: ["expenses.view"] },

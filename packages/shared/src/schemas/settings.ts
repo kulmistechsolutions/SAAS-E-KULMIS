@@ -149,6 +149,13 @@ export const printSettingsSchema = z.record(
      * rendered — never markup.
      */
     bodyText: z.string().max(4000).optional(),
+    /**
+     * A document's other editable words and switches — a certificate's
+     * title, signatories, colour. Plain values only, never markup.
+     */
+    fields: z
+      .record(z.string().min(1).max(40), z.union([z.string().max(600), z.boolean()]))
+      .optional(),
   }),
 );
 export type PrintSettingsInput = z.infer<typeof printSettingsSchema>;

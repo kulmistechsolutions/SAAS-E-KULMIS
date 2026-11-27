@@ -180,6 +180,7 @@ const core = {
     smsPackages: "SMS Packages",
     library: "Library",
     idGenerator: "ID Generator",
+    certificates: "Certificates",
     reports: "Reports",
     usersRoles: "Users & Roles",
     settings: "Settings",
