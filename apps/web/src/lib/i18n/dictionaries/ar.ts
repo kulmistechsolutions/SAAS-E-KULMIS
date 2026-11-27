@@ -175,6 +175,8 @@ const curated: PartialDictionary = {
     smsPackages: "باقات الرسائل",
     library: "المكتبة",
     idGenerator: "مولّد البطاقات",
+    documents: "المستندات",
+    documentsCenter: "مركز المستندات",
     certificates: "الشهادات",
     reports: "التقارير",
     usersRoles: "المستخدمون والصلاحيات",

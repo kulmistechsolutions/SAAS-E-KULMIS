@@ -39,7 +39,7 @@ import { updateStudent } from "@/lib/students/store";
 import type { StudentWithParent } from "@/lib/students/types";
 import { FloatingMenu } from "@/components/ui/floating-menu";
 
-const DOCS: { kind: StudentDocKind; design: string; icon: LucideIcon; tone: string; hint: string }[] = [
+export const STUDENT_DOCS: { kind: StudentDocKind; design: string; icon: LucideIcon; tone: string; hint: string }[] = [
   { kind: "TRANSFER", design: "STUDENT_TRANSFER", icon: ArrowRightLeft, tone: "bg-amber-500/10 text-amber-600 dark:text-amber-400", hint: "Warqadda wareejinta — to another school" },
   { kind: "ADMISSION", design: "STUDENT_ADMISSION", icon: ScrollText, tone: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400", hint: "Confirms the student was admitted" },
   { kind: "BONAFIDE", design: "STUDENT_BONAFIDE", icon: BadgeCheck, tone: "bg-sky-500/10 text-sky-600 dark:text-sky-400", hint: "Confirms the student studies here" },
@@ -69,14 +69,26 @@ export function StudentDocumentsMenu({
   student,
   canEdit,
   label = "Documents",
+  initialKind,
+  hideButton,
+  onClosed,
 }: {
   student: StudentWithParent;
   /** Whether this user may mark the student as transferred. */
   canEdit?: boolean;
   label?: string;
+  /** Open straight onto this document (the Documents Center does). */
+  initialKind?: StudentDocKind;
+  /** Show only the document window, no menu button. */
+  hideButton?: boolean;
+  onClosed?: () => void;
 }) {
   const [open, setOpen] = useState(false);
-  const [kind, setKind] = useState<StudentDocKind | null>(null);
+  const [kind, setKindState] = useState<StudentDocKind | null>(initialKind ?? null);
+  const setKind = (k: StudentDocKind | null) => {
+    setKindState(k);
+    if (k === null) onClosed?.();
+  };
   const ref = useRef<HTMLDivElement>(null);
 
   // Transfer particulars
@@ -97,14 +109,14 @@ export function StudentDocumentsMenu({
     if (!kind) return;
     if (kind === "TRANSFER") setReference(`TC-${student.code}-${new Date().getFullYear()}`);
     if (kind !== "INFORMATION") {
-      const def = DOCS.find((d) => d.kind === kind)!;
+      const def = STUDENT_DOCS.find((d) => d.kind === kind)!;
       setBodyText(designFor(def.design).bodyText ?? DEFAULT_LETTER_TEXT[kind]);
     }
   }, [kind, student.code]);
 
   async function saveText(reset = false) {
     if (!kind || kind === "INFORMATION") return;
-    const def = DOCS.find((d) => d.kind === kind)!;
+    const def = STUDENT_DOCS.find((d) => d.kind === kind)!;
     const current = designFor(def.design);
     setSavingText(true);
     try {
@@ -121,7 +133,7 @@ export function StudentDocumentsMenu({
 
   const options = useMemo<StudentDocOptions | null>(() => {
     if (!kind) return null;
-    const def = DOCS.find((d) => d.kind === kind)!;
+    const def = STUDENT_DOCS.find((d) => d.kind === kind)!;
     const design = designFor(def.design);
     return {
       kind,
@@ -204,7 +216,7 @@ export function StudentDocumentsMenu({
 
   return (
     <>
-      <div ref={ref} className="relative inline-block">
+      <div ref={ref} className={cn("relative inline-block", hideButton && "hidden")}>
         <Button variant="outline" onClick={() => setOpen((v) => !v)} aria-haspopup="menu" aria-expanded={open}>
           <FileText className="me-2 h-4 w-4" /> {label}
           <ChevronDown className={cn("ms-1.5 h-3.5 w-3.5 opacity-60 transition", open && "rotate-180")} />
@@ -213,7 +225,7 @@ export function StudentDocumentsMenu({
             <p className="px-2 pb-1 pt-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
               Certificates & letters
             </p>
-            {DOCS.map((d) => {
+            {STUDENT_DOCS.map((d) => {
               const Icon = d.icon;
               return (
                 <button

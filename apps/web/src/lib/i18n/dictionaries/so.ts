@@ -180,6 +180,8 @@ const curated: PartialDictionary = {
     smsPackages: "Xirmooyinka SMS",
     library: "Maktabadda",
     idGenerator: "Samaynta Kaararka",
+    documents: "Dokumentiyada",
+    documentsCenter: "Xarunta Dokumentiyada",
     certificates: "Shahaadooyinka",
     reports: "Warbixinnada",
     usersRoles: "Isticmaalayaasha & Doorarka",

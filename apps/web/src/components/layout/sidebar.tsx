@@ -36,7 +36,7 @@ import {
   UsersRound,
   Wallet,
   type LucideIcon,
-  Award,
+  FolderOpen,
 } from "lucide-react";
 import { useSchoolBranding } from "@/lib/settings/use-school-branding";
 import { useAuth } from "@/lib/auth";
@@ -75,6 +75,14 @@ const FEE_CHILDREN: NavChild[] = [
   { label: "nav.reports", href: "/reports/fees" },
   { label: "nav.financialReports", href: "/reports/financial" },
   { label: "nav.receipts", href: "/finance/receipts" },
+];
+
+// Everything the school hands out, gathered under one menu. Each page also
+// stays reachable from where it belongs (a student's own Download button).
+const DOCUMENT_CHILDREN: NavChild[] = [
+  { label: "nav.documentsCenter", href: "/documents" },
+  { label: "nav.certificates", href: "/certificates" },
+  { label: "nav.idGenerator", href: "/id-cards" },
 ];
 
 const ACADEMICS_CHILDREN: NavChild[] = [
@@ -192,8 +200,7 @@ const ADMIN_NAV: NavItem[] = [
   { label: "nav.announcements", icon: Megaphone, href: "/announcements" },
   { label: "nav.sms", icon: MessageSquare, children: SMS_CHILDREN },
   { label: "nav.library", icon: BookOpen, href: "/library" },
-  { label: "nav.idGenerator", icon: CreditCard, href: "/id-cards" },
-  { label: "nav.certificates", icon: Award, href: "/certificates" },
+  { label: "nav.documents", icon: FolderOpen, children: DOCUMENT_CHILDREN },
   { label: "nav.reports", icon: BarChart3, href: "/reports" },
   { label: "nav.copilot", icon: Sparkles, href: "/copilot" },
   { label: "nav.usersRoles", icon: ShieldCheck, children: USERS_CHILDREN },
