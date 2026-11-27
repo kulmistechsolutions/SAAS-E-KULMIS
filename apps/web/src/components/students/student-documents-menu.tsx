@@ -37,6 +37,7 @@ import { exportHtmlToWord, exportTable, type ExportFormat } from "@/lib/export/t
 import { DEFAULT_STUDENT_EXPORT_FIELDS, studentsExportSpec } from "@/lib/students/print";
 import { updateStudent } from "@/lib/students/store";
 import type { StudentWithParent } from "@/lib/students/types";
+import { FloatingMenu } from "@/components/ui/floating-menu";
 
 const DOCS: { kind: StudentDocKind; design: string; icon: LucideIcon; tone: string; hint: string }[] = [
   { kind: "TRANSFER", design: "STUDENT_TRANSFER", icon: ArrowRightLeft, tone: "bg-amber-500/10 text-amber-600 dark:text-amber-400", hint: "Warqadda wareejinta — to another school" },
@@ -91,14 +92,6 @@ export function StudentDocumentsMenu({
   const [savingText, setSavingText] = useState(false);
   const [busy, setBusy] = useState(false);
 
-  useEffect(() => {
-    if (!open) return;
-    const down = (e: MouseEvent) => {
-      if (!ref.current?.contains(e.target as Node)) setOpen(false);
-    };
-    document.addEventListener("mousedown", down);
-    return () => document.removeEventListener("mousedown", down);
-  }, [open]);
 
   useEffect(() => {
     if (!kind) return;
@@ -216,8 +209,7 @@ export function StudentDocumentsMenu({
           <FileText className="me-2 h-4 w-4" /> {label}
           <ChevronDown className={cn("ms-1.5 h-3.5 w-3.5 opacity-60 transition", open && "rotate-180")} />
         </Button>
-        {open && (
-          <div role="menu" className="absolute end-0 z-50 mt-1.5 w-72 overflow-hidden rounded-xl border bg-card p-1.5 shadow-xl">
+        <FloatingMenu anchorRef={ref} open={open} onClose={() => setOpen(false)} width={288}>
             <p className="px-2 pb-1 pt-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
               Certificates & letters
             </p>
@@ -263,8 +255,7 @@ export function StudentDocumentsMenu({
                 );
               })}
             </div>
-          </div>
-        )}
+        </FloatingMenu>
       </div>
 
       <Dialog

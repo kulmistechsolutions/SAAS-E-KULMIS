@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { ChevronDown, FileDown, FileSpreadsheet, FileText, FileType2, Loader2, Sheet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { toast } from "@/lib/toast";
 import { ApiError } from "@/lib/api";
 import { EXPORT_FORMATS, exportTable, type ExportFormat, type ExportSpec } from "@/lib/export/table-export";
+import { FloatingMenu } from "@/components/ui/floating-menu";
 
 const ICON = {
   xlsx: { icon: FileSpreadsheet, tone: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" },
@@ -41,19 +42,6 @@ export function ExportMenu({
   const [busy, setBusy] = useState<ExportFormat | null>(null);
   const ref = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (!open) return;
-    const down = (e: MouseEvent) => {
-      if (!ref.current?.contains(e.target as Node)) setOpen(false);
-    };
-    const key = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
-    document.addEventListener("mousedown", down);
-    document.addEventListener("keydown", key);
-    return () => {
-      document.removeEventListener("mousedown", down);
-      document.removeEventListener("keydown", key);
-    };
-  }, [open]);
 
   async function choose(f: ExportFormat) {
     setOpen(false);
@@ -86,11 +74,7 @@ export function ExportMenu({
         {label}
         <ChevronDown className={cn("ms-1.5 h-3.5 w-3.5 opacity-60 transition", open && "rotate-180")} />
       </Button>
-      {open && (
-        <div
-          role="menu"
-          className="absolute end-0 z-50 mt-1.5 w-56 overflow-hidden rounded-xl border bg-card p-1.5 shadow-xl"
-        >
+      <FloatingMenu anchorRef={ref} open={open} onClose={() => setOpen(false)} width={224}>
           {EXPORT_FORMATS.filter((f) => formats.includes(f.id)).map((f) => {
             const { icon: Icon, tone } = ICON[f.id];
             return (
@@ -111,8 +95,7 @@ export function ExportMenu({
               </button>
             );
           })}
-        </div>
-      )}
+      </FloatingMenu>
     </div>
   );
 }
