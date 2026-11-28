@@ -215,6 +215,7 @@ const curated: PartialDictionary = {
     importMarks: "استيراد الدرجات",
     monitoring: "المتابعة",
     examGroups: "مجموعات الامتحانات",
+    examTimetable: "الجدول والقاعات",
     results: "النتائج",
     blockedStudents: "الطلاب الممنوعون",
     promoteStudents: "ترفيع الطلاب",

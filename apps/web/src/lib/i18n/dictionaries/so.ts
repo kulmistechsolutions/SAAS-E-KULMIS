@@ -220,6 +220,7 @@ const curated: PartialDictionary = {
     importMarks: "Soo geli Dhibcaha",
     monitoring: "Kormeerka",
     examGroups: "Kooxaha Imtixaanka",
+    examTimetable: "Jadwalka & Qolalka",
     results: "Natiijooyinka",
     blockedStudents: "Ardayda la Xannibay",
     promoteStudents: "Kor u Qaad Ardayda",

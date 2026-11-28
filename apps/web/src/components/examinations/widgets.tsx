@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation";
 import {
   ArrowRight,
   BarChart3,
+  CalendarClock,
   CheckCircle2,
   Clock,
   FileText,
@@ -104,6 +105,7 @@ const NAV: { label: TranslationKey | string; href: string; icon: LucideIcon }[] 
   { label: "examinationsWidgets.createExam", href: "/examinations/create", icon: Plus },
   { label: "examinationsWidgets.enterMarks", href: "/examinations/marks", icon: PenLine },
   { label: "examinationsWidgets.examGroups", href: "/examinations/groups", icon: Users },
+  { label: "Timetable & Rooms", href: "/examinations/timetable", icon: CalendarClock },
   { label: "examinationsWidgets.publishResults", href: "/examinations/results", icon: UploadCloud },
   { label: "examinationsWidgets.monitoring", href: "/examinations/monitoring", icon: BarChart3 },
   { label: "examinationsWidgets.reports", href: "/examinations/reports", icon: FileText },

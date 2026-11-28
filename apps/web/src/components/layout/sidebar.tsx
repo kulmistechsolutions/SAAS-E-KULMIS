@@ -169,6 +169,7 @@ const EXAM_CHILDREN: NavChild[] = [
   { label: "nav.importMarks", href: "/examinations/marks-import" },
   { label: "nav.monitoring", href: "/examinations/monitoring" },
   { label: "nav.examGroups", href: "/examinations/groups" },
+  { label: "nav.examTimetable", href: "/examinations/timetable" },
   { label: "nav.results", href: "/examinations/results" },
   { label: "nav.blockedStudents", href: "/examinations/blocked" },
   { label: "nav.teacherPortal", href: "/examinations/teacher" },

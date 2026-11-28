@@ -3503,3 +3503,39 @@ enum SchoolDebtStatus {
   SETTLED
   CANCELLED
 }
+
+/// A room exams are sat in: its seats are `rows` × `cols` desks.
+model ExamRoom {
+  id        String   @id @default(cuid())
+  schoolId  String
+  name      String
+  building  String?
+  rows      Int
+  cols      Int
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([schoolId, name])
+  @@index([schoolId])
+  @@map("exam_rooms")
+}
+
+/// An exam timetable — which subject, which classes, which day, from when to
+/// when — and the mixed seating plan for it. Entries and seating are JSON:
+/// they are read and written whole, never queried piece by piece.
+model ExamTimetable {
+  id           String   @id @default(cuid())
+  schoolId     String
+  name         String
+  academicYear String
+  /// [{ id, date, startTime, endTime, subject, classNames[], roomIds[], note }]
+  entries      Json     @default("[]")
+  /// { classNames[], roomIds[], generatedAt, rooms: [{ roomId, seats: (string|null)[][] }] }
+  seating      Json?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([schoolId])
+  @@map("exam_timetables")
+}

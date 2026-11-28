@@ -221,6 +221,7 @@ const core = {
     importMarks: "Import Marks",
     monitoring: "Monitoring",
     examGroups: "Exam Groups",
+    examTimetable: "Timetable & Rooms",
     results: "Results",
     blockedStudents: "Blocked Students",
     promoteStudents: "Promote Students",

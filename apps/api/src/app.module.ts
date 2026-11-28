@@ -35,6 +35,7 @@ import { QueueModule } from "./queue/queue.module";
 import { CopilotModule } from "./copilot/copilot.module";
 import { DocumentsModule } from "./documents/documents.module";
 import { ExaminationsModule } from "./examinations/examinations.module";
+import { ExamScheduleModule } from "./exam-schedule/exam-schedule.module";
 import { PromotionsModule } from "./promotions/promotions.module";
 import { QuizModule } from "./quiz/quiz.module";
 import { AiModule } from "./ai/ai.module";
@@ -96,6 +97,7 @@ import { TenantModule } from "./tenant/tenant.module";
     FinanceModule,
     DashboardModule,
     ExaminationsModule,
+    ExamScheduleModule,
     PromotionsModule,
     QuizModule,
     AiModule,
