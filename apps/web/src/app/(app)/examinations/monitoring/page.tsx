@@ -18,6 +18,7 @@ import {
   ensureAcademicsLoaded,
   getAcademicsState,
 } from "@/lib/academics/store";
+import { ExportMenu } from "@/components/export/export-menu";
 
 export default function ExamMonitoringPage() {
   const t = useT();
@@ -68,12 +69,45 @@ export default function ExamMonitoringPage() {
             {t("examinationsMonitoring.monitorTeacherSubmissionsByClassOpen")}
           </p>
         </div>
-        <Link
-          href="/sms"
-          className="inline-flex h-9 items-center rounded-md border bg-background px-4 text-sm font-medium hover:bg-accent"
-        >
-          {t("examinationsMonitoring.sendSms")}
-        </Link>
+        <div className="flex flex-wrap gap-2">
+          <ExportMenu
+            className="[&>button]:h-9"
+            disabled={rows.length === 0}
+            spec={() => ({
+              title: "Exam Monitoring",
+              fileName: "exam-monitoring",
+              subtitle: [
+                `Academic Year: ${yearName || activeAcademicYear()}${
+                  examId ? ` · Exam: ${exams.find((e) => e.id === examId)?.name ?? ""}` : ""
+                }`,
+              ],
+              columns: [
+                { key: "className", label: "Class" },
+                { key: "sections", label: "Sections", align: "right" },
+                { key: "students", label: "Students", align: "right" },
+                { key: "subjects", label: "Subjects", align: "right" },
+                { key: "submitted", label: "Submitted", align: "right" },
+                { key: "pending", label: "Pending", align: "right" },
+                { key: "status", label: "Status" },
+              ],
+              rows: rows.map((r) => ({
+                className: r.className,
+                sections: r.sectionCount,
+                students: r.studentCount,
+                subjects: r.subjectCount,
+                submitted: r.submitted,
+                pending: r.pending,
+                status: r.status,
+              })),
+            })}
+          />
+          <Link
+            href="/sms"
+            className="inline-flex h-9 items-center rounded-md border bg-background px-4 text-sm font-medium hover:bg-accent"
+          >
+            {t("examinationsMonitoring.sendSms")}
+          </Link>
+        </div>
       </div>
 
       <div className="flex flex-wrap gap-3 rounded-xl border bg-card p-4">

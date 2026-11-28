@@ -22,6 +22,7 @@ import {
 } from "@/lib/academics/store";
 import { shortDate } from "@/lib/examinations/format";
 import { toast } from "@/lib/toast";
+import { ExportMenu } from "@/components/export/export-menu";
 
 export default function BlockedStudentsPage() {
   const t = useT();
@@ -81,11 +82,42 @@ export default function BlockedStudentsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">{t("examinationsBlocked.blockedStudents")}</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {t("examinationsBlocked.blockStudentsFromViewingPublishedResults")}
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold">{t("examinationsBlocked.blockedStudents")}</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {t("examinationsBlocked.blockStudentsFromViewingPublishedResults")}
+          </p>
+        </div>
+        <ExportMenu
+          disabled={filtered.length === 0}
+          spec={() => ({
+            title: "Blocked Students",
+            fileName: "blocked-students",
+            subtitle: [`${filtered.length} student(s) blocked from viewing results`],
+            columns: [
+              { key: "code", label: "Student ID" },
+              { key: "name", label: "Student" },
+              { key: "cls", label: "Class" },
+              { key: "reason", label: "Reason" },
+              { key: "year", label: "Academic Year" },
+              { key: "by", label: "Blocked By" },
+              { key: "at", label: "Blocked On" },
+            ],
+            rows: filtered.map((b) => {
+              const st = students.find((s) => s.id === b.studentId);
+              return {
+                code: st?.code ?? "",
+                name: st?.fullName ?? "",
+                cls: st ? [st.className, st.section].filter(Boolean).join(" - ") : "",
+                reason: b.reason,
+                year: b.academicYear,
+                by: b.blockedBy,
+                at: b.blockedAt ? b.blockedAt.slice(0, 10) : "",
+              };
+            }),
+          })}
+        />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">

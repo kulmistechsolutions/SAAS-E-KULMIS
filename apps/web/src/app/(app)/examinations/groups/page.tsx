@@ -18,6 +18,7 @@ import { apiDownloadGroupResultsExcel, apiDownloadGroupResultsPdf } from "@/lib/
 import { AcademicYearSelect } from "@/components/academics/academic-year-select";
 import { useAcademicYearSelect } from "@/lib/academics/year-select";
 import { toast } from "@/lib/toast";
+import { ExportMenu } from "@/components/export/export-menu";
 
 export default function ExamGroupsPage() {
   const t = useT();
@@ -210,11 +211,38 @@ export default function ExamGroupsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">{t("examinationsGroups.examGroups")}</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {t("examinationsGroups.combineMultipleExaminationsIntoWeightedFinal")}
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold">{t("examinationsGroups.examGroups")}</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {t("examinationsGroups.combineMultipleExaminationsIntoWeightedFinal")}
+          </p>
+        </div>
+        <ExportMenu
+          disabled={examGroups.length === 0}
+          spec={() => ({
+            title: "Exam Groups",
+            fileName: "exam-groups",
+            subtitle: [`${examGroups.length} group(s)`],
+            columns: [
+              { key: "name", label: "Group" },
+              { key: "year", label: "Academic Year" },
+              { key: "count", label: "Exams", align: "right" },
+              { key: "exams", label: "Exams in the group" },
+              { key: "description", label: "Description" },
+            ],
+            rows: examGroups.map((g) => {
+              const inGroup = exams.filter((e) => e.examGroupId === g.id);
+              return {
+                name: g.name,
+                year: g.academicYear,
+                count: inGroup.length,
+                exams: inGroup.map((e) => `${e.name} (${e.className})`).join(", "),
+                description: g.description ?? "",
+              };
+            }),
+          })}
+        />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
