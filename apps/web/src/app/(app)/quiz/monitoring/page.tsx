@@ -8,6 +8,7 @@ import { apiQuizMonitoring, type QuizMonitoringResponse } from "@/lib/quiz/api";
 import { QuizStatusBadge } from "@/components/quiz/status-badge";
 import type { QuizStatus } from "@/lib/quiz/types";
 import { toast } from "@/lib/toast";
+import { ExportMenu } from "@/components/export/export-menu";
 
 const STATUS_MAP: Record<string, QuizStatus> = {
   DRAFT: "DRAFT",
@@ -40,11 +41,43 @@ export default function QuizMonitoringPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">{t("quizMonitoring.teacherQuizMonitoring")}</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {t("quizMonitoring.monitorAllTeacherCreatedOnlineQuizzes")}
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold">{t("quizMonitoring.teacherQuizMonitoring")}</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {t("quizMonitoring.monitorAllTeacherCreatedOnlineQuizzes")}
+          </p>
+        </div>
+        <ExportMenu
+          disabled={quizzes.length === 0}
+          spec={() => ({
+            title: "Teacher Quiz Monitoring",
+            fileName: "quiz-monitoring",
+            subtitle: [
+              `${summary.totalQuizzes} quizzes · ${summary.published} published · ${summary.draft} draft · ${summary.closed} closed · ${summary.totalAttempts} attempts`,
+            ],
+            columns: [
+              { key: "teacher", label: "Teacher" },
+              { key: "code", label: "Code" },
+              { key: "title", label: "Quiz" },
+              { key: "cls", label: "Class / Section" },
+              { key: "subject", label: "Subject" },
+              { key: "attempts", label: "Attempts", align: "right" },
+              { key: "avg", label: "Avg Score %", align: "right" },
+              { key: "status", label: "Status" },
+            ],
+            rows: quizzes.map((q) => ({
+              teacher: q.teacherName,
+              code: q.code,
+              title: q.title,
+              cls: `${q.className}${q.section ? ` · ${q.section}` : ""}`,
+              subject: q.subject ?? "",
+              attempts: q.attemptCount,
+              avg: q.averageScore,
+              status: q.status,
+            })),
+          })}
+        />
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">

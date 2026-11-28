@@ -12,6 +12,7 @@ import { QuizStatusBadge } from "@/components/quiz/status-badge";
 import { dashboardSummary, listQuizzes, useQuizState } from "@/lib/quiz/store";
 import { shortDate } from "@/lib/quiz/format";
 import { useHydrated } from "@/lib/use-hydrated";
+import { ExportMenu } from "@/components/export/export-menu";
 
 const QUICK = [
   { href: "/quiz/list", label: "All Quizzes", desc: "Search and manage quizzes", icon: ClipboardList },
@@ -88,7 +89,33 @@ export default function QuizDashboardPage() {
       <div className="rounded-xl border bg-card shadow-sm">
         <div className="flex items-center justify-between border-b px-4 py-3">
           <h2 className="font-semibold">{t("quiz.recentQuizzes")}</h2>
-          <Link href="/quiz/list" className="text-xs font-medium text-primary hover:underline">{t("quiz.viewAll")}</Link>
+          <div className="flex items-center gap-3">
+            <ExportMenu
+              className="[&>button]:h-8 [&>button]:text-xs"
+              disabled={recent.length === 0}
+              spec={() => ({
+                title: "Recent Quizzes",
+                fileName: "recent-quizzes",
+                columns: [
+                  { key: "code", label: "Code" },
+                  { key: "title", label: "Quiz" },
+                  { key: "cls", label: "Class / Section" },
+                  { key: "teacher", label: "Teacher" },
+                  { key: "status", label: "Status" },
+                  { key: "attempts", label: "Attempts", align: "right" },
+                ],
+                rows: recent.map((r) => ({
+                  code: r.code,
+                  title: r.title,
+                  cls: `${r.className} — ${r.section}`,
+                  teacher: r.teacherName,
+                  status: r.status,
+                  attempts: r.attemptCount,
+                })),
+              })}
+            />
+            <Link href="/quiz/list" className="text-xs font-medium text-primary hover:underline">{t("quiz.viewAll")}</Link>
+          </div>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">

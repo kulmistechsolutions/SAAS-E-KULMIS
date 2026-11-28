@@ -42,6 +42,7 @@ import {
   quizDirectionSetting,
   type DirectionSetting,
 } from "@ekulmis/shared";
+import { ExportMenu } from "@/components/export/export-menu";
 
 export default function QuizBuilderPage({ params }: { params: Promise<{ id: string }> }) {
   const tr = useT();
@@ -236,6 +237,34 @@ export default function QuizBuilderPage({ params }: { params: Promise<{ id: stri
             </Button>
           </Link>
           <Link href={`${quizBase}/${quiz.id}/results`}><Button variant="outline" className="h-9">{tr("quiz.results")}</Button></Link>
+          <ExportMenu
+            label="Questions"
+            className="[&>button]:h-9"
+            disabled={questions.length === 0}
+            spec={() => ({
+              title: `${quiz.title} — Questions`,
+              fileName: `quiz-${quiz.code}-questions`,
+              subtitle: [
+                `${quiz.code} · ${questions.length} question(s)`,
+              ],
+              columns: [
+                { key: "q", label: "Question" },
+                { key: "type", label: "Type" },
+                { key: "options", label: "Options" },
+                { key: "answer", label: "Answer" },
+                { key: "marks", label: "Marks", align: "right" },
+              ],
+              rows: questions.map((q) => ({
+                q: q.question,
+                type: q.questionType.replace(/_/g, " "),
+                options: q.pairs.length
+                  ? q.pairs.map((p) => `${p.left} → ${p.right}`).join("; ")
+                  : q.options.filter(Boolean).join("; "),
+                answer: q.blanks.length ? q.blanks.join("; ") : q.correctAnswer,
+                marks: q.marks,
+              })),
+            })}
+          />
           {!isDraft && (
             <Link href={`${quizBase}/${quiz.id}/live`}><Button variant="outline" className="h-9">{tr("quiz.liveMonitor")}</Button></Link>
           )}
